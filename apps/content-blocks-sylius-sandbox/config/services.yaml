@@ -29,6 +29,10 @@ services:
     ContentBlocks\Security\AccessCheckerInterface:
         class: ContentBlocks\Security\AllowAllAccessChecker
 
+    # Maps a ContentArea to its public URL (used by the iframe preview)
+    ContentBlocks\Preview\ContentAreaUrlResolverInterface:
+        class: App\Preview\PageContentAreaUrlResolver
+
     # Local file storage for ContentBlocks uploads
     ContentBlocks\Kit\Storage\FileStorageInterface:
         class: ContentBlocks\Kit\Storage\LocalFileStorage

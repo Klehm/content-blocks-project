@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ page.title }}{% endblock %}
+
+{% block body %}
+    <article class="container my-4">
+        <h1>{{ page.title }}</h1>
+        {% if page.contentArea %}
+            {{ cb_render_content_area(page.contentArea) }}
+        {% endif %}
+    </article>
+{% endblock %}

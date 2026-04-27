@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
+use ContentBlocks\Preview\NullContentAreaUrlResolver;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\DenyAllAccessChecker;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -19,6 +21,10 @@ return static function (ContainerConfigurator $container): void {
     // Default: deny all access. Host app must override with its own implementation.
     $services->set(DenyAllAccessChecker::class);
     $services->alias(AccessCheckerInterface::class, DenyAllAccessChecker::class);
+
+    // Default: throws on resolve. Host app must override with its own implementation.
+    $services->set(NullContentAreaUrlResolver::class);
+    $services->alias(ContentAreaUrlResolverInterface::class, NullContentAreaUrlResolver::class);
 
     $services->load('ContentBlocks\\Twig\\Component\\', '../src/Twig/Component/')
         ->tag('twig.component');

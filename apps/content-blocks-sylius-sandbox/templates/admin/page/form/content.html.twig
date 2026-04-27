@@ -32,8 +32,11 @@
                 {% if resource and resource.contentArea %}
                 <div class="tab-pane" id="tab-builder" role="tabpanel">
                     <div class="card mb-3">
-                        <div class="card-body p-0">
-                            {{ component('ContentBlocks:ContentAreaBuilder', { contentAreaId: resource.contentArea.id }) }}
+                        <div class="card-body">
+                            {% include '@ContentBlocks/builder/launcher.html.twig' with {
+                                area: resource.contentArea,
+                                iframeUrl: cb_preview_url(resource.contentArea),
+                            } only %}
                         </div>
                     </div>
                 </div>

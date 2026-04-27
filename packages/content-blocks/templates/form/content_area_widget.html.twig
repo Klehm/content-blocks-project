@@ -1,4 +1,4 @@
 {% block content_area_widget %}
     {{ form_widget(form) }}
-    {% include '@ContentBlocks/builder/launcher.html.twig' with { area: content_area } %}
+    {% include '@ContentBlocks/builder/launcher.html.twig' with { area: content_area, iframeUrl: cb_preview_url(content_area) } only %}
 {% endblock %}

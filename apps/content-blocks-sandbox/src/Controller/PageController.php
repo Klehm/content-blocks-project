@@ -49,7 +49,7 @@ final class PageController
         return new Response('', 302, ['Location' => '/admin/page/' . $page->getId()]);
     }
 
-    #[Route('/admin/page/{id}', name: 'app_page_builder')]
+    #[Route('/admin/page/{id}', name: 'app_page_builder', requirements: ['id' => '\d+'])]
     public function builder(int $id): Response
     {
         $page = $this->em->find(Page::class, $id);
@@ -59,6 +59,20 @@ final class PageController
         }
 
         return new Response($this->twig->render('page/builder.html.twig', [
+            'page' => $page,
+        ]));
+    }
+
+    #[Route('/page/{id}', name: 'app_page_show', requirements: ['id' => '\d+'])]
+    public function show(int $id): Response
+    {
+        $page = $this->em->find(Page::class, $id);
+
+        if (!$page) {
+            return new Response('Page not found', 404);
+        }
+
+        return new Response($this->twig->render('page/show.html.twig', [
             'page' => $page,
         ]));
     }
