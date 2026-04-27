@@ -92,20 +92,24 @@ Tu cliques "Modifier le contenu" sur `/admin/page/1` → un `<dialog>` plein éc
 
 ---
 
-## Étape 3 — `ContentAreaPublisher` (publish + discard)
+## Étape 3 — `ContentAreaPublisher` (publish + discard) ✅
 
-**Nouveau** : `src/Service/ContentAreaPublisher.php`.
+**Fichier** : `src/Service/ContentAreaPublisher.php`.
 
-- [ ] `publish(ContentArea $area)` : walk sections → columns → blocks, applique :
-  - si entité `deleted` ⇒ `em->remove()` (cascade Doctrine s'occupe du reste)
-  - sinon : sync position depuis previewPosition, sync data depuis draft (Block uniquement)
+- [x] `publish(ContentArea $area)` : walk sections → columns → blocks, applique :
+  - si entité `deleted` ⇒ `em->remove()` (cascade Doctrine s'occupe des descendants)
+  - sinon : sync position depuis previewPosition, sync data depuis draft (Block uniquement via `Block::publish()`)
   - flush
-- [ ] `discardDraft(ContentArea $area)` : revert tous les flags draft (previewPosition ← position, draftData ← null, deleted ← false). Cas particulier : si entité jamais publiée (Block avec `publishedData === null`, ou Section/Column avec un flag `hasBeenPublished`), supprimer ; sinon revert.
-- [ ] Décision V1 : pour Section/Column, on ajoute pas de flag `hasBeenPublished`. Discard = remettre les flags draft à neutre. Une section ajoutée puis non-publiée puis discardée = on la `em->remove()` si `position === 0 && previewPosition !== 0` (heuristique acceptable). À reconsidérer si trop fragile.
-- [ ] Tests PHPUnit avec données fixturées : publish d'un area complexe (mix de blocs deleted, draft, ajoutés), discard idem.
-- [ ] Pas encore wiré à l'UI.
+- [x] `discardDraft(ContentArea $area)` : 
+  - Block avec `publishedData === null` ⇒ `em->remove()` (jamais publié)
+  - autres entités ⇒ `revertDraft()` (clear flags + previewPosition ← position + deleted ← false)
+- [x] Service enregistré dans `config/services.php`
+- [x] Tests PHPUnit (10 tests) avec EM mocké : publish copie/sync, removes deleted (Section/Column/Block), arbre mixte ; discard reverts, removes never-published blocks, clears deleted flags.
+- [x] Pas encore wiré à l'UI (phase 4).
 
-**Critère** : tests verts. Le service est appelable depuis un test mais aucun controller ne l'invoque encore.
+**Limitation V1 connue** : Section/Column ajoutée puis discardée n'est PAS supprimée (pas de flag `hasBeenPublished` sur ces entités, contrairement à Block qui s'appuie sur `publishedData === null`). À reconsidérer en phase 3 quand le wire-up "add section" landera — soit ajouter le flag, soit utiliser une heuristique (e.g. `position === 0 && previewPosition !== 0` couplée à un flag d'identité côté JS).
+
+**Critère** : 10 tests verts, suite complète à 51 tests. Service appelable depuis tout autoload mais aucun controller ne l'invoque encore.
 
 ---
 
@@ -248,7 +252,7 @@ Tu cliques "Modifier le contenu" sur `/admin/page/1` → un `<dialog>` plein éc
 1. `chore(content-blocks): remove obsolete tests` ✅
 2. `feat(content-blocks): add draft/published columns to Block, Section, Column` (étape 1) ✅
 3. `feat(content-blocks): RenderMode enum + BlockRenderer service` (étape 2) ✅
-4. `feat(content-blocks): ContentAreaPublisher (publish + discard)` (étape 3)
+4. `feat(content-blocks): ContentAreaPublisher (publish + discard)` (étape 3) ✅
 6. `refactor(content-blocks): BlockComponent writes to draftData, form-only template` (étape 4)
 7. `chore(content-blocks): remove builder Live Components + Stimulus controllers` (étape 5)
 8. `feat(content-blocks): builder shell — launcher button + dialog + iframe` (étape 6)

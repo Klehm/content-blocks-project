@@ -28,6 +28,8 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(\ContentBlocks\Rendering\BlockRenderer::class);
 
+    $services->set(\ContentBlocks\Service\ContentAreaPublisher::class);
+
     $services->load('ContentBlocks\\Form\\', '../src/Form/');
 
     $services->load('ContentBlocks\\Controller\\', '../src/Controller/')
