@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Builder — {{ page.title }}{% endblock %}
+
+{% block body %}
+    <a href="/" class="btn btn-outline-secondary btn-sm mb-3">&larr; Back</a>
+
+    {% if page.contentArea %}
+        {{ component('ContentBlocks:ContentAreaBuilder', { contentAreaId: page.contentArea.id }) }}
+    {% else %}
+        <p class="text-muted">ContentArea not available.</p>
+    {% endif %}
+{% endblock %}

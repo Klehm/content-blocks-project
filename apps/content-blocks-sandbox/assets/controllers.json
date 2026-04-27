@@ -1,0 +1,22 @@
+{
+    "controllers": {
+        "@symfony/ux-live-component": {
+            "live": {
+                "enabled": true,
+                "fetch": "eager",
+                "autoimport": {
+                    "@symfony/ux-live-component/dist/live.min.css": true
+                }
+            }
+        },
+        "@klehm/content-blocks": {
+            "cb-sortable": { "enabled": true, "fetch": "eager" },
+            "cb-section-move": { "enabled": true, "fetch": "eager" },
+            "cb-block-drag": { "enabled": true, "fetch": "eager" }
+        },
+        "@klehm/content-blocks-kit": {
+            "cb-file-upload": { "enabled": true, "fetch": "eager" }
+        }
+    },
+    "entrypoints": []
+}

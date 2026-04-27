@@ -1,0 +1,20 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+
+    # Override ContentBlocks default (DenyAll) for sandbox development
+    ContentBlocks\Security\AccessCheckerInterface:
+        class: ContentBlocks\Security\AllowAllAccessChecker
+
+    # Local file storage for ContentBlocks uploads
+    ContentBlocks\Kit\Storage\FileStorageInterface:
+        class: ContentBlocks\Kit\Storage\LocalFileStorage
+        arguments:
+            $uploadDir: '%kernel.project_dir%/public/uploads/content-blocks'
+            $publicPrefix: '/uploads/content-blocks'

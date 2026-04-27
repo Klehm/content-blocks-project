@@ -1,0 +1,13 @@
+framework:
+    secret: '%env(APP_SECRET)%'
+    http_method_override: false
+    handle_all_throwables: true
+    session: true
+    csrf_protection:
+        enabled: true
+    php_errors:
+        log: true
+    asset_mapper:
+        paths:
+            - assets/
+            - vendor/klehm/content-blocks/assets/controllers
