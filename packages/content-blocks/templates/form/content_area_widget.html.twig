@@ -1,4 +1,4 @@
 {% block content_area_widget %}
     {{ form_widget(form) }}
-    {{ component('ContentBlocks:ContentAreaBuilder', { contentAreaId: content_area_id }) }}
+    {# Builder UI is rendered by step 6 (cb-builder-launcher + dialog + shell). #}
 {% endblock %}
