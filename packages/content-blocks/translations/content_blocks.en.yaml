@@ -1,0 +1,16 @@
+cb:
+    section:
+        label: "Section %index% — %layout%"
+        add: "Add a section:"
+        move_up: "Move up"
+        move_down: "Move down"
+        remove: "Remove"
+        layout:
+            one_col: "1 column"
+            two_cols: "2 columns"
+            three_cols: "3 columns"
+    block:
+        add: "+ Block"
+        edit: "Edit"
+        save: "Save"
+        cancel: "Cancel"

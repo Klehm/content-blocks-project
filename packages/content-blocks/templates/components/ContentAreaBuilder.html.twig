@@ -1,0 +1,58 @@
+<div{{ attributes }}>
+    <div class="cb-content-area-builder"
+         data-controller="cb-block-drag"
+         data-cb-csrf-token="{{ csrf_token('content_blocks') }}">
+        <div class="cb-content-area-builder__sections"
+             data-controller="cb-section-move">
+
+            {% for section in this.contentArea.sections %}
+                <div class="cb-section" id="section-{{ section.id }}" data-sort-id="{{ section.id }}" data-layout="{{ section.layout }}">
+                    <div class="cb-section__toolbar">
+                        <span class="cb-section__label">
+                            <span class="cb-section__handle" style="cursor: grab; margin-right: .4rem;">&#9776;</span>
+                            {{ 'cb.section.label'|trans({'%index%': loop.index, '%layout%': section.layout}, 'content_blocks') }}
+                        </span>
+                        <div class="cb-section__actions">
+                            <button type="button"
+                                    data-action="cb-section-move#moveUp"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    title="{{ 'cb.section.move_up'|trans({}, 'content_blocks') }}">&#9650;</button>
+                            <button type="button"
+                                    data-action="cb-section-move#moveDown"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    title="{{ 'cb.section.move_down'|trans({}, 'content_blocks') }}">&#9660;</button>
+                            <button type="button"
+                                    data-action="cb-section-move#removeSection"
+                                    class="btn btn-sm btn-outline-danger"
+                                    title="{{ 'cb.section.remove'|trans({}, 'content_blocks') }}">&#10005;</button>
+                        </div>
+                    </div>
+
+                    <div class="cb-section__columns row">
+                        {% for column in section.columns %}
+                            <div class="{{ column.preset }}">
+                                {{ component('ContentBlocks:Column', { columnId: column.id }) }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="cb-content-area-builder__add-section">
+            <span>{{ 'cb.section.add'|trans({}, 'content_blocks') }}</span>
+            <button type="button" data-action="live#action"
+                    data-live-action-param="addSection"
+                    data-live-layout-param="{{ constant('ContentBlocks\\Entity\\Section::LAYOUT_FULL') }}"
+                    class="btn btn-outline-primary btn-sm">{{ 'cb.section.layout.one_col'|trans({}, 'content_blocks') }}</button>
+            <button type="button" data-action="live#action"
+                    data-live-action-param="addSection"
+                    data-live-layout-param="{{ constant('ContentBlocks\\Entity\\Section::LAYOUT_TWO_COLS') }}"
+                    class="btn btn-outline-primary btn-sm">{{ 'cb.section.layout.two_cols'|trans({}, 'content_blocks') }}</button>
+            <button type="button" data-action="live#action"
+                    data-live-action-param="addSection"
+                    data-live-layout-param="{{ constant('ContentBlocks\\Entity\\Section::LAYOUT_THREE_COLS') }}"
+                    class="btn btn-outline-primary btn-sm">{{ 'cb.section.layout.three_cols'|trans({}, 'content_blocks') }}</button>
+        </div>
+    </div>
+</div>

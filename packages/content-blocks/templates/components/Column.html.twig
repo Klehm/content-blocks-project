@@ -1,0 +1,35 @@
+<div{{ attributes }}>
+    <div class="cb-column">
+        <div class="cb-column__blocks"
+             data-cb-block-drop-target
+             data-column-id="{{ this.column.id }}">
+
+            {% for block in this.column.blocks %}
+                {{ component('ContentBlocks:Block', {
+                    blockId: block.id,
+                    editing: block.id == this.lastAddedBlockId,
+                }) }}
+            {% endfor %}
+        </div>
+
+        <div class="cb-column__add-block dropdown">
+            <button class="btn btn-sm btn-outline-success dropdown-toggle"
+                    type="button"
+                    data-bs-toggle="dropdown">
+                {{ 'cb.block.add'|trans({}, 'content_blocks') }}
+            </button>
+            <ul class="dropdown-menu">
+                {% for type, label in this.blockTypes %}
+                    <li>
+                        <button type="button" class="dropdown-item"
+                                data-action="live#action"
+                                data-live-action-param="addBlock"
+                                data-live-type-param="{{ type }}">
+                            {{ label|trans({}, 'content_blocks_kit') }}
+                        </button>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>

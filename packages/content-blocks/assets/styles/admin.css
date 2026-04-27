@@ -1,0 +1,49 @@
+/* ContentBlocks — Admin styles */
+
+.cb-content-area-builder {
+    max-width: 960px;
+    margin: 2rem auto;
+}
+
+.cb-section {
+    border: 2px dashed #dee2e6;
+    border-radius: .5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.cb-section__toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: .5rem;
+}
+
+.cb-column {
+    min-height: 80px;
+    border: 1px solid #e9ecef;
+    border-radius: .25rem;
+    padding: .5rem;
+}
+
+.cb-dragging {
+    opacity: 0.4;
+}
+
+.cb-drag-over {
+    border-color: #0d6efd !important;
+}
+
+.cb-content-area-builder__add-section {
+    text-align: center;
+    padding: 1rem;
+}
+
+.cb-admin-preview {
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.cb-admin-preview .card-body {
+    background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+}

@@ -1,0 +1,33 @@
+{
+    "name": "@klehm/content-blocks",
+    "description": "Modular page builder for Symfony.",
+    "license": "MIT",
+    "symfony": {
+        "controllers": {
+            "cb-sortable": {
+                "main": "controllers/cb-sortable_controller.js",
+                "name": "cb-sortable",
+                "fetch": "eager",
+                "enabled": true
+            },
+            "cb-section-move": {
+                "main": "controllers/cb-section-move_controller.js",
+                "name": "cb-section-move",
+                "fetch": "eager",
+                "enabled": true
+            },
+            "cb-block-drag": {
+                "main": "controllers/cb-block-drag_controller.js",
+                "name": "cb-block-drag",
+                "fetch": "eager",
+                "enabled": true
+            }
+        },
+        "importmap": {
+            "@hotwired/stimulus": "^3.0.0"
+        }
+    },
+    "peerDependencies": {
+        "@hotwired/stimulus": "^3.0.0"
+    }
+}

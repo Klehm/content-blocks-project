@@ -1,0 +1,9 @@
+<div class="cb-section">
+    <div class="cb-section__columns row">
+        {% for column in section.columns %}
+            <div class="{{ column.preset }}">
+                {{ component('ContentBlocks:Column', { columnId: column.id }) }}
+            </div>
+        {% endfor %}
+    </div>
+</div>
