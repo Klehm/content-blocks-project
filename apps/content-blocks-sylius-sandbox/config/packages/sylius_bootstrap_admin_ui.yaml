@@ -1,0 +1,18 @@
+imports:
+    - { resource: '@SyliusBootstrapAdminUiBundle/config/app.php' }
+
+sylius_twig_hooks:
+    hooks:
+        'sylius_admin.page.create.content.form.sections':
+            general:
+                enabled: false
+            page_form:
+                template: 'admin/page/form/content.html.twig'
+                priority: 0
+
+        'sylius_admin.page.update.content.form.sections':
+            general:
+                enabled: false
+            page_form:
+                template: 'admin/page/form/content.html.twig'
+                priority: 0
