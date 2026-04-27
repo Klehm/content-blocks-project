@@ -134,143 +134,164 @@ Tu cliques "Modifier le contenu" sur `/admin/page/1` → un `<dialog>` plein éc
 
 ---
 
-## Étape 5 — Suppression des composants obsolètes
+## Étape 5 — Suppression des composants obsolètes ✅
 
-**Fichiers supprimés** :
+**Fichiers supprimés** (~1000 lignes) :
 
-- [ ] `src/Twig/Component/ContentAreaBuilderComponent.php` + `templates/components/ContentAreaBuilder.html.twig`
-- [ ] `src/Twig/Component/ColumnComponent.php` + `templates/components/Column.html.twig`
-- [ ] `src/Twig/Component/SectionComponent.php` + `templates/components/Section.html.twig`
-- [ ] `assets/controllers/cb-sortable_controller.js`
-- [ ] `assets/controllers/cb-section-move_controller.js`
-- [ ] `assets/controllers/cb-block-drag_controller.js`
-- [ ] `assets/controllers/cb-block-edit-keys_controller.js` — **conservé** : utile dans la sidebar (raccourcis Enter/Escape sur le form). Réutilisé tel quel par le template form-only de l'étape 4.
-- [ ] `src/Controller/SectionController.php` — endpoint reorder/move retirés (les ops layout passent en phase 3 via nouveaux endpoints)
-- [ ] Nettoyage des routes correspondantes dans `config/routes.php`
-- [ ] Vérifier qu'on ne casse pas `BlockController.php` (qui sert à `move` block et `upload`) — garder `upload`, supprimer `move` (réintroduit en phase 3).
+- [x] `src/Twig/Component/ContentAreaBuilderComponent.php` + `templates/components/ContentAreaBuilder.html.twig`
+- [x] `src/Twig/Component/ColumnComponent.php` + `templates/components/Column.html.twig`
+- [x] `src/Twig/Component/SectionComponent.php` + `templates/components/Section.html.twig`
+- [x] `assets/controllers/cb-sortable_controller.js`
+- [x] `assets/controllers/cb-section-move_controller.js`
+- [x] `assets/controllers/cb-block-drag_controller.js`
+- [x] `assets/controllers/cb-block-edit-keys_controller.js` — **conservé** (reused in sidebar).
+- [x] `src/Controller/SectionController.php` — supprimé (reorder/move/delete tous obsolètes)
+- [x] `src/Controller/BlockController.php` — supprimé (avait juste `/move` ; pas d'`/upload` ici, c'est dans content-blocks-kit). Phase 3 réintroduira des endpoints draft-aware.
+- [x] Form widget passé à un placeholder vide (`form_widget(form)` seul) en attendant l'étape 6
+- [x] `apps/*/public/assets/` purgés pour forcer AssetMapper à re-résoudre depuis les sources
 
-**Critère** : `composer dump-autoload && php bin/console cache:clear` propre. Pas d'erreur de référence morte. Le builder actuel est cassé visuellement (c'est attendu, on le remplace dans les étapes suivantes).
+**Critère** : `cache:clear` propre dans les 2 sandboxes ✅. Tests à 54 verts ✅.
 
 ---
 
-## Étape 6 — Form widget = launcher + `<dialog>` + shell
+## Étape 6 — Form widget = launcher + `<dialog>` + shell ✅
 
-**Fichiers touchés/nouveaux** : `templates/form/content_area_widget.html.twig`, nouveau `templates/builder/shell.html.twig`, nouveau `assets/controllers/cb-builder-launcher_controller.js`.
+**Fichiers** : `templates/form/content_area_widget.html.twig`, nouveau `templates/builder/launcher.html.twig`, nouveau `templates/builder/shell.html.twig`, nouveau `assets/controllers/cb-builder-launcher_controller.js`, refonte `assets/styles/admin.css`.
 
-- [ ] `content_area_widget.html.twig` :
-  - bouton "Modifier le contenu" + badge "Brouillon en attente" si `area.hasUnpublishedChanges`
-  - `<dialog>` avec lazy iframe (src vide initial, set par le launcher à l'open)
-  - data-controller `cb-builder-launcher`
-- [ ] `shell.html.twig` :
-  - topbar : "Publier" + "Annuler les modifications" + viewport switch (mockup, pas wiré)
-  - main : `<iframe data-cb-builder-target="iframe">` + `<aside data-cb-builder-target="sidebar" hidden></aside>`
-  - footer : "Ajouter une section" + 3 boutons (1/2/3 colonnes)
+- [x] `launcher.html.twig` (séparé du form widget pour pouvoir l'inclure depuis n'importe quel template host) : bouton "Modifier le contenu" + badge "Brouillon en attente" si `area.hasUnpublishedChanges` + `<dialog>` qui contient le shell.
+- [x] `content_area_widget.html.twig` : pour les forms Symfony, rend `form_widget(form)` puis include `launcher.html.twig`.
+- [x] `shell.html.twig` :
+  - topbar : close (×) + viewport switcher (3 boutons desktop/tablet/mobile) + Discard + Publish
+  - main : `<iframe>` + `<aside>` sidebar slot (collapsed en V1)
+  - footer : "Add section" + 3 boutons (1/2/3 colonnes)
   - data-controller `cb-builder` avec `data-cb-builder-area-id-value`, `data-cb-builder-iframe-url-value`
-- [ ] Stimulus `cb-builder-launcher_controller.js` :
-  - `open()` : set iframe src + `dialog.showModal()`
-  - `close()` : prompt si dirty (sidebar en cours d'édition), sinon `dialog.close()`
-- [ ] CSS minimal pour le dialog (plein écran, layout topbar/main/footer)
+- [x] Stimulus `cb-builder-launcher_controller.js` :
+  - `open()` : lazy-set `iframe.src` (pas avant l'open) puis `dialog.showModal()`
+  - `close()` : `dialog.close()` (le confirm-if-dirty viendra en phase 2 quand la sidebar est wirée)
+- [x] CSS minimal pour le dialog (fullscreen `100vw/100vh`, grid topbar/main/footer)
+- [x] Sandboxes : import `'@klehm/content-blocks/styles/admin.css'` ajouté dans `assets/app.js` (et déclaré dans `importmap.php` pour qu'AssetMapper le résolve)
 
-**Critère** : ouvrir `/admin/page/1`, cliquer "Modifier le contenu" → `<dialog>` ouvre, iframe charge l'URL preview. Aucun comportement runtime au-delà.
+**Décision** : iframe URL en placeholder `about:blank` à l'étape 6, remplacé par `cb_preview_url(area)` à l'étape 7 (les deux étapes commits séparés).
 
----
-
-## Étape 7 — Preview URL resolver + intégration sandboxes
-
-**Nouveaux** : `src/Preview/ContentAreaPreviewUrlResolverInterface.php`, `src/Preview/NullContentAreaPreviewUrlResolver.php`, Twig function `cb_preview_url`.
-
-- [ ] Interface : `resolve(ContentArea $area): string` — retourne l'URL frontale qui rend le contenu (sans le `?cb_preview=1`, c'est `BlockRenderer` qui l'ajoutera côté request).
-- [ ] `NullContentAreaPreviewUrlResolver` : throws "implement this in your app".
-- [ ] Twig function `cb_preview_url(area)` qui appelle le resolver et append `?cb_preview=1` automatiquement.
-- [ ] Sandbox Symfony :
-  - implémente le resolver dans `src/Preview/PagePreviewUrlResolver.php` qui retourne l'URL `app_page_show` (route à créer si absente)
-  - route `/page/{id}` qui rend la page avec `{{ cb_render_content_area(page.contentArea) }}` dans un layout front
-  - bind l'interface dans `services.yaml`
-- [ ] Sandbox Sylius : idem, en s'appuyant sur le pattern Sylius `PageController`.
-- [ ] Test e2e Playwright : ouvrir le builder via le launcher dans la sandbox, vérifier que l'iframe charge bien l'URL `/page/1?cb_preview=1`.
-
-**Critère** : iframe affiche le contenu de la Page avec son thème, pas le shell admin. Markers `data-cb-block-id` présents. Script overlay chargé.
+**Critère** : `cache:clear` clean ✅, tests verts ✅.
 
 ---
 
-## Étape 8 — Stimulus `cb-builder` (handshake parent ↔ iframe)
+## Étape 7 — Preview URL resolver + intégration sandboxes ✅
 
-**Nouveau** : `assets/controllers/cb-builder_controller.js`.
+**Fichiers** : `src/Preview/ContentAreaUrlResolverInterface.php`, `src/Preview/NullContentAreaUrlResolver.php`, mise à jour de `ContentBlocksExtension`, des sandboxes (controller + template + service binding).
 
-- [ ] Targets : `iframe`, `sidebar`
-- [ ] Values : `areaId: Number`, `iframeUrl: String`
-- [ ] À la connexion, listen `window.addEventListener('message', this._onMessage)` avec origin check (`event.origin === window.location.origin`).
-- [ ] Handlers (juste log + dispatch d'event JS) :
-  - `cb:ready` (iframe prête)
-  - `cb:block:edit` { blockId } → log
-  - `cb:block:add-requested` { columnId, blockType } → log
-  - `cb:block:delete-requested` { blockId } → log
-  - `cb:block:reorder` { blockId, fromColumnId, toColumnId, position } → log
-  - `cb:section:move-requested` { sectionId, direction } → log
-  - `cb:section:delete-requested` { sectionId } → log
-- [ ] Actions Stimulus :
-  - `publish()` → log
-  - `discard()` → log
-  - `addSection({ params: { layout } })` → log
-  - `reload()` : capture `iframe.contentWindow.scrollY`, `iframe.contentWindow.location.reload()`, sur `load` event suivant restaure scroll.
-- [ ] Tests Vitest unitaires : message handler dispatch correct, origin check rejette mauvaises origines, reload restaure scroll.
+- [x] Interface : `ContentAreaUrlResolverInterface::resolve(ContentArea $area): string` — retourne l'URL frontale (sans `?cb_preview=1`).
+- [x] `NullContentAreaUrlResolver` : throws "host app must implement this".
+- [x] Twig function `cb_preview_url(area)` (dans `ContentBlocksExtension`) qui appelle le resolver et append `?cb_preview=1`.
+- [x] Sandbox Symfony : `App\Preview\PageContentAreaUrlResolver` lookup la Page par `findOneBy(['contentArea' => $area])` puis génère l'URL `app_page_show`. Route `/page/{id}` (requirement `\d+` pour pas conflicter avec `/page/create`). Template `page/show.html.twig` qui appelle `cb_render_content_area`.
+- [x] Sandbox Sylius : idem (mirror `App\Preview\PageContentAreaUrlResolver` + `App\Controller\PageController` + `templates/page/show.html.twig`). Le template admin de la Page Builder tab utilise désormais `launcher.html.twig`.
+- [x] Décision de naming : `ContentAreaUrlResolverInterface` (pas `Preview` dans le nom — l'interface produit une URL publique propre, le préfixe `cb_preview_url` côté Twig ajoute le param).
 
-**Critère** : ouvrir le builder, hover un bloc dans l'iframe, cliquer sur l'overlay Edit → log dans la console parent : `cb:block:edit { blockId: 42 }`. Idem pour les autres actions.
+**Critère** : iframe affiche `/page/{id}?cb_preview=1` avec markers `data-cb-block-id`/`data-cb-section-id` ✅, script overlay chargé ✅.
 
 ---
 
-## Étape 9 — Overlay iframe-side (plain JS, no Stimulus)
+## Étape 8 — Stimulus `cb-builder` (handshake parent ↔ iframe) ✅
 
-**Nouveaux** : `src/Asset/PreviewOverlayController.php` (route servant le JS) + `assets/preview-overlay.js` (source plain JS).
+**Fichier** : `assets/controllers/cb-builder_controller.js`, tests `assets/test/cb-builder.test.js`.
 
-- [ ] Route GET `/_content-blocks/preview-overlay.js` qui sert le JS avec `Content-Type: application/javascript` et cache court (5 min en dev). Le JS est inline dans la PHP / lu depuis un asset avec hash.
-- [ ] Le script :
-  - Au load, `parent.postMessage({ type: 'cb:ready' }, location.origin)`.
-  - Crée un container overlay absolu en `position: fixed` (ou injecté dans le body).
-  - Sur `mouseenter` d'un `[data-cb-block-id]` : positionne un overlay flottant avec boutons Edit / Delete / handle DnD.
-  - Sur `mouseenter` d'un `[data-cb-section-id]` : overlay sur la section avec boutons Move-up / Move-down / Delete.
-  - Sur clic d'un bouton overlay : `parent.postMessage({ type: 'cb:block:edit', blockId: ... }, location.origin)` etc.
-  - Sur DnD natif HTML5 sur les blocs (handle), à la fin du drop : `parent.postMessage({ type: 'cb:block:reorder', ... })`.
-  - Pas d'AJAX dans ce script — il ne fait que dispatcher des intents au parent.
-- [ ] CSS minimal pour l'overlay (z-index élevé, transition opacity, no-interference avec le contenu rendu).
+- [x] Targets : `iframe`, `sidebar`
+- [x] Values : `areaId: Number`, `iframeUrl: String`
+- [x] `connect()` ajoute un listener global `window.message` avec strict origin check (`event.origin === window.location.origin`). `disconnect()` cleanup.
+- [x] Routing des messages typés `cb:*` (ignore tout le reste) :
+  - `cb:ready` → log "iframe ready"
+  - `cb:block:edit` / `cb:block:delete-requested` / `cb:block:add-requested` / `cb:block:reorder` → log avec payload
+  - `cb:section:move-requested` / `cb:section:delete-requested` → log avec payload
+  - default → log unknown type
+- [x] Actions Stimulus :
+  - `publish(event)` → log avec areaId
+  - `discard(event)` → log avec areaId
+  - `addSection(event)` → log avec areaId + layout (default `full`)
+  - `setViewport(event)` → toggle `--active` sur le bouton, redimensionne l'iframe (desktop 100% / tablet 768px / mobile 375px)
+  - `reload()` → capture scrollY de l'iframe avant reload, restaure sur load event, fallback sur `src` reassign si cross-origin throw
+- [x] 17 tests Vitest couvrant : origin check (autre origine, type non-cb:, payload non-objet), routing par type, actions defaults, side-effects DOM/iframe de setViewport.
 
-**Critère** : ouvrir le builder dans la sandbox, hover un bloc dans l'iframe → overlay s'affiche au-dessus avec boutons. Clic sur un bouton → console parent log l'event.
-
----
-
-## Étape 10 — Test e2e de bout en bout
-
-**Nouveau** : `assets/test/e2e/builder-shell.spec.js`.
-
-- [ ] Avant chaque test : créer une Page avec quelques sections+blocs en BDD via fixture.
-- [ ] Test : ouvrir `/admin/page/{id}`, cliquer "Modifier le contenu", attendre `<dialog>` open, attendre iframe `cb:ready`, vérifier markers `data-cb-block-id` dans iframe.
-- [ ] Test : hover un bloc dans iframe → overlay visible.
-- [ ] Test : clic Edit dans iframe → parent reçoit `cb:block:edit` (instrumenté via un `console.log` capturé).
-- [ ] Test : clic "Publier" / "Annuler" → log respectif.
-- [ ] Test : clic "Ajouter 1 colonne" → log `cb:section:add-requested layout=full`.
-
-**Critère** : `npm run test:e2e` passe au vert. Aucun comportement runtime réel n'est testé (rien ne se sauve), juste la plomberie.
+**Critère** : 17 tests verts ✅. Vérification visuelle : tous les boutons (overlay block/section + topbar publish/discard + footer add 1/2/3 cols) loggent via `console.log [cb-builder] ...` ✅.
 
 ---
 
-## Ordre de commits suggéré
+## Étape 9 — Overlay iframe-side (plain JS, no Stimulus) ✅
 
-1. `chore(content-blocks): remove obsolete tests` ✅
-2. `feat(content-blocks): add draft/published columns to Block, Section, Column` (étape 1) ✅
-3. `feat(content-blocks): RenderMode enum + BlockRenderer service` (étape 2) ✅
-4. `feat(content-blocks): ContentAreaPublisher (publish + discard)` (étape 3) ✅
-5. `refactor(content-blocks): BlockComponent writes to draftData, form-only template` (étape 4) ✅
-6. `refactor(content-blocks): BlockComponent writes to draftData, form-only template` (étape 4)
-7. `chore(content-blocks): remove builder Live Components + Stimulus controllers` (étape 5)
-8. `feat(content-blocks): builder shell — launcher button + dialog + iframe` (étape 6)
-9. `feat(content-blocks): preview URL resolver + sandbox integration` (étape 7)
-10. `feat(content-blocks): cb-builder controller — postMessage handshake` (étape 8)
-11. `feat(content-blocks): preview-overlay (iframe-side hover/actions)` (étape 9)
-12. `test(content-blocks): e2e builder shell` (étape 10)
+**Fichiers** : `src/Controller/PreviewOverlayController.php` + `assets/preview-overlay.js`.
+
+- [x] Route GET `/_content-blocks/preview-overlay` (no `.js` extension on purpose — PHP's built-in server treats `.js` paths as static and 404s; routing through Symfony works only when the URL doesn't look like a static asset). Content-Type `application/javascript`, cache 5 min.
+- [x] Le JS (plain, no Stimulus pour ne pas imposer le loader sur le thème front du host) :
+  - Au load, `parent.postMessage({ type: 'cb:ready' }, location.origin)` (skip si pas dans un iframe).
+  - Injecte une feuille de style minimale (toolbar flottant, outline survol, blocs supprimés grisés/barrés via `[data-cb-deleted="1"]`).
+  - Toolbar unique réutilisé, positionné en absolu top-right de l'élément hovered.
+  - Sur hover d'un `[data-cb-block-id]` : boutons ✎ Edit + × Delete.
+  - Sur hover d'un `[data-cb-section-id]` : boutons ▲ Move-up + ▼ Move-down + × Delete.
+  - Block markers prennent priorité sur section markers (un block vit dans une section, mais ses actions sont plus granulaires).
+  - Click sur un bouton → `parent.postMessage({ type: 'cb:block:edit', blockId })` etc.
+  - **DnD reorder reporté à phase 3 polish** (couvert par le plan original mais hors du critère "phase 1 done").
+  - Pas d'AJAX — only intent dispatch.
+- [x] Sandbox `controllers.json` mis à jour (drop cb-sortable/section-move/block-drag obsolètes ; déclare cb-builder-launcher / cb-builder / cb-block-edit-keys).
+- [x] `packages/content-blocks/assets/package.json` (manifeste Symfony de stimulus-bundle) mis à jour itself.
+
+**Critère** : `curl /_content-blocks/preview-overlay` retourne 200 application/javascript ✅. Vérification visuelle : hover bloc dans iframe → toolbar apparaît, click Edit → parent log `cb:block:edit` ✅.
+
+---
+
+## Étape 10 — Test e2e de bout en bout ✅
+
+**Fichier** : `assets/test/e2e/builder-shell.spec.js` (7 tests).
+
+- [x] Le test charge la Page #1 existante (créée au préalable dans la sandbox via `/page/create`) — pas de fixture per-test, ce serait du gaspillage pour de la pure plomberie.
+- [x] Test 1 : launcher button visible, click → `<dialog open>` + shell skeleton (topbar/iframe/footer) visibles.
+- [x] Test 2 : iframe a la bonne URL `/page/1?cb_preview=1`, son contenu contient les markers `data-cb-block-id`/`data-cb-section-id` + `.cb-overlay-toolbar` injecté par `preview-overlay`.
+- [x] Test 3 : `cb:ready` capté dans la console parent (`page.on('console')` sink + `expect.poll`).
+- [x] Test 4 : hover bloc → `.cb-overlay-toolbar.is-visible` apparaît.
+- [x] Test 5 : click Edit overlay → parent log `[cb-builder] block:edit`.
+- [x] Test 6 : Publish topbar → log ; Discard si activé → log.
+- [x] Test 7 : 3 boutons addSection footer → ≥3 logs `[cb-builder] addSection`.
+
+**Critère** : `npm run test:e2e` au vert (`7 passed`) ✅.
+
+**Découvertes pendant le wire-up** (corrigées dans le commit step 10) :
+- `packages/content-blocks/assets/package.json` (manifeste Symfony controllers) listait encore les controllers supprimés. StimulusBundle 500-ait sur tout render qui chargeait les assets.
+- AssetMapper ne résolvait pas `import '@klehm/content-blocks/styles/admin.css'` : il faut une entrée explicite dans `importmap.php` (côté sandboxes) avec `'type' => 'css'`, malgré que l'asset soit déclaré dans `debug:asset-map`.
+
+---
+
+## Commits livrés (en ordre)
+
+1. `chore(content-blocks): remove obsolete PHPUnit tests` ✅ (`b61a106`)
+2. `feat(content-blocks): add draft/published state to Block, Section, Column` (étape 1) ✅ (`8093efd`)
+3. `feat(content-blocks): RenderMode enum + BlockRenderer service` (étape 2) ✅ (`c38f6cf`)
+4. `feat(content-blocks): ContentAreaPublisher (publish + discard)` (étape 3) ✅ (`2ccc768`)
+5. `refactor(content-blocks): BlockComponent for sidebar — form-only, dispatch events` (étape 4) ✅ (`f2986c3`)
+6. `chore(content-blocks): remove obsolete builder UI components` (étape 5) ✅ (`bce1af1`)
+7. `feat(content-blocks): builder shell — launcher + dialog + iframe + sidebar slot` (étape 6) ✅ (`e8e1463`)
+8. `feat(content-blocks): preview URL resolver + sandbox front rendering` (étape 7) ✅ (`4dd823c`)
+9. `feat(content-blocks): cb-builder Stimulus controller — postMessage handshake` (étape 8) ✅ (`67c3049`)
+10. `feat(content-blocks): preview-overlay iframe-side JS + serving controller` (étape 9) ✅ (`e5dfcd8`)
+11. `test(content-blocks): e2e Playwright smoke for the builder shell` (étape 10) ✅ (`781e46a`)
+
+## Suite des tests à la sortie de phase 1
+
+| Suite | Count | Notes |
+|---|---|---|
+| PHPUnit | 54 tests / 122 assertions | Entités, BlockRenderer, ContentAreaPublisher, BlockComponent.instantiateForm, AccessChecker, BlockTypeRegistry, LayoutValidation |
+| Vitest | 17 tests | cb-builder controller — origin check, message routing, action defaults, setViewport |
+| Playwright | 7 tests | Full e2e plumbing : dialog open / iframe load / hover overlay / postMessage round-trip / topbar+footer actions |
+| **Total** | **78 tests automatisés** | Tous verts ✅ |
+
+## Limitations connues à la sortie de phase 1
+
+1. **Section/Column "added then discarded"** — pas de flag `hasBeenPublished` sur ces entités. Discard remet juste les flags draft. À traiter en phase 3 quand le wire-up "add section" landera.
+2. **Tests d'intégration save/cancel BlockComponent** — reportés à phase 2 (LiveCollectionTrait trop couplée au framework pour mock unit-test propre).
+3. **DnD reorder dans le preview-overlay** — laissé pour phase 3 polish (plan original le mentionnait pour étape 9).
+4. **`asset-map:compile` requis pour servir les assets** — PHP built-in server ne dispatch pas les `.js`/`.css` à `index.php`. Le pretest e2e compile, et les sandboxes en dev veulent un `compile` (warning Symfony : "delete public/assets to allow live changes").
 
 ## Pour les phases suivantes
 
-- **Phase 2** : sidebar fonctionnelle. Mount `BlockComponent` dans `<aside>` au reçu de `cb:block:edit`, save bloc → reload iframe.
-- **Phase 3** : ops structurelles AJAX (add section, delete section, move section, add block, delete block, reorder block). Endpoints écrivent en draft/preview, iframe reload après chaque op.
-- **Phase 4** : "Publier" + "Annuler les modifications" wirés au `ContentAreaPublisher`. Badge "modifications en attente" dynamique. Soft-deleted blocks rendus barrés en preview.
-- **Phase 5** : polish — viewport switcher, raccourcis clavier dans la sidebar, transitions, accessibilité.
+- **Phase 2** : sidebar fonctionnelle. Mount `BlockComponent` dans `<aside>` au reçu de `cb:block:edit`, save bloc → reload iframe via `cb-builder#reload`. Tests d'intégration BlockComponent.
+- **Phase 3** : ops structurelles AJAX (add section, delete section, move section, add block, delete block, reorder block). Endpoints écrivent en draft/preview-position, iframe reload après chaque op. Réintroduit les flags `hasBeenPublished` si nécessaire pour discard. DnD dans l'overlay.
+- **Phase 4** : "Publier" + "Annuler les modifications" wirés au `ContentAreaPublisher`. Badge "modifications en attente" dynamique. Soft-deleted blocks rendus barrés en preview (CSS déjà présent dans `preview-overlay.js`).
+- **Phase 5** : polish — confirm-if-dirty au close du dialog, raccourcis clavier dans la sidebar, transitions, accessibilité, traductions.
