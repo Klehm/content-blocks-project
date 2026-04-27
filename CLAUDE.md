@@ -1,0 +1,346 @@
+# ContentBlocks — Page Builder Modulaire pour Symfony
+
+## Objectif
+
+ContentBlocks est un page builder modulaire conçu pour Symfony.
+Il permet de construire des zones de contenu composées de sections, colonnes et blocs,
+avec une architecture extensible basée sur un système de types de blocs.
+L'entité `ContentArea` est un conteneur générique de sections, attachable à n'importe quelle entité applicative (page, produit, catégorie, etc.).
+
+**Vendor Packagist** : `klehm`
+
+## Structure Monorepo
+
+```
+content-blocks/
+├── packages/
+│   ├── content-blocks/          # Package principal : entités, UI admin, formulaires
+│   │   ├── src/                 # PHP (Bundle, entités, controllers)
+│   │   ├── assets/
+│   │   │   ├── controllers/     # Stimulus controllers
+│   │   │   └── test/            # Vitest (unit) + Playwright (e2e)
+│   │   ├── config/              # Services, routes
+│   │   ├── templates/           # Twig components
+│   │   ├── composer.json        # PHP deps
+│   │   └── package.json         # JS deps (vitest, playwright)
+│   └── content-blocks-kit/      # Blocs par défaut (Text, Title, Image)
+│
+├── apps/
+│   ├── content-blocks-sandbox/          # App Symfony de dev/test (fixture Playwright)
+│   └── content-blocks-sylius-sandbox/   # App Sylius de dev/test
+│
+├── composer.json                # Composer racine avec repositories path
+└── CLAUDE.md                    # Cette documentation
+```
+
+## Publication & Monorepo Split
+
+Ce projet est un **monorepo**. Les packages sont publiés séparément sur Packagist via [splitsh/lite](https://github.com/splitsh/lite).
+
+- **Repo principal** : `github.com/klehm/content-blocks-project` (monorepo, on travaille ici)
+- **Repos read-only** (générés automatiquement par la CI) :
+  - `github.com/klehm/content-blocks` → miroir de `packages/content-blocks/`
+  - `github.com/klehm/content-blocks-kit` → miroir de `packages/content-blocks-kit/`
+
+Les utilisateurs installent via Composer normalement :
+```bash
+composer require klehm/content-blocks klehm/content-blocks-kit
+```
+
+Les contributeurs clonent le monorepo et ont tout (packages + sandboxes + tests).
+
+### Règles de split
+- Chaque push sur `main` déclenche le split CI
+- Les tags (ex: `v1.0.0`) sont propagés aux repos read-only
+- Les sandboxes (`apps/`) ne sont **pas** publiées
+
+## Prérequis Techniques
+
+- PHP >= 8.2 avec extension `pdo_mysql`
+- MySQL 8.0+
+- Symfony 7.x
+- Composer 2.x
+- Node.js >= 18 (pour les assets Stimulus et les tests JS)
+
+## Conventions
+
+### Language
+- **All code comments must be written in English** (inline comments, PHPDoc, JSDoc, Twig comments, etc.)
+
+### Nommage
+- **Namespace PSR-4** : `ContentBlocks\` (package principal), `ContentBlocks\Kit\` (kit de blocs)
+- **Bundle** : `ContentBlocksBundle` (principal), `ContentBlocksKitBundle` (kit)
+- **Entités** : singulier, dans le namespace `Entity`
+- **Blocs** : suffixe `Block` (ex: `TextBlock`), implémentent `BlockTypeInterface`
+- **Vendor Packagist** : `klehm`
+
+### Architecture & responsabilités
+- **content-blocks** : package unique contenant les entités Doctrine (`ContentArea`, `Section`, `Column`, `Block`), le système de blocs (`BlockTypeInterface`, `AsContentBlock`, `BlockTypeRegistry`, `BlockTypeCompilerPass`), l'UI admin (Live Components, Stimulus), et le `ContentAreaType` (FormType Symfony)
+- **content-blocks-kit** : dépend de content-blocks. Fournit des implémentations de blocs prêts à l'emploi (`TextBlock`, `TitleBlock`, `ImageBlock`)
+
+### Installation locale
+Les packages sont liés en symlink via les repositories `path` de Composer.
+Pas besoin de Packagist pour le développement local.
+
+## Modèle de Données
+
+```
+ContentArea → Section → Column → Block
+```
+
+`ContentArea` est un conteneur sans titre ni slug — c'est à l'application hôte de fournir sa propre entité (ex: `Page`) avec une relation vers `ContentArea`.
+
+### Entités
+
+| Entité        | Table              | Champs clés                              |
+|---------------|--------------------|------------------------------------------|
+| `ContentArea` | `cb_content_area`  | id                                       |
+| `Section`     | `cb_section`       | id, content_area_id, layout, position    |
+| `Column`      | `cb_column`        | id, section_id, preset, position         |
+| `Block`       | `cb_block`         | id, column_id, type, data, position      |
+
+- **Section.layout** : `full`, `two_cols`, `three_cols`
+- **Column.preset** : `col-12`, `col-6`, `col-4`, etc.
+- **Block.type** : identifiant du BlockType (ex: `text`, `title`, `image`)
+- **Block.data** : JSON libre, structure dépend du type de bloc
+
+## Système de Blocs
+
+### Principe
+1. Chaque type de bloc implémente `BlockTypeInterface`
+2. Il est annoté avec `#[AsContentBlock]`
+3. Le `BlockTypeCompilerPass` auto-tag les services via l'attribut
+4. Le `BlockTypeRegistry` centralise tous les types disponibles
+
+### Créer un bloc custom
+```php
+use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockTypeInterface;
+
+#[AsContentBlock]
+final class MyBlock implements BlockTypeInterface
+{
+    public static function getType(): string { return 'my_block'; }
+    public static function getLabel(): string { return 'Mon Bloc'; }
+    public function buildForm(FormBuilderInterface $builder, array $data): void {
+        $builder->add('content', TextType::class, ['data' => $data['content'] ?? '']);
+    }
+    public function getDefaultData(): array { return ['content' => '']; }
+}
+```
+
+Le bloc sera automatiquement détecté et enregistré dans le `BlockTypeRegistry` grâce à l'autoconfiguration Symfony.
+
+## UI Admin
+
+### Live Components (CRUD serveur)
+- **ContentAreaBuilder** : composant principal, gère l'ajout/suppression de sections (1, 2 ou 3 colonnes)
+- **Column** : gère l'ajout/suppression de blocs dans une colonne
+- **Block** : mode édition inline (modale simplifiée)
+- **Section** : Twig Component simple (rendu statique des colonnes)
+
+### Stimulus Controllers (contrôle DOM)
+- `cb-sortable` : drag & drop natif HTML5 pour réordonner sections et blocs
+- `cb-section-move` : move up/down des sections (swap DOM + persistance AJAX)
+
+### ContentAreaType (FormType)
+Un FormType Symfony prêt à l'emploi pour intégrer un ContentArea dans n'importe quel formulaire :
+```php
+$builder->add('contentArea', ContentAreaType::class);
+```
+Le type gère automatiquement la création du ContentArea et rend le builder via un form theme (`@ContentBlocks/form/content_area_widget.html.twig`).
+
+### Templates
+Les templates utilisent le namespace Twig `@ContentBlocks`.
+
+## Security
+
+### Access Control (IDOR protection)
+
+ContentBlocks does not know the host app's auth model. It exposes an `AccessCheckerInterface` that the app must implement.
+
+- **Default**: `DenyAllAccessChecker` — blocks all access (secure by default)
+- **Dev/sandbox**: `AllowAllAccessChecker` — allows everything
+
+**Setup in host app:**
+```yaml
+# config/services.yaml
+ContentBlocks\Security\AccessCheckerInterface:
+    class: App\Security\PageAccessChecker
+```
+```php
+use ContentBlocks\Security\AccessCheckerInterface;
+use ContentBlocks\Entity\ContentArea;
+
+final class PageAccessChecker implements AccessCheckerInterface
+{
+    public function canEdit(ContentArea $contentArea): bool
+    {
+        // Check that the current user owns the Page linked to this ContentArea
+    }
+    public function canView(ContentArea $contentArea): bool { return true; }
+}
+```
+
+All controllers (`BlockController`, `SectionController`, `UploadController`) and Live Components (`BlockComponent`, `ColumnComponent`, `ContentAreaBuilderComponent`) call `canEdit()` before any mutation.
+
+### CSRF Protection
+
+AJAX controllers (`/_content-blocks/*`) require a `X-CSRF-Token` header validated against the token id `content_blocks`.
+
+The token is rendered in `ContentAreaBuilder.html.twig` via `{{ csrf_token('content_blocks') }}` on the `data-cb-csrf-token` attribute. Stimulus controllers read it with `closest('[data-cb-csrf-token]')`.
+
+**Host app requirements:**
+- `session: true` in `framework.yaml` (needed for session-based CSRF tokens)
+- `csrf_protection: enabled: true` (Symfony 7.x default is stateless — the token id `content_blocks` falls through to the session-based fallback automatically)
+
+### Block Data Sanitization
+
+Each `BlockTypeInterface` controls its own data validation:
+- `getAllowedDataKeys()` — whitelist of top-level keys
+- `sanitizeData(array $data): array` — full validation (override for nested structures like TabsBlock)
+- `processData(array $data, array $context): array` — pre-save transformation (file uploads, normalization)
+
+`AbstractBlockType` provides default: whitelist keys + cast to string. Override for complex blocks.
+
+### File Upload
+
+Upload endpoint `/_content-blocks/upload` validates: CSRF token, file size (10 MB max), MIME type whitelist (image/*, PDF).
+
+`FileStorageInterface` is the abstraction for file storage:
+- **Default**: `NullFileStorage` — throws (forces app to configure)
+- **Provided**: `LocalFileStorage` — local filesystem
+
+```yaml
+# config/services.yaml
+ContentBlocks\Storage\FileStorageInterface:
+    class: ContentBlocks\Storage\LocalFileStorage
+    arguments:
+        $uploadDir: '%kernel.project_dir%/public/uploads/content-blocks'
+        $publicPrefix: '/uploads/content-blocks'
+```
+
+## Choix Techniques
+
+- **Doctrine ORM** pour la persistance
+- **Attributs PHP 8** pour le mapping Doctrine et l'auto-enregistrement des blocs
+- **Live Components + Stimulus (mix)** : Live Components pour le CRUD serveur (ajout/suppression sections, blocs), Stimulus pour le contrôle DOM fin (réordonnancement, drag & drop, intégration d'éditeurs JS tiers comme TinyMCE)
+- **Règle d'architecture UI** : Live Component pour le CRUD, Stimulus pour le DOM. Ne pas utiliser de LiveAction pour des opérations qui réordonnent des composants Live enfants (morphdom/Idiomorph ne gère pas le reorder de child Live Components avec `data-live-preserve`).
+- **Bootstrap 5** via CDN pour le styling rapide (MVP)
+- **MySQL** comme base de données (pdo_mysql requis)
+
+## Installation & Lancement
+
+### 1. Sandbox Symfony
+
+```bash
+cd apps/content-blocks-sandbox
+
+# Installer les dépendances (les packages sont en symlink)
+composer install
+
+# Configurer la base de données dans .env
+# DATABASE_URL="mysql://user:password@127.0.0.1:3306/content_blocks_sandbox?serverVersion=8.0&charset=utf8mb4"
+
+# Créer la base et le schéma
+php bin/console doctrine:database:create --if-not-exists
+php bin/console doctrine:schema:create
+
+# Lancer le serveur
+php -S 127.0.0.1:8000 -t public
+
+# Accéder à http://127.0.0.1:8000
+```
+
+### 2. Sandbox Sylius
+
+```bash
+cd apps/content-blocks-sylius-sandbox
+
+# Installer les dépendances
+composer install
+
+# Configurer la base de données dans .env
+# DATABASE_URL="mysql://user:password@127.0.0.1:3306/content_blocks_sylius?serverVersion=8.0&charset=utf8mb4"
+
+# Créer la base et le schéma
+php bin/console doctrine:database:create --if-not-exists
+php bin/console doctrine:schema:create
+
+# Lancer le serveur
+php -S 127.0.0.1:8001 -t public
+
+# Accéder à http://127.0.0.1:8001
+```
+
+## Intégration dans un projet
+
+Chaque application crée sa propre entité (ex: `Page`, `Product`) avec une relation `OneToOne` vers `ContentArea` :
+
+```php
+use ContentBlocks\Entity\ContentArea;
+
+#[ORM\Entity]
+class Page
+{
+    #[ORM\OneToOne(targetEntity: ContentArea::class, cascade: ['persist', 'remove'])]
+    private ?ContentArea $contentArea = null;
+    // ...
+}
+```
+
+Les deux sandbox (Symfony et Sylius) suivent ce pattern avec une entité `App\Entity\Page` propre.
+
+## Spécificités Sylius Sandbox
+
+- Entité `Page` propre à l'app avec champ `enabled`
+- Référence vers le `ContentArea` via relation `OneToOne`
+- Grid Sylius configurée dans `PageGrid.php`
+- Le ContentAreaBuilder est intégré dans la vue builder de la Page
+
+## Tests
+
+### Tests JS (dans `packages/content-blocks/`)
+
+```bash
+cd packages/content-blocks
+npm install
+
+# Tests unitaires (Vitest + jsdom)
+npm run test:unit
+
+# Tests E2E (Playwright — démarre la sandbox automatiquement)
+npm run test:e2e
+
+# Les deux
+npm test
+```
+
+- **Vitest** : teste la logique des controllers Stimulus en isolation (DOM mock, fetch mock)
+- **Playwright** : teste les flux complets dans un vrai navigateur contre la sandbox
+- La sandbox (`apps/content-blocks-sandbox/`) sert de **fixture** pour Playwright (`webServer` dans `playwright.config.js`)
+
+### Tests PHP
+
+```bash
+cd packages/content-blocks
+./vendor/bin/phpunit
+```
+
+## Troubleshooting
+
+### `could not find driver`
+Installer l'extension PHP requise : `sudo apt install php-mysql` (ou `php8.x-mysql`)
+
+### Live Components 404
+Vérifier que les routes Live Components ont le prefix `/_components` dans `config/routes/ux_live_component.yaml`
+
+### Twig Component "no matching namespace"
+Vérifier `config/packages/twig_component.yaml` — le namespace `ContentBlocks\Twig\Component\` doit être mappé vers `@ContentBlocks/components/`
+
+### Blocs non détectés
+Vérifier que le bloc est dans un namespace chargé par le service container et que le fichier `config/services.php` du kit charge bien `ContentBlocks\Kit\Block\`
+
+---
+
+*Document maintenu à jour au fur et à mesure du développement.*

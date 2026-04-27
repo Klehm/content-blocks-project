@@ -1,0 +1,14 @@
+node_modules
+vendor
+
+# Env overrides (local-only)
+.env.local
+.env.*.local
+
+# Test artefacts
+.phpunit.result.cache
+test-results/
+
+# IDE
+.vscode/
+*.code-workspace

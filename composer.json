@@ -1,0 +1,28 @@
+{
+    "name": "klehm/content-blocks-monorepo",
+    "description": "Monorepo ContentBlocks — Page builder modulaire pour Symfony",
+    "type": "project",
+    "license": "MIT",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "packages/content-blocks",
+            "options": { "symlink": true }
+        },
+        {
+            "type": "path",
+            "url": "packages/content-blocks-kit",
+            "options": { "symlink": true }
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "klehm/content-blocks": "@dev",
+        "klehm/content-blocks-kit": "@dev"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true
+    }
+}
