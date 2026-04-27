@@ -20,7 +20,7 @@
 
         {% if editing %}
             <div class="card-body">
-                <div class="cb-block__edit-form">
+                <div class="cb-block__edit-form" data-controller="cb-block-edit-keys">
                     {% set formTheme = this.blockType ? this.blockType.formTheme : null %}
                     {% if formTheme %}
                         {% form_theme form formTheme %}
@@ -33,9 +33,11 @@
                     <div class="mt-2">
                         <button type="button" data-action="live#action"
                                 data-live-action-param="save"
+                                data-cb-block-edit-keys-target="saveBtn"
                                 class="btn btn-sm btn-primary">{{ 'cb.block.save'|trans({}, 'content_blocks') }}</button>
                         <button type="button" data-action="live#action"
                                 data-live-action-param="cancelEdit"
+                                data-cb-block-edit-keys-target="cancelBtn"
                                 class="btn btn-sm btn-secondary">{{ 'cb.block.cancel'|trans({}, 'content_blocks') }}</button>
                     </div>
                 </div>

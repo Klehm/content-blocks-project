@@ -21,6 +21,12 @@
                 "name": "cb-block-drag",
                 "fetch": "eager",
                 "enabled": true
+            },
+            "cb-block-edit-keys": {
+                "main": "controllers/cb-block-edit-keys_controller.js",
+                "name": "cb-block-edit-keys",
+                "fetch": "eager",
+                "enabled": true
             }
         },
         "importmap": {
