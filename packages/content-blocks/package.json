@@ -1,0 +1,22 @@
+{
+    "name": "@klehm/content-blocks",
+    "description": "Page builder modulaire pour Symfony — Stimulus controllers & tests.",
+    "license": "MIT",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test": "npm run test:unit && npm run test:e2e",
+        "test:unit": "vitest run",
+        "test:unit:watch": "vitest",
+        "pretest:e2e": "cd ../../apps/content-blocks-sandbox && rm -rf public/assets && php bin/console cache:clear -q && php bin/console asset-map:compile -q",
+        "test:e2e": "npm run pretest:e2e && playwright test",
+        "test:e2e:ui": "npm run pretest:e2e && playwright test --ui"
+    },
+    "devDependencies": {
+        "@hotwired/stimulus": "^3.2.0",
+        "@playwright/test": "^1.52.0",
+        "jsdom": "^26.1.0",
+        "vitest": "^3.2.1"
+    }
+}
