@@ -58,4 +58,25 @@ class ContentArea
 
         return $this;
     }
+
+    public function hasUnpublishedChanges(): bool
+    {
+        foreach ($this->sections as $section) {
+            if ($section->hasUnpublishedChanges()) {
+                return true;
+            }
+            foreach ($section->getColumns() as $column) {
+                if ($column->hasUnpublishedChanges()) {
+                    return true;
+                }
+                foreach ($column->getBlocks() as $block) {
+                    if ($block->hasUnpublishedChanges()) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
 }

@@ -59,8 +59,8 @@ final class ColumnComponent
 
         $block = new Block();
         $block->setType($type);
-        $block->setData($blockType->getDefaultData());
-        $block->setPosition($column->getBlocks()->count());
+        $block->setDraftData($blockType->getDefaultData());
+        $block->setPreviewPosition($column->getBlocks()->count());
 
         $column->addBlock($block);
         $this->em->flush();

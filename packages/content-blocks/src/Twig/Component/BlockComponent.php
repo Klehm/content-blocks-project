@@ -73,7 +73,7 @@ final class BlockComponent
     {
         $block = $this->getBlock();
         $blockType = $this->getBlockType();
-        $data = $block->getData();
+        $data = $block->getDraftData() ?? $block->getPublishedData() ?? [];
 
         return $this->formFactory->create(
             BlockFormType::class,
@@ -137,7 +137,7 @@ final class BlockComponent
         }
 
         $block = $this->getBlock();
-        $block->setData($this->getForm()->getData());
+        $block->setDraftData($this->getForm()->getData());
         $this->em->flush();
 
         $this->editing = false;

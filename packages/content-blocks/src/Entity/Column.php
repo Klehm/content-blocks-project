@@ -28,6 +28,12 @@ class Column
     #[ORM\Column(type: 'smallint')]
     private int $position = 0;
 
+    #[ORM\Column(name: 'preview_position', type: 'smallint')]
+    private int $previewPosition = 0;
+
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $deleted = false;
+
     /** @var Collection<int, Block> */
     #[ORM\OneToMany(mappedBy: 'column', targetEntity: Block::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['position' => 'ASC'])]
@@ -79,6 +85,30 @@ class Column
         return $this;
     }
 
+    public function getPreviewPosition(): int
+    {
+        return $this->previewPosition;
+    }
+
+    public function setPreviewPosition(int $previewPosition): self
+    {
+        $this->previewPosition = $previewPosition;
+
+        return $this;
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->deleted;
+    }
+
+    public function setDeleted(bool $deleted): self
+    {
+        $this->deleted = $deleted;
+
+        return $this;
+    }
+
     /** @return Collection<int, Block> */
     public function getBlocks(): Collection
     {
@@ -104,5 +134,29 @@ class Column
         }
 
         return $this;
+    }
+
+    /**
+     * Promote draft layout state (position) to published. Caller is
+     * responsible for handling deleted columns separately (em->remove
+     * instead of publish).
+     */
+    public function publish(): void
+    {
+        $this->position = $this->previewPosition;
+    }
+
+    /**
+     * Revert draft state to match the published one.
+     */
+    public function revertDraft(): void
+    {
+        $this->previewPosition = $this->position;
+        $this->deleted = false;
+    }
+
+    public function hasUnpublishedChanges(): bool
+    {
+        return $this->previewPosition !== $this->position || $this->deleted;
     }
 }

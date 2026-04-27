@@ -46,10 +46,11 @@
             <div class="card-body cb-block__preview">
                 {% set viewTemplate = this.blockType ? this.blockType.viewTemplate : null %}
 
+                {% set previewData = this.block.draftData ?? this.block.publishedData ?? {} %}
                 {% if viewTemplate %}
-                    {{ include(viewTemplate, { data: this.block.data, block: this.block, blockType: this.blockType }) }}
+                    {{ include(viewTemplate, { data: previewData, block: this.block, blockType: this.blockType }) }}
                 {% else %}
-                    {% for key, value in this.block.data %}
+                    {% for key, value in previewData %}
                         <small class="text-muted">{{ key }}:</small>
                         <span>{{ value is iterable ? value|json_encode : value }}</span><br>
                     {% endfor %}
