@@ -28,4 +28,8 @@ return [
     '@symfony/stimulus-bundle' => [
         'path' => './vendor/symfony/stimulus-bundle/assets/dist/loader.js',
     ],
+    '@klehm/content-blocks/styles/admin.css' => [
+        'path' => '../../packages/content-blocks/assets/styles/admin.css',
+        'type' => 'css',
+    ],
 ];

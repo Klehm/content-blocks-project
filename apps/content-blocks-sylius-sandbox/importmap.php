@@ -53,4 +53,8 @@ return [
         'version' => '2.5.2',
         'type' => 'css',
     ],
+    '@klehm/content-blocks/styles/admin.css' => [
+        'path' => '../../packages/content-blocks/assets/styles/admin.css',
+        'type' => 'css',
+    ],
 ];
