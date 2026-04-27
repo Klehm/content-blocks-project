@@ -1,0 +1,21 @@
+{
+    "name": "@klehm/content-blocks-kit",
+    "description": "Default blocks for ContentBlocks (Text, Title, Image, Tabs).",
+    "license": "MIT",
+    "symfony": {
+        "controllers": {
+            "cb-file-upload": {
+                "main": "controllers/cb-file-upload_controller.js",
+                "name": "cb-file-upload",
+                "fetch": "eager",
+                "enabled": true
+            }
+        },
+        "importmap": {
+            "@hotwired/stimulus": "^3.0.0"
+        }
+    },
+    "peerDependencies": {
+        "@hotwired/stimulus": "^3.0.0"
+    }
+}

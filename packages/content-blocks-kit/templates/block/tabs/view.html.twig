@@ -1,0 +1,29 @@
+{% if data.tabs is defined and data.tabs is iterable and data.tabs|length > 0 %}
+    {% set uid = 'cb-tabs-' ~ random() %}
+    <div class="cb-block-tabs">
+        <ul class="nav nav-tabs" role="tablist">
+            {% for tab in data.tabs %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link{{ loop.first ? ' active' : '' }}"
+                            data-bs-toggle="tab"
+                            data-bs-target="#{{ uid }}-{{ loop.index0 }}"
+                            type="button" role="tab"
+                            aria-selected="{{ loop.first ? 'true' : 'false' }}">
+                        {{ tab.title|default('Untitled') }}
+                    </button>
+                </li>
+            {% endfor %}
+        </ul>
+        <div class="tab-content border border-top-0 rounded-bottom p-3">
+            {% for tab in data.tabs %}
+                <div class="tab-pane{{ loop.first ? ' show active' : '' }}"
+                     id="{{ uid }}-{{ loop.index0 }}"
+                     role="tabpanel">
+                    {{ tab.content|default('')|nl2br }}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% else %}
+    <small class="text-muted">{{ 'cb_kit.block.tabs.empty'|trans({}, 'content_blocks_kit') }}</small>
+{% endif %}

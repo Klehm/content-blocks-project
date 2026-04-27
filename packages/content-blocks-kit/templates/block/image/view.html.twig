@@ -1,0 +1,14 @@
+{# ImageBlock view/preview template #}
+{% if data.src %}
+    <div class="cb-block-image-preview">
+        <img src="{{ data.src }}"
+             alt="{{ data.alt }}"
+             class="img-thumbnail"
+             style="max-height: 120px;">
+        {% if data.alt %}
+            <small class="text-muted d-block mt-1">{{ data.alt }}</small>
+        {% endif %}
+    </div>
+{% else %}
+    <small class="text-muted">{{ 'cb_kit.block.image.no_image'|trans({}, 'content_blocks_kit') }}</small>
+{% endif %}

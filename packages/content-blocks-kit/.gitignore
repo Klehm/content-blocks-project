@@ -1,0 +1,30 @@
+
+###> symfony/framework-bundle ###
+/.env.local
+/.env.local.php
+/.env.*.local
+/config/secrets/prod/prod.decrypt.private.php
+/config/reference.php
+/public/bundles/
+/var/
+/vendor/
+###< symfony/framework-bundle ###
+
+compose.override.yaml
+
+/frankenphp/certs/*.key
+/frankenphp/certs/*.pem
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
+
+###> symfony/asset-mapper ###
+/public/assets/
+/assets/vendor/
+###< symfony/asset-mapper ###
+
+/public/uploads/
+/public/media/
+/private/uploads/

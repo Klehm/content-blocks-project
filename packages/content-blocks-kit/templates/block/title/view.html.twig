@@ -1,0 +1,6 @@
+{% if data.text|default %}
+    {% set tag = data.tag|default('h2') %}
+    <{{ tag }} class="cb-block-title">{{ data.text }}</{{ tag }}>
+{% else %}
+    <small class="text-muted">{{ 'cb_kit.block.title.empty'|trans({}, 'content_blocks_kit') }}</small>
+{% endif %}

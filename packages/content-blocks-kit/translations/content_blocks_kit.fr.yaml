@@ -1,0 +1,27 @@
+cb_kit:
+    block:
+        text:
+            label: "Texte"
+            empty: "Aucun contenu"
+            field:
+                content: "Contenu"
+        title:
+            label: "Titre"
+            empty: "Aucun titre"
+            field:
+                text: "Texte du titre"
+                tag: "Balise"
+        image:
+            label: "Image"
+            no_image: "Aucune image"
+            field:
+                file: "Fichier image"
+                alt: "Texte alternatif"
+        tabs:
+            label: "Onglets"
+            empty: "Aucun onglet"
+            add_tab: "Ajouter un onglet"
+            remove_tab: "Supprimer"
+            field:
+                title: "Titre"
+                content: "Contenu"

@@ -1,0 +1,27 @@
+{# Form theme for ImageBlock — wraps the hidden src field with upload UI #}
+
+{% block _content_block_src_row %}
+    <div data-controller="cb-file-upload" class="mb-3">
+        <label class="form-label">{{ 'cb_kit.block.image.field.file'|trans({}, 'content_blocks_kit') }}</label>
+        <input type="file"
+               class="form-control"
+               accept="image/*"
+               data-action="change->cb-file-upload#upload:stop">
+        <span data-cb-file-upload-target="status" class="cb-upload-status"></span>
+
+        {% set src = form.vars.value %}
+        {% if src %}
+            <div class="mt-2">
+                <img data-cb-file-upload-target="preview"
+                     src="{{ src }}"
+                     class="img-thumbnail"
+                     style="max-height: 150px;">
+            </div>
+        {% else %}
+            <img data-cb-file-upload-target="preview" style="display: none;" class="img-thumbnail mt-2">
+        {% endif %}
+
+        {# The hidden input has data-cb-file-upload-target="hiddenInput" via attr in ImageBlock::buildForm() #}
+        {{ form_widget(form) }}
+    </div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{
+    "name": "klehm/content-blocks-kit",
+    "description": "Blocs prets a l'emploi pour ContentBlocks (Text, Title, Image).",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.2",
+        "klehm/content-blocks": "@dev",
+        "symfony/form": "^7.0",
+        "symfony/framework-bundle": "^7.0",
+        "symfony/mime": "^7.0",
+        "symfony/security-csrf": "^7.0",
+        "symfony/validator": "^7.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "ContentBlocks\\Kit\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ContentBlocks\\Kit\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "symfony": {
+            "bundle": "ContentBlocks\\Kit\\ContentBlocksKitBundle"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

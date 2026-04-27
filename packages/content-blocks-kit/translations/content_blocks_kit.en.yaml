@@ -1,0 +1,27 @@
+cb_kit:
+    block:
+        text:
+            label: "Text"
+            empty: "No content"
+            field:
+                content: "Content"
+        title:
+            label: "Title"
+            empty: "No title"
+            field:
+                text: "Title text"
+                tag: "Tag"
+        image:
+            label: "Image"
+            no_image: "No image uploaded"
+            field:
+                file: "Image file"
+                alt: "Alternative text"
+        tabs:
+            label: "Tabs"
+            empty: "No tabs"
+            add_tab: "Add tab"
+            remove_tab: "Remove"
+            field:
+                title: "Title"
+                content: "Content"
