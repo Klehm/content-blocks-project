@@ -1,0 +1,31 @@
+{# @var sections array #}
+{# @var mode \ContentBlocks\Rendering\RenderMode #}
+{% set isPreview = mode.value == 'preview' %}
+<div class="cb-content-area"{% if isPreview %} data-cb-preview="1"{% endif %}>
+{% for section in sections %}
+    <section class="cb-section cb-section--{{ section.layout }}{% if section.deleted %} cb-section--deleted{% endif %}"
+        {% if isPreview %}data-cb-section-id="{{ section.id }}"{% endif %}
+        {% if section.deleted %}data-cb-deleted="1"{% endif %}>
+        <div class="cb-row">
+            {% for column in section.columns %}
+                <div class="cb-col cb-col--{{ column.preset }}{% if column.deleted %} cb-col--deleted{% endif %}"
+                    {% if isPreview %}data-cb-column-id="{{ column.id }}"{% endif %}
+                    {% if column.deleted %}data-cb-deleted="1"{% endif %}>
+                    {% for block in column.blocks %}
+                        <div class="cb-block cb-block--{{ block.type }}{% if block.deleted %} cb-block--deleted{% endif %}"
+                            {% if isPreview %}data-cb-block-id="{{ block.id }}" data-cb-block-type="{{ block.type }}"{% endif %}
+                            {% if block.deleted %}data-cb-deleted="1"{% endif %}>
+                            {% if block.viewTemplate %}
+                                {{ include(block.viewTemplate, { data: block.data }, with_context = false) }}
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+{% endfor %}
+{% if isPreview %}
+    <script type="module" src="/_content-blocks/preview-overlay.js"></script>
+{% endif %}
+</div>

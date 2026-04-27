@@ -23,6 +23,11 @@ return static function (ContainerConfigurator $container): void {
     $services->load('ContentBlocks\\Twig\\Component\\', '../src/Twig/Component/')
         ->tag('twig.component');
 
+    $services->set(\ContentBlocks\Twig\ContentBlocksExtension::class)
+        ->tag('twig.extension');
+
+    $services->set(\ContentBlocks\Rendering\BlockRenderer::class);
+
     $services->load('ContentBlocks\\Form\\', '../src/Form/');
 
     $services->load('ContentBlocks\\Controller\\', '../src/Controller/')

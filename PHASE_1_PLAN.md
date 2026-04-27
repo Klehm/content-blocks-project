@@ -39,49 +39,56 @@ Tu cliques "Modifier le contenu" sur `/admin/page/1` → un `<dialog>` plein éc
   - `assets/test/cb-block-edit-keys.test.js`
   - `assets/test/e2e/block-drag.spec.js`
   - `assets/test/e2e/section-move.spec.js`
+- [x] Suppression de tests PHPUnit pré-existants cassés (référençaient des méthodes `sanitizeData`/`processData`/`getAllowedDataKeys` absentes du code) :
+  - `tests/BlockType/AbstractBlockTypeTest.php`
+  - `tests/Security/DataSanitizationTest.php`
+  - `tests/Security/TabsBlockSanitizationTest.php`
 
 ---
 
-## Étape 1 — Schéma + entités + helpers
+## Étape 1 — Schéma + entités + helpers ✅
 
-**Fichiers touchés** : `Entity/Block.php`, `Entity/Section.php`, `Entity/Column.php`, `Entity/ContentArea.php`, migrations Doctrine de la sandbox.
+**Fichiers touchés** : `Entity/Block.php`, `Entity/Section.php`, `Entity/Column.php`, `Entity/ContentArea.php`, migrations Doctrine des sandboxes.
 
-- [ ] `Block` :
+- [x] `Block` :
   - rename colonne `data` → `published_data` (nullable JSON)
   - add `draft_data` (nullable JSON)
   - add `preview_position` (smallint, default 0)
   - add `deleted` (bool, default false)
-  - helpers : `publish()`, `revertDraft()`, `hasUnpublishedChanges()`, `getEffectiveData(RenderMode)`, `getEffectivePosition(RenderMode)`
-- [ ] `Section` :
-  - add `preview_position`, `deleted`
-  - helpers : `publish()` (sync position), `revertDraft()`, `hasUnpublishedChanges()`
-- [ ] `Column` : idem `Section`
-- [ ] `ContentArea::hasUnpublishedChanges()` : OR sur l'arbre (au moins un descendant a une modif en attente)
-- [ ] Migration Doctrine générée pour les 2 sandboxes (Symfony + Sylius)
-- [ ] Tests PHPUnit unitaires sur les helpers de chaque entité (publish copie bien, revertDraft remet à zéro, cascade `hasUnpublishedChanges`)
+  - helpers : `publish()`, `revertDraft()`, `hasUnpublishedChanges()`
+- [x] `Section` : add `preview_position`, `deleted` + helpers `publish()` / `revertDraft()` / `hasUnpublishedChanges()`
+- [x] `Column` : idem `Section`
+- [x] `ContentArea::hasUnpublishedChanges()` : OR sur l'arbre (au moins un descendant a une modif en attente)
+- [x] Patch minimal : `BlockComponent::instantiateForm` lit `draftData ?? publishedData`, `BlockComponent::save` écrit `draftData`, `ColumnComponent::addBlock` set `draftData`/`previewPosition`, `Block.html.twig` preview lit `draftData ?? publishedData` (pour ne pas casser le runtime entre étape 1 et 4 — refactor complet en étape 4/5)
+- [x] Migration Doctrine générée + appliquée pour les 2 sandboxes (Symfony + Sylius)
+- [x] Tests PHPUnit unitaires (23 tests) : `BlockTest`, `SectionTest`, `ColumnTest`, `ContentAreaTest`
 
-**Critère** : `php bin/console doctrine:schema:validate` clean dans les 2 sandboxes. Tests verts.
+**Note différée à étape 2** : les helpers `getEffectiveData(RenderMode)` / `getEffectivePosition(RenderMode)` qui dépendent de `RenderMode` ont été repoussés à l'étape 2. La logique vit pour le moment dans le tree builder du `BlockRenderer`. À évaluer si ces helpers d'entité sont réellement nécessaires.
+
+**Critère** : `doctrine:schema:validate` clean dans les 2 sandboxes ✅. Tests verts ✅.
 
 ---
 
-## Étape 2 — `RenderMode` + service `BlockRenderer`
+## Étape 2 — `RenderMode` + service `BlockRenderer` ✅
 
-**Nouveau** : `src/Rendering/RenderMode.php` (enum), `src/Rendering/BlockRenderer.php`, `templates/render/content_area.html.twig`, Twig extension exposant `cb_render_content_area()`.
+**Fichiers** : `src/Rendering/RenderMode.php` (enum), `src/Rendering/BlockRenderer.php`, `templates/render/content_area.html.twig`, `src/Twig/ContentBlocksExtension.php`, services config.
 
-- [ ] Enum `RenderMode { PUBLIC, PREVIEW }`
-- [ ] Service `BlockRenderer::render(ContentArea $area): string` :
-  - mode détecté via `RequestStack` → query `cb_preview=1` + check ROLE_ADMIN (sinon force PUBLIC)
+- [x] Enum `RenderMode { PUBLIC, PREVIEW }`
+- [x] Service `BlockRenderer::render(ContentArea $area, ?RenderMode $forceMode = null): string` :
+  - mode détecté via `RequestStack` → query `cb_preview=1` + `AccessCheckerInterface::canEdit($area)` (sinon force PUBLIC). Plus propre que ROLE_ADMIN — on réutilise le primitive existant.
   - PUBLIC : skip blocs `deleted=true` ou `publishedData=null`, skip columns/sections deleted, ordre par `position`
-  - PREVIEW : tout, ordre par `previewPosition`, cascade `deleted` (un bloc dans une section deleted est aussi marqué deleted visuellement), data = `draftData ?? publishedData`
-  - en PREVIEW, ajoute markers `data-cb-block-id`, `data-cb-section-id`, `data-cb-column-id`, `data-cb-deleted="1"` si applicable
-  - en PREVIEW, append `<script type="module" src="/_content-blocks/preview-overlay.js"></script>` au markup retourné
-- [ ] Twig function `cb_render_content_area(ContentArea $area): Markup`
-- [ ] Tests PHPUnit : 
-  - PUBLIC exclut `deleted=true`, exclut `publishedData=null`, ordonne par `position`
-  - PREVIEW inclut tout, ordonne par `previewPosition`, propage `deleted` cascade
-  - en PUBLIC, pas de markers ni de script overlay
+  - PREVIEW : tout, ordre par `previewPosition`, cascade `deleted` (un bloc dans une section deleted hérite du flag), data = `draftData ?? publishedData`
+  - en PREVIEW, markers `data-cb-block-id`, `data-cb-section-id`, `data-cb-column-id`, `data-cb-deleted="1"` cascadés
+  - en PREVIEW, append `<script type="module" src="/_content-blocks/preview-overlay.js"></script>`
+  - paramètre `$forceMode` pour bypasser la résolution (utile en tests)
+- [x] Twig extension `ContentBlocksExtension` avec function `cb_render_content_area(area)` (`is_safe: html`)
+- [x] Template `@ContentBlocks/render/content_area.html.twig`
+- [x] Services enregistrés dans `config/services.php` (BlockRenderer + ContentBlocksExtension)
+- [x] Tests PHPUnit (9 tests) : filtre PUBLIC, inclusion PREVIEW, ordre par `previewPosition` vs `position`, cascade deleted depuis section, mode resolution (no request, no param, denied access, granted access), include du `viewTemplate`
 
-**Critère** : appeler `cb_render_content_area($area)` depuis un test ou un template renvoie le HTML attendu pour les deux modes.
+**Critère** : tests verts ✅, `cache:clear` clean dans les 2 sandboxes ✅.
+
+---
 
 ---
 
@@ -238,11 +245,10 @@ Tu cliques "Modifier le contenu" sur `/admin/page/1` → un `<dialog>` plein éc
 
 ## Ordre de commits suggéré
 
-1. `chore(content-blocks): remove obsolete tests` (déjà fait)
-2. `feat(content-blocks): add draft/published columns to Block` (étape 1 — Block uniquement)
-3. `feat(content-blocks): add previewPosition + deleted to Section/Column` (étape 1 — Section/Column)
-4. `feat(content-blocks): RenderMode enum + BlockRenderer service` (étape 2)
-5. `feat(content-blocks): ContentAreaPublisher (publish + discard)` (étape 3)
+1. `chore(content-blocks): remove obsolete tests` ✅
+2. `feat(content-blocks): add draft/published columns to Block, Section, Column` (étape 1) ✅
+3. `feat(content-blocks): RenderMode enum + BlockRenderer service` (étape 2) ✅
+4. `feat(content-blocks): ContentAreaPublisher (publish + discard)` (étape 3)
 6. `refactor(content-blocks): BlockComponent writes to draftData, form-only template` (étape 4)
 7. `chore(content-blocks): remove builder Live Components + Stimulus controllers` (étape 5)
 8. `feat(content-blocks): builder shell — launcher button + dialog + iframe` (étape 6)
