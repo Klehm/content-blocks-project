@@ -50,7 +50,7 @@ final class BlockRendererTest extends TestCase
 
         // No preview markers / overlay script in public mode.
         $this->assertStringNotContainsString('data-cb-block-id', $html);
-        $this->assertStringNotContainsString('preview-overlay.js', $html);
+        $this->assertStringNotContainsString('preview-overlay', $html);
     }
 
     /**
@@ -80,7 +80,7 @@ final class BlockRendererTest extends TestCase
         $this->assertStringContainsString('data-cb-block-id', $html);
         $this->assertStringContainsString('data-cb-section-id', $html);
         $this->assertStringContainsString('data-cb-column-id', $html);
-        $this->assertStringContainsString('preview-overlay.js', $html);
+        $this->assertStringContainsString('preview-overlay', $html);
     }
 
     /**
