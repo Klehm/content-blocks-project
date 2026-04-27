@@ -1,4 +1,4 @@
 {% block content_area_widget %}
     {{ form_widget(form) }}
-    {# Builder UI is rendered by step 6 (cb-builder-launcher + dialog + shell). #}
+    {% include '@ContentBlocks/builder/launcher.html.twig' with { area: content_area } %}
 {% endblock %}

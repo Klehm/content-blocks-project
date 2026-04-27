@@ -1,0 +1,18 @@
+{# @var area \ContentBlocks\Entity\ContentArea #}
+{# @var iframeUrl string #}
+<div class="cb-launcher" data-controller="cb-builder-launcher">
+    <button type="button"
+            class="btn btn-primary cb-launcher__button"
+            data-action="cb-builder-launcher#open">
+        {{ 'cb.builder.open'|trans({}, 'content_blocks') }}
+        {% if area.hasUnpublishedChanges %}
+            <span class="badge bg-warning text-dark cb-launcher__badge">
+                {{ 'cb.builder.draft_pending'|trans({}, 'content_blocks') }}
+            </span>
+        {% endif %}
+    </button>
+
+    <dialog data-cb-builder-launcher-target="dialog" class="cb-builder-dialog">
+        {% include '@ContentBlocks/builder/shell.html.twig' with { area: area, iframeUrl: iframeUrl|default('about:blank') } only %}
+    </dialog>
+</div>

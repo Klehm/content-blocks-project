@@ -1,0 +1,85 @@
+{# @var area \ContentBlocks\Entity\ContentArea #}
+{# @var iframeUrl string #}
+<div class="cb-shell"
+     data-controller="cb-builder"
+     data-cb-builder-area-id-value="{{ area.id }}"
+     data-cb-builder-iframe-url-value="{{ iframeUrl }}">
+
+    <header class="cb-shell__topbar">
+        <div class="cb-shell__topbar-left">
+            <button type="button"
+                    class="cb-shell__close"
+                    data-action="cb-builder-launcher#close"
+                    aria-label="{{ 'cb.builder.close'|trans({}, 'content_blocks') }}">
+                ×
+            </button>
+        </div>
+
+        <div class="cb-shell__topbar-center">
+            <div class="cb-shell__viewport" role="group">
+                <button type="button"
+                        class="cb-shell__viewport-btn cb-shell__viewport-btn--active"
+                        data-action="cb-builder#setViewport"
+                        data-cb-builder-viewport-param="desktop"
+                        title="Desktop">▭</button>
+                <button type="button"
+                        class="cb-shell__viewport-btn"
+                        data-action="cb-builder#setViewport"
+                        data-cb-builder-viewport-param="tablet"
+                        title="Tablet">▢</button>
+                <button type="button"
+                        class="cb-shell__viewport-btn"
+                        data-action="cb-builder#setViewport"
+                        data-cb-builder-viewport-param="mobile"
+                        title="Mobile">▯</button>
+            </div>
+        </div>
+
+        <div class="cb-shell__topbar-right">
+            <button type="button"
+                    class="btn btn-link cb-shell__discard"
+                    data-action="cb-builder#discard"
+                    {% if not area.hasUnpublishedChanges %}disabled{% endif %}>
+                {{ 'cb.builder.discard'|trans({}, 'content_blocks') }}
+            </button>
+            <button type="button"
+                    class="btn btn-success cb-shell__publish"
+                    data-action="cb-builder#publish">
+                {{ 'cb.builder.publish'|trans({}, 'content_blocks') }}
+            </button>
+        </div>
+    </header>
+
+    <main class="cb-shell__main">
+        <iframe data-cb-builder-target="iframe"
+                class="cb-shell__iframe"
+                title="{{ 'cb.builder.preview'|trans({}, 'content_blocks') }}"></iframe>
+        <aside data-cb-builder-target="sidebar"
+               class="cb-shell__sidebar"
+               hidden></aside>
+    </main>
+
+    <footer class="cb-shell__bottom">
+        <span class="cb-shell__bottom-label">
+            {{ 'cb.builder.add_section'|trans({}, 'content_blocks') }}
+        </span>
+        <button type="button"
+                class="btn btn-outline-secondary"
+                data-action="cb-builder#addSection"
+                data-cb-builder-layout-param="full">
+            {{ 'cb.section.layout.full'|trans({}, 'content_blocks') }}
+        </button>
+        <button type="button"
+                class="btn btn-outline-secondary"
+                data-action="cb-builder#addSection"
+                data-cb-builder-layout-param="two_cols">
+            {{ 'cb.section.layout.two_cols'|trans({}, 'content_blocks') }}
+        </button>
+        <button type="button"
+                class="btn btn-outline-secondary"
+                data-action="cb-builder#addSection"
+                data-cb-builder-layout-param="three_cols">
+            {{ 'cb.section.layout.three_cols'|trans({}, 'content_blocks') }}
+        </button>
+    </footer>
+</div>
