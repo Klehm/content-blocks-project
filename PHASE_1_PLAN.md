@@ -113,18 +113,24 @@ Tu cliques "Modifier le contenu" sur `/admin/page/1` → un `<dialog>` plein éc
 
 ---
 
-## Étape 4 — `BlockComponent` : save → draftData, template = form only
+## Étape 4 — `BlockComponent` : save → draftData, template = form only ✅
 
-**Fichiers touchés** : `src/Twig/Component/BlockComponent.php`, `templates/components/Block.html.twig`.
+**Fichiers** : `src/Twig/Component/BlockComponent.php`, `templates/components/Block.html.twig`, `src/Twig/Component/ColumnComponent.php`, `templates/components/Column.html.twig`.
 
-- [ ] `BlockComponent::instantiateForm()` : initial data = `$block->getDraftData() ?? $block->getPublishedData() ?? []`
-- [ ] `BlockComponent::save()` : `$block->setDraftData($formData)` au lieu de `setData()`. Pas de toggle `editing` à false (la sidebar est gérée côté JS parent).
-- [ ] `Block.html.twig` : simplification — uniquement le rendu du form (pas de mode preview, pas de toggle). Boutons Save / Cancel. Le component est designed pour être monté dans la sidebar, jamais inline.
-- [ ] Cancel : émet juste un event JS `cb:block:cancel` que le parent peut catcher pour fermer la sidebar.
-- [ ] Save : émet `cb:block:saved` avec `{blockId}` que le parent catch pour reload iframe.
-- [ ] Test PHPUnit : save écrit dans draftData, ne touche pas publishedData.
+- [x] `BlockComponent::instantiateForm()` : initial data = `$block->getDraftData() ?? $block->getPublishedData() ?? []` (déjà fait en étape 1, retesté ici)
+- [x] `BlockComponent::save()` : écrit `setDraftData()`, dispatchBrowserEvent `cb:block:saved { blockId }` après flush — plus de toggle `editing`, plus de `resetForm()`
+- [x] `BlockComponent::cancelEdit()` : dispatchBrowserEvent `cb:block:cancel { blockId }` — pas de mutation côté serveur
+- [x] Suppression de `LiveProp $editing`, de l'action `openEdit()`, des conditionnels `#[PostMount] initializeForm` et `#[PreReRender] submitFormOnRender` (le component est toujours en édition via la sidebar — utilise directement `LiveCollectionTrait`)
+- [x] Suppression de l'action `delete()` — le delete est désormais déclenché depuis l'overlay iframe (via postMessage → endpoint AJAX en phase 3), pas depuis le form
+- [x] `Block.html.twig` : uniquement form + boutons Save/Cancel. Le `cb-block-edit-keys` controller pour Enter/Escape est conservé (utile dans la sidebar). Drop le card wrapper, le drag handle, le label de type, la branche preview.
+- [x] `ColumnComponent` : nettoyage — drop `LiveProp $lastAddedBlockId` (causait le bug 1 d'Issues.md, plus utile sans toggle editing) ; le call `component('ContentBlocks:Block', ...)` ne passe plus de prop `editing` (le component n'en a plus). Composant entier supprimé en étape 5.
+- [x] 3 tests PHPUnit `BlockComponentTest` couvrant le fallback chain de `instantiateForm` (draft > published > [])
 
-**Critère** : test vert. Le component peut encore être instancié, mais il n'est mounted nulle part en phase 1.
+**Note** : tests d'intégration de `save()` et `cancelEdit()` complets reportés à phase 2 (mount sidebar) — la `LiveCollectionTrait` est trop couplée au framework Live Component pour un mock unit-test propre.
+
+**Effet de bord transitoire** : entre étape 4 et étape 5, l'inline UI rendue par `ColumnComponent` affiche tous les blocs sous forme de form (au lieu du toggle preview/edit). Visuellement messy mais fonctionnel. Étape 5 supprime cette UI entièrement.
+
+**Critère** : suite à 54 tests verts ✅, cache:clear clean dans les 2 sandboxes ✅.
 
 ---
 
@@ -138,7 +144,7 @@ Tu cliques "Modifier le contenu" sur `/admin/page/1` → un `<dialog>` plein éc
 - [ ] `assets/controllers/cb-sortable_controller.js`
 - [ ] `assets/controllers/cb-section-move_controller.js`
 - [ ] `assets/controllers/cb-block-drag_controller.js`
-- [ ] `assets/controllers/cb-block-edit-keys_controller.js` — **supprimé** pour l'instant. Sera réintroduit/réécrit en phase 2 si pertinent dans la sidebar.
+- [ ] `assets/controllers/cb-block-edit-keys_controller.js` — **conservé** : utile dans la sidebar (raccourcis Enter/Escape sur le form). Réutilisé tel quel par le template form-only de l'étape 4.
 - [ ] `src/Controller/SectionController.php` — endpoint reorder/move retirés (les ops layout passent en phase 3 via nouveaux endpoints)
 - [ ] Nettoyage des routes correspondantes dans `config/routes.php`
 - [ ] Vérifier qu'on ne casse pas `BlockController.php` (qui sert à `move` block et `upload`) — garder `upload`, supprimer `move` (réintroduit en phase 3).
@@ -253,6 +259,7 @@ Tu cliques "Modifier le contenu" sur `/admin/page/1` → un `<dialog>` plein éc
 2. `feat(content-blocks): add draft/published columns to Block, Section, Column` (étape 1) ✅
 3. `feat(content-blocks): RenderMode enum + BlockRenderer service` (étape 2) ✅
 4. `feat(content-blocks): ContentAreaPublisher (publish + discard)` (étape 3) ✅
+5. `refactor(content-blocks): BlockComponent writes to draftData, form-only template` (étape 4) ✅
 6. `refactor(content-blocks): BlockComponent writes to draftData, form-only template` (étape 4)
 7. `chore(content-blocks): remove builder Live Components + Stimulus controllers` (étape 5)
 8. `feat(content-blocks): builder shell — launcher button + dialog + iframe` (étape 6)

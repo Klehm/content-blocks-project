@@ -7,7 +7,6 @@
             {% for block in this.column.blocks %}
                 {{ component('ContentBlocks:Block', {
                     blockId: block.id,
-                    editing: block.id == this.lastAddedBlockId,
                 }) }}
             {% endfor %}
         </div>

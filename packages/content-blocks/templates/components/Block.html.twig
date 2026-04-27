@@ -1,61 +1,29 @@
 <div{{ attributes }}>
-    <div class="cb-block card mb-2" data-block-id="{{ this.block.id }}" draggable="false">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span class="cb-block__handle" style="cursor: grab;">&#9776;</span>
-            <span class="cb-block__type badge bg-secondary">{{ this.blockTypeLabel|trans({}, 'content_blocks_kit') }}</span>
-
-            {% if not editing %}
-                <div class="btn-group btn-group-sm">
-                    <button type="button" data-action="live#action"
-                            data-live-action-param="openEdit"
-                            class="btn btn-outline-primary"
-                            title="{{ 'cb.block.edit'|trans({}, 'content_blocks') }}">&#9998;</button>
-                    <button type="button" data-action="live#action"
-                            data-live-action-param="delete"
-                            class="btn btn-outline-danger"
-                            title="{{ 'cb.block.remove'|trans({}, 'content_blocks') }}">&#10005;</button>
-                </div>
-            {% endif %}
-        </div>
-
-        {% if editing %}
-            <div class="card-body">
-                <div class="cb-block__edit-form" data-controller="cb-block-edit-keys">
-                    {% set formTheme = this.blockType ? this.blockType.formTheme : null %}
-                    {% if formTheme %}
-                        {% form_theme form formTheme %}
-                    {% endif %}
-
-                    {{ form_start(form) }}
-                    {{ form_widget(form) }}
-                    {{ form_end(form) }}
-
-                    <div class="mt-2">
-                        <button type="button" data-action="live#action"
-                                data-live-action-param="save"
-                                data-cb-block-edit-keys-target="saveBtn"
-                                class="btn btn-sm btn-primary">{{ 'cb.block.save'|trans({}, 'content_blocks') }}</button>
-                        <button type="button" data-action="live#action"
-                                data-live-action-param="cancelEdit"
-                                data-cb-block-edit-keys-target="cancelBtn"
-                                class="btn btn-sm btn-secondary">{{ 'cb.block.cancel'|trans({}, 'content_blocks') }}</button>
-                    </div>
-                </div>
-            </div>
-        {% else %}
-            <div class="card-body cb-block__preview">
-                {% set viewTemplate = this.blockType ? this.blockType.viewTemplate : null %}
-
-                {% set previewData = this.block.draftData ?? this.block.publishedData ?? {} %}
-                {% if viewTemplate %}
-                    {{ include(viewTemplate, { data: previewData, block: this.block, blockType: this.blockType }) }}
-                {% else %}
-                    {% for key, value in previewData %}
-                        <small class="text-muted">{{ key }}:</small>
-                        <span>{{ value is iterable ? value|json_encode : value }}</span><br>
-                    {% endfor %}
-                {% endif %}
-            </div>
+    <div class="cb-block__edit-form" data-controller="cb-block-edit-keys">
+        {% set formTheme = this.blockType ? this.blockType.formTheme : null %}
+        {% if formTheme %}
+            {% form_theme form formTheme %}
         {% endif %}
+
+        {{ form_start(form) }}
+        {{ form_widget(form) }}
+        {{ form_end(form) }}
+
+        <div class="cb-block__edit-actions mt-2">
+            <button type="button"
+                    data-action="live#action"
+                    data-live-action-param="save"
+                    data-cb-block-edit-keys-target="saveBtn"
+                    class="btn btn-primary">
+                {{ 'cb.block.save'|trans({}, 'content_blocks') }}
+            </button>
+            <button type="button"
+                    data-action="live#action"
+                    data-live-action-param="cancelEdit"
+                    data-cb-block-edit-keys-target="cancelBtn"
+                    class="btn btn-secondary">
+                {{ 'cb.block.cancel'|trans({}, 'content_blocks') }}
+            </button>
+        </div>
     </div>
 </div>

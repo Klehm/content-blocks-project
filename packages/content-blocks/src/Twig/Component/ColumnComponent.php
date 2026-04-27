@@ -25,9 +25,6 @@ final class ColumnComponent
     #[LiveProp]
     public int $columnId;
 
-    #[LiveProp]
-    public ?int $lastAddedBlockId = null;
-
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly BlockTypeRegistry $blockTypeRegistry,
@@ -64,8 +61,6 @@ final class ColumnComponent
 
         $column->addBlock($block);
         $this->em->flush();
-
-        $this->lastAddedBlockId = $block->getId();
     }
 
     #[LiveListener('block:deleted')]

@@ -17,27 +17,26 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
-use Symfony\UX\LiveComponent\Attribute\PreReRender;
 use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\LiveComponent\LiveCollectionTrait;
-use Symfony\UX\TwigComponent\Attribute\PostMount;
 
+/**
+ * Live Component for editing a single Block. Designed to be mounted in the
+ * builder sidebar — always rendered in edit mode (no inline preview/edit
+ * toggle). On save / cancel, dispatches a browser CustomEvent that bubbles
+ * up to the parent admin window's `cb-builder` Stimulus controller, which is
+ * responsible for closing the sidebar and reloading the iframe.
+ */
 #[AsLiveComponent('ContentBlocks:Block', template: '@ContentBlocks/components/Block.html.twig')]
 final class BlockComponent
 {
     use DefaultActionTrait;
     use ComponentToolsTrait;
-    use LiveCollectionTrait {
-        LiveCollectionTrait::initializeForm as private traitInitializeForm;
-        LiveCollectionTrait::submitFormOnRender as private traitSubmitFormOnRender;
-    }
+    use LiveCollectionTrait;
 
     #[LiveProp]
     public int $blockId;
-
-    #[LiveProp(writable: true)]
-    public bool $editing = false;
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -85,40 +84,6 @@ final class BlockComponent
         );
     }
 
-    /**
-     * Only initialize form when in editing mode.
-     */
-    #[PostMount]
-    public function initializeForm(array $data): array
-    {
-        if (!$this->editing) {
-            return $data;
-        }
-
-        return $this->traitInitializeForm($data);
-    }
-
-    /**
-     * Only auto-submit form when in editing mode.
-     */
-    #[PreReRender]
-    public function submitFormOnRender(): void
-    {
-        if (!$this->editing) {
-            return;
-        }
-
-        $this->traitSubmitFormOnRender();
-    }
-
-    #[LiveAction]
-    public function openEdit(): void
-    {
-        $this->denyUnlessCanEdit();
-        $this->editing = true;
-        $this->resetForm();
-    }
-
     #[LiveAction]
     public function save(): void
     {
@@ -140,22 +105,13 @@ final class BlockComponent
         $block->setDraftData($this->getForm()->getData());
         $this->em->flush();
 
-        $this->editing = false;
-        $this->resetForm();
+        $this->dispatchBrowserEvent('cb:block:saved', ['blockId' => $this->blockId]);
     }
 
     #[LiveAction]
     public function cancelEdit(): void
     {
-        $this->editing = false;
-        $this->resetForm();
-    }
-
-    #[LiveAction]
-    public function delete(): void
-    {
-        $this->denyUnlessCanEdit();
-        $this->emitUp('block:deleted', ['blockId' => $this->blockId]);
+        $this->dispatchBrowserEvent('cb:block:cancel', ['blockId' => $this->blockId]);
     }
 
     private function denyUnlessCanEdit(): void
