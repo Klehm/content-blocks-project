@@ -1,0 +1,40 @@
+{
+    "name": "klehm/content-blocks",
+    "description": "Page builder modulaire pour Symfony — entites, UI admin, formulaires.",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.2",
+        "doctrine/orm": "^2.12 || ^3.0",
+        "symfony/form": "^7.0",
+        "symfony/framework-bundle": "^7.0",
+        "symfony/http-kernel": "^7.0",
+        "symfony/security-csrf": "^7.0",
+        "symfony/twig-bundle": "^7.0",
+        "symfony/ux-live-component": "^2.0",
+        "symfony/ux-twig-component": "^2.0",
+        "symfony/stimulus-bundle": "^2.0",
+        "twig/twig": "^3.10"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "ContentBlocks\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ContentBlocks\\Tests\\": "tests/",
+            "ContentBlocks\\Kit\\": "../content-blocks-kit/src/"
+        }
+    },
+    "extra": {
+        "symfony": {
+            "bundle": "ContentBlocks\\ContentBlocksBundle"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
