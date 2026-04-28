@@ -210,12 +210,57 @@ test.describe('builder shell — blocks', () => {
     });
 });
 
-test.describe('builder shell — topbar', () => {
-    test('Publish button fires its intent (phase 4 wires the actual call)', async ({ page }) => {
-        const logs = attachConsoleSink(page);
+test.describe('builder shell — publish / discard', () => {
+    test('Publish flushes drafts: never-published blocks become public, area is clean', async ({ page }) => {
         const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+
+        // Before publish: badge present, Discard enabled.
+        await expect(page.locator('.cb-shell__discard')).toBeEnabled();
 
         await page.locator('.cb-shell__publish').click();
-        await expect.poll(() => logs.some((l) => l.startsWith('[cb-builder] publish requested'))).toBe(true);
+
+        // After publish: badge gone, Discard disabled.
+        await expect(page.locator('.cb-shell__discard')).toBeDisabled();
+        await expect(page.locator('.cb-launcher__badge')).toHaveCount(0);
+
+        // The block is still there and no longer flagged deleted (it never
+        // was, but we want to verify the section/block didn't disappear).
+        await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBeGreaterThanOrEqual(1);
+    });
+
+    test('Discard removes a never-published section entirely', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        expect(await frame.locator('[data-cb-section-id]').count()).toBe(1);
+
+        await page.locator('.cb-shell__discard').click();
+
+        // Section was added but never published → discardDraft removes it.
+        await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(0);
+        // Discard button is now disabled (no pending changes left).
+        await expect(page.locator('.cb-shell__discard')).toBeDisabled();
+    });
+
+    test('Discard restores a soft-deleted block from a published area', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+        // Snapshot current block id, publish so it's now part of the public state.
+        await page.locator('.cb-shell__publish').click();
+        await expect(page.locator('.cb-shell__discard')).toBeDisabled();
+
+        // Now soft-delete the block.
+        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').nth(1).click();
+        await expect.poll(() => frame.locator('[data-cb-block-id][data-cb-deleted="1"]').count()).toBe(1);
+        await expect(page.locator('.cb-shell__discard')).toBeEnabled();
+
+        // Discard the soft-delete.
+        await page.locator('.cb-shell__discard').click();
+
+        await expect.poll(() => frame.locator('[data-cb-block-id][data-cb-deleted="1"]').count()).toBe(0);
+        await expect(frame.locator('[data-cb-block-id]')).toHaveCount(1);
     });
 });

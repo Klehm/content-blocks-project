@@ -68,33 +68,62 @@ export default class extends Controller {
         }
     }
 
-    publish(event) {
+    async publish(event) {
         if (event) event.preventDefault();
-        console.log('[cb-builder] publish requested', { areaId: this.areaIdValue });
+        const result = await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/publish`);
+        if (result === null) return;
+        this._applyDraftState(result.hasUnpublishedChanges);
+        this.reload();
     }
 
-    discard(event) {
+    async discard(event) {
         if (event) event.preventDefault();
-        console.log('[cb-builder] discard requested', { areaId: this.areaIdValue });
+        const result = await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/discard`);
+        if (result === null) return;
+        this._applyDraftState(result.hasUnpublishedChanges);
+        this.reload();
+    }
+
+    /**
+     * Refreshes the topbar (Discard enabled/disabled) and the launcher badge
+     * outside the dialog so the parent admin page reflects the latest draft
+     * state without a full reload.
+     */
+    _applyDraftState(hasUnpublishedChanges) {
+        // Discard button on the topbar.
+        const discardBtn = this.element.querySelector('.cb-shell__discard');
+        if (discardBtn) {
+            discardBtn.disabled = !hasUnpublishedChanges;
+        }
+
+        // Launcher badge lives outside the shell (before the <dialog>). We
+        // look it up at document scope.
+        const badge = document.querySelector('.cb-launcher__badge');
+        if (hasUnpublishedChanges && !badge) {
+            // No way to recreate it without the translation string — leave
+            // its absence to next page render.
+        } else if (!hasUnpublishedChanges && badge) {
+            badge.remove();
+        }
     }
 
     async addSection(event) {
         if (event) event.preventDefault();
         const layout = event?.params?.layout ?? 'full';
         await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/sections`, { layout });
-        this.reload();
+        this._afterStructuralOp();
     }
 
     async _addBlock(columnId, blockType) {
         if (!columnId || !blockType) return;
         await this._jsonRequest('POST', `/_content-blocks/column/${columnId}/blocks`, { type: blockType });
-        this.reload();
+        this._afterStructuralOp();
     }
 
     async _deleteBlock(blockId) {
         if (!blockId) return;
         await this._jsonRequest('DELETE', `/_content-blocks/block/${blockId}`);
-        this.reload();
+        this._afterStructuralOp();
     }
 
     async _moveBlock(blockId, toColumnId, position) {
@@ -103,18 +132,29 @@ export default class extends Controller {
             toColumnId,
             position: position ?? 0,
         });
-        this.reload();
+        this._afterStructuralOp();
     }
 
     async _moveSection(sectionId, direction) {
         if (!sectionId || !['up', 'down'].includes(direction)) return;
         await this._jsonRequest('POST', `/_content-blocks/section/${sectionId}/move`, { direction });
-        this.reload();
+        this._afterStructuralOp();
     }
 
     async _deleteSection(sectionId) {
         if (!sectionId) return;
         await this._jsonRequest('DELETE', `/_content-blocks/section/${sectionId}`);
+        this._afterStructuralOp();
+    }
+
+    /**
+     * Common tail for any structural mutation: every such op leaves the area
+     * with at least one unpublished change, so flip the discard button on
+     * proactively (instead of doing a roundtrip just to discover the area is
+     * dirty), then reload the iframe to reflect the new draft state.
+     */
+    _afterStructuralOp() {
+        this._applyDraftState(true);
         this.reload();
     }
 
@@ -240,6 +280,7 @@ export default class extends Controller {
     _onBlockSaved(event) {
         console.log('[cb-builder] block:saved', event.detail);
         this._unmountSidebar();
+        this._applyDraftState(true);
         this.reload();
     }
 

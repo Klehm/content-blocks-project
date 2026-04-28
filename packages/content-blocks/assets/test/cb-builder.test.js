@@ -198,16 +198,6 @@ describe('cb-builder: action methods', () => {
         logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     });
 
-    it('publish logs intent with areaId', () => {
-        controller.publish();
-        expect(logSpy).toHaveBeenCalledWith('[cb-builder] publish requested', { areaId: 99 });
-    });
-
-    it('discard logs intent with areaId', () => {
-        controller.discard();
-        expect(logSpy).toHaveBeenCalledWith('[cb-builder] discard requested', { areaId: 99 });
-    });
-
     it('addSection POSTs to area/{id}/sections with the layout, then reloads', async () => {
         const reqSpy = vi.spyOn(controller, '_jsonRequest').mockResolvedValue({});
         const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
@@ -284,6 +274,79 @@ describe('cb-builder: structural AJAX handlers', () => {
         await controller._deleteSection(5);
         expect(reqSpy).toHaveBeenCalledWith('DELETE', '/_content-blocks/section/5');
         expect(reloadSpy).toHaveBeenCalled();
+    });
+});
+
+describe('cb-builder: publish/discard', () => {
+    let controller, reqSpy, reloadSpy, applySpy;
+
+    beforeEach(() => {
+        ({ controller } = setupController({ areaId: 99 }));
+        controller.element.dataset.cbCsrfToken = 'tok';
+        // Add a topbar Discard button + launcher badge so we can verify side-effects.
+        const discard = document.createElement('button');
+        discard.className = 'cb-shell__discard';
+        discard.disabled = false;
+        controller.element.appendChild(discard);
+
+        const badge = document.createElement('span');
+        badge.className = 'cb-launcher__badge';
+        document.body.appendChild(badge);
+
+        vi.spyOn(console, 'log').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        reqSpy = vi.spyOn(controller, '_jsonRequest');
+        reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+        applySpy = vi.spyOn(controller, '_applyDraftState');
+    });
+
+    it('publish posts to area/{id}/publish, applies state, reloads', async () => {
+        reqSpy.mockResolvedValue({ hasUnpublishedChanges: false });
+
+        await controller.publish({ preventDefault: () => {} });
+
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/publish');
+        expect(applySpy).toHaveBeenCalledWith(false);
+        expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('discard posts to area/{id}/discard, applies state, reloads', async () => {
+        reqSpy.mockResolvedValue({ hasUnpublishedChanges: false });
+
+        await controller.discard({ preventDefault: () => {} });
+
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/discard');
+        expect(applySpy).toHaveBeenCalledWith(false);
+        expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('publish does not act when the request fails', async () => {
+        reqSpy.mockResolvedValue(null);
+
+        await controller.publish();
+
+        expect(applySpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_applyDraftState toggles Discard button and removes the badge when clean', () => {
+        const discardBtn = controller.element.querySelector('.cb-shell__discard');
+        const badge = document.querySelector('.cb-launcher__badge');
+
+        controller._applyDraftState(false);
+
+        expect(discardBtn.disabled).toBe(true);
+        expect(document.querySelector('.cb-launcher__badge')).toBeNull();
+        expect(badge.isConnected).toBe(false);
+    });
+
+    it('_applyDraftState enables Discard when the area is dirty', () => {
+        const discardBtn = controller.element.querySelector('.cb-shell__discard');
+        discardBtn.disabled = true;
+
+        controller._applyDraftState(true);
+
+        expect(discardBtn.disabled).toBe(false);
     });
 });
 
