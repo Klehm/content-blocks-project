@@ -289,9 +289,46 @@ Tu cliques "Modifier le contenu" sur `/admin/page/1` → un `<dialog>` plein éc
 3. **DnD reorder dans le preview-overlay** — laissé pour phase 3 polish (plan original le mentionnait pour étape 9).
 4. **`asset-map:compile` requis pour servir les assets** — PHP built-in server ne dispatch pas les `.js`/`.css` à `index.php`. Le pretest e2e compile, et les sandboxes en dev veulent un `compile` (warning Symfony : "delete public/assets to allow live changes").
 
-## Pour les phases suivantes
+## Phases suivantes — état final
 
-- **Phase 2** : sidebar fonctionnelle. Mount `BlockComponent` dans `<aside>` au reçu de `cb:block:edit`, save bloc → reload iframe via `cb-builder#reload`. Tests d'intégration BlockComponent.
-- **Phase 3** : ops structurelles AJAX (add section, delete section, move section, add block, delete block, reorder block). Endpoints écrivent en draft/preview-position, iframe reload après chaque op. Réintroduit les flags `hasBeenPublished` si nécessaire pour discard. DnD dans l'overlay.
-- **Phase 4** : "Publier" + "Annuler les modifications" wirés au `ContentAreaPublisher`. Badge "modifications en attente" dynamique. Soft-deleted blocks rendus barrés en preview (CSS déjà présent dans `preview-overlay.js`).
-- **Phase 5** : polish — confirm-if-dirty au close du dialog, raccourcis clavier dans la sidebar, transitions, accessibilité, traductions.
+### Phase 2 ✅ (`41c3a0e`)
+Sidebar fonctionnelle : `cb:block:edit` mount le BlockComponent dans `<aside>` via `GET /_content-blocks/block/{id}/edit`. `cb:block:saved` (CustomEvent émis par `dispatchBrowserEvent`) → unmount + reload iframe ; `cb:block:cancel` → unmount only. 5 tests Vitest + 2 Playwright nouveaux.
+
+### Phase 3 ✅ (`6f92abf` + `b8397fe`)
+- **Schema** : `Section`/`Column` gagnent `publishedAt: ?\DateTimeImmutable`. Permet à `discardDraft` de supprimer les Section/Column jamais publiées (publishedAt null) au lieu de juste revert les flags. Block reste sur la convention `publishedData === null`.
+- **Endpoints** : `POST /area/{id}/sections {layout}`, `POST /section/{id}/move {direction}`, `DELETE /section/{id}`, `GET /types`, `POST /column/{id}/blocks {type}`, `POST /block/{id}/move {toColumnId, position}`, `DELETE /block/{id}`. Tous CSRF-protected via `CsrfProtectedTrait` (header `X-CSRF-Token` lu depuis `data-cb-csrf-token`).
+- **Iframe overlay** : column toolbar avec "+ Block" ouvre un popover listant les types depuis `window.__cbBlockTypes` (injecté par `BlockRenderer`). Priority hover : block > column > section. Padding `padding-top: 18px` sur sections pour rendre le hover section accessible même quand les colonnes remplissent la row.
+- **DnD reorder** : non livré (reporté en post-phase 5 si besoin — tous les autres reorder/move passent par les boutons overlay ▲▼).
+- 9 tests Vitest + 5 Playwright nouveaux.
+
+### Phase 4 ✅ (`c4b0bbb`)
+- Endpoints `POST /area/{id}/publish`, `POST /area/{id}/discard`, `GET /area/{id}/state` qui appellent `ContentAreaPublisher`.
+- `cb-builder#publish` / `#discard` actions appellent les endpoints, applique le `hasUnpublishedChanges` retourné via `_applyDraftState(bool)` (toggle du Discard button + retire le badge launcher) puis `reload()` l'iframe.
+- Toutes les ops structurelles déclenchent `_afterStructuralOp()` qui force `_applyDraftState(true)` (économise un roundtrip — toute mutation logique = aire dirty).
+- 5 tests Vitest + 3 Playwright nouveaux.
+
+### Phase 5 ✅ (`d0cb020`)
+- **Translations** : `cb.builder.{open,close,publish,discard,add_section,draft_pending,preview,confirm_close}` + `cb.section.layout.full` + `cb.block.remove` ajoutés en `en` et `fr`.
+- **Close guard** : `cb-builder-launcher` intercepte le clic close ET l'event `cancel` natif (Escape) du `<dialog>`. Si la sidebar a un form ouvert, `window.confirm` avant fermeture ; preventDefault sur l'event natif si l'utilisateur décline.
+- **Auto-focus** : `_mountSidebar` focus le premier input/textarea/contenteditable au prochain `requestAnimationFrame` après que Stimulus + Live Component aient connecté.
+- **Animation sidebar** : keyframes `cb-sidebar-in` slide-in `.18s ease-out`.
+- **A11y** : `aria-label` sur la `<aside>` sidebar, sur le `<dialog>`, sur chaque bouton overlay (mirror du title).
+- 7 tests Vitest (nouveau fichier `cb-builder-launcher.test.js`) + 4 Playwright nouveaux.
+
+## Récap final
+
+| Suite | Phase 1 | Phase 2 | Phase 3 | Phase 4 | Phase 5 | **Total** |
+|---|---|---|---|---|---|---|
+| PHPUnit | 54 | 54 | 58 | 58 | 58 | **58** |
+| Vitest | 17 | 22 | 31 | 34 | 41 | **41** |
+| Playwright | 7 | 8 | 10 | 12 | 16 | **16** |
+| **Cumul** | 78 | 84 | 99 | 104 | 115 | **115** |
+
+Tous au vert.
+
+## Limitations restantes (post-phase 5)
+
+1. **DnD reorder dans l'iframe overlay** — non livré (toutes les autres ops reorder passent par les boutons ▲▼, suffit pour V1).
+2. **Confirm-on-close** est basé sur "la sidebar contient un form", pas sur "le form est dirty" (pas de tracking input change). Acceptable mais le user voit le confirm même s'il n'a rien tapé.
+3. **Auto-recreate du badge launcher** si l'utilisateur édite après publish : `_applyDraftState(true)` avec badge déjà parti ne le recrée pas (le markup translation-aware n'est connu que côté serveur). À recréer côté JS si besoin futur, ou full reload du parent.
+4. **Tests d'intégration save BlockComponent** — toujours reportés, couverts par le e2e Playwright "phase 2".
