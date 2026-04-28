@@ -46,6 +46,11 @@
     background: #f5f6f8;
     color: #1f2330;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    /* Defensive: the sidebar starts at translateX(100%) during its slide-in.
+       Without this, the browser may briefly include that off-screen position
+       in the scrollable area and shift the iframe horizontally to compensate
+       for a focused input. */
+    overflow: hidden;
 }
 
 .cb-shell__topbar {

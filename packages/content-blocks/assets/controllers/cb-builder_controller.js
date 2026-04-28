@@ -266,12 +266,16 @@ export default class extends Controller {
 
             // Move focus to the first form field so the user can type
             // straight away. Defer to after the next paint so Stimulus + Live
-            // Component have wired their controllers up.
+            // Component have wired their controllers up. preventScroll is
+            // critical: while the sidebar is mid-slide-in (translateX(100%)
+            // → 0), focusing an input would otherwise tell the browser to
+            // scroll horizontally to bring the still-off-screen input into
+            // view, which makes the iframe visually drift left-then-right.
             requestAnimationFrame(() => {
                 const target = this.sidebarTarget.querySelector(
                     'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), [contenteditable="true"]',
                 );
-                if (target) target.focus();
+                if (target) target.focus({ preventScroll: true });
             });
 
             console.log('[cb-builder] sidebar mounted for block', blockId);
