@@ -23,7 +23,8 @@
         "@klehm/content-blocks": {
             "cb-builder-launcher": { "enabled": true, "fetch": "eager" },
             "cb-builder": { "enabled": true, "fetch": "eager" },
-            "cb-block-edit-keys": { "enabled": true, "fetch": "eager" }
+            "cb-block-edit-keys": { "enabled": true, "fetch": "eager" },
+            "cb-section-settings-form": { "enabled": true, "fetch": "eager" }
         },
         "@klehm/content-blocks-kit": {
             "cb-file-upload": { "enabled": true, "fetch": "eager" }

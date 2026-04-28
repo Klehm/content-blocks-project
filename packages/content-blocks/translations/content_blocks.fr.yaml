@@ -5,6 +5,16 @@ cb:
         move_up: "Monter"
         move_down: "Descendre"
         remove: "Supprimer"
+        settings:
+            title: "Paramètres de la section"
+            classes: "Classes CSS personnalisées"
+            classes_help: "Liste de classes CSS séparées par des espaces."
+            width: "Largeur"
+            width.full: "Pleine largeur"
+            width.centered: "Centré"
+            max_width: "Largeur max (px)"
+            style: "Style prédéfini"
+            style.none: "— Aucun —"
         layout:
             full: "1 colonne"
             one_col: "1 colonne"

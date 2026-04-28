@@ -166,4 +166,51 @@ final class SectionDecoratorTest extends TestCase
         $this->assertSame('wrap', $deco->classString());
         $this->assertSame('background-color:#fafafa;', $deco->styleString());
     }
+
+    /**
+     * Mirrors the host-app extension scenario implemented in the Symfony
+     * sandbox (App\Form\Extension\SectionSettingsBackgroundColorExtension):
+     * a Symfony FormTypeExtension on SectionSettingsType adds a custom
+     * field, and that field's value lands as a free-form key in the
+     * section settings JSON — to be picked up later by a decorator.
+     */
+    public function testHostFormExtensionAddsCustomFieldToSectionSettingsType(): void
+    {
+        $extension = new class extends \Symfony\Component\Form\AbstractTypeExtension {
+            public static function getExtendedTypes(): iterable
+            {
+                return [\ContentBlocks\Form\Type\SectionSettingsType::class];
+            }
+            public function buildForm(\Symfony\Component\Form\FormBuilderInterface $builder, array $options): void
+            {
+                $builder->add('backgroundColor', \Symfony\Component\Form\Extension\Core\Type\ColorType::class, ['required' => false]);
+            }
+        };
+
+        $factory = \Symfony\Component\Form\Forms::createFormFactoryBuilder()
+            ->addType(new \ContentBlocks\Form\Type\SectionSettingsType(new SectionStyleRegistry()))
+            ->addTypeExtension($extension)
+            ->getFormFactory();
+
+        $form = $factory->create(\ContentBlocks\Form\Type\SectionSettingsType::class);
+
+        // Built-in fields stay…
+        $this->assertTrue($form->has('classes'));
+        $this->assertTrue($form->has('widthMode'));
+        $this->assertTrue($form->has('maxWidth'));
+        // …and the host extension's field is wired in alongside.
+        $this->assertTrue($form->has('backgroundColor'));
+
+        // Submit with a value and verify it's preserved end-to-end.
+        $form->submit([
+            'classes' => 'demo',
+            'widthMode' => 'centered',
+            'maxWidth' => 1100,
+            'backgroundColor' => '#fafafa',
+        ]);
+
+        $this->assertTrue($form->isValid(), (string) $form->getErrors(true, false));
+        $data = $form->getData();
+        $this->assertSame('#fafafa', $data['backgroundColor']);
+    }
 }

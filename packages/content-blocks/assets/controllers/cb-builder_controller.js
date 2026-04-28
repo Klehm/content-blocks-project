@@ -23,18 +23,25 @@ export default class extends Controller {
         this._onMessage = this._onMessage.bind(this);
         this._onBlockSaved = this._onBlockSaved.bind(this);
         this._onBlockCancel = this._onBlockCancel.bind(this);
+        this._onSectionSaved = this._onSectionSaved.bind(this);
+        this._onSectionCancel = this._onSectionCancel.bind(this);
 
         window.addEventListener('message', this._onMessage);
-        // Browser CustomEvents emitted by BlockComponent's dispatchBrowserEvent
-        // bubble up the DOM from the sidebar to here.
+        // Browser CustomEvents emitted from sidebar forms (BlockComponent's
+        // dispatchBrowserEvent or the section-settings form controller)
+        // bubble up the DOM to here.
         this.element.addEventListener('cb:block:saved', this._onBlockSaved);
         this.element.addEventListener('cb:block:cancel', this._onBlockCancel);
+        this.element.addEventListener('cb:section:saved', this._onSectionSaved);
+        this.element.addEventListener('cb:section:cancel', this._onSectionCancel);
     }
 
     disconnect() {
         window.removeEventListener('message', this._onMessage);
         this.element.removeEventListener('cb:block:saved', this._onBlockSaved);
         this.element.removeEventListener('cb:block:cancel', this._onBlockCancel);
+        this.element.removeEventListener('cb:section:saved', this._onSectionSaved);
+        this.element.removeEventListener('cb:section:cancel', this._onSectionCancel);
     }
 
     /**
@@ -235,6 +242,9 @@ export default class extends Controller {
             case 'cb:section:delete-requested':
                 this._deleteSection(data.sectionId);
                 break;
+            case 'cb:section:settings':
+                this._mountSectionSettings(data.sectionId);
+                break;
             default:
                 console.log('[cb-builder] unknown message type', data.type, data);
         }
@@ -300,6 +310,49 @@ export default class extends Controller {
 
     _onBlockCancel(event) {
         console.log('[cb-builder] block:cancel', event.detail);
+        this._unmountSidebar();
+    }
+
+    /**
+     * Section settings: same fetch/inject + save/cancel flow as blocks,
+     * just pointing at a different endpoint.
+     */
+    async _mountSectionSettings(sectionId) {
+        if (!this.hasSidebarTarget) return;
+        try {
+            const response = await fetch(`/_content-blocks/section/${sectionId}/settings`, {
+                headers: { 'Accept': 'text/html' },
+                credentials: 'same-origin',
+            });
+            if (!response.ok) {
+                console.error('[cb-builder] failed to load section settings', sectionId, response.status);
+                return;
+            }
+            const html = await response.text();
+            this.sidebarTarget.innerHTML = html;
+            this.sidebarTarget.hidden = false;
+            this.sidebarTarget.dataset.cbSidebarSectionId = String(sectionId);
+
+            requestAnimationFrame(() => {
+                const target = this.sidebarTarget.querySelector(
+                    'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])',
+                );
+                if (target) target.focus({ preventScroll: true });
+            });
+        } catch (e) {
+            console.error('[cb-builder] mount section settings error', e);
+        }
+    }
+
+    _onSectionSaved(event) {
+        console.log('[cb-builder] section:saved', event.detail);
+        this._unmountSidebar();
+        this._applyDraftState(true);
+        this.reload();
+    }
+
+    _onSectionCancel(event) {
+        console.log('[cb-builder] section:cancel', event.detail);
         this._unmountSidebar();
     }
 }

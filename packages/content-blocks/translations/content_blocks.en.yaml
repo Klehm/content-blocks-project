@@ -5,6 +5,16 @@ cb:
         move_up: "Move up"
         move_down: "Move down"
         remove: "Remove"
+        settings:
+            title: "Section settings"
+            classes: "Custom CSS classes"
+            classes_help: "Whitespace-separated list of CSS classes."
+            width: "Width"
+            width.full: "Full width"
+            width.centered: "Centered"
+            max_width: "Max width (px)"
+            style: "Style preset"
+            style.none: "— None —"
         layout:
             full: "1 column"
             one_col: "1 column"

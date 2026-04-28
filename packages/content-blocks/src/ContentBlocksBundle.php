@@ -6,6 +6,8 @@ namespace ContentBlocks;
 
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\DependencyInjection\BlockTypeCompilerPass;
+use ContentBlocks\Section\SectionDecoratorInterface;
+use ContentBlocks\Section\SectionStyleProviderInterface;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -42,6 +44,14 @@ final class ContentBlocksBundle extends AbstractBundle
                 $definition->addTag('content_blocks.block_type');
             },
         );
+
+        // Globally auto-tag host implementations of the section extension
+        // points so they don't need any wiring beyond `autoconfigure: true`
+        // on the host's services.yaml.
+        $container->registerForAutoconfiguration(SectionStyleProviderInterface::class)
+            ->addTag('content_blocks.section_style_provider');
+        $container->registerForAutoconfiguration(SectionDecoratorInterface::class)
+            ->addTag('content_blocks.section_decorator');
     }
 
     public function getPath(): string

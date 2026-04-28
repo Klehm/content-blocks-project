@@ -45,11 +45,10 @@ return static function (ContainerConfigurator $container): void {
 
     // ---------- Section settings extension hooks ----------
 
-    // Auto-tag user-defined providers/decorators wherever they live.
-    $services->instanceof(SectionStyleProviderInterface::class)
-        ->tag('content_blocks.section_style_provider');
-    $services->instanceof(SectionDecoratorInterface::class)
-        ->tag('content_blocks.section_decorator');
+    // Note: SectionStyleProviderInterface + SectionDecoratorInterface are
+    // auto-tagged globally via registerForAutoconfiguration() in the
+    // bundle's build(); host-app implementations don't need any explicit
+    // tag.
 
     $services->set(SectionStyleRegistry::class)
         ->args([tagged_iterator('content_blocks.section_style_provider')])

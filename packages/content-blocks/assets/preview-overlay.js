@@ -233,6 +233,8 @@
                 postToParent('cb:section:move-requested', { sectionId, direction: 'up' })));
             toolbar.appendChild(makeBtn('▼', 'Move down', () =>
                 postToParent('cb:section:move-requested', { sectionId, direction: 'down' })));
+            toolbar.appendChild(makeBtn('⚙', 'Settings', () =>
+                postToParent('cb:section:settings', { sectionId })));
             toolbar.appendChild(makeBtn('×', 'Delete', () =>
                 postToParent('cb:section:delete-requested', { sectionId })));
         } else if (kind === 'column') {

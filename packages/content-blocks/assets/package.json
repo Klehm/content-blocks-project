@@ -21,6 +21,12 @@
                 "name": "cb-block-edit-keys",
                 "fetch": "eager",
                 "enabled": true
+            },
+            "cb-section-settings-form": {
+                "main": "controllers/cb-section-settings-form_controller.js",
+                "name": "cb-section-settings-form",
+                "fetch": "eager",
+                "enabled": true
             }
         },
         "importmap": {

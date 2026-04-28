@@ -134,10 +134,57 @@ test.describe('builder shell — sections', () => {
         await addFullSection(page, frame);
 
         await frame.locator('[data-cb-section-id]').first().hover({ position: { x: 5, y: 5 } });
-        // Toolbar buttons for sections: ▲ ▼ × — third button is delete.
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').nth(2).click();
+        // Toolbar buttons for sections: ▲ ▼ ⚙ × — fourth button is delete.
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').nth(3).click();
 
         await expect.poll(() => frame.locator('[data-cb-section-id][data-cb-deleted="1"]').count()).toBe(1);
+    });
+
+    test('section settings overlay (⚙) opens the sidebar with the settings form', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+
+        await frame.locator('[data-cb-section-id]').first().hover({ position: { x: 5, y: 5 } });
+        // Toolbar buttons for sections: ▲ ▼ ⚙ × — third button is settings.
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').nth(2).click();
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar).not.toHaveAttribute('hidden');
+        // Built-in fields are present.
+        await expect(sidebar.locator('input[name="section_settings[classes]"]')).toBeVisible();
+        await expect(sidebar.locator('input[name="section_settings[widthMode]"][value="full"]')).toBeAttached();
+        await expect(sidebar.locator('input[name="section_settings[widthMode]"][value="centered"]')).toBeAttached();
+        await expect(sidebar.locator('input[name="section_settings[maxWidth]"]')).toBeVisible();
+        // Sandbox FormTypeExtension contributed an additional field.
+        await expect(sidebar.locator('input[name="section_settings[backgroundColor]"]')).toBeAttached();
+    });
+
+    test('section settings save applies custom classes + width and the host backgroundColor extension', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+
+        // Open settings.
+        await frame.locator('[data-cb-section-id]').first().hover({ position: { x: 5, y: 5 } });
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').nth(2).click();
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await sidebar.locator('input[name="section_settings[classes]"]').fill('e2e-decorated');
+        await sidebar.locator('input[name="section_settings[widthMode]"][value="centered"]').check();
+        await sidebar.locator('input[name="section_settings[maxWidth]"]').fill('900');
+        // Sandbox extension field — a color input.
+        await sidebar.locator('input[name="section_settings[backgroundColor]"]').evaluate(
+            (el) => { el.value = '#ffeecc'; el.dispatchEvent(new Event('input', { bubbles: true })); },
+        );
+        await sidebar.locator('button[type="submit"]').click();
+
+        // Sidebar closes, iframe reloads, decorations applied.
+        await expect(sidebar).toHaveAttribute('hidden', '');
+        const section = frame.locator('[data-cb-section-id]').first();
+        await expect.poll(async () => section.getAttribute('class')).toContain('e2e-decorated');
+        await expect.poll(async () => section.getAttribute('class')).toContain('cb-section--centered');
+        const style = await section.getAttribute('style');
+        expect(style).toContain('max-width:900px');
+        expect(style).toContain('background-color:#ffeecc');
     });
 });
 

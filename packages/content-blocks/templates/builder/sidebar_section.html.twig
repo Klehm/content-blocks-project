@@ -1,0 +1,23 @@
+{# @var form Symfony\Component\Form\FormView #}
+{# @var sectionId int #}
+<div class="cb-sidebar__section-settings"
+     data-controller="cb-section-settings-form"
+     data-cb-section-settings-form-section-id-value="{{ sectionId }}">
+
+    <h3 class="cb-sidebar__title">{{ 'cb.section.settings.title'|trans({}, 'content_blocks') }}</h3>
+
+    {{ form_start(form, { 'attr': { 'data-cb-section-settings-form-target': 'form' } }) }}
+        {{ form_widget(form) }}
+
+        <div class="cb-sidebar__actions mt-3">
+            <button type="submit" class="btn btn-primary">
+                {{ 'cb.block.save'|trans({}, 'content_blocks') }}
+            </button>
+            <button type="button"
+                    class="btn btn-secondary"
+                    data-action="cb-section-settings-form#cancel">
+                {{ 'cb.block.cancel'|trans({}, 'content_blocks') }}
+            </button>
+        </div>
+    {{ form_end(form) }}
+</div>
