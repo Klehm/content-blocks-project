@@ -95,43 +95,47 @@
     box-shadow: 0 1px 2px rgba(0,0,0,.08);
 }
 
-/* ---- Main area: iframe + sidebar ---- */
+/* ---- Main area: iframe + floating sidebar ---- */
 
 .cb-shell__main {
-    display: flex;
-    overflow: hidden;
     position: relative;
+    overflow: hidden;
+    background: #fff;
 }
 
 .cb-shell__iframe {
-    flex: 1;
     border: 0;
     background: #fff;
     width: 100%;
     height: 100%;
+    display: block;
 }
 
+/* The sidebar floats over the iframe (no flex shrink) so opening it
+   doesn't shift the preview width — the user keeps seeing exactly the
+   same viewport while editing. */
 .cb-shell__sidebar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
     width: 380px;
-    flex-shrink: 0;
     background: #fff;
     border-left: 1px solid #e3e5e9;
     overflow-y: auto;
     padding: 1rem;
-    transform: translateX(0);
-    transition: transform .18s ease-out, opacity .18s ease-out;
-    opacity: 1;
+    z-index: 5;
+    box-shadow: -2px 0 12px rgba(20, 22, 30, .08);
 }
 .cb-shell__sidebar[hidden] {
-    /* Keep the element in flow long enough to animate, then collapse. */
     display: none;
 }
 .cb-shell__sidebar:not([hidden]) {
     animation: cb-sidebar-in .18s ease-out;
 }
 @keyframes cb-sidebar-in {
-    from { transform: translateX(20px); opacity: 0; }
-    to   { transform: translateX(0);    opacity: 1; }
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0);    }
 }
 
 /* ---- Bottom bar (add section) ---- */

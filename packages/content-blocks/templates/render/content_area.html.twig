@@ -6,9 +6,13 @@
     <section class="cb-section cb-section--{{ section.layout }}{% if section.deleted %} cb-section--deleted{% endif %}"
         {% if isPreview %}data-cb-section-id="{{ section.id }}"{% endif %}
         {% if section.deleted %}data-cb-deleted="1"{% endif %}>
-        <div class="cb-row">
+        {# Both `cb-row`/`cb-col` (semantic) and `row`/`col-*` (Bootstrap-
+           compatible) class names so host apps using Bootstrap get layout
+           for free; non-Bootstrap apps target the cb-* names from their
+           own stylesheet. #}
+        <div class="cb-row row">
             {% for column in section.columns %}
-                <div class="cb-col cb-col--{{ column.preset }}{% if column.deleted %} cb-col--deleted{% endif %}"
+                <div class="cb-col cb-col--{{ column.preset }} {{ column.preset }}{% if column.deleted %} cb-col--deleted{% endif %}"
                     {% if isPreview %}data-cb-column-id="{{ column.id }}"{% endif %}
                     {% if column.deleted %}data-cb-deleted="1"{% endif %}>
                     {% for block in column.blocks %}

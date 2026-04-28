@@ -210,6 +210,71 @@ test.describe('builder shell — blocks', () => {
     });
 });
 
+test.describe('builder shell — preview hardening', () => {
+    test('three-column section renders columns side by side, not stacked', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await page.locator('.cb-shell__bottom button[data-cb-builder-layout-param="three_cols"]').click();
+
+        await expect.poll(() => frame.locator('[data-cb-column-id]').count()).toBe(3);
+
+        const tops = await frame.locator('[data-cb-column-id]').evaluateAll((els) =>
+            els.map((el) => Math.round(el.getBoundingClientRect().top)),
+        );
+        // All three columns share the same top → they're on the same row.
+        expect(new Set(tops).size).toBe(1);
+    });
+
+    test('opening the sidebar does not shrink the iframe (it floats over)', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+
+        const iframe = page.locator('.cb-shell__iframe');
+        const widthBefore = await iframe.evaluate((el) => el.getBoundingClientRect().width);
+
+        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+
+        await expect(page.locator('aside[data-cb-builder-target="sidebar"]')).not.toHaveAttribute('hidden');
+
+        const widthAfter = await iframe.evaluate((el) => el.getBoundingClientRect().width);
+        expect(widthAfter).toBe(widthBefore);
+
+        // Sidebar is positioned absolutely.
+        const position = await page.locator('aside[data-cb-builder-target="sidebar"]').evaluate(
+            (el) => getComputedStyle(el).position,
+        );
+        expect(position).toBe('absolute');
+    });
+
+    test('clicks on links inside the iframe preview are intercepted', async ({ page }) => {
+        const frame = await openBuilder(page);
+
+        // Inject a real <a> into the iframe and verify the click is blocked.
+        const initialUrl = await page.locator('.cb-shell__iframe').evaluate((el) => el.src);
+
+        const blocked = await page.locator('.cb-shell__iframe').evaluate((iframe) => {
+            const idoc = iframe.contentDocument;
+            const a = idoc.createElement('a');
+            a.href = 'http://example.test/somewhere-else';
+            a.id = '__cb_test_link__';
+            a.textContent = 'External';
+            idoc.body.appendChild(a);
+
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+            a.dispatchEvent(event);
+
+            return {
+                defaultPrevented: event.defaultPrevented,
+                stillSameUrl: iframe.contentWindow.location.href === iframe.src,
+            };
+        });
+
+        expect(blocked.defaultPrevented).toBe(true);
+        expect(blocked.stillSameUrl).toBe(true);
+    });
+});
+
 test.describe('builder shell — polish', () => {
     test('opening sidebar auto-focuses the first form field', async ({ page }) => {
         const frame = await openBuilder(page);

@@ -272,6 +272,44 @@
     toolbar.addEventListener('mouseenter', () => clearTimeout(hideTimer));
     toolbar.addEventListener('mouseleave', scheduleHide);
 
+    // ---------- Block intra-iframe navigation ----------
+
+    // The preview is meant for read-only inspection — clicking a real link or
+    // submitting a real form would navigate the iframe away from the page
+    // we're editing, which is jarring (the parent admin loses context). We
+    // intercept those interactions in the capture phase so they never reach
+    // the front-app handlers.
+    //
+    // Exceptions:
+    //  - Buttons / clicks inside the toolbar or popover continue to work —
+    //    they're handled by makeBtn() with stopPropagation already.
+    //  - Anchors with `target="_blank"` (or that point to a different host)
+    //    are allowed through so the user can still pop external references
+    //    into a new tab if needed.
+    document.addEventListener(
+        'click',
+        (event) => {
+            const link = event.target.closest?.('a[href]');
+            if (!link) return;
+            // Allow explicit new-tab links (and modifier-key clicks).
+            if (link.target === '_blank' || event.ctrlKey || event.metaKey || event.shiftKey) {
+                return;
+            }
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        },
+        true,
+    );
+
+    document.addEventListener(
+        'submit',
+        (event) => {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        },
+        true,
+    );
+
     // ---------- Ready signal ----------
 
     if (document.readyState === 'loading') {
