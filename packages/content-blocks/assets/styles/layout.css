@@ -1,0 +1,44 @@
+/**
+ * ContentBlocks — front-side layout grid.
+ *
+ * Loaded via `<link rel="stylesheet" href="/_content-blocks/layout.css">` at
+ * the top of every BlockRenderer output (both PUBLIC and PREVIEW). Self-
+ * scoped via `.cb-content-area` so the rules can't bleed into the rest of
+ * the host page.
+ *
+ * No framework dependency — pure flex layout with two breakpoints.
+ */
+
+.cb-content-area {
+    box-sizing: border-box;
+}
+.cb-content-area *,
+.cb-content-area *::before,
+.cb-content-area *::after {
+    box-sizing: inherit;
+}
+
+.cb-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    width: 100%;
+}
+
+.cb-col {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.cb-col--col-12 { flex-basis: 100%; }
+.cb-col--col-6  { flex-basis: calc((100% - 1rem) / 2); }
+.cb-col--col-4  { flex-basis: calc((100% - 2rem) / 3); }
+
+@media (max-width: 768px) {
+    .cb-col--col-4 { flex-basis: calc((100% - 1rem) / 2); }
+}
+
+@media (max-width: 540px) {
+    .cb-col--col-6,
+    .cb-col--col-4 { flex-basis: 100%; }
+}

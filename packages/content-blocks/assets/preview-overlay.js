@@ -4,15 +4,16 @@
  *
  * Plain JS (no Stimulus) so the host app's front theme doesn't have to
  * carry our Stimulus loader. The script is auto-injected by BlockRenderer
- * via the @ContentBlocks/render/content_area.html.twig template.
+ * via the @ContentBlocks/render/content_area.html.twig template; the
+ * matching builder.css stylesheet is loaded via <link>.
  *
- * Responsibilities:
+ * Responsibilities (logic only — all styling lives in builder.css):
  *  - Signal cb:ready to the parent admin window once the DOM is up.
  *  - Show a floating action toolbar when hovering an entity carrying a
- *    data-cb-block-id or data-cb-section-id marker.
+ *    data-cb-block-id, data-cb-column-id or data-cb-section-id marker.
  *  - Forward toolbar clicks to the parent as typed postMessage events.
- *  - Soft-deleted elements (data-cb-deleted="1") are dimmed visually so the
- *    user sees what will go away on the next publish.
+ *  - Block intra-iframe navigation (link clicks + form submits) so the
+ *    user can't accidentally leave the page being edited.
  *
  * No AJAX here — this script only dispatches intents. The parent's
  * cb-builder Stimulus controller handles them.
@@ -35,106 +36,9 @@
         }
     }
 
-    // ---------- Stylesheet (injected once) ----------
-
-    const style = document.createElement('style');
-    style.textContent = `
-        .cb-overlay-toolbar {
-            position: absolute;
-            display: inline-flex;
-            gap: 2px;
-            background: #1f2330;
-            border-radius: 6px;
-            padding: 2px;
-            box-shadow: 0 2px 8px rgba(0,0,0,.25);
-            z-index: 2147483000;
-            pointer-events: auto;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            font-size: 13px;
-            opacity: 0;
-            transition: opacity .12s ease-out;
-        }
-        .cb-overlay-toolbar.is-visible { opacity: 1; }
-        .cb-overlay-toolbar__btn {
-            background: transparent;
-            border: 0;
-            color: #fff;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 4px;
-            line-height: 1;
-            font: inherit;
-        }
-        .cb-overlay-toolbar__btn:hover { background: rgba(255,255,255,.15); }
-        [data-cb-deleted="1"] {
-            opacity: .5;
-            text-decoration: line-through;
-        }
-        /* When the viewport switcher resizes the iframe, the host page's
-           layout reflows for the new media-query width. During that brief
-           interval the body can be wider than the iframe and a transient
-           horizontal scrollbar flashes. Forcing overflow-x: hidden on the
-           preview body kills the flash; vertical scroll behavior is
-           untouched. */
-        html, body {
-            overflow-x: hidden;
-        }
-        /* Make empty sections/columns hoverable in preview mode + leave a
-           strip at the top of each section dedicated to section-level hover
-           (otherwise inner columns absorb every hover). The dashed outlines
-           let the user see the section/column grid even when the host theme
-           doesn't draw any visible boundaries. */
-        [data-cb-section-id] {
-            min-height: 60px;
-            box-sizing: border-box;
-            padding-top: 18px;
-            position: relative;
-            outline: 1px dashed rgba(79, 141, 249, .35);
-            outline-offset: -1px;
-            margin-bottom: 8px;
-        }
-        [data-cb-column-id] {
-            min-height: 60px;
-            box-sizing: border-box;
-            padding: 6px;
-            outline: 1px dashed rgba(79, 141, 249, .25);
-            outline-offset: -2px;
-            border-radius: 2px;
-        }
-        /* Hovered entity gets a stronger blue outline (overrides the dashed
-           guide above). */
-        .cb-overlay-outline {
-            outline-style: solid !important;
-            outline-color: #4f8df9 !important;
-        }
-        .cb-overlay-popover {
-            position: absolute;
-            background: #fff;
-            border: 1px solid #e3e5e9;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,.15);
-            z-index: 2147483001;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            font-size: 13px;
-            padding: 4px;
-            min-width: 160px;
-        }
-        .cb-overlay-popover[hidden] { display: none; }
-        .cb-overlay-popover__btn {
-            display: block;
-            width: 100%;
-            text-align: left;
-            background: transparent;
-            border: 0;
-            padding: 6px 10px;
-            cursor: pointer;
-            border-radius: 4px;
-            color: #1f2330;
-            font: inherit;
-        }
-        .cb-overlay-popover__btn:hover { background: #f0f1f4; }
-    `;
-    document.head.appendChild(style);
+    // Style sheet: see assets/styles/builder.css, served at
+    // /_content-blocks/builder.css and <link>-ed by the render template
+    // when in PREVIEW mode.
 
     // ---------- Toolbar (single reusable element) ----------
 

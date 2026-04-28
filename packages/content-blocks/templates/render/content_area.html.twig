@@ -1,22 +1,10 @@
 {# @var sections array #}
 {# @var mode \ContentBlocks\Rendering\RenderMode #}
 {% set isPreview = mode.value == 'preview' %}
-<style>
-{# Self-contained layout — host apps don't need Bootstrap. Compact: ~1KB. #}
-.cb-content-area{box-sizing:border-box}
-.cb-content-area *,.cb-content-area *::before,.cb-content-area *::after{box-sizing:inherit}
-.cb-row{display:flex;flex-wrap:wrap;gap:1rem;width:100%}
-.cb-col{flex:1 1 0;min-width:0}
-.cb-col--col-12{flex-basis:100%}
-.cb-col--col-6{flex-basis:calc((100% - 1rem)/2)}
-.cb-col--col-4{flex-basis:calc((100% - 2rem)/3)}
-@media (max-width:768px){
-.cb-col--col-4{flex-basis:calc((100% - 1rem)/2)}
-}
-@media (max-width:540px){
-.cb-col--col-6,.cb-col--col-4{flex-basis:100%}
-}
-</style>
+<link rel="stylesheet" href="/_content-blocks/assets/layout">
+{% if isPreview %}
+    <link rel="stylesheet" href="/_content-blocks/assets/builder">
+{% endif %}
 <div class="cb-content-area"{% if isPreview %} data-cb-preview="1"{% endif %}>
 {% for section in sections %}
     <section class="cb-section cb-section--{{ section.layout }}{% if section.deleted %} cb-section--deleted{% endif %}{% if section.extraClasses %} {{ section.extraClasses }}{% endif %}"
