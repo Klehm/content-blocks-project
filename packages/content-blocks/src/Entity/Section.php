@@ -40,6 +40,14 @@ class Section
     #[ORM\Column(name: 'published_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $publishedAt = null;
 
+    /** @var array<string, mixed>|null */
+    #[ORM\Column(name: 'published_settings', type: 'json', nullable: true)]
+    private ?array $publishedSettings = null;
+
+    /** @var array<string, mixed>|null */
+    #[ORM\Column(name: 'draft_settings', type: 'json', nullable: true)]
+    private ?array $draftSettings = null;
+
     /** @var Collection<int, Column> */
     #[ORM\OneToMany(mappedBy: 'section', targetEntity: Column::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['position' => 'ASC'])]
@@ -143,13 +151,17 @@ class Section
     }
 
     /**
-     * Promote draft layout state (position) to published. Caller is
-     * responsible for handling deleted sections separately (em->remove
+     * Promote draft layout state (position + settings) to published. Caller
+     * is responsible for handling deleted sections separately (em->remove
      * instead of publish).
      */
     public function publish(): void
     {
         $this->position = $this->previewPosition;
+        if ($this->draftSettings !== null) {
+            $this->publishedSettings = $this->draftSettings;
+            $this->draftSettings = null;
+        }
         if ($this->publishedAt === null) {
             $this->publishedAt = new \DateTimeImmutable();
         }
@@ -161,12 +173,14 @@ class Section
     public function revertDraft(): void
     {
         $this->previewPosition = $this->position;
+        $this->draftSettings = null;
         $this->deleted = false;
     }
 
     public function hasUnpublishedChanges(): bool
     {
         return $this->previewPosition !== $this->position
+            || $this->draftSettings !== null
             || $this->deleted
             || $this->publishedAt === null;
     }
@@ -179,5 +193,48 @@ class Section
     public function isPublished(): bool
     {
         return $this->publishedAt !== null;
+    }
+
+    /** @return array<string, mixed>|null */
+    public function getPublishedSettings(): ?array
+    {
+        return $this->publishedSettings;
+    }
+
+    /** @param array<string, mixed>|null $settings */
+    public function setPublishedSettings(?array $settings): self
+    {
+        $this->publishedSettings = $settings;
+
+        return $this;
+    }
+
+    /** @return array<string, mixed>|null */
+    public function getDraftSettings(): ?array
+    {
+        return $this->draftSettings;
+    }
+
+    /** @param array<string, mixed>|null $settings */
+    public function setDraftSettings(?array $settings): self
+    {
+        $this->draftSettings = $settings;
+
+        return $this;
+    }
+
+    /**
+     * Settings to apply when rendering: drafts override published if set,
+     * mirroring the convention used for Block::getDraftData() ?? Block::getPublishedData().
+     *
+     * @return array<string, mixed>
+     */
+    public function getEffectiveSettings(bool $preferDraft = false): array
+    {
+        if ($preferDraft && $this->draftSettings !== null) {
+            return $this->draftSettings;
+        }
+
+        return $this->publishedSettings ?? [];
     }
 }

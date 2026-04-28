@@ -19,9 +19,11 @@
 </style>
 <div class="cb-content-area"{% if isPreview %} data-cb-preview="1"{% endif %}>
 {% for section in sections %}
-    <section class="cb-section cb-section--{{ section.layout }}{% if section.deleted %} cb-section--deleted{% endif %}"
+    <section class="cb-section cb-section--{{ section.layout }}{% if section.deleted %} cb-section--deleted{% endif %}{% if section.extraClasses %} {{ section.extraClasses }}{% endif %}"
         {% if isPreview %}data-cb-section-id="{{ section.id }}"{% endif %}
-        {% if section.deleted %}data-cb-deleted="1"{% endif %}>
+        {% if section.deleted %}data-cb-deleted="1"{% endif %}
+        {% if section.inlineStyle %}style="{{ section.inlineStyle }}"{% endif %}
+        {% for k, v in section.extraAttributes %} {{ k }}="{{ v }}"{% endfor %}>
         <div class="cb-row">
             {% for column in section.columns %}
                 <div class="cb-col cb-col--{{ column.preset }}{% if column.deleted %} cb-col--deleted{% endif %}"

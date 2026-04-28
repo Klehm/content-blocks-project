@@ -74,4 +74,57 @@ final class SectionTest extends TestCase
         $this->assertFalse($section->isDeleted());
         $this->assertFalse($section->hasUnpublishedChanges());
     }
+
+    public function testDraftSettingsMarkSectionDirty(): void
+    {
+        $section = new Section();
+        $section->publish();
+        $this->assertFalse($section->hasUnpublishedChanges());
+
+        $section->setDraftSettings(['classes' => 'my-custom']);
+
+        $this->assertTrue($section->hasUnpublishedChanges());
+    }
+
+    public function testPublishCopiesDraftSettingsToPublishedSettings(): void
+    {
+        $section = new Section();
+        $section->setPublishedSettings(['classes' => 'old']);
+        $section->setDraftSettings(['classes' => 'new', 'maxWidth' => 1100]);
+        $section->publish();
+
+        $this->assertSame(['classes' => 'new', 'maxWidth' => 1100], $section->getPublishedSettings());
+        $this->assertNull($section->getDraftSettings());
+    }
+
+    public function testRevertDraftClearsDraftSettings(): void
+    {
+        $section = new Section();
+        $section->setPublishedSettings(['classes' => 'stable']);
+        $section->publish();
+        $section->setDraftSettings(['classes' => 'pending']);
+
+        $section->revertDraft();
+
+        $this->assertNull($section->getDraftSettings());
+        $this->assertSame(['classes' => 'stable'], $section->getPublishedSettings());
+    }
+
+    public function testGetEffectiveSettingsPrefersDraftWhenRequested(): void
+    {
+        $section = new Section();
+        $section->setPublishedSettings(['classes' => 'public']);
+        $section->setDraftSettings(['classes' => 'draft']);
+
+        $this->assertSame(['classes' => 'public'], $section->getEffectiveSettings(preferDraft: false));
+        $this->assertSame(['classes' => 'draft'], $section->getEffectiveSettings(preferDraft: true));
+    }
+
+    public function testGetEffectiveSettingsFallsBackToPublishedWhenDraftAbsent(): void
+    {
+        $section = new Section();
+        $section->setPublishedSettings(['classes' => 'stable']);
+
+        $this->assertSame(['classes' => 'stable'], $section->getEffectiveSettings(preferDraft: true));
+    }
 }

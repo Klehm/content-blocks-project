@@ -5,9 +5,16 @@ declare(strict_types=1);
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Preview\NullContentAreaUrlResolver;
+use ContentBlocks\Section\BuiltInSectionDecorator;
+use ContentBlocks\Section\SectionDecoratorCollection;
+use ContentBlocks\Section\SectionDecoratorInterface;
+use ContentBlocks\Section\SectionStyleProviderInterface;
+use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\DenyAllAccessChecker;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 return static function (ContainerConfigurator $container): void {
     $services = $container->services()
@@ -35,6 +42,26 @@ return static function (ContainerConfigurator $container): void {
     $services->set(\ContentBlocks\Rendering\BlockRenderer::class);
 
     $services->set(\ContentBlocks\Service\ContentAreaPublisher::class);
+
+    // ---------- Section settings extension hooks ----------
+
+    // Auto-tag user-defined providers/decorators wherever they live.
+    $services->instanceof(SectionStyleProviderInterface::class)
+        ->tag('content_blocks.section_style_provider');
+    $services->instanceof(SectionDecoratorInterface::class)
+        ->tag('content_blocks.section_decorator');
+
+    $services->set(SectionStyleRegistry::class)
+        ->args([tagged_iterator('content_blocks.section_style_provider')])
+        ->public();
+
+    // Built-in decorator runs first so host extensions can react to or
+    // override its output via tag priority if needed.
+    $services->set(BuiltInSectionDecorator::class);
+
+    $services->set(SectionDecoratorCollection::class)
+        ->args([tagged_iterator('content_blocks.section_decorator')])
+        ->public();
 
     $services->load('ContentBlocks\\Form\\', '../src/Form/');
 

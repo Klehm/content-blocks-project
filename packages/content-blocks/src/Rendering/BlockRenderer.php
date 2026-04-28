@@ -9,6 +9,7 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Section\SectionDecoratorCollection;
 use ContentBlocks\Security\AccessCheckerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Environment;
@@ -35,6 +36,7 @@ final class BlockRenderer
         private readonly RequestStack $requestStack,
         private readonly AccessCheckerInterface $accessChecker,
         private readonly BlockTypeRegistry $blockTypeRegistry,
+        private readonly SectionDecoratorCollection $sectionDecorators,
     ) {
     }
 
@@ -93,10 +95,15 @@ final class BlockRenderer
         $out = [];
         foreach ($sections as $section) {
             $sectionDeleted = $section->isDeleted();
+            $settings = $section->getEffectiveSettings(preferDraft: $mode === RenderMode::PREVIEW);
+            $decoration = $this->sectionDecorators->decorate($settings, $section);
             $out[] = [
                 'id' => $section->getId(),
                 'layout' => $section->getLayout(),
                 'deleted' => $sectionDeleted,
+                'extraClasses' => $decoration->classString(),
+                'inlineStyle' => $decoration->styleString(),
+                'extraAttributes' => $decoration->attributes,
                 'columns' => $this->buildColumnTree($section, $mode, $sectionDeleted),
             ];
         }

@@ -197,6 +197,7 @@ final class BlockRendererTest extends TestCase
             new RequestStack(),
             new AllowAllAccessChecker(),
             $registry,
+            new \ContentBlocks\Section\SectionDecoratorCollection([]),
         );
 
         $html = $renderer->render($area, RenderMode::PUBLIC);
@@ -220,6 +221,7 @@ final class BlockRendererTest extends TestCase
             $stack,
             new AllowAllAccessChecker(),
             $registry,
+            new \ContentBlocks\Section\SectionDecoratorCollection([]),
         );
     }
 
@@ -244,6 +246,7 @@ final class BlockRendererTest extends TestCase
             $stack,
             $checker,
             new BlockTypeRegistry(),
+            new \ContentBlocks\Section\SectionDecoratorCollection([]),
         );
     }
 
