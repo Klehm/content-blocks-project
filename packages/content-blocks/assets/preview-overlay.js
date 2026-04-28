@@ -71,6 +71,46 @@
             opacity: .5;
             text-decoration: line-through;
         }
+        /* Make empty sections/columns hoverable in preview mode + leave a
+           strip at the top of each section dedicated to section-level hover
+           (otherwise inner columns absorb every hover). */
+        [data-cb-section-id] {
+            min-height: 60px;
+            box-sizing: border-box;
+            padding-top: 18px;
+            position: relative;
+        }
+        [data-cb-column-id] {
+            min-height: 50px;
+            box-sizing: border-box;
+            padding: 4px;
+        }
+        .cb-overlay-popover {
+            position: absolute;
+            background: #fff;
+            border: 1px solid #e3e5e9;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.15);
+            z-index: 2147483001;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 13px;
+            padding: 4px;
+            min-width: 160px;
+        }
+        .cb-overlay-popover[hidden] { display: none; }
+        .cb-overlay-popover__btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            border: 0;
+            padding: 6px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            color: #1f2330;
+            font: inherit;
+        }
+        .cb-overlay-popover__btn:hover { background: #f0f1f4; }
     `;
     document.head.appendChild(style);
 
@@ -93,10 +133,55 @@
         b.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            onclick();
+            onclick(e);
         });
         return b;
     }
+
+    // ---------- Block-type popover ----------
+
+    const popover = document.createElement('div');
+    popover.className = 'cb-overlay-popover';
+    popover.hidden = true;
+    document.body.appendChild(popover);
+
+    function openBlockTypePopover(triggerBtn, columnId) {
+        const types = Array.isArray(window.__cbBlockTypes) ? window.__cbBlockTypes : [];
+        if (types.length === 0) return;
+
+        popover.innerHTML = '';
+        for (const item of types) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'cb-overlay-popover__btn';
+            btn.textContent = item.label;
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                hidePopover();
+                postToParent('cb:block:add-requested', { columnId, blockType: item.type });
+            });
+            popover.appendChild(btn);
+        }
+
+        const rect = triggerBtn.getBoundingClientRect();
+        popover.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+        popover.style.left = (rect.left + window.scrollX) + 'px';
+        popover.hidden = false;
+    }
+
+    function hidePopover() {
+        popover.hidden = true;
+        popover.innerHTML = '';
+    }
+
+    document.addEventListener('click', (e) => {
+        if (popover.hidden) return;
+        if (popover.contains(e.target)) return;
+        // Ignore clicks on the toolbar trigger that opened it.
+        if (e.target.closest?.('.cb-overlay-toolbar')) return;
+        hidePopover();
+    });
 
     function showToolbarFor(el, kind) {
         if (hoveredEl === el) {
@@ -127,6 +212,10 @@
                 postToParent('cb:section:move-requested', { sectionId, direction: 'down' })));
             toolbar.appendChild(makeBtn('×', 'Delete', () =>
                 postToParent('cb:section:delete-requested', { sectionId })));
+        } else if (kind === 'column') {
+            const columnId = parseInt(el.dataset.cbColumnId, 10);
+            toolbar.appendChild(makeBtn('+ Block', 'Add block', (event) =>
+                openBlockTypePopover(event.currentTarget, columnId)));
         }
 
         // Reveal first so we can measure size, then position top-right of element.
@@ -149,12 +238,17 @@
         }, 120);
     }
 
-    // Hover routing — block markers take priority over section markers
-    // (a block lives inside a section, but block actions are more granular).
+    // Hover routing — block > column > section in priority order so the most
+    // granular action available always wins.
     document.addEventListener('mouseover', (event) => {
         const block = event.target.closest?.('[data-cb-block-id]');
         if (block) {
             showToolbarFor(block, 'block');
+            return;
+        }
+        const column = event.target.closest?.('[data-cb-column-id]');
+        if (column) {
+            showToolbarFor(column, 'column');
             return;
         }
         const section = event.target.closest?.('[data-cb-section-id]');

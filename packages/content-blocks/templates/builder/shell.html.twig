@@ -3,7 +3,8 @@
 <div class="cb-shell"
      data-controller="cb-builder"
      data-cb-builder-area-id-value="{{ area.id }}"
-     data-cb-builder-iframe-url-value="{{ iframeUrl }}">
+     data-cb-builder-iframe-url-value="{{ iframeUrl }}"
+     data-cb-csrf-token="{{ csrf_token('content_blocks') }}">
 
     <header class="cb-shell__topbar">
         <div class="cb-shell__topbar-left">

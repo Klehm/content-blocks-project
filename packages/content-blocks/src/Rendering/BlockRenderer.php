@@ -43,9 +43,17 @@ final class BlockRenderer
         $mode = $forceMode ?? $this->resolveMode($area);
         $sections = $this->buildSectionTree($area, $mode);
 
+        $blockTypes = [];
+        if ($mode === RenderMode::PREVIEW) {
+            foreach ($this->blockTypeRegistry->getChoices() as $type => $label) {
+                $blockTypes[] = ['type' => $type, 'label' => (string) $label];
+            }
+        }
+
         return $this->twig->render(self::RENDER_TEMPLATE, [
             'mode' => $mode,
             'sections' => $sections,
+            'blockTypes' => $blockTypes,
         ]);
     }
 

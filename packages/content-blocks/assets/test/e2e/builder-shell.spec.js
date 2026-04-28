@@ -1,26 +1,54 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * Phase 1 e2e — verifies the iframe + sidebar shell plumbing end-to-end:
+ * E2E for the builder shell + structural ops.
  *
- *  1. Page renders the launcher button.
- *  2. Click opens the <dialog> with topbar + iframe + bottom add-section bar.
- *  3. Iframe loads the preview URL and the overlay JS sends cb:ready to the
- *     parent admin window.
- *  4. Hover a block in the iframe → floating action toolbar appears.
- *  5. Click overlay buttons / topbar buttons / footer buttons → the parent's
- *     cb-builder Stimulus controller logs the matching intents.
- *
- * No actual editing happens in phase 1. This test is purely about plumbing.
+ * Each test creates its own fresh Page (via the sandbox's /page/create
+ * endpoint) so structural mutations don't leak between tests. Tests that
+ * need pre-existing content (a section, a block) seed it through the same
+ * UI flow they exercise — that way the seed step also doubles as
+ * regression coverage for the action it triggers.
  */
 
-const PAGE_URL = '/admin/page/1';
+async function createFreshPage(page) {
+    const slug = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const response = await page.request.post('/page/create', {
+        form: { title: `E2E ${slug}`, slug },
+        maxRedirects: 0,
+    });
+    const location = response.headers()['location'];
+    if (!location) throw new Error('Page create did not redirect');
+    return location;
+}
 
-/**
- * Capture the parent's console.log output. We assert against the strings the
- * cb-builder Stimulus controller emits when it receives postMessage events
- * or its own action methods fire.
- */
+async function openBuilder(page) {
+    const url = await createFreshPage(page);
+    await page.goto(url);
+    await page.locator('.cb-launcher__button').click();
+    await expect(page.locator('.cb-shell')).toBeVisible();
+    return page.frameLocator('.cb-shell__iframe');
+}
+
+/** Adds a 1-column section by clicking the footer button. */
+async function addFullSection(page, frame) {
+    const before = await frame.locator('[data-cb-section-id]').count();
+    await page.locator('.cb-shell__bottom button[data-cb-builder-layout-param="full"]').click();
+    await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(before + 1);
+    // Allow the iframe load to fully settle so subsequent locators don't hit
+    // a destroyed execution context.
+    await page.waitForTimeout(200);
+}
+
+/** Adds the first available block type to the first column (via column overlay). */
+async function addFirstBlock(page, frame) {
+    const before = await frame.locator('[data-cb-block-id]').count();
+    await frame.locator('[data-cb-column-id]').first().hover({ position: { x: 10, y: 10 } });
+    await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+    await frame.locator('.cb-overlay-popover button').first().click();
+    await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(before + 1);
+    await page.waitForTimeout(200);
+}
+
 function attachConsoleSink(page) {
     const lines = [];
     page.on('console', (msg) => {
@@ -32,73 +60,116 @@ function attachConsoleSink(page) {
     return lines;
 }
 
-test.describe('builder shell — phase 1 plumbing', () => {
-    test('launcher button is present and opens the dialog', async ({ page }) => {
-        await page.goto(PAGE_URL);
+test.describe('builder shell — basics', () => {
+    test('launcher opens the dialog and renders shell skeleton', async ({ page }) => {
+        const url = await createFreshPage(page);
+        await page.goto(url);
 
-        // The launcher renders translation keys when no message catalog is
-        // present in the sandbox — that's fine, we match on the key.
         const launcher = page.locator('.cb-launcher__button');
         await expect(launcher).toBeVisible();
 
-        // Dialog starts closed.
         const dialog = page.locator('.cb-builder-dialog');
         await expect(dialog).not.toHaveAttribute('open');
 
         await launcher.click();
 
-        // Dialog is open + shell skeleton visible.
         await expect(dialog).toHaveAttribute('open', '');
-        await expect(page.locator('.cb-shell')).toBeVisible();
         await expect(page.locator('.cb-shell__topbar')).toBeVisible();
         await expect(page.locator('.cb-shell__iframe')).toBeVisible();
         await expect(page.locator('.cb-shell__bottom')).toBeVisible();
     });
 
-    test('iframe loads the preview URL with cb_preview=1', async ({ page }) => {
-        await page.goto(PAGE_URL);
+    test('iframe loads the preview URL with cb_preview=1 and emits cb:ready', async ({ page }) => {
+        const logs = attachConsoleSink(page);
+        const url = await createFreshPage(page);
+        await page.goto(url);
         await page.locator('.cb-launcher__button').click();
 
         const iframe = page.locator('.cb-shell__iframe');
-        await expect(iframe).toHaveAttribute('src', /\/page\/1\?cb_preview=1$/);
-
-        // Wait for the iframe to actually load + the overlay script to set
-        // up the markers and the toolbar root.
-        const frame = page.frameLocator('.cb-shell__iframe');
-        await expect(frame.locator('[data-cb-block-id]').first()).toBeAttached();
-        await expect(frame.locator('[data-cb-section-id]').first()).toBeAttached();
-        await expect(frame.locator('.cb-overlay-toolbar')).toBeAttached();
-    });
-
-    test('iframe sends cb:ready to the parent on load', async ({ page }) => {
-        const logs = attachConsoleSink(page);
-
-        await page.goto(PAGE_URL);
-        await page.locator('.cb-launcher__button').click();
+        await expect(iframe).toHaveAttribute('src', /\/page\/\d+\?cb_preview=1$/);
 
         await expect.poll(() => logs.some((l) => l.includes('iframe ready'))).toBe(true);
     });
+});
 
-    test('hover over a block reveals the floating toolbar', async ({ page }) => {
-        await page.goto(PAGE_URL);
-        await page.locator('.cb-launcher__button').click();
+test.describe('builder shell — sections', () => {
+    test('add-section footer button creates a new section', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(0);
 
-        const frame = page.frameLocator('.cb-shell__iframe');
-        const block = frame.locator('[data-cb-block-id]').first();
-        await expect(block).toBeAttached();
+        await page.locator('.cb-shell__bottom button[data-cb-builder-layout-param="two_cols"]').click();
 
-        await block.hover();
-        await expect(frame.locator('.cb-overlay-toolbar.is-visible')).toBeVisible();
+        await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);
+        // two_cols → 2 columns inside the new section.
+        await expect.poll(() => frame.locator('[data-cb-column-id]').count()).toBe(2);
+    });
+
+    test('section move-up overlay swaps order with previous section', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFullSection(page, frame);
+
+        const readOrder = async () => {
+            const count = await frame.locator('[data-cb-section-id]').count();
+            const ids = [];
+            for (let i = 0; i < count; i++) {
+                ids.push(await frame.locator('[data-cb-section-id]').nth(i).getAttribute('data-cb-section-id'));
+            }
+            return ids;
+        };
+
+        const before = await readOrder();
+        expect(before).toHaveLength(2);
+
+        // Hover the top strip of the section (above the column grid) so the
+        // section toolbar wins over the inner column toolbar.
+        await frame.locator('[data-cb-section-id]').nth(1).hover({ position: { x: 5, y: 5 } });
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+
+        await expect.poll(async () => (await readOrder()).join(',')).toBe([before[1], before[0]].join(','));
+    });
+
+    test('section delete overlay marks the section deleted', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+
+        await frame.locator('[data-cb-section-id]').first().hover({ position: { x: 5, y: 5 } });
+        // Toolbar buttons for sections: ▲ ▼ × — third button is delete.
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').nth(2).click();
+
+        await expect.poll(() => frame.locator('[data-cb-section-id][data-cb-deleted="1"]').count()).toBe(1);
+    });
+});
+
+test.describe('builder shell — blocks', () => {
+    test('column overlay + popover adds a block of the chosen type', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+
+        await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(0);
+
+        await frame.locator('[data-cb-column-id]').first().hover({ position: { x: 10, y: 10 } });
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+
+        const popover = frame.locator('.cb-overlay-popover');
+        await expect(popover).toBeVisible();
+
+        // The list reflects the registered block types (4 in the kit:
+        // text, title, image, tabs).
+        const items = popover.locator('button');
+        await expect(items).toHaveCount(4);
+
+        await items.first().click();
+        await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
     });
 
     test('clicking Edit on a block mounts the BlockComponent in the sidebar', async ({ page }) => {
-        await page.goto(PAGE_URL);
-        await page.locator('.cb-launcher__button').click();
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
 
-        const frame = page.frameLocator('.cb-shell__iframe');
-        const block = frame.locator('[data-cb-block-id]').first();
-        await block.hover();
-        await frame.locator('.cb-overlay-toolbar__btn').first().click();
+        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar).not.toHaveAttribute('hidden');
@@ -106,14 +177,14 @@ test.describe('builder shell — phase 1 plumbing', () => {
         await expect(sidebar.locator('button.btn-primary')).toBeVisible();
     });
 
-    test('cancel in sidebar unmounts without reloading iframe', async ({ page }) => {
+    test('cancel in sidebar closes it without reloading', async ({ page }) => {
         const logs = attachConsoleSink(page);
-        await page.goto(PAGE_URL);
-        await page.locator('.cb-launcher__button').click();
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
 
-        const frame = page.frameLocator('.cb-shell__iframe');
         await frame.locator('[data-cb-block-id]').first().hover();
-        await frame.locator('.cb-overlay-toolbar__btn').first().click();
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
@@ -124,35 +195,27 @@ test.describe('builder shell — phase 1 plumbing', () => {
         await expect.poll(() => logs.some((l) => l.startsWith('[cb-builder] block:cancel'))).toBe(true);
     });
 
-    test('topbar Publish + Discard buttons fire their intents', async ({ page }) => {
-        const logs = attachConsoleSink(page);
+    test('block delete overlay soft-deletes (deleted marker stays in DOM)', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
 
-        await page.goto(PAGE_URL);
-        await page.locator('.cb-launcher__button').click();
+        await frame.locator('[data-cb-block-id]').first().hover();
+        // Block toolbar: ✎ × — second button is delete.
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').nth(1).click();
+
+        await expect.poll(() => frame.locator('[data-cb-block-id][data-cb-deleted="1"]').count()).toBe(1);
+        // The block is still in the DOM, just marked.
+        await expect(frame.locator('[data-cb-block-id]')).toHaveCount(1);
+    });
+});
+
+test.describe('builder shell — topbar', () => {
+    test('Publish button fires its intent (phase 4 wires the actual call)', async ({ page }) => {
+        const logs = attachConsoleSink(page);
+        const frame = await openBuilder(page);
 
         await page.locator('.cb-shell__publish').click();
         await expect.poll(() => logs.some((l) => l.startsWith('[cb-builder] publish requested'))).toBe(true);
-
-        const discard = page.locator('.cb-shell__discard');
-        if (await discard.isEnabled()) {
-            await discard.click();
-            await expect.poll(() => logs.some((l) => l.startsWith('[cb-builder] discard requested'))).toBe(true);
-        }
-    });
-
-    test('footer add-section buttons fire cb-builder#addSection with the right layout', async ({ page }) => {
-        const logs = attachConsoleSink(page);
-
-        await page.goto(PAGE_URL);
-        await page.locator('.cb-launcher__button').click();
-
-        const buttons = page.locator('.cb-shell__bottom button[data-action*="cb-builder#addSection"]');
-        await expect(buttons).toHaveCount(3);
-
-        await buttons.nth(0).click(); // full
-        await buttons.nth(1).click(); // two_cols
-        await buttons.nth(2).click(); // three_cols
-
-        await expect.poll(() => logs.filter((l) => l.startsWith('[cb-builder] addSection')).length).toBeGreaterThanOrEqual(3);
     });
 });

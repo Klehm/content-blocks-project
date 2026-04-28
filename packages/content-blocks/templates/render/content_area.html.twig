@@ -26,6 +26,7 @@
     </section>
 {% endfor %}
 {% if isPreview %}
+    <script>window.__cbBlockTypes = {{ blockTypes|json_encode|raw }};</script>
     <script type="module" src="/_content-blocks/preview-overlay"></script>
 {% endif %}
 </div>

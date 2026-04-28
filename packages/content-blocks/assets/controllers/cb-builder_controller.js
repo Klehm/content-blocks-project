@@ -78,10 +78,72 @@ export default class extends Controller {
         console.log('[cb-builder] discard requested', { areaId: this.areaIdValue });
     }
 
-    addSection(event) {
+    async addSection(event) {
         if (event) event.preventDefault();
         const layout = event?.params?.layout ?? 'full';
-        console.log('[cb-builder] addSection', { areaId: this.areaIdValue, layout });
+        await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/sections`, { layout });
+        this.reload();
+    }
+
+    async _addBlock(columnId, blockType) {
+        if (!columnId || !blockType) return;
+        await this._jsonRequest('POST', `/_content-blocks/column/${columnId}/blocks`, { type: blockType });
+        this.reload();
+    }
+
+    async _deleteBlock(blockId) {
+        if (!blockId) return;
+        await this._jsonRequest('DELETE', `/_content-blocks/block/${blockId}`);
+        this.reload();
+    }
+
+    async _moveBlock(blockId, toColumnId, position) {
+        if (!blockId || !toColumnId) return;
+        await this._jsonRequest('POST', `/_content-blocks/block/${blockId}/move`, {
+            toColumnId,
+            position: position ?? 0,
+        });
+        this.reload();
+    }
+
+    async _moveSection(sectionId, direction) {
+        if (!sectionId || !['up', 'down'].includes(direction)) return;
+        await this._jsonRequest('POST', `/_content-blocks/section/${sectionId}/move`, { direction });
+        this.reload();
+    }
+
+    async _deleteSection(sectionId) {
+        if (!sectionId) return;
+        await this._jsonRequest('DELETE', `/_content-blocks/section/${sectionId}`);
+        this.reload();
+    }
+
+    /**
+     * Shared AJAX helper. Pulls the CSRF token from the shell wrapper element
+     * (`data-cb-csrf-token`) and forwards it as `X-CSRF-Token`.
+     */
+    async _jsonRequest(method, url, body) {
+        const csrfToken = this.element.dataset.cbCsrfToken || '';
+        const init = {
+            method,
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRF-Token': csrfToken,
+                'Accept': 'application/json',
+            },
+        };
+        if (body !== undefined) {
+            init.headers['Content-Type'] = 'application/json';
+            init.body = JSON.stringify(body);
+        }
+
+        const response = await fetch(url, init);
+        if (!response.ok) {
+            console.error('[cb-builder] request failed', method, url, response.status);
+            return null;
+        }
+
+        return response.json().catch(() => null);
     }
 
     setViewport(event) {
@@ -119,19 +181,19 @@ export default class extends Controller {
                 this._mountSidebar(data.blockId);
                 break;
             case 'cb:block:delete-requested':
-                console.log('[cb-builder] block:delete-requested', data);
+                this._deleteBlock(data.blockId);
                 break;
             case 'cb:block:add-requested':
-                console.log('[cb-builder] block:add-requested', data);
+                this._addBlock(data.columnId, data.blockType);
                 break;
             case 'cb:block:reorder':
-                console.log('[cb-builder] block:reorder', data);
+                this._moveBlock(data.blockId, data.toColumnId, data.position);
                 break;
             case 'cb:section:move-requested':
-                console.log('[cb-builder] section:move-requested', data);
+                this._moveSection(data.sectionId, data.direction);
                 break;
             case 'cb:section:delete-requested':
-                console.log('[cb-builder] section:delete-requested', data);
+                this._deleteSection(data.sectionId);
                 break;
             default:
                 console.log('[cb-builder] unknown message type', data.type, data);

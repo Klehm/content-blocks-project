@@ -81,16 +81,34 @@ describe('cb-builder: postMessage routing', () => {
         expect(mountSpy).toHaveBeenCalledWith(7);
     });
 
-    it.each([
-        'cb:block:delete-requested',
-        'cb:block:add-requested',
-        'cb:block:reorder',
-        'cb:section:move-requested',
-        'cb:section:delete-requested',
-    ])('routes %s', (type) => {
-        const payload = { type, foo: 'bar' };
-        controller._onMessage(postMessage(payload));
-        expect(logSpy).toHaveBeenCalled();
+    it('cb:block:delete-requested routes to _deleteBlock', () => {
+        const spy = vi.spyOn(controller, '_deleteBlock').mockImplementation(() => {});
+        controller._onMessage(postMessage({ type: 'cb:block:delete-requested', blockId: 7 }));
+        expect(spy).toHaveBeenCalledWith(7);
+    });
+
+    it('cb:block:add-requested routes to _addBlock', () => {
+        const spy = vi.spyOn(controller, '_addBlock').mockImplementation(() => {});
+        controller._onMessage(postMessage({ type: 'cb:block:add-requested', columnId: 3, blockType: 'text' }));
+        expect(spy).toHaveBeenCalledWith(3, 'text');
+    });
+
+    it('cb:block:reorder routes to _moveBlock', () => {
+        const spy = vi.spyOn(controller, '_moveBlock').mockImplementation(() => {});
+        controller._onMessage(postMessage({ type: 'cb:block:reorder', blockId: 7, toColumnId: 2, position: 1 }));
+        expect(spy).toHaveBeenCalledWith(7, 2, 1);
+    });
+
+    it('cb:section:move-requested routes to _moveSection', () => {
+        const spy = vi.spyOn(controller, '_moveSection').mockImplementation(() => {});
+        controller._onMessage(postMessage({ type: 'cb:section:move-requested', sectionId: 5, direction: 'up' }));
+        expect(spy).toHaveBeenCalledWith(5, 'up');
+    });
+
+    it('cb:section:delete-requested routes to _deleteSection', () => {
+        const spy = vi.spyOn(controller, '_deleteSection').mockImplementation(() => {});
+        controller._onMessage(postMessage({ type: 'cb:section:delete-requested', sectionId: 5 }));
+        expect(spy).toHaveBeenCalledWith(5);
     });
 
     it('logs unknown cb: types under the unknown branch', () => {
@@ -190,14 +208,114 @@ describe('cb-builder: action methods', () => {
         expect(logSpy).toHaveBeenCalledWith('[cb-builder] discard requested', { areaId: 99 });
     });
 
-    it('addSection reads the layout from event.params and logs', () => {
-        controller.addSection({ params: { layout: 'two_cols' }, preventDefault: () => {} });
-        expect(logSpy).toHaveBeenCalledWith('[cb-builder] addSection', { areaId: 99, layout: 'two_cols' });
+    it('addSection POSTs to area/{id}/sections with the layout, then reloads', async () => {
+        const reqSpy = vi.spyOn(controller, '_jsonRequest').mockResolvedValue({});
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        await controller.addSection({ params: { layout: 'two_cols' }, preventDefault: () => {} });
+
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/sections', { layout: 'two_cols' });
+        expect(reloadSpy).toHaveBeenCalled();
     });
 
-    it('addSection defaults to "full" when layout is missing', () => {
-        controller.addSection();
-        expect(logSpy).toHaveBeenCalledWith('[cb-builder] addSection', { areaId: 99, layout: 'full' });
+    it('addSection defaults to "full" when layout is missing', async () => {
+        const reqSpy = vi.spyOn(controller, '_jsonRequest').mockResolvedValue({});
+        vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        await controller.addSection();
+
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/sections', { layout: 'full' });
+    });
+});
+
+describe('cb-builder: structural AJAX handlers', () => {
+    let controller, reqSpy, reloadSpy;
+
+    beforeEach(() => {
+        ({ controller } = setupController({ areaId: 99 }));
+        // Stamp the CSRF token onto the element since _jsonRequest reads it.
+        controller.element.dataset.cbCsrfToken = 'tok-123';
+        vi.spyOn(console, 'log').mockImplementation(() => {});
+        reqSpy = vi.spyOn(controller, '_jsonRequest').mockResolvedValue({});
+        reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+    });
+
+    it('_addBlock posts to column/{id}/blocks with type and reloads', async () => {
+        await controller._addBlock(7, 'text');
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/column/7/blocks', { type: 'text' });
+        expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('_addBlock no-ops when columnId or type is missing', async () => {
+        await controller._addBlock(undefined, 'text');
+        await controller._addBlock(7, undefined);
+        expect(reqSpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_deleteBlock issues DELETE and reloads', async () => {
+        await controller._deleteBlock(42);
+        expect(reqSpy).toHaveBeenCalledWith('DELETE', '/_content-blocks/block/42');
+        expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('_moveBlock posts to block/{id}/move with target column + position', async () => {
+        await controller._moveBlock(42, 3, 2);
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/block/42/move', {
+            toColumnId: 3,
+            position: 2,
+        });
+        expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('_moveSection posts to section/{id}/move with direction', async () => {
+        await controller._moveSection(5, 'up');
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/section/5/move', { direction: 'up' });
+        expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('_moveSection rejects unknown direction', async () => {
+        await controller._moveSection(5, 'sideways');
+        expect(reqSpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_deleteSection issues DELETE and reloads', async () => {
+        await controller._deleteSection(5);
+        expect(reqSpy).toHaveBeenCalledWith('DELETE', '/_content-blocks/section/5');
+        expect(reloadSpy).toHaveBeenCalled();
+    });
+});
+
+describe('cb-builder: _jsonRequest', () => {
+    let controller;
+
+    beforeEach(() => {
+        ({ controller } = setupController());
+        controller.element.dataset.cbCsrfToken = 'csrf-xyz';
+        vi.spyOn(console, 'log').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    it('forwards the CSRF token in the X-CSRF-Token header', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ ok: 1 }),
+        }));
+
+        await controller._jsonRequest('POST', '/some/url', { foo: 'bar' });
+
+        const init = global.fetch.mock.calls[0][1];
+        expect(init.method).toBe('POST');
+        expect(init.headers['X-CSRF-Token']).toBe('csrf-xyz');
+        expect(init.headers['Content-Type']).toBe('application/json');
+        expect(init.body).toBe(JSON.stringify({ foo: 'bar' }));
+    });
+
+    it('returns null on non-OK response', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 500 }));
+        const result = await controller._jsonRequest('DELETE', '/some/url');
+        expect(result).toBeNull();
     });
 });
 
