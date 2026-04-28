@@ -26,12 +26,55 @@
                             {% endif %}
                         </div>
                     {% endfor %}
+                    {% if isPreview %}
+                        <button type="button"
+                                class="cb-add-block-inline"
+                                data-cb-add-block-column-id="{{ column.id }}"
+                                aria-label="{{ 'cb.block.add'|trans({}, 'content_blocks') }}">
+                            {{ 'cb.block.add'|trans({}, 'content_blocks') }}
+                        </button>
+                    {% endif %}
                 </div>
             {% endfor %}
         </div>
     </section>
 {% endfor %}
 {% if isPreview %}
+    <aside class="cb-add-section-tray" aria-label="{{ 'cb.builder.add_section'|trans({}, 'content_blocks') }}">
+        <p class="cb-add-section-tray__label">{{ 'cb.builder.add_section'|trans({}, 'content_blocks') }}</p>
+        <div class="cb-add-section-tray__buttons">
+            <button type="button"
+                    class="cb-add-section-tray__btn"
+                    data-cb-add-section="full"
+                    aria-label="{{ 'cb.section.layout.full'|trans({}, 'content_blocks') }}"
+                    title="{{ 'cb.section.layout.full'|trans({}, 'content_blocks') }}">
+                <svg viewBox="0 0 32 24" width="32" height="24" aria-hidden="true">
+                    <rect x="3" y="3" width="26" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            </button>
+            <button type="button"
+                    class="cb-add-section-tray__btn"
+                    data-cb-add-section="two_cols"
+                    aria-label="{{ 'cb.section.layout.two_cols'|trans({}, 'content_blocks') }}"
+                    title="{{ 'cb.section.layout.two_cols'|trans({}, 'content_blocks') }}">
+                <svg viewBox="0 0 32 24" width="32" height="24" aria-hidden="true">
+                    <rect x="3" y="3" width="11.5" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                    <rect x="17.5" y="3" width="11.5" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            </button>
+            <button type="button"
+                    class="cb-add-section-tray__btn"
+                    data-cb-add-section="three_cols"
+                    aria-label="{{ 'cb.section.layout.three_cols'|trans({}, 'content_blocks') }}"
+                    title="{{ 'cb.section.layout.three_cols'|trans({}, 'content_blocks') }}">
+                <svg viewBox="0 0 32 24" width="32" height="24" aria-hidden="true">
+                    <rect x="3" y="3" width="6.667" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                    <rect x="12.667" y="3" width="6.667" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                    <rect x="22.333" y="3" width="6.667" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            </button>
+        </div>
+    </aside>
     <script>window.__cbBlockTypes = {{ blockTypes|json_encode|raw }};</script>
     <script type="module" src="/_content-blocks/preview-overlay"></script>
 {% endif %}

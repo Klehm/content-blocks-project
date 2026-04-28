@@ -29,21 +29,23 @@ async function openBuilder(page) {
     return page.frameLocator('.cb-shell__iframe');
 }
 
-/** Adds a 1-column section by clicking the footer button. */
+/** Adds a 1-column section by clicking the in-iframe add-section tray. */
 async function addFullSection(page, frame) {
     const before = await frame.locator('[data-cb-section-id]').count();
-    await page.locator('.cb-shell__bottom button[data-cb-builder-layout-param="full"]').click();
+    await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
     await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(before + 1);
     // Allow the iframe load to fully settle so subsequent locators don't hit
     // a destroyed execution context.
     await page.waitForTimeout(200);
 }
 
-/** Adds the first available block type to the first column (via column overlay). */
+/**
+ * Adds the first available block type to the first column via the permanent
+ * inline `+ Block` affordance rendered at the bottom of every column.
+ */
 async function addFirstBlock(page, frame) {
     const before = await frame.locator('[data-cb-block-id]').count();
-    await frame.locator('[data-cb-column-id]').first().hover({ position: { x: 10, y: 10 } });
-    await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+    await frame.locator('.cb-add-block-inline').first().click();
     await frame.locator('.cb-overlay-popover button').first().click();
     await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(before + 1);
     await page.waitForTimeout(200);
@@ -76,7 +78,6 @@ test.describe('builder shell — basics', () => {
         await expect(dialog).toHaveAttribute('open', '');
         await expect(page.locator('.cb-shell__topbar')).toBeVisible();
         await expect(page.locator('.cb-shell__iframe')).toBeVisible();
-        await expect(page.locator('.cb-shell__bottom')).toBeVisible();
     });
 
     test('iframe loads the preview URL with cb_preview=1 and emits cb:ready', async ({ page }) => {
@@ -93,11 +94,11 @@ test.describe('builder shell — basics', () => {
 });
 
 test.describe('builder shell — sections', () => {
-    test('add-section footer button creates a new section', async ({ page }) => {
+    test('in-iframe add-section tray creates a new section', async ({ page }) => {
         const frame = await openBuilder(page);
         await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(0);
 
-        await page.locator('.cb-shell__bottom button[data-cb-builder-layout-param="two_cols"]').click();
+        await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="two_cols"]').click();
 
         await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);
         // two_cols → 2 columns inside the new section.
@@ -215,14 +216,13 @@ test.describe('builder shell — sections', () => {
 });
 
 test.describe('builder shell — blocks', () => {
-    test('column overlay + popover adds a block of the chosen type', async ({ page }) => {
+    test('inline + Block button + popover adds a block of the chosen type', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
 
         await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(0);
 
-        await frame.locator('[data-cb-column-id]').first().hover({ position: { x: 10, y: 10 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+        await frame.locator('.cb-add-block-inline').first().click();
 
         const popover = frame.locator('.cb-overlay-popover');
         await expect(popover).toBeVisible();
@@ -241,7 +241,7 @@ test.describe('builder shell — blocks', () => {
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
@@ -257,7 +257,7 @@ test.describe('builder shell — blocks', () => {
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
@@ -275,7 +275,7 @@ test.describe('builder shell — blocks', () => {
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
@@ -292,7 +292,7 @@ test.describe('builder shell — blocks', () => {
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
@@ -313,7 +313,7 @@ test.describe('builder shell — blocks', () => {
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
@@ -342,7 +342,7 @@ test.describe('builder shell — blocks', () => {
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
@@ -374,7 +374,7 @@ test.describe('builder shell — blocks', () => {
         await sidebar.locator('.cb-shell__sidebar-close').click();
         await expect(sidebar).toHaveAttribute('hidden', '');
 
-        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
         await expect(sidebar).not.toHaveAttribute('hidden');
         // Wait for the sidebar mount + form render to settle.
@@ -389,7 +389,7 @@ test.describe('builder shell — blocks', () => {
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
         // Block toolbar: ✎ × — second button is delete.
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').nth(1).click();
 
@@ -402,7 +402,7 @@ test.describe('builder shell — blocks', () => {
 test.describe('builder shell — preview hardening', () => {
     test('three-column section renders columns side by side, not stacked', async ({ page }) => {
         const frame = await openBuilder(page);
-        await page.locator('.cb-shell__bottom button[data-cb-builder-layout-param="three_cols"]').click();
+        await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="three_cols"]').click();
 
         await expect.poll(() => frame.locator('[data-cb-column-id]').count()).toBe(3);
 
@@ -421,7 +421,7 @@ test.describe('builder shell — preview hardening', () => {
         const iframe = page.locator('.cb-shell__iframe');
         const widthBefore = await iframe.evaluate((el) => el.getBoundingClientRect().width);
 
-        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
 
         await expect(page.locator('aside[data-cb-builder-target="sidebar"]')).not.toHaveAttribute('hidden');
@@ -464,13 +464,60 @@ test.describe('builder shell — preview hardening', () => {
     });
 });
 
+test.describe('builder shell — focus + permanent affordances', () => {
+    test('inline + Block button is rendered for every column without hovering', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="three_cols"]').click();
+        await expect.poll(() => frame.locator('[data-cb-column-id]').count()).toBe(3);
+
+        // No hover — every column has a permanent +Block affordance below it.
+        await expect(frame.locator('.cb-add-block-inline')).toHaveCount(3);
+    });
+
+    test('clicking a block pins the toolbar (focus mode) so it stays visible after hovering away', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+
+        // Click the block — pinning the focus instead of just hovering.
+        await frame.locator('[data-cb-block-id]').first().click({ position: { x: 10, y: 10 } });
+
+        const toolbar = frame.locator('.cb-overlay-toolbar.is-visible');
+        await expect(toolbar).toBeVisible();
+
+        // Move the cursor far from the block + toolbar; the toolbar should
+        // stay because the block is now focused.
+        await frame.locator('body').hover({ position: { x: 5, y: 5 }, force: true });
+        await page.waitForTimeout(300);
+        await expect(toolbar).toBeVisible();
+    });
+
+    test('section toolbar is rendered as an overlapping chip on the section top border', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+
+        const section = frame.locator('[data-cb-section-id]').first();
+        await section.hover({ position: { x: 5, y: 5 } });
+
+        const toolbar = frame.locator('.cb-overlay-toolbar.is-visible');
+        await expect(toolbar).toBeVisible();
+
+        // The toolbar's vertical center is within a few pixels of the
+        // section's top edge — it overlaps the border like a "chip".
+        const toolbarBox = await toolbar.boundingBox();
+        const sectionBox = await section.boundingBox();
+        const toolbarCenterY = toolbarBox.y + toolbarBox.height / 2;
+        expect(Math.abs(toolbarCenterY - sectionBox.y)).toBeLessThan(8);
+    });
+});
+
 test.describe('builder shell — polish', () => {
     test('opening sidebar auto-focuses the first form field', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
@@ -498,7 +545,7 @@ test.describe('builder shell — polish', () => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
-        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
@@ -515,7 +562,7 @@ test.describe('builder shell — polish', () => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
-        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
@@ -570,7 +617,7 @@ test.describe('builder shell — publish / discard', () => {
         await expect(page.locator('.cb-shell__discard')).toBeDisabled();
 
         // Now soft-delete the block.
-        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').nth(1).click();
         await expect.poll(() => frame.locator('[data-cb-block-id][data-cb-deleted="1"]').count()).toBe(1);
         await expect(page.locator('.cb-shell__discard')).toBeEnabled();

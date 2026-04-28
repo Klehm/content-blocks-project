@@ -114,6 +114,12 @@ describe('cb-builder: postMessage routing', () => {
         expect(spy).toHaveBeenCalledWith(5, 'up');
     });
 
+    it('cb:section:add-requested routes to _addSection with the requested layout', () => {
+        const spy = vi.spyOn(controller, '_addSection').mockImplementation(() => {});
+        controller._onMessage(postMessage({ type: 'cb:section:add-requested', layout: 'three_cols' }));
+        expect(spy).toHaveBeenCalledWith('three_cols');
+    });
+
     it('cb:section:delete-requested routes to _deleteSection', () => {
         const spy = vi.spyOn(controller, '_deleteSection').mockImplementation(() => {});
         controller._onMessage(postMessage({ type: 'cb:section:delete-requested', sectionId: 5 }));
@@ -379,6 +385,15 @@ describe('cb-builder: action methods', () => {
         vi.spyOn(controller, 'reload').mockImplementation(() => {});
 
         await controller.addSection();
+
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/sections', { layout: 'full' });
+    });
+
+    it('_addSection falls back to "full" for an unknown layout token', async () => {
+        const reqSpy = vi.spyOn(controller, '_jsonRequest').mockResolvedValue({});
+        vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        await controller._addSection('totally_made_up');
 
         expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/sections', { layout: 'full' });
     });

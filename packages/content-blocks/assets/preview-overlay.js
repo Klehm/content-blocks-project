@@ -47,7 +47,14 @@
     toolbar.setAttribute('role', 'toolbar');
     document.body.appendChild(toolbar);
 
+    // hoveredEl: element currently under the mouse (transient, follows cursor).
+    // focusedEl: element pinned by an explicit click — its toolbar stays
+    // visible and hover events stop moving the toolbar elsewhere. Cleared
+    // when the user clicks empty space inside the iframe.
     let hoveredEl = null;
+    let hoveredKind = null;
+    let focusedEl = null;
+    let focusedKind = null;
     let hideTimer = null;
 
     function makeBtn(label, title, onclick) {
@@ -110,19 +117,7 @@
         hidePopover();
     });
 
-    function showToolbarFor(el, kind) {
-        if (hoveredEl === el) {
-            // Same element re-hovered — just keep it visible.
-            clearTimeout(hideTimer);
-            return;
-        }
-
-        clearTimeout(hideTimer);
-        if (hoveredEl) hoveredEl.classList.remove('cb-overlay-outline');
-        hoveredEl = el;
-        el.classList.add('cb-overlay-outline');
-
-        // Build buttons for this kind.
+    function buildToolbarFor(el, kind) {
         toolbar.innerHTML = '';
 
         if (kind === 'block') {
@@ -141,62 +136,102 @@
                 postToParent('cb:section:settings', { sectionId })));
             toolbar.appendChild(makeBtn('×', 'Delete', () =>
                 postToParent('cb:section:delete-requested', { sectionId })));
-        } else if (kind === 'column') {
-            const columnId = parseInt(el.dataset.cbColumnId, 10);
-            toolbar.appendChild(makeBtn('+ Block', 'Add block', (event) =>
-                openBlockTypePopover(event.currentTarget, columnId)));
         }
+    }
 
-        // Reveal first so we can measure size, then place the toolbar
-        // horizontally centered just OUTSIDE the element's top edge.
-        // Floating outside keeps it from covering content and avoids
-        // intercepting the hit-area in the middle of the element. If the
-        // element is hugging the top of the viewport, fall back to a
-        // top-inside position.
+    function positionToolbarFor(el, _kind) {
+        // Toolbar reads as a "header chip" pinned to the element by overlapping
+        // its top border by half the toolbar height. Clamp against the
+        // viewport so an element flush with the top of the iframe doesn't
+        // push the chip off-screen.
         toolbar.classList.add('is-visible');
         const rect = el.getBoundingClientRect();
-        const above = rect.top + window.scrollY - toolbar.offsetHeight - 4;
-        const top = above >= window.scrollY + 2
-            ? above
-            : rect.top + window.scrollY + 4;
+        const overlap = rect.top + window.scrollY - toolbar.offsetHeight / 2;
+        const top = Math.max(window.scrollY + 2, overlap);
         const left = rect.left + window.scrollX + (rect.width - toolbar.offsetWidth) / 2;
         toolbar.style.top = top + 'px';
         toolbar.style.left = Math.max(0, left) + 'px';
     }
 
+    function showHoverToolbar(el, kind) {
+        // Hover is suppressed while an element is focused — the focused
+        // toolbar stays in place even as the cursor wanders elsewhere.
+        if (focusedEl) return;
+        if (hoveredEl === el) {
+            clearTimeout(hideTimer);
+            return;
+        }
+        clearTimeout(hideTimer);
+        if (hoveredEl) hoveredEl.classList.remove('cb-overlay-outline');
+        hoveredEl = el;
+        hoveredKind = kind;
+        el.classList.add('cb-overlay-outline');
+        buildToolbarFor(el, kind);
+        positionToolbarFor(el, kind);
+    }
+
+    function focusElement(el, kind) {
+        // Drop any prior hover/focus highlight before moving on.
+        if (hoveredEl && hoveredEl !== el) hoveredEl.classList.remove('cb-overlay-outline');
+        if (focusedEl && focusedEl !== el) focusedEl.classList.remove('cb-overlay-outline');
+        clearTimeout(hideTimer);
+        focusedEl = el;
+        focusedKind = kind;
+        hoveredEl = null;
+        hoveredKind = null;
+        el.classList.add('cb-overlay-outline');
+        buildToolbarFor(el, kind);
+        positionToolbarFor(el, kind);
+    }
+
+    function clearFocus() {
+        if (!focusedEl) return;
+        focusedEl.classList.remove('cb-overlay-outline');
+        focusedEl = null;
+        focusedKind = null;
+        toolbar.classList.remove('is-visible');
+    }
+
     function scheduleHide() {
+        if (focusedEl) return;
         clearTimeout(hideTimer);
         hideTimer = setTimeout(() => {
             toolbar.classList.remove('is-visible');
             if (hoveredEl) {
                 hoveredEl.classList.remove('cb-overlay-outline');
                 hoveredEl = null;
+                hoveredKind = null;
             }
         }, 120);
     }
 
-    // Hover routing — block > column > section in priority order so the most
-    // granular action available always wins.
+    // Reposition the focused/hovered toolbar on layout shifts (window resize,
+    // section reflow). Without this, a structural change leaves the chip
+    // floating where the element used to be.
+    window.addEventListener('resize', () => {
+        if (focusedEl) positionToolbarFor(focusedEl, focusedKind);
+        else if (hoveredEl) positionToolbarFor(hoveredEl, hoveredKind);
+    });
+
+    // Hover routing — block wins over section so the most granular action
+    // available is the one offered. Columns no longer surface a toolbar:
+    // their `+ Block` action is exposed permanently at the bottom of each
+    // column instead (.cb-add-block-inline).
     document.addEventListener('mouseover', (event) => {
         const block = event.target.closest?.('[data-cb-block-id]');
         if (block) {
-            showToolbarFor(block, 'block');
-            return;
-        }
-        const column = event.target.closest?.('[data-cb-column-id]');
-        if (column) {
-            showToolbarFor(column, 'column');
+            showHoverToolbar(block, 'block');
             return;
         }
         const section = event.target.closest?.('[data-cb-section-id]');
         if (section) {
-            showToolbarFor(section, 'section');
+            showHoverToolbar(section, 'section');
             return;
         }
     });
 
     document.addEventListener('mouseout', (event) => {
-        if (!hoveredEl) return;
+        if (!hoveredEl || focusedEl) return;
         const related = event.relatedTarget;
         // If we're leaving for a child of the hovered element, keep it.
         if (related && hoveredEl.contains(related)) return;
@@ -216,24 +251,64 @@
     // intercept those interactions in the capture phase so they never reach
     // the front-app handlers.
     //
-    // Exceptions:
-    //  - Buttons / clicks inside the toolbar or popover continue to work —
-    //    they're handled by makeBtn() with stopPropagation already.
-    //  - Anchors with `target="_blank"` (or that point to a different host)
-    //    are allowed through so the user can still pop external references
-    //    into a new tab if needed.
+    // The same listener also drives:
+    //  - Click-to-focus (pin the toolbar on the clicked block/section).
+    //  - Permanent inline add affordances rendered in the iframe content
+    //    (`.cb-add-block-inline`, `.cb-add-section-tray__btn`).
+    //  - Outside-click forwarding so the parent admin closes its sidebar
+    //    when the user clicks empty preview space.
     document.addEventListener(
         'click',
         (event) => {
-            // Skip clicks on overlay UI (toolbar buttons, popover items) —
-            // they're explicit editing intents that already postMessage on
-            // their own, we don't want to also fire an outside-click event.
-            const onOverlay = event.target.closest?.('.cb-overlay-toolbar, .cb-overlay-popover');
-            if (!onOverlay) {
+            const target = event.target;
+
+            // 1. Permanent in-iframe affordances: handle their intent and
+            //    bail out before any outside-click / link suppression runs.
+            const addBlockBtn = target.closest?.('.cb-add-block-inline');
+            if (addBlockBtn) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                const columnId = parseInt(addBlockBtn.dataset.cbAddBlockColumnId, 10);
+                if (!Number.isNaN(columnId)) {
+                    openBlockTypePopover(addBlockBtn, columnId);
+                }
+                return;
+            }
+            const addSectionBtn = target.closest?.('.cb-add-section-tray__btn');
+            if (addSectionBtn) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                const layout = addSectionBtn.dataset.cbAddSection;
+                if (layout) {
+                    postToParent('cb:section:add-requested', { layout });
+                }
+                return;
+            }
+
+            // 2. Overlay UI (toolbar buttons / popover items): they already
+            //    handle their own intent in makeBtn() with stopPropagation.
+            //    Skip outside-click so we don't also tell the parent to
+            //    close the sidebar that the click is interacting with.
+            const onOverlay = target.closest?.('.cb-overlay-toolbar, .cb-overlay-popover');
+            if (onOverlay) return;
+
+            // 3. Click on a block/section: pin focus on it and skip the
+            //    outside-click event — the user is selecting an element to
+            //    keep its toolbar visible, not dismissing the sidebar.
+            const block = target.closest?.('[data-cb-block-id]');
+            const section = target.closest?.('[data-cb-section-id]');
+            if (block) {
+                focusElement(block, 'block');
+            } else if (section) {
+                focusElement(section, 'section');
+            } else {
+                clearFocus();
                 postToParent('cb:preview:outside-click');
             }
 
-            const link = event.target.closest?.('a[href]');
+            // 4. Block intra-iframe navigation: prevent anchor follows /
+            //    form submits that would replace the previewed page.
+            const link = target.closest?.('a[href]');
             if (!link) return;
             // Allow explicit new-tab links (and modifier-key clicks).
             if (link.target === '_blank' || event.ctrlKey || event.metaKey || event.shiftKey) {

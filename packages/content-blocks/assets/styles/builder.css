@@ -113,3 +113,73 @@
 html, body {
     overflow-x: hidden;
 }
+
+/* ---------- Permanent inline "+ Block" affordance ---------- */
+
+/* Renders at the bottom of every column in preview mode so the user can
+   add a block without first hovering the column. Subtle dashed look
+   matches the column outline guides above. */
+.cb-add-block-inline {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: transparent;
+    border: 1px dashed rgba(79, 141, 249, .55);
+    border-radius: 4px;
+    color: #4f8df9;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.2;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color .12s ease, border-color .12s ease;
+}
+.cb-add-block-inline:hover,
+.cb-add-block-inline:focus-visible {
+    background: rgba(79, 141, 249, .08);
+    border-color: #4f8df9;
+    outline: none;
+}
+
+/* ---------- Permanent "Add a section" tray ---------- */
+
+/* Sits at the bottom of the content area (inside the iframe, after the
+   last section). Three icon buttons map to the section layouts. */
+.cb-add-section-tray {
+    margin: 16px auto 24px;
+    padding: 16px;
+    text-align: center;
+    color: #1f2330;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.cb-add-section-tray__label {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #5b6172;
+}
+.cb-add-section-tray__buttons {
+    display: inline-flex;
+    gap: 8px;
+}
+.cb-add-section-tray__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 44px;
+    background: #fff;
+    border: 1px solid #d8dbe2;
+    border-radius: 6px;
+    color: #5b6172;
+    cursor: pointer;
+    transition: border-color .12s ease, color .12s ease, background-color .12s ease;
+}
+.cb-add-section-tray__btn:hover,
+.cb-add-section-tray__btn:focus-visible {
+    border-color: #4f8df9;
+    color: #4f8df9;
+    background: rgba(79, 141, 249, .06);
+    outline: none;
+}

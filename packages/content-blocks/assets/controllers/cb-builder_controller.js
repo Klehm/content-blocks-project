@@ -124,7 +124,13 @@ export default class extends Controller {
     async addSection(event) {
         if (event) event.preventDefault();
         const layout = event?.params?.layout ?? 'full';
-        await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/sections`, { layout });
+        await this._addSection(layout);
+    }
+
+    async _addSection(layout) {
+        const allowed = ['full', 'two_cols', 'three_cols'];
+        const finalLayout = allowed.includes(layout) ? layout : 'full';
+        await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/sections`, { layout: finalLayout });
         this._afterStructuralOp();
     }
 
@@ -242,6 +248,9 @@ export default class extends Controller {
                 break;
             case 'cb:block:reorder':
                 this._moveBlock(data.blockId, data.toColumnId, data.position);
+                break;
+            case 'cb:section:add-requested':
+                this._addSection(data.layout);
                 break;
             case 'cb:section:move-requested':
                 this._moveSection(data.sectionId, data.direction);

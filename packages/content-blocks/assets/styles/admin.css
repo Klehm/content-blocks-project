@@ -40,7 +40,7 @@
 
 .cb-shell {
     display: grid;
-    grid-template-rows: 56px 1fr 64px;
+    grid-template-rows: 56px 1fr;
     height: 100%;
     width: 100%;
     background: #f5f6f8;
@@ -264,18 +264,5 @@
     border: 0;
 }
 
-/* ---- Bottom bar (add section) ---- */
-
-.cb-shell__bottom {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    padding: 0 1rem;
-    background: #fff;
-    border-top: 1px solid #e3e5e9;
-}
-.cb-shell__bottom-label {
-    color: #666;
-    margin-right: .5rem;
-    font-size: .875rem;
-}
+/* (Add-section UI now lives inside the iframe — see builder.css's
+   .cb-add-section-tray.) */
