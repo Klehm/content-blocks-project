@@ -250,6 +250,24 @@ test.describe('builder shell — blocks', () => {
         await expect(sidebar.locator('button.btn-primary')).toBeVisible();
     });
 
+    test('clicking outside the sidebar (in the iframe preview) closes it', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+
+        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+
+        // Click somewhere in the iframe that isn't the toolbar/popover —
+        // body works as a generic "outside" target.
+        await frame.locator('body').click({ position: { x: 500, y: 500 }, force: true });
+
+        await expect(sidebar).toHaveAttribute('hidden', '');
+    });
+
     test('× in sidebar header closes it without reloading', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);

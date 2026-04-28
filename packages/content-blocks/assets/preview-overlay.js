@@ -147,11 +147,19 @@
                 openBlockTypePopover(event.currentTarget, columnId)));
         }
 
-        // Reveal first so we can measure size, then position top-right of element.
+        // Reveal first so we can measure size, then place the toolbar
+        // horizontally centered just OUTSIDE the element's top edge.
+        // Floating outside keeps it from covering content and avoids
+        // intercepting the hit-area in the middle of the element. If the
+        // element is hugging the top of the viewport, fall back to a
+        // top-inside position.
         toolbar.classList.add('is-visible');
         const rect = el.getBoundingClientRect();
-        const top = rect.top + window.scrollY + 4;
-        const left = rect.right + window.scrollX - toolbar.offsetWidth - 4;
+        const above = rect.top + window.scrollY - toolbar.offsetHeight - 4;
+        const top = above >= window.scrollY + 2
+            ? above
+            : rect.top + window.scrollY + 4;
+        const left = rect.left + window.scrollX + (rect.width - toolbar.offsetWidth) / 2;
         toolbar.style.top = top + 'px';
         toolbar.style.left = Math.max(0, left) + 'px';
     }
@@ -217,6 +225,14 @@
     document.addEventListener(
         'click',
         (event) => {
+            // Skip clicks on overlay UI (toolbar buttons, popover items) —
+            // they're explicit editing intents that already postMessage on
+            // their own, we don't want to also fire an outside-click event.
+            const onOverlay = event.target.closest?.('.cb-overlay-toolbar, .cb-overlay-popover');
+            if (!onOverlay) {
+                postToParent('cb:preview:outside-click');
+            }
+
             const link = event.target.closest?.('a[href]');
             if (!link) return;
             // Allow explicit new-tab links (and modifier-key clicks).

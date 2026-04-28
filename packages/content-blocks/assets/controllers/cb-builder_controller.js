@@ -248,6 +248,9 @@ export default class extends Controller {
             case 'cb:section:settings':
                 this._mountSectionSettings(data.sectionId);
                 break;
+            case 'cb:preview:outside-click':
+                this._onPreviewOutsideClick();
+                break;
             default:
                 console.log('[cb-builder] unknown message type', data.type, data);
         }
@@ -308,6 +311,18 @@ export default class extends Controller {
     _clearSidebarDataAttrs() {
         for (const key of ['cb-sidebar-block-id', 'cb-sidebar-section-id']) {
             this.sidebarTarget.removeAttribute('data-' + key);
+        }
+    }
+
+    /**
+     * The iframe forwards a `cb:preview:outside-click` whenever the user
+     * clicks anywhere in the preview that isn't an overlay toolbar/popover.
+     * We treat it as "click outside the sidebar" and close it without
+     * saving — same effect as the × button.
+     */
+    _onPreviewOutsideClick() {
+        if (this.hasSidebarTarget && !this.sidebarTarget.hidden) {
+            this.closeSidebar();
         }
     }
 

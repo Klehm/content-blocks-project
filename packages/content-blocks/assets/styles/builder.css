@@ -19,7 +19,10 @@
     padding: 2px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
     z-index: 2147483000;
-    pointer-events: auto;
+    /* Wrapper is transparent to pointer events so a toolbar floating on
+       top of the hovered element doesn't steal mousemove/click from the
+       surrounding area. Buttons opt back in below. */
+    pointer-events: none;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: 13px;
     opacity: 0;
@@ -35,6 +38,7 @@
     border-radius: 4px;
     line-height: 1;
     font: inherit;
+    pointer-events: auto;
 }
 .cb-overlay-toolbar__btn:hover { background: rgba(255, 255, 255, .15); }
 
