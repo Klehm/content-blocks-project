@@ -118,8 +118,21 @@
     border-left: 1px solid #e3e5e9;
     overflow-y: auto;
     padding: 1rem;
+    transform: translateX(0);
+    transition: transform .18s ease-out, opacity .18s ease-out;
+    opacity: 1;
 }
-.cb-shell__sidebar[hidden] { display: none; }
+.cb-shell__sidebar[hidden] {
+    /* Keep the element in flow long enough to animate, then collapse. */
+    display: none;
+}
+.cb-shell__sidebar:not([hidden]) {
+    animation: cb-sidebar-in .18s ease-out;
+}
+@keyframes cb-sidebar-in {
+    from { transform: translateX(20px); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
 
 /* ---- Bottom bar (add section) ---- */
 

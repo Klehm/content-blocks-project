@@ -1,6 +1,8 @@
 {# @var area \ContentBlocks\Entity\ContentArea #}
 {# @var iframeUrl string #}
-<div class="cb-launcher" data-controller="cb-builder-launcher">
+<div class="cb-launcher"
+     data-controller="cb-builder-launcher"
+     data-cb-builder-launcher-confirm-close-message-value="{{ 'cb.builder.confirm_close'|trans({}, 'content_blocks') }}">
     <button type="button"
             class="btn btn-primary cb-launcher__button"
             data-action="cb-builder-launcher#open">
@@ -12,7 +14,9 @@
         {% endif %}
     </button>
 
-    <dialog data-cb-builder-launcher-target="dialog" class="cb-builder-dialog">
+    <dialog data-cb-builder-launcher-target="dialog"
+            class="cb-builder-dialog"
+            aria-label="{{ 'cb.builder.open'|trans({}, 'content_blocks') }}">
         {% include '@ContentBlocks/builder/shell.html.twig' with { area: area, iframeUrl: iframeUrl|default('about:blank') } only %}
     </dialog>
 </div>

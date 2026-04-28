@@ -264,6 +264,16 @@ export default class extends Controller {
             this.sidebarTarget.hidden = false;
             this.sidebarTarget.dataset.cbSidebarBlockId = String(blockId);
 
+            // Move focus to the first form field so the user can type
+            // straight away. Defer to after the next paint so Stimulus + Live
+            // Component have wired their controllers up.
+            requestAnimationFrame(() => {
+                const target = this.sidebarTarget.querySelector(
+                    'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), [contenteditable="true"]',
+                );
+                if (target) target.focus();
+            });
+
             console.log('[cb-builder] sidebar mounted for block', blockId);
         } catch (e) {
             console.error('[cb-builder] mount error', e);

@@ -210,6 +210,70 @@ test.describe('builder shell — blocks', () => {
     });
 });
 
+test.describe('builder shell — polish', () => {
+    test('opening sidebar auto-focuses the first form field', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+
+        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+
+        // The first focusable input inside the sidebar should be the active element.
+        await expect.poll(async () => {
+            return await page.evaluate(() => {
+                const sidebar = document.querySelector('aside[data-cb-builder-target="sidebar"]');
+                return sidebar.contains(document.activeElement) ? document.activeElement.tagName : null;
+            });
+        }).toMatch(/INPUT|TEXTAREA/);
+    });
+
+    test('close button without sidebar form just closes the dialog', async ({ page }) => {
+        await openBuilder(page);
+        const dialog = page.locator('.cb-builder-dialog');
+        await expect(dialog).toHaveAttribute('open', '');
+
+        await page.locator('.cb-shell__close').click();
+        await expect(dialog).not.toHaveAttribute('open');
+    });
+
+    test('close while sidebar form is open prompts confirmation, declined keeps dialog open', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+
+        // Decline the native confirm.
+        page.once('dialog', async (d) => { await d.dismiss(); });
+        await page.locator('.cb-shell__close').click();
+
+        await expect(page.locator('.cb-builder-dialog')).toHaveAttribute('open', '');
+    });
+
+    test('close while sidebar form is open, accept confirmation, dialog closes', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+
+        page.once('dialog', async (d) => { await d.accept(); });
+        await page.locator('.cb-shell__close').click();
+
+        await expect(page.locator('.cb-builder-dialog')).not.toHaveAttribute('open');
+    });
+});
+
 test.describe('builder shell — publish / discard', () => {
     test('Publish flushes drafts: never-published blocks become public, area is clean', async ({ page }) => {
         const frame = await openBuilder(page);

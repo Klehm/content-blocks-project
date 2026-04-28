@@ -6,6 +6,7 @@ cb:
         move_down: "Move down"
         remove: "Remove"
         layout:
+            full: "1 column"
             one_col: "1 column"
             two_cols: "2 columns"
             three_cols: "3 columns"
@@ -14,3 +15,13 @@ cb:
         edit: "Edit"
         save: "Save"
         cancel: "Cancel"
+        remove: "Remove"
+    builder:
+        open: "Edit content"
+        close: "Close"
+        preview: "Content preview"
+        publish: "Publish"
+        discard: "Discard changes"
+        add_section: "Add a section:"
+        draft_pending: "Draft pending"
+        confirm_close: "You have unsaved block edits. Discard and close the editor?"

@@ -6,6 +6,7 @@ cb:
         move_down: "Descendre"
         remove: "Supprimer"
         layout:
+            full: "1 colonne"
             one_col: "1 colonne"
             two_cols: "2 colonnes"
             three_cols: "3 colonnes"
@@ -14,3 +15,13 @@ cb:
         edit: "Editer"
         save: "Enregistrer"
         cancel: "Annuler"
+        remove: "Supprimer"
+    builder:
+        open: "Modifier le contenu"
+        close: "Fermer"
+        preview: "Aperçu du contenu"
+        publish: "Publier"
+        discard: "Annuler les modifications"
+        add_section: "Ajouter une section :"
+        draft_pending: "Brouillon en attente"
+        confirm_close: "Vous avez des modifications de bloc non enregistrées. Quitter sans enregistrer ?"

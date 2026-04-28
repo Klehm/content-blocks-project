@@ -130,6 +130,7 @@
         b.className = 'cb-overlay-toolbar__btn';
         b.textContent = label;
         b.title = title;
+        b.setAttribute('aria-label', title);
         b.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
