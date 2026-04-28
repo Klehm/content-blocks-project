@@ -15,6 +15,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Contracts\Translation\TranslatableInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * AJAX endpoints for structural operations on Blocks. All writes go to the
@@ -31,6 +33,7 @@ final class BlocksController
         private readonly AccessCheckerInterface $accessChecker,
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -42,10 +45,14 @@ final class BlocksController
     #[Route('/types', name: 'content_blocks_block_types', methods: ['GET'])]
     public function types(): JsonResponse
     {
-        $choices = $this->blockTypeRegistry->getChoices();
         $list = [];
-        foreach ($choices as $type => $label) {
-            $list[] = ['type' => $type, 'label' => $label];
+        foreach ($this->blockTypeRegistry->getChoices() as $type => $label) {
+            $list[] = [
+                'type' => $type,
+                'label' => $label instanceof TranslatableInterface
+                    ? $label->trans($this->translator)
+                    : $this->translator->trans((string) $label),
+            ];
         }
 
         return new JsonResponse(['types' => $list]);

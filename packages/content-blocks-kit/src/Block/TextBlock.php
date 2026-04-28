@@ -8,6 +8,8 @@ use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\AsContentBlock;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Translation\TranslatableMessage;
+use Symfony\Contracts\Translation\TranslatableInterface;
 
 #[AsContentBlock]
 final class TextBlock extends AbstractBlockType
@@ -17,9 +19,9 @@ final class TextBlock extends AbstractBlockType
         return 'text';
     }
 
-    public static function getLabel(): string
+    public static function getLabel(): TranslatableInterface
     {
-        return 'cb_kit.block.text.label';
+        return new TranslatableMessage('cb_kit.block.text.label', [], 'content_blocks_kit');
     }
 
     public function buildForm(FormBuilderInterface $builder, array $data): void

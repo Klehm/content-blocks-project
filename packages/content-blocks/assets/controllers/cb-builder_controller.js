@@ -222,8 +222,15 @@ export default class extends Controller {
 
     async _addBlock(columnId, blockType) {
         if (!columnId || !blockType) return;
-        await this._jsonRequest('POST', `/_content-blocks/column/${columnId}/blocks`, { type: blockType });
+        const result = await this._jsonRequest('POST', `/_content-blocks/column/${columnId}/blocks`, { type: blockType });
         this._afterStructuralOp();
+        // Open the edit sidebar on the freshly-created block so the user
+        // can fill it in immediately. The iframe reload triggered above
+        // happens in parallel — the sidebar mount fetches its HTML from a
+        // separate endpoint so it doesn't need to wait.
+        if (result?.id) {
+            this._mountSidebar(result.id);
+        }
     }
 
     async _deleteBlock(blockId) {

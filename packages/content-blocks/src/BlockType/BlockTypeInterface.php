@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\BlockType;
 
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Contracts\Translation\TranslatableInterface;
 
 interface BlockTypeInterface
 {
@@ -14,9 +15,13 @@ interface BlockTypeInterface
     public static function getType(): string;
 
     /**
-     * Label displayed in the UI.
+     * Label displayed in the UI. Return a plain string for
+     * already-translated labels, or a TranslatableInterface (typically
+     * Symfony's TranslatableMessage) when the label key lives in a custom
+     * translation domain — the renderer will translate it at the boundary
+     * before exposing it to the front (popover, JSON endpoints).
      */
-    public static function getLabel(): string;
+    public static function getLabel(): string|TranslatableInterface;
 
     /**
      * Builds the Symfony Form for this block type.

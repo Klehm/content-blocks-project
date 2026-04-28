@@ -5,7 +5,8 @@
 {% if isPreview %}
     <link rel="stylesheet" href="/_content-blocks/assets/builder">
 {% endif %}
-<div class="cb-content-area"{% if isPreview %} data-cb-preview="1"{% endif %}>
+{% set visibleSections = isPreview ? sections : sections|filter(s => not s.deleted) %}
+<div class="cb-content-area{% if isPreview and visibleSections is empty %} cb-content-area--empty{% endif %}"{% if isPreview %} data-cb-preview="1"{% endif %}>
 {% for section in sections %}
     <section class="cb-section cb-section--{{ section.layout }}{% if section.deleted %} cb-section--deleted{% endif %}{% if section.extraClasses %} {{ section.extraClasses }}{% endif %}"
         {% if isPreview %}data-cb-section-id="{{ section.id }}"{% endif %}
@@ -40,8 +41,12 @@
     </section>
 {% endfor %}
 {% if isPreview %}
-    <aside class="cb-add-section-tray" aria-label="{{ 'cb.builder.add_section'|trans({}, 'content_blocks') }}">
-        <p class="cb-add-section-tray__label">{{ 'cb.builder.add_section'|trans({}, 'content_blocks') }}</p>
+    {% set isEmpty = visibleSections is empty %}
+    {% set trayLabel = isEmpty
+        ? 'cb.builder.empty_cta'|trans({}, 'content_blocks')
+        : 'cb.builder.add_section'|trans({}, 'content_blocks') %}
+    <aside class="cb-add-section-tray" aria-label="{{ trayLabel }}">
+        <p class="cb-add-section-tray__label">{{ trayLabel }}</p>
         <div class="cb-add-section-tray__buttons">
             <button type="button"
                     class="cb-add-section-tray__btn"

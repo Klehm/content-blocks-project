@@ -36,6 +36,7 @@ cb:
         publish: "Publish"
         discard: "Discard changes"
         add_section: "Add a section:"
+        empty_cta: "Start by adding a section"
         draft_pending: "Draft pending"
         confirm_close: "You have unsaved block edits. Discard and close the editor?"
         saved: "Saved"

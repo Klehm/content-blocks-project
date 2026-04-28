@@ -13,6 +13,8 @@ use ContentBlocks\Section\SectionDecoratorCollection;
 use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Security\AccessCheckerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Contracts\Translation\TranslatableInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
 
 /**
@@ -39,6 +41,7 @@ final class BlockRenderer
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly SectionDecoratorCollection $sectionDecorators,
         private readonly SectionSettingsDefaults $settingsDefaults,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -50,7 +53,12 @@ final class BlockRenderer
         $blockTypes = [];
         if ($mode === RenderMode::PREVIEW) {
             foreach ($this->blockTypeRegistry->getChoices() as $type => $label) {
-                $blockTypes[] = ['type' => $type, 'label' => (string) $label];
+                $blockTypes[] = [
+                    'type' => $type,
+                    'label' => $label instanceof TranslatableInterface
+                        ? $label->trans($this->translator)
+                        : $this->translator->trans((string) $label),
+                ];
             }
         }
 

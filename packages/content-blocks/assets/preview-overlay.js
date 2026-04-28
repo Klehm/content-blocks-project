@@ -156,10 +156,18 @@
         b.title = 'Drag to move';
         b.setAttribute('aria-label', 'Drag to move');
         b.dataset.cbAction = 'drag';
-        // Not a click action — `mousedown` enters drag mode. We swallow click
-        // so the global click handler doesn't try to interpret a drag-start
-        // as an outside-click that closes the sidebar.
-        b.addEventListener('mousedown', (event) => {
+        // Not a click action — `pointerdown` enters drag mode. We use
+        // pointer events instead of mouse-only so touch + pen + mouse all
+        // share the same code path, with `touch-action: none` on the handle
+        // so a touch-drag doesn't get hijacked by the page's scroll
+        // gesture. We swallow click so the global click handler doesn't
+        // interpret a drag-start as an outside-click that closes the
+        // sidebar.
+        b.style.touchAction = 'none';
+        b.addEventListener('pointerdown', (event) => {
+            // Only react to the primary pointer (left mouse / first touch);
+            // ignore right-clicks and secondary contacts.
+            if (event.button !== undefined && event.button !== 0) return;
             event.preventDefault();
             event.stopPropagation();
             startDrag(event, kind, id, el);
@@ -245,12 +253,26 @@
         hidePopover();
         clearFocus();
 
+        const pointerId = event.pointerId ?? null;
         const handlers = {
-            move: (e) => onDragMove(e),
-            up: (e) => endDrag(true, e),
-            cancel: (e) => { if (e.key === 'Escape') endDrag(false, null); },
+            move: (e) => {
+                // Multi-pointer guard: only act on the pointer that started
+                // the drag, otherwise a second touch finger would derail
+                // the indicator math.
+                if (pointerId !== null && e.pointerId !== pointerId) return;
+                onDragMove(e);
+            },
+            up: (e) => {
+                if (pointerId !== null && e.pointerId !== pointerId) return;
+                endDrag(true);
+            },
+            cancelPointer: (e) => {
+                if (pointerId !== null && e.pointerId !== pointerId) return;
+                endDrag(false);
+            },
+            cancelKey: (e) => { if (e.key === 'Escape') endDrag(false); },
         };
-        dragState = { kind, id, sourceEl, target: null, handlers };
+        dragState = { kind, id, sourceEl, target: null, handlers, pointerId };
 
         sourceEl.classList.add('cb-drag-source');
         document.body.classList.add('cb-dragging');
@@ -260,9 +282,10 @@
         // columns, so section outlines are noise.
         document.body.classList.add('cb-dragging--' + kind);
 
-        document.addEventListener('mousemove', handlers.move);
-        document.addEventListener('mouseup', handlers.up);
-        document.addEventListener('keydown', handlers.cancel);
+        document.addEventListener('pointermove', handlers.move);
+        document.addEventListener('pointerup', handlers.up);
+        document.addEventListener('pointercancel', handlers.cancelPointer);
+        document.addEventListener('keydown', handlers.cancelKey);
 
         // Compute the initial drop target from the press point so the
         // indicator appears immediately, not on first move.
@@ -276,12 +299,13 @@
         renderDropIndicator(target);
     }
 
-    function endDrag(commit, _event) {
+    function endDrag(commit) {
         if (!dragState) return;
         const { handlers, sourceEl, kind, id, target } = dragState;
-        document.removeEventListener('mousemove', handlers.move);
-        document.removeEventListener('mouseup', handlers.up);
-        document.removeEventListener('keydown', handlers.cancel);
+        document.removeEventListener('pointermove', handlers.move);
+        document.removeEventListener('pointerup', handlers.up);
+        document.removeEventListener('pointercancel', handlers.cancelPointer);
+        document.removeEventListener('keydown', handlers.cancelKey);
         sourceEl.classList.remove('cb-drag-source');
         document.body.classList.remove('cb-dragging', 'cb-dragging--section', 'cb-dragging--block');
         dropIndicator.hidden = true;

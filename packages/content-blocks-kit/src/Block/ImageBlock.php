@@ -9,7 +9,9 @@ use ContentBlocks\BlockType\AsContentBlock;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Contracts\Translation\TranslatableInterface;
 
 #[AsContentBlock]
 final class ImageBlock extends AbstractBlockType
@@ -19,9 +21,9 @@ final class ImageBlock extends AbstractBlockType
         return 'image';
     }
 
-    public static function getLabel(): string
+    public static function getLabel(): TranslatableInterface
     {
-        return 'cb_kit.block.image.label';
+        return new TranslatableMessage('cb_kit.block.image.label', [], 'content_blocks_kit');
     }
 
     public function buildForm(FormBuilderInterface $builder, array $data): void

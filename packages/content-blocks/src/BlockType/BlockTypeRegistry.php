@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ContentBlocks\BlockType;
 
+use Symfony\Contracts\Translation\TranslatableInterface;
+
 final class BlockTypeRegistry
 {
     /** @var array<string, BlockTypeInterface> */
@@ -35,7 +37,10 @@ final class BlockTypeRegistry
     }
 
     /**
-     * @return array<string, string> type => label
+     * @return array<string, string|TranslatableInterface> type => label.
+     *   The label may be a plain string or a TranslatableInterface depending
+     *   on what the BlockType returned — callers translate via the
+     *   appropriate path.
      */
     public function getChoices(): array
     {

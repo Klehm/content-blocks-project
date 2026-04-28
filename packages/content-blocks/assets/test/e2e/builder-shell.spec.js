@@ -261,9 +261,18 @@ test.describe('builder shell — blocks', () => {
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
 
-        // Click somewhere in the iframe that isn't the toolbar/popover —
-        // body works as a generic "outside" target.
-        await frame.locator('body').click({ position: { x: 500, y: 500 }, force: true });
+        // Dispatch a click directly on the iframe's <body>. We deliberately
+        // avoid coordinate-based clicks here: the layout is in flux because
+        // adding a block auto-opens the sidebar (which can shift content),
+        // and a coordinate that's "outside" can land inside a section
+        // depending on how the iframe paints. Targeting `body` itself is
+        // unambiguously outside any [data-cb-block-id]/[data-cb-section-id]
+        // ancestor, so preview-overlay routes it as a true outside-click.
+        await page.locator('.cb-shell__iframe').evaluate((iframe) => {
+            iframe.contentDocument.body.dispatchEvent(
+                new MouseEvent('click', { bubbles: true, cancelable: true }),
+            );
+        });
 
         await expect(sidebar).toHaveAttribute('hidden', '');
     });

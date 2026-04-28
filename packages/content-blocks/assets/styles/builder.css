@@ -220,6 +220,33 @@ html, body {
     font-weight: 500;
     color: #5b6172;
 }
+
+/* Empty-state polish: when the area has zero visible sections, anchor the
+   tray to the middle of the iframe and beef up the copy so it reads as a
+   primary call to action rather than a footer affordance. */
+.cb-content-area--empty {
+    min-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.cb-content-area--empty .cb-add-section-tray {
+    margin: auto;
+    padding: 32px 24px;
+}
+.cb-content-area--empty .cb-add-section-tray__label {
+    margin-bottom: 16px;
+    font-size: 18px;
+    font-weight: 500;
+    color: #1f2330;
+}
+.cb-content-area--empty .cb-add-section-tray__buttons {
+    gap: 12px;
+}
+.cb-content-area--empty .cb-add-section-tray__btn {
+    width: 72px;
+    height: 56px;
+}
 .cb-add-section-tray__buttons {
     display: inline-flex;
     gap: 8px;

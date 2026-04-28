@@ -8,7 +8,9 @@ use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\Kit\Form\Type\TabEntryType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
 
 #[AsContentBlock]
@@ -19,9 +21,9 @@ final class TabsBlock extends AbstractBlockType
         return 'tabs';
     }
 
-    public static function getLabel(): string
+    public static function getLabel(): TranslatableInterface
     {
-        return 'cb_kit.block.tabs.label';
+        return new TranslatableMessage('cb_kit.block.tabs.label', [], 'content_blocks_kit');
     }
 
     public function buildForm(FormBuilderInterface $builder, array $data): void

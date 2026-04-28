@@ -446,6 +446,24 @@ describe('cb-builder: structural AJAX handlers', () => {
         expect(reloadSpy).not.toHaveBeenCalled();
     });
 
+    it('_addBlock auto-opens the edit sidebar on the freshly created block', async () => {
+        reqSpy.mockResolvedValueOnce({ id: 123 });
+        const mountSpy = vi.spyOn(controller, '_mountSidebar').mockImplementation(() => {});
+
+        await controller._addBlock(7, 'text');
+
+        expect(mountSpy).toHaveBeenCalledWith(123);
+    });
+
+    it('_addBlock skips sidebar mount when the response has no id', async () => {
+        reqSpy.mockResolvedValueOnce(null);
+        const mountSpy = vi.spyOn(controller, '_mountSidebar').mockImplementation(() => {});
+
+        await controller._addBlock(7, 'text');
+
+        expect(mountSpy).not.toHaveBeenCalled();
+    });
+
     it('_deleteBlock issues DELETE and reloads', async () => {
         await controller._deleteBlock(42);
         expect(reqSpy).toHaveBeenCalledWith('DELETE', '/_content-blocks/block/42');

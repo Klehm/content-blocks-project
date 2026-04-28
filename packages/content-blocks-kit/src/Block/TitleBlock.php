@@ -9,7 +9,9 @@ use ContentBlocks\BlockType\AsContentBlock;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Contracts\Translation\TranslatableInterface;
 
 #[AsContentBlock]
 final class TitleBlock extends AbstractBlockType
@@ -19,9 +21,9 @@ final class TitleBlock extends AbstractBlockType
         return 'title';
     }
 
-    public static function getLabel(): string
+    public static function getLabel(): TranslatableInterface
     {
-        return 'cb_kit.block.title.label';
+        return new TranslatableMessage('cb_kit.block.title.label', [], 'content_blocks_kit');
     }
 
     public function buildForm(FormBuilderInterface $builder, array $data): void

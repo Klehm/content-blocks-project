@@ -65,7 +65,11 @@ final class BlockComponent
     {
         $blockType = $this->getBlockType();
 
-        return $blockType ? $blockType::getLabel() : $this->getBlock()->getType();
+        // BlockType::getLabel() may now return a TranslatableInterface; cast
+        // to string so this method's contract stays unchanged. Templates that
+        // need the localized label should pipe the result through `|trans`
+        // with the block type's domain, or call `getLabel()` directly.
+        return $blockType ? (string) $blockType::getLabel() : $this->getBlock()->getType();
     }
 
     protected function instantiateForm(): FormInterface

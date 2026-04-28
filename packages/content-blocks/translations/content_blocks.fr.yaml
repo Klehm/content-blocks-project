@@ -36,6 +36,7 @@ cb:
         publish: "Publier"
         discard: "Annuler les modifications"
         add_section: "Ajouter une section :"
+        empty_cta: "Commencez par ajouter une section"
         draft_pending: "Brouillon en attente"
         confirm_close: "Vous avez des modifications de bloc non enregistrées. Quitter sans enregistrer ?"
         saved: "Enregistré"
