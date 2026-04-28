@@ -21,11 +21,20 @@ export default class extends Controller {
 
     connect() {
         this._onMessage = this._onMessage.bind(this);
+        this._onBlockSaved = this._onBlockSaved.bind(this);
+        this._onBlockCancel = this._onBlockCancel.bind(this);
+
         window.addEventListener('message', this._onMessage);
+        // Browser CustomEvents emitted by BlockComponent's dispatchBrowserEvent
+        // bubble up the DOM from the sidebar to here.
+        this.element.addEventListener('cb:block:saved', this._onBlockSaved);
+        this.element.addEventListener('cb:block:cancel', this._onBlockCancel);
     }
 
     disconnect() {
         window.removeEventListener('message', this._onMessage);
+        this.element.removeEventListener('cb:block:saved', this._onBlockSaved);
+        this.element.removeEventListener('cb:block:cancel', this._onBlockCancel);
     }
 
     /**
@@ -107,7 +116,7 @@ export default class extends Controller {
                 console.log('[cb-builder] iframe ready');
                 break;
             case 'cb:block:edit':
-                console.log('[cb-builder] block:edit', data);
+                this._mountSidebar(data.blockId);
                 break;
             case 'cb:block:delete-requested':
                 console.log('[cb-builder] block:delete-requested', data);
@@ -127,5 +136,53 @@ export default class extends Controller {
             default:
                 console.log('[cb-builder] unknown message type', data.type, data);
         }
+    }
+
+    /**
+     * Fetches the rendered BlockComponent for the given block id and
+     * injects it into the sidebar. Stimulus controllers and the Live
+     * Component framework auto-connect to the new DOM nodes.
+     */
+    async _mountSidebar(blockId) {
+        if (!this.hasSidebarTarget) return;
+
+        try {
+            const response = await fetch(`/_content-blocks/block/${blockId}/edit`, {
+                headers: { 'Accept': 'text/html' },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                console.error('[cb-builder] failed to load block', blockId, response.status);
+                return;
+            }
+
+            const html = await response.text();
+            this.sidebarTarget.innerHTML = html;
+            this.sidebarTarget.hidden = false;
+            this.sidebarTarget.dataset.cbSidebarBlockId = String(blockId);
+
+            console.log('[cb-builder] sidebar mounted for block', blockId);
+        } catch (e) {
+            console.error('[cb-builder] mount error', e);
+        }
+    }
+
+    _unmountSidebar() {
+        if (!this.hasSidebarTarget) return;
+        this.sidebarTarget.innerHTML = '';
+        this.sidebarTarget.hidden = true;
+        delete this.sidebarTarget.dataset.cbSidebarBlockId;
+    }
+
+    _onBlockSaved(event) {
+        console.log('[cb-builder] block:saved', event.detail);
+        this._unmountSidebar();
+        this.reload();
+    }
+
+    _onBlockCancel(event) {
+        console.log('[cb-builder] block:cancel', event.detail);
+        this._unmountSidebar();
     }
 }

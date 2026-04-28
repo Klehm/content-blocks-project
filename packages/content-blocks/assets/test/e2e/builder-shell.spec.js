@@ -91,9 +91,7 @@ test.describe('builder shell — phase 1 plumbing', () => {
         await expect(frame.locator('.cb-overlay-toolbar.is-visible')).toBeVisible();
     });
 
-    test('clicking Edit on a block fires cb:block:edit to the parent', async ({ page }) => {
-        const logs = attachConsoleSink(page);
-
+    test('clicking Edit on a block mounts the BlockComponent in the sidebar', async ({ page }) => {
         await page.goto(PAGE_URL);
         await page.locator('.cb-launcher__button').click();
 
@@ -102,7 +100,28 @@ test.describe('builder shell — phase 1 plumbing', () => {
         await block.hover();
         await frame.locator('.cb-overlay-toolbar__btn').first().click();
 
-        await expect.poll(() => logs.some((l) => l.startsWith('[cb-builder] block:edit'))).toBe(true);
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar).not.toHaveAttribute('hidden');
+        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+        await expect(sidebar.locator('button.btn-primary')).toBeVisible();
+    });
+
+    test('cancel in sidebar unmounts without reloading iframe', async ({ page }) => {
+        const logs = attachConsoleSink(page);
+        await page.goto(PAGE_URL);
+        await page.locator('.cb-launcher__button').click();
+
+        const frame = page.frameLocator('.cb-shell__iframe');
+        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('.cb-overlay-toolbar__btn').first().click();
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+
+        await sidebar.locator('button.btn-secondary').click();
+
+        await expect(sidebar).toHaveAttribute('hidden', '');
+        await expect.poll(() => logs.some((l) => l.startsWith('[cb-builder] block:cancel'))).toBe(true);
     });
 
     test('topbar Publish + Discard buttons fire their intents', async ({ page }) => {

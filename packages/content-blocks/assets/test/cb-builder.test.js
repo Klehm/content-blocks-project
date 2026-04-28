@@ -13,20 +13,23 @@ function setupController(options = {}) {
             <button class="cb-shell__viewport-btn cb-shell__viewport-btn--active"></button>
             <button class="cb-shell__viewport-btn"></button>
             <iframe></iframe>
+            <aside hidden></aside>
         </div>
     `;
     const element = document.querySelector('[data-controller="cb-builder"]');
     const iframe = element.querySelector('iframe');
+    const sidebar = element.querySelector('aside');
 
     const controller = new Controller();
     Object.defineProperty(controller, 'element', { value: element });
     Object.defineProperty(controller, 'hasIframeTarget', { value: true });
     Object.defineProperty(controller, 'iframeTarget', { value: iframe });
-    Object.defineProperty(controller, 'hasSidebarTarget', { value: false });
+    Object.defineProperty(controller, 'hasSidebarTarget', { value: true });
+    Object.defineProperty(controller, 'sidebarTarget', { value: sidebar });
     Object.defineProperty(controller, 'areaIdValue', { value: options.areaId ?? 42 });
     Object.defineProperty(controller, 'iframeUrlValue', { value: options.iframeUrl ?? 'http://localhost/page/1?cb_preview=1' });
 
-    return { controller, element, iframe };
+    return { controller, element, iframe, sidebar };
 }
 
 function postMessage(data, origin = window.location.origin) {
@@ -72,10 +75,10 @@ describe('cb-builder: postMessage routing', () => {
         expect(logSpy).toHaveBeenCalledWith('[cb-builder] iframe ready');
     });
 
-    it('logs cb:block:edit with payload', () => {
-        const payload = { type: 'cb:block:edit', blockId: 7 };
-        controller._onMessage(postMessage(payload));
-        expect(logSpy).toHaveBeenCalledWith('[cb-builder] block:edit', payload);
+    it('cb:block:edit triggers sidebar mount', async () => {
+        const mountSpy = vi.spyOn(controller, '_mountSidebar').mockImplementation(() => {});
+        controller._onMessage(postMessage({ type: 'cb:block:edit', blockId: 7 }));
+        expect(mountSpy).toHaveBeenCalledWith(7);
     });
 
     it.each([
@@ -93,6 +96,79 @@ describe('cb-builder: postMessage routing', () => {
     it('logs unknown cb: types under the unknown branch', () => {
         controller._onMessage(postMessage({ type: 'cb:weird' }));
         expect(logSpy).toHaveBeenCalledWith('[cb-builder] unknown message type', 'cb:weird', { type: 'cb:weird' });
+    });
+});
+
+describe('cb-builder: sidebar mount/unmount', () => {
+    let controller, sidebar;
+
+    beforeEach(() => {
+        ({ controller, sidebar } = setupController());
+        vi.spyOn(console, 'log').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    it('_mountSidebar fetches the block edit URL and injects HTML', async () => {
+        const html = '<div class="cb-sidebar__block">FORM</div>';
+        global.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve(html),
+        }));
+
+        await controller._mountSidebar(42);
+
+        expect(global.fetch).toHaveBeenCalledWith(
+            '/_content-blocks/block/42/edit',
+            expect.objectContaining({ headers: { Accept: 'text/html' } }),
+        );
+        expect(sidebar.innerHTML).toBe(html);
+        expect(sidebar.hidden).toBe(false);
+        expect(sidebar.dataset.cbSidebarBlockId).toBe('42');
+    });
+
+    it('_mountSidebar does not inject HTML on non-OK response', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 404 }));
+
+        await controller._mountSidebar(99);
+
+        expect(sidebar.innerHTML).toBe('');
+        expect(sidebar.hidden).toBe(true);
+    });
+
+    it('_unmountSidebar clears HTML, hides, and forgets the block id', () => {
+        sidebar.innerHTML = '<div>X</div>';
+        sidebar.hidden = false;
+        sidebar.dataset.cbSidebarBlockId = '42';
+
+        controller._unmountSidebar();
+
+        expect(sidebar.innerHTML).toBe('');
+        expect(sidebar.hidden).toBe(true);
+        expect(sidebar.dataset.cbSidebarBlockId).toBeUndefined();
+    });
+
+    it('cb:block:saved event unmounts and reloads the iframe', () => {
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+        sidebar.innerHTML = '<form>x</form>';
+        sidebar.hidden = false;
+
+        controller._onBlockSaved({ detail: { blockId: 42 } });
+
+        expect(sidebar.innerHTML).toBe('');
+        expect(sidebar.hidden).toBe(true);
+        expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('cb:block:cancel event unmounts but does NOT reload', () => {
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+        sidebar.innerHTML = '<form>x</form>';
+        sidebar.hidden = false;
+
+        controller._onBlockCancel({ detail: { blockId: 42 } });
+
+        expect(sidebar.innerHTML).toBe('');
+        expect(sidebar.hidden).toBe(true);
+        expect(reloadSpy).not.toHaveBeenCalled();
     });
 });
 

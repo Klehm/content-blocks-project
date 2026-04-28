@@ -1,0 +1,6 @@
+{# Wrapper template invoked by BlockSidebarController. The parent admin
+   cb-builder Stimulus controller fetches the rendered output and injects
+   it into the sidebar slot. #}
+<div class="cb-sidebar__block">
+    {{ component('ContentBlocks:Block', { blockId: blockId }) }}
+</div>
