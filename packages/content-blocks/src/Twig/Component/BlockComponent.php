@@ -108,12 +108,6 @@ final class BlockComponent
         $this->dispatchBrowserEvent('cb:block:saved', ['blockId' => $this->blockId]);
     }
 
-    #[LiveAction]
-    public function cancelEdit(): void
-    {
-        $this->dispatchBrowserEvent('cb:block:cancel', ['blockId' => $this->blockId]);
-    }
-
     private function denyUnlessCanEdit(): void
     {
         $contentArea = $this->getBlock()->getColumn()->getSection()->getContentArea();

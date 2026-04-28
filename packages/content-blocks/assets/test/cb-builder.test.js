@@ -13,12 +13,17 @@ function setupController(options = {}) {
             <button class="cb-shell__viewport-btn cb-shell__viewport-btn--active"></button>
             <button class="cb-shell__viewport-btn"></button>
             <iframe></iframe>
-            <aside hidden></aside>
+            <aside hidden>
+                <div class="cb-shell__sidebar-resize"></div>
+                <div class="cb-shell__sidebar-content"></div>
+            </aside>
         </div>
     `;
     const element = document.querySelector('[data-controller="cb-builder"]');
     const iframe = element.querySelector('iframe');
     const sidebar = element.querySelector('aside');
+    const sidebarContent = sidebar.querySelector('.cb-shell__sidebar-content');
+    const sidebarResize = sidebar.querySelector('.cb-shell__sidebar-resize');
 
     const controller = new Controller();
     Object.defineProperty(controller, 'element', { value: element });
@@ -26,10 +31,14 @@ function setupController(options = {}) {
     Object.defineProperty(controller, 'iframeTarget', { value: iframe });
     Object.defineProperty(controller, 'hasSidebarTarget', { value: true });
     Object.defineProperty(controller, 'sidebarTarget', { value: sidebar });
+    Object.defineProperty(controller, 'hasSidebarContentTarget', { value: true });
+    Object.defineProperty(controller, 'sidebarContentTarget', { value: sidebarContent });
+    Object.defineProperty(controller, 'hasSidebarResizeTarget', { value: true });
+    Object.defineProperty(controller, 'sidebarResizeTarget', { value: sidebarResize });
     Object.defineProperty(controller, 'areaIdValue', { value: options.areaId ?? 42 });
     Object.defineProperty(controller, 'iframeUrlValue', { value: options.iframeUrl ?? 'http://localhost/page/1?cb_preview=1' });
 
-    return { controller, element, iframe, sidebar };
+    return { controller, element, iframe, sidebar, sidebarContent, sidebarResize };
 }
 
 function postMessage(data, origin = window.location.origin) {
@@ -117,16 +126,16 @@ describe('cb-builder: postMessage routing', () => {
     });
 });
 
-describe('cb-builder: sidebar mount/unmount', () => {
-    let controller, sidebar;
+describe('cb-builder: sidebar mount/close', () => {
+    let controller, sidebar, sidebarContent;
 
     beforeEach(() => {
-        ({ controller, sidebar } = setupController());
+        ({ controller, sidebar, sidebarContent } = setupController());
         vi.spyOn(console, 'log').mockImplementation(() => {});
         vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
-    it('_mountSidebar fetches the block edit URL and injects HTML', async () => {
+    it('_mountSidebar fetches the block edit URL and injects HTML into the content slot', async () => {
         const html = '<div class="cb-sidebar__block">FORM</div>';
         global.fetch = vi.fn(() => Promise.resolve({
             ok: true,
@@ -139,9 +148,11 @@ describe('cb-builder: sidebar mount/unmount', () => {
             '/_content-blocks/block/42/edit',
             expect.objectContaining({ headers: { Accept: 'text/html' } }),
         );
-        expect(sidebar.innerHTML).toBe(html);
+        // HTML lands in the content slot, NOT on the wrapper itself —
+        // the wrapper keeps its persistent header/resize chrome.
+        expect(sidebarContent.innerHTML).toBe(html);
         expect(sidebar.hidden).toBe(false);
-        expect(sidebar.dataset.cbSidebarBlockId).toBe('42');
+        expect(sidebar.getAttribute('data-cb-sidebar-block-id')).toBe('42');
     });
 
     it('_mountSidebar does not inject HTML on non-OK response', async () => {
@@ -149,44 +160,111 @@ describe('cb-builder: sidebar mount/unmount', () => {
 
         await controller._mountSidebar(99);
 
-        expect(sidebar.innerHTML).toBe('');
+        expect(sidebarContent.innerHTML).toBe('');
         expect(sidebar.hidden).toBe(true);
     });
 
-    it('_unmountSidebar clears HTML, hides, and forgets the block id', () => {
-        sidebar.innerHTML = '<div>X</div>';
+    it('closeSidebar clears the content, hides, and drops mount-id attrs', () => {
+        sidebarContent.innerHTML = '<form>x</form>';
         sidebar.hidden = false;
-        sidebar.dataset.cbSidebarBlockId = '42';
+        sidebar.setAttribute('data-cb-sidebar-block-id', '42');
 
-        controller._unmountSidebar();
+        controller.closeSidebar({ preventDefault: () => {} });
 
-        expect(sidebar.innerHTML).toBe('');
+        expect(sidebarContent.innerHTML).toBe('');
         expect(sidebar.hidden).toBe(true);
-        expect(sidebar.dataset.cbSidebarBlockId).toBeUndefined();
+        expect(sidebar.hasAttribute('data-cb-sidebar-block-id')).toBe(false);
     });
 
-    it('cb:block:saved event unmounts and reloads the iframe', () => {
+    it('cb:block:saved keeps the sidebar open and reloads the iframe', () => {
         const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
-        sidebar.innerHTML = '<form>x</form>';
+        sidebarContent.innerHTML = '<form>x</form>';
         sidebar.hidden = false;
 
         controller._onBlockSaved({ detail: { blockId: 42 } });
 
-        expect(sidebar.innerHTML).toBe('');
-        expect(sidebar.hidden).toBe(true);
+        // Stays open — the user can keep tweaking and saving iteratively.
+        expect(sidebarContent.innerHTML).toBe('<form>x</form>');
+        expect(sidebar.hidden).toBe(false);
         expect(reloadSpy).toHaveBeenCalled();
     });
 
-    it('cb:block:cancel event unmounts but does NOT reload', () => {
+    it('cb:section:saved keeps the sidebar open and reloads the iframe', () => {
         const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
-        sidebar.innerHTML = '<form>x</form>';
+        sidebarContent.innerHTML = '<form>x</form>';
         sidebar.hidden = false;
 
-        controller._onBlockCancel({ detail: { blockId: 42 } });
+        controller._onSectionSaved({ detail: { sectionId: 5 } });
 
-        expect(sidebar.innerHTML).toBe('');
-        expect(sidebar.hidden).toBe(true);
-        expect(reloadSpy).not.toHaveBeenCalled();
+        expect(sidebarContent.innerHTML).toBe('<form>x</form>');
+        expect(sidebar.hidden).toBe(false);
+        expect(reloadSpy).toHaveBeenCalled();
+    });
+});
+
+describe('cb-builder: sidebar resize', () => {
+    let controller, sidebar, iframe, store;
+
+    beforeEach(() => {
+        store = {};
+        // Tiny localStorage stub so the test doesn't depend on jsdom's.
+        global.localStorage = {
+            getItem: (k) => (k in store ? store[k] : null),
+            setItem: (k, v) => { store[k] = String(v); },
+            removeItem: (k) => { delete store[k]; },
+        };
+        vi.spyOn(console, 'log').mockImplementation(() => {});
+    });
+
+    it('_restoreSidebarWidth applies the stored width on connect', () => {
+        store['cb-builder.sidebarWidth'] = '500';
+        ({ controller, sidebar } = setupController());
+        controller._restoreSidebarWidth();
+
+        expect(sidebar.style.width).toBe('500px');
+    });
+
+    it('_restoreSidebarWidth clamps stored values to the [MIN, MAX] range', () => {
+        store['cb-builder.sidebarWidth'] = '99999';
+        ({ controller, sidebar } = setupController());
+        controller._restoreSidebarWidth();
+
+        expect(sidebar.style.width).toBe('800px');
+    });
+
+    it('_restoreSidebarWidth skips when no value is stored', () => {
+        ({ controller, sidebar } = setupController());
+        controller._restoreSidebarWidth();
+
+        expect(sidebar.style.width).toBe('');
+    });
+
+    it('startSidebarResize + _onResizeMove + _onResizeEnd resize and persist the width', () => {
+        ({ controller, sidebar, iframe } = setupController());
+        // Pretend the sidebar was 380px wide before drag.
+        Object.defineProperty(sidebar, 'getBoundingClientRect', {
+            configurable: true,
+            value: () => ({ width: 380, top: 0, bottom: 0, left: 0, right: 0, height: 0 }),
+        });
+
+        controller.startSidebarResize({ clientX: 1000, preventDefault: () => {} });
+        // Iframe gets pointer-events: none during the drag so mousemove
+        // events bubble up to the document.
+        expect(iframe.style.pointerEvents).toBe('none');
+
+        controller._onResizeMove({ clientX: 900 });
+        // 100px to the left → +100px on the sidebar width.
+        expect(sidebar.style.width).toBe('480px');
+
+        // Pretend the new bounding box.
+        Object.defineProperty(sidebar, 'getBoundingClientRect', {
+            configurable: true,
+            value: () => ({ width: 480, top: 0, bottom: 0, left: 0, right: 0, height: 0 }),
+        });
+        controller._onResizeEnd();
+
+        expect(iframe.style.pointerEvents).toBe('');
+        expect(store['cb-builder.sidebarWidth']).toBe('480');
     });
 });
 

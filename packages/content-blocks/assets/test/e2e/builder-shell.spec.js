@@ -176,8 +176,9 @@ test.describe('builder shell — sections', () => {
         await sidebar.locator('input[name="section_settings[backgroundColor]"]').fill('#ffeecc');
         await sidebar.locator('button[type="submit"]').click();
 
-        // Sidebar closes, iframe reloads, decorations applied.
-        await expect(sidebar).toHaveAttribute('hidden', '');
+        // Sidebar stays open after save (the user can keep tweaking) — but
+        // the iframe reloads with the new draft applied.
+        await expect(sidebar).not.toHaveAttribute('hidden');
         const section = frame.locator('[data-cb-section-id]').first();
         await expect.poll(async () => section.getAttribute('class')).toContain('e2e-decorated');
         await expect.poll(async () => section.getAttribute('class')).toContain('cb-section--centered');
@@ -198,14 +199,16 @@ test.describe('builder shell — sections', () => {
         const colorInput = sidebar.locator('input[name="section_settings[backgroundColor]"]');
         await expect(colorInput).toHaveValue('#ffffff');
 
-        // Save without changing anything.
+        // Save without changing anything. The sidebar stays open.
         await sidebar.locator('button[type="submit"]').click();
-        await expect(sidebar).toHaveAttribute('hidden', '');
+        await expect(sidebar).not.toHaveAttribute('hidden');
 
         // Iframe reloads — the section MUST NOT carry background-color in
         // its inline style because the saved value matches the registered
         // default.
         const section = frame.locator('[data-cb-section-id]').first();
+        // Wait for the iframe reload to settle.
+        await page.waitForTimeout(400);
         const style = await section.getAttribute('style');
         expect(style ?? '').not.toContain('background-color');
     });
@@ -247,7 +250,23 @@ test.describe('builder shell — blocks', () => {
         await expect(sidebar.locator('button.btn-primary')).toBeVisible();
     });
 
-    test('cancel in sidebar closes it without reloading', async ({ page }) => {
+    test('× in sidebar header closes it without reloading', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+
+        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+
+        await sidebar.locator('.cb-shell__sidebar-close').click();
+
+        await expect(sidebar).toHaveAttribute('hidden', '');
+    });
+
+    test('saving a block keeps the sidebar open and reloads the iframe', async ({ page }) => {
         const logs = attachConsoleSink(page);
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
@@ -259,10 +278,59 @@ test.describe('builder shell — blocks', () => {
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
 
-        await sidebar.locator('button.btn-secondary').click();
+        await sidebar.locator('button.btn-primary').first().click();
 
+        // block:saved was logged AND the form is still visible afterwards.
+        await expect.poll(() => logs.some((l) => l.startsWith('[cb-builder] block:saved'))).toBe(true);
+        await expect(sidebar).not.toHaveAttribute('hidden');
+        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+    });
+
+    test('sidebar is resizable and the chosen width persists across opens', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+
+        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar).not.toHaveAttribute('hidden');
+
+        // Synthesize the drag from inside the page: Playwright's mouse API
+        // routing through the dialog overlay is flaky for resize handles
+        // pinned to the iframe boundary; firing the event chain in-page is
+        // both faster and more deterministic here.
+        const widthAfter = await page.evaluate(() => {
+            const sb = document.querySelector('aside[data-cb-builder-target="sidebar"]');
+            const handle = sb.querySelector('.cb-shell__sidebar-resize');
+            const rect = handle.getBoundingClientRect();
+            const startX = rect.x + rect.width / 2;
+            const startY = rect.y + rect.height / 2;
+
+            handle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: startX, clientY: startY }));
+            document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX: startX - 120, clientY: startY }));
+            document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, clientX: startX - 120, clientY: startY }));
+
+            return sb.getBoundingClientRect().width;
+        });
+
+        expect(widthAfter).toBeGreaterThan(420);
+        const storedWidth = await page.evaluate(() => window.localStorage.getItem('cb-builder.sidebarWidth'));
+        expect(parseInt(storedWidth, 10)).toBeGreaterThan(420);
+
+        // Close + reopen: the saved width should be restored.
+        await sidebar.locator('.cb-shell__sidebar-close').click();
         await expect(sidebar).toHaveAttribute('hidden', '');
-        await expect.poll(() => logs.some((l) => l.startsWith('[cb-builder] block:cancel'))).toBe(true);
+
+        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+        await expect(sidebar).not.toHaveAttribute('hidden');
+        // Wait for the sidebar mount + form render to settle.
+        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+
+        const widthAfterReopen = await sidebar.evaluate((el) => el.getBoundingClientRect().width);
+        expect(widthAfterReopen).toBeCloseTo(widthAfter, 0);
     });
 
     test('block delete overlay soft-deletes (deleted marker stays in DOM)', async ({ page }) => {

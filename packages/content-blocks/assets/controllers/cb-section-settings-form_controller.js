@@ -24,14 +24,6 @@ export default class extends Controller {
         }
     }
 
-    cancel(event) {
-        if (event) event.preventDefault();
-        this.element.dispatchEvent(new CustomEvent('cb:section:cancel', {
-            bubbles: true,
-            detail: { sectionId: this.sectionIdValue },
-        }));
-    }
-
     async _onSubmit(event) {
         event.preventDefault();
         if (!this.hasFormTarget) return;

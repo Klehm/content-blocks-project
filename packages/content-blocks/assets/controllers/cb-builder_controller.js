@@ -12,36 +12,39 @@ import { Controller } from '@hotwired/stimulus';
  * back to the top after each block save.
  */
 export default class extends Controller {
-    static targets = ['iframe', 'sidebar'];
+    static targets = ['iframe', 'sidebar', 'sidebarContent', 'sidebarResize'];
 
     static values = {
         areaId: Number,
         iframeUrl: String,
     };
 
+    static SIDEBAR_WIDTH_KEY = 'cb-builder.sidebarWidth';
+    static SIDEBAR_MIN_WIDTH = 280;
+    static SIDEBAR_MAX_WIDTH = 800;
+
     connect() {
         this._onMessage = this._onMessage.bind(this);
         this._onBlockSaved = this._onBlockSaved.bind(this);
-        this._onBlockCancel = this._onBlockCancel.bind(this);
         this._onSectionSaved = this._onSectionSaved.bind(this);
-        this._onSectionCancel = this._onSectionCancel.bind(this);
+        this._onResizeMove = this._onResizeMove.bind(this);
+        this._onResizeEnd = this._onResizeEnd.bind(this);
 
         window.addEventListener('message', this._onMessage);
-        // Browser CustomEvents emitted from sidebar forms (BlockComponent's
-        // dispatchBrowserEvent or the section-settings form controller)
-        // bubble up the DOM to here.
+        // BlockComponent.save() and the section-settings form both
+        // dispatchBrowserEvent on save; the events bubble up to here.
         this.element.addEventListener('cb:block:saved', this._onBlockSaved);
-        this.element.addEventListener('cb:block:cancel', this._onBlockCancel);
         this.element.addEventListener('cb:section:saved', this._onSectionSaved);
-        this.element.addEventListener('cb:section:cancel', this._onSectionCancel);
+
+        this._restoreSidebarWidth();
     }
 
     disconnect() {
         window.removeEventListener('message', this._onMessage);
         this.element.removeEventListener('cb:block:saved', this._onBlockSaved);
-        this.element.removeEventListener('cb:block:cancel', this._onBlockCancel);
         this.element.removeEventListener('cb:section:saved', this._onSectionSaved);
-        this.element.removeEventListener('cb:section:cancel', this._onSectionCancel);
+        document.removeEventListener('mousemove', this._onResizeMove);
+        document.removeEventListener('mouseup', this._onResizeEnd);
     }
 
     /**
@@ -252,107 +255,149 @@ export default class extends Controller {
 
     /**
      * Fetches the rendered BlockComponent for the given block id and
-     * injects it into the sidebar. Stimulus controllers and the Live
-     * Component framework auto-connect to the new DOM nodes.
+     * injects it into the sidebar. Stimulus + Live Component auto-connect.
      */
     async _mountSidebar(blockId) {
-        if (!this.hasSidebarTarget) return;
+        await this._mountSidebarFrom(`/_content-blocks/block/${blockId}/edit`, {
+            'data-cb-sidebar-block-id': String(blockId),
+        });
+    }
+
+    /** Section settings: same fetch/inject flow, different endpoint. */
+    async _mountSectionSettings(sectionId) {
+        await this._mountSidebarFrom(`/_content-blocks/section/${sectionId}/settings`, {
+            'data-cb-sidebar-section-id': String(sectionId),
+        });
+    }
+
+    async _mountSidebarFrom(url, dataAttrs = {}) {
+        if (!this.hasSidebarTarget || !this.hasSidebarContentTarget) return;
 
         try {
-            const response = await fetch(`/_content-blocks/block/${blockId}/edit`, {
+            const response = await fetch(url, {
                 headers: { 'Accept': 'text/html' },
                 credentials: 'same-origin',
             });
-
             if (!response.ok) {
-                console.error('[cb-builder] failed to load block', blockId, response.status);
+                console.error('[cb-builder] failed to load', url, response.status);
                 return;
             }
 
-            const html = await response.text();
-            this.sidebarTarget.innerHTML = html;
+            this.sidebarContentTarget.innerHTML = await response.text();
             this.sidebarTarget.hidden = false;
-            this.sidebarTarget.dataset.cbSidebarBlockId = String(blockId);
+            this._clearSidebarDataAttrs();
+            for (const [k, v] of Object.entries(dataAttrs)) {
+                this.sidebarTarget.setAttribute(k, v);
+            }
 
-            // Move focus to the first form field so the user can type
-            // straight away. Defer to after the next paint so Stimulus + Live
-            // Component have wired their controllers up. preventScroll is
-            // critical: while the sidebar is mid-slide-in (translateX(100%)
-            // → 0), focusing an input would otherwise tell the browser to
-            // scroll horizontally to bring the still-off-screen input into
-            // view, which makes the iframe visually drift left-then-right.
+            // Move focus to the first form field once Stimulus + Live
+            // Component finish wiring. preventScroll is critical: while the
+            // sidebar is mid-slide-in, focusing an off-screen input would
+            // otherwise scroll the iframe horizontally.
             requestAnimationFrame(() => {
-                const target = this.sidebarTarget.querySelector(
-                    'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), [contenteditable="true"]',
+                const target = this.sidebarContentTarget.querySelector(
+                    'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled]), [contenteditable="true"]',
                 );
                 if (target) target.focus({ preventScroll: true });
             });
-
-            console.log('[cb-builder] sidebar mounted for block', blockId);
         } catch (e) {
             console.error('[cb-builder] mount error', e);
         }
     }
 
-    _unmountSidebar() {
+    _clearSidebarDataAttrs() {
+        for (const key of ['cb-sidebar-block-id', 'cb-sidebar-section-id']) {
+            this.sidebarTarget.removeAttribute('data-' + key);
+        }
+    }
+
+    /** Action: explicit close via the × button in the sidebar header. */
+    closeSidebar(event) {
+        if (event) event.preventDefault();
         if (!this.hasSidebarTarget) return;
-        this.sidebarTarget.innerHTML = '';
         this.sidebarTarget.hidden = true;
-        delete this.sidebarTarget.dataset.cbSidebarBlockId;
-    }
-
-    _onBlockSaved(event) {
-        console.log('[cb-builder] block:saved', event.detail);
-        this._unmountSidebar();
-        this._applyDraftState(true);
-        this.reload();
-    }
-
-    _onBlockCancel(event) {
-        console.log('[cb-builder] block:cancel', event.detail);
-        this._unmountSidebar();
+        if (this.hasSidebarContentTarget) this.sidebarContentTarget.innerHTML = '';
+        this._clearSidebarDataAttrs();
     }
 
     /**
-     * Section settings: same fetch/inject + save/cancel flow as blocks,
-     * just pointing at a different endpoint.
+     * Save kept the sidebar open (so the user can keep tweaking / saving
+     * iteratively). Reloads the iframe with the freshly persisted draft.
      */
-    async _mountSectionSettings(sectionId) {
-        if (!this.hasSidebarTarget) return;
-        try {
-            const response = await fetch(`/_content-blocks/section/${sectionId}/settings`, {
-                headers: { 'Accept': 'text/html' },
-                credentials: 'same-origin',
-            });
-            if (!response.ok) {
-                console.error('[cb-builder] failed to load section settings', sectionId, response.status);
-                return;
-            }
-            const html = await response.text();
-            this.sidebarTarget.innerHTML = html;
-            this.sidebarTarget.hidden = false;
-            this.sidebarTarget.dataset.cbSidebarSectionId = String(sectionId);
-
-            requestAnimationFrame(() => {
-                const target = this.sidebarTarget.querySelector(
-                    'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])',
-                );
-                if (target) target.focus({ preventScroll: true });
-            });
-        } catch (e) {
-            console.error('[cb-builder] mount section settings error', e);
-        }
+    _onBlockSaved(event) {
+        console.log('[cb-builder] block:saved', event.detail);
+        this._applyDraftState(true);
+        this.reload();
     }
 
     _onSectionSaved(event) {
         console.log('[cb-builder] section:saved', event.detail);
-        this._unmountSidebar();
         this._applyDraftState(true);
         this.reload();
     }
 
-    _onSectionCancel(event) {
-        console.log('[cb-builder] section:cancel', event.detail);
-        this._unmountSidebar();
+    // ---------- Sidebar resize ----------
+
+    _restoreSidebarWidth() {
+        if (!this.hasSidebarTarget) return;
+        try {
+            const stored = window.localStorage.getItem(this.constructor.SIDEBAR_WIDTH_KEY);
+            if (!stored) return;
+            const parsed = parseInt(stored, 10);
+            if (Number.isNaN(parsed)) return;
+            const clamped = Math.max(
+                this.constructor.SIDEBAR_MIN_WIDTH,
+                Math.min(this.constructor.SIDEBAR_MAX_WIDTH, parsed),
+            );
+            this.sidebarTarget.style.width = clamped + 'px';
+        } catch (_) {
+            // localStorage may throw in privacy modes — silently fall back.
+        }
+    }
+
+    /** Action: mousedown on the resize handle. */
+    startSidebarResize(event) {
+        if (!this.hasSidebarTarget || !this.hasIframeTarget) return;
+        event.preventDefault();
+
+        this._resizeStartX = event.clientX;
+        this._resizeStartWidth = this.sidebarTarget.getBoundingClientRect().width;
+        // Disable iframe pointer events during the drag so mousemove on it
+        // still fires on the parent document; Bootstrap modal-style trick.
+        this.iframeTarget.style.pointerEvents = 'none';
+        document.body.style.cursor = 'col-resize';
+        document.addEventListener('mousemove', this._onResizeMove);
+        document.addEventListener('mouseup', this._onResizeEnd);
+    }
+
+    _onResizeMove(event) {
+        if (this._resizeStartX === undefined) return;
+        // Drag toward the left grows the sidebar (the handle sits on its
+        // left edge).
+        const delta = this._resizeStartX - event.clientX;
+        const next = Math.max(
+            this.constructor.SIDEBAR_MIN_WIDTH,
+            Math.min(this.constructor.SIDEBAR_MAX_WIDTH, this._resizeStartWidth + delta),
+        );
+        this.sidebarTarget.style.width = next + 'px';
+    }
+
+    _onResizeEnd() {
+        if (this._resizeStartX === undefined) return;
+        document.removeEventListener('mousemove', this._onResizeMove);
+        document.removeEventListener('mouseup', this._onResizeEnd);
+
+        if (this.hasIframeTarget) this.iframeTarget.style.pointerEvents = '';
+        document.body.style.cursor = '';
+
+        const w = Math.round(this.sidebarTarget.getBoundingClientRect().width);
+        try {
+            window.localStorage.setItem(this.constructor.SIDEBAR_WIDTH_KEY, String(w));
+        } catch (_) {
+            // ignore — non-blocking persistence
+        }
+
+        this._resizeStartX = undefined;
+        this._resizeStartWidth = undefined;
     }
 }

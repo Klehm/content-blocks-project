@@ -58,7 +58,19 @@
         <aside data-cb-builder-target="sidebar"
                class="cb-shell__sidebar"
                aria-label="{{ 'cb.block.edit'|trans({}, 'content_blocks') }}"
-               hidden></aside>
+               hidden>
+            <div class="cb-shell__sidebar-resize"
+                 data-cb-builder-target="sidebarResize"
+                 data-action="mousedown->cb-builder#startSidebarResize"
+                 aria-hidden="true"></div>
+            <header class="cb-shell__sidebar-header">
+                <button type="button"
+                        class="cb-shell__sidebar-close"
+                        data-action="cb-builder#closeSidebar"
+                        aria-label="{{ 'cb.builder.close'|trans({}, 'content_blocks') }}">×</button>
+            </header>
+            <div class="cb-shell__sidebar-content" data-cb-builder-target="sidebarContent"></div>
+        </aside>
     </main>
 
     <footer class="cb-shell__bottom">
