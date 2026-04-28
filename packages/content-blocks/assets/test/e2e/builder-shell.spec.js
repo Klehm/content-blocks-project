@@ -171,10 +171,8 @@ test.describe('builder shell — sections', () => {
         await sidebar.locator('input[name="section_settings[classes]"]').fill('e2e-decorated');
         await sidebar.locator('input[name="section_settings[widthMode]"][value="centered"]').check();
         await sidebar.locator('input[name="section_settings[maxWidth]"]').fill('900');
-        // Sandbox extension field — a color input.
-        await sidebar.locator('input[name="section_settings[backgroundColor]"]').evaluate(
-            (el) => { el.value = '#ffeecc'; el.dispatchEvent(new Event('input', { bubbles: true })); },
-        );
+        // Sandbox extension field — a free-form CSS color text input.
+        await sidebar.locator('input[name="section_settings[backgroundColor]"]').fill('#ffeecc');
         await sidebar.locator('button[type="submit"]').click();
 
         // Sidebar closes, iframe reloads, decorations applied.
