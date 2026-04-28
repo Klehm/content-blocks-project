@@ -10,8 +10,12 @@ import Controller from '../controllers/cb-builder_controller.js';
 function setupController(options = {}) {
     document.body.innerHTML = `
         <div data-controller="cb-builder">
-            <button class="cb-shell__viewport-btn cb-shell__viewport-btn--active"></button>
-            <button class="cb-shell__viewport-btn"></button>
+            <button class="cb-shell__viewport-btn cb-shell__viewport-btn--active"
+                    data-cb-builder-viewport-param="desktop"></button>
+            <button class="cb-shell__viewport-btn"
+                    data-cb-builder-viewport-param="tablet"></button>
+            <button class="cb-shell__viewport-btn"
+                    data-cb-builder-viewport-param="mobile"></button>
             <iframe></iframe>
             <aside hidden>
                 <div class="cb-shell__sidebar-resize"></div>
@@ -118,6 +122,24 @@ describe('cb-builder: postMessage routing', () => {
         const spy = vi.spyOn(controller, '_addSection').mockImplementation(() => {});
         controller._onMessage(postMessage({ type: 'cb:section:add-requested', layout: 'three_cols' }));
         expect(spy).toHaveBeenCalledWith('three_cols');
+    });
+
+    it('cb:section:reorder routes to _reorderSection', () => {
+        const spy = vi.spyOn(controller, '_reorderSection').mockImplementation(() => {});
+        controller._onMessage(postMessage({ type: 'cb:section:reorder', sectionId: 7, position: 2 }));
+        expect(spy).toHaveBeenCalledWith(7, 2);
+    });
+
+    it('cb:section:duplicate-requested routes to _duplicateSection', () => {
+        const spy = vi.spyOn(controller, '_duplicateSection').mockImplementation(() => {});
+        controller._onMessage(postMessage({ type: 'cb:section:duplicate-requested', sectionId: 5 }));
+        expect(spy).toHaveBeenCalledWith(5);
+    });
+
+    it('cb:block:duplicate-requested routes to _duplicateBlock', () => {
+        const spy = vi.spyOn(controller, '_duplicateBlock').mockImplementation(() => {});
+        controller._onMessage(postMessage({ type: 'cb:block:duplicate-requested', blockId: 11 }));
+        expect(spy).toHaveBeenCalledWith(11);
     });
 
     it('cb:section:delete-requested routes to _deleteSection', () => {
@@ -451,6 +473,32 @@ describe('cb-builder: structural AJAX handlers', () => {
         expect(reloadSpy).not.toHaveBeenCalled();
     });
 
+    it('_reorderSection posts to section/{id}/move with position and reloads', async () => {
+        await controller._reorderSection(5, 3);
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/section/5/move', { position: 3 });
+        expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('_reorderSection no-ops on a missing or invalid position', async () => {
+        await controller._reorderSection(5, undefined);
+        await controller._reorderSection(5, -1);
+        await controller._reorderSection(5, 'top');
+        expect(reqSpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_duplicateSection posts to section/{id}/duplicate and reloads', async () => {
+        await controller._duplicateSection(7);
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/section/7/duplicate');
+        expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('_duplicateBlock posts to block/{id}/duplicate and reloads', async () => {
+        await controller._duplicateBlock(42);
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/block/42/duplicate');
+        expect(reloadSpy).toHaveBeenCalled();
+    });
+
     it('_deleteSection issues DELETE and reloads', async () => {
         await controller._deleteSection(5);
         expect(reqSpy).toHaveBeenCalledWith('DELETE', '/_content-blocks/section/5');
@@ -464,11 +512,14 @@ describe('cb-builder: publish/discard', () => {
     beforeEach(() => {
         ({ controller } = setupController({ areaId: 99 }));
         controller.element.dataset.cbCsrfToken = 'tok';
-        // Add a topbar Discard button + launcher badge so we can verify side-effects.
+        // Add a topbar Discard + Publish button + launcher badge so we can
+        // verify the draft-state side-effects.
         const discard = document.createElement('button');
         discard.className = 'cb-shell__discard';
-        discard.disabled = false;
         controller.element.appendChild(discard);
+        const publish = document.createElement('button');
+        publish.className = 'cb-shell__publish';
+        controller.element.appendChild(publish);
 
         const badge = document.createElement('span');
         badge.className = 'cb-launcher__badge';
@@ -510,24 +561,29 @@ describe('cb-builder: publish/discard', () => {
         expect(reloadSpy).not.toHaveBeenCalled();
     });
 
-    it('_applyDraftState toggles Discard button and removes the badge when clean', () => {
+    it('_applyDraftState hides Discard, disables Publish and removes the badge when clean', () => {
         const discardBtn = controller.element.querySelector('.cb-shell__discard');
+        const publishBtn = controller.element.querySelector('.cb-shell__publish');
         const badge = document.querySelector('.cb-launcher__badge');
 
         controller._applyDraftState(false);
 
-        expect(discardBtn.disabled).toBe(true);
+        expect(discardBtn.hidden).toBe(true);
+        expect(publishBtn.disabled).toBe(true);
         expect(document.querySelector('.cb-launcher__badge')).toBeNull();
         expect(badge.isConnected).toBe(false);
     });
 
-    it('_applyDraftState enables Discard when the area is dirty', () => {
+    it('_applyDraftState reveals Discard and enables Publish when the area is dirty', () => {
         const discardBtn = controller.element.querySelector('.cb-shell__discard');
-        discardBtn.disabled = true;
+        discardBtn.hidden = true;
+        const publishBtn = controller.element.querySelector('.cb-shell__publish');
+        publishBtn.disabled = true;
 
         controller._applyDraftState(true);
 
-        expect(discardBtn.disabled).toBe(false);
+        expect(discardBtn.hidden).toBe(false);
+        expect(publishBtn.disabled).toBe(false);
     });
 });
 
@@ -595,5 +651,61 @@ describe('cb-builder: setViewport', () => {
 
         expect(iframe.style.maxWidth).toBe('100%');
         expect(iframe.style.margin).toBe('0px');
+    });
+});
+
+describe('cb-builder: viewport visibility', () => {
+    let controller, element, iframe;
+
+    beforeEach(() => {
+        ({ controller, element, iframe } = setupController());
+        vi.spyOn(console, 'log').mockImplementation(() => {});
+    });
+
+    function setShellWidth(width) {
+        Object.defineProperty(element, 'clientWidth', { value: width, configurable: true });
+    }
+
+    it('hides viewport buttons whose target width exceeds the shell width', () => {
+        setShellWidth(500);
+        controller._refreshViewportButtons();
+
+        const desktop = element.querySelector('[data-cb-builder-viewport-param="desktop"]');
+        const tablet = element.querySelector('[data-cb-builder-viewport-param="tablet"]');
+        const mobile = element.querySelector('[data-cb-builder-viewport-param="mobile"]');
+
+        // Desktop tracks the shell width, always available.
+        expect(desktop.hidden).toBe(false);
+        // Mobile preview = 375px, fits in a 500px shell.
+        expect(mobile.hidden).toBe(false);
+        // Tablet preview = 768px, doesn't fit in a 500px shell — hidden.
+        expect(tablet.hidden).toBe(true);
+    });
+
+    it('keeps every viewport visible on a wide shell', () => {
+        setShellWidth(1400);
+        controller._refreshViewportButtons();
+        element.querySelectorAll('.cb-shell__viewport-btn').forEach((btn) => {
+            expect(btn.hidden).toBe(false);
+        });
+    });
+
+    it('falls back to desktop when the active viewport gets hidden by a resize', () => {
+        // Start active on mobile in a wide shell.
+        setShellWidth(1400);
+        controller._applyViewport('mobile');
+        const mobile = element.querySelector('[data-cb-builder-viewport-param="mobile"]');
+        const desktop = element.querySelector('[data-cb-builder-viewport-param="desktop"]');
+        expect(mobile.classList.contains('cb-shell__viewport-btn--active')).toBe(true);
+
+        // Shrink the shell below the mobile preview width — mobile button
+        // should hide and the active viewport should snap back to desktop.
+        setShellWidth(300);
+        controller._refreshViewportButtons();
+
+        expect(mobile.hidden).toBe(true);
+        expect(mobile.classList.contains('cb-shell__viewport-btn--active')).toBe(false);
+        expect(desktop.classList.contains('cb-shell__viewport-btn--active')).toBe(true);
+        expect(iframe.style.maxWidth).toBe('100%');
     });
 });

@@ -41,6 +41,52 @@
     pointer-events: auto;
 }
 .cb-overlay-toolbar__btn:hover { background: rgba(255, 255, 255, .15); }
+.cb-overlay-toolbar__btn--drag {
+    cursor: grab;
+    /* Visual hint that this button is draggable rather than clickable. */
+    color: #b5bccd;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+.cb-overlay-toolbar__btn--drag:active { cursor: grabbing; }
+
+/* ---------- Drag & drop ---------- */
+
+/* Insertion-point indicator shown during a drag. Sits in document space at
+   the computed drop coordinates (top/left/width set inline by JS). */
+.cb-drop-indicator {
+    position: absolute;
+    height: 3px;
+    background: #4f8df9;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 2147483002;
+    box-shadow: 0 0 0 1px rgba(79, 141, 249, .25);
+}
+.cb-drop-indicator[hidden] { display: none; }
+
+/* While dragging: dim the source so the user sees it being moved, and stop
+   it from intercepting elementFromPoint so we can detect the column /
+   sibling under the cursor. */
+.cb-drag-source {
+    opacity: .35 !important;
+    pointer-events: none !important;
+}
+body.cb-dragging {
+    user-select: none;
+    cursor: grabbing !important;
+}
+
+/* During a drag, mute the guides that aren't valid drop targets so the
+   user's eye is drawn only to the candidate landing spots. Section drag
+   only lands between sections → column outlines fade. Block drag only
+   lands inside columns → section outlines fade. */
+body.cb-dragging--section [data-cb-column-id] {
+    outline-color: transparent !important;
+}
+body.cb-dragging--block [data-cb-section-id] {
+    outline-color: transparent !important;
+}
 
 /* ---------- Type-picker popover ---------- */
 
@@ -71,38 +117,48 @@
 }
 .cb-overlay-popover__btn:hover { background: #f0f1f4; }
 
-/* ---------- Section/column visual guides ---------- */
+/* ---------- Section/column visual guides ----------
+ *
+ * Structural hints stay neutral gray so they don't compete with the blue
+ * affordances (+Bloc button, focused-element outline). The brain reads
+ * them as "frame of the page" rather than "thing to click". Sections get
+ * a slightly stronger line than columns since they're the bigger
+ * navigational unit; columns are a near-invisible whisper.
+ */
 
 [data-cb-section-id] {
     min-height: 60px;
     box-sizing: border-box;
     padding-top: 18px;
     position: relative;
-    outline: 1px dashed rgba(79, 141, 249, .35);
+    outline: 1px dashed #d8dbe2;
     outline-offset: -1px;
     margin-bottom: 8px;
 }
+/* Columns have no outline — the permanent "+ Bloc" pill at the bottom
+   visually marks each column on its own. Padding + min-height stay so
+   empty columns still have a clickable area. */
 [data-cb-column-id] {
     min-height: 60px;
     box-sizing: border-box;
     padding: 6px;
-    outline: 1px dashed rgba(79, 141, 249, .25);
-    outline-offset: -2px;
     border-radius: 2px;
 }
 
-/* The hovered entity (block / column / section) gets a stronger outline
-   that wins via specificity + !important over the dashed guides above. */
+/* The hovered/focused entity (block / column / section) gets a stronger
+   outline that wins via specificity + !important over the dashed guides
+   above. Blue is reserved for THIS feedback so the user always knows
+   what's "selected" at a glance. */
 .cb-overlay-outline {
     outline: 2px solid #4f8df9 !important;
     outline-offset: -2px !important;
 }
 
-/* Soft-deleted entities get dimmed + struck-through so the user sees
-   what'll go away on the next publish. */
+/* Soft-deleted entities are hidden in preview — the user clicked delete,
+   the entity disappears. The DOM marker stays so Discard can restore the
+   draft state on the server, but visually it's gone. */
 [data-cb-deleted="1"] {
-    opacity: .5;
-    text-decoration: line-through;
+    display: none !important;
 }
 
 /* When the viewport switcher resizes the iframe, the host page's layout
@@ -117,28 +173,33 @@ html, body {
 /* ---------- Permanent inline "+ Block" affordance ---------- */
 
 /* Renders at the bottom of every column in preview mode so the user can
-   add a block without first hovering the column. Subtle dashed look
-   matches the column outline guides above. */
+   add a block without first hovering the column. Default state is neutral
+   gray (a quiet hint) — it lights up to the blue accent on hover/focus
+   so the user knows it's the actionable element, not a structural guide.
+   Capped at 80px wide and centered so multiple columns side-by-side don't
+   end up with full-width pills that read as a single bar. */
 .cb-add-block-inline {
     display: block;
     width: 100%;
-    margin-top: 6px;
-    padding: 8px 10px;
+    max-width: 80px;
+    margin: 6px auto 0;
+    padding: 4px 8px;
     background: transparent;
-    border: 1px dashed rgba(79, 141, 249, .55);
+    border: 1px solid #c8ccd5;
     border-radius: 4px;
-    color: #4f8df9;
+    color: #6b7280;
     font: inherit;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.2;
     cursor: pointer;
     text-align: center;
-    transition: background-color .12s ease, border-color .12s ease;
+    transition: background-color .12s ease, border-color .12s ease, color .12s ease;
 }
 .cb-add-block-inline:hover,
 .cb-add-block-inline:focus-visible {
-    background: rgba(79, 141, 249, .08);
+    background: rgba(79, 141, 249, .06);
     border-color: #4f8df9;
+    color: #4f8df9;
     outline: none;
 }
 

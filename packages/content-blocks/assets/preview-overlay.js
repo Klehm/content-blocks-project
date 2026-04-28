@@ -57,13 +57,16 @@
     let focusedKind = null;
     let hideTimer = null;
 
-    function makeBtn(label, title, onclick) {
+    function makeBtn(label, title, action, onclick) {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'cb-overlay-toolbar__btn';
         b.textContent = label;
         b.title = title;
         b.setAttribute('aria-label', title);
+        // Stable attribute for tests / external selectors so translation
+        // changes never break automated lookups.
+        b.dataset.cbAction = action;
         b.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -122,21 +125,50 @@
 
         if (kind === 'block') {
             const blockId = parseInt(el.dataset.cbBlockId, 10);
-            toolbar.appendChild(makeBtn('✎', 'Edit', () =>
+            toolbar.appendChild(makeDragHandle('block', blockId, el));
+            toolbar.appendChild(makeBtn('✎', 'Edit', 'edit', () =>
                 postToParent('cb:block:edit', { blockId })));
-            toolbar.appendChild(makeBtn('×', 'Delete', () =>
+            toolbar.appendChild(makeBtn('⎘', 'Duplicate', 'duplicate', () =>
+                postToParent('cb:block:duplicate-requested', { blockId })));
+            toolbar.appendChild(makeBtn('×', 'Delete', 'delete', () =>
                 postToParent('cb:block:delete-requested', { blockId })));
         } else if (kind === 'section') {
             const sectionId = parseInt(el.dataset.cbSectionId, 10);
-            toolbar.appendChild(makeBtn('▲', 'Move up', () =>
+            toolbar.appendChild(makeDragHandle('section', sectionId, el));
+            toolbar.appendChild(makeBtn('▲', 'Move up', 'move-up', () =>
                 postToParent('cb:section:move-requested', { sectionId, direction: 'up' })));
-            toolbar.appendChild(makeBtn('▼', 'Move down', () =>
+            toolbar.appendChild(makeBtn('▼', 'Move down', 'move-down', () =>
                 postToParent('cb:section:move-requested', { sectionId, direction: 'down' })));
-            toolbar.appendChild(makeBtn('⚙', 'Settings', () =>
+            toolbar.appendChild(makeBtn('⎘', 'Duplicate', 'duplicate', () =>
+                postToParent('cb:section:duplicate-requested', { sectionId })));
+            toolbar.appendChild(makeBtn('⚙', 'Settings', 'settings', () =>
                 postToParent('cb:section:settings', { sectionId })));
-            toolbar.appendChild(makeBtn('×', 'Delete', () =>
+            toolbar.appendChild(makeBtn('×', 'Delete', 'delete', () =>
                 postToParent('cb:section:delete-requested', { sectionId })));
         }
+    }
+
+    function makeDragHandle(kind, id, el) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'cb-overlay-toolbar__btn cb-overlay-toolbar__btn--drag';
+        b.textContent = '⋮⋮';
+        b.title = 'Drag to move';
+        b.setAttribute('aria-label', 'Drag to move');
+        b.dataset.cbAction = 'drag';
+        // Not a click action — `mousedown` enters drag mode. We swallow click
+        // so the global click handler doesn't try to interpret a drag-start
+        // as an outside-click that closes the sidebar.
+        b.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            startDrag(event, kind, id, el);
+        });
+        b.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+        });
+        return b;
     }
 
     function positionToolbarFor(el, _kind) {
@@ -156,7 +188,10 @@
     function showHoverToolbar(el, kind) {
         // Hover is suppressed while an element is focused — the focused
         // toolbar stays in place even as the cursor wanders elsewhere.
-        if (focusedEl) return;
+        // It's also suppressed during a drag so the toolbar doesn't pop
+        // up over sections/blocks the user is just passing across on the
+        // way to a drop target.
+        if (focusedEl || dragState) return;
         if (hoveredEl === el) {
             clearTimeout(hideTimer);
             return;
@@ -190,6 +225,169 @@
         focusedEl = null;
         focusedKind = null;
         toolbar.classList.remove('is-visible');
+    }
+
+    // ---------- Drag & drop ----------
+
+    // Single reusable drop indicator (a thin blue bar). We position it at the
+    // insertion point as the user drags so they can see exactly where the
+    // entity will land. Its CSS lives in builder.css.
+    const dropIndicator = document.createElement('div');
+    dropIndicator.className = 'cb-drop-indicator';
+    dropIndicator.hidden = true;
+    document.body.appendChild(dropIndicator);
+
+    let dragState = null;
+
+    function startDrag(event, kind, id, sourceEl) {
+        // Cancel any popover/toolbar UI; the drag takes over the screen.
+        toolbar.classList.remove('is-visible');
+        hidePopover();
+        clearFocus();
+
+        const handlers = {
+            move: (e) => onDragMove(e),
+            up: (e) => endDrag(true, e),
+            cancel: (e) => { if (e.key === 'Escape') endDrag(false, null); },
+        };
+        dragState = { kind, id, sourceEl, target: null, handlers };
+
+        sourceEl.classList.add('cb-drag-source');
+        document.body.classList.add('cb-dragging');
+        // Kind-specific class lets builder.css mute the dashed guides that
+        // aren't valid drop targets — section drags only land between
+        // sections, so column outlines are noise; block drags only land in
+        // columns, so section outlines are noise.
+        document.body.classList.add('cb-dragging--' + kind);
+
+        document.addEventListener('mousemove', handlers.move);
+        document.addEventListener('mouseup', handlers.up);
+        document.addEventListener('keydown', handlers.cancel);
+
+        // Compute the initial drop target from the press point so the
+        // indicator appears immediately, not on first move.
+        onDragMove(event);
+    }
+
+    function onDragMove(event) {
+        if (!dragState) return;
+        const target = computeDropTarget(event.clientX, event.clientY);
+        dragState.target = target;
+        renderDropIndicator(target);
+    }
+
+    function endDrag(commit, _event) {
+        if (!dragState) return;
+        const { handlers, sourceEl, kind, id, target } = dragState;
+        document.removeEventListener('mousemove', handlers.move);
+        document.removeEventListener('mouseup', handlers.up);
+        document.removeEventListener('keydown', handlers.cancel);
+        sourceEl.classList.remove('cb-drag-source');
+        document.body.classList.remove('cb-dragging', 'cb-dragging--section', 'cb-dragging--block');
+        dropIndicator.hidden = true;
+        dragState = null;
+
+        if (!commit || !target) return;
+        if (kind === 'section') {
+            postToParent('cb:section:reorder', {
+                sectionId: id,
+                position: target.position,
+            });
+        } else if (kind === 'block' && Number.isFinite(target.columnId)) {
+            postToParent('cb:block:reorder', {
+                blockId: id,
+                toColumnId: target.columnId,
+                position: target.position,
+            });
+        }
+    }
+
+    function computeDropTarget(x, y) {
+        return dragState.kind === 'section'
+            ? computeSectionDrop(x, y)
+            : computeBlockDrop(x, y);
+    }
+
+    function computeSectionDrop(x, y) {
+        const sections = Array.from(document.querySelectorAll('[data-cb-section-id]'))
+            .filter((s) => s !== dragState.sourceEl && s.dataset.cbDeleted !== '1');
+
+        // Empty area (no siblings) — drop at index 0; no indicator needed
+        // because there's nothing visible to anchor it to.
+        if (sections.length === 0) {
+            return { position: 0, indicator: null };
+        }
+
+        for (let i = 0; i < sections.length; i++) {
+            const rect = sections[i].getBoundingClientRect();
+            const mid = rect.top + rect.height / 2;
+            if (y < mid) {
+                return {
+                    position: i,
+                    indicator: { y: rect.top, x: rect.left, width: rect.width },
+                };
+            }
+        }
+        const last = sections[sections.length - 1];
+        const lastRect = last.getBoundingClientRect();
+        return {
+            position: sections.length,
+            indicator: { y: lastRect.bottom, x: lastRect.left, width: lastRect.width },
+        };
+    }
+
+    function computeBlockDrop(x, y) {
+        // Pick whichever column is under the cursor. `cb-drag-source` carries
+        // pointer-events: none, so elementFromPoint sees through the dragged
+        // source to whatever column is below it.
+        const under = document.elementFromPoint(x, y);
+        if (!under) return null;
+        const column = under.closest?.('[data-cb-column-id]');
+        if (!column) return null;
+
+        const columnId = parseInt(column.dataset.cbColumnId, 10);
+        if (!Number.isFinite(columnId)) return null;
+
+        const blocks = Array.from(column.querySelectorAll('[data-cb-block-id]'))
+            .filter((b) => b !== dragState.sourceEl && b.dataset.cbDeleted !== '1');
+
+        if (blocks.length === 0) {
+            const colRect = column.getBoundingClientRect();
+            return {
+                columnId,
+                position: 0,
+                indicator: { y: colRect.top + 4, x: colRect.left + 4, width: colRect.width - 8 },
+            };
+        }
+        for (let i = 0; i < blocks.length; i++) {
+            const rect = blocks[i].getBoundingClientRect();
+            const mid = rect.top + rect.height / 2;
+            if (y < mid) {
+                return {
+                    columnId,
+                    position: i,
+                    indicator: { y: rect.top - 1, x: rect.left, width: rect.width },
+                };
+            }
+        }
+        const last = blocks[blocks.length - 1];
+        const lastRect = last.getBoundingClientRect();
+        return {
+            columnId,
+            position: blocks.length,
+            indicator: { y: lastRect.bottom - 1, x: lastRect.left, width: lastRect.width },
+        };
+    }
+
+    function renderDropIndicator(target) {
+        if (!target?.indicator) {
+            dropIndicator.hidden = true;
+            return;
+        }
+        dropIndicator.hidden = false;
+        dropIndicator.style.top = (target.indicator.y + window.scrollY) + 'px';
+        dropIndicator.style.left = (target.indicator.x + window.scrollX) + 'px';
+        dropIndicator.style.width = target.indicator.width + 'px';
     }
 
     function scheduleHide() {

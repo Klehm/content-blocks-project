@@ -104,15 +104,39 @@ final class SectionsController
 
         $payload = json_decode($request->getContent(), true) ?? [];
         $direction = $payload['direction'] ?? null;
+        $rawPosition = $payload['position'] ?? null;
 
-        if (!\in_array($direction, ['up', 'down'], true)) {
-            return new JsonResponse(['error' => 'Invalid direction'], Response::HTTP_BAD_REQUEST);
+        $sections = array_values(array_filter(
+            $area->getSections()->toArray(),
+            fn (Section $s) => !$s->isDeleted(),
+        ));
+        usort($sections, fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
+        $index = array_search($section, $sections, true);
+
+        // The endpoint speaks two dialects:
+        //  - direction=up|down (legacy, used by the toolbar arrows we're
+        //    keeping for keyboard-/no-pointer flows)
+        //  - position=<int> (used by drag & drop, where the target index is
+        //    known up front)
+        if (\is_int($rawPosition)) {
+            if ($index === false) {
+                return new JsonResponse(['moved' => false]);
+            }
+            $without = $sections;
+            array_splice($without, $index, 1);
+            $insertAt = max(0, min($rawPosition, \count($without)));
+            array_splice($without, $insertAt, 0, [$section]);
+            foreach ($without as $i => $s) {
+                $s->setPreviewPosition($i);
+            }
+            $this->em->flush();
+
+            return new JsonResponse(['moved' => true]);
         }
 
-        $sections = $area->getSections()->toArray();
-        usort($sections, fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
-
-        $index = array_search($section, $sections, true);
+        if (!\in_array($direction, ['up', 'down'], true)) {
+            return new JsonResponse(['error' => 'Invalid direction or position'], Response::HTTP_BAD_REQUEST);
+        }
 
         $other = match ($direction) {
             'up' => $index > 0 ? $sections[$index - 1] : null,
@@ -130,6 +154,73 @@ final class SectionsController
         $this->em->flush();
 
         return new JsonResponse(['moved' => true]);
+    }
+
+    #[Route('/section/{id}/duplicate', name: 'content_blocks_section_duplicate', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function duplicate(int $id, Request $request): JsonResponse
+    {
+        if ($error = $this->csrfFailureOrNull($request)) {
+            return $error;
+        }
+
+        $section = $this->em->find(Section::class, $id);
+        if (!$section) {
+            return new JsonResponse(['error' => 'Section not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $area = $section->getContentArea();
+        if (!$area || !$this->accessChecker->canEdit($area)) {
+            throw new ContentBlocksAccessDeniedException();
+        }
+
+        // Deep-copy: section + draft settings + columns + non-deleted blocks.
+        // The copy is inserted immediately after the source by re-indexing
+        // sibling sections so positions stay dense. Settings land in the
+        // draft slot so the copy starts as an unpublished draft.
+        $copy = new Section();
+        $copy->setLayout($section->getLayout());
+        $sourceSettings = $section->getDraftSettings() ?? $section->getPublishedSettings();
+        if ($sourceSettings !== null && $sourceSettings !== []) {
+            $copy->setDraftSettings($sourceSettings);
+        }
+
+        foreach ($section->getColumns() as $column) {
+            $columnCopy = new Column();
+            $columnCopy->setPreset($column->getPreset());
+            $columnCopy->setPreviewPosition($column->getPreviewPosition());
+
+            foreach ($column->getBlocks() as $block) {
+                if ($block->isDeleted()) {
+                    continue;
+                }
+                $blockCopy = new Block();
+                $blockCopy->setType($block->getType());
+                $blockCopy->setDraftData($block->getDraftData() ?? $block->getPublishedData() ?? []);
+                $blockCopy->setPreviewPosition($block->getPreviewPosition());
+                $columnCopy->addBlock($blockCopy);
+            }
+
+            $copy->addColumn($columnCopy);
+        }
+
+        $siblings = array_values(array_filter(
+            $area->getSections()->toArray(),
+            fn (Section $s) => !$s->isDeleted(),
+        ));
+        usort($siblings, fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
+
+        $sourceIndex = array_search($section, $siblings, true);
+        $insertAt = $sourceIndex === false ? \count($siblings) : $sourceIndex + 1;
+        array_splice($siblings, $insertAt, 0, [$copy]);
+        foreach ($siblings as $i => $s) {
+            $s->setPreviewPosition($i);
+        }
+
+        $area->addSection($copy);
+        $this->em->persist($copy);
+        $this->em->flush();
+
+        return new JsonResponse(['id' => $copy->getId()]);
     }
 
     #[Route('/section/{id}', name: 'content_blocks_section_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]

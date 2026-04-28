@@ -127,21 +127,22 @@ final class BlocksController
         $source = $block->getColumn();
         $crossColumn = $source !== null && $source->getId() !== $target->getId();
 
+        // Drop deleted siblings from the position math: the frontend's drag
+        // logic ignores them too (they're display:none), so the position
+        // index agreed on by the iframe is one in the *visible-only* list.
         if ($crossColumn) {
-            // Re-index source column (sans le bloc déplacé).
             $sourceBlocks = array_values(array_filter(
                 $source->getBlocks()->toArray(),
-                fn (Block $b) => $b->getId() !== $block->getId(),
+                fn (Block $b) => $b->getId() !== $block->getId() && !$b->isDeleted(),
             ));
             $this->reindexPreview($sourceBlocks);
 
             $block->setColumn($target);
         }
 
-        // Place block in target at position.
         $targetBlocks = array_values(array_filter(
             $target->getBlocks()->toArray(),
-            fn (Block $b) => $b->getId() !== $block->getId(),
+            fn (Block $b) => $b->getId() !== $block->getId() && !$b->isDeleted(),
         ));
         usort($targetBlocks, fn (Block $a, Block $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
 
@@ -152,6 +153,50 @@ final class BlocksController
         $this->em->flush();
 
         return new JsonResponse(['moved' => true]);
+    }
+
+    #[Route('/block/{id}/duplicate', name: 'content_blocks_block_duplicate', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function duplicate(int $id, Request $request): JsonResponse
+    {
+        if ($error = $this->csrfFailureOrNull($request)) {
+            return $error;
+        }
+
+        $block = $this->em->find(Block::class, $id);
+        if (!$block) {
+            return new JsonResponse(['error' => 'Block not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $column = $block->getColumn();
+        $area = $column?->getSection()?->getContentArea();
+        if (!$column || !$area || !$this->accessChecker->canEdit($area)) {
+            throw new ContentBlocksAccessDeniedException();
+        }
+
+        // Copy ends up as a draft-only block (publishedData null) inserted
+        // immediately after the source. Re-index sibling positions so the
+        // ordering stays dense.
+        $copy = new Block();
+        $copy->setColumn($column);
+        $copy->setType($block->getType());
+        $copy->setDraftData($block->getDraftData() ?? $block->getPublishedData() ?? []);
+
+        $siblings = array_values(array_filter(
+            $column->getBlocks()->toArray(),
+            fn (Block $b) => !$b->isDeleted(),
+        ));
+        usort($siblings, fn (Block $a, Block $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
+
+        $sourceIndex = array_search($block, $siblings, true);
+        $insertAt = $sourceIndex === false ? \count($siblings) : $sourceIndex + 1;
+        array_splice($siblings, $insertAt, 0, [$copy]);
+        $this->reindexPreview($siblings);
+
+        $column->addBlock($copy);
+        $this->em->persist($copy);
+        $this->em->flush();
+
+        return new JsonResponse(['id' => $copy->getId()]);
     }
 
     #[Route('/block/{id}', name: 'content_blocks_block_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]

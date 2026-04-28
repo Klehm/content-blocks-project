@@ -6,6 +6,8 @@
      data-cb-builder-iframe-url-value="{{ iframeUrl }}"
      data-cb-csrf-token="{{ csrf_token('content_blocks') }}">
 
+    <div class="cb-shell__progress" data-cb-builder-target="progress" aria-hidden="true"></div>
+
     <header class="cb-shell__topbar">
         <div class="cb-shell__topbar-left">
             <button type="button"
@@ -38,14 +40,18 @@
 
         <div class="cb-shell__topbar-right">
             <button type="button"
-                    class="btn btn-link cb-shell__discard"
+                    class="cb-shell__discard"
                     data-action="cb-builder#discard"
-                    {% if not area.hasUnpublishedChanges %}disabled{% endif %}>
-                {{ 'cb.builder.discard'|trans({}, 'content_blocks') }}
+                    title="{{ 'cb.builder.discard'|trans({}, 'content_blocks') }}"
+                    aria-label="{{ 'cb.builder.discard'|trans({}, 'content_blocks') }}"
+                    {% if not area.hasUnpublishedChanges %}hidden{% endif %}>
+                <span class="cb-shell__btn-icon" aria-hidden="true">↶</span>
+                <span class="cb-shell__btn-label">{{ 'cb.builder.discard'|trans({}, 'content_blocks') }}</span>
             </button>
             <button type="button"
-                    class="btn btn-success cb-shell__publish"
-                    data-action="cb-builder#publish">
+                    class="cb-shell__publish"
+                    data-action="cb-builder#publish"
+                    {% if not area.hasUnpublishedChanges %}disabled{% endif %}>
                 {{ 'cb.builder.publish'|trans({}, 'content_blocks') }}
             </button>
         </div>
@@ -68,6 +74,11 @@
                         class="cb-shell__sidebar-close"
                         data-action="cb-builder#closeSidebar"
                         aria-label="{{ 'cb.builder.close'|trans({}, 'content_blocks') }}">×</button>
+                <span class="cb-shell__sidebar-saved"
+                      data-cb-builder-target="savedFlash"
+                      role="status"
+                      aria-live="polite"
+                      hidden>✓ {{ 'cb.builder.saved'|trans({}, 'content_blocks') }}</span>
                 <button type="button"
                         class="btn btn-primary cb-shell__sidebar-save"
                         data-action="cb-builder#saveSidebar">

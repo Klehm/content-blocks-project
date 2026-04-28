@@ -12,7 +12,7 @@ import { Controller } from '@hotwired/stimulus';
  * back to the top after each block save.
  */
 export default class extends Controller {
-    static targets = ['iframe', 'sidebar', 'sidebarContent', 'sidebarResize'];
+    static targets = ['iframe', 'sidebar', 'sidebarContent', 'sidebarResize', 'progress', 'savedFlash'];
 
     static values = {
         areaId: Number,
@@ -26,6 +26,14 @@ export default class extends Controller {
     static SIDEBAR_MIN_HEIGHT = 200;
     static SIDEBAR_MAX_HEIGHT_VH = 80;
     static MOBILE_BREAKPOINT = '(max-width: 768px)';
+    /**
+     * Minimum shell width (in px) for each emulated viewport. The "desktop"
+     * viewport always fits because it tracks the shell's actual width. A
+     * tablet/mobile button is hidden when the shell is narrower than its
+     * target — emulating an iPad-width preview on a phone-sized screen
+     * would just clip the iframe, so the button isn't useful.
+     */
+    static VIEWPORT_MIN_WIDTHS = { desktop: 0, tablet: 768, mobile: 375 };
 
     connect() {
         this._onMessage = this._onMessage.bind(this);
@@ -33,26 +41,75 @@ export default class extends Controller {
         this._onSectionSaved = this._onSectionSaved.bind(this);
         this._onResizeMove = this._onResizeMove.bind(this);
         this._onResizeEnd = this._onResizeEnd.bind(this);
+        this._onWindowResize = this._onWindowResize.bind(this);
 
         window.addEventListener('message', this._onMessage);
+        window.addEventListener('resize', this._onWindowResize);
         // BlockComponent.save() and the section-settings form both
         // dispatchBrowserEvent on save; the events bubble up to here.
         this.element.addEventListener('cb:block:saved', this._onBlockSaved);
         this.element.addEventListener('cb:section:saved', this._onSectionSaved);
 
         this._restoreSidebarWidth();
+        this._refreshViewportButtons();
     }
 
     disconnect() {
         window.removeEventListener('message', this._onMessage);
+        window.removeEventListener('resize', this._onWindowResize);
         this.element.removeEventListener('cb:block:saved', this._onBlockSaved);
         this.element.removeEventListener('cb:section:saved', this._onSectionSaved);
         document.removeEventListener('mousemove', this._onResizeMove);
         document.removeEventListener('mouseup', this._onResizeEnd);
     }
 
+    _onWindowResize() {
+        this._refreshViewportButtons();
+    }
+
     /**
-     * Reloads the iframe, preserving scrollY across the reload.
+     * Hide viewport buttons whose target width exceeds the shell width,
+     * and if the currently-active viewport just got hidden, fall back to
+     * desktop so the iframe doesn't stay stuck at a clipped size.
+     */
+    _refreshViewportButtons() {
+        const shellWidth = this.element.clientWidth || window.innerWidth;
+        const buttons = this.element.querySelectorAll('.cb-shell__viewport-btn');
+        let activeStillVisible = false;
+        buttons.forEach((btn) => {
+            const viewport = btn.dataset.cbBuilderViewportParam;
+            const minWidth = this.constructor.VIEWPORT_MIN_WIDTHS[viewport] ?? 0;
+            const fits = minWidth <= shellWidth;
+            btn.hidden = !fits;
+            if (fits && btn.classList.contains('cb-shell__viewport-btn--active')) {
+                activeStillVisible = true;
+            }
+        });
+        if (!activeStillVisible) {
+            this._applyViewport('desktop');
+        }
+    }
+
+    _applyViewport(viewport) {
+        const buttons = this.element.querySelectorAll('.cb-shell__viewport-btn');
+        buttons.forEach((btn) => {
+            btn.classList.toggle(
+                'cb-shell__viewport-btn--active',
+                btn.dataset.cbBuilderViewportParam === viewport,
+            );
+        });
+        if (this.hasIframeTarget) {
+            const widths = { desktop: '100%', tablet: '768px', mobile: '375px' };
+            this.iframeTarget.style.maxWidth = widths[viewport] ?? '100%';
+            this.iframeTarget.style.margin = viewport === 'desktop' ? '0' : '0 auto';
+        }
+    }
+
+    /**
+     * Reloads the iframe, preserving scrollY across the reload. While the
+     * iframe is mid-load the shell carries a "is-loading" class so the
+     * progress bar stays visible — the user gets continuous feedback from
+     * "AJAX submitted" all the way through to "preview repainted".
      */
     reload() {
         if (!this.hasIframeTarget) return;
@@ -64,6 +121,7 @@ export default class extends Controller {
             // Cross-origin would throw; ignore and restore to 0.
         }
 
+        this._beginLoading();
         const onLoad = () => {
             this.iframeTarget.removeEventListener('load', onLoad);
             try {
@@ -71,6 +129,7 @@ export default class extends Controller {
             } catch (_) {
                 // Same as above.
             }
+            this._endLoading();
         };
         this.iframeTarget.addEventListener('load', onLoad);
 
@@ -79,6 +138,23 @@ export default class extends Controller {
         } catch (_) {
             // Fallback when the iframe document isn't accessible.
             this.iframeTarget.src = this.iframeUrlValue;
+        }
+    }
+
+    /**
+     * Reference-counted loading flag — multiple overlapping operations stack
+     * (e.g. a save followed by an iframe reload) and the bar only goes away
+     * once the last one finishes.
+     */
+    _beginLoading() {
+        this._loadingDepth = (this._loadingDepth ?? 0) + 1;
+        this.element.classList.add('cb-shell--loading');
+    }
+
+    _endLoading() {
+        this._loadingDepth = Math.max(0, (this._loadingDepth ?? 0) - 1);
+        if (this._loadingDepth === 0) {
+            this.element.classList.remove('cb-shell--loading');
         }
     }
 
@@ -99,15 +175,25 @@ export default class extends Controller {
     }
 
     /**
-     * Refreshes the topbar (Discard enabled/disabled) and the launcher badge
-     * outside the dialog so the parent admin page reflects the latest draft
-     * state without a full reload.
+     * Refreshes topbar action states (Discard hidden/visible, Publish
+     * enabled/disabled) and the launcher badge outside the dialog so the
+     * parent admin page reflects the latest draft state without a full
+     * reload.
      */
     _applyDraftState(hasUnpublishedChanges) {
-        // Discard button on the topbar.
+        // Discard is irrelevant when nothing is pending — hide it entirely
+        // rather than rendering a disabled button. The user only sees it
+        // when it's actually actionable.
         const discardBtn = this.element.querySelector('.cb-shell__discard');
         if (discardBtn) {
-            discardBtn.disabled = !hasUnpublishedChanges;
+            discardBtn.hidden = !hasUnpublishedChanges;
+        }
+        // Publish is the primary action — keep it visible at all times so
+        // the user knows it exists, but disable it when there's nothing to
+        // publish.
+        const publishBtn = this.element.querySelector('.cb-shell__publish');
+        if (publishBtn) {
+            publishBtn.disabled = !hasUnpublishedChanges;
         }
 
         // Launcher badge lives outside the shell (before the <dialog>). We
@@ -161,6 +247,24 @@ export default class extends Controller {
         this._afterStructuralOp();
     }
 
+    async _reorderSection(sectionId, position) {
+        if (!sectionId || !Number.isInteger(position) || position < 0) return;
+        await this._jsonRequest('POST', `/_content-blocks/section/${sectionId}/move`, { position });
+        this._afterStructuralOp();
+    }
+
+    async _duplicateSection(sectionId) {
+        if (!sectionId) return;
+        await this._jsonRequest('POST', `/_content-blocks/section/${sectionId}/duplicate`);
+        this._afterStructuralOp();
+    }
+
+    async _duplicateBlock(blockId) {
+        if (!blockId) return;
+        await this._jsonRequest('POST', `/_content-blocks/block/${blockId}/duplicate`);
+        this._afterStructuralOp();
+    }
+
     async _deleteSection(sectionId) {
         if (!sectionId) return;
         await this._jsonRequest('DELETE', `/_content-blocks/section/${sectionId}`);
@@ -197,31 +301,24 @@ export default class extends Controller {
             init.body = JSON.stringify(body);
         }
 
-        const response = await fetch(url, init);
-        if (!response.ok) {
-            console.error('[cb-builder] request failed', method, url, response.status);
-            return null;
-        }
+        this._beginLoading();
+        try {
+            const response = await fetch(url, init);
+            if (!response.ok) {
+                console.error('[cb-builder] request failed', method, url, response.status);
+                return null;
+            }
 
-        return response.json().catch(() => null);
+            return await response.json().catch(() => null);
+        } finally {
+            this._endLoading();
+        }
     }
 
     setViewport(event) {
         if (event) event.preventDefault();
         const viewport = event?.params?.viewport ?? 'desktop';
-
-        const buttons = this.element.querySelectorAll('.cb-shell__viewport-btn');
-        buttons.forEach((btn) => btn.classList.remove('cb-shell__viewport-btn--active'));
-        if (event?.currentTarget instanceof Element) {
-            event.currentTarget.classList.add('cb-shell__viewport-btn--active');
-        }
-
-        if (this.hasIframeTarget) {
-            const widths = { desktop: '100%', tablet: '768px', mobile: '375px' };
-            this.iframeTarget.style.maxWidth = widths[viewport] ?? '100%';
-            this.iframeTarget.style.margin = viewport === 'desktop' ? '0' : '0 auto';
-        }
-
+        this._applyViewport(viewport);
         console.log('[cb-builder] setViewport', { viewport });
     }
 
@@ -255,8 +352,17 @@ export default class extends Controller {
             case 'cb:section:move-requested':
                 this._moveSection(data.sectionId, data.direction);
                 break;
+            case 'cb:section:reorder':
+                this._reorderSection(data.sectionId, data.position);
+                break;
+            case 'cb:section:duplicate-requested':
+                this._duplicateSection(data.sectionId);
+                break;
             case 'cb:section:delete-requested':
                 this._deleteSection(data.sectionId);
+                break;
+            case 'cb:block:duplicate-requested':
+                this._duplicateBlock(data.blockId);
                 break;
             case 'cb:section:settings':
                 this._mountSectionSettings(data.sectionId);
@@ -289,6 +395,7 @@ export default class extends Controller {
     async _mountSidebarFrom(url, dataAttrs = {}) {
         if (!this.hasSidebarTarget || !this.hasSidebarContentTarget) return;
 
+        this._beginLoading();
         try {
             const response = await fetch(url, {
                 headers: { 'Accept': 'text/html' },
@@ -320,6 +427,8 @@ export default class extends Controller {
             });
         } catch (e) {
             console.error('[cb-builder] mount error', e);
+        } finally {
+            this._endLoading();
         }
     }
 
@@ -377,18 +486,39 @@ export default class extends Controller {
 
     /**
      * Save kept the sidebar open (so the user can keep tweaking / saving
-     * iteratively). Reloads the iframe with the freshly persisted draft.
+     * iteratively). Reloads the iframe with the freshly persisted draft and
+     * flashes a "✓ Saved" pill near the Save button so the user has explicit
+     * feedback that the click actually persisted something.
      */
     _onBlockSaved(event) {
         console.log('[cb-builder] block:saved', event.detail);
         this._applyDraftState(true);
+        this._flashSaved();
         this.reload();
     }
 
     _onSectionSaved(event) {
         console.log('[cb-builder] section:saved', event.detail);
         this._applyDraftState(true);
+        this._flashSaved();
         this.reload();
+    }
+
+    _flashSaved() {
+        if (!this.hasSavedFlashTarget) return;
+        const el = this.savedFlashTarget;
+        el.hidden = false;
+        // Force a reflow so the class is applied as a transition trigger,
+        // not the same paint as the unhide.
+        void el.offsetWidth;
+        el.classList.add('is-visible');
+        clearTimeout(this._savedFlashTimer);
+        this._savedFlashTimer = setTimeout(() => {
+            el.classList.remove('is-visible');
+            // Wait for the fade-out before re-hiding so screen readers and
+            // CSS transitions both have time to complete.
+            setTimeout(() => { el.hidden = true; }, 250);
+        }, 1500);
     }
 
     // ---------- Sidebar resize ----------

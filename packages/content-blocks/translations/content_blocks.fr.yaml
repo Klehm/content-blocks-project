@@ -5,6 +5,8 @@ cb:
         move_up: "Monter"
         move_down: "Descendre"
         remove: "Supprimer"
+        duplicate: "Dupliquer"
+        drag: "Glisser pour déplacer"
         settings:
             title: "Paramètres de la section"
             classes: "Classes CSS personnalisées"
@@ -26,6 +28,7 @@ cb:
         save: "Enregistrer"
         cancel: "Annuler"
         remove: "Supprimer"
+        duplicate: "Dupliquer"
     builder:
         open: "Modifier le contenu"
         close: "Fermer"
@@ -35,3 +38,4 @@ cb:
         add_section: "Ajouter une section :"
         draft_pending: "Brouillon en attente"
         confirm_close: "Vous avez des modifications de bloc non enregistrées. Quitter sans enregistrer ?"
+        saved: "Enregistré"

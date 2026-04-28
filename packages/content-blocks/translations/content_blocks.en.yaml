@@ -5,6 +5,8 @@ cb:
         move_up: "Move up"
         move_down: "Move down"
         remove: "Remove"
+        duplicate: "Duplicate"
+        drag: "Drag to move"
         settings:
             title: "Section settings"
             classes: "Custom CSS classes"
@@ -26,6 +28,7 @@ cb:
         save: "Save"
         cancel: "Cancel"
         remove: "Remove"
+        duplicate: "Duplicate"
     builder:
         open: "Edit content"
         close: "Close"
@@ -35,3 +38,4 @@ cb:
         add_section: "Add a section:"
         draft_pending: "Draft pending"
         confirm_close: "You have unsaved block edits. Discard and close the editor?"
+        saved: "Saved"
