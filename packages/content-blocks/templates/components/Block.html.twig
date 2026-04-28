@@ -9,14 +9,19 @@
         {{ form_widget(form) }}
         {{ form_end(form) }}
 
-        <div class="cb-block__edit-actions mt-2">
-            <button type="button"
-                    data-action="live#action"
-                    data-live-action-param="save"
-                    data-cb-block-edit-keys-target="saveBtn"
-                    class="btn btn-primary">
-                {{ 'cb.block.save'|trans({}, 'content_blocks') }}
-            </button>
-        </div>
+        {# The Save button is rendered in the sidebar header (cb-builder#saveSidebar
+           clicks the [data-cb-sidebar-save] element below). We keep this
+           Live Component-bound button in the form so the framework still
+           handles `submit + flush` — just visually hidden so it doesn't
+           duplicate the header button. The cb-block-edit-keys controller
+           still finds it via the saveBtn target. #}
+        <button type="button"
+                data-action="live#action"
+                data-live-action-param="save"
+                data-cb-block-edit-keys-target="saveBtn"
+                data-cb-sidebar-save
+                class="visually-hidden cb-block__edit-action-fallback">
+            {{ 'cb.block.save'|trans({}, 'content_blocks') }}
+        </button>
     </div>
 </div>

@@ -174,7 +174,7 @@ test.describe('builder shell — sections', () => {
         // Sandbox extension field — a ColorType picker. Playwright fills
         // <input type="color"> via a hex value.
         await sidebar.locator('input[name="section_settings[backgroundColor]"]').fill('#ffeecc');
-        await sidebar.locator('button[type="submit"]').click();
+        await page.locator('.cb-shell__sidebar-save').click();
 
         // Sidebar stays open after save (the user can keep tweaking) — but
         // the iframe reloads with the new draft applied.
@@ -200,7 +200,7 @@ test.describe('builder shell — sections', () => {
         await expect(colorInput).toHaveValue('#ffffff');
 
         // Save without changing anything. The sidebar stays open.
-        await sidebar.locator('button[type="submit"]').click();
+        await page.locator('.cb-shell__sidebar-save').click();
         await expect(sidebar).not.toHaveAttribute('hidden');
 
         // Iframe reloads — the section MUST NOT carry background-color in
@@ -247,7 +247,9 @@ test.describe('builder shell — blocks', () => {
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar).not.toHaveAttribute('hidden');
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
-        await expect(sidebar.locator('button.btn-primary')).toBeVisible();
+        // Header Save button is visible + enabled once the form is mounted.
+        await expect(page.locator('.cb-shell__sidebar-save')).toBeVisible();
+        await expect(page.locator('.cb-shell__sidebar-save')).toBeEnabled();
     });
 
     test('clicking outside the sidebar (in the iframe preview) closes it', async ({ page }) => {
@@ -296,12 +298,43 @@ test.describe('builder shell — blocks', () => {
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
 
-        await sidebar.locator('button.btn-primary').first().click();
+        await page.locator('.cb-shell__sidebar-save').click();
 
         // block:saved was logged AND the form is still visible afterwards.
         await expect.poll(() => logs.some((l) => l.startsWith('[cb-builder] block:saved'))).toBe(true);
         await expect(sidebar).not.toHaveAttribute('hidden');
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+    });
+
+    test('mobile viewport: sidebar slides from the bottom and the iframe area leaves room for it', async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 800 });
+
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+
+        await frame.locator('[data-cb-block-id]').first().hover();
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').first().click();
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar).not.toHaveAttribute('hidden');
+        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+
+        // On mobile the sidebar is full-width (not the 380px desktop fixed
+        // size) and its computed `bottom` is 0 — i.e., it's pinned to the
+        // bottom of its containing dialog rather than the right edge.
+        const box = await sidebar.boundingBox();
+        expect(box.width).toBeGreaterThan(300);
+        const computedBottom = await sidebar.evaluate((el) => getComputedStyle(el).bottom);
+        expect(computedBottom).toBe('0px');
+
+        // Shell carries the open class; iframe area gets padding-bottom so
+        // the preview content stays scrollable up to its real bottom edge.
+        await expect(page.locator('.cb-shell.cb-shell--sidebar-open')).toBeVisible();
+        const paddingBottom = await page.locator('.cb-shell__main').evaluate(
+            (el) => getComputedStyle(el).paddingBottom,
+        );
+        expect(paddingBottom).not.toBe('0px');
     });
 
     test('sidebar is resizable and the chosen width persists across opens', async ({ page }) => {

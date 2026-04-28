@@ -9,10 +9,14 @@
     {{ form_start(form, { 'attr': { 'data-cb-section-settings-form-target': 'form' } }) }}
         {{ form_widget(form) }}
 
-        <div class="cb-sidebar__actions mt-3">
-            <button type="submit" class="btn btn-primary">
-                {{ 'cb.block.save'|trans({}, 'content_blocks') }}
-            </button>
-        </div>
+        {# Hidden submit button kept so the form can still be triggered the
+           normal way (Enter key, or the cb-section-settings-form#_onSubmit
+           pathway). The visible Save lives in the sidebar header and clicks
+           this one via data-cb-sidebar-save. #}
+        <button type="submit"
+                data-cb-sidebar-save
+                class="visually-hidden cb-sidebar__action-fallback">
+            {{ 'cb.block.save'|trans({}, 'content_blocks') }}
+        </button>
     {{ form_end(form) }}
 </div>

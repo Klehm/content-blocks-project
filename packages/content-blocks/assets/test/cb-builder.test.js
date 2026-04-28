@@ -213,6 +213,9 @@ describe('cb-builder: sidebar resize', () => {
             setItem: (k, v) => { store[k] = String(v); },
             removeItem: (k) => { delete store[k]; },
         };
+        // matchMedia isn't implemented by jsdom; stub it to "desktop"
+        // (mobile tests below override per-case).
+        window.matchMedia = vi.fn(() => ({ matches: false, addEventListener() {} }));
         vi.spyOn(console, 'log').mockImplementation(() => {});
     });
 
@@ -247,12 +250,12 @@ describe('cb-builder: sidebar resize', () => {
             value: () => ({ width: 380, top: 0, bottom: 0, left: 0, right: 0, height: 0 }),
         });
 
-        controller.startSidebarResize({ clientX: 1000, preventDefault: () => {} });
+        controller.startSidebarResize({ clientX: 1000, clientY: 500, preventDefault: () => {} });
         // Iframe gets pointer-events: none during the drag so mousemove
         // events bubble up to the document.
         expect(iframe.style.pointerEvents).toBe('none');
 
-        controller._onResizeMove({ clientX: 900 });
+        controller._onResizeMove({ clientX: 900, clientY: 500 });
         // 100px to the left → +100px on the sidebar width.
         expect(sidebar.style.width).toBe('480px');
 
@@ -265,6 +268,91 @@ describe('cb-builder: sidebar resize', () => {
 
         expect(iframe.style.pointerEvents).toBe('');
         expect(store['cb-builder.sidebarWidth']).toBe('480');
+    });
+
+    // ---------- Mobile (vertical-axis resize, height stored separately) ----------
+
+    it('mobile: _restoreSidebarWidth applies the stored height to --cb-sidebar-height', () => {
+        window.matchMedia = vi.fn(() => ({ matches: true, addEventListener() {} }));
+        store['cb-builder.sidebarHeight'] = '420';
+        ({ controller } = setupController());
+        // Force a known viewport height for clamping (jsdom default may be tall).
+        Object.defineProperty(window, 'innerHeight', { value: 1000, configurable: true });
+
+        controller._restoreSidebarWidth();
+
+        expect(controller.element.style.getPropertyValue('--cb-sidebar-height')).toBe('420px');
+    });
+
+    it('mobile: vertical drag resizes height and persists in the height key', () => {
+        window.matchMedia = vi.fn(() => ({ matches: true, addEventListener() {} }));
+        ({ controller, sidebar, iframe } = setupController());
+        Object.defineProperty(window, 'innerHeight', { value: 1000, configurable: true });
+        // Pretend the sidebar was 300px tall before drag.
+        Object.defineProperty(sidebar, 'getBoundingClientRect', {
+            configurable: true,
+            value: () => ({ width: 0, top: 0, bottom: 0, left: 0, right: 0, height: 300 }),
+        });
+
+        controller.startSidebarResize({ clientX: 100, clientY: 800, preventDefault: () => {} });
+        controller._onResizeMove({ clientX: 100, clientY: 700, preventDefault: () => {} });
+        // 100px upward → +100px on the sidebar height.
+        expect(controller.element.style.getPropertyValue('--cb-sidebar-height')).toBe('400px');
+
+        Object.defineProperty(sidebar, 'getBoundingClientRect', {
+            configurable: true,
+            value: () => ({ width: 0, top: 0, bottom: 0, left: 0, right: 0, height: 400 }),
+        });
+        controller._onResizeEnd();
+
+        expect(store['cb-builder.sidebarHeight']).toBe('400');
+        // Width key should remain untouched in mobile mode.
+        expect(store['cb-builder.sidebarWidth']).toBeUndefined();
+    });
+});
+
+describe('cb-builder: header save delegation', () => {
+    let controller, sidebarContent;
+
+    beforeEach(() => {
+        ({ controller, sidebarContent } = setupController());
+        // Add a header save button to the shell as the template would.
+        const headerBtn = document.createElement('button');
+        headerBtn.className = 'cb-shell__sidebar-save';
+        controller.element.appendChild(headerBtn);
+        window.matchMedia = vi.fn(() => ({ matches: false, addEventListener() {} }));
+    });
+
+    it('saveSidebar clicks the form button marked [data-cb-sidebar-save]', () => {
+        const inFormBtn = document.createElement('button');
+        inFormBtn.dataset.cbSidebarSave = '';
+        const clickSpy = vi.fn();
+        inFormBtn.addEventListener('click', clickSpy);
+        sidebarContent.appendChild(inFormBtn);
+
+        controller.saveSidebar({ preventDefault: () => {} });
+
+        expect(clickSpy).toHaveBeenCalled();
+    });
+
+    it('saveSidebar is a no-op when no [data-cb-sidebar-save] target exists', () => {
+        // No target inserted — saveSidebar should bail without throwing.
+        expect(() => controller.saveSidebar({ preventDefault: () => {} })).not.toThrow();
+    });
+
+    it('_refreshSaveButtonState toggles the disabled attr based on form presence', () => {
+        const headerBtn = controller.element.querySelector('.cb-shell__sidebar-save');
+
+        // No form mounted yet → disabled.
+        controller._refreshSaveButtonState();
+        expect(headerBtn.disabled).toBe(true);
+
+        // Add a saveable element → enabled.
+        const inFormBtn = document.createElement('button');
+        inFormBtn.dataset.cbSidebarSave = '';
+        sidebarContent.appendChild(inFormBtn);
+        controller._refreshSaveButtonState();
+        expect(headerBtn.disabled).toBe(false);
     });
 });
 

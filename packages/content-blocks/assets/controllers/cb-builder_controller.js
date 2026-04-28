@@ -22,6 +22,10 @@ export default class extends Controller {
     static SIDEBAR_WIDTH_KEY = 'cb-builder.sidebarWidth';
     static SIDEBAR_MIN_WIDTH = 280;
     static SIDEBAR_MAX_WIDTH = 800;
+    static SIDEBAR_HEIGHT_KEY = 'cb-builder.sidebarHeight';
+    static SIDEBAR_MIN_HEIGHT = 200;
+    static SIDEBAR_MAX_HEIGHT_VH = 80;
+    static MOBILE_BREAKPOINT = '(max-width: 768px)';
 
     connect() {
         this._onMessage = this._onMessage.bind(this);
@@ -288,10 +292,12 @@ export default class extends Controller {
 
             this.sidebarContentTarget.innerHTML = await response.text();
             this.sidebarTarget.hidden = false;
+            this.element.classList.add('cb-shell--sidebar-open');
             this._clearSidebarDataAttrs();
             for (const [k, v] of Object.entries(dataAttrs)) {
                 this.sidebarTarget.setAttribute(k, v);
             }
+            this._refreshSaveButtonState();
 
             // Move focus to the first form field once Stimulus + Live
             // Component finish wiring. preventScroll is critical: while the
@@ -306,6 +312,15 @@ export default class extends Controller {
         } catch (e) {
             console.error('[cb-builder] mount error', e);
         }
+    }
+
+    _refreshSaveButtonState() {
+        const saveBtn = this.element.querySelector('.cb-shell__sidebar-save');
+        if (!saveBtn) return;
+        const inFormSave = this.hasSidebarContentTarget
+            ? this.sidebarContentTarget.querySelector('[data-cb-sidebar-save]')
+            : null;
+        saveBtn.disabled = !inFormSave;
     }
 
     _clearSidebarDataAttrs() {
@@ -331,8 +346,24 @@ export default class extends Controller {
         if (event) event.preventDefault();
         if (!this.hasSidebarTarget) return;
         this.sidebarTarget.hidden = true;
+        this.element.classList.remove('cb-shell--sidebar-open');
         if (this.hasSidebarContentTarget) this.sidebarContentTarget.innerHTML = '';
         this._clearSidebarDataAttrs();
+        this._refreshSaveButtonState();
+    }
+
+    /**
+     * Action: header Save button. Delegates to whichever real submit /
+     * Live Action button the mounted form exposes via the
+     * [data-cb-sidebar-save] hook. Keeps the framework-specific wiring
+     * (Live Component LiveAction, Symfony form submit) inside the form
+     * template instead of leaking into the shell.
+     */
+    saveSidebar(event) {
+        if (event) event.preventDefault();
+        if (!this.hasSidebarContentTarget) return;
+        const target = this.sidebarContentTarget.querySelector('[data-cb-sidebar-save]');
+        if (target) target.click();
     }
 
     /**
@@ -353,66 +384,125 @@ export default class extends Controller {
 
     // ---------- Sidebar resize ----------
 
+    _isMobile() {
+        return window.matchMedia(this.constructor.MOBILE_BREAKPOINT).matches;
+    }
+
     _restoreSidebarWidth() {
         if (!this.hasSidebarTarget) return;
         try {
-            const stored = window.localStorage.getItem(this.constructor.SIDEBAR_WIDTH_KEY);
-            if (!stored) return;
-            const parsed = parseInt(stored, 10);
-            if (Number.isNaN(parsed)) return;
-            const clamped = Math.max(
-                this.constructor.SIDEBAR_MIN_WIDTH,
-                Math.min(this.constructor.SIDEBAR_MAX_WIDTH, parsed),
-            );
-            this.sidebarTarget.style.width = clamped + 'px';
+            if (this._isMobile()) {
+                const stored = window.localStorage.getItem(this.constructor.SIDEBAR_HEIGHT_KEY);
+                if (!stored) return;
+                const parsed = parseInt(stored, 10);
+                if (Number.isNaN(parsed)) return;
+                const max = (this.constructor.SIDEBAR_MAX_HEIGHT_VH / 100) * window.innerHeight;
+                const clamped = Math.max(
+                    this.constructor.SIDEBAR_MIN_HEIGHT,
+                    Math.min(max, parsed),
+                );
+                this.element.style.setProperty('--cb-sidebar-height', clamped + 'px');
+            } else {
+                const stored = window.localStorage.getItem(this.constructor.SIDEBAR_WIDTH_KEY);
+                if (!stored) return;
+                const parsed = parseInt(stored, 10);
+                if (Number.isNaN(parsed)) return;
+                const clamped = Math.max(
+                    this.constructor.SIDEBAR_MIN_WIDTH,
+                    Math.min(this.constructor.SIDEBAR_MAX_WIDTH, parsed),
+                );
+                this.sidebarTarget.style.width = clamped + 'px';
+            }
         } catch (_) {
             // localStorage may throw in privacy modes — silently fall back.
         }
     }
 
-    /** Action: mousedown on the resize handle. */
+    /** Action: mousedown / touchstart on the resize handle. */
     startSidebarResize(event) {
         if (!this.hasSidebarTarget || !this.hasIframeTarget) return;
         event.preventDefault();
 
-        this._resizeStartX = event.clientX;
-        this._resizeStartWidth = this.sidebarTarget.getBoundingClientRect().width;
-        // Disable iframe pointer events during the drag so mousemove on it
-        // still fires on the parent document; Bootstrap modal-style trick.
+        const point = this._eventPoint(event);
+        this._resizeMobile = this._isMobile();
+
+        if (this._resizeMobile) {
+            this._resizeStartY = point.y;
+            this._resizeStartHeight = this.sidebarTarget.getBoundingClientRect().height;
+            document.body.style.cursor = 'row-resize';
+        } else {
+            this._resizeStartX = point.x;
+            this._resizeStartWidth = this.sidebarTarget.getBoundingClientRect().width;
+            document.body.style.cursor = 'col-resize';
+        }
+
+        // Disable iframe pointer events during the drag so mousemove on
+        // top of it still fires on the parent document.
         this.iframeTarget.style.pointerEvents = 'none';
-        document.body.style.cursor = 'col-resize';
         document.addEventListener('mousemove', this._onResizeMove);
         document.addEventListener('mouseup', this._onResizeEnd);
+        document.addEventListener('touchmove', this._onResizeMove, { passive: false });
+        document.addEventListener('touchend', this._onResizeEnd);
     }
 
     _onResizeMove(event) {
-        if (this._resizeStartX === undefined) return;
-        // Drag toward the left grows the sidebar (the handle sits on its
-        // left edge).
-        const delta = this._resizeStartX - event.clientX;
-        const next = Math.max(
-            this.constructor.SIDEBAR_MIN_WIDTH,
-            Math.min(this.constructor.SIDEBAR_MAX_WIDTH, this._resizeStartWidth + delta),
-        );
-        this.sidebarTarget.style.width = next + 'px';
+        const point = this._eventPoint(event);
+
+        if (this._resizeMobile) {
+            if (this._resizeStartY === undefined) return;
+            // Drag upward grows the sidebar (handle is on its top edge).
+            event.preventDefault?.();
+            const delta = this._resizeStartY - point.y;
+            const max = (this.constructor.SIDEBAR_MAX_HEIGHT_VH / 100) * window.innerHeight;
+            const next = Math.max(
+                this.constructor.SIDEBAR_MIN_HEIGHT,
+                Math.min(max, this._resizeStartHeight + delta),
+            );
+            this.element.style.setProperty('--cb-sidebar-height', next + 'px');
+        } else {
+            if (this._resizeStartX === undefined) return;
+            // Drag toward the left grows the sidebar.
+            const delta = this._resizeStartX - point.x;
+            const next = Math.max(
+                this.constructor.SIDEBAR_MIN_WIDTH,
+                Math.min(this.constructor.SIDEBAR_MAX_WIDTH, this._resizeStartWidth + delta),
+            );
+            this.sidebarTarget.style.width = next + 'px';
+        }
     }
 
     _onResizeEnd() {
-        if (this._resizeStartX === undefined) return;
+        if (this._resizeStartX === undefined && this._resizeStartY === undefined) return;
         document.removeEventListener('mousemove', this._onResizeMove);
         document.removeEventListener('mouseup', this._onResizeEnd);
+        document.removeEventListener('touchmove', this._onResizeMove);
+        document.removeEventListener('touchend', this._onResizeEnd);
 
         if (this.hasIframeTarget) this.iframeTarget.style.pointerEvents = '';
         document.body.style.cursor = '';
 
-        const w = Math.round(this.sidebarTarget.getBoundingClientRect().width);
         try {
-            window.localStorage.setItem(this.constructor.SIDEBAR_WIDTH_KEY, String(w));
+            if (this._resizeMobile) {
+                const h = Math.round(this.sidebarTarget.getBoundingClientRect().height);
+                window.localStorage.setItem(this.constructor.SIDEBAR_HEIGHT_KEY, String(h));
+            } else {
+                const w = Math.round(this.sidebarTarget.getBoundingClientRect().width);
+                window.localStorage.setItem(this.constructor.SIDEBAR_WIDTH_KEY, String(w));
+            }
         } catch (_) {
             // ignore — non-blocking persistence
         }
 
         this._resizeStartX = undefined;
+        this._resizeStartY = undefined;
         this._resizeStartWidth = undefined;
+        this._resizeStartHeight = undefined;
+        this._resizeMobile = false;
+    }
+
+    _eventPoint(event) {
+        const t = event.touches?.[0] ?? event.changedTouches?.[0];
+        if (t) return { x: t.clientX, y: t.clientY };
+        return { x: event.clientX, y: event.clientY };
     }
 }
