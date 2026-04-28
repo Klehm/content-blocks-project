@@ -196,9 +196,33 @@ final class ContentAreaPublisherTest extends TestCase
         $this->assertEmpty($this->removed);
     }
 
+    public function testDiscardRemovesNeverPublishedSection(): void
+    {
+        $area = new ContentArea();
+        $newSection = $this->makeSection($area, position: 0, previewPosition: 3, published: false);
+        $this->makeColumn($newSection, position: 0, previewPosition: 0, published: false);
+
+        (new ContentAreaPublisher($this->em))->discardDraft($area);
+
+        // Doctrine cascade-removes the column on flush — we only expect the
+        // section in the explicit-remove list.
+        $this->assertSame([$newSection], $this->removed);
+    }
+
+    public function testDiscardRemovesNeverPublishedColumnInsidePublishedSection(): void
+    {
+        $area = new ContentArea();
+        $section = $this->makeSection($area, position: 0, previewPosition: 0);
+        $newColumn = $this->makeColumn($section, position: 0, previewPosition: 1, published: false);
+
+        (new ContentAreaPublisher($this->em))->discardDraft($area);
+
+        $this->assertSame([$newColumn], $this->removed);
+    }
+
     // ---------- factories ----------
 
-    private function makeSection(ContentArea $area, int $position, int $previewPosition): Section
+    private function makeSection(ContentArea $area, int $position, int $previewPosition, bool $published = true): Section
     {
         $section = new Section();
         $section->setLayout(Section::LAYOUT_FULL);
@@ -206,15 +230,26 @@ final class ContentAreaPublisherTest extends TestCase
         $section->setPreviewPosition($previewPosition);
         $area->addSection($section);
 
+        if ($published) {
+            // Test fixtures default to "previously published" so discard reverts
+            // them rather than removing them. Pass published: false to simulate
+            // a brand-new section.
+            $this->markPublished($section);
+        }
+
         return $section;
     }
 
-    private function makeColumn(Section $section, int $position, int $previewPosition): Column
+    private function makeColumn(Section $section, int $position, int $previewPosition, bool $published = true): Column
     {
         $column = new Column();
         $column->setPosition($position);
         $column->setPreviewPosition($previewPosition);
         $section->addColumn($column);
+
+        if ($published) {
+            $this->markPublished($column);
+        }
 
         return $column;
     }
@@ -240,5 +275,16 @@ final class ContentAreaPublisherTest extends TestCase
         $column->addBlock($block);
 
         return $block;
+    }
+
+    /**
+     * Stamps `publishedAt` without going through publish() (which would also
+     * sync position from previewPosition and break test fixtures that
+     * intentionally keep them divergent).
+     */
+    private function markPublished(Section|Column $entity): void
+    {
+        $ref = new \ReflectionProperty($entity::class, 'publishedAt');
+        $ref->setValue($entity, new \DateTimeImmutable());
     }
 }

@@ -34,6 +34,9 @@ class Column
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $deleted = false;
 
+    #[ORM\Column(name: 'published_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $publishedAt = null;
+
     /** @var Collection<int, Block> */
     #[ORM\OneToMany(mappedBy: 'column', targetEntity: Block::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['position' => 'ASC'])]
@@ -144,6 +147,9 @@ class Column
     public function publish(): void
     {
         $this->position = $this->previewPosition;
+        if ($this->publishedAt === null) {
+            $this->publishedAt = new \DateTimeImmutable();
+        }
     }
 
     /**
@@ -157,6 +163,18 @@ class Column
 
     public function hasUnpublishedChanges(): bool
     {
-        return $this->previewPosition !== $this->position || $this->deleted;
+        return $this->previewPosition !== $this->position
+            || $this->deleted
+            || $this->publishedAt === null;
+    }
+
+    public function getPublishedAt(): ?\DateTimeImmutable
+    {
+        return $this->publishedAt;
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->publishedAt !== null;
     }
 }

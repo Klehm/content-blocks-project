@@ -9,11 +9,21 @@ use PHPUnit\Framework\TestCase;
 
 final class ColumnTest extends TestCase
 {
-    public function testFreshColumnHasNoUnpublishedChangesByDefault(): void
+    public function testFreshColumnHasUnpublishedChanges(): void
     {
         $column = new Column();
 
+        $this->assertTrue($column->hasUnpublishedChanges());
+        $this->assertFalse($column->isPublished());
+    }
+
+    public function testPublishedColumnWithoutDraftIsClean(): void
+    {
+        $column = new Column();
+        $column->publish();
+
         $this->assertFalse($column->hasUnpublishedChanges());
+        $this->assertTrue($column->isPublished());
     }
 
     public function testPreviewPositionDivergesMarksUnpublishedChanges(): void
@@ -33,7 +43,7 @@ final class ColumnTest extends TestCase
         $this->assertTrue($column->hasUnpublishedChanges());
     }
 
-    public function testPublishSyncsPosition(): void
+    public function testPublishSyncsPositionAndStampsPublishedAt(): void
     {
         $column = new Column();
         $column->setPosition(0);
@@ -42,13 +52,17 @@ final class ColumnTest extends TestCase
         $column->publish();
 
         $this->assertSame(2, $column->getPosition());
+        $this->assertNotNull($column->getPublishedAt());
         $this->assertFalse($column->hasUnpublishedChanges());
     }
 
-    public function testRevertDraftClearsPendingState(): void
+    public function testRevertDraftClearsPendingStateOnPublishedColumn(): void
     {
         $column = new Column();
         $column->setPosition(1);
+        $column->setPreviewPosition(1);
+        $column->publish();
+        // Mutate draft state.
         $column->setPreviewPosition(3);
         $column->setDeleted(true);
 

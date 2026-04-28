@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Service;
 
-use ContentBlocks\Entity\Block;
-use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
-use ContentBlocks\Entity\Section;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -73,9 +70,21 @@ final class ContentAreaPublisher
     public function discardDraft(ContentArea $area): void
     {
         foreach ($area->getSections()->toArray() as $section) {
+            // A section never published is a brand-new addition: drop it
+            // entirely (Doctrine cascade removes its columns + blocks).
+            if (!$section->isPublished()) {
+                $this->em->remove($section);
+
+                continue;
+            }
             $section->revertDraft();
 
             foreach ($section->getColumns()->toArray() as $column) {
+                if (!$column->isPublished()) {
+                    $this->em->remove($column);
+
+                    continue;
+                }
                 $column->revertDraft();
 
                 foreach ($column->getBlocks()->toArray() as $block) {

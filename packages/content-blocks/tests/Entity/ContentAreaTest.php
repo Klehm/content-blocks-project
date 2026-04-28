@@ -68,11 +68,13 @@ final class ContentAreaTest extends TestCase
         $section = new Section();
         $section->setPosition(0);
         $section->setPreviewPosition(0);
+        $section->publish();
         $area->addSection($section);
 
         $column = new Column();
         $column->setPosition(0);
         $column->setPreviewPosition(0);
+        $column->publish();
         $section->addColumn($column);
 
         $block = new Block();

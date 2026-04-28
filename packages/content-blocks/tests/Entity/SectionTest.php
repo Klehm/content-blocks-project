@@ -9,13 +9,23 @@ use PHPUnit\Framework\TestCase;
 
 final class SectionTest extends TestCase
 {
-    public function testFreshSectionHasNoUnpublishedChangesByDefault(): void
+    public function testFreshSectionHasUnpublishedChanges(): void
     {
-        // A section just instantiated has position=0, previewPosition=0, deleted=false.
-        // No data tracked here, so it counts as "in sync".
+        // A section just instantiated is, by definition, not yet published —
+        // publishedAt is null until publish() runs.
         $section = new Section();
 
+        $this->assertTrue($section->hasUnpublishedChanges());
+        $this->assertFalse($section->isPublished());
+    }
+
+    public function testPublishedSectionWithoutDraftIsClean(): void
+    {
+        $section = new Section();
+        $section->publish();
+
         $this->assertFalse($section->hasUnpublishedChanges());
+        $this->assertTrue($section->isPublished());
     }
 
     public function testPreviewPositionDivergesMarksUnpublishedChanges(): void
@@ -35,7 +45,7 @@ final class SectionTest extends TestCase
         $this->assertTrue($section->hasUnpublishedChanges());
     }
 
-    public function testPublishSyncsPosition(): void
+    public function testPublishSyncsPositionAndStampsPublishedAt(): void
     {
         $section = new Section();
         $section->setPosition(1);
@@ -44,13 +54,17 @@ final class SectionTest extends TestCase
         $section->publish();
 
         $this->assertSame(4, $section->getPosition());
+        $this->assertNotNull($section->getPublishedAt());
         $this->assertFalse($section->hasUnpublishedChanges());
     }
 
-    public function testRevertDraftClearsPendingState(): void
+    public function testRevertDraftClearsPendingStateOnPublishedSection(): void
     {
         $section = new Section();
         $section->setPosition(2);
+        $section->setPreviewPosition(2);
+        $section->publish();
+        // Now mutate the draft state.
         $section->setPreviewPosition(7);
         $section->setDeleted(true);
 

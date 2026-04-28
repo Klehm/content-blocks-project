@@ -37,6 +37,9 @@ class Section
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $deleted = false;
 
+    #[ORM\Column(name: 'published_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $publishedAt = null;
+
     /** @var Collection<int, Column> */
     #[ORM\OneToMany(mappedBy: 'section', targetEntity: Column::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['position' => 'ASC'])]
@@ -147,6 +150,9 @@ class Section
     public function publish(): void
     {
         $this->position = $this->previewPosition;
+        if ($this->publishedAt === null) {
+            $this->publishedAt = new \DateTimeImmutable();
+        }
     }
 
     /**
@@ -160,6 +166,18 @@ class Section
 
     public function hasUnpublishedChanges(): bool
     {
-        return $this->previewPosition !== $this->position || $this->deleted;
+        return $this->previewPosition !== $this->position
+            || $this->deleted
+            || $this->publishedAt === null;
+    }
+
+    public function getPublishedAt(): ?\DateTimeImmutable
+    {
+        return $this->publishedAt;
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->publishedAt !== null;
     }
 }
