@@ -7,8 +7,7 @@ use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Preview\NullContentAreaUrlResolver;
 use ContentBlocks\Section\BuiltInSectionDecorator;
 use ContentBlocks\Section\SectionDecoratorCollection;
-use ContentBlocks\Section\SectionDecoratorInterface;
-use ContentBlocks\Section\SectionStyleProviderInterface;
+use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\DenyAllAccessChecker;
@@ -60,6 +59,10 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(SectionDecoratorCollection::class)
         ->args([tagged_iterator('content_blocks.section_decorator')])
+        ->public();
+
+    $services->set(SectionSettingsDefaults::class)
+        ->args([tagged_iterator('content_blocks.section_settings_defaults')])
         ->public();
 
     $services->load('ContentBlocks\\Form\\', '../src/Form/');

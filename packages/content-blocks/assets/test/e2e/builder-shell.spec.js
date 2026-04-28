@@ -171,7 +171,8 @@ test.describe('builder shell — sections', () => {
         await sidebar.locator('input[name="section_settings[classes]"]').fill('e2e-decorated');
         await sidebar.locator('input[name="section_settings[widthMode]"][value="centered"]').check();
         await sidebar.locator('input[name="section_settings[maxWidth]"]').fill('900');
-        // Sandbox extension field — a free-form CSS color text input.
+        // Sandbox extension field — a ColorType picker. Playwright fills
+        // <input type="color"> via a hex value.
         await sidebar.locator('input[name="section_settings[backgroundColor]"]').fill('#ffeecc');
         await sidebar.locator('button[type="submit"]').click();
 
@@ -183,6 +184,30 @@ test.describe('builder shell — sections', () => {
         const style = await section.getAttribute('style');
         expect(style).toContain('max-width:900px');
         expect(style).toContain('background-color:#ffeecc');
+    });
+
+    test('section settings saved with the framework default value do not pollute the rendered markup', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+
+        await frame.locator('[data-cb-section-id]').first().hover({ position: { x: 5, y: 5 } });
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn').nth(2).click();
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        // The form opens with backgroundColor pre-set to #ffffff (sandbox default).
+        const colorInput = sidebar.locator('input[name="section_settings[backgroundColor]"]');
+        await expect(colorInput).toHaveValue('#ffffff');
+
+        // Save without changing anything.
+        await sidebar.locator('button[type="submit"]').click();
+        await expect(sidebar).toHaveAttribute('hidden', '');
+
+        // Iframe reloads — the section MUST NOT carry background-color in
+        // its inline style because the saved value matches the registered
+        // default.
+        const section = frame.locator('[data-cb-section-id]').first();
+        const style = await section.getAttribute('style');
+        expect(style ?? '').not.toContain('background-color');
     });
 });
 

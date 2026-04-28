@@ -6,6 +6,7 @@ namespace ContentBlocks\Controller;
 
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Form\Type\SectionSettingsType;
+use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -38,6 +39,7 @@ final class SectionSidebarController
         private readonly FormFactoryInterface $formFactory,
         private readonly Environment $twig,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly SectionSettingsDefaults $settingsDefaults,
     ) {
     }
 
@@ -64,9 +66,13 @@ final class SectionSidebarController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        // Initial form data: drafts win, fall back to published.
+        // Initial form data: defaults backfill any keys the section's
+        // current settings don't already have. This is what gives widgets
+        // without an "empty" state (notably <input type="color">) a sane
+        // starting value.
         $current = $section->getEffectiveSettings(preferDraft: true);
-        $form = $this->formFactory->create(SectionSettingsType::class, $current, [
+        $initial = array_replace($this->settingsDefaults->get(), $current);
+        $form = $this->formFactory->create(SectionSettingsType::class, $initial, [
             'action' => '/_content-blocks/section/' . $id . '/settings',
             'method' => 'POST',
         ]);

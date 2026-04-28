@@ -10,6 +10,7 @@ use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Section\SectionDecoratorCollection;
+use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Security\AccessCheckerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Environment;
@@ -37,6 +38,7 @@ final class BlockRenderer
         private readonly AccessCheckerInterface $accessChecker,
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly SectionDecoratorCollection $sectionDecorators,
+        private readonly SectionSettingsDefaults $settingsDefaults,
     ) {
     }
 
@@ -96,6 +98,11 @@ final class BlockRenderer
         foreach ($sections as $section) {
             $sectionDeleted = $section->isDeleted();
             $settings = $section->getEffectiveSettings(preferDraft: $mode === RenderMode::PREVIEW);
+            // Strip default-equal entries so the rendered markup stays
+            // clean: a section saved with the framework-provided default
+            // (e.g. backgroundColor=#ffffff) won't get an inline style for
+            // it, only user-overridden values do.
+            $settings = $this->settingsDefaults->withoutDefaults($settings);
             $decoration = $this->sectionDecorators->decorate($settings, $section);
             $out[] = [
                 'id' => $section->getId(),

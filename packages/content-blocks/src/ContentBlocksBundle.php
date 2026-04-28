@@ -7,6 +7,7 @@ namespace ContentBlocks;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\DependencyInjection\BlockTypeCompilerPass;
 use ContentBlocks\Section\SectionDecoratorInterface;
+use ContentBlocks\Section\SectionSettingsDefaultsProviderInterface;
 use ContentBlocks\Section\SectionStyleProviderInterface;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -52,6 +53,8 @@ final class ContentBlocksBundle extends AbstractBundle
             ->addTag('content_blocks.section_style_provider');
         $container->registerForAutoconfiguration(SectionDecoratorInterface::class)
             ->addTag('content_blocks.section_decorator');
+        $container->registerForAutoconfiguration(SectionSettingsDefaultsProviderInterface::class)
+            ->addTag('content_blocks.section_settings_defaults');
     }
 
     public function getPath(): string

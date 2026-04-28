@@ -173,6 +173,91 @@ final class BlockRendererTest extends TestCase
         $this->assertSame(RenderMode::PUBLIC, $renderer->resolveMode($area));
     }
 
+    public function testDefaultEqualSectionSettingsAreNotEmittedToTheDom(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $section->setPublishedSettings([
+            'backgroundColor' => '#ffffff', // matches default → stripped
+            'classes' => 'kept',            // not in defaults → passes through
+        ]);
+
+        $registry = new BlockTypeRegistry();
+        $registry->register($this->textBlockType());
+
+        $bgDecorator = new class implements \ContentBlocks\Section\SectionDecoratorInterface {
+            public function decorate(array $settings, Section $section): \ContentBlocks\Section\SectionDecoration
+            {
+                $color = $settings['backgroundColor'] ?? null;
+                if (!\is_string($color)) {
+                    return new \ContentBlocks\Section\SectionDecoration();
+                }
+                return new \ContentBlocks\Section\SectionDecoration(inlineStyles: ['background-color' => $color]);
+            }
+        };
+
+        $defaults = new \ContentBlocks\Section\SectionSettingsDefaults([
+            new class implements \ContentBlocks\Section\SectionSettingsDefaultsProviderInterface {
+                public function getDefaults(): array { return ['backgroundColor' => '#ffffff']; }
+            },
+        ]);
+
+        $renderer = new BlockRenderer(
+            $this->makeTwig(['text_view.html.twig' => '']),
+            new RequestStack(),
+            new AllowAllAccessChecker(),
+            $registry,
+            new \ContentBlocks\Section\SectionDecoratorCollection([
+                new \ContentBlocks\Section\BuiltInSectionDecorator(new \ContentBlocks\Section\SectionStyleRegistry()),
+                $bgDecorator,
+            ]),
+            $defaults,
+        );
+
+        $html = $renderer->render($area, RenderMode::PUBLIC);
+
+        $this->assertStringNotContainsString('background-color', $html);
+        $this->assertStringContainsString('kept', $html);
+    }
+
+    public function testNonDefaultSectionSettingsValuesReachTheDecorators(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $section->setPublishedSettings(['backgroundColor' => '#ff00ff']);
+
+        $registry = new BlockTypeRegistry();
+        $registry->register($this->textBlockType());
+
+        $bgDecorator = new class implements \ContentBlocks\Section\SectionDecoratorInterface {
+            public function decorate(array $settings, Section $section): \ContentBlocks\Section\SectionDecoration
+            {
+                $color = $settings['backgroundColor'] ?? null;
+                if (!\is_string($color)) {
+                    return new \ContentBlocks\Section\SectionDecoration();
+                }
+                return new \ContentBlocks\Section\SectionDecoration(inlineStyles: ['background-color' => $color]);
+            }
+        };
+
+        $renderer = new BlockRenderer(
+            $this->makeTwig(['text_view.html.twig' => '']),
+            new RequestStack(),
+            new AllowAllAccessChecker(),
+            $registry,
+            new \ContentBlocks\Section\SectionDecoratorCollection([$bgDecorator]),
+            new \ContentBlocks\Section\SectionSettingsDefaults([
+                new class implements \ContentBlocks\Section\SectionSettingsDefaultsProviderInterface {
+                    public function getDefaults(): array { return ['backgroundColor' => '#ffffff']; }
+                },
+            ]),
+        );
+
+        $html = $renderer->render($area, RenderMode::PUBLIC);
+
+        $this->assertStringContainsString('background-color:#ff00ff', $html);
+    }
+
     /**
      * If a block type defines a viewTemplate, it is included with `data` arg.
      */
@@ -198,6 +283,7 @@ final class BlockRendererTest extends TestCase
             new AllowAllAccessChecker(),
             $registry,
             new \ContentBlocks\Section\SectionDecoratorCollection([]),
+            new \ContentBlocks\Section\SectionSettingsDefaults([]),
         );
 
         $html = $renderer->render($area, RenderMode::PUBLIC);
@@ -222,6 +308,7 @@ final class BlockRendererTest extends TestCase
             new AllowAllAccessChecker(),
             $registry,
             new \ContentBlocks\Section\SectionDecoratorCollection([]),
+            new \ContentBlocks\Section\SectionSettingsDefaults([]),
         );
     }
 
@@ -247,6 +334,7 @@ final class BlockRendererTest extends TestCase
             $checker,
             new BlockTypeRegistry(),
             new \ContentBlocks\Section\SectionDecoratorCollection([]),
+            new \ContentBlocks\Section\SectionSettingsDefaults([]),
         );
     }
 
