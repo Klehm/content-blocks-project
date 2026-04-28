@@ -105,7 +105,10 @@
 .cb-shell__main {
     position: relative;
     overflow: hidden;
-    background: #fff;
+    /* Light gray gutter so the iframe's actual width is visually framed —
+       most useful when the user switches to tablet/mobile and the iframe
+       narrows below the container width. */
+    background: #e9ebef;
 }
 
 .cb-shell__iframe {
@@ -114,6 +117,11 @@
     width: 100%;
     height: 100%;
     display: block;
+    /* Smooth resize when the viewport switcher changes max-width — the
+       transition gives the iframe content time to reflow with media
+       queries, instead of flashing a horizontal scrollbar at the moment
+       the size jumps. */
+    transition: max-width .2s ease, margin .2s ease;
 }
 
 /* The sidebar floats over the iframe (no flex shrink) so opening it

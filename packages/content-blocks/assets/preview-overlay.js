@@ -66,24 +66,46 @@
             font: inherit;
         }
         .cb-overlay-toolbar__btn:hover { background: rgba(255,255,255,.15); }
-        .cb-overlay-outline { outline: 2px solid #4f8df9 !important; outline-offset: -1px; }
         [data-cb-deleted="1"] {
             opacity: .5;
             text-decoration: line-through;
         }
+        /* When the viewport switcher resizes the iframe, the host page's
+           layout reflows for the new media-query width. During that brief
+           interval the body can be wider than the iframe and a transient
+           horizontal scrollbar flashes. Forcing overflow-x: hidden on the
+           preview body kills the flash; vertical scroll behavior is
+           untouched. */
+        html, body {
+            overflow-x: hidden;
+        }
         /* Make empty sections/columns hoverable in preview mode + leave a
            strip at the top of each section dedicated to section-level hover
-           (otherwise inner columns absorb every hover). */
+           (otherwise inner columns absorb every hover). The dashed outlines
+           let the user see the section/column grid even when the host theme
+           doesn't draw any visible boundaries. */
         [data-cb-section-id] {
             min-height: 60px;
             box-sizing: border-box;
             padding-top: 18px;
             position: relative;
+            outline: 1px dashed rgba(79, 141, 249, .35);
+            outline-offset: -1px;
+            margin-bottom: 8px;
         }
         [data-cb-column-id] {
-            min-height: 50px;
+            min-height: 60px;
             box-sizing: border-box;
-            padding: 4px;
+            padding: 6px;
+            outline: 1px dashed rgba(79, 141, 249, .25);
+            outline-offset: -2px;
+            border-radius: 2px;
+        }
+        /* Hovered entity gets a stronger blue outline (overrides the dashed
+           guide above). */
+        .cb-overlay-outline {
+            outline-style: solid !important;
+            outline-color: #4f8df9 !important;
         }
         .cb-overlay-popover {
             position: absolute;
