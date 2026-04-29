@@ -1,0 +1,51 @@
+name: Packages split
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*'
+
+jobs:
+  packages_split:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - local_path: content-blocks
+            split_repository: content-blocks
+          - local_path: content-blocks-kit
+            split_repository: content-blocks-kit
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Branch push: keep split repos in sync with master
+      - if: "!startsWith(github.ref, 'refs/tags/')"
+        uses: symplify/monorepo-split-github-action@v2.3.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        with:
+          package_directory: 'packages/${{ matrix.package.local_path }}'
+          repository_organization: klehm
+          repository_name: ${{ matrix.package.split_repository }}
+          user_name: 'Clément Muller'
+          user_email: 'klehm.muller@gmail.com'
+
+      # Tag push: propagate the tag to each split repo
+      - if: "startsWith(github.ref, 'refs/tags/')"
+        uses: symplify/monorepo-split-github-action@v2.3.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        with:
+          tag: ${{ github.ref_name }}
+          package_directory: 'packages/${{ matrix.package.local_path }}'
+          repository_organization: klehm
+          repository_name: ${{ matrix.package.split_repository }}
+          user_name: 'Clément Muller'
+          user_email: 'klehm.muller@gmail.com'
