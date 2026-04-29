@@ -56,9 +56,9 @@ Les contributeurs clonent le monorepo et ont tout (packages + sandboxes + tests)
 
 ## Prérequis Techniques
 
-- PHP >= 8.2 avec extension `pdo_mysql`
+- PHP >= 8.2 avec extension `pdo_mysql` (PHP 8.4+ requis pour Symfony 8.0)
 - MySQL 8.0+
-- Symfony 7.x
+- Symfony 6.4 LTS, 7.x ou 8.x
 - Composer 2.x
 - Node.js >= 18 (pour les assets Stimulus et les tests JS)
 
