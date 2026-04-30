@@ -20,9 +20,15 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  * Usage in any form:
  *     $builder->add('contentArea', ContentAreaType::class);
  *
- * This renders a hidden field holding the ContentArea ID.
- * The Live Component (ContentAreaBuilder) provides the actual editing UI.
- * A new ContentArea is created automatically if none exists yet.
+ * This renders a hidden field holding the ContentArea ID. The Live Component
+ * (ContentAreaBuilder) provides the actual editing UI.
+ *
+ * Lifecycle:
+ * - On a GET request, no DB writes happen. If the parent entity has no
+ *   ContentArea yet, the widget renders a "save first" placeholder.
+ * - On submit, reverseTransform() persists a new ContentArea (without flush);
+ *   the host controller's flush — or the parent's `cascade: ['persist']` —
+ *   commits everything together.
  */
 final class ContentAreaType extends AbstractType implements DataTransformerInterface
 {
@@ -57,17 +63,12 @@ final class ContentAreaType extends AbstractType implements DataTransformerInter
     public function buildView(FormView $view, FormInterface $form, array $options): void
     {
         $contentArea = $form->getData();
+        $isPersisted = $contentArea instanceof ContentArea && $contentArea->getId() !== null;
 
-        if (!$contentArea instanceof ContentArea || $contentArea->getId() === null) {
-            $contentArea = new ContentArea();
-            $this->em->persist($contentArea);
-            $this->em->flush();
-            $form->setData($contentArea);
-        }
-
-        $view->vars['content_area'] = $contentArea;
-        $view->vars['content_area_id'] = $contentArea->getId();
-        $view->vars['value'] = $contentArea->getId();
+        $view->vars['content_area'] = $isPersisted ? $contentArea : null;
+        $view->vars['content_area_id'] = $isPersisted ? $contentArea->getId() : null;
+        $view->vars['value'] = $isPersisted ? $contentArea->getId() : '';
+        $view->vars['is_pending'] = !$isPersisted;
     }
 
     /** @param ContentArea|null $value */
@@ -85,8 +86,9 @@ final class ContentAreaType extends AbstractType implements DataTransformerInter
     {
         if ($value === null || $value === '') {
             $contentArea = new ContentArea();
+            // Queue for write but let the host controller's flush — or the
+            // parent entity's `cascade: ['persist']` — actually commit.
             $this->em->persist($contentArea);
-            $this->em->flush();
 
             return $contentArea;
         }

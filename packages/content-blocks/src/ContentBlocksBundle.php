@@ -31,6 +31,26 @@ final class ContentBlocksBundle extends AbstractBundle
                 ],
             ],
         ]);
+
+        // Expose templates under the @ContentBlocks Twig namespace and auto-register
+        // the form theme so `form_row(form.contentArea)` renders the builder out of the box.
+        $builder->prependExtensionConfig('twig', [
+            'paths' => [
+                $this->getPath() . '/templates' => 'ContentBlocks',
+            ],
+            'form_themes' => [
+                '@ContentBlocks/form/content_area_widget.html.twig',
+            ],
+        ]);
+
+        // Map Twig Components shipped by this bundle so cache:clear doesn't fail
+        // on a missing namespace right after composer require. ux-twig-component
+        // is a hard dependency of this package, so the extension is always loaded.
+        $builder->prependExtensionConfig('twig_component', [
+            'defaults' => [
+                'ContentBlocks\\Twig\\Component\\' => '@ContentBlocks/components/',
+            ],
+        ]);
     }
 
     public function build(ContainerBuilder $container): void

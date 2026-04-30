@@ -148,10 +148,24 @@ Un FormType Symfony prêt à l'emploi pour intégrer un ContentArea dans n'impor
 ```php
 $builder->add('contentArea', ContentAreaType::class);
 ```
-Le type gère automatiquement la création du ContentArea et rend le builder via un form theme (`@ContentBlocks/form/content_area_widget.html.twig`).
+Le type est rendu via un form theme (`@ContentBlocks/form/content_area_widget.html.twig`) auto-prepend par le bundle.
+
+**Lifecycle (important)** : `ContentAreaType::buildView()` n'écrit **rien** en DB sur un GET. Si l'entité hôte n'a pas encore de `ContentArea` (création en cours ou donnée legacy), le widget rend un placeholder "save first" à la place du builder. Sur submit, `reverseTransform()` crée un `ContentArea` transient (persist sans flush) que le host commit via :
+- `cascade: ['persist']` sur la relation côté entité hôte (recommandé), ou
+- un `$em->flush()` explicite dans le controller du host.
+
+Cette règle évite les rangées `cb_content_area` orphelines créées à chaque visite GET d'un formulaire de création.
 
 ### Templates
 Les templates utilisent le namespace Twig `@ContentBlocks`.
+
+## Required host services
+
+Two interfaces have no useful default and **must** be wired by the host:
+- `ContentBlocks\Security\AccessCheckerInterface` — authorization (IDOR protection)
+- `ContentBlocks\Preview\ContentAreaUrlResolverInterface` — maps a `ContentArea` to the public URL of its owner (for the iframe preview); the default `NullContentAreaUrlResolver` throws
+
+See [packages/content-blocks/README.md](packages/content-blocks/README.md) for full examples.
 
 ## Security
 
@@ -193,6 +207,17 @@ The token is rendered in `ContentAreaBuilder.html.twig` via `{{ csrf_token('cont
 **Host app requirements:**
 - `session: true` in `framework.yaml` (needed for session-based CSRF tokens)
 - `csrf_protection: enabled: true` (Symfony 7.x default is stateless — the token id `content_blocks` falls through to the session-based fallback automatically)
+
+### Firewalls
+
+If the host's admin area is behind a firewall **separate** from the front-office, extend that firewall's pattern to cover `/_content-blocks/*` — otherwise the builder's AJAX calls run unauthenticated and the user loses their session during a builder action:
+
+```yaml
+security:
+    firewalls:
+        admin:
+            pattern: ^/(admin|_content-blocks)
+```
 
 ### Block Data Sanitization
 

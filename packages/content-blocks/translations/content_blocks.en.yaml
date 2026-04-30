@@ -40,3 +40,4 @@ cb:
         draft_pending: "Draft pending"
         confirm_close: "You have unsaved block edits. Discard and close the editor?"
         saved: "Saved"
+        pending: "Save this entity first to start adding content."

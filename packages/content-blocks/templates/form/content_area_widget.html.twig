@@ -1,4 +1,12 @@
 {% block content_area_widget %}
     {{ form_widget(form) }}
-    {% include '@ContentBlocks/builder/launcher.html.twig' with { area: content_area, iframeUrl: cb_preview_url(content_area) } only %}
+    {% if is_pending %}
+        <div class="cb-launcher cb-launcher--pending">
+            <p class="cb-launcher__pending-message">
+                {{ 'cb.builder.pending'|trans({}, 'content_blocks') }}
+            </p>
+        </div>
+    {% else %}
+        {% include '@ContentBlocks/builder/launcher.html.twig' with { area: content_area, iframeUrl: cb_preview_url(content_area) } only %}
+    {% endif %}
 {% endblock %}

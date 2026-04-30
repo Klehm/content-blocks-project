@@ -6,8 +6,10 @@ ContentBlocks est un page builder modulaire pour Symfony. Il permet de construir
 
 | Package | Description | Install |
 |---|---|---|
-| [`klehm/content-blocks`](packages/content-blocks/) | Entités, UI admin, formulaires, controllers Stimulus | `composer require klehm/content-blocks` |
-| [`klehm/content-blocks-kit`](packages/content-blocks-kit/) | Blocs par défaut (Text, Title, Image) | `composer require klehm/content-blocks-kit` |
+| [`klehm/content-blocks`](packages/content-blocks/) | Entités, UI admin, formulaires, controllers Stimulus | `composer require klehm/content-blocks:dev-main` |
+| [`klehm/content-blocks-kit`](packages/content-blocks-kit/) | Blocs par défaut (Text, Title, Image) | `composer require klehm/content-blocks-kit:dev-main` |
+
+> Aucune version stable n'est encore taguée — utiliser `:dev-main` jusqu'à la sortie de `0.1.0-alpha`.
 
 ## Structure Monorepo
 

@@ -40,3 +40,4 @@ cb:
         draft_pending: "Brouillon en attente"
         confirm_close: "Vous avez des modifications de bloc non enregistrées. Quitter sans enregistrer ?"
         saved: "Enregistré"
+        pending: "Enregistrez d'abord cette entité pour commencer à ajouter du contenu."
