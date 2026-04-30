@@ -313,6 +313,59 @@ test.describe('builder shell — blocks', () => {
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
     });
 
+    test('saving with focus still in the input persists the typed value', async ({ page }) => {
+        // High-level regression for the "header Save loses the typed value"
+        // bug: with Live's `on(change)` form binding, the header Save action
+        // (saveSidebar in cb-builder) fires a synthetic `.click()` on the
+        // in-form submit button. That click does NOT move focus, so the
+        // user's last keystrokes never produce a change event — the Live
+        // POST goes out with stale props and persists empty data.
+        //
+        // The fix in saveSidebar() blurs the focused sidebar input first,
+        // which fires change synchronously and updates Live's model
+        // before the action POSTs. This e2e test reads back the persisted
+        // value by reopening the block edit form post-save, so it verifies
+        // the round-trip rather than just the iframe re-render.
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+
+        // Title block: its form has a single <input type="text"> bound to
+        // data.text and the view template echoes that value, making the
+        // assertion unambiguous.
+        await frame.locator('.cb-add-block-inline').first().click();
+        await frame.locator('.cb-overlay-popover button', { hasText: /^Titre$|^Title$/ }).click();
+        await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
+        await page.waitForTimeout(200);
+
+        const block = frame.locator('[data-cb-block-id]').first();
+        await block.hover({ position: { x: 10, y: 5 } });
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+
+        const typed = `e2e-typed-${Date.now()}`;
+        const field = sidebar.locator('.cb-block__edit-form input[type="text"]').first();
+        await field.click();
+        await field.fill('');
+        // pressSequentially mimics real keystrokes (input events only, no
+        // implicit change) — leaves focus on the input at the end.
+        await field.pressSequentially(typed, { delay: 5 });
+        await expect(field).toBeFocused();
+
+        await page.locator('.cb-shell__sidebar-save').click();
+        await page.waitForTimeout(1500);
+
+        // Reopen the form: if save persisted, the input should now show the typed value.
+        await sidebar.locator('.cb-shell__sidebar-close').click();
+        await page.waitForTimeout(300);
+        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
+        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
+        await page.waitForTimeout(500);
+
+        await expect(sidebar.locator('.cb-block__edit-form input[type="text"]').first()).toHaveValue(typed);
+    });
+
     test('mobile viewport: sidebar slides from the bottom and the iframe area leaves room for it', async ({ page }) => {
         await page.setViewportSize({ width: 390, height: 800 });
 

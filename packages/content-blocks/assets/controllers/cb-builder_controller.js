@@ -483,11 +483,24 @@ export default class extends Controller {
      * [data-cb-sidebar-save] hook. Keeps the framework-specific wiring
      * (Live Component LiveAction, Symfony form submit) inside the form
      * template instead of leaking into the shell.
+     *
+     * Live Component model bindings are wired with `on(change)`. The
+     * input still focused when the user clicks the header Save has not
+     * flushed its value to the model yet — and `.click()` on the in-form
+     * save button doesn't move focus, so blur+change never fire and
+     * Live POSTs the stale prop. Forcing a blur on the focused sidebar
+     * field fires the synthetic change event, lets Live update the
+     * model, and the subsequent click goes out with fresh data.
      */
     saveSidebar(event) {
         if (event) event.preventDefault();
         if (!this.hasSidebarContentTarget) return;
-        const target = this.sidebarContentTarget.querySelector('[data-cb-sidebar-save]');
+        const sidebar = this.sidebarContentTarget;
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && sidebar.contains(active)) {
+            active.blur();
+        }
+        const target = sidebar.querySelector('[data-cb-sidebar-save]');
         if (target) target.click();
     }
 

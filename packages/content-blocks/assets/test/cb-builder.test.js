@@ -368,6 +368,52 @@ describe('cb-builder: header save delegation', () => {
         expect(() => controller.saveSidebar({ preventDefault: () => {} })).not.toThrow();
     });
 
+    it('saveSidebar blurs the focused sidebar input before clicking save (flushes Live model on(change))', () => {
+        // Repro: Live Component model bindings sync `on(change)`. If the
+        // user types in an input then clicks the header Save button, the
+        // input is still focused at click time. A programmatic .click()
+        // does NOT move focus, so without an explicit blur the change
+        // event never fires and Live POSTs the previous value.
+        const input = document.createElement('input');
+        input.type = 'text';
+        const blurSpy = vi.fn();
+        input.addEventListener('blur', blurSpy);
+        sidebarContent.appendChild(input);
+        input.focus();
+        expect(document.activeElement).toBe(input);
+
+        const clickSpy = vi.fn();
+        const inFormBtn = document.createElement('button');
+        inFormBtn.dataset.cbSidebarSave = '';
+        inFormBtn.addEventListener('click', clickSpy);
+        sidebarContent.appendChild(inFormBtn);
+
+        controller.saveSidebar({ preventDefault: () => {} });
+
+        expect(blurSpy).toHaveBeenCalledOnce();
+        expect(clickSpy).toHaveBeenCalledOnce();
+    });
+
+    it('saveSidebar does not blur an element focused outside the sidebar', () => {
+        // Defensive: an unrelated focused input on the page (e.g. host's
+        // global search) must not lose focus when the user saves.
+        const outsider = document.createElement('input');
+        document.body.appendChild(outsider);
+        const blurSpy = vi.fn();
+        outsider.addEventListener('blur', blurSpy);
+        outsider.focus();
+        expect(document.activeElement).toBe(outsider);
+
+        const inFormBtn = document.createElement('button');
+        inFormBtn.dataset.cbSidebarSave = '';
+        sidebarContent.appendChild(inFormBtn);
+
+        controller.saveSidebar({ preventDefault: () => {} });
+
+        expect(blurSpy).not.toHaveBeenCalled();
+        document.body.removeChild(outsider);
+    });
+
     it('_refreshSaveButtonState toggles the disabled attr based on form presence', () => {
         const headerBtn = controller.element.querySelector('.cb-shell__sidebar-save');
 
