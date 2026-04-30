@@ -76,14 +76,15 @@ The `autoimport` block on `cb-builder-launcher` pulls in `admin.css` (styles for
 
 > A Symfony Flex recipe that injects this whole block automatically is on the roadmap — once published, this manual step goes away.
 
-#### CSS loaded inside the preview iframe
+#### Public assets loaded inside the preview iframe
 
-Two other stylesheets — `builder.css` (preview-only overlays) and `layout.css` (front-end section/column grid) — are **not** loaded via AssetMapper. They are served by the bundle's controllers at stable URLs:
+The bundle exposes three routes under `/_content-blocks/public/*` that serve the styles and the overlay JS injected into the front-end iframe:
 
-- `/_content-blocks/assets/layout` → `text/css` (PUBLIC + PREVIEW)
-- `/_content-blocks/assets/builder` → `text/css` (PREVIEW only)
+- `/_content-blocks/public/layout` → `text/css` (PUBLIC + PREVIEW)
+- `/_content-blocks/public/builder` → `text/css` (PREVIEW only)
+- `/_content-blocks/public/preview-overlay` → `application/javascript` (PREVIEW only)
 
-The render template injects these `<link>` tags itself when rendering a `ContentArea`, so **the host has nothing to wire** for those — they live inside the preview iframe, not in the admin page.
+The render template injects these `<link>` and `<script>` tags itself, so the host has nothing to wire. They are deliberately split out from the admin endpoints (`/_content-blocks/sections/*`, `/_content-blocks/blocks/*`, `/_content-blocks/upload`) so a host can lock the admin endpoints down without 404-ing the iframe assets — see [Firewalls & access control](#firewalls--access-control) below.
 
 ### Database schema
 
@@ -121,6 +122,22 @@ Render the builder in any Symfony form:
 ```php
 $builder->add('contentArea', ContentAreaType::class);
 ```
+
+### Render the ContentArea on the public page
+
+**This step is required** — without it the builder iframe loads a page with no editable markers, so add-section trays, block toolbars and the preview overlay never appear.
+
+The builder is a thin shell that opens the host's **public** URL inside an iframe. All the in-context editing UI (section/block guides, "+ section" tray, overlay script) is injected by the package's render template **inside that public page**, so the public template must call `cb_render_content_area()` to produce the markers Stimulus controllers attach to:
+
+```twig
+{# templates/page/show.html.twig — your public template #}
+<article>
+    <h1>{{ page.title }}</h1>
+    {{ cb_render_content_area(page.contentArea) }}
+</article>
+```
+
+Render-mode is auto-detected from the request: a query string `?cb_preview=1` combined with `AccessCheckerInterface::canEdit()` granting access switches to **preview** mode (markers + overlay injected); anything else falls through to **public** mode (clean published HTML, no markers).
 
 ### Lifecycle
 
@@ -213,17 +230,100 @@ AJAX endpoints (`/_content-blocks/*`) require an `X-CSRF-Token` header bound to 
 - `framework.session: true` (CSRF tokens are session-bound)
 - `framework.csrf_protection.enabled: true`
 
-### Firewalls
+### Firewalls & access control
 
-If your admin area is behind a firewall **separate** from the front-office, extend that firewall's pattern to cover `/_content-blocks/*` — otherwise the builder's AJAX calls run unauthenticated and lose the user's session:
+The bundle exposes two URL families with different exposure:
+
+| Path prefix | Audience | Mode |
+|---|---|---|
+| `/_content-blocks/public/*` | Anyone (loaded inside the public iframe) | Public |
+| `/_content-blocks/*` (everything else) | Authenticated admin (block CRUD, section CRUD, sidebars, upload) | Admin-only |
+
+The public sub-prefix is intentional: it lets you lock the admin endpoints down without breaking the iframe's CSS and overlay JS.
+
+**With a single firewall**, an `access_control` split is enough:
 
 ```yaml
 # config/packages/security.yaml
 security:
+    access_control:
+        - { path: ^/_content-blocks/public, roles: PUBLIC_ACCESS }
+        - { path: ^/_content-blocks,        roles: ROLE_ADMIN }
+```
+
+**With separate admin and front-office firewalls**, extend the admin firewall's pattern to cover the admin endpoints (and exclude the public sub-prefix), otherwise the builder's AJAX calls run unauthenticated:
+
+```yaml
+security:
     firewalls:
         admin:
-            pattern: ^/(admin|_content-blocks)
+            pattern: ^/(admin|_content-blocks(?!/public))
             # ...
+        main:
+            # public site — handles the iframe URL, no admin auth here
+            pattern: ^/
+```
+
+#### Cross-firewall auth detection in `AccessCheckerInterface`
+
+The render template auto-detects preview mode by calling `AccessCheckerInterface::canEdit()` while serving the public URL — i.e. the request passes through the **public/main** firewall, but the user authenticated against the **admin** firewall. With separate firewall contexts (`context: admin`), Symfony's standard `Security::isGranted()` will not see the admin token from the main firewall and the iframe falls back to public mode (no editing UI, even when an admin opens the builder).
+
+If your firewalls use isolated contexts, the access checker has to read the admin token directly from the session:
+
+```php
+use ContentBlocks\Security\AccessCheckerInterface;
+use ContentBlocks\Entity\ContentArea;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+
+final class PageAccessChecker implements AccessCheckerInterface
+{
+    public function __construct(
+        private readonly TokenStorageInterface $tokens,
+        private readonly RequestStack $requests,
+    ) {}
+
+    public function canEdit(ContentArea $contentArea): bool
+    {
+        return $this->isAdmin() && $this->ownsArea($contentArea);
+    }
+
+    public function canView(ContentArea $contentArea): bool { return true; }
+
+    private function isAdmin(): bool
+    {
+        // 1) Standard path: a token is in the current firewall's storage.
+        $token = $this->tokens->getToken();
+        if ($token && \in_array('ROLE_ADMIN', $token->getRoleNames(), true)) {
+            return true;
+        }
+
+        // 2) Cross-firewall fallback: the iframe runs under the public
+        // firewall, so the admin token isn't visible via $tokens. Read
+        // the serialized admin token from the session directly. The key
+        // is `_security_<context_or_firewall_name>` — `_security_admin`
+        // when `context: admin` or the firewall name is `admin`.
+        $request = $this->requests->getMainRequest();
+        if (!$request || !$request->hasSession()) {
+            return false;
+        }
+
+        $serialized = $request->getSession()->get('_security_admin');
+        if (!\is_string($serialized)) {
+            return false;
+        }
+
+        $adminToken = unserialize($serialized);
+        return $adminToken instanceof TokenInterface
+            && \in_array('ROLE_ADMIN', $adminToken->getRoleNames(), true);
+    }
+
+    private function ownsArea(ContentArea $area): bool
+    {
+        // your app's ownership check
+    }
+}
 ```
 
 ## Known install-time warnings

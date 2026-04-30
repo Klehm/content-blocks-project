@@ -11,22 +11,28 @@ use Symfony\Component\Routing\Attribute\Route;
  * Serves the package's front + builder assets at stable URLs the render
  * template can reference via <link>/<script> tags.
  *
+ * These routes live under `/_content-blocks/public/*` (rather than the
+ * `/_content-blocks/*` admin namespace) so a host that locks down the
+ * admin endpoints behind ROLE_ADMIN does not accidentally 404 the CSS
+ * loaded inside the public preview iframe. Hosts should keep this prefix
+ * publicly accessible.
+ *
  * Note on URLs: extensions (.css, .js) are intentionally omitted because
  * PHP's built-in dev server treats those paths as static files and 404s
  * before Symfony's router can pick them up. Content-Type headers cover
  * the actual MIME negotiation.
  *
  * Three assets:
- *  - /assets/layout      → text/css     (PUBLIC + PREVIEW)
- *  - /assets/builder     → text/css     (PREVIEW only)
- *  - /preview-overlay    → application/javascript (PREVIEW only)
+ *  - /public/layout           → text/css     (PUBLIC + PREVIEW)
+ *  - /public/builder          → text/css     (PREVIEW only)
+ *  - /public/preview-overlay  → application/javascript (PREVIEW only)
  */
 final class AssetController
 {
     private const ASSETS_DIR = '/../../assets';
 
     #[Route(
-        '/_content-blocks/assets/layout',
+        '/_content-blocks/public/layout',
         name: 'content_blocks_asset_layout',
         methods: ['GET'],
     )]
@@ -36,7 +42,7 @@ final class AssetController
     }
 
     #[Route(
-        '/_content-blocks/assets/builder',
+        '/_content-blocks/public/builder',
         name: 'content_blocks_asset_builder',
         methods: ['GET'],
     )]
@@ -46,7 +52,7 @@ final class AssetController
     }
 
     #[Route(
-        '/_content-blocks/preview-overlay',
+        '/_content-blocks/public/preview-overlay',
         name: 'content_blocks_asset_preview_overlay',
         methods: ['GET'],
     )]

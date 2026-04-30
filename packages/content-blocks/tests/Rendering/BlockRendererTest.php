@@ -17,9 +17,12 @@ use ContentBlocks\Security\AllowAllAccessChecker;
 use ContentBlocks\Security\DenyAllAccessChecker;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Bridge\Twig\Extension\RoutingExtension;
+use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Bridge\Twig\Extension\TranslationExtension;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RequestContext;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Contracts\Translation\TranslatorTrait;
 use Twig\Environment;
@@ -83,7 +86,7 @@ final class BlockRendererTest extends TestCase
         $this->assertStringContainsString('data-cb-block-id', $html);
         $this->assertStringContainsString('data-cb-section-id', $html);
         $this->assertStringContainsString('data-cb-column-id', $html);
-        $this->assertStringContainsString('preview-overlay', $html);
+        $this->assertStringContainsString('content_blocks_asset_preview_overlay', $html);
     }
 
     /**
@@ -353,6 +356,21 @@ final class BlockRendererTest extends TestCase
         };
     }
 
+    private function makeUrlGenerator(): UrlGeneratorInterface
+    {
+        return new class implements UrlGeneratorInterface {
+            private RequestContext $context;
+            public function __construct() { $this->context = new RequestContext(); }
+            public function setContext(RequestContext $context): void { $this->context = $context; }
+            public function getContext(): RequestContext { return $this->context; }
+            public function generate(string $name, array $parameters = [], int $referenceType = self::ABSOLUTE_PATH): string
+            {
+                // Stable, deterministic URL for assertions; mirrors the real route shape.
+                return '/_route/' . $name;
+            }
+        };
+    }
+
     /**
      * Real Twig environment with the package's templates, optionally augmented
      * with extra templates written to a temp dir under namespace `@TestRender`.
@@ -375,6 +393,7 @@ final class BlockRendererTest extends TestCase
 
         $env = new Environment($loader, ['strict_variables' => true]);
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
+        $env->addExtension(new RoutingExtension($this->makeUrlGenerator()));
 
         return $env;
     }

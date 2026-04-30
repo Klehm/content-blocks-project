@@ -1,9 +1,9 @@
 {# @var sections array #}
 {# @var mode \ContentBlocks\Rendering\RenderMode #}
 {% set isPreview = mode.value == 'preview' %}
-<link rel="stylesheet" href="/_content-blocks/assets/layout">
+<link rel="stylesheet" href="{{ path('content_blocks_asset_layout') }}">
 {% if isPreview %}
-    <link rel="stylesheet" href="/_content-blocks/assets/builder">
+    <link rel="stylesheet" href="{{ path('content_blocks_asset_builder') }}">
 {% endif %}
 {% set visibleSections = isPreview ? sections : sections|filter(s => not s.deleted) %}
 <div class="cb-content-area{% if isPreview and visibleSections is empty %} cb-content-area--empty{% endif %}"{% if isPreview %} data-cb-preview="1"{% endif %}>
@@ -81,6 +81,6 @@
         </div>
     </aside>
     <script>window.__cbBlockTypes = {{ blockTypes|json_encode|raw }};</script>
-    <script type="module" src="/_content-blocks/preview-overlay"></script>
+    <script type="module" src="{{ path('content_blocks_asset_preview_overlay') }}"></script>
 {% endif %}
 </div>
