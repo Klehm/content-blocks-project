@@ -19,6 +19,9 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Bridge\Twig\Extension\TranslationExtension;
+use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorTrait;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
@@ -212,6 +215,7 @@ final class BlockRendererTest extends TestCase
                 $bgDecorator,
             ]),
             $defaults,
+            $this->makeTranslator(),
         );
 
         $html = $renderer->render($area, RenderMode::PUBLIC);
@@ -251,6 +255,7 @@ final class BlockRendererTest extends TestCase
                     public function getDefaults(): array { return ['backgroundColor' => '#ffffff']; }
                 },
             ]),
+            $this->makeTranslator(),
         );
 
         $html = $renderer->render($area, RenderMode::PUBLIC);
@@ -284,6 +289,7 @@ final class BlockRendererTest extends TestCase
             $registry,
             new \ContentBlocks\Section\SectionDecoratorCollection([]),
             new \ContentBlocks\Section\SectionSettingsDefaults([]),
+            $this->makeTranslator(),
         );
 
         $html = $renderer->render($area, RenderMode::PUBLIC);
@@ -309,6 +315,7 @@ final class BlockRendererTest extends TestCase
             $registry,
             new \ContentBlocks\Section\SectionDecoratorCollection([]),
             new \ContentBlocks\Section\SectionSettingsDefaults([]),
+            $this->makeTranslator(),
         );
     }
 
@@ -335,7 +342,15 @@ final class BlockRendererTest extends TestCase
             new BlockTypeRegistry(),
             new \ContentBlocks\Section\SectionDecoratorCollection([]),
             new \ContentBlocks\Section\SectionSettingsDefaults([]),
+            $this->makeTranslator(),
         );
+    }
+
+    private function makeTranslator(): TranslatorInterface
+    {
+        return new class implements TranslatorInterface {
+            use TranslatorTrait;
+        };
     }
 
     /**
@@ -358,7 +373,10 @@ final class BlockRendererTest extends TestCase
             $loader->addPath($tmpDir, 'TestRender');
         }
 
-        return new Environment($loader, ['strict_variables' => true]);
+        $env = new Environment($loader, ['strict_variables' => true]);
+        $env->addExtension(new TranslationExtension($this->makeTranslator()));
+
+        return $env;
     }
 
     private function makeArea(int $id = 1): ContentArea
