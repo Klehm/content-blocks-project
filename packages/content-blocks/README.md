@@ -41,7 +41,7 @@ content_blocks:
     resource: '@ContentBlocksBundle/config/routes.php'
 ```
 
-### Stimulus controllers (required, manual until a Flex recipe ships)
+### Stimulus controllers & admin CSS (required, manual until a Flex recipe ships)
 
 The host's Symfony Stimulus Bundle reads `assets/controllers.json` from your project — it does **not** auto-discover controllers shipped by third-party packages. Without an entry for each controller, the builder UI loads no JS and the "Edit content" button does nothing.
 
@@ -51,7 +51,13 @@ Add the following to `assets/controllers.json`:
 {
     "controllers": {
         "@klehm/content-blocks": {
-            "cb-builder-launcher":      { "enabled": true, "fetch": "eager" },
+            "cb-builder-launcher": {
+                "enabled": true,
+                "fetch": "eager",
+                "autoimport": {
+                    "@klehm/content-blocks/styles/admin.css": true
+                }
+            },
             "cb-builder":               { "enabled": true, "fetch": "eager" },
             "cb-block-edit-keys":       { "enabled": true, "fetch": "eager" },
             "cb-section-settings-form": { "enabled": true, "fetch": "eager" }
@@ -66,7 +72,18 @@ Add the following to `assets/controllers.json`:
 
 Then re-run `php bin/console asset-map:compile` (or your normal asset build).
 
-> A Symfony Flex recipe that injects these entries automatically is on the roadmap — once published, this manual step goes away.
+The `autoimport` block on `cb-builder-launcher` pulls in `admin.css` (styles for the launcher button, builder dialog and sidebars). You do **not** need to add `import '@klehm/content-blocks/styles/admin.css'` in `app.js` — Stimulus Bundle handles it once the entry above is in place.
+
+> A Symfony Flex recipe that injects this whole block automatically is on the roadmap — once published, this manual step goes away.
+
+#### CSS loaded inside the preview iframe
+
+Two other stylesheets — `builder.css` (preview-only overlays) and `layout.css` (front-end section/column grid) — are **not** loaded via AssetMapper. They are served by the bundle's controllers at stable URLs:
+
+- `/_content-blocks/assets/layout` → `text/css` (PUBLIC + PREVIEW)
+- `/_content-blocks/assets/builder` → `text/css` (PREVIEW only)
+
+The render template injects these `<link>` tags itself when rendering a `ContentArea`, so **the host has nothing to wire** for those — they live inside the preview iframe, not in the admin page.
 
 ### Database schema
 

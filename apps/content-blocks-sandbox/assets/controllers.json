@@ -10,7 +10,13 @@
             }
         },
         "@klehm/content-blocks": {
-            "cb-builder-launcher": { "enabled": true, "fetch": "eager" },
+            "cb-builder-launcher": {
+                "enabled": true,
+                "fetch": "eager",
+                "autoimport": {
+                    "@klehm/content-blocks/styles/admin.css": true
+                }
+            },
             "cb-builder": { "enabled": true, "fetch": "eager" },
             "cb-block-edit-keys": { "enabled": true, "fetch": "eager" },
             "cb-section-settings-form": { "enabled": true, "fetch": "eager" }
