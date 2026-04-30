@@ -140,8 +140,13 @@ Le bloc sera automatiquement détecté et enregistré dans le `BlockTypeRegistry
 - **Section** : Twig Component simple (rendu statique des colonnes)
 
 ### Stimulus Controllers (contrôle DOM)
-- `cb-sortable` : drag & drop natif HTML5 pour réordonner sections et blocs
-- `cb-section-move` : move up/down des sections (swap DOM + persistance AJAX)
+- `cb-builder-launcher` : ouvre le `<dialog>` du builder depuis le widget hôte
+- `cb-builder` : orchestration de la fenêtre builder (sidebar, postMessage iframe, sauvegarde)
+- `cb-block-edit-keys` : raccourcis clavier dans la sidebar d'édition de bloc
+- `cb-section-settings-form` : sync live de la sidebar de settings de section
+- (kit) `cb-file-upload` : upload AJAX avec progress + retry
+
+Ces controllers doivent être déclarés dans `assets/controllers.json` côté host (jusqu'à publication d'une recette Flex officielle). Voir `packages/content-blocks/README.md`.
 
 ### ContentAreaType (FormType)
 Un FormType Symfony prêt à l'emploi pour intégrer un ContentArea dans n'importe quel formulaire :

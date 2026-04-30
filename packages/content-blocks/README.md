@@ -20,9 +20,11 @@ composer require klehm/content-blocks:dev-main klehm/content-blocks-kit:dev-main
 
 If your project uses `minimum-stability: stable`, either lower it to `dev` (with `prefer-stable: true`) or add the `:dev-main` constraint as shown above.
 
-### Register the bundle
+### Bundle registration & routes
 
-The bundle is detected by Symfony Flex — but until a Flex recipe is published, add it manually:
+If you use Symfony Flex, the auto-generated recipe registers both bundles in `config/bundles.php` and creates a `config/routes/content_blocks.yaml` that mounts the `/_content-blocks/*` AJAX endpoints (block CRUD, section reorder, file upload). Nothing to do.
+
+If you don't use Flex, add them manually:
 
 ```php
 // config/bundles.php
@@ -33,15 +35,38 @@ return [
 ];
 ```
 
-### Mount the routes
-
-The `/_content-blocks/*` AJAX endpoints (block CRUD, section reorder, file upload) are not mounted automatically:
-
 ```yaml
 # config/routes/content_blocks.yaml
 content_blocks:
     resource: '@ContentBlocksBundle/config/routes.php'
 ```
+
+### Stimulus controllers (required, manual until a Flex recipe ships)
+
+The host's Symfony Stimulus Bundle reads `assets/controllers.json` from your project — it does **not** auto-discover controllers shipped by third-party packages. Without an entry for each controller, the builder UI loads no JS and the "Edit content" button does nothing.
+
+Add the following to `assets/controllers.json`:
+
+```json
+{
+    "controllers": {
+        "@klehm/content-blocks": {
+            "cb-builder-launcher":      { "enabled": true, "fetch": "eager" },
+            "cb-builder":               { "enabled": true, "fetch": "eager" },
+            "cb-block-edit-keys":       { "enabled": true, "fetch": "eager" },
+            "cb-section-settings-form": { "enabled": true, "fetch": "eager" }
+        },
+        "@klehm/content-blocks-kit": {
+            "cb-file-upload": { "enabled": true, "fetch": "eager" }
+        }
+    },
+    "entrypoints": []
+}
+```
+
+Then re-run `php bin/console asset-map:compile` (or your normal asset build).
+
+> A Symfony Flex recipe that injects these entries automatically is on the roadmap — once published, this manual step goes away.
 
 ### Database schema
 
@@ -183,6 +208,10 @@ security:
             pattern: ^/(admin|_content-blocks)
             # ...
 ```
+
+## Known install-time warnings
+
+`composer audit` may flag `doctrine/annotations` as abandoned. This package does **not** require `doctrine/annotations` — the warning comes from your host project (typically pulled in by an older Symfony Framework Bundle setup or a legacy Doctrine config). Remove it with `composer remove doctrine/annotations` and set `framework.annotations: false` in your config if your app no longer uses annotation-based metadata.
 
 ## Documentation & contributing
 

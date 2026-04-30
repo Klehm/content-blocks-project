@@ -1,0 +1,17 @@
+{
+    "name": "@klehm/content-blocks-kit",
+    "description": "Default block kit for klehm/content-blocks — Stimulus controllers.",
+    "license": "MIT",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "symfony": {
+        "controllers": {
+            "cb-file-upload": {
+                "main": "controllers/cb-file-upload_controller.js",
+                "fetch": "eager",
+                "enabled": true
+            }
+        }
+    }
+}
