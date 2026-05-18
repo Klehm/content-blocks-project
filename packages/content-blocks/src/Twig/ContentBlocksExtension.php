@@ -36,8 +36,12 @@ final class ContentBlocksExtension extends AbstractExtension
         ];
     }
 
-    public function renderContentArea(ContentArea $area): string
+    public function renderContentArea(?ContentArea $area): string
     {
+        if ($area === null) {
+            return '';
+        }
+
         return $this->renderer->render($area);
     }
 

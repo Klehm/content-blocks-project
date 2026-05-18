@@ -137,6 +137,8 @@ The builder is a thin shell that opens the host's **public** URL inside an ifram
 </article>
 ```
 
+`cb_render_content_area()` accepts `null` and renders an empty string in that case, so you don't need an `{% if page.contentArea %}` guard around it when the host entity may not yet have a linked area.
+
 Render-mode is auto-detected from the request: a query string `?cb_preview=1` combined with `AccessCheckerInterface::canEdit()` granting access switches to **preview** mode (markers + overlay injected); anything else falls through to **public** mode (clean published HTML, no markers).
 
 ### Overriding render templates
