@@ -9,6 +9,7 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
+use ContentBlocks\Service\SectionCloner;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -36,6 +37,7 @@ final class SectionsController
         private readonly EntityManagerInterface $em,
         private readonly AccessCheckerInterface $accessChecker,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly SectionCloner $sectionCloner,
     ) {
     }
 
@@ -173,35 +175,11 @@ final class SectionsController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        // Deep-copy: section + draft settings + columns + non-deleted blocks.
-        // The copy is inserted immediately after the source by re-indexing
-        // sibling sections so positions stay dense. Settings land in the
-        // draft slot so the copy starts as an unpublished draft.
-        $copy = new Section();
-        $copy->setLayout($section->getLayout());
-        $sourceSettings = $section->getDraftSettings() ?? $section->getPublishedSettings();
-        if ($sourceSettings !== null && $sourceSettings !== []) {
-            $copy->setDraftSettings($sourceSettings);
-        }
-
-        foreach ($section->getColumns() as $column) {
-            $columnCopy = new Column();
-            $columnCopy->setPreset($column->getPreset());
-            $columnCopy->setPreviewPosition($column->getPreviewPosition());
-
-            foreach ($column->getBlocks() as $block) {
-                if ($block->isDeleted()) {
-                    continue;
-                }
-                $blockCopy = new Block();
-                $blockCopy->setType($block->getType());
-                $blockCopy->setDraftData($block->getDraftData() ?? $block->getPublishedData() ?? []);
-                $blockCopy->setPreviewPosition($block->getPreviewPosition());
-                $columnCopy->addBlock($blockCopy);
-            }
-
-            $copy->addColumn($columnCopy);
-        }
+        // Deep-copy via SectionCloner — same logic is reused by the
+        // area-level "replace with" flow. The copy is then inserted
+        // immediately after the source by re-indexing sibling sections so
+        // positions stay dense.
+        $copy = $this->sectionCloner->cloneSection($section);
 
         $siblings = array_values(array_filter(
             $area->getSections()->toArray(),

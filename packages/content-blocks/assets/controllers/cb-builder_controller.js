@@ -12,12 +12,29 @@ import { Controller } from '@hotwired/stimulus';
  * back to the top after each block save.
  */
 export default class extends Controller {
-    static targets = ['iframe', 'sidebar', 'sidebarContent', 'sidebarResize', 'progress', 'savedFlash'];
+    static targets = [
+        'iframe',
+        'sidebar',
+        'sidebarContent',
+        'sidebarResize',
+        'progress',
+        'savedFlash',
+        'replacePicker',
+        'replacePickerSearch',
+        'replacePickerList',
+        'replacePickerStatus',
+    ];
 
     static values = {
         areaId: Number,
         iframeUrl: String,
     };
+
+    /** Debounce window (ms) on the replace-picker search input. */
+    static REPLACE_PICKER_DEBOUNCE_MS = 250;
+    /** Confirm prompt shown before applying a destructive replace. */
+    static REPLACE_PICKER_CONFIRM_FALLBACK =
+        'Are you sure you want to overwrite the current content with the selected one?';
 
     static SIDEBAR_WIDTH_KEY = 'cb-builder.sidebarWidth';
     static SIDEBAR_MIN_WIDTH = 280;
@@ -539,6 +556,149 @@ export default class extends Controller {
             // CSS transitions both have time to complete.
             setTimeout(() => { el.hidden = true; }, 250);
         }, 1500);
+    }
+
+    // ---------- Replace-content picker ----------
+
+    /**
+     * Action: opens the "insert content from an existing area" picker.
+     * First open loads the default (unfiltered) candidate list; subsequent
+     * opens re-use the cached list so the user can hop in and out without
+     * the network flashing.
+     */
+    async openReplacePicker(event) {
+        if (event) event.preventDefault();
+        if (!this.hasReplacePickerTarget) return;
+        this.replacePickerTarget.hidden = false;
+        const trigger = this.element.querySelector('.cb-shell__replace');
+        if (trigger) trigger.setAttribute('aria-expanded', 'true');
+
+        if (this.hasReplacePickerSearchTarget) {
+            // Don't clobber the user's last query when reopening — preserve
+            // the filter so iterative searches feel continuous.
+            this.replacePickerSearchTarget.focus({ preventScroll: true });
+        }
+
+        // First open OR a stale list (after a successful replace we reset
+        // the cache so the next open shows fresh candidates).
+        if (!this._replacePickerLoaded) {
+            await this._loadReplaceCandidates('');
+            this._replacePickerLoaded = true;
+        }
+    }
+
+    /** Action: × button on the picker header. */
+    closeReplacePicker(event) {
+        if (event) event.preventDefault();
+        if (!this.hasReplacePickerTarget) return;
+        this.replacePickerTarget.hidden = true;
+        const trigger = this.element.querySelector('.cb-shell__replace');
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    /** Action: input event on the picker's search field (debounced). */
+    onReplacePickerSearch(event) {
+        const value = event?.target?.value ?? '';
+        clearTimeout(this._replacePickerSearchTimer);
+        this._replacePickerSearchTimer = setTimeout(() => {
+            this._loadReplaceCandidates(value);
+        }, this.constructor.REPLACE_PICKER_DEBOUNCE_MS);
+    }
+
+    async _loadReplaceCandidates(filter) {
+        if (!this.hasReplacePickerListTarget) return;
+        this._setReplacePickerStatus(this._t('cb.builder.replace.loading', 'Loading…'));
+        this.replacePickerListTarget.innerHTML = '';
+
+        const params = new URLSearchParams();
+        if (filter) params.set('q', filter);
+        const qs = params.toString();
+        const url = `/_content-blocks/area/${this.areaIdValue}/replace-candidates${qs ? `?${qs}` : ''}`;
+
+        let payload;
+        try {
+            const response = await fetch(url, {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+            });
+            if (!response.ok) throw new Error(`status ${response.status}`);
+            payload = await response.json();
+        } catch (e) {
+            console.error('[cb-builder] replace candidates failed', e);
+            this._setReplacePickerStatus(this._t('cb.builder.replace.error', 'Failed to load.'));
+            return;
+        }
+
+        this._renderReplaceCandidates(payload, filter);
+    }
+
+    _renderReplaceCandidates(payload, filter) {
+        const items = Array.isArray(payload?.items) ? payload.items : [];
+        const list = this.replacePickerListTarget;
+        list.innerHTML = '';
+
+        if (items.length === 0) {
+            this._setReplacePickerStatus(filter
+                ? this._t('cb.builder.replace.empty_filtered', 'No results for this search')
+                : this._t('cb.builder.replace.empty', 'No content available'),
+            );
+            return;
+        }
+        this._setReplacePickerStatus('');
+
+        for (const item of items) {
+            const li = document.createElement('li');
+            li.className = 'cb-replace-picker__item';
+            li.setAttribute('role', 'option');
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'cb-replace-picker__item-btn';
+            btn.dataset.cbReplaceSourceId = String(item.id ?? '');
+            btn.textContent = item.label ?? `#${item.id}`;
+            btn.addEventListener('click', () => this._confirmAndReplace(item));
+            li.appendChild(btn);
+            list.appendChild(li);
+        }
+    }
+
+    async _confirmAndReplace(item) {
+        const confirmText = this._t(
+            'cb.builder.replace.confirm',
+            this.constructor.REPLACE_PICKER_CONFIRM_FALLBACK,
+        );
+        if (!window.confirm(confirmText)) return;
+
+        const result = await this._jsonRequest(
+            'POST',
+            `/_content-blocks/area/${this.areaIdValue}/replace-with/${item.id}`,
+        );
+        if (result === null) return;
+        // Close + invalidate the picker cache so the next open re-fetches
+        // (the target area's updatedAt just changed, and the user may want
+        // to replace again from the same source — sticky cache would lie).
+        this._replacePickerLoaded = false;
+        this.closeReplacePicker();
+        this._applyDraftState(result.hasUnpublishedChanges ?? true);
+        this.reload();
+    }
+
+    _setReplacePickerStatus(text) {
+        if (!this.hasReplacePickerStatusTarget) return;
+        this.replacePickerStatusTarget.textContent = text;
+    }
+
+    /**
+     * Tiny translation lookup. The host's translation strings are not
+     * available client-side; we read precomputed values from data-*
+     * attributes on the picker root if present, otherwise fall back to the
+     * English default. This keeps the bundle dependency-free while still
+     * letting hosts override the wording.
+     */
+    _t(key, fallback) {
+        if (!this.hasReplacePickerTarget) return fallback;
+        const attr = 'data-i18n-' + key.replace(/[._]/g, '-');
+        const value = this.replacePickerTarget.getAttribute(attr);
+        return value && value.length > 0 ? value : fallback;
     }
 
     // ---------- Sidebar resize ----------

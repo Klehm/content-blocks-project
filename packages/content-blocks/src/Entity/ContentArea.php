@@ -17,6 +17,15 @@ class ContentArea
     #[ORM\Column]
     private ?int $id = null;
 
+    /**
+     * Touched by the Doctrine onFlush listener whenever any Section / Column /
+     * Block in this area is created, updated, or removed. Nullable for
+     * back-compat with rows created before the column was added; new rows get
+     * a non-null value the first time the listener runs.
+     */
+    #[ORM\Column(name: 'updated_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $updatedAt = null;
+
     /** @var Collection<int, Section> */
     #[ORM\OneToMany(mappedBy: 'contentArea', targetEntity: Section::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['position' => 'ASC'])]
@@ -30,6 +39,18 @@ class ContentArea
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(?\DateTimeImmutable $updatedAt): self
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
     }
 
     /** @return Collection<int, Section> */

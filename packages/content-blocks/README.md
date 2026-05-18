@@ -211,6 +211,62 @@ final class PageContentAreaUrlResolver implements ContentAreaUrlResolverInterfac
 }
 ```
 
+### `ContentAreaProviderInterface` — replace-content picker (optional)
+
+The builder's **Insert content** button (topbar) lets editors overwrite the current area with the content of any other `ContentArea` in the system. The picker is populated by a host-provided query so users see meaningful labels (page title, slug, last edit…) instead of opaque ids.
+
+A default implementation ships with the bundle: it searches by id and labels rows as `#<id> — <updatedAt>`. It works out of the box but is rarely the right UX — implement the interface and alias it in your `services.yaml` to surface what your editors actually search on:
+
+```yaml
+# config/services.yaml
+ContentBlocks\Replace\ContentAreaProviderInterface:
+    class: App\ContentBlocks\PageContentAreaProvider
+```
+
+```php
+use App\Entity\Page;
+use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Replace\ContentAreaProviderInterface;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\QueryBuilder;
+
+final class PageContentAreaProvider implements ContentAreaProviderInterface
+{
+    public function __construct(private readonly EntityManagerInterface $em) {}
+
+    public function createQueryBuilder(?string $filter): QueryBuilder
+    {
+        // Join through the host's owning entity (Page) so the picker can
+        // search on title + return only areas that have a real Page parent.
+        $qb = $this->em->createQueryBuilder()
+            ->select('a')
+            ->from(ContentArea::class, 'a')
+            ->innerJoin(Page::class, 'p', 'WITH', 'p.contentArea = a');
+
+        if ($filter !== null && $filter !== '') {
+            $qb->andWhere('p.title LIKE :q')->setParameter('q', '%' . $filter . '%');
+        }
+
+        return $qb;
+    }
+
+    public function getLabel(ContentArea $area): string
+    {
+        $page = $this->em->getRepository(Page::class)->findOneBy(['contentArea' => $area]);
+        if (!$page) {
+            return '#' . $area->getId();
+        }
+        $when = $area->getUpdatedAt()?->format('Y-m-d') ?? '—';
+
+        return sprintf('%s — %s', $page->getTitle(), $when);
+    }
+}
+```
+
+The controller appends ordering (`updatedAt DESC` then `id DESC`) and pagination (10 items + 1 sentinel for `hasMore`); the target area is always excluded from results. `ContentArea::updatedAt` is touched by a Doctrine `onFlush` listener whenever any descendant Section / Column / Block changes — your provider does not need to maintain it.
+
+The replace itself writes to the **draft** state on the target: existing sections are soft-deleted and clones of the source's sections are inserted. The user then publishes (commits the swap) or discards (restores the original content).
+
 ### File storage (optional, only if your blocks accept uploads)
 
 ```yaml

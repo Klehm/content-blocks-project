@@ -3,14 +3,18 @@
 declare(strict_types=1);
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Doctrine\ContentAreaTouchListener;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Preview\NullContentAreaUrlResolver;
+use ContentBlocks\Replace\ContentAreaProviderInterface;
+use ContentBlocks\Replace\DefaultContentAreaProvider;
 use ContentBlocks\Section\BuiltInSectionDecorator;
 use ContentBlocks\Section\SectionDecoratorCollection;
 use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\DenyAllAccessChecker;
+use ContentBlocks\Service\SectionCloner;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -41,6 +45,21 @@ return static function (ContainerConfigurator $container): void {
     $services->set(\ContentBlocks\Rendering\BlockRenderer::class);
 
     $services->set(\ContentBlocks\Service\ContentAreaPublisher::class);
+
+    $services->set(SectionCloner::class);
+
+    // Replace flow: default provider is usable out of the box; hosts
+    // override by aliasing ContentAreaProviderInterface to their own
+    // implementation in services.yaml.
+    $services->set(DefaultContentAreaProvider::class);
+    $services->alias(ContentAreaProviderInterface::class, DefaultContentAreaProvider::class);
+
+    // Doctrine onFlush listener that bubbles child writes up to
+    // ContentArea::updatedAt. Tagged explicitly so the package doesn't
+    // depend on DoctrineBundle's #[AsDoctrineListener] attribute at the
+    // composer level (DoctrineBundle is a host concern).
+    $services->set(ContentAreaTouchListener::class)
+        ->tag('doctrine.event_listener', ['event' => 'onFlush']);
 
     // ---------- Section settings extension hooks ----------
 

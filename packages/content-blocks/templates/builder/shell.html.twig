@@ -16,6 +16,16 @@
                     aria-label="{{ 'cb.builder.close'|trans({}, 'content_blocks') }}">
                 ×
             </button>
+            <button type="button"
+                    class="cb-shell__replace"
+                    data-action="cb-builder#openReplacePicker"
+                    aria-haspopup="dialog"
+                    aria-expanded="false"
+                    title="{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}"
+                    aria-label="{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}">
+                <span class="cb-shell__btn-icon" aria-hidden="true">⇆</span>
+                <span class="cb-shell__btn-label">{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}</span>
+            </button>
         </div>
 
         <div class="cb-shell__topbar-center">
@@ -56,6 +66,42 @@
             </button>
         </div>
     </header>
+
+    {# Replace-content picker (overlay panel rendered inside the shell). Stays
+       hidden until the user clicks the Insert content button in the topbar. #}
+    <div class="cb-replace-picker"
+         data-cb-builder-target="replacePicker"
+         role="dialog"
+         aria-label="{{ 'cb.builder.replace.title'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-replace-loading="{{ 'cb.builder.replace.loading'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-replace-empty="{{ 'cb.builder.replace.empty'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-replace-empty-filtered="{{ 'cb.builder.replace.empty_filtered'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-replace-error="{{ 'cb.builder.replace.error'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-replace-confirm="{{ 'cb.builder.replace.confirm'|trans({}, 'content_blocks') }}"
+         hidden>
+        <header class="cb-replace-picker__header">
+            <h3 class="cb-replace-picker__title">{{ 'cb.builder.replace.title'|trans({}, 'content_blocks') }}</h3>
+            <button type="button"
+                    class="cb-replace-picker__close"
+                    data-action="cb-builder#closeReplacePicker"
+                    aria-label="{{ 'cb.builder.close'|trans({}, 'content_blocks') }}">×</button>
+        </header>
+        <div class="cb-replace-picker__body">
+            <input type="search"
+                   class="cb-replace-picker__search form-control"
+                   data-cb-builder-target="replacePickerSearch"
+                   data-action="input->cb-builder#onReplacePickerSearch"
+                   placeholder="{{ 'cb.builder.replace.search_placeholder'|trans({}, 'content_blocks') }}"
+                   autocomplete="off">
+            <ul class="cb-replace-picker__list"
+                data-cb-builder-target="replacePickerList"
+                role="listbox"></ul>
+            <p class="cb-replace-picker__status"
+               data-cb-builder-target="replacePickerStatus"
+               role="status"
+               aria-live="polite"></p>
+        </div>
+    </div>
 
     <main class="cb-shell__main">
         <iframe data-cb-builder-target="iframe"

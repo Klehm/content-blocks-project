@@ -41,3 +41,13 @@ cb:
         confirm_close: "Vous avez des modifications de bloc non enregistrées. Quitter sans enregistrer ?"
         saved: "Enregistré"
         pending: "Enregistrez d'abord cette entité pour commencer à ajouter du contenu."
+        replace:
+            open: "Insérer du contenu"
+            title: "Remplacer par un autre contenu"
+            search_placeholder: "Rechercher…"
+            empty: "Aucun contenu disponible"
+            empty_filtered: "Aucun résultat pour cette recherche"
+            loading: "Chargement…"
+            error: "Impossible de charger les contenus disponibles."
+            confirm: "Êtes-vous sûr de vouloir écraser le contenu avec celui sélectionné ?"
+            more: "Charger plus"

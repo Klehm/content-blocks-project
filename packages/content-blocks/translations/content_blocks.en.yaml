@@ -41,3 +41,13 @@ cb:
         confirm_close: "You have unsaved block edits. Discard and close the editor?"
         saved: "Saved"
         pending: "Save this entity first to start adding content."
+        replace:
+            open: "Insert content"
+            title: "Replace with another content"
+            search_placeholder: "Search…"
+            empty: "No content available"
+            empty_filtered: "No results for this search"
+            loading: "Loading…"
+            error: "Failed to load available content."
+            confirm: "Are you sure you want to overwrite the current content with the selected one?"
+            more: "Load more"

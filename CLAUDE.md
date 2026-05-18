@@ -170,7 +170,22 @@ Two interfaces have no useful default and **must** be wired by the host:
 - `ContentBlocks\Security\AccessCheckerInterface` — authorization (IDOR protection)
 - `ContentBlocks\Preview\ContentAreaUrlResolverInterface` — maps a `ContentArea` to the public URL of its owner (for the iframe preview); the default `NullContentAreaUrlResolver` throws
 
+## Optional host services
+
+- `ContentBlocks\Replace\ContentAreaProviderInterface` — drives the "Insert content" picker (topbar). Default impl filters by id and labels rows as `#<id> — <updatedAt>`; override to search on title/slug and return meaningful labels via a join through the host's owning entity.
+
 See [packages/content-blocks/README.md](packages/content-blocks/README.md) for full examples.
+
+## Replace-content flow
+
+Editors can overwrite an area's content with another area's content via the topbar "Insert content" button (`cb-shell__replace`). Backend endpoints:
+
+- `GET /_content-blocks/area/{id}/replace-candidates?q=&page=` — filtered/paginated list (10 per page + 1 sentinel for `hasMore`), excludes the target area itself. Labels come from `ContentAreaProviderInterface::getLabel()`.
+- `POST /_content-blocks/area/{id}/replace-with/{sourceId}` — soft-deletes the target's existing sections and inserts deep clones (`SectionCloner`) of the source's non-deleted sections in `previewPosition` order. Writes to draft only — publish commits the swap, discard reverts.
+
+`ContentArea::updatedAt` is auto-touched by `ContentBlocks\Doctrine\ContentAreaTouchListener` (Doctrine `onFlush`) whenever any descendant Section / Column / Block is inserted, updated, or deleted. The default provider uses it for "latest-first" ordering.
+
+When upgrading existing projects, add a migration for `cb_content_area.updated_at` (see [apps/content-blocks-sandbox/migrations/Version20260518120000.php](apps/content-blocks-sandbox/migrations/Version20260518120000.php) for the SQL).
 
 ## Security
 
