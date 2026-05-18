@@ -5,6 +5,17 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.6] - 2026-05-18
+
+### Changed
+
+- **Sidebar tabs replaced by two stacked groups.** The section-settings and block-edit sidebars no longer hide their fields behind General / Styling tabs — both groups are now rendered in sequence under small uppercase labels (`.cb-sidebar__group-title`) and the sidebar content scrolls when they overflow. The `cb-sidebar-tabs` Stimulus controller is removed (CSS / package manifests / `controllers.json` entries cleaned up). **Action required for upgrading hosts:** drop the `cb-sidebar-tabs` line from `assets/controllers.json`.
+- **Section settings: `maxWidth` field hidden unless `widthMode = centered`.** The initial visibility is driven by Twig (`hidden` attribute set server-side based on the form's current `widthMode`) so there's no flash of misplaced field on first paint; `cb-section-settings-form` keeps it in sync with the live radio value via a `change` listener on the form.
+
+### Fixed
+
+- **No-op autosaves and the iframe reloads they triggered are now suppressed.** `cb-autosave` snapshots the form's serialized state (`new URLSearchParams(new FormData(form))`, sorted) at connect and after every save, and skips the trigger when nothing has changed since the last snapshot. A typical edit no longer produces two POSTs (one from the input-debounce, one from the subsequent `focusout` / `change`) followed by two iframe reloads — the second event is deduped away.
+
 ## [0.1.0-alpha.5] - 2026-05-18
 
 ### Added
