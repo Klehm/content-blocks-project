@@ -17,14 +17,9 @@ final class ContentBlocksKitBundle extends AbstractBundle
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        // Register @ContentBlocksKit Twig namespace for block templates
-        $builder->prependExtensionConfig('twig', [
-            'paths' => [
-                $this->getPath() . '/templates' => 'ContentBlocksKit',
-            ],
-        ]);
-
-        // Register assets path so AssetMapper + StimulusBundle can discover controllers
+        // Register assets path so AssetMapper + StimulusBundle can discover controllers.
+        // The @ContentBlocksKit Twig namespace is auto-detected by AbstractBundle from <BundleRoot>/templates/,
+        // which also gives `templates/bundles/ContentBlocksKitBundle/` priority for host overrides.
         $builder->prependExtensionConfig('framework', [
             'asset_mapper' => [
                 'paths' => [
