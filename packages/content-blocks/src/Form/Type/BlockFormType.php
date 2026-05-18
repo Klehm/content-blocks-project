@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Form\Type;
 
 use ContentBlocks\BlockType\BlockTypeInterface;
+use ContentBlocks\Form\Type\Styling\StylingType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -23,6 +24,14 @@ final class BlockFormType extends AbstractType
         \assert($blockType instanceof BlockTypeInterface);
 
         $blockType->buildForm($builder, $options['block_data']);
+
+        // Styling sub-form: rendered under a "Styling" tab in the block
+        // sidebar (mirror of SectionSettingsType). Data lands under the
+        // `styling` key of Block.data — block types' getDefaultData()
+        // doesn't need to declare it.
+        $builder->add('styling', StylingType::class, [
+            'include_max_width' => true,
+        ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

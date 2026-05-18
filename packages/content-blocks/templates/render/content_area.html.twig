@@ -2,6 +2,7 @@
 {# @var mode \ContentBlocks\Rendering\RenderMode #}
 {% set isPreview = mode.value == 'preview' %}
 <link rel="stylesheet" href="{{ path('content_blocks_asset_layout') }}">
+<link rel="stylesheet" href="{{ path('content_blocks_asset_styling') }}">
 {% if isPreview %}
     <link rel="stylesheet" href="{{ path('content_blocks_asset_builder') }}">
 {% endif %}

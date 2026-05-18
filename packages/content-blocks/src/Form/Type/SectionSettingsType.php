@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Form\Type;
 
+use ContentBlocks\Form\Type\Styling\StylingType;
 use ContentBlocks\Section\SectionStyleRegistry;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -72,6 +73,14 @@ final class SectionSettingsType extends AbstractType
                 'label' => 'cb.section.settings.style',
             ]);
         }
+
+        // Styling sub-form: rendered under the "Styling" sidebar tab.
+        // Extensions targeting SectionSettingsType land in "General"; to
+        // inject fields into "Styling" extend StylingType instead.
+        $builder->add('styling', StylingType::class, [
+            'include_min_height' => true,
+            'include_alignment' => true,
+        ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

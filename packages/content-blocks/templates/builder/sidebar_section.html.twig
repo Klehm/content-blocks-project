@@ -1,14 +1,69 @@
 {# @var form Symfony\Component\Form\FormView #}
 {# @var sectionId int #}
 <div class="cb-sidebar__section-settings"
-     data-controller="cb-section-settings-form"
+     data-controller="cb-section-settings-form cb-sidebar-tabs"
      data-cb-section-settings-form-section-id-value="{{ sectionId }}">
 
     <h3 class="cb-sidebar__title">{{ 'cb.section.settings.title'|trans({}, 'content_blocks') }}</h3>
 
-    {% form_theme form 'bootstrap_5_layout.html.twig' %}
+    {# Single form_theme call so both themes actually stack (each
+       form_theme directive replaces the previous local stack, see the
+       comment in components/Block.html.twig for the full rationale). #}
+    {% form_theme form with [
+        'bootstrap_5_layout.html.twig',
+        '@ContentBlocks/form/styling_widgets.html.twig',
+    ] %}
     {{ form_start(form, { 'attr': { 'data-cb-section-settings-form-target': 'form' } }) }}
-        {{ form_widget(form) }}
+
+        {# Two tabs: "General" (everything but the styling sub-form) and
+           "Styling" (the styling sub-form). Tab switching is handled by
+           the cb-sidebar-tabs Stimulus controller — inline <script> tags
+           would not run because cb-builder injects this fragment via
+           innerHTML, which strips them. #}
+        <ul class="nav nav-tabs cb-sidebar__tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button type="button"
+                        class="nav-link active"
+                        data-cb-sidebar-tabs-target="tab"
+                        data-action="cb-sidebar-tabs#select"
+                        data-cb-tab="general"
+                        role="tab"
+                        aria-selected="true">
+                    {{ 'cb.section.settings.tab.general'|trans({}, 'content_blocks') }}
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button type="button"
+                        class="nav-link"
+                        data-cb-sidebar-tabs-target="tab"
+                        data-action="cb-sidebar-tabs#select"
+                        data-cb-tab="styling"
+                        role="tab"
+                        aria-selected="false">
+                    {{ 'cb.section.settings.tab.styling'|trans({}, 'content_blocks') }}
+                </button>
+            </li>
+        </ul>
+
+        <div class="cb-sidebar__tab-panels">
+            <div class="cb-sidebar__tab-panel"
+                 data-cb-sidebar-tabs-target="panel"
+                 data-cb-tab-panel="general"
+                 role="tabpanel">
+                {% for child in form %}
+                    {% if child.vars.name != 'styling' %}
+                        {{ form_row(child) }}
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <div class="cb-sidebar__tab-panel"
+                 data-cb-sidebar-tabs-target="panel"
+                 data-cb-tab-panel="styling"
+                 role="tabpanel"
+                 hidden>
+                {{ form_row(form.styling) }}
+            </div>
+        </div>
 
         {# Hidden submit button kept so the form can still be triggered the
            normal way (Enter key, or the cb-section-settings-form#_onSubmit

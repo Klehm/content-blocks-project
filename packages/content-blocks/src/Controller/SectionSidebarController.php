@@ -69,9 +69,11 @@ final class SectionSidebarController
         // Initial form data: defaults backfill any keys the section's
         // current settings don't already have. This is what gives widgets
         // without an "empty" state (notably <input type="color">) a sane
-        // starting value.
+        // starting value. Recursive merge so nested defaults (e.g.
+        // ['styling' => ['backgroundColor' => '#ffffff']]) backfill into
+        // the existing styling sub-form rather than replacing it.
         $current = $section->getEffectiveSettings(preferDraft: true);
-        $initial = array_replace($this->settingsDefaults->get(), $current);
+        $initial = array_replace_recursive($this->settingsDefaults->get(), $current);
         $form = $this->formFactory->create(SectionSettingsType::class, $initial, [
             'action' => '/_content-blocks/section/' . $id . '/settings',
             'method' => 'POST',

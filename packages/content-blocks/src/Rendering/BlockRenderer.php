@@ -42,6 +42,7 @@ final class BlockRenderer
         private readonly SectionDecoratorCollection $sectionDecorators,
         private readonly SectionSettingsDefaults $settingsDefaults,
         private readonly TranslatorInterface $translator,
+        private readonly \ContentBlocks\Block\BlockDecoratorCollection $blockDecorators,
     ) {
     }
 
@@ -181,12 +182,17 @@ final class BlockRenderer
                 ? ($block->getDraftData() ?? $block->getPublishedData() ?? [])
                 : ($block->getPublishedData() ?? []);
 
+            $decoration = $this->blockDecorators->decorate($data, $block);
+
             $out[] = [
                 'id' => $block->getId(),
                 'type' => $block->getType(),
                 'data' => $data,
                 'viewTemplate' => $blockType?->getViewTemplate(),
                 'deleted' => $parentDeleted || $block->isDeleted(),
+                'extraClasses' => $decoration->classString(),
+                'inlineStyle' => $decoration->styleString(),
+                'extraAttributes' => $decoration->attributes,
             ];
         }
 

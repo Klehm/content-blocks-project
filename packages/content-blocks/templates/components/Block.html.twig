@@ -1,15 +1,79 @@
 <div{{ attributes }}>
-    <div class="cb-block__edit-form" data-controller="cb-block-edit-keys">
-        {# Builder UI is Bootstrap 5; apply the theme inside the component so it
-           doesn't depend on the host app's global twig.form_themes config. #}
-        {% form_theme form 'bootstrap_5_layout.html.twig' %}
-        {% set formTheme = this.blockType ? this.blockType.formTheme : null %}
-        {% if formTheme %}
-            {% form_theme form formTheme %}
+    <div class="cb-block__edit-form"
+         data-controller="cb-block-edit-keys cb-sidebar-tabs">
+        {# Builder UI is Bootstrap 5; apply the themes inside the component so
+           the form rendering doesn't depend on the host app's global
+           twig.form_themes config.
+
+           Important: each `{% form_theme %}` call REPLACES the local theme
+           stack on the FormView — it does not append. We pass all themes
+           in a single call so they actually stack. Resolution order is
+           reverse of the array (last entry checked first):
+
+             1. block-author theme (highest) — overrides block's own fields
+             2. styling_widgets             — renders the styling sub-form
+             3. bootstrap_5_layout (lowest) — generic fallback
+
+           A block-author theme defining cb_*_widget blocks would override
+           the styling widgets too, which is the desired escape hatch. #}
+        {% set _themes = [
+            'bootstrap_5_layout.html.twig',
+            '@ContentBlocks/form/styling_widgets.html.twig',
+        ] %}
+        {% if this.blockType and this.blockType.formTheme %}
+            {% set _themes = _themes|merge([this.blockType.formTheme]) %}
         {% endif %}
+        {% form_theme form with _themes %}
 
         {{ form_start(form) }}
-        {{ form_widget(form) }}
+
+            {# Same two-tab pattern as section settings — see
+               sidebar_section.html.twig for the rationale on using a
+               Stimulus controller rather than inline <script>. #}
+            <ul class="nav nav-tabs cb-sidebar__tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button type="button"
+                            class="nav-link active"
+                            data-cb-sidebar-tabs-target="tab"
+                            data-action="cb-sidebar-tabs#select"
+                            data-cb-tab="general"
+                            role="tab"
+                            aria-selected="true">
+                        {{ 'cb.section.settings.tab.general'|trans({}, 'content_blocks') }}
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button type="button"
+                            class="nav-link"
+                            data-cb-sidebar-tabs-target="tab"
+                            data-action="cb-sidebar-tabs#select"
+                            data-cb-tab="styling"
+                            role="tab"
+                            aria-selected="false">
+                        {{ 'cb.section.settings.tab.styling'|trans({}, 'content_blocks') }}
+                    </button>
+                </li>
+            </ul>
+
+            <div class="cb-sidebar__tab-panels">
+                <div class="cb-sidebar__tab-panel"
+                     data-cb-sidebar-tabs-target="panel"
+                     data-cb-tab-panel="general"
+                     role="tabpanel">
+                    {% for child in form %}
+                        {% if child.vars.name != 'styling' %}
+                            {{ form_row(child) }}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="cb-sidebar__tab-panel"
+                     data-cb-sidebar-tabs-target="panel"
+                     data-cb-tab-panel="styling"
+                     role="tabpanel"
+                     hidden>
+                    {{ form_row(form.styling) }}
+                </div>
+            </div>
         {{ form_end(form) }}
 
         {# The Save button is rendered in the sidebar header (cb-builder#saveSidebar

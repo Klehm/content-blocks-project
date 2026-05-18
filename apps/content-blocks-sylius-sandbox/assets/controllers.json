@@ -24,7 +24,10 @@
             "cb-builder-launcher": { "enabled": true, "fetch": "eager" },
             "cb-builder": { "enabled": true, "fetch": "eager" },
             "cb-block-edit-keys": { "enabled": true, "fetch": "eager" },
-            "cb-section-settings-form": { "enabled": true, "fetch": "eager" }
+            "cb-section-settings-form": { "enabled": true, "fetch": "eager" },
+            "cb-sidebar-tabs": { "enabled": true, "fetch": "eager" },
+            "cb-spacing-link": { "enabled": true, "fetch": "eager" },
+            "cb-viewport-tabs": { "enabled": true, "fetch": "eager" }
         },
         "@klehm/content-blocks-kit": {
             "cb-file-upload": { "enabled": true, "fetch": "eager" }

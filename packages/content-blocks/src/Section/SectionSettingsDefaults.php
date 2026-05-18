@@ -34,7 +34,9 @@ final class SectionSettingsDefaults
     {
         $out = [];
         foreach ($this->providers as $provider) {
-            $out = array_replace($out, $provider->getDefaults());
+            // Recursive merge so providers can declare nested defaults
+            // (e.g. ['styling' => ['backgroundColor' => '#ffffff']]).
+            $out = array_replace_recursive($out, $provider->getDefaults());
         }
 
         return $out;
@@ -46,12 +48,36 @@ final class SectionSettingsDefaults
      */
     public function withoutDefaults(array $settings): array
     {
-        $defaults = $this->get();
+        return $this->stripDefaults($settings, $this->get());
+    }
+
+    /**
+     * Recursively strip values equal to the default. When a nested array
+     * becomes empty after stripping, the key itself is removed too — the
+     * rendered markup only carries the user's actual overrides.
+     *
+     * @param array<string, mixed> $settings
+     * @param array<string, mixed> $defaults
+     * @return array<string, mixed>
+     */
+    private function stripDefaults(array $settings, array $defaults): array
+    {
         $out = [];
         foreach ($settings as $key => $value) {
-            if (\array_key_exists($key, $defaults) && $defaults[$key] === $value) {
+            $default = $defaults[$key] ?? null;
+
+            if (\is_array($value) && \is_array($default)) {
+                $stripped = $this->stripDefaults($value, $default);
+                if ($stripped !== []) {
+                    $out[$key] = $stripped;
+                }
                 continue;
             }
+
+            if (\array_key_exists($key, $defaults) && $default === $value) {
+                continue;
+            }
+
             $out[$key] = $value;
         }
 

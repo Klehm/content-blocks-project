@@ -60,7 +60,10 @@ Add the following to `assets/controllers.json`:
             },
             "cb-builder":               { "enabled": true, "fetch": "eager" },
             "cb-block-edit-keys":       { "enabled": true, "fetch": "eager" },
-            "cb-section-settings-form": { "enabled": true, "fetch": "eager" }
+            "cb-section-settings-form": { "enabled": true, "fetch": "eager" },
+            "cb-sidebar-tabs":          { "enabled": true, "fetch": "eager" },
+            "cb-spacing-link":          { "enabled": true, "fetch": "eager" },
+            "cb-viewport-tabs":         { "enabled": true, "fetch": "eager" }
         },
         "@klehm/content-blocks-kit": {
             "cb-file-upload": { "enabled": true, "fetch": "eager" }
@@ -78,9 +81,10 @@ The `autoimport` block on `cb-builder-launcher` pulls in `admin.css` (styles for
 
 #### Public assets loaded inside the preview iframe
 
-The bundle exposes three routes under `/_content-blocks/public/*` that serve the styles and the overlay JS injected into the front-end iframe:
+The bundle exposes four routes under `/_content-blocks/public/*` that serve the styles and the overlay JS injected into the front-end iframe:
 
 - `/_content-blocks/public/layout` → `text/css` (PUBLIC + PREVIEW)
+- `/_content-blocks/public/styling` → `text/css` (PUBLIC + PREVIEW)
 - `/_content-blocks/public/builder` → `text/css` (PREVIEW only)
 - `/_content-blocks/public/preview-overlay` → `application/javascript` (PREVIEW only)
 
@@ -293,6 +297,54 @@ ContentBlocks\Storage\FileStorageInterface:
         $uploadDir: '%kernel.project_dir%/public/uploads/content-blocks'
         $publicPrefix: '/uploads/content-blocks'
 ```
+
+## Styling sections and blocks
+
+Each section's settings sidebar carries a **Styling** tab with padding, margin (per viewport), background color, min-height and alignment. Block edit forms carry the same tab with padding, margin, background color and max-width.
+
+These fields land in JSON under `settings.styling` for sections and `data.styling` for blocks. They are stored as-is — no DB migration; existing content keeps working untouched.
+
+At render time, two decorators (`StylingSectionDecorator`, `StylingBlockDecorator`) translate the values into **CSS custom properties** on the outer element, and a stylesheet shipped at `/_content-blocks/public/styling` maps those vars to real properties with `@media` rules for tablet (`max-width: 991px`) and mobile (`max-width: 575px`) — so per-viewport overrides actually work (inline `style` can't carry media queries).
+
+The fallback chain inside each `@media` block is: mobile → tablet → desktop → 0. A viewport you leave blank inherits the next-wider one.
+
+### Extending the Styling sub-form
+
+The `StylingType` form holds the styling fields. Register a Symfony `FormTypeExtension` against it to inject or override fields without forking — they will render inside the sidebar's **Styling** tab:
+
+```php
+use ContentBlocks\Form\Type\Styling\StylingType;
+use Symfony\Component\Form\AbstractTypeExtension;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\FormBuilderInterface;
+
+final class BrandPaletteExtension extends AbstractTypeExtension
+{
+    public static function getExtendedTypes(): iterable
+    {
+        return [StylingType::class];
+    }
+
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        // Re-adding an existing field overrides it — here we replace the
+        // raw HTML5 ColorType with a curated brand palette.
+        $builder->add('backgroundColor', ChoiceType::class, [
+            'required' => false,
+            'choices' => [
+                'Brand / Primary' => '#0a84ff',
+                'Brand / Accent' => '#ff375f',
+            ],
+        ]);
+    }
+}
+```
+
+See the sandbox at [apps/content-blocks-sandbox/src/Form/Extension/StylingPaletteExtension.php](apps/content-blocks-sandbox/src/Form/Extension/StylingPaletteExtension.php) for a runnable example.
+
+### Adding your own block decorator
+
+Implement `ContentBlocks\Block\BlockDecoratorInterface` (mirror of `SectionDecoratorInterface`). It is auto-tagged with `content_blocks.block_decorator` when `autoconfigure: true` is on, and called for every block being rendered. Return a `BlockDecoration` (classes / inline styles / attributes) — the bundle merges all decorators' output into the block's outer `<div>`.
 
 ## Security notes
 

@@ -1,0 +1,173 @@
+{# Form theme for the Styling form types. Auto-loaded inside the section
+   settings sidebar so we don't pollute the host's global form theme. #}
+
+{# Compound row for the whole Styling group — render children inline. #}
+{% block cb_styling_widget %}
+    <div class="cb-styling">
+        {% for child in form %}
+            {{ form_row(child) }}
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{# Length: value + unit select, side by side. #}
+{% block cb_length_widget %}
+    <div class="cb-length input-group input-group-sm">
+        {{ form_widget(form.value, { attr: { class: 'form-control' } }) }}
+        {{ form_widget(form.unit, { attr: { class: 'form-select cb-length__unit' } }) }}
+    </div>
+{% endblock %}
+
+{# Box-spacing: 4 inputs (T/R/B/L) + link toggle. #}
+{% block cb_box_spacing_widget %}
+    {% set sides = [
+        { key: 'top',    label: 'cb.styling.side.top' },
+        { key: 'right',  label: 'cb.styling.side.right' },
+        { key: 'bottom', label: 'cb.styling.side.bottom' },
+        { key: 'left',   label: 'cb.styling.side.left' },
+    ] %}
+    <div class="cb-box-spacing"
+         data-controller="cb-spacing-link"
+         data-cb-spacing-link-linked-value="{{ form.linked.vars.value ? 'true' : 'false' }}">
+        <div class="cb-box-spacing__sides">
+            {% for side in sides %}
+                <div class="cb-box-spacing__side">
+                    <label class="cb-box-spacing__label" for="{{ form[side.key].vars.id }}">
+                        {{ side.label|trans({}, 'content_blocks') }}
+                    </label>
+                    {{ form_widget(form[side.key], {
+                        attr: {
+                            class: 'form-control form-control-sm cb-box-spacing__input',
+                            'data-cb-spacing-link-target': 'input',
+                        }
+                    }) }}
+                </div>
+            {% endfor %}
+            <button type="button"
+                    class="cb-box-spacing__link"
+                    data-cb-spacing-link-target="toggle"
+                    data-action="cb-spacing-link#toggle"
+                    aria-pressed="{{ form.linked.vars.value ? 'true' : 'false' }}"
+                    title="{{ 'cb.styling.link_sides'|trans({}, 'content_blocks') }}">
+                <span aria-hidden="true">⛓</span>
+            </button>
+        </div>
+        <div class="cb-box-spacing__linked-state d-none">
+            {{ form_widget(form.linked) }}
+        </div>
+    </div>
+{% endblock %}
+
+{# Responsive box-spacing: D/T/M tabs above a single BoxSpacing view. #}
+{% block cb_responsive_box_spacing_row %}
+    <div class="cb-form-row mb-3">
+        <div class="cb-form-row__header d-flex align-items-center justify-content-between">
+            <label class="form-label mb-0">{{ form.vars.label|trans({}, 'content_blocks') }}</label>
+            <div class="cb-viewport-tabs" data-controller="cb-viewport-tabs" data-cb-viewport-tabs-active-value="d">
+                {# Match the topbar viewport switcher in builder/shell.html.twig. #}
+                {% set viewports = [
+                    { key: 'd', icon: '▭', label: 'cb.styling.viewport.desktop' },
+                    { key: 't', icon: '▢', label: 'cb.styling.viewport.tablet' },
+                    { key: 'm', icon: '▯', label: 'cb.styling.viewport.mobile' },
+                ] %}
+                {% for v in viewports %}
+                    <button type="button"
+                            class="cb-viewport-tabs__btn"
+                            data-cb-viewport-tabs-target="tab"
+                            data-viewport="{{ v.key }}"
+                            data-action="cb-viewport-tabs#select"
+                            aria-pressed="{{ v.key == 'd' ? 'true' : 'false' }}"
+                            title="{{ v.label|trans({}, 'content_blocks') }}">
+                        <span aria-hidden="true">{{ v.icon }}</span>
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+        {{ form_widget(form) }}
+    </div>
+{% endblock %}
+
+{% block cb_responsive_box_spacing_widget %}
+    <div class="cb-responsive-box-spacing">
+        {% for vp in ['d', 't', 'm'] %}
+            <div class="cb-responsive-box-spacing__viewport" data-viewport="{{ vp }}">
+                {{ form_widget(form[vp]) }}
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{# Alignment radios rendered as an icon button-group. The native radios
+   are visually hidden but kept in the DOM so they submit normally and
+   stay keyboard-accessible. CSS targets `:checked + .cb-align-btn__face`
+   to highlight the active option. #}
+
+{% macro align_icon(value, axis) %}
+    {# axis: "v" for verticalAlign, "h" for horizontalAlign.
+       Items rendered inside an implicit 16x16 frame; the bars stand in
+       for flex children stacked along the alignment axis. #}
+    {% if axis == 'v' %}
+        {% set y = { start: [2, 5, 8], center: [5, 8, 11], end: [8, 11, 14] } %}
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            {% for ty in y[value] %}
+                <rect x="2" y="{{ ty }}" width="12" height="2" rx="1" fill="currentColor" />
+            {% endfor %}
+        </svg>
+    {% else %}
+        {% set x = {
+            start: [1, 4, 7],
+            center: [4, 7, 10],
+            end: [7, 10, 13],
+            'space-between': [1, 7, 13],
+            'space-around': [2, 7, 12],
+        } %}
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            {% for tx in x[value] %}
+                <rect x="{{ tx }}" y="2" width="2" height="12" rx="1" fill="currentColor" />
+            {% endfor %}
+        </svg>
+    {% endif %}
+{% endmacro %}
+
+{% block cb_vertical_align_widget %}
+    {{ _self.render_align(form, 'v') }}
+{% endblock %}
+
+{% block cb_horizontal_align_widget %}
+    {{ _self.render_align(form, 'h') }}
+{% endblock %}
+
+{% macro render_align(form, axis) %}
+    {# Each choice is a label wrapping a raw radio input + its icon.
+       Going through form_widget(child) would invoke Bootstrap's radio
+       theme which adds its own .form-check wrapper and a visible label —
+       not what we want here. We render the input by hand so the only
+       visible element is the icon. #}
+    <div class="cb-align-group" role="radiogroup">
+        {% for child in form %}
+            {% set val = child.vars.value %}
+            {% set tip = child.vars.label is empty ? val : child.vars.label %}
+            <label class="cb-align-btn{% if child.vars.checked %} cb-align-btn--active{% endif %}"
+                   title="{{ tip|trans({}, 'content_blocks') }}">
+                <input type="radio"
+                       class="visually-hidden cb-align-btn__input"
+                       id="{{ child.vars.id }}"
+                       name="{{ child.vars.full_name }}"
+                       value="{{ val }}"
+                       {% if child.vars.checked %}checked="checked"{% endif %}
+                       {% if child.vars.required %}required="required"{% endif %}
+                       {% if child.vars.disabled %}disabled="disabled"{% endif %} />
+                <span class="cb-align-btn__face" aria-hidden="true">
+                    {% if val == '' %}
+                        {# Placeholder choice → small "auto" dash. #}
+                        <svg viewBox="0 0 16 16" width="16" height="16">
+                            <rect x="3" y="7" width="10" height="2" rx="1" fill="currentColor" opacity=".5" />
+                        </svg>
+                    {% else %}
+                        {{ _self.align_icon(val, axis) }}
+                    {% endif %}
+                </span>
+            </label>
+        {% endfor %}
+    </div>
+{% endmacro %}

@@ -22,8 +22,9 @@ use Symfony\Component\Routing\Attribute\Route;
  * before Symfony's router can pick them up. Content-Type headers cover
  * the actual MIME negotiation.
  *
- * Three assets:
+ * Four assets:
  *  - /public/layout           → text/css     (PUBLIC + PREVIEW)
+ *  - /public/styling          → text/css     (PUBLIC + PREVIEW)
  *  - /public/builder          → text/css     (PREVIEW only)
  *  - /public/preview-overlay  → application/javascript (PREVIEW only)
  */
@@ -39,6 +40,16 @@ final class AssetController
     public function layoutCss(): Response
     {
         return $this->asset('/styles/layout.css', 'text/css; charset=UTF-8');
+    }
+
+    #[Route(
+        '/_content-blocks/public/styling',
+        name: 'content_blocks_asset_styling',
+        methods: ['GET'],
+    )]
+    public function stylingCss(): Response
+    {
+        return $this->asset('/styles/styling.css', 'text/css; charset=UTF-8');
     }
 
     #[Route(

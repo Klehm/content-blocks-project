@@ -68,6 +68,66 @@ final class SectionSettingsDefaultsTest extends TestCase
         $this->assertSame([], $defaults->withoutDefaults([]));
     }
 
+    public function testGetRecursivelyMergesNestedDefaults(): void
+    {
+        $defaults = new SectionSettingsDefaults([
+            $this->provider(['styling' => ['backgroundColor' => '#ffffff', 'minHeight' => null]]),
+            $this->provider(['styling' => ['minHeight' => ['value' => 0, 'unit' => 'px']]]),
+        ]);
+
+        // Recursive merge: the second provider's `styling` doesn't wipe
+        // out the first's backgroundColor; the minHeight key is replaced.
+        $this->assertSame(
+            [
+                'styling' => [
+                    'backgroundColor' => '#ffffff',
+                    'minHeight' => ['value' => 0, 'unit' => 'px'],
+                ],
+            ],
+            $defaults->get(),
+        );
+    }
+
+    public function testWithoutDefaultsStripsNestedDefaultValues(): void
+    {
+        $defaults = new SectionSettingsDefaults([
+            $this->provider(['styling' => ['backgroundColor' => '#ffffff']]),
+        ]);
+
+        $stripped = $defaults->withoutDefaults([
+            'classes' => 'demo',
+            'styling' => [
+                'backgroundColor' => '#ffffff', // matches → stripped
+                'minHeight' => ['value' => 400, 'unit' => 'px'],
+            ],
+        ]);
+
+        $this->assertSame(
+            [
+                'classes' => 'demo',
+                'styling' => [
+                    'minHeight' => ['value' => 400, 'unit' => 'px'],
+                ],
+            ],
+            $stripped,
+        );
+    }
+
+    public function testWithoutDefaultsRemovesNestedArrayThatBecomesEmpty(): void
+    {
+        $defaults = new SectionSettingsDefaults([
+            $this->provider(['styling' => ['backgroundColor' => '#ffffff']]),
+        ]);
+
+        $stripped = $defaults->withoutDefaults([
+            'styling' => ['backgroundColor' => '#ffffff'],
+        ]);
+
+        // After stripping the only entry, the parent `styling` key is
+        // pruned too — the rendered markup carries no styling at all.
+        $this->assertSame([], $stripped);
+    }
+
     /** @param array<string, mixed> $values */
     private function provider(array $values): SectionSettingsDefaultsProviderInterface
     {

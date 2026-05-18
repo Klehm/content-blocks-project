@@ -27,6 +27,24 @@
                 "name": "cb-section-settings-form",
                 "fetch": "eager",
                 "enabled": true
+            },
+            "cb-sidebar-tabs": {
+                "main": "controllers/cb-sidebar-tabs_controller.js",
+                "name": "cb-sidebar-tabs",
+                "fetch": "eager",
+                "enabled": true
+            },
+            "cb-spacing-link": {
+                "main": "controllers/cb-spacing-link_controller.js",
+                "name": "cb-spacing-link",
+                "fetch": "eager",
+                "enabled": true
+            },
+            "cb-viewport-tabs": {
+                "main": "controllers/cb-viewport-tabs_controller.js",
+                "name": "cb-viewport-tabs",
+                "fetch": "eager",
+                "enabled": true
             }
         },
         "importmap": {

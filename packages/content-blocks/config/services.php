@@ -76,12 +76,32 @@ return static function (ContainerConfigurator $container): void {
     // override its output via tag priority if needed.
     $services->set(BuiltInSectionDecorator::class);
 
+    // Reads the `styling` sub-form from settings and emits CSS vars +
+    // classes consumed by styling.css.
+    $services->set(\ContentBlocks\Section\StylingSectionDecorator::class);
+
+    // Pre-populates the styling sub-form with sane defaults — notably
+    // `backgroundColor=#ffffff` to avoid the <input type="color"> black
+    // default. Tagged via SectionSettingsDefaultsProviderInterface auto-
+    // configuration.
+    $services->set(\ContentBlocks\Section\CoreStylingDefaults::class);
+
     $services->set(SectionDecoratorCollection::class)
         ->args([tagged_iterator('content_blocks.section_decorator')])
         ->public();
 
     $services->set(SectionSettingsDefaults::class)
         ->args([tagged_iterator('content_blocks.section_settings_defaults')])
+        ->public();
+
+    // ---------- Block decoration ----------
+
+    // Auto-configured: any class implementing BlockDecoratorInterface
+    // is tagged `content_blocks.block_decorator` (see ContentBlocksBundle).
+    $services->set(\ContentBlocks\Block\StylingBlockDecorator::class);
+
+    $services->set(\ContentBlocks\Block\BlockDecoratorCollection::class)
+        ->args([tagged_iterator('content_blocks.block_decorator')])
         ->public();
 
     $services->load('ContentBlocks\\Form\\', '../src/Form/');

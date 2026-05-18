@@ -564,3 +564,165 @@
 
 /* (Add-section UI now lives inside the iframe — see builder.css's
    .cb-add-section-tray.) */
+
+/* ---- Sidebar tabs (Général / Styling) ---- */
+
+.cb-sidebar__tabs {
+    margin-bottom: 1rem;
+}
+
+.cb-sidebar__tab-panel[hidden] {
+    display: none;
+}
+
+/* ---- Styling: responsive box spacing (padding / margin) ---- */
+
+.cb-form-row__header {
+    margin-bottom: .375rem;
+}
+
+.cb-viewport-tabs {
+    display: inline-flex;
+    gap: 2px;
+    background: #eceef2;
+    border-radius: 6px;
+    padding: 2px;
+}
+
+.cb-viewport-tabs__btn {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: #5b6478;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.cb-viewport-tabs__btn--active {
+    background: #fff;
+    color: #1f2330;
+    box-shadow: 0 1px 2px rgba(20, 22, 30, .12);
+}
+
+.cb-responsive-box-spacing__viewport[hidden] {
+    display: none;
+}
+
+/* ---- Styling: 4-side box spacing ---- */
+
+.cb-box-spacing {
+    border: 1px solid #e2e5ec;
+    border-radius: 6px;
+    padding: .5rem;
+    background: #fafbfd;
+}
+
+.cb-box-spacing__sides {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr) auto;
+    gap: .375rem;
+    align-items: end;
+}
+
+.cb-box-spacing__side {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cb-box-spacing__label {
+    font-size: 10px;
+    color: #5b6478;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    text-align: center;
+    order: 2;
+    margin: 0;
+}
+
+.cb-box-spacing__input {
+    text-align: center;
+    order: 1;
+}
+
+.cb-box-spacing__link {
+    appearance: none;
+    border: 1px solid #d3d7e0;
+    background: #fff;
+    color: #5b6478;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    align-self: start;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+}
+
+.cb-box-spacing--linked .cb-box-spacing__link,
+.cb-box-spacing__link[aria-pressed="true"] {
+    background: #1f2330;
+    color: #fff;
+    border-color: #1f2330;
+}
+
+/* ---- Styling: length input (value + unit) ---- */
+
+.cb-length {
+    max-width: 160px;
+}
+
+.cb-length__unit {
+    max-width: 64px;
+    flex: 0 0 auto;
+}
+
+/* ---- Styling: alignment icon-radio group ---- */
+
+.cb-align-group {
+    display: inline-flex;
+    gap: 2px;
+    background: #eceef2;
+    border-radius: 6px;
+    padding: 2px;
+}
+
+.cb-align-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 28px;
+    border-radius: 4px;
+    color: #5b6478;
+    cursor: pointer;
+    margin: 0;
+    transition: background-color .08s, color .08s;
+}
+
+.cb-align-btn:hover {
+    background: rgba(255, 255, 255, .6);
+    color: #1f2330;
+}
+
+.cb-align-btn:has(.cb-align-btn__input:checked),
+.cb-align-btn--active {
+    background: #fff;
+    color: #1f2330;
+    box-shadow: 0 1px 2px rgba(20, 22, 30, .12);
+}
+
+.cb-align-btn:has(.cb-align-btn__input:focus-visible) {
+    outline: 2px solid #6c8cf3;
+    outline-offset: 1px;
+}
+
+.cb-align-btn__face {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}

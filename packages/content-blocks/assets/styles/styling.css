@@ -1,0 +1,116 @@
+/**
+ * ContentBlocks — section styling (padding/margin/bg/min-height/align).
+ *
+ * Companion to StylingSectionDecorator, which emits CSS custom properties
+ * on each `.cb-section--styled` element. These rules turn those vars
+ * into real properties, with per-viewport overrides via `@media`.
+ *
+ * The fallback chain inside each @media block ensures unset viewports
+ * inherit from the next-wider one: mobile → tablet → desktop → 0.
+ *
+ * Loaded by render/content_area.html.twig at the top of every preview /
+ * public render.
+ */
+
+.cb-section--styled {
+    padding-top: var(--cb-pad-d-t, 0);
+    padding-right: var(--cb-pad-d-r, 0);
+    padding-bottom: var(--cb-pad-d-b, 0);
+    padding-left: var(--cb-pad-d-l, 0);
+    margin-top: var(--cb-mar-d-t, 0);
+    margin-right: var(--cb-mar-d-r, 0);
+    margin-bottom: var(--cb-mar-d-b, 0);
+    margin-left: var(--cb-mar-d-l, 0);
+    background-color: var(--cb-bg, transparent);
+    min-height: var(--cb-min-h, auto);
+}
+
+/* Vertical alignment: section becomes flex column so its single .cb-row
+   child can be vertically placed when min-height creates spare room. */
+.cb-section--has-valign {
+    display: flex;
+    flex-direction: column;
+    justify-content: var(--cb-valign, flex-start);
+}
+
+/* Horizontal alignment: applied to the row, which is already a flex
+   container distributing columns. CSS vars cascade from the section. */
+.cb-section--has-halign > .cb-row {
+    justify-content: var(--cb-halign, flex-start);
+}
+
+/* ----- Tablet (≤ 991px) ----- */
+@media (max-width: 991px) {
+    .cb-section--styled {
+        padding-top: var(--cb-pad-t-t, var(--cb-pad-d-t, 0));
+        padding-right: var(--cb-pad-t-r, var(--cb-pad-d-r, 0));
+        padding-bottom: var(--cb-pad-t-b, var(--cb-pad-d-b, 0));
+        padding-left: var(--cb-pad-t-l, var(--cb-pad-d-l, 0));
+        margin-top: var(--cb-mar-t-t, var(--cb-mar-d-t, 0));
+        margin-right: var(--cb-mar-t-r, var(--cb-mar-d-r, 0));
+        margin-bottom: var(--cb-mar-t-b, var(--cb-mar-d-b, 0));
+        margin-left: var(--cb-mar-t-l, var(--cb-mar-d-l, 0));
+    }
+}
+
+/* ----- Mobile (≤ 575px) ----- */
+@media (max-width: 575px) {
+    .cb-section--styled {
+        padding-top:    var(--cb-pad-m-t, var(--cb-pad-t-t, var(--cb-pad-d-t, 0)));
+        padding-right:  var(--cb-pad-m-r, var(--cb-pad-t-r, var(--cb-pad-d-r, 0)));
+        padding-bottom: var(--cb-pad-m-b, var(--cb-pad-t-b, var(--cb-pad-d-b, 0)));
+        padding-left:   var(--cb-pad-m-l, var(--cb-pad-t-l, var(--cb-pad-d-l, 0)));
+        margin-top:    var(--cb-mar-m-t, var(--cb-mar-t-t, var(--cb-mar-d-t, 0)));
+        margin-right:  var(--cb-mar-m-r, var(--cb-mar-t-r, var(--cb-mar-d-r, 0)));
+        margin-bottom: var(--cb-mar-m-b, var(--cb-mar-t-b, var(--cb-mar-d-b, 0)));
+        margin-left:   var(--cb-mar-m-l, var(--cb-mar-t-l, var(--cb-mar-d-l, 0)));
+    }
+}
+
+/* ============================================================
+   Block-side styling (StylingBlockDecorator).
+
+   Same vars / fallback chain as sections, but applied to
+   `.cb-block--styled` and including max-width. Block backgrounds
+   and constraints are deliberately scoped (no flex/alignment) —
+   layout decisions stay at the section level.
+   ============================================================ */
+
+.cb-block--styled {
+    padding-top: var(--cb-pad-d-t, 0);
+    padding-right: var(--cb-pad-d-r, 0);
+    padding-bottom: var(--cb-pad-d-b, 0);
+    padding-left: var(--cb-pad-d-l, 0);
+    margin-top: var(--cb-mar-d-t, 0);
+    margin-right: var(--cb-mar-d-r, 0);
+    margin-bottom: var(--cb-mar-d-b, 0);
+    margin-left: var(--cb-mar-d-l, 0);
+    background-color: var(--cb-bg, transparent);
+    max-width: var(--cb-max-w, none);
+}
+
+@media (max-width: 991px) {
+    .cb-block--styled {
+        padding-top: var(--cb-pad-t-t, var(--cb-pad-d-t, 0));
+        padding-right: var(--cb-pad-t-r, var(--cb-pad-d-r, 0));
+        padding-bottom: var(--cb-pad-t-b, var(--cb-pad-d-b, 0));
+        padding-left: var(--cb-pad-t-l, var(--cb-pad-d-l, 0));
+        margin-top: var(--cb-mar-t-t, var(--cb-mar-d-t, 0));
+        margin-right: var(--cb-mar-t-r, var(--cb-mar-d-r, 0));
+        margin-bottom: var(--cb-mar-t-b, var(--cb-mar-d-b, 0));
+        margin-left: var(--cb-mar-t-l, var(--cb-mar-d-l, 0));
+    }
+}
+
+@media (max-width: 575px) {
+    .cb-block--styled {
+        padding-top:    var(--cb-pad-m-t, var(--cb-pad-t-t, var(--cb-pad-d-t, 0)));
+        padding-right:  var(--cb-pad-m-r, var(--cb-pad-t-r, var(--cb-pad-d-r, 0)));
+        padding-bottom: var(--cb-pad-m-b, var(--cb-pad-t-b, var(--cb-pad-d-b, 0)));
+        padding-left:   var(--cb-pad-m-l, var(--cb-pad-t-l, var(--cb-pad-d-l, 0)));
+        margin-top:    var(--cb-mar-m-t, var(--cb-mar-t-t, var(--cb-mar-d-t, 0)));
+        margin-right:  var(--cb-mar-m-r, var(--cb-mar-t-r, var(--cb-mar-d-r, 0)));
+        margin-bottom: var(--cb-mar-m-b, var(--cb-mar-t-b, var(--cb-mar-d-b, 0)));
+        margin-left:   var(--cb-mar-m-l, var(--cb-mar-t-l, var(--cb-mar-d-l, 0)));
+    }
+}
