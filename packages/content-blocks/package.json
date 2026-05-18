@@ -42,12 +42,6 @@
                 "fetch": "eager",
                 "enabled": true
             },
-            "cb-sidebar-tabs": {
-                "main": "controllers/cb-sidebar-tabs_controller.js",
-                "name": "cb-sidebar-tabs",
-                "fetch": "eager",
-                "enabled": true
-            },
             "cb-spacing-link": {
                 "main": "controllers/cb-spacing-link_controller.js",
                 "name": "cb-spacing-link",

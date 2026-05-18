@@ -40,6 +40,9 @@ export default class extends Controller {
         this.element.addEventListener('change', this._onChange);
         this.element.addEventListener('focusout', this._onFocusOut);
         this.element.addEventListener('keydown', this._onKeydown);
+        // Snapshot the initial form state so the first save is only
+        // issued when something has actually changed (see _saveNow).
+        this._lastSerialized = this._serializeForm();
     }
 
     disconnect() {
@@ -104,6 +107,16 @@ export default class extends Controller {
         const btn = this.element.querySelector('[data-cb-sidebar-save]');
         if (!btn) return;
 
+        // Skip the save if the form's serialized state matches the
+        // last snapshot. Autosave fires from both the input-debounce
+        // and the subsequent focusout/change events, so a single
+        // logical edit otherwise produces two POSTs (and two iframe
+        // reloads). Comparing serialized state collapses the pair into
+        // one save whenever nothing actually changed between them.
+        const current = this._serializeForm();
+        if (current === this._lastSerialized) return;
+        this._lastSerialized = current;
+
         // Flush the currently-focused field so Live Component model
         // bindings observe the latest value. Dispatching `change`
         // (rather than blurring) keeps the user's cursor where it was,
@@ -120,6 +133,26 @@ export default class extends Controller {
             btn.click();
         } finally {
             this._saving = false;
+        }
+    }
+
+    /**
+     * Stable serialization of the form's current state, used to detect
+     * no-op saves. The wrapper element may contain a <form> (section
+     * settings, block forms via form_start) — anything outside isn't
+     * part of the persisted state and is intentionally excluded.
+     * FormData entries are sorted so the serialization order doesn't
+     * shift between calls.
+     */
+    _serializeForm() {
+        const form = this.element.querySelector('form');
+        if (!form) return '';
+        try {
+            const params = new URLSearchParams(new FormData(form));
+            params.sort();
+            return params.toString();
+        } catch (_) {
+            return '';
         }
     }
 

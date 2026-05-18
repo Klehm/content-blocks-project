@@ -61,7 +61,6 @@ Add the following to `assets/controllers.json`:
             "cb-builder":               { "enabled": true, "fetch": "eager" },
             "cb-autosave":              { "enabled": true, "fetch": "eager" },
             "cb-section-settings-form": { "enabled": true, "fetch": "eager" },
-            "cb-sidebar-tabs":          { "enabled": true, "fetch": "eager" },
             "cb-spacing-link":          { "enabled": true, "fetch": "eager" },
             "cb-viewport-tabs":         { "enabled": true, "fetch": "eager" }
         },

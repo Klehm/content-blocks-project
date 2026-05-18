@@ -8,20 +8,46 @@ import { Controller } from '@hotwired/stimulus';
  * sidebar HTML with the re-rendered form so the user sees the errors.
  */
 export default class extends Controller {
-    static targets = ['form'];
+    static targets = ['form', 'maxWidthRow'];
     static values = { sectionId: Number };
 
     connect() {
         this._onSubmit = this._onSubmit.bind(this);
+        this._onChange = this._onChange.bind(this);
         if (this.hasFormTarget) {
             this.formTarget.addEventListener('submit', this._onSubmit);
+            this.formTarget.addEventListener('change', this._onChange);
+            // Server-rendered visibility is correct on first paint; this
+            // call only matters if the form was re-rendered by a 422
+            // (validation) swap and the user had toggled widthMode
+            // before saving.
+            this._syncMaxWidthVisibility();
         }
     }
 
     disconnect() {
         if (this.hasFormTarget) {
             this.formTarget.removeEventListener('submit', this._onSubmit);
+            this.formTarget.removeEventListener('change', this._onChange);
         }
+    }
+
+    /**
+     * Watches the widthMode radio group; the maxWidth row is only
+     * meaningful when the section is "centered" (BuiltInSectionDecorator
+     * ignores maxWidth in "full" mode).
+     */
+    _onChange(event) {
+        const name = event.target?.name;
+        if (typeof name === 'string' && name.endsWith('[widthMode]')) {
+            this._syncMaxWidthVisibility();
+        }
+    }
+
+    _syncMaxWidthVisibility() {
+        if (!this.hasMaxWidthRowTarget) return;
+        const checked = this.formTarget.querySelector('input[name$="[widthMode]"]:checked');
+        this.maxWidthRowTarget.hidden = checked?.value !== 'centered';
     }
 
     async _onSubmit(event) {

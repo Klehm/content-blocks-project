@@ -1,6 +1,5 @@
 <div{{ attributes }}>
-    <div class="cb-block__edit-form"
-         data-controller="cb-autosave cb-sidebar-tabs">
+    <div class="cb-block__edit-form" data-controller="cb-autosave">
         {# Builder UI is Bootstrap 5; apply the themes inside the component so
            the form rendering doesn't depend on the host app's global
            twig.form_themes config.
@@ -27,53 +26,31 @@
 
         {{ form_start(form) }}
 
-            {# Same two-tab pattern as section settings — see
-               sidebar_section.html.twig for the rationale on using a
-               Stimulus controller rather than inline <script>. #}
-            <ul class="nav nav-tabs cb-sidebar__tabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button type="button"
-                            class="nav-link active"
-                            data-cb-sidebar-tabs-target="tab"
-                            data-action="cb-sidebar-tabs#select"
-                            data-cb-tab="general"
-                            role="tab"
-                            aria-selected="true">
-                        {{ 'cb.section.settings.tab.general'|trans({}, 'content_blocks') }}
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button type="button"
-                            class="nav-link"
-                            data-cb-sidebar-tabs-target="tab"
-                            data-action="cb-sidebar-tabs#select"
-                            data-cb-tab="styling"
-                            role="tab"
-                            aria-selected="false">
-                        {{ 'cb.section.settings.tab.styling'|trans({}, 'content_blocks') }}
-                    </button>
-                </li>
-            </ul>
-
-            <div class="cb-sidebar__tab-panels">
-                <div class="cb-sidebar__tab-panel"
-                     data-cb-sidebar-tabs-target="panel"
-                     data-cb-tab-panel="general"
-                     role="tabpanel">
+            {# Same two-group layout as section settings — see
+               sidebar_section.html.twig for the rationale. No tabs:
+               both groups are always visible, sidebar scrolls if
+               needed. #}
+            <section class="cb-sidebar__group">
+                <h4 class="cb-sidebar__group-title">
+                    {{ 'cb.section.settings.tab.general'|trans({}, 'content_blocks') }}
+                </h4>
+                <div class="cb-sidebar__group-body">
                     {% for child in form %}
                         {% if child.vars.name != 'styling' %}
                             {{ form_row(child) }}
                         {% endif %}
                     {% endfor %}
                 </div>
-                <div class="cb-sidebar__tab-panel"
-                     data-cb-sidebar-tabs-target="panel"
-                     data-cb-tab-panel="styling"
-                     role="tabpanel"
-                     hidden>
+            </section>
+
+            <section class="cb-sidebar__group">
+                <h4 class="cb-sidebar__group-title">
+                    {{ 'cb.section.settings.tab.styling'|trans({}, 'content_blocks') }}
+                </h4>
+                <div class="cb-sidebar__group-body">
                     {{ form_row(form.styling) }}
                 </div>
-            </div>
+            </section>
         {{ form_end(form) }}
 
         {# Hidden save trigger clicked by cb-autosave when an input event

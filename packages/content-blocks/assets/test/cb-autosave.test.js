@@ -10,9 +10,11 @@ import Controller from '../controllers/cb-autosave_controller.js';
 function setup({ debounce = 250 } = {}) {
     document.body.innerHTML = `
         <div data-controller="cb-autosave">
-            <input type="text" name="title" id="title">
-            <textarea name="body" id="body"></textarea>
-            <button type="button" data-cb-sidebar-save id="save">Save</button>
+            <form>
+                <input type="text" name="title" id="title">
+                <textarea name="body" id="body"></textarea>
+                <button type="button" data-cb-sidebar-save id="save">Save</button>
+            </form>
         </div>
     `;
     const element = document.querySelector('[data-controller="cb-autosave"]');
@@ -43,11 +45,13 @@ describe('cb-autosave', () => {
     it('debounces input events before clicking the save trigger', () => {
         const { input, clickSpy } = setup({ debounce: 250 });
 
+        input.value = 'a';
         input.dispatchEvent(new Event('input', { bubbles: true }));
         vi.advanceTimersByTime(100);
         // Still within the debounce window — no save yet.
         expect(clickSpy).not.toHaveBeenCalled();
 
+        input.value = 'ab';
         input.dispatchEvent(new Event('input', { bubbles: true }));
         vi.advanceTimersByTime(100);
         // The second input reset the timer; still no save.
@@ -58,17 +62,19 @@ describe('cb-autosave', () => {
         expect(clickSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('change event triggers an immediate save', () => {
+    it('change event triggers an immediate save when the value changed', () => {
         const { input, clickSpy } = setup();
 
+        input.value = 'hello';
         input.dispatchEvent(new Event('change', { bubbles: true }));
 
         expect(clickSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('focusout triggers an immediate save', () => {
+    it('focusout triggers an immediate save when the value changed', () => {
         const { input, clickSpy } = setup();
 
+        input.value = 'hello';
         input.dispatchEvent(new Event('focusout', { bubbles: true }));
 
         expect(clickSpy).toHaveBeenCalledTimes(1);
@@ -77,6 +83,7 @@ describe('cb-autosave', () => {
     it('a pending debounce is cancelled when an immediate save fires', () => {
         const { input, clickSpy } = setup({ debounce: 250 });
 
+        input.value = 'a';
         input.dispatchEvent(new Event('input', { bubbles: true }));
         vi.advanceTimersByTime(100);
         // Blur fires before the debounce elapses — should save once.
@@ -98,6 +105,7 @@ describe('cb-autosave', () => {
         const changes = [];
         input.addEventListener('change', () => changes.push(Date.now()));
 
+        input.value = 'hello';
         input.dispatchEvent(new Event('input', { bubbles: true }));
         vi.advanceTimersByTime(120);
 
@@ -106,6 +114,36 @@ describe('cb-autosave', () => {
         // bindings would POST the pre-edit value.)
         expect(changes.length).toBeGreaterThanOrEqual(1);
         expect(clickSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips the save when the serialized form is identical to the last snapshot', () => {
+        const { input, clickSpy } = setup();
+
+        // First save: value changes, save fires once.
+        input.value = 'hello';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+
+        // Second trigger (focusout / change / Enter) without a real
+        // value change — should be deduped so we don't reload the
+        // iframe for nothing.
+        input.dispatchEvent(new Event('focusout', { bubbles: true }));
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('saves again once the user changes the value a second time', () => {
+        const { input, clickSpy } = setup();
+
+        input.value = 'hello';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+
+        input.value = 'world';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(clickSpy).toHaveBeenCalledTimes(2);
     });
 
     it('ignores events from elements outside any form field', () => {
@@ -123,6 +161,7 @@ describe('cb-autosave', () => {
 
     it('Enter on a single-line input triggers save and prevents form submit', () => {
         const { input, clickSpy } = setup();
+        input.value = 'hello';
         const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
         input.dispatchEvent(event);
 
@@ -142,6 +181,7 @@ describe('cb-autosave', () => {
     it('disconnect tears down listeners and pending timers', () => {
         const { controller, input, clickSpy } = setup({ debounce: 250 });
 
+        input.value = 'pending';
         input.dispatchEvent(new Event('input', { bubbles: true }));
         controller.disconnect();
         vi.advanceTimersByTime(500);
@@ -150,6 +190,7 @@ describe('cb-autosave', () => {
         expect(clickSpy).not.toHaveBeenCalled();
 
         // Listeners are detached: new input events should not schedule.
+        input.value = 'after-disconnect';
         input.dispatchEvent(new Event('input', { bubbles: true }));
         vi.advanceTimersByTime(500);
         expect(clickSpy).not.toHaveBeenCalled();

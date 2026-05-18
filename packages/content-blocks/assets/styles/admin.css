@@ -608,14 +608,35 @@
 /* (Add-section UI now lives inside the iframe — see builder.css's
    .cb-add-section-tray.) */
 
-/* ---- Sidebar tabs (Général / Styling) ---- */
+/* ---- Sidebar groups (General + Styling stacked) ----
+ *
+ * Replaces the old tab pattern: both blocks are always visible and the
+ * sidebar content scrolls when they overflow. Each group is introduced
+ * by a small uppercase label and separated by a thin divider so the
+ * eye can still scan the two clusters at a glance. */
 
-.cb-sidebar__tabs {
-    margin-bottom: 1rem;
+.cb-sidebar__group {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f1f4;
+}
+.cb-sidebar__group:first-of-type {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
 }
 
-.cb-sidebar__tab-panel[hidden] {
-    display: none;
+.cb-sidebar__group-title {
+    margin: 0 0 .75rem;
+    color: #5b6478;
+    font-size: .72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.cb-sidebar__group-body > :last-child {
+    margin-bottom: 0;
 }
 
 /* ---- Styling: responsive box spacing (padding / margin) ---- */
