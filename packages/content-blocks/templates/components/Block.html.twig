@@ -1,5 +1,8 @@
 <div{{ attributes }}>
     <div class="cb-block__edit-form" data-controller="cb-block-edit-keys">
+        {# Builder UI is Bootstrap 5; apply the theme inside the component so it
+           doesn't depend on the host app's global twig.form_themes config. #}
+        {% form_theme form 'bootstrap_5_layout.html.twig' %}
         {% set formTheme = this.blockType ? this.blockType.formTheme : null %}
         {% if formTheme %}
             {% form_theme form formTheme %}

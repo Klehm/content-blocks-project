@@ -1,12 +1,13 @@
 {# ImageBlock view/preview template #}
-{% if data.src %}
+{% if data.src|default %}
+    {% set alt = data.alt|default('') %}
     <div class="cb-block-image-preview">
         <img src="{{ data.src }}"
-             alt="{{ data.alt }}"
+             alt="{{ alt }}"
              class="img-thumbnail"
              style="max-height: 120px;">
-        {% if data.alt %}
-            <small class="text-muted d-block mt-1">{{ data.alt }}</small>
+        {% if alt %}
+            <small class="text-muted d-block mt-1">{{ alt }}</small>
         {% endif %}
     </div>
 {% else %}

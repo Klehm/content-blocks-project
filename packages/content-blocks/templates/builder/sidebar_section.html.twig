@@ -6,6 +6,7 @@
 
     <h3 class="cb-sidebar__title">{{ 'cb.section.settings.title'|trans({}, 'content_blocks') }}</h3>
 
+    {% form_theme form 'bootstrap_5_layout.html.twig' %}
     {{ form_start(form, { 'attr': { 'data-cb-section-settings-form-target': 'form' } }) }}
         {{ form_widget(form) }}
 

@@ -21,32 +21,55 @@ export default class extends Controller {
     connect() {
         this._onCancel = this._onCancel.bind(this);
         if (this.hasDialogTarget) {
-            this.dialogTarget.addEventListener('cancel', this._onCancel);
+            // Re-parent the dialog to document.body. The launcher button is
+            // usually rendered inside the host app's edit form (Sylius,
+            // EasyAdmin, …), which would make every <form> inside the builder
+            // (block edit, section settings) a nested form. HTML forbids
+            // nesting forms: the browser flattens them, so Enter/submit in an
+            // inner input triggers the OUTER form, and Live Component action
+            // POSTs lose the form data attached via the (collapsed) inner
+            // <form>. Lifting the dialog out of the host form keeps the HTML
+            // valid no matter where the launcher is rendered.
+            //
+            // We cache a direct reference because Stimulus targets are
+            // resolved by querying within this.element — once the dialog
+            // moves out, hasDialogTarget would flip to false.
+            this._dialog = this.dialogTarget;
+            if (this._dialog.parentElement !== document.body) {
+                document.body.appendChild(this._dialog);
+            }
+            this._dialog.addEventListener('cancel', this._onCancel);
         }
     }
 
     disconnect() {
-        if (this.hasDialogTarget) {
-            this.dialogTarget.removeEventListener('cancel', this._onCancel);
+        if (this._dialog) {
+            this._dialog.removeEventListener('cancel', this._onCancel);
+            // Remove the orphaned dialog from <body> so it doesn't survive
+            // Turbo navigations / re-renders of the host page.
+            if (this._dialog.parentElement === document.body) {
+                this._dialog.remove();
+            }
+            this._dialog = null;
         }
     }
 
     open() {
-        if (!this.hasDialogTarget) return;
+        if (!this._dialog) return;
 
-        const iframe = this.dialogTarget.querySelector('[data-cb-builder-target="iframe"]');
-        const shell = this.dialogTarget.querySelector('[data-controller~="cb-builder"]');
+        const iframe = this._dialog.querySelector('[data-cb-builder-target="iframe"]');
+        const shell = this._dialog.querySelector('[data-controller~="cb-builder"]');
 
         if (iframe && shell && !iframe.getAttribute('src')) {
             iframe.src = shell.dataset.cbBuilderIframeUrlValue;
         }
 
-        this.dialogTarget.showModal();
+        this._dialog.showModal();
     }
 
     close(event) {
         if (event) event.preventDefault();
-        if (!this.hasDialogTarget || !this.dialogTarget.open) return;
+        if (!this._dialog || !this._dialog.open) return;
 
         if (this._sidebarHasOpenForm()) {
             const message = this.confirmCloseMessageValue
@@ -54,7 +77,7 @@ export default class extends Controller {
             if (!window.confirm(message)) return;
         }
 
-        this.dialogTarget.close();
+        this._dialog.close();
     }
 
     /** Native <dialog> cancel event (Escape press). Guard the same way. */
@@ -65,8 +88,8 @@ export default class extends Controller {
     }
 
     _sidebarHasOpenForm() {
-        if (!this.hasDialogTarget) return false;
-        const sidebar = this.dialogTarget.querySelector('[data-cb-builder-target="sidebar"]');
+        if (!this._dialog) return false;
+        const sidebar = this._dialog.querySelector('[data-cb-builder-target="sidebar"]');
         return !!(sidebar && !sidebar.hidden && sidebar.querySelector('form, .cb-block__edit-form'));
     }
 }

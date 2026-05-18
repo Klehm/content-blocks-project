@@ -38,6 +38,50 @@ function setup({ withSidebarForm = false } = {}) {
     return { controller, element, dialog };
 }
 
+describe('cb-builder-launcher: dialog re-parenting', () => {
+    it('moves the dialog out of the launcher element to document.body on connect', () => {
+        // Launcher rendered inside a host form (typical Sylius/EasyAdmin edit page).
+        document.body.innerHTML = `
+            <form id="host-form">
+                <div data-controller="cb-builder-launcher">
+                    <dialog>
+                        <div data-controller="cb-builder">
+                            <iframe data-cb-builder-target="iframe"></iframe>
+                            <aside data-cb-builder-target="sidebar" hidden></aside>
+                        </div>
+                    </dialog>
+                </div>
+            </form>
+        `;
+        const element = document.querySelector('[data-controller="cb-builder-launcher"]');
+        const dialog = element.querySelector('dialog');
+        dialog.showModal = vi.fn();
+        dialog.close = vi.fn();
+
+        const controller = new Controller();
+        Object.defineProperty(controller, 'element', { value: element });
+        Object.defineProperty(controller, 'hasDialogTarget', { value: true });
+        Object.defineProperty(controller, 'dialogTarget', { value: dialog });
+        Object.defineProperty(controller, 'confirmCloseMessageValue', { value: '' });
+        controller.connect();
+
+        // Dialog (and any forms it eventually contains) must not be nested
+        // inside the host form, otherwise the browser flattens the forms
+        // and Live Component POSTs lose the form data.
+        expect(dialog.parentElement).toBe(document.body);
+        expect(document.querySelector('#host-form dialog')).toBeNull();
+    });
+
+    it('removes the orphaned dialog from <body> on disconnect', () => {
+        const { controller, dialog } = setup();
+        expect(dialog.parentElement).toBe(document.body);
+
+        controller.disconnect();
+
+        expect(dialog.parentElement).toBeNull();
+    });
+});
+
 describe('cb-builder-launcher: open', () => {
     it('sets iframe src on first open from the shell data attribute', () => {
         const { controller, dialog } = setup();
