@@ -1,0 +1,13 @@
+{# @var section \ContentBlocks\Entity\Section #}
+{# @var isPreview bool #}
+<section class="cb-section cb-section--{{ section.layout }}{% if section.deleted %} cb-section--deleted{% endif %}{% if section.extraClasses %} {{ section.extraClasses }}{% endif %}"
+    {% if isPreview %}data-cb-section-id="{{ section.id }}"{% endif %}
+    {% if section.deleted %}data-cb-deleted="1"{% endif %}
+    {% if section.inlineStyle %}style="{{ section.inlineStyle }}"{% endif %}
+    {% for k, v in section.extraAttributes %} {{ k }}="{{ v }}"{% endfor %}>
+    <div class="cb-row">
+        {% for column in section.columns %}
+            {{ include('@ContentBlocks/render/column.html.twig', { column: column, isPreview: isPreview }, with_context = false) }}
+        {% endfor %}
+    </div>
+</section>

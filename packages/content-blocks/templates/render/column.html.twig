@@ -1,0 +1,17 @@
+{# @var column \ContentBlocks\Entity\Column #}
+{# @var isPreview bool #}
+<div class="cb-col cb-col--{{ column.preset }}{% if column.deleted %} cb-col--deleted{% endif %}"
+    {% if isPreview %}data-cb-column-id="{{ column.id }}"{% endif %}
+    {% if column.deleted %}data-cb-deleted="1"{% endif %}>
+    {% for block in column.blocks %}
+        {{ include('@ContentBlocks/render/block.html.twig', { block: block, isPreview: isPreview }, with_context = false) }}
+    {% endfor %}
+    {% if isPreview %}
+        <button type="button"
+                class="cb-add-block-inline"
+                data-cb-add-block-column-id="{{ column.id }}"
+                aria-label="{{ 'cb.block.add'|trans({}, 'content_blocks') }}">
+            {{ 'cb.block.add'|trans({}, 'content_blocks') }}
+        </button>
+    {% endif %}
+</div>
