@@ -19,7 +19,6 @@ final class StylingTypeTest extends TypeTestCase
         $this->assertFalse($form->has('minHeight'));
         $this->assertFalse($form->has('maxWidth'));
         $this->assertFalse($form->has('verticalAlign'));
-        $this->assertFalse($form->has('horizontalAlign'));
     }
 
     public function testIncludeMinHeightAndAlignmentForSections(): void
@@ -31,7 +30,6 @@ final class StylingTypeTest extends TypeTestCase
 
         $this->assertTrue($form->has('minHeight'));
         $this->assertTrue($form->has('verticalAlign'));
-        $this->assertTrue($form->has('horizontalAlign'));
     }
 
     public function testIncludeMaxWidthForBlocks(): void
@@ -64,7 +62,6 @@ final class StylingTypeTest extends TypeTestCase
             'backgroundColor' => '#ff0000',
             'minHeight' => ['value' => '400', 'unit' => 'vh'],
             'verticalAlign' => 'center',
-            'horizontalAlign' => 'space-between',
         ];
 
         $form->submit($submitted);
@@ -80,6 +77,5 @@ final class StylingTypeTest extends TypeTestCase
         $this->assertSame(400, $data['minHeight']['value']);
         $this->assertSame('vh', $data['minHeight']['unit']);
         $this->assertSame('center', $data['verticalAlign']);
-        $this->assertSame('space-between', $data['horizontalAlign']);
     }
 }

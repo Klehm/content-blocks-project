@@ -123,11 +123,13 @@
     function buildToolbarFor(el, kind) {
         toolbar.innerHTML = '';
 
+        // Edit / Settings buttons are intentionally absent — clicking the
+        // section or block itself opens the sidebar editor (see the
+        // document click handler below). The toolbar only carries the
+        // structural actions (drag, move, duplicate, delete).
         if (kind === 'block') {
             const blockId = parseInt(el.dataset.cbBlockId, 10);
             toolbar.appendChild(makeDragHandle('block', blockId, el));
-            toolbar.appendChild(makeBtn('✎', 'Edit', 'edit', () =>
-                postToParent('cb:block:edit', { blockId })));
             toolbar.appendChild(makeBtn('⎘', 'Duplicate', 'duplicate', () =>
                 postToParent('cb:block:duplicate-requested', { blockId })));
             toolbar.appendChild(makeBtn('×', 'Delete', 'delete', () =>
@@ -141,8 +143,6 @@
                 postToParent('cb:section:move-requested', { sectionId, direction: 'down' })));
             toolbar.appendChild(makeBtn('⎘', 'Duplicate', 'duplicate', () =>
                 postToParent('cb:section:duplicate-requested', { sectionId })));
-            toolbar.appendChild(makeBtn('⚙', 'Settings', 'settings', () =>
-                postToParent('cb:section:settings', { sectionId })));
             toolbar.appendChild(makeBtn('×', 'Delete', 'delete', () =>
                 postToParent('cb:section:delete-requested', { sectionId })));
         }
@@ -514,15 +514,26 @@
             const onOverlay = target.closest?.('.cb-overlay-toolbar, .cb-overlay-popover');
             if (onOverlay) return;
 
-            // 3. Click on a block/section: pin focus on it and skip the
-            //    outside-click event — the user is selecting an element to
-            //    keep its toolbar visible, not dismissing the sidebar.
+            // 3. Click on a block/section: pin focus AND ask the parent
+            //    to open the matching editor in the sidebar. The Edit /
+            //    Settings toolbar buttons were removed — clicking the
+            //    element itself is now the only way to enter the editor.
+            //    Block matching is checked first so a click on a nested
+            //    block doesn't escalate to its surrounding section.
             const block = target.closest?.('[data-cb-block-id]');
             const section = target.closest?.('[data-cb-section-id]');
             if (block) {
+                const blockId = parseInt(block.dataset.cbBlockId, 10);
                 focusElement(block, 'block');
+                if (Number.isFinite(blockId)) {
+                    postToParent('cb:block:edit', { blockId });
+                }
             } else if (section) {
+                const sectionId = parseInt(section.dataset.cbSectionId, 10);
                 focusElement(section, 'section');
+                if (Number.isFinite(sectionId)) {
+                    postToParent('cb:section:settings', { sectionId });
+                }
             } else {
                 clearFocus();
                 postToParent('cb:preview:outside-click');
@@ -550,6 +561,28 @@
         },
         true,
     );
+
+    // ---------- Inbound focus messages ----------
+    //
+    // The parent posts `cb:focus:block` / `cb:focus:section` after an
+    // iframe reload so the currently-edited element keeps its blue
+    // outline + pinned toolbar instead of being lost in the rebuilt
+    // DOM. The element is identified by the same data-cb-* marker used
+    // throughout the overlay.
+    window.addEventListener('message', (event) => {
+        if (event.origin !== PARENT_ORIGIN) return;
+        const data = event.data;
+        if (!data || typeof data.type !== 'string') return;
+        if (!data.type.startsWith('cb:focus:')) return;
+
+        if (data.type === 'cb:focus:block' && Number.isFinite(data.blockId)) {
+            const el = document.querySelector(`[data-cb-block-id="${data.blockId}"]`);
+            if (el) focusElement(el, 'block');
+        } else if (data.type === 'cb:focus:section' && Number.isFinite(data.sectionId)) {
+            const el = document.querySelector(`[data-cb-section-id="${data.sectionId}"]`);
+            if (el) focusElement(el, 'section');
+        }
+    });
 
     // ---------- Ready signal ----------
 

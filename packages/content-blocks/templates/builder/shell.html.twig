@@ -103,35 +103,42 @@
         </div>
     </div>
 
+    {# Two-column main area: sidebar on the left, iframe on the right.
+       The sidebar is permanent — it always occupies its own grid column
+       and its content swaps based on the currently focused element
+       (block / section / nothing). The collapsed state shrinks the
+       column to a fly-out handle so the iframe can claim the full
+       width when the user doesn't need the panel. #}
     <main class="cb-shell__main">
-        <iframe data-cb-builder-target="iframe"
-                class="cb-shell__iframe"
-                title="{{ 'cb.builder.preview'|trans({}, 'content_blocks') }}"></iframe>
         <aside data-cb-builder-target="sidebar"
                class="cb-shell__sidebar"
-               aria-label="{{ 'cb.block.edit'|trans({}, 'content_blocks') }}"
-               hidden>
+               aria-label="{{ 'cb.block.edit'|trans({}, 'content_blocks') }}">
+            <span class="cb-shell__sidebar-saved"
+                  data-cb-builder-target="savedFlash"
+                  role="status"
+                  aria-live="polite"
+                  hidden>✓ {{ 'cb.builder.saved'|trans({}, 'content_blocks') }}</span>
+            <div class="cb-shell__sidebar-content" data-cb-builder-target="sidebarContent">
+                {% include '@ContentBlocks/builder/sidebar_empty.html.twig' %}
+            </div>
+            {# Toggle: floating chip vertically centered on the sidebar's
+               right edge, intentionally overhanging the iframe so it stays
+               visible / clickable in both expanded and collapsed states. #}
+            <button type="button"
+                    class="cb-shell__sidebar-toggle"
+                    data-cb-builder-target="sidebarToggle"
+                    data-action="cb-builder#toggleSidebar"
+                    aria-label="{{ 'cb.builder.toggle_sidebar'|trans({}, 'content_blocks') }}"
+                    aria-expanded="true">
+                <span class="cb-shell__sidebar-toggle-icon" aria-hidden="true">‹</span>
+            </button>
             <div class="cb-shell__sidebar-resize"
                  data-cb-builder-target="sidebarResize"
                  data-action="mousedown->cb-builder#startSidebarResize touchstart->cb-builder#startSidebarResize"
                  aria-hidden="true"></div>
-            <header class="cb-shell__sidebar-header">
-                <button type="button"
-                        class="cb-shell__sidebar-close"
-                        data-action="cb-builder#closeSidebar"
-                        aria-label="{{ 'cb.builder.close'|trans({}, 'content_blocks') }}">×</button>
-                <span class="cb-shell__sidebar-saved"
-                      data-cb-builder-target="savedFlash"
-                      role="status"
-                      aria-live="polite"
-                      hidden>✓ {{ 'cb.builder.saved'|trans({}, 'content_blocks') }}</span>
-                <button type="button"
-                        class="btn btn-primary cb-shell__sidebar-save"
-                        data-action="cb-builder#saveSidebar">
-                    {{ 'cb.block.save'|trans({}, 'content_blocks') }}
-                </button>
-            </header>
-            <div class="cb-shell__sidebar-content" data-cb-builder-target="sidebarContent"></div>
         </aside>
+        <iframe data-cb-builder-target="iframe"
+                class="cb-shell__iframe"
+                title="{{ 'cb.builder.preview'|trans({}, 'content_blocks') }}"></iframe>
     </main>
 </div>

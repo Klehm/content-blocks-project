@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import Controller from '../controllers/cb-builder-launcher_controller.js';
 
 /**
@@ -7,16 +7,14 @@ import Controller from '../controllers/cb-builder-launcher_controller.js';
  * stub the framework-supplied properties.
  */
 
-function setup({ withSidebarForm = false } = {}) {
+function setup() {
     document.body.innerHTML = `
         <div data-controller="cb-builder-launcher">
             <button data-action="cb-builder-launcher#open">Open</button>
             <dialog>
                 <div data-controller="cb-builder">
                     <iframe data-cb-builder-target="iframe"></iframe>
-                    <aside data-cb-builder-target="sidebar" ${withSidebarForm ? '' : 'hidden'}>
-                        ${withSidebarForm ? '<form><input/></form>' : ''}
-                    </aside>
+                    <aside data-cb-builder-target="sidebar"></aside>
                 </div>
             </dialog>
         </div>
@@ -32,7 +30,6 @@ function setup({ withSidebarForm = false } = {}) {
     Object.defineProperty(controller, 'element', { value: element });
     Object.defineProperty(controller, 'hasDialogTarget', { value: true });
     Object.defineProperty(controller, 'dialogTarget', { value: dialog });
-    Object.defineProperty(controller, 'confirmCloseMessageValue', { value: 'Discard?' });
     controller.connect();
 
     return { controller, element, dialog };
@@ -47,7 +44,7 @@ describe('cb-builder-launcher: dialog re-parenting', () => {
                     <dialog>
                         <div data-controller="cb-builder">
                             <iframe data-cb-builder-target="iframe"></iframe>
-                            <aside data-cb-builder-target="sidebar" hidden></aside>
+                            <aside data-cb-builder-target="sidebar"></aside>
                         </div>
                     </dialog>
                 </div>
@@ -62,7 +59,6 @@ describe('cb-builder-launcher: dialog re-parenting', () => {
         Object.defineProperty(controller, 'element', { value: element });
         Object.defineProperty(controller, 'hasDialogTarget', { value: true });
         Object.defineProperty(controller, 'dialogTarget', { value: dialog });
-        Object.defineProperty(controller, 'confirmCloseMessageValue', { value: '' });
         controller.connect();
 
         // Dialog (and any forms it eventually contains) must not be nested
@@ -82,7 +78,7 @@ describe('cb-builder-launcher: dialog re-parenting', () => {
     });
 });
 
-describe('cb-builder-launcher: open', () => {
+describe('cb-builder-launcher: open / close', () => {
     it('sets iframe src on first open from the shell data attribute', () => {
         const { controller, dialog } = setup();
         const iframe = dialog.querySelector('iframe');
@@ -106,65 +102,15 @@ describe('cb-builder-launcher: open', () => {
 
         expect(iframe.getAttribute('src')).toBe('http://example.test/already-loaded');
     });
-});
 
-describe('cb-builder-launcher: close guard', () => {
-    let confirmSpy;
-
-    beforeEach(() => {
-        confirmSpy = vi.spyOn(window, 'confirm');
-    });
-
-    it('closes immediately when sidebar has no open form', () => {
+    it('closes the dialog directly — autosave removes the "unsaved changes" guard', () => {
         const { controller, dialog } = setup();
         dialog.setAttribute('open', '');
+        const confirmSpy = vi.spyOn(window, 'confirm');
 
         controller.close({ preventDefault: () => {} });
 
         expect(dialog.close).toHaveBeenCalled();
         expect(confirmSpy).not.toHaveBeenCalled();
-    });
-
-    it('asks for confirmation when sidebar has an open form', () => {
-        const { controller, dialog } = setup({ withSidebarForm: true });
-        dialog.setAttribute('open', '');
-        confirmSpy.mockReturnValue(true);
-
-        controller.close({ preventDefault: () => {} });
-
-        expect(confirmSpy).toHaveBeenCalledWith('Discard?');
-        expect(dialog.close).toHaveBeenCalled();
-    });
-
-    it('keeps the dialog open when the user cancels the confirmation', () => {
-        const { controller, dialog } = setup({ withSidebarForm: true });
-        dialog.setAttribute('open', '');
-        confirmSpy.mockReturnValue(false);
-
-        controller.close({ preventDefault: () => {} });
-
-        expect(confirmSpy).toHaveBeenCalled();
-        expect(dialog.close).not.toHaveBeenCalled();
-    });
-
-    it('preventDefault on the native cancel event when user declines', () => {
-        const { controller } = setup({ withSidebarForm: true });
-        confirmSpy.mockReturnValue(false);
-
-        const event = new Event('cancel', { cancelable: true });
-        controller._onCancel(event);
-
-        expect(confirmSpy).toHaveBeenCalled();
-        expect(event.defaultPrevented).toBe(true);
-    });
-
-    it('lets the cancel event proceed when user accepts', () => {
-        const { controller } = setup({ withSidebarForm: true });
-        confirmSpy.mockReturnValue(true);
-
-        const event = new Event('cancel', { cancelable: true });
-        controller._onCancel(event);
-
-        expect(event.defaultPrevented).toBe(false);
     });
 });

@@ -16,9 +16,9 @@
                 "fetch": "eager",
                 "enabled": true
             },
-            "cb-block-edit-keys": {
-                "main": "controllers/cb-block-edit-keys_controller.js",
-                "name": "cb-block-edit-keys",
+            "cb-autosave": {
+                "main": "controllers/cb-autosave_controller.js",
+                "name": "cb-autosave",
                 "fetch": "eager",
                 "enabled": true
             },

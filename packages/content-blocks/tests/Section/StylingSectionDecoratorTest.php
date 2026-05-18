@@ -108,33 +108,13 @@ final class StylingSectionDecoratorTest extends TestCase
         $this->assertSame('flex-end', $end->inlineStyles['--cb-valign']);
     }
 
-    public function testVerticalAlignRejectsSpaceValues(): void
+    public function testVerticalAlignRejectsUnknownValues(): void
     {
         $deco = (new StylingSectionDecorator());
 
         $decoration = $deco->decorate(['styling' => ['verticalAlign' => 'space-between']], new Section());
 
-        // space-between has no meaning along a single-child flex-column;
-        // the decorator rejects it for verticalAlign even though the form
-        // theoretically allows it.
         $this->assertArrayNotHasKey('--cb-valign', $decoration->inlineStyles);
-    }
-
-    public function testHorizontalAlignAcceptsAllChoicesIncludingSpaceValues(): void
-    {
-        $deco = (new StylingSectionDecorator());
-
-        foreach ([
-            'start' => 'flex-start',
-            'center' => 'center',
-            'end' => 'flex-end',
-            'space-between' => 'space-between',
-            'space-around' => 'space-around',
-        ] as $input => $cssValue) {
-            $d = $deco->decorate(['styling' => ['horizontalAlign' => $input]], new Section());
-            $this->assertSame($cssValue, $d->inlineStyles['--cb-halign'], "horizontalAlign=$input");
-            $this->assertContains('cb-section--has-halign', $d->classes);
-        }
     }
 
     public function testFullPayloadProducesStableOutput(): void
@@ -147,20 +127,18 @@ final class StylingSectionDecoratorTest extends TestCase
                 'backgroundColor' => '#0a0a0a',
                 'minHeight' => ['value' => 500, 'unit' => 'px'],
                 'verticalAlign' => 'center',
-                'horizontalAlign' => 'space-between',
             ],
         ];
 
         $decoration = (new StylingSectionDecorator())->decorate($settings, new Section());
 
         $this->assertEqualsCanonicalizing(
-            ['cb-section--has-valign', 'cb-section--has-halign', 'cb-section--styled'],
+            ['cb-section--has-valign', 'cb-section--styled'],
             $decoration->classes,
         );
         $this->assertSame('10px', $decoration->inlineStyles['--cb-pad-d-t']);
         $this->assertSame('#0a0a0a', $decoration->inlineStyles['--cb-bg']);
         $this->assertSame('500px', $decoration->inlineStyles['--cb-min-h']);
         $this->assertSame('center', $decoration->inlineStyles['--cb-valign']);
-        $this->assertSame('space-between', $decoration->inlineStyles['--cb-halign']);
     }
 }

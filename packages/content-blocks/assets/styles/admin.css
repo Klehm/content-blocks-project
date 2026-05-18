@@ -46,14 +46,12 @@
     background: #f5f6f8;
     color: #1f2330;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    /* Defensive: the sidebar starts at translate(100%/-...%) during its
-       slide-in. Without this, the browser may briefly include that off-
-       screen position in the scrollable area and shift the iframe to
-       compensate for a focused input. */
     overflow: hidden;
-    /* CSS variable that JS keeps in sync with the sidebar's mobile height
-       so the iframe area can leave room for the bottom-anchored panel. */
-    --cb-sidebar-height: 50vh;
+    /* Drives the sidebar grid column width below. JS updates this on
+       resize / collapsed-state changes; descendants must NOT redeclare
+       it or they'd shadow the live value back to the default. */
+    --cb-sidebar-width: 340px;
+    --cb-sidebar-collapsed-width: 32px;
 }
 
 .cb-shell__topbar {
@@ -377,15 +375,25 @@
     }
 }
 
-/* ---- Main area: iframe + floating sidebar ---- */
+/* ---- Main area: 2-column grid (sidebar left, iframe right) ----
+ *
+ * The sidebar is permanent: it always claims a column rather than
+ * floating over the iframe. A collapsed state shrinks the column to
+ * a fly-out handle width so the iframe can expand to the full main
+ * width when the user wants a wide preview. Width is CSS-variable
+ * driven so the resize handle can update one knob without touching
+ * the grid template directly. */
 
 .cb-shell__main {
-    position: relative;
+    display: grid;
+    grid-template-columns: var(--cb-sidebar-width) 1fr;
     overflow: hidden;
-    /* Light gray gutter so the iframe's actual width is visually framed —
-       most useful when the user switches to tablet/mobile and the iframe
-       narrows below the container width. */
     background: #e9ebef;
+    min-height: 0;
+}
+
+.cb-shell--sidebar-collapsed .cb-shell__main {
+    grid-template-columns: var(--cb-sidebar-collapsed-width) 1fr;
 }
 
 .cb-shell__iframe {
@@ -401,127 +409,110 @@
     transition: max-width .2s ease, margin .2s ease;
 }
 
-/* The sidebar floats over the iframe so opening it doesn't shift the
-   preview — the user keeps seeing exactly the same viewport while
-   editing. Layout flips between right-anchored (desktop) and bottom-
-   anchored (mobile) via media query. */
 .cb-shell__sidebar {
-    position: absolute;
+    position: relative;
     background: #fff;
-    z-index: 5;
     display: flex;
     flex-direction: column;
+    border-right: 1px solid #e3e5e9;
+    box-shadow: 2px 0 12px rgba(20, 22, 30, .04);
+    min-width: 0;
+    /* No overflow:hidden — the toggle button is absolute-positioned and
+       deliberately overhangs the right edge. min-height:0 on the content
+       child below still lets it scroll internally. */
 }
-.cb-shell__sidebar[hidden] {
+
+/* Collapsed: hide content, resize handle, saved-flash; only the
+   toggle chip remains visible to expand back. */
+.cb-shell--sidebar-collapsed .cb-shell__sidebar-content,
+.cb-shell--sidebar-collapsed .cb-shell__sidebar-resize,
+.cb-shell--sidebar-collapsed .cb-shell__sidebar-saved {
     display: none;
 }
 
-/* Desktop: right-anchored, full-height column; resize on left edge. */
-@media (min-width: 769px) {
-    .cb-shell__sidebar {
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 380px;
-        border-left: 1px solid #e3e5e9;
-        box-shadow: -2px 0 12px rgba(20, 22, 30, .08);
-    }
-    .cb-shell__sidebar:not([hidden]) {
-        animation: cb-sidebar-in-right .18s ease-out;
-    }
-    @keyframes cb-sidebar-in-right {
-        from { transform: translateX(100%); }
-        to   { transform: translateX(0);    }
-    }
-    .cb-shell__sidebar-resize {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: -3px;
-        width: 6px;
-        cursor: col-resize;
-        z-index: 6;
-        transition: background-color .12s ease-out;
-    }
+.cb-shell__sidebar-resize {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -3px;
+    width: 6px;
+    cursor: col-resize;
+    z-index: 6;
+    transition: background-color .12s ease-out;
 }
-
-/* Mobile: bottom-anchored, full-width tray that slides up. The shell's
-   --cb-sidebar-height variable carries the live height; the same
-   variable is used to push the main area's iframe up so the sidebar
-   never covers preview content the user is trying to inspect. */
-@media (max-width: 768px) {
-    .cb-shell__sidebar {
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: var(--cb-sidebar-height);
-        max-height: 80vh;
-        border-top: 1px solid #e3e5e9;
-        box-shadow: 0 -2px 12px rgba(20, 22, 30, .08);
-    }
-    .cb-shell__sidebar:not([hidden]) {
-        animation: cb-sidebar-in-bottom .18s ease-out;
-    }
-    @keyframes cb-sidebar-in-bottom {
-        from { transform: translateY(100%); }
-        to   { transform: translateY(0);    }
-    }
-    .cb-shell__sidebar-resize {
-        position: absolute;
-        top: -3px;
-        left: 0;
-        right: 0;
-        height: 6px;
-        cursor: row-resize;
-        z-index: 6;
-        transition: background-color .12s ease-out;
-    }
-    /* When the sidebar is open on mobile, leave room for it under the
-       iframe so the preview stays fully scrollable up to its bottom edge. */
-    .cb-shell--sidebar-open .cb-shell__main {
-        padding-bottom: var(--cb-sidebar-height);
-    }
-}
-
 .cb-shell__sidebar-resize:hover,
 .cb-shell__sidebar-resize:active {
     background-color: rgba(79, 141, 249, .35);
 }
 
-.cb-shell__sidebar-header {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: .25rem .5rem;
-    border-bottom: 1px solid #f0f1f4;
-    gap: .5rem;
-}
-.cb-shell__sidebar-close {
-    background: transparent;
-    border: 0;
-    font-size: 1.5rem;
-    line-height: 1;
-    cursor: pointer;
-    color: #666;
-    padding: .125rem .5rem;
-    border-radius: 4px;
-}
-.cb-shell__sidebar-close:hover {
-    background: #f0f1f4;
-    color: #1f2330;
-}
-/* Disabled by JS until a form is mounted in the content slot. */
-.cb-shell__sidebar-save[disabled] {
-    opacity: .5;
-    cursor: not-allowed;
+/* Mobile: stack the panels vertically (sidebar on top, iframe below)
+   so the touch screen isn't split horizontally with two tiny columns.
+   The collapsed state shrinks the sidebar to its header strip. */
+@media (max-width: 768px) {
+    .cb-shell__main {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+    }
+    .cb-shell--sidebar-collapsed .cb-shell__main {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+    }
+    .cb-shell__sidebar {
+        border-right: 0;
+        border-bottom: 1px solid #e3e5e9;
+        max-height: 50vh;
+    }
+    .cb-shell__sidebar-resize {
+        display: none;
+    }
 }
 
-/* Transient "✓ Enregistré" flash next to the Save button. Sits in the
-   header gap; appears for ~1.5s after a block/section save event and
-   fades out on its own. role="status" + aria-live="polite" handles the
-   screen-reader announcement. */
+/* Floating toggle chip on the sidebar's right edge, vertically centered.
+   Translates half its width past the sidebar so it overhangs the iframe
+   gutter — still entirely clickable, and visible even when the sidebar
+   is collapsed to its 32px stub. */
+.cb-shell__sidebar-toggle {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translate(50%, -50%);
+    z-index: 10;
+    width: 26px;
+    height: 26px;
+    background: #fff;
+    border: 1px solid #d8dbe2;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(20, 22, 30, .12);
+    color: #5b6478;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.cb-shell__sidebar-toggle:hover {
+    background: #f5f6f8;
+    color: #1f2330;
+}
+.cb-shell__sidebar-toggle-icon {
+    display: inline-block;
+    transition: transform .15s ease-out;
+}
+.cb-shell--sidebar-collapsed .cb-shell__sidebar-toggle-icon {
+    transform: rotate(180deg);
+}
+
+/* Transient "✓ Saved" pill pinned to the sidebar's top-right corner,
+   fired by autosave. role="status" + aria-live="polite" handles the
+   screen-reader announcement; the visible pill fades in/out via a
+   transition. */
 .cb-shell__sidebar-saved {
+    position: absolute;
+    top: .5rem;
+    right: .75rem;
+    z-index: 5;
     display: inline-flex;
     align-items: center;
     padding: .25rem .55rem;
@@ -543,8 +534,60 @@
 
 .cb-shell__sidebar-content {
     flex: 1 1 auto;
+    /* min-height: 0 lets the flex child shrink past its content size
+       so overflow-y: auto can scroll inside the sidebar. Without it the
+       child would expand to fit content and push past the sidebar. */
+    min-height: 0;
     overflow-y: auto;
     padding: 1rem;
+}
+
+/* Empty state shown when no block/section is focused. Keeps the
+   sidebar useful even before the user clicks anything: a one-liner
+   hint plus the three add-section buttons (mirror of the iframe's
+   own empty tray). */
+.cb-sidebar-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+.cb-sidebar-empty__hint {
+    margin: 0;
+    color: #5b6478;
+    font-size: .9rem;
+    line-height: 1.4;
+}
+.cb-sidebar-empty__sections {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+.cb-sidebar-empty__sections-label {
+    margin: 0;
+    color: #1f2330;
+    font-size: .85rem;
+    font-weight: 600;
+}
+.cb-sidebar-empty__buttons {
+    display: flex;
+    gap: .5rem;
+}
+.cb-sidebar-empty__btn {
+    background: #fff;
+    border: 1px solid #d8dbe2;
+    border-radius: .375rem;
+    color: #5b6478;
+    cursor: pointer;
+    padding: .5rem;
+    line-height: 0;
+    transition: border-color .12s ease, color .12s ease, background-color .12s ease;
+}
+.cb-sidebar-empty__btn:hover,
+.cb-sidebar-empty__btn:focus-visible {
+    border-color: #4f8df9;
+    color: #4f8df9;
+    background: rgba(79, 141, 249, .06);
+    outline: none;
 }
 
 /* Bootstrap-style visually-hidden helper for the in-form save buttons

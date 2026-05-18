@@ -17,9 +17,10 @@ function setupController(options = {}) {
             <button class="cb-shell__viewport-btn"
                     data-cb-builder-viewport-param="mobile"></button>
             <iframe></iframe>
-            <aside hidden>
+            <aside>
+                <button class="cb-shell__sidebar-toggle"></button>
+                <div class="cb-shell__sidebar-content">__EMPTY__</div>
                 <div class="cb-shell__sidebar-resize"></div>
-                <div class="cb-shell__sidebar-content"></div>
             </aside>
         </div>
     `;
@@ -27,6 +28,7 @@ function setupController(options = {}) {
     const iframe = element.querySelector('iframe');
     const sidebar = element.querySelector('aside');
     const sidebarContent = sidebar.querySelector('.cb-shell__sidebar-content');
+    const sidebarToggle = sidebar.querySelector('.cb-shell__sidebar-toggle');
     const sidebarResize = sidebar.querySelector('.cb-shell__sidebar-resize');
 
     const controller = new Controller();
@@ -37,12 +39,18 @@ function setupController(options = {}) {
     Object.defineProperty(controller, 'sidebarTarget', { value: sidebar });
     Object.defineProperty(controller, 'hasSidebarContentTarget', { value: true });
     Object.defineProperty(controller, 'sidebarContentTarget', { value: sidebarContent });
+    Object.defineProperty(controller, 'hasSidebarToggleTarget', { value: true });
+    Object.defineProperty(controller, 'sidebarToggleTarget', { value: sidebarToggle });
     Object.defineProperty(controller, 'hasSidebarResizeTarget', { value: true });
     Object.defineProperty(controller, 'sidebarResizeTarget', { value: sidebarResize });
     Object.defineProperty(controller, 'areaIdValue', { value: options.areaId ?? 42 });
     Object.defineProperty(controller, 'iframeUrlValue', { value: options.iframeUrl ?? 'http://localhost/page/1?cb_preview=1' });
 
-    return { controller, element, iframe, sidebar, sidebarContent, sidebarResize };
+    // Seed the empty-state snapshot the way connect() would; tests that
+    // don't run connect() still need _resetSidebarToEmptyState to work.
+    controller._sidebarEmptyHtml = sidebarContent.innerHTML;
+
+    return { controller, element, iframe, sidebar, sidebarContent, sidebarToggle, sidebarResize };
 }
 
 function postMessage(data, origin = window.location.origin) {
@@ -50,42 +58,39 @@ function postMessage(data, origin = window.location.origin) {
 }
 
 describe('cb-builder: postMessage origin check', () => {
-    let controller, logSpy;
+    let controller, errorSpy;
 
     beforeEach(() => {
         ({ controller } = setupController());
-        logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     it('ignores messages from other origins', () => {
-        controller._onMessage(postMessage({ type: 'cb:ready' }, 'https://evil.com'));
-        expect(logSpy).not.toHaveBeenCalled();
+        const spy = vi.spyOn(controller, '_mountSidebar');
+        controller._onMessage(postMessage({ type: 'cb:block:edit', blockId: 1 }, 'https://evil.com'));
+        expect(spy).not.toHaveBeenCalled();
     });
 
     it('ignores messages without a cb: type prefix', () => {
+        const spy = vi.spyOn(controller, '_mountSidebar');
         controller._onMessage(postMessage({ type: 'unrelated:event' }));
-        expect(logSpy).not.toHaveBeenCalled();
+        expect(spy).not.toHaveBeenCalled();
     });
 
     it('ignores messages whose data is not a typed object', () => {
+        const spy = vi.spyOn(controller, '_mountSidebar');
         controller._onMessage(postMessage('plain string'));
         controller._onMessage(postMessage(null));
         controller._onMessage(postMessage(42));
-        expect(logSpy).not.toHaveBeenCalled();
+        expect(spy).not.toHaveBeenCalled();
     });
 });
 
 describe('cb-builder: postMessage routing', () => {
-    let controller, logSpy;
+    let controller;
 
     beforeEach(() => {
         ({ controller } = setupController());
-        logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    });
-
-    it('logs cb:ready', () => {
-        controller._onMessage(postMessage({ type: 'cb:ready' }));
-        expect(logSpy).toHaveBeenCalledWith('[cb-builder] iframe ready');
     });
 
     it('cb:block:edit triggers sidebar mount', async () => {
@@ -148,18 +153,18 @@ describe('cb-builder: postMessage routing', () => {
         expect(spy).toHaveBeenCalledWith(5);
     });
 
-    it('logs unknown cb: types under the unknown branch', () => {
-        controller._onMessage(postMessage({ type: 'cb:weird' }));
-        expect(logSpy).toHaveBeenCalledWith('[cb-builder] unknown message type', 'cb:weird', { type: 'cb:weird' });
+    it('cb:preview:outside-click resets the sidebar to the empty state', () => {
+        const spy = vi.spyOn(controller, '_resetSidebarToEmptyState');
+        controller._onMessage(postMessage({ type: 'cb:preview:outside-click' }));
+        expect(spy).toHaveBeenCalled();
     });
 });
 
-describe('cb-builder: sidebar mount/close', () => {
+describe('cb-builder: sidebar mount + empty state', () => {
     let controller, sidebar, sidebarContent;
 
     beforeEach(() => {
         ({ controller, sidebar, sidebarContent } = setupController());
-        vi.spyOn(console, 'log').mockImplementation(() => {});
         vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
@@ -179,7 +184,6 @@ describe('cb-builder: sidebar mount/close', () => {
         // HTML lands in the content slot, NOT on the wrapper itself —
         // the wrapper keeps its persistent header/resize chrome.
         expect(sidebarContent.innerHTML).toBe(html);
-        expect(sidebar.hidden).toBe(false);
         expect(sidebar.getAttribute('data-cb-sidebar-block-id')).toBe('42');
     });
 
@@ -188,45 +192,113 @@ describe('cb-builder: sidebar mount/close', () => {
 
         await controller._mountSidebar(99);
 
-        expect(sidebarContent.innerHTML).toBe('');
-        expect(sidebar.hidden).toBe(true);
+        // The empty-state HTML is left untouched on a failed mount.
+        expect(sidebarContent.innerHTML).toBe('__EMPTY__');
     });
 
-    it('closeSidebar clears the content, hides, and drops mount-id attrs', () => {
+    it('_mountSidebar expands a collapsed sidebar so the freshly mounted form is visible', async () => {
+        controller.element.classList.add('cb-shell--sidebar-collapsed');
+        global.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve('<form></form>'),
+        }));
+
+        await controller._mountSidebar(1);
+
+        expect(controller.element.classList.contains('cb-shell--sidebar-collapsed')).toBe(false);
+    });
+
+    it('_resetSidebarToEmptyState restores the captured empty-state HTML and clears mount attrs', () => {
         sidebarContent.innerHTML = '<form>x</form>';
-        sidebar.hidden = false;
         sidebar.setAttribute('data-cb-sidebar-block-id', '42');
 
-        controller.closeSidebar({ preventDefault: () => {} });
+        controller._resetSidebarToEmptyState();
 
-        expect(sidebarContent.innerHTML).toBe('');
-        expect(sidebar.hidden).toBe(true);
+        expect(sidebarContent.innerHTML).toBe('__EMPTY__');
         expect(sidebar.hasAttribute('data-cb-sidebar-block-id')).toBe(false);
     });
 
-    it('cb:block:saved keeps the sidebar open and reloads the iframe', () => {
+    it('cb:block:saved schedules an iframe reload (debounced) and flashes the saved pill', () => {
+        vi.useFakeTimers();
         const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
-        sidebarContent.innerHTML = '<form>x</form>';
-        sidebar.hidden = false;
 
         controller._onBlockSaved({ detail: { blockId: 42 } });
 
-        // Stays open — the user can keep tweaking and saving iteratively.
-        expect(sidebarContent.innerHTML).toBe('<form>x</form>');
-        expect(sidebar.hidden).toBe(false);
-        expect(reloadSpy).toHaveBeenCalled();
+        // Reload is debounced — not fired synchronously.
+        expect(reloadSpy).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(Controller.SAVE_RELOAD_DEBOUNCE_MS + 10);
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+        vi.useRealTimers();
     });
 
-    it('cb:section:saved keeps the sidebar open and reloads the iframe', () => {
+    it('cb:section:saved schedules a debounced reload too', () => {
+        vi.useFakeTimers();
         const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
-        sidebarContent.innerHTML = '<form>x</form>';
-        sidebar.hidden = false;
 
         controller._onSectionSaved({ detail: { sectionId: 5 } });
 
-        expect(sidebarContent.innerHTML).toBe('<form>x</form>');
-        expect(sidebar.hidden).toBe(false);
-        expect(reloadSpy).toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(Controller.SAVE_RELOAD_DEBOUNCE_MS + 10);
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+        vi.useRealTimers();
+    });
+
+    it('back-to-back saves coalesce into a single reload', () => {
+        vi.useFakeTimers();
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        controller._onBlockSaved({ detail: { blockId: 1 } });
+        vi.advanceTimersByTime(100);
+        controller._onBlockSaved({ detail: { blockId: 1 } });
+        vi.advanceTimersByTime(100);
+        controller._onBlockSaved({ detail: { blockId: 1 } });
+
+        // None fired yet — the debounce timer keeps getting reset.
+        expect(reloadSpy).not.toHaveBeenCalled();
+
+        // Once the quiet period elapses we get exactly one reload, not
+        // three.
+        vi.advanceTimersByTime(Controller.SAVE_RELOAD_DEBOUNCE_MS + 10);
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+        vi.useRealTimers();
+    });
+});
+
+describe('cb-builder: sidebar toggle', () => {
+    let controller, sidebarToggle, store;
+
+    beforeEach(() => {
+        store = {};
+        global.localStorage = {
+            getItem: (k) => (k in store ? store[k] : null),
+            setItem: (k, v) => { store[k] = String(v); },
+            removeItem: (k) => { delete store[k]; },
+        };
+        ({ controller, sidebarToggle } = setupController());
+    });
+
+    it('toggleSidebar adds the collapsed class on first click', () => {
+        controller.toggleSidebar({ preventDefault: () => {} });
+
+        expect(controller.element.classList.contains('cb-shell--sidebar-collapsed')).toBe(true);
+        expect(sidebarToggle.getAttribute('aria-expanded')).toBe('false');
+        expect(store['cb-builder.sidebarCollapsed']).toBe('1');
+    });
+
+    it('toggleSidebar removes the collapsed class on a second click', () => {
+        controller.toggleSidebar({ preventDefault: () => {} });
+        controller.toggleSidebar({ preventDefault: () => {} });
+
+        expect(controller.element.classList.contains('cb-shell--sidebar-collapsed')).toBe(false);
+        expect(sidebarToggle.getAttribute('aria-expanded')).toBe('true');
+        expect(store['cb-builder.sidebarCollapsed']).toBe('0');
+    });
+
+    it('_restoreSidebarCollapsed applies the persisted collapsed flag', () => {
+        store['cb-builder.sidebarCollapsed'] = '1';
+        controller._restoreSidebarCollapsed();
+
+        expect(controller.element.classList.contains('cb-shell--sidebar-collapsed')).toBe(true);
     });
 });
 
@@ -235,207 +307,81 @@ describe('cb-builder: sidebar resize', () => {
 
     beforeEach(() => {
         store = {};
-        // Tiny localStorage stub so the test doesn't depend on jsdom's.
         global.localStorage = {
             getItem: (k) => (k in store ? store[k] : null),
             setItem: (k, v) => { store[k] = String(v); },
             removeItem: (k) => { delete store[k]; },
         };
-        // matchMedia isn't implemented by jsdom; stub it to "desktop"
-        // (mobile tests below override per-case).
+        // matchMedia not implemented in jsdom; stub to "desktop".
         window.matchMedia = vi.fn(() => ({ matches: false, addEventListener() {} }));
-        vi.spyOn(console, 'log').mockImplementation(() => {});
     });
 
     it('_restoreSidebarWidth applies the stored width on connect', () => {
         store['cb-builder.sidebarWidth'] = '500';
-        ({ controller, sidebar } = setupController());
+        ({ controller } = setupController());
         controller._restoreSidebarWidth();
 
-        expect(sidebar.style.width).toBe('500px');
+        expect(controller.element.style.getPropertyValue('--cb-sidebar-width')).toBe('500px');
     });
 
     it('_restoreSidebarWidth clamps stored values to the [MIN, MAX] range', () => {
         store['cb-builder.sidebarWidth'] = '99999';
-        ({ controller, sidebar } = setupController());
+        ({ controller } = setupController());
         controller._restoreSidebarWidth();
 
-        expect(sidebar.style.width).toBe('800px');
+        expect(controller.element.style.getPropertyValue('--cb-sidebar-width')).toBe('800px');
     });
 
     it('_restoreSidebarWidth skips when no value is stored', () => {
-        ({ controller, sidebar } = setupController());
+        ({ controller } = setupController());
         controller._restoreSidebarWidth();
 
-        expect(sidebar.style.width).toBe('');
+        expect(controller.element.style.getPropertyValue('--cb-sidebar-width')).toBe('');
     });
 
     it('startSidebarResize + _onResizeMove + _onResizeEnd resize and persist the width', () => {
         ({ controller, sidebar, iframe } = setupController());
-        // Pretend the sidebar was 380px wide before drag.
+        // Pretend the sidebar was 340px wide before drag.
         Object.defineProperty(sidebar, 'getBoundingClientRect', {
             configurable: true,
-            value: () => ({ width: 380, top: 0, bottom: 0, left: 0, right: 0, height: 0 }),
+            value: () => ({ width: 340, top: 0, bottom: 0, left: 0, right: 0, height: 0 }),
         });
 
-        controller.startSidebarResize({ clientX: 1000, clientY: 500, preventDefault: () => {} });
+        controller.startSidebarResize({ clientX: 100, clientY: 500, preventDefault: () => {} });
         // Iframe gets pointer-events: none during the drag so mousemove
         // events bubble up to the document.
         expect(iframe.style.pointerEvents).toBe('none');
 
-        controller._onResizeMove({ clientX: 900, clientY: 500 });
-        // 100px to the left → +100px on the sidebar width.
-        expect(sidebar.style.width).toBe('480px');
+        // Drag rightward by 60px — sidebar is left-anchored, so it grows.
+        controller._onResizeMove({ clientX: 160, clientY: 500 });
+        expect(controller.element.style.getPropertyValue('--cb-sidebar-width')).toBe('400px');
 
-        // Pretend the new bounding box.
         Object.defineProperty(sidebar, 'getBoundingClientRect', {
             configurable: true,
-            value: () => ({ width: 480, top: 0, bottom: 0, left: 0, right: 0, height: 0 }),
+            value: () => ({ width: 400, top: 0, bottom: 0, left: 0, right: 0, height: 0 }),
         });
         controller._onResizeEnd();
 
         expect(iframe.style.pointerEvents).toBe('');
-        expect(store['cb-builder.sidebarWidth']).toBe('480');
+        expect(store['cb-builder.sidebarWidth']).toBe('400');
     });
 
-    // ---------- Mobile (vertical-axis resize, height stored separately) ----------
-
-    it('mobile: _restoreSidebarWidth applies the stored height to --cb-sidebar-height', () => {
+    it('startSidebarResize is a no-op on mobile (resize handle is hidden)', () => {
         window.matchMedia = vi.fn(() => ({ matches: true, addEventListener() {} }));
-        store['cb-builder.sidebarHeight'] = '420';
-        ({ controller } = setupController());
-        // Force a known viewport height for clamping (jsdom default may be tall).
-        Object.defineProperty(window, 'innerHeight', { value: 1000, configurable: true });
+        ({ controller, iframe } = setupController());
 
-        controller._restoreSidebarWidth();
+        controller.startSidebarResize({ clientX: 100, clientY: 500, preventDefault: () => {} });
 
-        expect(controller.element.style.getPropertyValue('--cb-sidebar-height')).toBe('420px');
-    });
-
-    it('mobile: vertical drag resizes height and persists in the height key', () => {
-        window.matchMedia = vi.fn(() => ({ matches: true, addEventListener() {} }));
-        ({ controller, sidebar, iframe } = setupController());
-        Object.defineProperty(window, 'innerHeight', { value: 1000, configurable: true });
-        // Pretend the sidebar was 300px tall before drag.
-        Object.defineProperty(sidebar, 'getBoundingClientRect', {
-            configurable: true,
-            value: () => ({ width: 0, top: 0, bottom: 0, left: 0, right: 0, height: 300 }),
-        });
-
-        controller.startSidebarResize({ clientX: 100, clientY: 800, preventDefault: () => {} });
-        controller._onResizeMove({ clientX: 100, clientY: 700, preventDefault: () => {} });
-        // 100px upward → +100px on the sidebar height.
-        expect(controller.element.style.getPropertyValue('--cb-sidebar-height')).toBe('400px');
-
-        Object.defineProperty(sidebar, 'getBoundingClientRect', {
-            configurable: true,
-            value: () => ({ width: 0, top: 0, bottom: 0, left: 0, right: 0, height: 400 }),
-        });
-        controller._onResizeEnd();
-
-        expect(store['cb-builder.sidebarHeight']).toBe('400');
-        // Width key should remain untouched in mobile mode.
-        expect(store['cb-builder.sidebarWidth']).toBeUndefined();
-    });
-});
-
-describe('cb-builder: header save delegation', () => {
-    let controller, sidebarContent;
-
-    beforeEach(() => {
-        ({ controller, sidebarContent } = setupController());
-        // Add a header save button to the shell as the template would.
-        const headerBtn = document.createElement('button');
-        headerBtn.className = 'cb-shell__sidebar-save';
-        controller.element.appendChild(headerBtn);
-        window.matchMedia = vi.fn(() => ({ matches: false, addEventListener() {} }));
-    });
-
-    it('saveSidebar clicks the form button marked [data-cb-sidebar-save]', () => {
-        const inFormBtn = document.createElement('button');
-        inFormBtn.dataset.cbSidebarSave = '';
-        const clickSpy = vi.fn();
-        inFormBtn.addEventListener('click', clickSpy);
-        sidebarContent.appendChild(inFormBtn);
-
-        controller.saveSidebar({ preventDefault: () => {} });
-
-        expect(clickSpy).toHaveBeenCalled();
-    });
-
-    it('saveSidebar is a no-op when no [data-cb-sidebar-save] target exists', () => {
-        // No target inserted — saveSidebar should bail without throwing.
-        expect(() => controller.saveSidebar({ preventDefault: () => {} })).not.toThrow();
-    });
-
-    it('saveSidebar blurs the focused sidebar input before clicking save (flushes Live model on(change))', () => {
-        // Repro: Live Component model bindings sync `on(change)`. If the
-        // user types in an input then clicks the header Save button, the
-        // input is still focused at click time. A programmatic .click()
-        // does NOT move focus, so without an explicit blur the change
-        // event never fires and Live POSTs the previous value.
-        const input = document.createElement('input');
-        input.type = 'text';
-        const blurSpy = vi.fn();
-        input.addEventListener('blur', blurSpy);
-        sidebarContent.appendChild(input);
-        input.focus();
-        expect(document.activeElement).toBe(input);
-
-        const clickSpy = vi.fn();
-        const inFormBtn = document.createElement('button');
-        inFormBtn.dataset.cbSidebarSave = '';
-        inFormBtn.addEventListener('click', clickSpy);
-        sidebarContent.appendChild(inFormBtn);
-
-        controller.saveSidebar({ preventDefault: () => {} });
-
-        expect(blurSpy).toHaveBeenCalledOnce();
-        expect(clickSpy).toHaveBeenCalledOnce();
-    });
-
-    it('saveSidebar does not blur an element focused outside the sidebar', () => {
-        // Defensive: an unrelated focused input on the page (e.g. host's
-        // global search) must not lose focus when the user saves.
-        const outsider = document.createElement('input');
-        document.body.appendChild(outsider);
-        const blurSpy = vi.fn();
-        outsider.addEventListener('blur', blurSpy);
-        outsider.focus();
-        expect(document.activeElement).toBe(outsider);
-
-        const inFormBtn = document.createElement('button');
-        inFormBtn.dataset.cbSidebarSave = '';
-        sidebarContent.appendChild(inFormBtn);
-
-        controller.saveSidebar({ preventDefault: () => {} });
-
-        expect(blurSpy).not.toHaveBeenCalled();
-        document.body.removeChild(outsider);
-    });
-
-    it('_refreshSaveButtonState toggles the disabled attr based on form presence', () => {
-        const headerBtn = controller.element.querySelector('.cb-shell__sidebar-save');
-
-        // No form mounted yet → disabled.
-        controller._refreshSaveButtonState();
-        expect(headerBtn.disabled).toBe(true);
-
-        // Add a saveable element → enabled.
-        const inFormBtn = document.createElement('button');
-        inFormBtn.dataset.cbSidebarSave = '';
-        sidebarContent.appendChild(inFormBtn);
-        controller._refreshSaveButtonState();
-        expect(headerBtn.disabled).toBe(false);
+        // No iframe lock means no drag was started.
+        expect(iframe.style.pointerEvents).toBe('');
     });
 });
 
 describe('cb-builder: action methods', () => {
-    let controller, logSpy;
+    let controller;
 
     beforeEach(() => {
         ({ controller } = setupController({ areaId: 99 }));
-        logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     });
 
     it('addSection POSTs to area/{id}/sections with the layout, then reloads', async () => {
@@ -474,7 +420,6 @@ describe('cb-builder: structural AJAX handlers', () => {
         ({ controller } = setupController({ areaId: 99 }));
         // Stamp the CSRF token onto the element since _jsonRequest reads it.
         controller.element.dataset.cbCsrfToken = 'tok-123';
-        vi.spyOn(console, 'log').mockImplementation(() => {});
         reqSpy = vi.spyOn(controller, '_jsonRequest').mockResolvedValue({});
         reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
     });
@@ -589,7 +534,6 @@ describe('cb-builder: publish/discard', () => {
         badge.className = 'cb-launcher__badge';
         document.body.appendChild(badge);
 
-        vi.spyOn(console, 'log').mockImplementation(() => {});
         vi.spyOn(console, 'error').mockImplementation(() => {});
         reqSpy = vi.spyOn(controller, '_jsonRequest');
         reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
@@ -657,7 +601,6 @@ describe('cb-builder: _jsonRequest', () => {
     beforeEach(() => {
         ({ controller } = setupController());
         controller.element.dataset.cbCsrfToken = 'csrf-xyz';
-        vi.spyOn(console, 'log').mockImplementation(() => {});
         vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
@@ -688,7 +631,6 @@ describe('cb-builder: setViewport', () => {
 
     beforeEach(() => {
         ({ controller, element, iframe } = setupController());
-        vi.spyOn(console, 'log').mockImplementation(() => {});
     });
 
     it('toggles --active on the clicked button and resizes iframe', () => {
@@ -723,7 +665,6 @@ describe('cb-builder: viewport visibility', () => {
 
     beforeEach(() => {
         ({ controller, element, iframe } = setupController());
-        vi.spyOn(console, 'log').mockImplementation(() => {});
     });
 
     function setShellWidth(width) {

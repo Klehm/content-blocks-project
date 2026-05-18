@@ -5,11 +5,16 @@ import { Controller } from '@hotwired/stimulus';
  *
  * Listens to `postMessage` events from the iframe (block edit/delete/add,
  * section move/delete, drag&drop reorder) and dispatches them as JS events
- * on its element so the rest of the admin can react. In phase 1 the actions
- * just log; phase 2 (sidebar mount) and phase 3 (AJAX endpoints) wire them.
+ * on its element so the rest of the admin can react.
+ *
+ * The sidebar is permanent: it always occupies its grid column and only its
+ * content swaps based on which entity is focused. A collapsed state shrinks
+ * the column to a fly-out toggle handle so the iframe can claim the full
+ * row width. There is no "open / close" lifecycle anymore — block & section
+ * forms save themselves via autosave (debounce on input, immediate on blur).
  *
  * Reload preserves the iframe's scroll position so the user isn't kicked
- * back to the top after each block save.
+ * back to the top after each save.
  */
 export default class extends Controller {
     static targets = [
@@ -17,6 +22,7 @@ export default class extends Controller {
         'sidebar',
         'sidebarContent',
         'sidebarResize',
+        'sidebarToggle',
         'progress',
         'savedFlash',
         'replacePicker',
@@ -37,11 +43,16 @@ export default class extends Controller {
         'Are you sure you want to overwrite the current content with the selected one?';
 
     static SIDEBAR_WIDTH_KEY = 'cb-builder.sidebarWidth';
+    static SIDEBAR_COLLAPSED_KEY = 'cb-builder.sidebarCollapsed';
     static SIDEBAR_MIN_WIDTH = 280;
     static SIDEBAR_MAX_WIDTH = 800;
-    static SIDEBAR_HEIGHT_KEY = 'cb-builder.sidebarHeight';
-    static SIDEBAR_MIN_HEIGHT = 200;
-    static SIDEBAR_MAX_HEIGHT_VH = 80;
+    /**
+     * Coalesce window for the iframe reload after a save. Autosave can fire
+     * many `cb:*:saved` events per second while the user types; rather than
+     * reloading the preview on each one, we debounce so the iframe only
+     * refreshes after the user pauses for a moment.
+     */
+    static SAVE_RELOAD_DEBOUNCE_MS = 500;
     static MOBILE_BREAKPOINT = '(max-width: 768px)';
     /**
      * Minimum shell width (in px) for each emulated viewport. The "desktop"
@@ -68,7 +79,13 @@ export default class extends Controller {
         this.element.addEventListener('cb:section:saved', this._onSectionSaved);
 
         this._restoreSidebarWidth();
+        this._restoreSidebarCollapsed();
         this._refreshViewportButtons();
+        // Remember the initial empty-state HTML so we can restore it
+        // when the user clicks outside any focused element.
+        if (this.hasSidebarContentTarget) {
+            this._sidebarEmptyHtml = this.sidebarContentTarget.innerHTML;
+        }
     }
 
     disconnect() {
@@ -78,6 +95,7 @@ export default class extends Controller {
         this.element.removeEventListener('cb:section:saved', this._onSectionSaved);
         document.removeEventListener('mousemove', this._onResizeMove);
         document.removeEventListener('mouseup', this._onResizeEnd);
+        clearTimeout(this._reloadTimer);
     }
 
     _onWindowResize() {
@@ -146,6 +164,7 @@ export default class extends Controller {
             } catch (_) {
                 // Same as above.
             }
+            this._restorePinnedFocus();
             this._endLoading();
         };
         this.iframeTarget.addEventListener('load', onLoad);
@@ -155,6 +174,36 @@ export default class extends Controller {
         } catch (_) {
             // Fallback when the iframe document isn't accessible.
             this.iframeTarget.src = this.iframeUrlValue;
+        }
+    }
+
+    /**
+     * After the iframe finishes (re)loading, tell the preview overlay to
+     * re-pin focus on the element currently being edited. Without this,
+     * an autosave-triggered reload would wipe the blue outline + toolbar
+     * because the iframe DOM is rebuilt from scratch.
+     *
+     * The currently-edited entity is read from the sidebar's data-* mount
+     * markers (set by `_mountSidebarFrom`). When the sidebar shows the
+     * empty state, nothing is pinned and the call is a no-op.
+     */
+    _restorePinnedFocus() {
+        if (!this.hasSidebarTarget || !this.hasIframeTarget) return;
+        const blockId = this.sidebarTarget.getAttribute('data-cb-sidebar-block-id');
+        const sectionId = this.sidebarTarget.getAttribute('data-cb-sidebar-section-id');
+
+        let message = null;
+        if (blockId) {
+            message = { type: 'cb:focus:block', blockId: parseInt(blockId, 10) };
+        } else if (sectionId) {
+            message = { type: 'cb:focus:section', sectionId: parseInt(sectionId, 10) };
+        }
+        if (!message) return;
+
+        try {
+            this.iframeTarget.contentWindow?.postMessage(message, window.location.origin);
+        } catch (_) {
+            // Cross-origin / detached frame — silently ignore.
         }
     }
 
@@ -343,7 +392,6 @@ export default class extends Controller {
         if (event) event.preventDefault();
         const viewport = event?.params?.viewport ?? 'desktop';
         this._applyViewport(viewport);
-        console.log('[cb-builder] setViewport', { viewport });
     }
 
     _onMessage(event) {
@@ -356,7 +404,6 @@ export default class extends Controller {
 
         switch (data.type) {
             case 'cb:ready':
-                console.log('[cb-builder] iframe ready');
                 break;
             case 'cb:block:edit':
                 this._mountSidebar(data.blockId);
@@ -395,7 +442,8 @@ export default class extends Controller {
                 this._onPreviewOutsideClick();
                 break;
             default:
-                console.log('[cb-builder] unknown message type', data.type, data);
+                // Unknown cb:* message — silently ignore (forward-compat).
+                break;
         }
     }
 
@@ -419,6 +467,11 @@ export default class extends Controller {
     async _mountSidebarFrom(url, dataAttrs = {}) {
         if (!this.hasSidebarTarget || !this.hasSidebarContentTarget) return;
 
+        // Expand the sidebar if it was collapsed — the user just asked to
+        // edit something, so we surface the form even without a manual
+        // expand click.
+        this._setSidebarCollapsed(false);
+
         this._beginLoading();
         try {
             const response = await fetch(url, {
@@ -431,38 +484,15 @@ export default class extends Controller {
             }
 
             this.sidebarContentTarget.innerHTML = await response.text();
-            this.sidebarTarget.hidden = false;
-            this.element.classList.add('cb-shell--sidebar-open');
             this._clearSidebarDataAttrs();
             for (const [k, v] of Object.entries(dataAttrs)) {
                 this.sidebarTarget.setAttribute(k, v);
             }
-            this._refreshSaveButtonState();
-
-            // Move focus to the first form field once Stimulus + Live
-            // Component finish wiring. preventScroll is critical: while the
-            // sidebar is mid-slide-in, focusing an off-screen input would
-            // otherwise scroll the iframe horizontally.
-            requestAnimationFrame(() => {
-                const target = this.sidebarContentTarget.querySelector(
-                    'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled]), [contenteditable="true"]',
-                );
-                if (target) target.focus({ preventScroll: true });
-            });
         } catch (e) {
             console.error('[cb-builder] mount error', e);
         } finally {
             this._endLoading();
         }
-    }
-
-    _refreshSaveButtonState() {
-        const saveBtn = this.element.querySelector('.cb-shell__sidebar-save');
-        if (!saveBtn) return;
-        const inFormSave = this.hasSidebarContentTarget
-            ? this.sidebarContentTarget.querySelector('[data-cb-sidebar-save]')
-            : null;
-        saveBtn.disabled = !inFormSave;
     }
 
     _clearSidebarDataAttrs() {
@@ -472,73 +502,74 @@ export default class extends Controller {
     }
 
     /**
+     * Resets the sidebar content back to its empty state (the hint +
+     * three "Add section" buttons). Called when the user clicks empty
+     * preview space or after structural ops that remove the focused
+     * element. No animation — just an instant content swap.
+     */
+    _resetSidebarToEmptyState() {
+        if (!this.hasSidebarContentTarget) return;
+        if (typeof this._sidebarEmptyHtml !== 'string') return;
+        this.sidebarContentTarget.innerHTML = this._sidebarEmptyHtml;
+        this._clearSidebarDataAttrs();
+    }
+
+    /**
      * The iframe forwards a `cb:preview:outside-click` whenever the user
      * clicks anywhere in the preview that isn't an overlay toolbar/popover.
-     * We treat it as "click outside the sidebar" and close it without
-     * saving — same effect as the × button.
+     * In the new permanent-sidebar model we read it as "clear the focused
+     * form" — the sidebar stays on screen but reverts to the empty state.
      */
     _onPreviewOutsideClick() {
-        if (this.hasSidebarTarget && !this.sidebarTarget.hidden) {
-            this.closeSidebar();
+        this._resetSidebarToEmptyState();
+    }
+
+    /** Action: toggle the sidebar between expanded and collapsed widths. */
+    toggleSidebar(event) {
+        if (event) event.preventDefault();
+        const wasCollapsed = this.element.classList.contains('cb-shell--sidebar-collapsed');
+        this._setSidebarCollapsed(!wasCollapsed);
+    }
+
+    _setSidebarCollapsed(collapsed) {
+        this.element.classList.toggle('cb-shell--sidebar-collapsed', collapsed);
+        if (this.hasSidebarToggleTarget) {
+            this.sidebarToggleTarget.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        }
+        try {
+            window.localStorage.setItem(
+                this.constructor.SIDEBAR_COLLAPSED_KEY,
+                collapsed ? '1' : '0',
+            );
+        } catch (_) {
+            // ignore — non-blocking persistence
         }
     }
 
-    /** Action: explicit close via the × button in the sidebar header. */
-    closeSidebar(event) {
-        if (event) event.preventDefault();
-        if (!this.hasSidebarTarget) return;
-        this.sidebarTarget.hidden = true;
-        this.element.classList.remove('cb-shell--sidebar-open');
-        if (this.hasSidebarContentTarget) this.sidebarContentTarget.innerHTML = '';
-        this._clearSidebarDataAttrs();
-        this._refreshSaveButtonState();
-    }
-
     /**
-     * Action: header Save button. Delegates to whichever real submit /
-     * Live Action button the mounted form exposes via the
-     * [data-cb-sidebar-save] hook. Keeps the framework-specific wiring
-     * (Live Component LiveAction, Symfony form submit) inside the form
-     * template instead of leaking into the shell.
-     *
-     * Live Component model bindings are wired with `on(change)`. The
-     * input still focused when the user clicks the header Save has not
-     * flushed its value to the model yet — and `.click()` on the in-form
-     * save button doesn't move focus, so blur+change never fire and
-     * Live POSTs the stale prop. Forcing a blur on the focused sidebar
-     * field fires the synthetic change event, lets Live update the
-     * model, and the subsequent click goes out with fresh data.
-     */
-    saveSidebar(event) {
-        if (event) event.preventDefault();
-        if (!this.hasSidebarContentTarget) return;
-        const sidebar = this.sidebarContentTarget;
-        const active = document.activeElement;
-        if (active instanceof HTMLElement && sidebar.contains(active)) {
-            active.blur();
-        }
-        const target = sidebar.querySelector('[data-cb-sidebar-save]');
-        if (target) target.click();
-    }
-
-    /**
-     * Save kept the sidebar open (so the user can keep tweaking / saving
-     * iteratively). Reloads the iframe with the freshly persisted draft and
-     * flashes a "✓ Saved" pill near the Save button so the user has explicit
-     * feedback that the click actually persisted something.
+     * Autosave callback: a block was just persisted by the form. Bump the
+     * dirty indicators, flash "Saved", and schedule an iframe reload (the
+     * preview should reflect the change, but coalesce back-to-back saves
+     * so the iframe doesn't reload on every keystroke).
      */
     _onBlockSaved(event) {
-        console.log('[cb-builder] block:saved', event.detail);
         this._applyDraftState(true);
         this._flashSaved();
-        this.reload();
+        this._scheduleReload();
     }
 
     _onSectionSaved(event) {
-        console.log('[cb-builder] section:saved', event.detail);
         this._applyDraftState(true);
         this._flashSaved();
-        this.reload();
+        this._scheduleReload();
+    }
+
+    _scheduleReload() {
+        clearTimeout(this._reloadTimer);
+        this._reloadTimer = setTimeout(
+            () => this.reload(),
+            this.constructor.SAVE_RELOAD_DEBOUNCE_MS,
+        );
     }
 
     _flashSaved() {
@@ -708,52 +739,44 @@ export default class extends Controller {
     }
 
     _restoreSidebarWidth() {
-        if (!this.hasSidebarTarget) return;
+        // Mobile stacks the panels — the saved desktop width is irrelevant
+        // there. We only restore the width on desktop layouts.
+        if (this._isMobile()) return;
         try {
-            if (this._isMobile()) {
-                const stored = window.localStorage.getItem(this.constructor.SIDEBAR_HEIGHT_KEY);
-                if (!stored) return;
-                const parsed = parseInt(stored, 10);
-                if (Number.isNaN(parsed)) return;
-                const max = (this.constructor.SIDEBAR_MAX_HEIGHT_VH / 100) * window.innerHeight;
-                const clamped = Math.max(
-                    this.constructor.SIDEBAR_MIN_HEIGHT,
-                    Math.min(max, parsed),
-                );
-                this.element.style.setProperty('--cb-sidebar-height', clamped + 'px');
-            } else {
-                const stored = window.localStorage.getItem(this.constructor.SIDEBAR_WIDTH_KEY);
-                if (!stored) return;
-                const parsed = parseInt(stored, 10);
-                if (Number.isNaN(parsed)) return;
-                const clamped = Math.max(
-                    this.constructor.SIDEBAR_MIN_WIDTH,
-                    Math.min(this.constructor.SIDEBAR_MAX_WIDTH, parsed),
-                );
-                this.sidebarTarget.style.width = clamped + 'px';
-            }
+            const stored = window.localStorage.getItem(this.constructor.SIDEBAR_WIDTH_KEY);
+            if (!stored) return;
+            const parsed = parseInt(stored, 10);
+            if (Number.isNaN(parsed)) return;
+            const clamped = Math.max(
+                this.constructor.SIDEBAR_MIN_WIDTH,
+                Math.min(this.constructor.SIDEBAR_MAX_WIDTH, parsed),
+            );
+            this.element.style.setProperty('--cb-sidebar-width', clamped + 'px');
         } catch (_) {
             // localStorage may throw in privacy modes — silently fall back.
+        }
+    }
+
+    _restoreSidebarCollapsed() {
+        try {
+            const stored = window.localStorage.getItem(this.constructor.SIDEBAR_COLLAPSED_KEY);
+            this._setSidebarCollapsed(stored === '1');
+        } catch (_) {
+            // ignore — non-blocking persistence
         }
     }
 
     /** Action: mousedown / touchstart on the resize handle. */
     startSidebarResize(event) {
         if (!this.hasSidebarTarget || !this.hasIframeTarget) return;
+        if (this._isMobile()) return; // No resize affordance on mobile.
         event.preventDefault();
 
         const point = this._eventPoint(event);
-        this._resizeMobile = this._isMobile();
-
-        if (this._resizeMobile) {
-            this._resizeStartY = point.y;
-            this._resizeStartHeight = this.sidebarTarget.getBoundingClientRect().height;
-            document.body.style.cursor = 'row-resize';
-        } else {
-            this._resizeStartX = point.x;
-            this._resizeStartWidth = this.sidebarTarget.getBoundingClientRect().width;
-            document.body.style.cursor = 'col-resize';
-        }
+        this._resizeStartX = point.x;
+        const rect = this.sidebarTarget.getBoundingClientRect();
+        this._resizeStartWidth = rect.width;
+        document.body.style.cursor = 'col-resize';
 
         // Disable iframe pointer events during the drag so mousemove on
         // top of it still fires on the parent document.
@@ -765,33 +788,20 @@ export default class extends Controller {
     }
 
     _onResizeMove(event) {
+        if (this._resizeStartX === undefined) return;
         const point = this._eventPoint(event);
-
-        if (this._resizeMobile) {
-            if (this._resizeStartY === undefined) return;
-            // Drag upward grows the sidebar (handle is on its top edge).
-            event.preventDefault?.();
-            const delta = this._resizeStartY - point.y;
-            const max = (this.constructor.SIDEBAR_MAX_HEIGHT_VH / 100) * window.innerHeight;
-            const next = Math.max(
-                this.constructor.SIDEBAR_MIN_HEIGHT,
-                Math.min(max, this._resizeStartHeight + delta),
-            );
-            this.element.style.setProperty('--cb-sidebar-height', next + 'px');
-        } else {
-            if (this._resizeStartX === undefined) return;
-            // Drag toward the left grows the sidebar.
-            const delta = this._resizeStartX - point.x;
-            const next = Math.max(
-                this.constructor.SIDEBAR_MIN_WIDTH,
-                Math.min(this.constructor.SIDEBAR_MAX_WIDTH, this._resizeStartWidth + delta),
-            );
-            this.sidebarTarget.style.width = next + 'px';
-        }
+        // Sidebar is left-anchored; dragging the right edge to the right
+        // grows the sidebar.
+        const delta = point.x - this._resizeStartX;
+        const next = Math.max(
+            this.constructor.SIDEBAR_MIN_WIDTH,
+            Math.min(this.constructor.SIDEBAR_MAX_WIDTH, this._resizeStartWidth + delta),
+        );
+        this.element.style.setProperty('--cb-sidebar-width', next + 'px');
     }
 
     _onResizeEnd() {
-        if (this._resizeStartX === undefined && this._resizeStartY === undefined) return;
+        if (this._resizeStartX === undefined) return;
         document.removeEventListener('mousemove', this._onResizeMove);
         document.removeEventListener('mouseup', this._onResizeEnd);
         document.removeEventListener('touchmove', this._onResizeMove);
@@ -801,22 +811,14 @@ export default class extends Controller {
         document.body.style.cursor = '';
 
         try {
-            if (this._resizeMobile) {
-                const h = Math.round(this.sidebarTarget.getBoundingClientRect().height);
-                window.localStorage.setItem(this.constructor.SIDEBAR_HEIGHT_KEY, String(h));
-            } else {
-                const w = Math.round(this.sidebarTarget.getBoundingClientRect().width);
-                window.localStorage.setItem(this.constructor.SIDEBAR_WIDTH_KEY, String(w));
-            }
+            const w = Math.round(this.sidebarTarget.getBoundingClientRect().width);
+            window.localStorage.setItem(this.constructor.SIDEBAR_WIDTH_KEY, String(w));
         } catch (_) {
             // ignore — non-blocking persistence
         }
 
         this._resizeStartX = undefined;
-        this._resizeStartY = undefined;
         this._resizeStartWidth = undefined;
-        this._resizeStartHeight = undefined;
-        this._resizeMobile = false;
     }
 
     _eventPoint(event) {

@@ -1,7 +1,7 @@
 {# @var form Symfony\Component\Form\FormView #}
 {# @var sectionId int #}
 <div class="cb-sidebar__section-settings"
-     data-controller="cb-section-settings-form cb-sidebar-tabs"
+     data-controller="cb-section-settings-form cb-sidebar-tabs cb-autosave"
      data-cb-section-settings-form-section-id-value="{{ sectionId }}">
 
     <h3 class="cb-sidebar__title">{{ 'cb.section.settings.title'|trans({}, 'content_blocks') }}</h3>
@@ -65,10 +65,11 @@
             </div>
         </div>
 
-        {# Hidden submit button kept so the form can still be triggered the
-           normal way (Enter key, or the cb-section-settings-form#_onSubmit
-           pathway). The visible Save lives in the sidebar header and clicks
-           this one via data-cb-sidebar-save. #}
+        {# Hidden submit trigger clicked by cb-autosave when an input event
+           is debounced or a change/focusout fires. The submit is hijacked
+           by cb-section-settings-form (fetch → cb:section:saved); the
+           button is visually hidden because the user-facing Save header
+           button is gone (autosave replaces it). #}
         <button type="submit"
                 data-cb-sidebar-save
                 class="visually-hidden cb-sidebar__action-fallback">

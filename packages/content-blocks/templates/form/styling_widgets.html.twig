@@ -102,42 +102,22 @@
    stay keyboard-accessible. CSS targets `:checked + .cb-align-btn__face`
    to highlight the active option. #}
 
-{% macro align_icon(value, axis) %}
-    {# axis: "v" for verticalAlign, "h" for horizontalAlign.
-       Items rendered inside an implicit 16x16 frame; the bars stand in
-       for flex children stacked along the alignment axis. #}
-    {% if axis == 'v' %}
-        {% set y = { start: [2, 5, 8], center: [5, 8, 11], end: [8, 11, 14] } %}
-        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-            {% for ty in y[value] %}
-                <rect x="2" y="{{ ty }}" width="12" height="2" rx="1" fill="currentColor" />
-            {% endfor %}
-        </svg>
-    {% else %}
-        {% set x = {
-            start: [1, 4, 7],
-            center: [4, 7, 10],
-            end: [7, 10, 13],
-            'space-between': [1, 7, 13],
-            'space-around': [2, 7, 12],
-        } %}
-        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-            {% for tx in x[value] %}
-                <rect x="{{ tx }}" y="2" width="2" height="12" rx="1" fill="currentColor" />
-            {% endfor %}
-        </svg>
-    {% endif %}
+{% macro align_icon(value) %}
+    {# Items rendered inside an implicit 16x16 frame; the bars stand in
+       for flex children stacked along the vertical alignment axis. #}
+    {% set y = { start: [2, 5, 8], center: [5, 8, 11], end: [8, 11, 14] } %}
+    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+        {% for ty in y[value] %}
+            <rect x="2" y="{{ ty }}" width="12" height="2" rx="1" fill="currentColor" />
+        {% endfor %}
+    </svg>
 {% endmacro %}
 
 {% block cb_vertical_align_widget %}
-    {{ _self.render_align(form, 'v') }}
+    {{ _self.render_align(form) }}
 {% endblock %}
 
-{% block cb_horizontal_align_widget %}
-    {{ _self.render_align(form, 'h') }}
-{% endblock %}
-
-{% macro render_align(form, axis) %}
+{% macro render_align(form) %}
     {# Each choice is a label wrapping a raw radio input + its icon.
        Going through form_widget(child) would invoke Bootstrap's radio
        theme which adds its own .form-check wrapper and a visible label —
@@ -164,7 +144,7 @@
                             <rect x="3" y="7" width="10" height="2" rx="1" fill="currentColor" opacity=".5" />
                         </svg>
                     {% else %}
-                        {{ _self.align_icon(val, axis) }}
+                        {{ _self.align_icon(val) }}
                     {% endif %}
                 </span>
             </label>

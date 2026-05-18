@@ -104,6 +104,16 @@ return static function (ContainerConfigurator $container): void {
         ->args([tagged_iterator('content_blocks.block_decorator')])
         ->public();
 
+    // Pre-populates the block's styling sub-form with sane defaults —
+    // notably `backgroundColor=#ffffff` (mirror of CoreStylingDefaults
+    // on the section side). Tagged via BlockDataDefaultsProviderInterface
+    // auto-configuration.
+    $services->set(\ContentBlocks\Block\CoreBlockStylingDefaults::class);
+
+    $services->set(\ContentBlocks\Block\BlockDataDefaults::class)
+        ->args([tagged_iterator('content_blocks.block_data_defaults')])
+        ->public();
+
     $services->load('ContentBlocks\\Form\\', '../src/Form/');
 
     $services->load('ContentBlocks\\Controller\\', '../src/Controller/')

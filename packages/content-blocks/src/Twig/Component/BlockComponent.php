@@ -43,6 +43,7 @@ final class BlockComponent
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly FormFactoryInterface $formFactory,
         private readonly AccessCheckerInterface $accessChecker,
+        private readonly \ContentBlocks\Block\BlockDataDefaults $blockDataDefaults,
     ) {
     }
 
@@ -78,12 +79,18 @@ final class BlockComponent
         $blockType = $this->getBlockType();
         $data = $block->getDraftData() ?? $block->getPublishedData() ?? [];
 
+        // Backfill defaults so widgets without an "empty" state
+        // (notably <input type="color">) open with a sane value rather
+        // than the browser's black fallback. Recursive merge keeps the
+        // existing data untouched and only fills holes.
+        $initial = array_replace_recursive($this->blockDataDefaults->get(), $data);
+
         return $this->formFactory->create(
             BlockFormType::class,
-            $data,
+            $initial,
             [
                 'block_type' => $blockType,
-                'block_data' => $data,
+                'block_data' => $initial,
             ]
         );
     }

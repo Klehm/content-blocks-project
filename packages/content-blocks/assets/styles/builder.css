@@ -127,7 +127,13 @@ body.cb-dragging--block [data-cb-section-id] {
  */
 
 [data-cb-section-id] {
-    min-height: 60px;
+    /* Default 60px keeps empty sections clickable in the builder.
+       Falling through `--cb-min-h` lets a user-configured minHeight
+       (set by StylingSectionDecorator) win over the builder fallback —
+       without it, this rule would shadow the user's value because
+       both selectors share specificity (0,1,0) and builder.css is
+       loaded after styling.css. */
+    min-height: var(--cb-min-h, 60px);
     box-sizing: border-box;
     padding-top: 18px;
     position: relative;

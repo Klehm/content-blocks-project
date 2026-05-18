@@ -26,7 +26,6 @@ cb:
         min_height: "Min height"
         max_width: "Max width"
         vertical_align: "Vertical align"
-        horizontal_align: "Horizontal align"
         link_sides: "Link all 4 sides"
         side.top: "Top"
         side.right: "Right"
@@ -39,8 +38,6 @@ cb:
         align.start: "Start"
         align.center: "Center"
         align.end: "End"
-        align.space_between: "Space between"
-        align.space_around: "Space around"
         layout:
             full: "1 column"
             one_col: "1 column"
@@ -62,9 +59,11 @@ cb:
         add_section: "Add a section:"
         empty_cta: "Start by adding a section"
         draft_pending: "Draft pending"
-        confirm_close: "You have unsaved block edits. Discard and close the editor?"
         saved: "Saved"
         pending: "Save this entity first to start adding content."
+        toggle_sidebar: "Toggle sidebar"
+        sidebar:
+            empty: "Click an element in the preview to edit it."
         replace:
             open: "Insert content"
             title: "Replace with another content"

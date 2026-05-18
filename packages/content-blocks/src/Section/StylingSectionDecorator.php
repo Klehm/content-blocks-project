@@ -23,7 +23,6 @@ use ContentBlocks\Entity\Section;
  *  - backgroundColor: string (#hex)
  *  - minHeight: { value: int, unit: 'px'|'vh' }
  *  - verticalAlign: 'start'|'center'|'end'
- *  - horizontalAlign: 'start'|'center'|'end'|'space-between'|'space-around'
  */
 final class StylingSectionDecorator implements SectionDecoratorInterface
 {
@@ -32,8 +31,6 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
         'start' => 'flex-start',
         'center' => 'center',
         'end' => 'flex-end',
-        'space-between' => 'space-between',
-        'space-around' => 'space-around',
     ];
 
     public function decorate(array $settings, Section $section): SectionDecoration
@@ -82,18 +79,11 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
             }
         }
 
-        // Vertical alignment (start/center/end only; section is flex-column).
+        // Vertical alignment (section is flex-column).
         $vAlign = $styling['verticalAlign'] ?? null;
-        if (\is_string($vAlign) && isset(self::ALIGN_MAP[$vAlign]) && $vAlign !== 'space-between' && $vAlign !== 'space-around') {
+        if (\is_string($vAlign) && isset(self::ALIGN_MAP[$vAlign])) {
             $vars['--cb-valign'] = self::ALIGN_MAP[$vAlign];
             $classes[] = 'cb-section--has-valign';
-        }
-
-        // Horizontal alignment (applies to .cb-row child).
-        $hAlign = $styling['horizontalAlign'] ?? null;
-        if (\is_string($hAlign) && isset(self::ALIGN_MAP[$hAlign])) {
-            $vars['--cb-halign'] = self::ALIGN_MAP[$hAlign];
-            $classes[] = 'cb-section--has-halign';
         }
 
         if ($vars === []) {

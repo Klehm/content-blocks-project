@@ -72,35 +72,20 @@ final class StylingType extends AbstractType
         }
 
         if ($options['include_alignment']) {
-            $builder
-                ->add('verticalAlign', ChoiceType::class, [
-                    'required' => false,
-                    'placeholder' => 'cb.styling.align.default',
-                    'expanded' => true,
-                    'label' => 'cb.styling.vertical_align',
-                    'choices' => [
-                        'cb.styling.align.start' => 'start',
-                        'cb.styling.align.center' => 'center',
-                        'cb.styling.align.end' => 'end',
-                    ],
-                    // Custom block_prefix so the styling form theme can
-                    // render each radio as an icon button.
-                    'block_prefix' => 'cb_vertical_align',
-                ])
-                ->add('horizontalAlign', ChoiceType::class, [
-                    'required' => false,
-                    'placeholder' => 'cb.styling.align.default',
-                    'expanded' => true,
-                    'label' => 'cb.styling.horizontal_align',
-                    'choices' => [
-                        'cb.styling.align.start' => 'start',
-                        'cb.styling.align.center' => 'center',
-                        'cb.styling.align.end' => 'end',
-                        'cb.styling.align.space_between' => 'space-between',
-                        'cb.styling.align.space_around' => 'space-around',
-                    ],
-                    'block_prefix' => 'cb_horizontal_align',
-                ]);
+            $builder->add('verticalAlign', ChoiceType::class, [
+                'required' => false,
+                'placeholder' => 'cb.styling.align.default',
+                'expanded' => true,
+                'label' => 'cb.styling.vertical_align',
+                'choices' => [
+                    'cb.styling.align.start' => 'start',
+                    'cb.styling.align.center' => 'center',
+                    'cb.styling.align.end' => 'end',
+                ],
+                // Custom block_prefix so the styling form theme can
+                // render each radio as an icon button.
+                'block_prefix' => 'cb_vertical_align',
+            ]);
         }
     }
 

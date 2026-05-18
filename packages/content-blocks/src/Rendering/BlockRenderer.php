@@ -43,6 +43,7 @@ final class BlockRenderer
         private readonly SectionSettingsDefaults $settingsDefaults,
         private readonly TranslatorInterface $translator,
         private readonly \ContentBlocks\Block\BlockDecoratorCollection $blockDecorators,
+        private readonly \ContentBlocks\Block\BlockDataDefaults $blockDataDefaults,
     ) {
     }
 
@@ -182,7 +183,14 @@ final class BlockRenderer
                 ? ($block->getDraftData() ?? $block->getPublishedData() ?? [])
                 : ($block->getPublishedData() ?? []);
 
-            $decoration = $this->blockDecorators->decorate($data, $block);
+            // Strip default-equal entries so the rendered markup stays
+            // clean: a block saved with the framework-provided default
+            // (e.g. styling.backgroundColor=#ffffff) won't get an inline
+            // style for it, only user-overridden values do. Decoration
+            // sees the trimmed payload; the block type's view template
+            // still receives the original $data.
+            $decorationData = $this->blockDataDefaults->withoutDefaults($data);
+            $decoration = $this->blockDecorators->decorate($decorationData, $block);
 
             $out[] = [
                 'id' => $block->getId(),

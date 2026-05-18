@@ -64,6 +64,108 @@ final class BlockComponentTest extends TestCase
         $this->invokeInstantiateForm($component);
     }
 
+    public function testInstantiateFormBackfillsBlockDataDefaultsIntoInitialFormData(): void
+    {
+        $defaults = new \ContentBlocks\Block\BlockDataDefaults([
+            new class implements \ContentBlocks\Block\BlockDataDefaultsProviderInterface {
+                public function getDefaults(): array
+                {
+                    return ['styling' => ['backgroundColor' => '#ffffff']];
+                }
+            },
+        ]);
+
+        // Block has its own title; defaults add styling.backgroundColor
+        // on top via a recursive merge — both must reach the form.
+        // Key order reflects array_replace_recursive: defaults first,
+        // then values from the block data overwrite/append.
+        $expected = [
+            'styling' => ['backgroundColor' => '#ffffff'],
+            'title' => 'Hello',
+        ];
+        $form = $this->createMock(FormInterface::class);
+        $factory = $this->createMock(FormFactoryInterface::class);
+        $factory->expects($this->once())
+            ->method('create')
+            ->with(
+                BlockFormType::class,
+                $expected,
+                $this->callback(fn (array $opts): bool => ($opts['block_data'] ?? null) === $expected),
+            )
+            ->willReturn($form);
+
+        $block = $this->makeBlock(publishedData: ['title' => 'Hello'], draftData: null);
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('find')->willReturn($block);
+
+        $registry = new BlockTypeRegistry();
+        $registry->register(new class extends AbstractBlockType {
+            public static function getType(): string { return 'test'; }
+            public static function getLabel(): string { return 'Test'; }
+            public function buildForm(FormBuilderInterface $builder, array $data): void {}
+            public function getDefaultData(): array { return []; }
+        });
+
+        $component = new BlockComponent(
+            $em,
+            $registry,
+            $factory,
+            new AllowAllAccessChecker(),
+            $defaults,
+        );
+        $component->blockId = 1;
+
+        $this->invokeInstantiateForm($component);
+    }
+
+    public function testInstantiateFormPreservesExistingDataOverDefaults(): void
+    {
+        $defaults = new \ContentBlocks\Block\BlockDataDefaults([
+            new class implements \ContentBlocks\Block\BlockDataDefaultsProviderInterface {
+                public function getDefaults(): array
+                {
+                    return ['styling' => ['backgroundColor' => '#ffffff']];
+                }
+            },
+        ]);
+
+        // Stored bg diverges from default; the merge must keep the
+        // user's value (recursive replace, not replace-from-defaults).
+        $expected = ['styling' => ['backgroundColor' => '#ff0000']];
+        $form = $this->createMock(FormInterface::class);
+        $factory = $this->createMock(FormFactoryInterface::class);
+        $factory->expects($this->once())
+            ->method('create')
+            ->with(BlockFormType::class, $expected, $this->anything())
+            ->willReturn($form);
+
+        $block = $this->makeBlock(
+            publishedData: null,
+            draftData: ['styling' => ['backgroundColor' => '#ff0000']],
+        );
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('find')->willReturn($block);
+
+        $registry = new BlockTypeRegistry();
+        $registry->register(new class extends AbstractBlockType {
+            public static function getType(): string { return 'test'; }
+            public static function getLabel(): string { return 'Test'; }
+            public function buildForm(FormBuilderInterface $builder, array $data): void {}
+            public function getDefaultData(): array { return []; }
+        });
+
+        $component = new BlockComponent(
+            $em,
+            $registry,
+            $factory,
+            new AllowAllAccessChecker(),
+            $defaults,
+        );
+        $component->blockId = 1;
+
+        $this->invokeInstantiateForm($component);
+    }
+
     /**
      * @param array<string, mixed>|null $publishedData
      * @param array<string, mixed>|null $draftData
@@ -123,6 +225,7 @@ final class BlockComponentTest extends TestCase
             $registry,
             $factory,
             new AllowAllAccessChecker(),
+            new \ContentBlocks\Block\BlockDataDefaults(),
         );
         $component->blockId = 1;
 

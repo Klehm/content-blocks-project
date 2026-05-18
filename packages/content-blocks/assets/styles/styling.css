@@ -33,12 +33,6 @@
     justify-content: var(--cb-valign, flex-start);
 }
 
-/* Horizontal alignment: applied to the row, which is already a flex
-   container distributing columns. CSS vars cascade from the section. */
-.cb-section--has-halign > .cb-row {
-    justify-content: var(--cb-halign, flex-start);
-}
-
 /* ----- Tablet (≤ 991px) ----- */
 @media (max-width: 991px) {
     .cb-section--styled {

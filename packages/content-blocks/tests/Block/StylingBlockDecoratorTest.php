@@ -79,14 +79,12 @@ final class StylingBlockDecoratorTest extends TestCase
         $decoration = (new StylingBlockDecorator())->decorate(
             ['styling' => [
                 'verticalAlign' => 'center',
-                'horizontalAlign' => 'space-between',
                 'minHeight' => ['value' => 400, 'unit' => 'px'],
             ]],
             new Block(),
         );
 
         $this->assertArrayNotHasKey('--cb-valign', $decoration->inlineStyles);
-        $this->assertArrayNotHasKey('--cb-halign', $decoration->inlineStyles);
         $this->assertArrayNotHasKey('--cb-min-h', $decoration->inlineStyles);
         $this->assertSame([], $decoration->classes);
     }

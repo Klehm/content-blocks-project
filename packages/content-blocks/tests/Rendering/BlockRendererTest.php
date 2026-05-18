@@ -220,6 +220,7 @@ final class BlockRendererTest extends TestCase
             $defaults,
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
+            new \ContentBlocks\Block\BlockDataDefaults(),
         );
 
         $html = $renderer->render($area, RenderMode::PUBLIC);
@@ -261,6 +262,7 @@ final class BlockRendererTest extends TestCase
             ]),
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
+            new \ContentBlocks\Block\BlockDataDefaults(),
         );
 
         $html = $renderer->render($area, RenderMode::PUBLIC);
@@ -296,6 +298,7 @@ final class BlockRendererTest extends TestCase
             new \ContentBlocks\Section\SectionSettingsDefaults([]),
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
+            new \ContentBlocks\Block\BlockDataDefaults(),
         );
 
         $html = $renderer->render($area, RenderMode::PUBLIC);
@@ -323,6 +326,7 @@ final class BlockRendererTest extends TestCase
             new \ContentBlocks\Section\SectionSettingsDefaults([]),
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
+            new \ContentBlocks\Block\BlockDataDefaults(),
         );
     }
 
@@ -351,6 +355,7 @@ final class BlockRendererTest extends TestCase
             new \ContentBlocks\Section\SectionSettingsDefaults([]),
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
+            new \ContentBlocks\Block\BlockDataDefaults(),
         );
     }
 

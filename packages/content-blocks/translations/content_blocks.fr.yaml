@@ -26,7 +26,6 @@ cb:
         min_height: "Hauteur min."
         max_width: "Largeur max."
         vertical_align: "Alignement vertical"
-        horizontal_align: "Alignement horizontal"
         link_sides: "Lier les 4 côtés"
         side.top: "Haut"
         side.right: "Droite"
@@ -39,8 +38,6 @@ cb:
         align.start: "Début"
         align.center: "Centre"
         align.end: "Fin"
-        align.space_between: "Espacé entre"
-        align.space_around: "Espacé autour"
         layout:
             full: "1 colonne"
             one_col: "1 colonne"
@@ -62,9 +59,11 @@ cb:
         add_section: "Ajouter une section :"
         empty_cta: "Commencez par ajouter une section"
         draft_pending: "Brouillon en attente"
-        confirm_close: "Vous avez des modifications de bloc non enregistrées. Quitter sans enregistrer ?"
         saved: "Enregistré"
         pending: "Enregistrez d'abord cette entité pour commencer à ajouter du contenu."
+        toggle_sidebar: "Afficher / masquer la sidebar"
+        sidebar:
+            empty: "Cliquez sur un élément de l'aperçu pour le modifier."
         replace:
             open: "Insérer du contenu"
             title: "Remplacer par un autre contenu"
