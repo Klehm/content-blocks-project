@@ -5,6 +5,34 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.5] - 2026-05-18
+
+### Added
+
+- **Permanent sidebar with autosave (Elementor-like layout).** The builder shell now renders the sidebar as a fixed left column instead of a floating panel that animated in/out. The sidebar always shows either an empty-state hint with the three "Add a section" shortcuts, or the editor for the focused block/section. A floating toggle chip on the right edge collapses the column to a 32 px stub when the user wants a wider preview; collapsed state is persisted in `localStorage`.
+- **Auto-save for block & section forms (`cb-autosave` Stimulus controller).** Edits are persisted automatically: 250 ms debounce on `input`, immediate save on `change` / `focusout` / `Enter` (single-line inputs). The controller dispatches a synthetic `change` on the focused field before clicking the hidden in-form save trigger so Live Component model bindings flush their value first. Multi-line targets (textarea, contenteditable) keep their native Enter behavior. The companion `cb-block-edit-keys` controller is removed — its keyboard role is folded into `cb-autosave`.
+- **`BlockDataDefaults` defaults system (block-side mirror of `SectionSettingsDefaults`).** Hosts can implement `BlockDataDefaultsProviderInterface` (auto-tagged) to seed initial block form data; defaults equal to the saved value are stripped before the decorator pipeline so they don't leak as inline styles. Ships with `CoreBlockStylingDefaults` defaulting `styling.backgroundColor` to `#ffffff` — same compromise as the section-side `CoreStylingDefaults` (white treated as "no override" to work around `<input type="color">`'s lack of an empty state).
+- **Outline preservation across iframe reloads.** Autosave-triggered preview reloads no longer drop the blue selection outline. After the iframe's `load` event, `cb-builder` posts `cb:focus:block` / `cb:focus:section` to the overlay, which re-pins the focus on the matching `[data-cb-block-id]` / `[data-cb-section-id]` element.
+- **Click-to-edit in the preview.** Clicking a block or section inside the iframe now both pins the outline and opens the corresponding sidebar editor — the dedicated Edit (✎) / Settings (⚙) toolbar buttons are removed in favor of this direct affordance. Drag, move, duplicate and delete remain on the floating toolbar.
+- **Empty-state sidebar partial.** New `@ContentBlocks/builder/sidebar_empty.html.twig` renders a hint + three add-section buttons whenever no element is focused; the iframe's `cb-add-section-tray` is unchanged.
+
+### Changed
+
+- **Iframe reload after save is debounced 500 ms.** Autosave can fire several `cb:*:saved` events per second; the shell now coalesces them so the preview only re-renders once after the user pauses. Structural ops (add / delete / move / duplicate) still reload synchronously.
+- **Sidebar grid sizing driven by a CSS custom property.** `--cb-sidebar-width` lives on `.cb-shell` and is read by `.cb-shell__main`'s `grid-template-columns`. The resize handle on the sidebar's right edge writes the same property, persisted in `localStorage`.
+- **`min-height` setting on sections no longer shadowed in the preview.** `[data-cb-section-id]` in `builder.css` now uses `min-height: var(--cb-min-h, 60px)` so a user-set value wins over the builder's 60 px guide for empty sections.
+- **Color picker initial value for blocks defaults to `#ffffff`** (pre-populated through `BlockDataDefaults` so the native `<input type="color">` doesn't surprise users with `#000000` on a fresh block form).
+
+### Removed
+
+- **`horizontalAlign` section styling.** The option was silently inert: the current full-fill column presets (`col-12`, two `col-6`, three `col-4`) sum to 100 % of the row so `justify-content` had no slack to distribute. Removed from `StylingType`, `StylingSectionDecorator`, `styling.css`, the form theme widget, and the EN / FR translations.
+- **Sidebar Save / Close buttons.** Save is gone (autosave replaces it); the header X is gone (sidebar is permanent — collapse via the floating chip instead). The launcher's `confirm_close` prompt is also gone since autosave makes the "unsaved changes" scenario impossible.
+- **`cb-block-edit-keys` Stimulus controller.** Its Enter-to-save / Escape-to-cancel mapping is folded into `cb-autosave` (Enter → save) and the cancel path no longer applies. **Action required for upgrading hosts:** replace the `cb-block-edit-keys` entry in `assets/controllers.json` with `cb-autosave`.
+
+### Fixed
+
+- **`backgroundColor` on a block emits no inline style when left at the default.** `BlockRenderer::buildBlockList()` now strips default-equal entries via `BlockDataDefaults::withoutDefaults()` before handing data to the decorator pipeline — same treatment sections already had.
+
 ## [0.1.0-alpha.4] - 2026-05-18
 
 ### Fixed
