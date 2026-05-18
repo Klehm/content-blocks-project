@@ -149,6 +149,8 @@ Render-mode is auto-detected from the request: a query string `?cb_preview=1` co
 
 The render pipeline is split into four templates so you can override the markup of an individual level (section, column, block) without forking the whole entry-point. Drop a file at the same relative path under `templates/bundles/ContentBlocksBundle/` in your host app to override one.
 
+> Requires `klehm/content-blocks >= 0.1.0-alpha.4` for overrides to take priority. Earlier versions manually registered the vendor `templates/` path under `@ContentBlocks`, which (counter-intuitively) shadowed the host's `templates/bundles/ContentBlocksBundle/` directory.
+
 | Template | Receives | Responsibility |
 |---|---|---|
 | `@ContentBlocks/render/content_area.html.twig` | `sections` (array), `mode` (`RenderMode`), `blockTypes` (array) | Top-level wrapper, layout/builder CSS `<link>`s, sections loop, preview-only section tray + overlay scripts. |
