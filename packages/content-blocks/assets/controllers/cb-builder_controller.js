@@ -313,6 +313,9 @@ export default class extends Controller {
     async _deleteBlock(blockId) {
         if (!blockId) return;
         await this._jsonRequest('DELETE', `/_content-blocks/block/${blockId}`);
+        if (this._isSidebarFocusedOnBlock(blockId)) {
+            this._resetSidebarToEmptyState();
+        }
         this._afterStructuralOp();
     }
 
@@ -352,7 +355,23 @@ export default class extends Controller {
     async _deleteSection(sectionId) {
         if (!sectionId) return;
         await this._jsonRequest('DELETE', `/_content-blocks/section/${sectionId}`);
+        // Direct case: the focused element is the section itself. The
+        // cascading case (a focused block lived inside this section) is
+        // caught after reload via the iframe's `cb:focus:not-found` reply.
+        if (this._isSidebarFocusedOnSection(sectionId)) {
+            this._resetSidebarToEmptyState();
+        }
         this._afterStructuralOp();
+    }
+
+    _isSidebarFocusedOnBlock(blockId) {
+        if (!this.hasSidebarTarget) return false;
+        return this.sidebarTarget.getAttribute('data-cb-sidebar-block-id') === String(blockId);
+    }
+
+    _isSidebarFocusedOnSection(sectionId) {
+        if (!this.hasSidebarTarget) return false;
+        return this.sidebarTarget.getAttribute('data-cb-sidebar-section-id') === String(sectionId);
     }
 
     /**
@@ -451,6 +470,12 @@ export default class extends Controller {
                 break;
             case 'cb:preview:outside-click':
                 this._onPreviewOutsideClick();
+                break;
+            case 'cb:focus:not-found':
+                // The iframe couldn't pin focus after reload — the focused
+                // element no longer exists (e.g. a section delete cascaded
+                // to a focused child block). Clear the stale form.
+                this._resetSidebarToEmptyState();
                 break;
             default:
                 // Unknown cb:* message — silently ignore (forward-compat).

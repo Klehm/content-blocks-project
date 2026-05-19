@@ -577,10 +577,18 @@
 
         if (data.type === 'cb:focus:block' && Number.isFinite(data.blockId)) {
             const el = document.querySelector(`[data-cb-block-id="${data.blockId}"]`);
-            if (el) focusElement(el, 'block');
+            if (el) {
+                focusElement(el, 'block');
+            } else {
+                postToParent('cb:focus:not-found');
+            }
         } else if (data.type === 'cb:focus:section' && Number.isFinite(data.sectionId)) {
             const el = document.querySelector(`[data-cb-section-id="${data.sectionId}"]`);
-            if (el) focusElement(el, 'section');
+            if (el) {
+                focusElement(el, 'section');
+            } else {
+                postToParent('cb:focus:not-found');
+            }
         }
     });
 
