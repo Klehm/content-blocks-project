@@ -1,8 +1,8 @@
 <div{{ attributes }}>
     <div class="cb-block__edit-form" data-controller="cb-autosave cb-block-styling-form">
-        {# Builder UI is Bootstrap 5; apply the themes inside the component so
-           the form rendering doesn't depend on the host app's global
-           twig.form_themes config.
+        {# Apply the form theme inside the component so the rendering
+           doesn't depend on the host app's global twig.form_themes
+           config — the builder must look the same in every environment.
 
            Important: each `{% form_theme %}` call REPLACES the local theme
            stack on the FormView — it does not append. We pass all themes
@@ -10,13 +10,13 @@
            reverse of the array (last entry checked first):
 
              1. block-author theme (highest) — overrides block's own fields
-             2. styling_widgets             — renders the styling sub-form
-             3. bootstrap_5_layout (lowest) — generic fallback
+             2. styling_widgets              — renders the styling sub-form
+             3. cb_form_theme (lowest)       — generic fallback (cb-form-*)
 
            A block-author theme defining cb_*_widget blocks would override
            the styling widgets too, which is the desired escape hatch. #}
         {% set _themes = [
-            'bootstrap_5_layout.html.twig',
+            '@ContentBlocks/form/cb_form_theme.html.twig',
             '@ContentBlocks/form/styling_widgets.html.twig',
         ] %}
         {% if this.blockType and this.blockType.formTheme %}
@@ -62,7 +62,7 @@
                 data-action="live#action"
                 data-live-action-param="save"
                 data-cb-sidebar-save
-                class="visually-hidden cb-block__edit-action-fallback">
+                class="cb-form-sr-only cb-block__edit-action-fallback">
             {{ 'cb.block.save'|trans({}, 'content_blocks') }}
         </button>
     </div>

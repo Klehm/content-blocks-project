@@ -1,15 +1,20 @@
-{# ImageBlock view/preview template #}
+{# ImageBlock view/preview template.
+
+   No CSS classes here on purpose: this template is rendered on the
+   host's front-end (and in the builder's preview iframe), neither of
+   which load the admin form stylesheet. Visual styling — beyond the
+   max-height ceiling that keeps the preview compact — is the host's
+   responsibility. #}
 {% if data.src|default %}
     {% set alt = data.alt|default('') %}
     <div class="cb-block-image-preview">
         <img src="{{ data.src }}"
              alt="{{ alt }}"
-             class="img-thumbnail"
-             style="max-height: 120px;">
+             style="max-height: 120px; max-width: 100%;">
         {% if alt %}
-            <small class="text-muted d-block mt-1">{{ alt }}</small>
+            <small style="display: block; margin-top: 0.25rem; color: #5b6478;">{{ alt }}</small>
         {% endif %}
     </div>
 {% else %}
-    <small class="text-muted">{{ 'cb_kit.block.image.no_image'|trans({}, 'content_blocks_kit') }}</small>
+    <small style="color: #5b6478;">{{ 'cb_kit.block.image.no_image'|trans({}, 'content_blocks_kit') }}</small>
 {% endif %}

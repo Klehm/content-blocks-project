@@ -35,12 +35,12 @@ final class TabsBlock extends AbstractBlockType
             'button_add_options' => [
                 'label' => 'cb_kit.block.tabs.add_tab',
                 'translation_domain' => 'content_blocks_kit',
-                'attr' => ['class' => 'btn btn-sm btn-outline-success'],
+                'attr' => ['class' => 'cb-form-btn--success'],
             ],
             'button_delete_options' => [
                 'label' => 'cb_kit.block.tabs.remove_tab',
                 'translation_domain' => 'content_blocks_kit',
-                'attr' => ['class' => 'btn btn-sm btn-outline-danger'],
+                'attr' => ['class' => 'cb-form-btn--danger'],
             ],
             'constraints' => [
                 new Assert\Count(min: 1, max: 20),

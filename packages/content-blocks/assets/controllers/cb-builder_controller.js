@@ -86,6 +86,10 @@ export default class extends Controller {
         if (this.hasSidebarContentTarget) {
             this._sidebarEmptyHtml = this.sidebarContentTarget.innerHTML;
         }
+        // Mobile boots with no focused entity — collapse the bottom
+        // sheet so it reads as a strip at the bottom rather than a
+        // half-screen pane covering the preview.
+        this._syncEmptySidebar();
     }
 
     disconnect() {
@@ -100,6 +104,9 @@ export default class extends Controller {
 
     _onWindowResize() {
         this._refreshViewportButtons();
+        // Crossing the mobile breakpoint mid-session — re-collapse the
+        // sidebar if we just entered mobile with no focused entity.
+        this._syncEmptySidebar();
     }
 
     /**
@@ -165,6 +172,10 @@ export default class extends Controller {
                 // Same as above.
             }
             this._restorePinnedFocus();
+            // Wait one frame so the iframe overlay has re-pinned the
+            // focused element and its rect is queryable before we
+            // measure for the mobile bottom-sheet auto-scroll.
+            requestAnimationFrame(() => this._ensureFocusedVisible());
             this._endLoading();
         };
         this.iframeTarget.addEventListener('load', onLoad);
@@ -488,6 +499,10 @@ export default class extends Controller {
             for (const [k, v] of Object.entries(dataAttrs)) {
                 this.sidebarTarget.setAttribute(k, v);
             }
+            // Sidebar now points at the new entity — scroll the iframe
+            // so the focused element isn't covered by the bottom sheet
+            // on mobile.
+            this._ensureFocusedVisible();
         } catch (e) {
             console.error('[cb-builder] mount error', e);
         } finally {
@@ -512,6 +527,9 @@ export default class extends Controller {
         if (typeof this._sidebarEmptyHtml !== 'string') return;
         this.sidebarContentTarget.innerHTML = this._sidebarEmptyHtml;
         this._clearSidebarDataAttrs();
+        // Mobile: nothing focused → collapse the sheet to its 32px
+        // strip so the preview reclaims the screen.
+        this._syncEmptySidebar();
     }
 
     /**
@@ -531,18 +549,91 @@ export default class extends Controller {
         this._setSidebarCollapsed(!wasCollapsed);
     }
 
-    _setSidebarCollapsed(collapsed) {
+    _setSidebarCollapsed(collapsed, { persist = true } = {}) {
         this.element.classList.toggle('cb-shell--sidebar-collapsed', collapsed);
         if (this.hasSidebarToggleTarget) {
             this.sidebarToggleTarget.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
         }
+        if (persist) {
+            try {
+                window.localStorage.setItem(
+                    this.constructor.SIDEBAR_COLLAPSED_KEY,
+                    collapsed ? '1' : '0',
+                );
+            } catch (_) {
+                // ignore — non-blocking persistence
+            }
+        }
+        // Mobile bottom-sheet just slid up over the iframe — make sure
+        // the focused element didn't end up hidden underneath.
+        if (!collapsed) this._ensureFocusedVisible();
+    }
+
+    /**
+     * Mobile-only: collapse the bottom sheet down to its 32px strip
+     * whenever nothing is focused — the empty-state hint shouldn't steal
+     * the bottom half of the screen when the user hasn't asked to edit
+     * anything yet. `persist: false` keeps the user's explicit
+     * expand/collapse preference in localStorage untouched, so once they
+     * focus an element again the sidebar restores their last choice.
+     */
+    _syncEmptySidebar() {
+        if (!this._isMobile()) return;
+        if (!this.hasSidebarTarget) return;
+        const hasFocus =
+            this.sidebarTarget.hasAttribute('data-cb-sidebar-block-id') ||
+            this.sidebarTarget.hasAttribute('data-cb-sidebar-section-id');
+        if (!hasFocus) {
+            this._setSidebarCollapsed(true, { persist: false });
+        }
+    }
+
+    /**
+     * Mobile-only safety net: when the bottom-sheet sidebar overlays the
+     * iframe, the element being edited can end up hidden behind the
+     * sheet. Scroll the iframe just enough so the focused element's
+     * bottom edge sits above the sheet — but only if it's actually
+     * hidden. No-op on desktop (sidebar is on the side, no vertical
+     * overlap), when collapsed, or when nothing is focused.
+     */
+    _ensureFocusedVisible() {
+        if (!this._isMobile()) return;
+        if (!this.hasIframeTarget || !this.hasSidebarTarget) return;
+        if (this.element.classList.contains('cb-shell--sidebar-collapsed')) return;
+
+        const blockId = this.sidebarTarget.getAttribute('data-cb-sidebar-block-id');
+        const sectionId = this.sidebarTarget.getAttribute('data-cb-sidebar-section-id');
+        if (!blockId && !sectionId) return;
+
+        let doc;
+        try { doc = this.iframeTarget.contentDocument; } catch (_) { return; }
+        if (!doc) return;
+
+        const selector = blockId
+            ? `[data-cb-block-id="${blockId}"]`
+            : `[data-cb-section-id="${sectionId}"]`;
+        const el = doc.querySelector(selector);
+        if (!el) return;
+
+        const iframeRect = this.iframeTarget.getBoundingClientRect();
+        // offsetHeight is the layout (post-CSS, pre-transform) height, so
+        // we can measure correctly even mid-transition while the sheet
+        // is still sliding up.
+        const sidebarHeight = this.sidebarTarget.offsetHeight;
+        const visibleBottom = iframeRect.height - sidebarHeight;
+        if (visibleBottom <= 0) return;
+
+        const elRect = el.getBoundingClientRect();
+        const overflow = elRect.bottom - visibleBottom;
+        if (overflow <= 0) return;
+
         try {
-            window.localStorage.setItem(
-                this.constructor.SIDEBAR_COLLAPSED_KEY,
-                collapsed ? '1' : '0',
-            );
+            this.iframeTarget.contentWindow?.scrollBy({
+                top: overflow + 16,
+                behavior: 'smooth',
+            });
         } catch (_) {
-            // ignore — non-blocking persistence
+            // Cross-origin / detached frame — silently ignore.
         }
     }
 

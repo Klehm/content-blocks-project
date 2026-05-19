@@ -5,7 +5,7 @@
 {% block body %}
     <h1>Pages</h1>
 
-    <table class="table">
+    <table class="sandbox-table">
         <thead>
             <tr>
                 <th>ID</th>
@@ -21,28 +21,21 @@
                     <td>{{ page.title }}</td>
                     <td>{{ page.slug }}</td>
                     <td>
-                        <a href="/admin/page/{{ page.id }}" class="btn btn-sm btn-primary">Builder</a>
+                        <a href="/admin/page/{{ page.id }}" class="sandbox-btn sandbox-btn--sm">Builder</a>
                     </td>
                 </tr>
             {% else %}
                 <tr>
-                    <td colspan="4" class="text-muted">No pages.</td>
+                    <td colspan="4" class="sandbox-muted">No pages.</td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
 
-    <hr>
-    <h3>Create a page</h3>
-    <form action="/page/create" method="post" class="row g-2">
-        <div class="col-auto">
-            <input type="text" name="title" class="form-control" placeholder="Title" required>
-        </div>
-        <div class="col-auto">
-            <input type="text" name="slug" class="form-control" placeholder="Slug (optional)">
-        </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-success">Create</button>
-        </div>
+    <h3 style="margin-top: 2rem;">Create a page</h3>
+    <form action="/page/create" method="post" class="sandbox-form-row">
+        <input type="text" name="title" class="sandbox-input" placeholder="Title" required>
+        <input type="text" name="slug" class="sandbox-input" placeholder="Slug (optional)">
+        <button type="submit" class="sandbox-btn sandbox-btn--success">Create</button>
     </form>
 {% endblock %}

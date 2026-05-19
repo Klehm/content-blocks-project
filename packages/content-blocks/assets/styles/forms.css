@@ -1,0 +1,659 @@
+/* ContentBlocks — form widgets styles
+ *
+ * Scoped entirely under `.cb-shell` so these rules never leak into the
+ * host application's own forms. The builder is always rendered inside
+ * a `.cb-shell` container (either the fullscreen dialog or the iframe
+ * preview), so every input the editor sees is matched.
+ *
+ * Class names follow the cb-form-* / cb-* convention used by the
+ * companion @ContentBlocks/form/cb_form_theme.html.twig form theme.
+ * Pair the two: the theme emits the markup, this stylesheet styles it.
+ */
+
+/* ---- Box-sizing reset ----
+ *
+ * Scoped reset so all builder UI inherits border-box without depending
+ * on the host having one. Bootstrap was previously giving us this for
+ * free via its global `* { box-sizing: border-box }`; with Bootstrap
+ * gone, controls like `.cb-form-control { width: 100%; padding: ...;
+ * border: 1px }` would overflow their column unless we set this
+ * ourselves. The reset is scoped under `.cb-shell` so it never leaks
+ * into the host's own pages.
+ */
+.cb-shell,
+.cb-shell *,
+.cb-shell *::before,
+.cb-shell *::after {
+    box-sizing: border-box;
+}
+
+.cb-shell {
+    /* Design tokens — kept local so the rest of admin.css can opt-in
+       to the same variables without redefining them. Colors match the
+       neutral / blue palette already used by the shell chrome. */
+    --cb-form-text: #1f2330;
+    --cb-form-text-muted: #5b6478;
+    --cb-form-placeholder: #95a0b3;
+    --cb-form-bg: #fff;
+    --cb-form-bg-soft: #f5f6f8;
+    --cb-form-bg-disabled: #f3f4f7;
+    --cb-form-border: #d3d7e0;
+    --cb-form-border-hover: #b9bfc9;
+    --cb-form-border-focus: #4f8df9;
+    --cb-form-focus-ring: rgba(79, 141, 249, 0.18);
+    --cb-form-danger: #d83a3a;
+    --cb-form-danger-ring: rgba(216, 58, 58, 0.18);
+    --cb-form-success: #2e7d4f;
+    --cb-form-accent: #4f8df9;
+    --cb-form-radius: 6px;
+    --cb-form-radius-sm: 4px;
+    --cb-form-font-size: 0.875rem;
+    --cb-form-font-size-sm: 0.8125rem;
+    --cb-form-font-size-xs: 0.75rem;
+    --cb-form-line-height: 1.4;
+    --cb-form-control-height: 30px;
+    --cb-form-gap: 0.75rem;
+}
+
+/* ---- Row ----
+ *
+ * Bootstrap shipped `mb-3` on every form row. We replace that with
+ * `.cb-form-row { margin-bottom: 0.75rem }` so the spacing is consistent
+ * without coupling to a utility class.
+ */
+.cb-shell .cb-form-row {
+    margin: 0 0 var(--cb-form-gap);
+}
+.cb-shell .cb-form-row:last-child {
+    margin-bottom: 0;
+}
+.cb-shell fieldset.cb-form-row {
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+.cb-shell .cb-form-row > legend.cb-form-label {
+    float: none;
+    width: auto;
+    padding: 0;
+}
+.cb-shell .cb-form-row__header {
+    margin-bottom: 0.375rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.cb-shell .cb-form-row[hidden] {
+    display: none;
+}
+
+/* ---- Label ---- */
+.cb-shell .cb-form-label {
+    display: inline-block;
+    margin: 0 0 0.25rem;
+    color: var(--cb-form-text);
+    font-size: var(--cb-form-font-size-sm);
+    font-weight: 500;
+    line-height: var(--cb-form-line-height);
+}
+.cb-shell .cb-form-label.required::after {
+    content: "*";
+    margin-left: 0.15rem;
+    color: var(--cb-form-danger);
+}
+
+/* ---- Text-like inputs ---- */
+.cb-shell .cb-form-control {
+    display: block;
+    width: 100%;
+    min-height: var(--cb-form-control-height);
+    padding: 0.3125rem 0.5rem;
+    color: var(--cb-form-text);
+    background-color: var(--cb-form-bg);
+    background-image: none;
+    border: 1px solid var(--cb-form-border);
+    border-radius: var(--cb-form-radius);
+    font-family: inherit;
+    font-size: var(--cb-form-font-size);
+    line-height: var(--cb-form-line-height);
+    appearance: none;
+    -webkit-appearance: none;
+    transition:
+        border-color 0.12s ease,
+        box-shadow 0.12s ease,
+        background-color 0.12s ease;
+}
+.cb-shell .cb-form-control::placeholder {
+    color: var(--cb-form-placeholder);
+    opacity: 1;
+}
+.cb-shell .cb-form-control:hover:not(:disabled):not(:focus) {
+    border-color: var(--cb-form-border-hover);
+}
+.cb-shell .cb-form-control:focus,
+.cb-shell .cb-form-control:focus-visible {
+    outline: 0;
+    border-color: var(--cb-form-border-focus);
+    box-shadow: 0 0 0 3px var(--cb-form-focus-ring);
+}
+.cb-shell .cb-form-control:disabled,
+.cb-shell .cb-form-control[readonly] {
+    background-color: var(--cb-form-bg-disabled);
+    color: var(--cb-form-text-muted);
+    cursor: not-allowed;
+}
+
+/* Number inputs: hide spinners and use a slightly smaller font.
+   The styling sidebar packs lots of numeric inputs side-by-side, so a
+   smaller body type keeps values readable inside ~36px-wide cells. */
+.cb-shell .cb-form-control[type="number"]::-webkit-outer-spin-button,
+.cb-shell .cb-form-control[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.cb-shell .cb-form-control[type="number"] {
+    -moz-appearance: textfield;
+    font-size: 13px;
+}
+
+/* Textarea */
+.cb-shell textarea.cb-form-control {
+    min-height: 80px;
+    resize: vertical;
+    padding: 0.4rem 0.5rem;
+}
+
+/* ---- Select ---- */
+.cb-shell .cb-form-select {
+    display: block;
+    width: 100%;
+    min-height: var(--cb-form-control-height);
+    padding: 0.3125rem 1.75rem 0.3125rem 0.5rem;
+    color: var(--cb-form-text);
+    background-color: var(--cb-form-bg);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%235b6478' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 14px 14px;
+    border: 1px solid var(--cb-form-border);
+    border-radius: var(--cb-form-radius);
+    font-family: inherit;
+    font-size: var(--cb-form-font-size);
+    line-height: var(--cb-form-line-height);
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    transition:
+        border-color 0.12s ease,
+        box-shadow 0.12s ease;
+}
+.cb-shell .cb-form-select::-ms-expand {
+    display: none;
+}
+.cb-shell .cb-form-select:hover:not(:disabled):not(:focus) {
+    border-color: var(--cb-form-border-hover);
+}
+.cb-shell .cb-form-select:focus {
+    outline: 0;
+    border-color: var(--cb-form-border-focus);
+    box-shadow: 0 0 0 3px var(--cb-form-focus-ring);
+}
+.cb-shell .cb-form-select:disabled {
+    background-color: var(--cb-form-bg-disabled);
+    color: var(--cb-form-text-muted);
+    cursor: not-allowed;
+}
+.cb-shell .cb-form-select[multiple],
+.cb-shell .cb-form-select[size]:not([size="1"]) {
+    padding-right: 0.5rem;
+    background-image: none;
+}
+
+/* ---- Color input ----
+ *
+ * <input type="color"> is a square swatch — we keep it compact and let
+ * the editor click anywhere on the swatch to open the picker. */
+.cb-shell .cb-form-control--color {
+    width: 38px;
+    height: 30px;
+    min-height: 30px;
+    padding: 0.15rem;
+    cursor: pointer;
+}
+.cb-shell .cb-form-control--color::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+.cb-shell .cb-form-control--color::-webkit-color-swatch {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+.cb-shell .cb-form-control--color::-moz-color-swatch {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+/* ---- Range slider ---- */
+.cb-shell .cb-form-range {
+    width: 100%;
+    height: 20px;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+.cb-shell .cb-form-range:focus {
+    outline: 0;
+}
+.cb-shell .cb-form-range::-webkit-slider-runnable-track {
+    height: 4px;
+    background: var(--cb-form-border);
+    border-radius: 2px;
+}
+.cb-shell .cb-form-range::-moz-range-track {
+    height: 4px;
+    background: var(--cb-form-border);
+    border-radius: 2px;
+}
+.cb-shell .cb-form-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--cb-form-accent);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--cb-form-border);
+    cursor: pointer;
+}
+.cb-shell .cb-form-range::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--cb-form-accent);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--cb-form-border);
+    cursor: pointer;
+}
+.cb-shell .cb-form-range:focus-visible::-webkit-slider-thumb {
+    box-shadow:
+        0 0 0 1px var(--cb-form-border),
+        0 0 0 4px var(--cb-form-focus-ring);
+}
+.cb-shell .cb-form-range:focus-visible::-moz-range-thumb {
+    box-shadow:
+        0 0 0 1px var(--cb-form-border),
+        0 0 0 4px var(--cb-form-focus-ring);
+}
+
+/* ---- File input ----
+ *
+ * Native file inputs vary wildly across browsers. We style the wrapper
+ * (`.cb-form-file`) so the editor sees a consistent target, and patch
+ * the file-selector button so it looks like a small secondary button.
+ */
+.cb-shell .cb-form-file {
+    display: block;
+    width: 100%;
+    min-height: var(--cb-form-control-height);
+    padding: 0;
+    background: var(--cb-form-bg);
+    border: 1px solid var(--cb-form-border);
+    border-radius: var(--cb-form-radius);
+    color: var(--cb-form-text);
+    font-family: inherit;
+    font-size: var(--cb-form-font-size);
+    line-height: var(--cb-form-line-height);
+    cursor: pointer;
+    overflow: hidden;
+}
+.cb-shell .cb-form-file:hover:not(:disabled) {
+    border-color: var(--cb-form-border-hover);
+}
+.cb-shell .cb-form-file:focus,
+.cb-shell .cb-form-file:focus-within {
+    outline: 0;
+    border-color: var(--cb-form-border-focus);
+    box-shadow: 0 0 0 3px var(--cb-form-focus-ring);
+}
+.cb-shell .cb-form-file::file-selector-button {
+    margin: 0 0.5rem 0 0;
+    padding: 0.3125rem 0.65rem;
+    background: var(--cb-form-bg-soft);
+    color: var(--cb-form-text);
+    border: 0;
+    border-right: 1px solid var(--cb-form-border);
+    border-radius: 0;
+    font: inherit;
+    font-size: var(--cb-form-font-size-sm);
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+.cb-shell .cb-form-file:hover::file-selector-button {
+    background: #e9ecf2;
+}
+
+/* ---- Checkbox / Radio ----
+ *
+ * We hide the native control and paint our own square (checkbox) / disc
+ * (radio). The visible piece is a sibling `::before` so we can swap the
+ * background when `:checked`. Keeps the input focusable and submittable
+ * without any JS shim. */
+.cb-shell .cb-form-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.25rem 0;
+    min-height: 1.25rem;
+    font-size: var(--cb-form-font-size);
+    line-height: var(--cb-form-line-height);
+}
+.cb-shell .cb-form-check--inline {
+    display: inline-flex;
+    margin-right: 1rem;
+}
+.cb-shell .cb-form-check__input {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    padding: 0;
+    background-color: var(--cb-form-bg);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 70% 70%;
+    border: 1px solid var(--cb-form-border);
+    border-radius: var(--cb-form-radius-sm);
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    transition:
+        background-color 0.1s ease,
+        border-color 0.1s ease,
+        box-shadow 0.12s ease;
+}
+.cb-shell .cb-form-check__input[type="radio"] {
+    border-radius: 50%;
+}
+.cb-shell .cb-form-check__input:hover:not(:disabled):not(:checked) {
+    border-color: var(--cb-form-border-hover);
+}
+.cb-shell .cb-form-check__input:checked {
+    background-color: var(--cb-form-accent);
+    border-color: var(--cb-form-accent);
+}
+.cb-shell .cb-form-check__input[type="checkbox"]:checked {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='m3 8 3.5 3.5L13 5'/%3E%3C/svg%3E");
+}
+.cb-shell .cb-form-check__input[type="radio"]:checked {
+    background-image: radial-gradient(circle, #fff 35%, transparent 38%);
+}
+.cb-shell .cb-form-check__input[type="checkbox"]:indeterminate {
+    background-color: var(--cb-form-accent);
+    border-color: var(--cb-form-accent);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-width='2.5' d='M3 8h10'/%3E%3C/svg%3E");
+}
+.cb-shell .cb-form-check__input:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 3px var(--cb-form-focus-ring);
+}
+.cb-shell .cb-form-check__input:disabled {
+    background-color: var(--cb-form-bg-disabled);
+    cursor: not-allowed;
+}
+.cb-shell .cb-form-check__input:disabled + .cb-form-check__label {
+    color: var(--cb-form-text-muted);
+    cursor: not-allowed;
+}
+.cb-shell .cb-form-check__label {
+    color: var(--cb-form-text);
+    cursor: pointer;
+    line-height: var(--cb-form-line-height);
+}
+
+/* Switch — pill-shaped checkbox with sliding thumb. Opt-in via
+   the `.cb-form-check--switch` wrapper class. */
+.cb-shell .cb-form-check--switch .cb-form-check__input {
+    width: 28px;
+    height: 16px;
+    border-radius: 999px;
+    background-color: var(--cb-form-border);
+    border: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='4' cy='8' r='5' fill='%23fff'/%3E%3C/svg%3E");
+    background-position: left center;
+    background-size: 16px 16px;
+    transition:
+        background-color 0.15s ease,
+        background-position 0.15s ease;
+}
+.cb-shell .cb-form-check--switch .cb-form-check__input:checked {
+    background-color: var(--cb-form-accent);
+    background-position: right center;
+}
+
+/* ---- Expanded choice list (radios / checkboxes) ---- */
+.cb-shell .cb-form-choice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    min-width: 0;
+}
+.cb-shell .cb-form-choice-list--inline {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+/* ---- Input group (prepend / append addons) ---- */
+.cb-shell .cb-form-input-group {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+}
+.cb-shell .cb-form-input-group > .cb-form-control,
+.cb-shell .cb-form-input-group > .cb-form-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    position: relative;
+}
+.cb-shell .cb-form-input-group > * + * {
+    margin-left: -1px;
+}
+.cb-shell .cb-form-input-group > .cb-form-control:focus,
+.cb-shell .cb-form-input-group > .cb-form-select:focus,
+.cb-shell .cb-form-input-group > .cb-form-input-group__addon:focus {
+    z-index: 2;
+}
+.cb-shell .cb-form-input-group > :not(:last-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.cb-shell .cb-form-input-group > :not(:first-child) {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+.cb-shell .cb-form-input-group__addon {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.55rem;
+    color: var(--cb-form-text-muted);
+    background-color: var(--cb-form-bg-soft);
+    border: 1px solid var(--cb-form-border);
+    border-radius: var(--cb-form-radius);
+    font-size: var(--cb-form-font-size-sm);
+    line-height: var(--cb-form-line-height);
+    white-space: nowrap;
+}
+
+/* ---- Help text ---- */
+.cb-shell .cb-form-help {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--cb-form-text-muted);
+    font-size: var(--cb-form-font-size-xs);
+    line-height: 1.35;
+}
+
+/* ---- Field errors ----
+ *
+ * Rendered as a list of messages below the control. The control itself
+ * gets `.cb-form-control--invalid` (or the equivalent on select/textarea)
+ * to paint a red border. */
+.cb-shell .cb-form-errors {
+    margin: 0.25rem 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--cb-form-danger);
+    font-size: var(--cb-form-font-size-xs);
+    line-height: 1.35;
+}
+.cb-shell .cb-form-errors > li {
+    margin: 0;
+}
+.cb-shell .cb-form-control--invalid,
+.cb-shell .cb-form-select--invalid {
+    border-color: var(--cb-form-danger);
+}
+.cb-shell .cb-form-control--invalid:focus,
+.cb-shell .cb-form-select--invalid:focus {
+    box-shadow: 0 0 0 3px var(--cb-form-danger-ring);
+}
+/* Root-form-level error (e.g. global form errors) styled as an inline
+   notice rather than a single field error. */
+.cb-shell .cb-form-errors--root {
+    padding: 0.5rem 0.65rem;
+    margin-bottom: var(--cb-form-gap);
+    background: var(--cb-form-danger-ring);
+    border-radius: var(--cb-form-radius);
+}
+
+/* ---- Buttons emitted by the form theme ----
+ *
+ * The builder shell already styles its own chrome buttons (publish,
+ * discard, etc.); these are for form-generated <button> / <input
+ * type="submit"> nodes that may appear inside block forms. */
+.cb-shell .cb-form-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.375rem 0.75rem;
+    background: var(--cb-form-bg);
+    color: var(--cb-form-text);
+    border: 1px solid var(--cb-form-border);
+    border-radius: var(--cb-form-radius);
+    font: inherit;
+    font-size: var(--cb-form-font-size);
+    line-height: 1.2;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+        background-color 0.12s ease,
+        border-color 0.12s ease,
+        color 0.12s ease;
+}
+.cb-shell .cb-form-btn:hover:not(:disabled) {
+    background: var(--cb-form-bg-soft);
+    border-color: var(--cb-form-border-hover);
+}
+.cb-shell .cb-form-btn:focus-visible {
+    outline: 0;
+    border-color: var(--cb-form-border-focus);
+    box-shadow: 0 0 0 3px var(--cb-form-focus-ring);
+}
+.cb-shell .cb-form-btn--primary {
+    background: var(--cb-form-accent);
+    border-color: var(--cb-form-accent);
+    color: #fff;
+}
+.cb-shell .cb-form-btn--primary:hover:not(:disabled) {
+    background: #3d7be7;
+    border-color: #3d7be7;
+}
+.cb-shell .cb-form-btn--success {
+    background: var(--cb-form-success);
+    border-color: var(--cb-form-success);
+    color: #fff;
+}
+.cb-shell .cb-form-btn--success:hover:not(:disabled) {
+    background: #266a42;
+    border-color: #266a42;
+}
+.cb-shell .cb-form-btn--danger {
+    background: var(--cb-form-danger);
+    border-color: var(--cb-form-danger);
+    color: #fff;
+}
+.cb-shell .cb-form-btn--danger:hover:not(:disabled) {
+    background: #b32f2f;
+    border-color: #b32f2f;
+}
+.cb-shell .cb-form-btn--sm {
+    padding: 0.25rem 0.55rem;
+    font-size: var(--cb-form-font-size-sm);
+}
+.cb-shell .cb-form-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* ---- Image / file upload widget (kit) ----
+ *
+ * Styling shared with the ContentBlocks-Kit image_theme: a thumbnail
+ * preview underneath the file input, plus a small upload-status pill
+ * the cb-file-upload Stimulus controller drives. */
+.cb-shell .cb-thumbnail {
+    display: inline-block;
+    max-width: 100%;
+    max-height: 150px;
+    padding: 0.25rem;
+    background: var(--cb-form-bg);
+    border: 1px solid var(--cb-form-border);
+    border-radius: var(--cb-form-radius);
+}
+.cb-shell .cb-image-upload__preview {
+    margin-top: 0.5rem;
+}
+.cb-shell .cb-upload-status {
+    display: inline-block;
+    margin-top: 0.35rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    font-size: var(--cb-form-font-size-xs);
+    line-height: 1.3;
+}
+.cb-shell .cb-upload-status:empty {
+    display: none;
+}
+.cb-shell .cb-upload-status--uploading {
+    background: rgba(79, 141, 249, 0.12);
+    color: #2358b3;
+}
+.cb-shell .cb-upload-status--success {
+    background: rgba(46, 125, 79, 0.12);
+    color: var(--cb-form-success);
+}
+.cb-shell .cb-upload-status--error {
+    background: var(--cb-form-danger-ring);
+    color: var(--cb-form-danger);
+}
+
+
+/* ---- Visually-hidden helper ---- */
+.cb-shell .cb-form-sr-only {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

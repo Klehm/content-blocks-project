@@ -1,0 +1,348 @@
+{# ContentBlocks — form theme (replaces bootstrap_5_layout.html.twig)
+
+  Inherits the framework-neutral `form_div_layout.html.twig` to get the
+  base markup (containers, labels, error iteration, ...), then layers
+  our own cb-* classes on top so the rendered HTML pairs with the
+  scoped stylesheet at @klehm/content-blocks/styles/forms.css.
+
+  Class naming follows the form theme's selectors:
+    cb-form-row         row wrapper          (Bootstrap: mb-3)
+    cb-form-label       <label>              (Bootstrap: form-label)
+    cb-form-control     text/textarea/file   (Bootstrap: form-control)
+    cb-form-select      <select>             (Bootstrap: form-select)
+    cb-form-range       range slider         (Bootstrap: form-range)
+    cb-form-file        <input type=file>    (Bootstrap: form-control)
+    cb-form-check       checkbox/radio row   (Bootstrap: form-check)
+    cb-form-check__input  the input          (Bootstrap: form-check-input)
+    cb-form-check__label  the label          (Bootstrap: form-check-label)
+    cb-form-choice-list  expanded choice     (Bootstrap: implicit)
+    cb-form-input-group  prepend/append      (Bootstrap: input-group)
+    cb-form-input-group__addon                (Bootstrap: input-group-text)
+    cb-form-help        help text            (Bootstrap: form-text)
+    cb-form-errors      error list           (Bootstrap: invalid-feedback)
+
+  This theme is opt-in: it's loaded by the Block / Section components
+  via a local `{% form_theme %}` directive. It is NOT auto-prepended
+  globally, so the host's own forms are not affected. #}
+
+{% use 'form_div_layout.html.twig' %}
+
+
+{# ---- Widgets ---- #}
+
+{% block form_widget_simple -%}
+    {%- set widget_class = 'cb-form-control' -%}
+    {%- if type|default('') == 'color' -%}
+        {%- set widget_class = widget_class ~ ' cb-form-control--color' -%}
+    {%- elseif type|default('') == 'range' -%}
+        {# Range gets a totally different visual; swap classes entirely
+           so cb-form-control's padding/border don't sneak in. #}
+        {%- set widget_class = 'cb-form-range' -%}
+    {%- endif -%}
+    {# Skip the cb-form-control class for hidden inputs (no visual at all)
+       and for checkbox/radio (they're driven by the cb-form-check rules
+       set in radio_widget / checkbox_widget). #}
+    {%- if type|default('') not in ['hidden', 'checkbox', 'radio'] -%}
+        {%- set attr = attr|merge({class: (attr.class|default('') ~ ' ' ~ widget_class)|trim}) -%}
+    {%- endif -%}
+    {%- if type is defined and type in ['range', 'color'] -%}
+        {# Browsers don't honor the HTML `required` attribute on these
+           inputs (Bootstrap drops it too). Suppress it to avoid a UA
+           validation that the editor can never satisfy. #}
+        {%- set required = false -%}
+    {%- endif -%}
+    {{- parent() -}}
+{%- endblock form_widget_simple %}
+
+
+{% block widget_attributes -%}
+    {%- if not valid -%}
+        {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-control--invalid')|trim}) -%}
+    {%- endif -%}
+    {{- parent() -}}
+{%- endblock widget_attributes %}
+
+
+{% block textarea_widget -%}
+    {# textarea inherits form_widget_simple in form_div_layout, which is
+       fine — the parent block renders <textarea> with the class from
+       attr. We only need to make sure the right class is on attr. #}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-control')|trim}) -%}
+    {{- parent() -}}
+{%- endblock textarea_widget %}
+
+
+{% block choice_widget_collapsed -%}
+    {%- set widget_class = 'cb-form-select' -%}
+    {%- if not valid -%}
+        {%- set widget_class = widget_class ~ ' cb-form-select--invalid' -%}
+    {%- endif -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' ' ~ widget_class)|trim}) -%}
+    {{- parent() -}}
+{%- endblock choice_widget_collapsed %}
+
+
+{% block choice_widget_expanded -%}
+    {# Render the list of options as a compact stack. The wrapper class
+       distinguishes our flex layout from the form_div_layout default
+       (a plain <div>). Inline mode is opt-in via `choice_attr.inline`. #}
+    {%- set list_class = 'cb-form-choice-list' -%}
+    {%- if attr.inline|default(false) -%}
+        {%- set list_class = list_class ~ ' cb-form-choice-list--inline' -%}
+    {%- endif -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' ' ~ list_class)|trim}) -%}
+    <div {{ block('widget_container_attributes') }}>
+        {%- for child in form -%}
+            {{- form_widget(child, {
+                parent_label_class: label_attr.class|default(''),
+                translation_domain: choice_translation_domain,
+                valid: valid,
+            }) -}}
+        {%- endfor -%}
+    </div>
+{%- endblock choice_widget_expanded %}
+
+
+{# Render a single checkbox/radio: native <input> + custom-classed
+   <label>, wrapped in a `.cb-form-check` row. We don't lean on
+   form_label here because form_div_layout's form_label has no
+   widget-dispatch (that's a Bootstrap-only convention), and we want
+   the <label> to carry `cb-form-check__label` rather than
+   `cb-form-label`. Used by both block bodies below. #}
+{% block _cb_form_check_render -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-check__input')|trim}) -%}
+    {%- set row_class = 'cb-form-check' -%}
+    {%- set parent_label_class = parent_label_class|default(label_attr.class|default('')) -%}
+    {%- if 'cb-form-check--inline' in parent_label_class or 'inline' in parent_label_class -%}
+        {%- set row_class = row_class ~ ' cb-form-check--inline' -%}
+    {%- endif -%}
+    {%- if 'cb-form-check--switch' in parent_label_class or 'switch' in parent_label_class -%}
+        {%- set row_class = row_class ~ ' cb-form-check--switch' -%}
+    {%- endif -%}
+    <div class="{{ row_class }}">
+        {{- block('form_widget_simple') -}}
+        {%- if label is not same as(false) -%}
+            {%- set label_class = (label_attr.class|default('') ~ ' cb-form-check__label')|trim -%}
+            {%- set label_attr = label_attr|merge({class: label_class, for: id}) -%}
+            <label{% with {attr: label_attr} %}{{ block('attributes') }}{% endwith %}>
+                {{- block('form_label_content') -}}
+            </label>
+        {%- endif -%}
+    </div>
+{%- endblock _cb_form_check_render %}
+
+
+{% block checkbox_widget -%}
+    {%- set type = type|default('checkbox') -%}
+    {{- block('_cb_form_check_render') -}}
+{%- endblock checkbox_widget %}
+
+
+{% block radio_widget -%}
+    {%- set type = type|default('radio') -%}
+    {{- block('_cb_form_check_render') -}}
+{%- endblock radio_widget %}
+
+
+{% block file_widget -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-file')|trim}) -%}
+    {%- set type = type|default('file') -%}
+    {{- block('form_widget_simple') -}}
+{%- endblock file_widget %}
+
+
+{% block money_widget -%}
+    {%- set prepend = not (money_pattern starts with '{{') -%}
+    {%- set append = not (money_pattern ends with '}}') -%}
+    {%- if prepend or append -%}
+        <div class="cb-form-input-group">
+            {%- if prepend -%}
+                <span class="cb-form-input-group__addon">{{ money_pattern|form_encode_currency }}</span>
+            {%- endif -%}
+            {{- block('form_widget_simple') -}}
+            {%- if append -%}
+                <span class="cb-form-input-group__addon">{{ money_pattern|form_encode_currency }}</span>
+            {%- endif -%}
+        </div>
+    {%- else -%}
+        {{- block('form_widget_simple') -}}
+    {%- endif -%}
+{%- endblock money_widget %}
+
+
+{% block percent_widget -%}
+    {%- if symbol -%}
+        <div class="cb-form-input-group">
+            {{- block('form_widget_simple') -}}
+            <span class="cb-form-input-group__addon">{{ symbol|default('%') }}</span>
+        </div>
+    {%- else -%}
+        {{- block('form_widget_simple') -}}
+    {%- endif -%}
+{%- endblock percent_widget %}
+
+
+{% block date_widget -%}
+    {%- if widget == 'single_text' -%}
+        {{- block('form_widget_simple') -}}
+    {%- else -%}
+        {%- if not valid -%}
+            {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-control--invalid')|trim}) -%}
+            {%- set valid = true -%}
+        {%- endif -%}
+        {%- if datetime is not defined or not datetime -%}
+            <div {{ block('widget_container_attributes') -}}>
+        {%- endif -%}
+        {%- if label is not same as(false) -%}
+            <div class="cb-form-sr-only">
+                {{- form_label(form.year) -}}
+                {{- form_label(form.month) -}}
+                {{- form_label(form.day) -}}
+            </div>
+        {%- endif -%}
+        <div class="cb-form-input-group">
+            {{- date_pattern|replace({
+                '{{ year }}': form_widget(form.year),
+                '{{ month }}': form_widget(form.month),
+                '{{ day }}': form_widget(form.day),
+            })|raw -}}
+        </div>
+        {%- if datetime is not defined or not datetime -%}
+            </div>
+        {%- endif -%}
+    {%- endif -%}
+{%- endblock date_widget %}
+
+
+{% block time_widget -%}
+    {%- if widget == 'single_text' -%}
+        {{- block('form_widget_simple') -}}
+    {%- else -%}
+        {%- if not valid -%}
+            {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-control--invalid')|trim}) -%}
+            {%- set valid = true -%}
+        {%- endif -%}
+        {%- if datetime is not defined or false == datetime -%}
+            <div {{ block('widget_container_attributes') -}}>
+        {%- endif -%}
+        {%- if label is not same as(false) -%}
+            <div class="cb-form-sr-only">
+                {{- form_label(form.hour) -}}
+                {%- if with_minutes -%}{{ form_label(form.minute) }}{%- endif -%}
+                {%- if with_seconds -%}{{ form_label(form.second) }}{%- endif -%}
+            </div>
+        {%- endif -%}
+        {%- if with_minutes or with_seconds %}
+            <div class="cb-form-input-group">
+        {% endif -%}
+        {{- form_widget(form.hour) -}}
+        {%- if with_minutes -%}
+            <span class="cb-form-input-group__addon">:</span>
+            {{- form_widget(form.minute) -}}
+        {%- endif -%}
+        {%- if with_seconds -%}
+            <span class="cb-form-input-group__addon">:</span>
+            {{- form_widget(form.second) -}}
+        {%- endif -%}
+        {%- if with_minutes or with_seconds %}
+            </div>
+        {% endif -%}
+        {%- if datetime is not defined or false == datetime -%}
+            </div>
+        {%- endif -%}
+    {%- endif -%}
+{%- endblock time_widget %}
+
+
+{% block datetime_widget -%}
+    {%- if widget == 'single_text' -%}
+        {{- block('form_widget_simple') -}}
+    {%- else -%}
+        <div {{ block('widget_container_attributes') }}>
+            {{- form_widget(form.date, {datetime: true}) -}}
+            {{- form_errors(form.date) -}}
+            {{- form_widget(form.time, {datetime: true}) -}}
+            {{- form_errors(form.time) -}}
+        </div>
+    {%- endif -%}
+{%- endblock datetime_widget %}
+
+
+{% block button_widget -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-btn')|trim}) -%}
+    {{- parent() -}}
+{%- endblock button_widget %}
+
+
+{% block submit_widget -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-btn cb-form-btn--primary')|trim}) -%}
+    {{- parent() -}}
+{%- endblock submit_widget %}
+
+
+{% block reset_widget -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-btn')|trim}) -%}
+    {{- parent() -}}
+{%- endblock reset_widget %}
+
+
+{# ---- Labels ---- #}
+
+{% block form_label -%}
+    {%- if label is not same as(false) -%}
+        {%- set label_attr = label_attr|merge({class: (label_attr.class|default('') ~ ' cb-form-label')|trim}) -%}
+        {%- if compound is defined and compound -%}
+            {# Compound forms render <legend> instead of <label>. Use the
+               same class so legends pick up the same typography. #}
+            {%- set element = 'legend' -%}
+        {%- endif -%}
+    {%- endif -%}
+    {{- parent() -}}
+{%- endblock form_label %}
+
+
+{# ---- Rows ---- #}
+
+{% block form_row_render -%}
+    {%- if compound is defined and compound -%}
+        {%- set element = 'fieldset' -%}
+    {%- endif -%}
+    {%- set row_class = row_class|default(row_attr.class|default('cb-form-row')|trim) -%}
+    <{{ element|default('div') }}{% with {attr: row_attr|merge({class: row_class})} %}{{ block('attributes') }}{% endwith %}>
+        {{- form_label(form) -}}
+        {{- form_widget(form, widget_attr) -}}
+        {{- form_help(form) -}}
+        {{- form_errors(form) -}}
+    </{{ element|default('div') }}>
+{%- endblock form_row_render %}
+
+
+{% block button_row -%}
+    <div{% with {attr: row_attr|merge({class: (row_attr.class|default('') ~ ' cb-form-row')|trim})} %}{{ block('attributes') }}{% endwith %}>
+        {{- form_widget(form) -}}
+    </div>
+{%- endblock button_row %}
+
+
+{# ---- Errors ---- #}
+
+{% block form_errors -%}
+    {%- if errors|length > 0 -%}
+        {%- set class = form is rootform ? 'cb-form-errors cb-form-errors--root' : 'cb-form-errors' -%}
+        <ul class="{{ class }}" id="{{ id ~ '_errors' }}">
+            {%- for error in errors -%}
+                <li id="{{ id ~ '_error' ~ loop.index }}">{{ error.message }}</li>
+            {%- endfor -%}
+        </ul>
+    {%- endif -%}
+{%- endblock form_errors %}
+
+
+{# ---- Help ---- #}
+
+{% block form_help -%}
+    {%- if help is not empty -%}
+        {%- set help_attr = help_attr|merge({class: (help_attr.class|default('') ~ ' cb-form-help')|trim}) -%}
+    {%- endif -%}
+    {{- parent() -}}
+{%- endblock form_help %}

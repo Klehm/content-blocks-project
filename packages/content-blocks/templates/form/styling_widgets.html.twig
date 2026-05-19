@@ -12,9 +12,9 @@
 
 {# Length: value + unit select, side by side. #}
 {% block cb_length_widget %}
-    <div class="cb-length input-group input-group-sm">
-        {{ form_widget(form.value, { attr: { class: 'form-control' } }) }}
-        {{ form_widget(form.unit, { attr: { class: 'form-select cb-length__unit' } }) }}
+    <div class="cb-length cb-form-input-group">
+        {{ form_widget(form.value) }}
+        {{ form_widget(form.unit, { attr: { class: 'cb-length__unit' } }) }}
     </div>
 {% endblock %}
 
@@ -37,7 +37,7 @@
                     </label>
                     {{ form_widget(form[side.key], {
                         attr: {
-                            class: 'form-control form-control-sm cb-box-spacing__input',
+                            class: 'cb-box-spacing__input',
                             'data-cb-spacing-link-target': 'input',
                         }
                     }) }}
@@ -52,7 +52,7 @@
                 <span aria-hidden="true">⛓</span>
             </button>
         </div>
-        <div class="cb-box-spacing__linked-state d-none">
+        <div class="cb-box-spacing__linked-state" hidden>
             {{ form_widget(form.linked) }}
         </div>
     </div>
@@ -60,9 +60,9 @@
 
 {# Responsive box-spacing: D/T/M tabs above a single BoxSpacing view. #}
 {% block cb_responsive_box_spacing_row %}
-    <div class="cb-form-row mb-3">
-        <div class="cb-form-row__header d-flex align-items-center justify-content-between">
-            <label class="form-label mb-0">{{ form.vars.label|trans({}, 'content_blocks') }}</label>
+    <div class="cb-form-row">
+        <div class="cb-form-row__header">
+            <label class="cb-form-label">{{ form.vars.label|trans({}, 'content_blocks') }}</label>
             <div class="cb-viewport-tabs" data-controller="cb-viewport-tabs" data-cb-viewport-tabs-active-value="d">
                 {# Match the topbar viewport switcher in builder/shell.html.twig. #}
                 {% set viewports = [
@@ -158,7 +158,7 @@
             <label class="cb-align-btn{% if child.vars.checked %} cb-align-btn--active{% endif %}"
                    title="{{ tip|trans({}, 'content_blocks') }}">
                 <input type="radio"
-                       class="visually-hidden cb-align-btn__input"
+                       class="cb-form-sr-only cb-align-btn__input"
                        id="{{ child.vars.id }}"
                        name="{{ child.vars.full_name }}"
                        value="{{ val }}"

@@ -3,11 +3,11 @@
 <div class="cb-launcher"
      data-controller="cb-builder-launcher">
     <button type="button"
-            class="btn btn-primary cb-launcher__button"
+            class="cb-launcher__button"
             data-action="cb-builder-launcher#open">
         {{ 'cb.builder.open'|trans({}, 'content_blocks') }}
         {% if area.hasUnpublishedChanges %}
-            <span class="badge bg-warning text-dark cb-launcher__badge">
+            <span class="cb-launcher__badge">
                 {{ 'cb.builder.draft_pending'|trans({}, 'content_blocks') }}
             </span>
         {% endif %}

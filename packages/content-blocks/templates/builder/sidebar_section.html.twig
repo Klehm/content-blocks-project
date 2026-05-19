@@ -8,7 +8,7 @@
        form_theme directive replaces the previous local stack, see the
        comment in components/Block.html.twig for the full rationale). #}
     {% form_theme form with [
-        'bootstrap_5_layout.html.twig',
+        '@ContentBlocks/form/cb_form_theme.html.twig',
         '@ContentBlocks/form/styling_widgets.html.twig',
     ] %}
     {{ form_start(form, { 'attr': { 'data-cb-section-settings-form-target': 'form' } }) }}
@@ -57,7 +57,7 @@
            button is gone (autosave replaces it). #}
         <button type="submit"
                 data-cb-sidebar-save
-                class="visually-hidden cb-sidebar__action-fallback">
+                class="cb-form-sr-only cb-sidebar__action-fallback">
             {{ 'cb.block.save'|trans({}, 'content_blocks') }}
         </button>
     {{ form_end(form) }}

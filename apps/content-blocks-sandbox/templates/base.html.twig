@@ -4,36 +4,111 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ContentBlocks Sandbox{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     {% block importmap %}{{ importmap('app') }}{% endblock %}
     <style>
-        .cb-page-builder { max-width: 960px; margin: 2rem auto; }
-        .cb-section { border: 2px dashed #dee2e6; border-radius: .5rem; padding: 1rem; margin-bottom: 1rem; }
-        .cb-section__toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
-        .cb-column { min-height: 80px; border: 1px solid #e9ecef; border-radius: .25rem; padding: .5rem; }
-        .cb-dragging { opacity: 0.4; }
-        .cb-page-builder__add-section { text-align: center; padding: 1rem; }
-        .cb-block__handle { cursor: grab; }
-        .cb-block__handle:active { cursor: grabbing; }
-        .cb-section__handle:active { cursor: grabbing; }
-        .cb-drop-after { border-bottom: 3px solid #0d6efd !important; }
-        .cb-column__blocks[data-cb-block-drop-target] { min-height: 50px; }
-        .cb-dragging { opacity: 0.4; }
-        .cb-drop-before { border-top: 3px solid #0d6efd !important; }
-        .cb-drop-inside { background-color: rgba(13, 110, 253, 0.1); outline: 2px dashed #0d6efd; outline-offset: -2px; }
+        /* Sandbox chrome — kept intentionally minimal. The package's
+           own builder UI carries its scoped styles via @klehm/content-blocks. */
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 0.95rem;
+            color: #1f2330;
+            background: #f5f6f8;
+        }
+        a { color: #4f8df9; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        .sandbox-nav {
+            background: #1f2330;
+            color: #fff;
+            padding: 0.85rem 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .sandbox-nav a { color: #fff; font-weight: 600; }
+
+        .sandbox-container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 1.5rem 3rem;
+        }
+
+        /* Reusable sandbox bits used by list / builder pages. */
+        .sandbox-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.4rem 0.8rem;
+            background: #4f8df9;
+            color: #fff;
+            border: 1px solid #4f8df9;
+            border-radius: 0.375rem;
+            font: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .sandbox-btn:hover { background: #3d7be7; border-color: #3d7be7; text-decoration: none; }
+        .sandbox-btn--ghost { background: transparent; color: #4f8df9; }
+        .sandbox-btn--ghost:hover { background: rgba(79, 141, 249, 0.08); }
+        .sandbox-btn--success { background: #2e7d4f; border-color: #2e7d4f; }
+        .sandbox-btn--success:hover { background: #266a42; border-color: #266a42; }
+        .sandbox-btn--sm { padding: 0.25rem 0.55rem; font-size: 0.85rem; }
+
+        .sandbox-input {
+            padding: 0.4rem 0.6rem;
+            border: 1px solid #d3d7e0;
+            border-radius: 0.375rem;
+            font: inherit;
+            font-size: 0.9rem;
+            min-width: 200px;
+        }
+        .sandbox-input:focus {
+            outline: 0;
+            border-color: #4f8df9;
+            box-shadow: 0 0 0 3px rgba(79, 141, 249, 0.18);
+        }
+
+        .sandbox-form-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .sandbox-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(20, 22, 30, 0.06);
+        }
+        .sandbox-table th,
+        .sandbox-table td {
+            text-align: left;
+            padding: 0.6rem 0.85rem;
+            border-bottom: 1px solid #eef0f3;
+        }
+        .sandbox-table thead { background: #fafbfc; }
+        .sandbox-table thead th {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #5b6478;
+        }
+        .sandbox-table tbody tr:last-child td { border-bottom: 0; }
+
+        .sandbox-muted { color: #5b6478; }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-dark mb-4">
-        <div class="container">
-            <a class="navbar-brand" href="/">ContentBlocks Sandbox</a>
-        </div>
+    <nav class="sandbox-nav">
+        <a href="/">ContentBlocks Sandbox</a>
     </nav>
 
-    <div class="container">
+    <div class="sandbox-container">
         {% block body %}{% endblock %}
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

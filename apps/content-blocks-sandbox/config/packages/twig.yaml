@@ -1,4 +1,6 @@
 twig:
     default_path: '%kernel.project_dir%/templates'
-    form_themes:
-        - 'bootstrap_5_layout.html.twig'
+    # No global form_themes: the ContentBlocks builder applies its own
+    # cb_form_theme inside the dialog so its forms render consistently
+    # regardless of the host's theme. The sandbox's own forms (page
+    # list create form, etc.) use the framework's default vertical layout.
