@@ -31,7 +31,8 @@
             "cb-range": { "enabled": true, "fetch": "eager" }
         },
         "@klehm/content-blocks-kit": {
-            "cb-file-upload": { "enabled": true, "fetch": "eager" }
+            "cb-file-upload": { "enabled": true, "fetch": "eager" },
+            "cb-tinymce": { "enabled": true, "fetch": "lazy" }
         }
     },
     "entrypoints": []

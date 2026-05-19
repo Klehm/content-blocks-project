@@ -5,6 +5,11 @@ cb_kit:
             empty: "No content"
             field:
                 content: "Content"
+        rich_text:
+            label: "Rich text"
+            empty: "No content"
+            field:
+                content: "Content"
         title:
             label: "Title"
             empty: "No title"

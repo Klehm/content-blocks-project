@@ -1,0 +1,6 @@
+{# RichTextBlock view — renders TinyMCE-produced HTML as-is. #}
+{% if data.content|default %}
+    <div class="cb-block-rich-text">{{ data.content|raw }}</div>
+{% else %}
+    <small style="color: #5b6478;">{{ 'cb_kit.block.rich_text.empty'|trans({}, 'content_blocks_kit') }}</small>
+{% endif %}

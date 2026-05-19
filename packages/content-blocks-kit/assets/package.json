@@ -9,6 +9,12 @@
                 "name": "cb-file-upload",
                 "fetch": "eager",
                 "enabled": true
+            },
+            "cb-tinymce": {
+                "main": "controllers/cb-tinymce_controller.js",
+                "name": "cb-tinymce",
+                "fetch": "lazy",
+                "enabled": true
             }
         },
         "importmap": {

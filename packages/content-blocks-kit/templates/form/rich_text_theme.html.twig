@@ -1,0 +1,19 @@
+{# Form theme for RichTextBlock — wraps the content textarea with a
+   TinyMCE Stimulus controller. The textarea stays in the DOM (TinyMCE
+   binds to it and syncs HTML on every edit), so LiveComponent
+   data-model binding keeps working unchanged.
+
+   data-live-ignore is set on the wrapper so the morpher leaves
+   TinyMCE's injected DOM (toolbar, iframe) alone across re-renders. #}
+
+{% block _content_block_content_row %}
+    <div class="cb-form-row">
+        {{ form_label(form) }}
+        <div data-controller="cb-tinymce" data-live-ignore>
+            {{ form_widget(form, { attr: form.vars.attr|merge({
+                'data-cb-tinymce-target': 'textarea'
+            }) }) }}
+        </div>
+        {{ form_errors(form) }}
+    </div>
+{% endblock %}
