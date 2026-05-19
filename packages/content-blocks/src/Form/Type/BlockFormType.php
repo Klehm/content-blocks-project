@@ -31,6 +31,7 @@ final class BlockFormType extends AbstractType
         // doesn't need to declare it.
         $builder->add('styling', StylingType::class, [
             'include_max_width' => true,
+            'include_align_self' => true,
         ]);
     }
 

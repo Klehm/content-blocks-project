@@ -11,70 +11,78 @@
 /* ---------- Floating action toolbar ---------- */
 
 .cb-overlay-toolbar {
-    position: absolute;
-    display: inline-flex;
-    gap: 2px;
-    background: #1f2330;
-    border-radius: 6px;
-    padding: 2px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
-    z-index: 2147483000;
-    /* Wrapper is transparent to pointer events so a toolbar floating on
+  position: absolute;
+  display: inline-flex;
+  gap: 2px;
+  background: #1f2330;
+  border-radius: 6px;
+  padding: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  z-index: 2147483000;
+  /* Wrapper is transparent to pointer events so a toolbar floating on
        top of the hovered element doesn't steal mousemove/click from the
        surrounding area. Buttons opt back in below. */
-    pointer-events: none;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 13px;
-    opacity: 0;
-    transition: opacity .12s ease-out;
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.12s ease-out;
 }
-.cb-overlay-toolbar.is-visible { opacity: 1; }
+.cb-overlay-toolbar.is-visible {
+  opacity: 1;
+}
 .cb-overlay-toolbar__btn {
-    background: transparent;
-    border: 0;
-    color: #fff;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    line-height: 1;
-    font: inherit;
-    pointer-events: auto;
+  background: transparent;
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+  font: inherit;
+  pointer-events: auto;
 }
-.cb-overlay-toolbar__btn:hover { background: rgba(255, 255, 255, .15); }
+.cb-overlay-toolbar__btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
 .cb-overlay-toolbar__btn--drag {
-    cursor: grab;
-    /* Visual hint that this button is draggable rather than clickable. */
-    color: #b5bccd;
-    padding-left: 6px;
-    padding-right: 6px;
+  cursor: grab;
+  /* Visual hint that this button is draggable rather than clickable. */
+  color: #b5bccd;
+  padding-left: 6px;
+  padding-right: 6px;
 }
-.cb-overlay-toolbar__btn--drag:active { cursor: grabbing; }
+.cb-overlay-toolbar__btn--drag:active {
+  cursor: grabbing;
+}
 
 /* ---------- Drag & drop ---------- */
 
 /* Insertion-point indicator shown during a drag. Sits in document space at
    the computed drop coordinates (top/left/width set inline by JS). */
 .cb-drop-indicator {
-    position: absolute;
-    height: 3px;
-    background: #4f8df9;
-    border-radius: 2px;
-    pointer-events: none;
-    z-index: 2147483002;
-    box-shadow: 0 0 0 1px rgba(79, 141, 249, .25);
+  position: absolute;
+  height: 3px;
+  background: #4f8df9;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 2147483002;
+  box-shadow: 0 0 0 1px rgba(79, 141, 249, 0.25);
 }
-.cb-drop-indicator[hidden] { display: none; }
+.cb-drop-indicator[hidden] {
+  display: none;
+}
 
 /* While dragging: dim the source so the user sees it being moved, and stop
    it from intercepting elementFromPoint so we can detect the column /
    sibling under the cursor. */
 .cb-drag-source {
-    opacity: .35 !important;
-    pointer-events: none !important;
+  opacity: 0.35 !important;
+  pointer-events: none !important;
 }
 body.cb-dragging {
-    user-select: none;
-    cursor: grabbing !important;
+  user-select: none;
+  cursor: grabbing !important;
 }
 
 /* During a drag, mute the guides that aren't valid drop targets so the
@@ -82,40 +90,44 @@ body.cb-dragging {
    only lands between sections → column outlines fade. Block drag only
    lands inside columns → section outlines fade. */
 body.cb-dragging--section [data-cb-column-id] {
-    outline-color: transparent !important;
+  outline-color: transparent !important;
 }
 body.cb-dragging--block [data-cb-section-id] {
-    outline-color: transparent !important;
+  outline-color: transparent !important;
 }
 
 /* ---------- Type-picker popover ---------- */
 
 .cb-overlay-popover {
-    position: absolute;
-    background: #fff;
-    border: 1px solid #e3e5e9;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
-    z-index: 2147483001;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 13px;
-    padding: 4px;
-    min-width: 160px;
+  position: absolute;
+  background: #fff;
+  border: 1px solid #e3e5e9;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 2147483001;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  padding: 4px;
+  min-width: 160px;
 }
-.cb-overlay-popover[hidden] { display: none; }
+.cb-overlay-popover[hidden] {
+  display: none;
+}
 .cb-overlay-popover__btn {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: transparent;
-    border: 0;
-    padding: 6px 10px;
-    cursor: pointer;
-    border-radius: 4px;
-    color: #1f2330;
-    font: inherit;
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  color: #1f2330;
+  font: inherit;
 }
-.cb-overlay-popover__btn:hover { background: #f0f1f4; }
+.cb-overlay-popover__btn:hover {
+  background: #f0f1f4;
+}
 
 /* ---------- Section/column visual guides ----------
  *
@@ -127,28 +139,27 @@ body.cb-dragging--block [data-cb-section-id] {
  */
 
 [data-cb-section-id] {
-    /* Default 60px keeps empty sections clickable in the builder.
+  /* Default 60px keeps empty sections clickable in the builder.
        Falling through `--cb-min-h` lets a user-configured minHeight
        (set by StylingSectionDecorator) win over the builder fallback —
        without it, this rule would shadow the user's value because
        both selectors share specificity (0,1,0) and builder.css is
        loaded after styling.css. */
-    min-height: var(--cb-min-h, 60px);
-    box-sizing: border-box;
-    padding-top: 18px;
-    position: relative;
-    outline: 1px dashed #d8dbe2;
-    outline-offset: -1px;
-    margin-bottom: 8px;
+  min-height: var(--cb-min-h, 60px);
+  box-sizing: border-box;
+  padding-top: 18px;
+  position: relative;
+  outline: 1px dashed #d8dbe2;
+  outline-offset: -1px;
 }
 /* Columns have no outline — the permanent "+ Bloc" pill at the bottom
    visually marks each column on its own. Padding + min-height stay so
    empty columns still have a clickable area. */
 [data-cb-column-id] {
-    min-height: 60px;
-    box-sizing: border-box;
-    padding: 6px;
-    border-radius: 2px;
+  min-height: 60px;
+  box-sizing: border-box;
+  padding: 6px;
+  border-radius: 2px;
 }
 
 /* The hovered/focused entity (block / column / section) gets a stronger
@@ -156,15 +167,15 @@ body.cb-dragging--block [data-cb-section-id] {
    above. Blue is reserved for THIS feedback so the user always knows
    what's "selected" at a glance. */
 .cb-overlay-outline {
-    outline: 2px solid #4f8df9 !important;
-    outline-offset: -2px !important;
+  outline: 2px solid #4f8df9 !important;
+  outline-offset: -2px !important;
 }
 
 /* Soft-deleted entities are hidden in preview — the user clicked delete,
    the entity disappears. The DOM marker stays so Discard can restore the
    draft state on the server, but visually it's gone. */
 [data-cb-deleted="1"] {
-    display: none !important;
+  display: none !important;
 }
 
 /* When the viewport switcher resizes the iframe, the host page's layout
@@ -172,8 +183,9 @@ body.cb-dragging--block [data-cb-section-id] {
    body can be wider than the iframe and a transient horizontal scrollbar
    flashes. Forcing overflow-x: hidden on the preview body kills the
    flash; vertical scroll behavior is untouched. */
-html, body {
-    overflow-x: hidden;
+html,
+body {
+  overflow-x: hidden;
 }
 
 /* ---------- Permanent inline "+ Block" affordance ---------- */
@@ -185,28 +197,31 @@ html, body {
    Capped at 80px wide and centered so multiple columns side-by-side don't
    end up with full-width pills that read as a single bar. */
 .cb-add-block-inline {
-    display: block;
-    width: 100%;
-    max-width: 80px;
-    margin: 6px auto 0;
-    padding: 4px 8px;
-    background: transparent;
-    border: 1px solid #c8ccd5;
-    border-radius: 4px;
-    color: #6b7280;
-    font: inherit;
-    font-size: 12px;
-    line-height: 1.2;
-    cursor: pointer;
-    text-align: center;
-    transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+  display: block;
+  width: 100%;
+  max-width: 80px;
+  margin: 6px auto 0;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid #c8ccd5;
+  border-radius: 4px;
+  color: #6b7280;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: center;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
 }
 .cb-add-block-inline:hover,
 .cb-add-block-inline:focus-visible {
-    background: rgba(79, 141, 249, .06);
-    border-color: #4f8df9;
-    color: #4f8df9;
-    outline: none;
+  background: rgba(79, 141, 249, 0.06);
+  border-color: #4f8df9;
+  color: #4f8df9;
+  outline: none;
 }
 
 /* ---------- Permanent "Add a section" tray ---------- */
@@ -214,66 +229,69 @@ html, body {
 /* Sits at the bottom of the content area (inside the iframe, after the
    last section). Three icon buttons map to the section layouts. */
 .cb-add-section-tray {
-    margin: 16px auto 24px;
-    padding: 16px;
-    text-align: center;
-    color: #1f2330;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 16px auto 24px;
+  padding: 16px;
+  text-align: center;
+  color: #1f2330;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 .cb-add-section-tray__label {
-    margin: 0 0 10px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #5b6172;
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #5b6172;
 }
 
 /* Empty-state polish: when the area has zero visible sections, anchor the
    tray to the middle of the iframe and beef up the copy so it reads as a
    primary call to action rather than a footer affordance. */
 .cb-content-area--empty {
-    min-height: 70vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .cb-content-area--empty .cb-add-section-tray {
-    margin: auto;
-    padding: 32px 24px;
+  margin: auto;
+  padding: 32px 24px;
 }
 .cb-content-area--empty .cb-add-section-tray__label {
-    margin-bottom: 16px;
-    font-size: 18px;
-    font-weight: 500;
-    color: #1f2330;
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 500;
+  color: #1f2330;
 }
 .cb-content-area--empty .cb-add-section-tray__buttons {
-    gap: 12px;
+  gap: 12px;
 }
 .cb-content-area--empty .cb-add-section-tray__btn {
-    width: 72px;
-    height: 56px;
+  width: 72px;
+  height: 56px;
 }
 .cb-add-section-tray__buttons {
-    display: inline-flex;
-    gap: 8px;
+  display: inline-flex;
+  gap: 8px;
 }
 .cb-add-section-tray__btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 44px;
-    background: #fff;
-    border: 1px solid #d8dbe2;
-    border-radius: 6px;
-    color: #5b6172;
-    cursor: pointer;
-    transition: border-color .12s ease, color .12s ease, background-color .12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 44px;
+  background: #fff;
+  border: 1px solid #d8dbe2;
+  border-radius: 6px;
+  color: #5b6172;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    color 0.12s ease,
+    background-color 0.12s ease;
 }
 .cb-add-section-tray__btn:hover,
 .cb-add-section-tray__btn:focus-visible {
-    border-color: #4f8df9;
-    color: #4f8df9;
-    background: rgba(79, 141, 249, .06);
-    outline: none;
+  border-color: #4f8df9;
+  color: #4f8df9;
+  background: rgba(79, 141, 249, 0.06);
+  outline: none;
 }

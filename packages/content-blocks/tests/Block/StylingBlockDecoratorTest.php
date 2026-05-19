@@ -73,8 +73,8 @@ final class StylingBlockDecoratorTest extends TestCase
 
     public function testBlockStylingDoesNotEmitFlexAlignmentVars(): void
     {
-        // Alignment / minHeight are section-level concerns — even if a
-        // user-extended StylingType somehow leaked these into a block's
+        // verticalAlign / minHeight are section-level concerns — even if
+        // a user-extended StylingType somehow leaked these into a block's
         // data, the block decorator must not turn them into CSS vars.
         $decoration = (new StylingBlockDecorator())->decorate(
             ['styling' => [
@@ -87,5 +87,63 @@ final class StylingBlockDecoratorTest extends TestCase
         $this->assertArrayNotHasKey('--cb-valign', $decoration->inlineStyles);
         $this->assertArrayNotHasKey('--cb-min-h', $decoration->inlineStyles);
         $this->assertSame([], $decoration->classes);
+    }
+
+    public function testAlignSelfEmitsVarWhenMaxWidthIsSet(): void
+    {
+        $decoration = (new StylingBlockDecorator())->decorate(
+            ['styling' => [
+                'maxWidth' => ['value' => 720, 'unit' => 'px'],
+                'alignSelf' => 'center',
+            ]],
+            new Block(),
+        );
+
+        $this->assertSame('center', $decoration->inlineStyles['--cb-align-self']);
+        $this->assertSame('720px', $decoration->inlineStyles['--cb-max-w']);
+    }
+
+    public function testAlignSelfMapsKeywordsToFlexValues(): void
+    {
+        $deco = new StylingBlockDecorator();
+
+        $start = $deco->decorate(
+            ['styling' => ['maxWidth' => ['value' => 100, 'unit' => 'px'], 'alignSelf' => 'start']],
+            new Block(),
+        );
+        $end = $deco->decorate(
+            ['styling' => ['maxWidth' => ['value' => 100, 'unit' => 'px'], 'alignSelf' => 'end']],
+            new Block(),
+        );
+
+        $this->assertSame('flex-start', $start->inlineStyles['--cb-align-self']);
+        $this->assertSame('flex-end', $end->inlineStyles['--cb-align-self']);
+    }
+
+    public function testAlignSelfIsIgnoredWithoutMaxWidth(): void
+    {
+        // No max-width = block stretches to fill the column, so align-self
+        // has no visible effect. We skip the var to keep the inline style
+        // minimal.
+        $decoration = (new StylingBlockDecorator())->decorate(
+            ['styling' => ['alignSelf' => 'center']],
+            new Block(),
+        );
+
+        $this->assertArrayNotHasKey('--cb-align-self', $decoration->inlineStyles);
+        $this->assertSame([], $decoration->classes);
+    }
+
+    public function testAlignSelfIgnoresUnknownValues(): void
+    {
+        $decoration = (new StylingBlockDecorator())->decorate(
+            ['styling' => [
+                'maxWidth' => ['value' => 720, 'unit' => 'px'],
+                'alignSelf' => 'space-between',
+            ]],
+            new Block(),
+        );
+
+        $this->assertArrayNotHasKey('--cb-align-self', $decoration->inlineStyles);
     }
 }

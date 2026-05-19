@@ -114,10 +114,38 @@
 {% endmacro %}
 
 {% block cb_vertical_align_widget %}
-    {{ _self.render_align(form) }}
+    {{ _self.render_align(form, 'v') }}
 {% endblock %}
 
-{% macro render_align(form) %}
+{# Horizontal-align icons: three bars of varying widths, all flushed
+   to the same edge (text-align metaphor). The full-width bar stays put;
+   the two shorter bars shift to whichever edge corresponds to the
+   alignment, producing a visibly different silhouette per choice.
+   This is the standard word-processor iconography for left/center/right. #}
+{% macro halign_icon(value) %}
+    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+        {% if value == 'start' %}
+            <rect x="2" y="3"  width="12" height="2" rx="1" fill="currentColor" />
+            <rect x="2" y="7"  width="7"  height="2" rx="1" fill="currentColor" />
+            <rect x="2" y="11" width="10" height="2" rx="1" fill="currentColor" />
+        {% elseif value == 'center' %}
+            <rect x="2" y="3"  width="12" height="2" rx="1" fill="currentColor" />
+            <rect x="4" y="7"  width="8"  height="2" rx="1" fill="currentColor" />
+            <rect x="3" y="11" width="10" height="2" rx="1" fill="currentColor" />
+        {% elseif value == 'end' %}
+            <rect x="2" y="3"  width="12" height="2" rx="1" fill="currentColor" />
+            <rect x="7" y="7"  width="7"  height="2" rx="1" fill="currentColor" />
+            <rect x="4" y="11" width="10" height="2" rx="1" fill="currentColor" />
+        {% endif %}
+    </svg>
+{% endmacro %}
+
+{% block cb_horizontal_align_widget %}
+    {{ _self.render_align(form, 'h') }}
+{% endblock %}
+
+{# axis: 'v' (vertical) or 'h' (horizontal) — picks the icon style. #}
+{% macro render_align(form, axis) %}
     {# Each choice is a label wrapping a raw radio input + its icon.
        Going through form_widget(child) would invoke Bootstrap's radio
        theme which adds its own .form-check wrapper and a visible label —
@@ -143,6 +171,8 @@
                         <svg viewBox="0 0 16 16" width="16" height="16">
                             <rect x="3" y="7" width="10" height="2" rx="1" fill="currentColor" opacity=".5" />
                         </svg>
+                    {% elseif axis == 'h' %}
+                        {{ _self.halign_icon(val) }}
                     {% else %}
                         {{ _self.align_icon(val) }}
                     {% endif %}

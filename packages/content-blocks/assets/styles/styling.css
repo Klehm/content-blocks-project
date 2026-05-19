@@ -81,6 +81,11 @@
     margin-left: var(--cb-mar-d-l, 0);
     background-color: var(--cb-bg, transparent);
     max-width: var(--cb-max-w, none);
+    /* align-self only takes effect when the block has a constrained
+       width (max-width) — the column is a flex column (see layout.css)
+       and otherwise the block stretches. The decorator only emits the
+       var when both align-self and max-width are set. */
+    align-self: var(--cb-align-self, stretch);
 }
 
 @media (max-width: 991px) {

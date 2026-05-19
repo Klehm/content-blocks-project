@@ -37,6 +37,7 @@ final class SectionSettingsType extends AbstractType
 {
     public function __construct(
         private readonly SectionStyleRegistry $styleRegistry,
+        private readonly int $defaultMaxWidth = 1320,
     ) {
     }
 
@@ -61,7 +62,11 @@ final class SectionSettingsType extends AbstractType
             ->add('maxWidth', IntegerType::class, [
                 'required' => false,
                 'label' => 'cb.section.settings.max_width',
-                'attr' => ['placeholder' => '1200'],
+                // The form is normally pre-filled by CoreSectionDefaults so
+                // this placeholder is only seen when the user clears the
+                // field; we still keep it in sync with the configured
+                // default so the hint never lies.
+                'attr' => ['placeholder' => (string) $this->defaultMaxWidth],
             ]);
 
         $choices = $this->styleRegistry->getChoices();

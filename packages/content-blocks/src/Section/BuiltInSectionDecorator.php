@@ -13,13 +13,22 @@ use ContentBlocks\Entity\Section;
  * Settings shape:
  *  - classes:    string  free-form whitespace-separated CSS classes
  *  - widthMode:  'full'|'centered'  default 'full'
- *  - maxWidth:   int|null           when widthMode==='centered', applies max-width:Npx + auto margins
+ *  - maxWidth:   int|null           when widthMode==='centered', applies max-width:Npx + auto margins;
+ *                                   missing or 0 falls back to $defaultMaxWidth so a centered section
+ *                                   is never uncapped. Type 0 explicitly is treated as "no cap".
  *  - styleName:  string|null        a name registered via SectionStyleRegistry
+ *
+ * The default cap is bound to the parameter
+ * `content_blocks.section.default_max_width` and shared with
+ * {@see CoreSectionDefaults} so the form pre-fill and the rendered output
+ * read the same number — a host overrides the parameter (or registers its
+ * own defaults provider) and both surfaces update in lock-step.
  */
 final class BuiltInSectionDecorator implements SectionDecoratorInterface
 {
     public function __construct(
         private readonly SectionStyleRegistry $styleRegistry,
+        private readonly int $defaultMaxWidth = 1320,
     ) {
     }
 
@@ -40,7 +49,11 @@ final class BuiltInSectionDecorator implements SectionDecoratorInterface
         $widthMode = $settings['widthMode'] ?? 'full';
         if ($widthMode === 'centered') {
             $classes[] = 'cb-section--centered';
-            $maxWidth = $settings['maxWidth'] ?? null;
+            // Missing key → fall back to the configured default. The
+            // value 0 is preserved (user opting out of any cap).
+            $maxWidth = \array_key_exists('maxWidth', $settings)
+                ? $settings['maxWidth']
+                : $this->defaultMaxWidth;
             if (\is_int($maxWidth) && $maxWidth > 0) {
                 $styles['max-width'] = $maxWidth . 'px';
                 $styles['margin-left'] = 'auto';

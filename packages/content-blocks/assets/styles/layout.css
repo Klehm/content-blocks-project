@@ -28,6 +28,12 @@
 .cb-col {
     flex: 1 1 0;
     min-width: 0;
+    /* Flex column so blocks can opt into align-self (horizontal placement
+       inside their column). Default `align-self: stretch` keeps the
+       legacy full-width behavior; blocks with a max-width can override
+       via --cb-align-self set by StylingBlockDecorator. */
+    display: flex;
+    flex-direction: column;
 }
 
 .cb-col--col-12 { flex-basis: 100%; }

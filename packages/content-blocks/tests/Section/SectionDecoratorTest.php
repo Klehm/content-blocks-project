@@ -79,6 +79,45 @@ final class SectionDecoratorTest extends TestCase
         $this->assertSame('', $deco->classString());
     }
 
+    public function testBuiltInDecoratorFallsBackToDefaultMaxWidthWhenCenteredAndKeyMissing(): void
+    {
+        $decorator = new BuiltInSectionDecorator(new SectionStyleRegistry());
+        $section = new Section();
+
+        // BlockRenderer::withoutDefaults() strips the key when the saved
+        // value equals the default, so a freshly-created centered section
+        // always reaches the decorator with no `maxWidth` key.
+        $deco = $decorator->decorate(['widthMode' => 'centered'], $section);
+
+        $this->assertSame('cb-section--centered', $deco->classString());
+        $this->assertSame('max-width:1320px;margin-left:auto;margin-right:auto;', $deco->styleString());
+    }
+
+    public function testBuiltInDecoratorHonorsCustomDefaultMaxWidth(): void
+    {
+        // Hosts override via the parameter — verify the constructor arg
+        // is what's actually consulted.
+        $decorator = new BuiltInSectionDecorator(new SectionStyleRegistry(), 1400);
+        $section = new Section();
+
+        $deco = $decorator->decorate(['widthMode' => 'centered'], $section);
+
+        $this->assertSame('max-width:1400px;margin-left:auto;margin-right:auto;', $deco->styleString());
+    }
+
+    public function testBuiltInDecoratorTreatsExplicitZeroMaxWidthAsNoCap(): void
+    {
+        // The user can opt out of any cap by typing 0 — the key is present
+        // but the value is non-positive, so no max-width style is emitted.
+        $decorator = new BuiltInSectionDecorator(new SectionStyleRegistry());
+        $section = new Section();
+
+        $deco = $decorator->decorate(['widthMode' => 'centered', 'maxWidth' => 0], $section);
+
+        $this->assertSame('cb-section--centered', $deco->classString());
+        $this->assertSame('', $deco->styleString());
+    }
+
     public function testBuiltInDecoratorAppliesNamedStylePreset(): void
     {
         $registry = new SectionStyleRegistry([

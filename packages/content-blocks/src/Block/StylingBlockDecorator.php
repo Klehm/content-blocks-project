@@ -22,10 +22,16 @@ use ContentBlocks\Entity\Block;
  *      where BoxSpacing = { top, right, bottom, left: int, linked: bool }
  *  - backgroundColor: string (#hex)
  *  - maxWidth: { value: int, unit: 'px' }
+ *  - alignSelf: 'start'|'center'|'end' (only honored when maxWidth is set)
  */
 final class StylingBlockDecorator implements BlockDecoratorInterface
 {
     private const SIDE_SHORT = ['top' => 't', 'right' => 'r', 'bottom' => 'b', 'left' => 'l'];
+    private const ALIGN_SELF_MAP = [
+        'start' => 'flex-start',
+        'center' => 'center',
+        'end' => 'flex-end',
+    ];
 
     public function decorate(array $data, Block $block): BlockDecoration
     {
@@ -61,10 +67,23 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
         }
 
         $maxWidth = $styling['maxWidth'] ?? null;
+        $hasMaxWidth = false;
         if (\is_array($maxWidth)) {
             $val = $maxWidth['value'] ?? null;
             if (\is_int($val) && $val > 0) {
                 $vars['--cb-max-w'] = $val . 'px';
+                $hasMaxWidth = true;
+            }
+        }
+
+        // align-self is only meaningful when the block has a constrained
+        // width — otherwise the block stretches to fill the column and
+        // the cross-axis position has no visible effect. Skipping the
+        // var when maxWidth is unset keeps the output minimal.
+        if ($hasMaxWidth) {
+            $alignSelf = $styling['alignSelf'] ?? null;
+            if (\is_string($alignSelf) && isset(self::ALIGN_SELF_MAP[$alignSelf])) {
+                $vars['--cb-align-self'] = self::ALIGN_SELF_MAP[$alignSelf];
             }
         }
 

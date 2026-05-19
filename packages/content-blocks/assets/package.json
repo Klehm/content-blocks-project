@@ -28,6 +28,12 @@
                 "fetch": "eager",
                 "enabled": true
             },
+            "cb-block-styling-form": {
+                "main": "controllers/cb-block-styling-form_controller.js",
+                "name": "cb-block-styling-form",
+                "fetch": "eager",
+                "enabled": true
+            },
             "cb-spacing-link": {
                 "main": "controllers/cb-spacing-link_controller.js",
                 "name": "cb-spacing-link",

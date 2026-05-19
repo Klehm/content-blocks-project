@@ -20,10 +20,22 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 return static function (ContainerConfigurator $container): void {
+    // Section-level defaults. The single parameter is shared by
+    // BuiltInSectionDecorator, CoreSectionDefaults and SectionSettingsType
+    // so a host can override it in one place and have the form pre-fill,
+    // the placeholder, and the rendered fallback all move together.
+    $container->parameters()
+        ->set('content_blocks.section.default_max_width', 1320);
+
     $services = $container->services()
         ->defaults()
         ->autowire()
-        ->autoconfigure();
+        ->autoconfigure()
+        // Targeted binding: only services whose constructor literally
+        // declares `int $defaultMaxWidth` pick this up — currently
+        // BuiltInSectionDecorator, CoreSectionDefaults, and
+        // SectionSettingsType.
+        ->bind('int $defaultMaxWidth', '%content_blocks.section.default_max_width%');
 
     $services->set(BlockTypeRegistry::class)
         ->public();
@@ -85,6 +97,11 @@ return static function (ContainerConfigurator $container): void {
     // default. Tagged via SectionSettingsDefaultsProviderInterface auto-
     // configuration.
     $services->set(\ContentBlocks\Section\CoreStylingDefaults::class);
+
+    // Top-level section defaults (mirror of CoreStylingDefaults for the
+    // root settings array). Currently provides `maxWidth` so a centered
+    // section without an explicit value still picks a sensible cap.
+    $services->set(\ContentBlocks\Section\CoreSectionDefaults::class);
 
     $services->set(SectionDecoratorCollection::class)
         ->args([tagged_iterator('content_blocks.section_decorator')])

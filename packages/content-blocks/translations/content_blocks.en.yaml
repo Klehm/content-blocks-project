@@ -26,6 +26,7 @@ cb:
         min_height: "Min height"
         max_width: "Max width"
         vertical_align: "Vertical align"
+        horizontal_align: "Horizontal align"
         link_sides: "Link all 4 sides"
         side.top: "Top"
         side.right: "Right"

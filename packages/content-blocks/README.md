@@ -347,6 +347,55 @@ See the sandbox at [apps/content-blocks-sandbox/src/Form/Extension/StylingPalett
 
 Implement `ContentBlocks\Block\BlockDecoratorInterface` (mirror of `SectionDecoratorInterface`). It is auto-tagged with `content_blocks.block_decorator` when `autoconfigure: true` is on, and called for every block being rendered. Return a `BlockDecoration` (classes / inline styles / attributes) — the bundle merges all decorators' output into the block's outer `<div>`.
 
+## Customizing default values
+
+A few section and block fields ship with a baked-in default so the form always presents a usable value and the renderer can fall back when the user leaves a field empty. The two surfaces (form pre-fill + renderer fallback) read the **same source**, so changing the default in one place keeps them in sync.
+
+### Section `maxWidth` (built-in)
+
+When the user picks **Centered** width without typing a number, the section is capped at **1320px**. The same value pre-fills the input box and shows up as the placeholder. Typing `0` explicitly opts out of any cap.
+
+The number is exposed as a service parameter — the simplest override is one line of YAML:
+
+```yaml
+# config/services.yaml
+parameters:
+    content_blocks.section.default_max_width: 1400
+```
+
+Both `BuiltInSectionDecorator` and `CoreSectionDefaults` are bound to this parameter, so the form pre-fill, placeholder, and rendered fallback all move together.
+
+### Adding (or overriding) defaults via a provider
+
+For multi-key defaults, nested values, or anything computed at runtime, register a `SectionSettingsDefaultsProviderInterface`:
+
+```php
+use ContentBlocks\Section\SectionSettingsDefaultsProviderInterface;
+
+final class AppSectionDefaults implements SectionSettingsDefaultsProviderInterface
+{
+    public function getDefaults(): array
+    {
+        return [
+            // Top-level section setting.
+            'maxWidth' => 1400,
+            // Nested under the Styling sub-form (deep-merged).
+            'styling' => [
+                'backgroundColor' => '#f7f7f7',
+            ],
+        ];
+    }
+}
+```
+
+The interface is autoconfigured — no tag needed. All providers are aggregated via `array_replace_recursive`, **later providers win on key conflict**, so a host provider always overrides `CoreSectionDefaults` / `CoreStylingDefaults`.
+
+At render time, values **equal to the default are stripped** from the saved settings before the decorator pipeline runs (`SectionSettingsDefaults::withoutDefaults()`) — so a section saved with the default cap produces no inline `max-width` style; only user-overridden values do. The decorator re-applies the default itself when the key is missing.
+
+### Block-side equivalent
+
+For block defaults, implement `ContentBlocks\Block\BlockDataDefaultsProviderInterface` (mirror of the section interface). It's the same pattern: form pre-fill + `BlockDataDefaults::withoutDefaults()` at render. The package's `CoreBlockStylingDefaults` sets `styling.backgroundColor = #ffffff` to dodge the `<input type="color">` black fallback — extend it the same way.
+
 ## Security notes
 
 ### CSRF

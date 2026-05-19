@@ -87,6 +87,31 @@ final class StylingType extends AbstractType
                 'block_prefix' => 'cb_vertical_align',
             ]);
         }
+
+        if ($options['include_align_self']) {
+            // Block-only: horizontal placement of the block inside its
+            // column (a flex column). Only meaningful when max-width is
+            // set — otherwise the block stretches to fill the column and
+            // align-self has no visible effect. Hidden by default; the
+            // cb-block-styling-form controller reveals the row as soon as
+            // maxWidth gets a value.
+            $builder->add('alignSelf', ChoiceType::class, [
+                'required' => false,
+                'placeholder' => 'cb.styling.align.default',
+                'expanded' => true,
+                'label' => 'cb.styling.horizontal_align',
+                'choices' => [
+                    'cb.styling.align.start' => 'start',
+                    'cb.styling.align.center' => 'center',
+                    'cb.styling.align.end' => 'end',
+                ],
+                'block_prefix' => 'cb_horizontal_align',
+                'row_attr' => [
+                    'data-cb-block-styling-form-target' => 'alignSelfRow',
+                    'hidden' => 'hidden',
+                ],
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
@@ -96,12 +121,14 @@ final class StylingType extends AbstractType
             'include_min_height' => false,
             'include_alignment' => false,
             'include_max_width' => false,
+            'include_align_self' => false,
             'translation_domain' => 'content_blocks',
             'label' => false,
         ]);
         $resolver->setAllowedTypes('include_min_height', 'bool');
         $resolver->setAllowedTypes('include_alignment', 'bool');
         $resolver->setAllowedTypes('include_max_width', 'bool');
+        $resolver->setAllowedTypes('include_align_self', 'bool');
     }
 
     public function getBlockPrefix(): string

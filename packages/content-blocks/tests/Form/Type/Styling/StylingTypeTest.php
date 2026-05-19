@@ -19,6 +19,16 @@ final class StylingTypeTest extends TypeTestCase
         $this->assertFalse($form->has('minHeight'));
         $this->assertFalse($form->has('maxWidth'));
         $this->assertFalse($form->has('verticalAlign'));
+        $this->assertFalse($form->has('alignSelf'));
+    }
+
+    public function testIncludeAlignSelfForBlocks(): void
+    {
+        $form = $this->factory->create(StylingType::class, null, [
+            'include_align_self' => true,
+        ]);
+
+        $this->assertTrue($form->has('alignSelf'));
     }
 
     public function testIncludeMinHeightAndAlignmentForSections(): void

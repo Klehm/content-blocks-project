@@ -372,6 +372,32 @@ cd packages/content-blocks
 ./vendor/bin/phpunit
 ```
 
+## Workflow Claude — recompiler les assets après chaque tâche
+
+Les deux sandboxes utilisent **AssetMapper** : tout changement dans `packages/content-blocks/assets/` (Stimulus controllers, CSS, JS) ou `packages/content-blocks-kit/assets/` n'est servi qu'après une recompilation du `public/assets/` de chaque sandbox.
+
+**À chaque tâche** qui touche un fichier sous `packages/*/assets/`, Claude doit relancer la compilation dans **les deux** sandboxes avant de conclure :
+
+```bash
+# Symfony sandbox
+cd apps/content-blocks-sandbox \
+  && rm -rf public/assets \
+  && php bin/console cache:clear -q \
+  && php bin/console asset-map:compile
+
+# Sylius sandbox
+cd apps/content-blocks-sylius-sandbox \
+  && rm -rf public/assets \
+  && php bin/console cache:clear -q \
+  && php bin/console asset-map:compile
+```
+
+Si on ajoute un nouveau Stimulus controller, il faut aussi :
+- Le déclarer dans **`packages/content-blocks/assets/package.json`** (et **non** dans le `package.json` racine du package — celui-ci ne sert qu'à vitest/playwright). C'est `assets/package.json` qui est lu par `Symfony\UX\StimulusBundle\Ux\UxPackageReader`.
+- L'activer dans `apps/content-blocks-sandbox/assets/controllers.json` **et** `apps/content-blocks-sylius-sandbox/assets/controllers.json`.
+
+Sans ces étapes, `asset-map:compile` échoue avec `Controller "@klehm/content-blocks/<name>" does not exist in the "klehm/content-blocks" package.`
+
 ## Troubleshooting
 
 ### `could not find driver`
