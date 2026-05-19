@@ -346,3 +346,42 @@
     {%- endif -%}
     {{- parent() -}}
 {%- endblock form_help %}
+
+
+{# ---- Live Collection ----
+   Override the two blocks UX-Live-Component declares (live_collection_widget
+   / live_collection_entry_row) so collections render as a CSS grid of cards
+   instead of a vertical stack of fieldset + delete rows. Each entry is
+   wrapped in a single .cb-form-collection__item; the delete button is
+   absolutely positioned as a small icon-style button in the corner. #}
+
+{% block live_collection_widget -%}
+    {# Tag the widget container itself (#<id>) with the grid class so
+       the items lay out side-by-side. form_widget renders the wrapping
+       <div id="..."> from form_div_layout. #}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-collection')|trim}) -%}
+    {{ block('form_widget') }}
+    {%- if skip_add_button|default(false) is same as(false) and button_add is defined and not button_add.rendered -%}
+        {{ form_row(button_add, {row_attr: {class: 'cb-form-collection__add-row'}}) }}
+    {%- endif -%}
+{%- endblock live_collection_widget %}
+
+{% block live_collection_entry_row -%}
+    <div class="cb-form-collection__item">
+        {# Strip the cb-form-row margin from the inner fieldset — the
+           item card already provides spacing via the grid gap. #}
+        {%- set row_attr = row_attr|default({})|merge({class: (row_attr.class|default('') ~ ' cb-form-collection__item-body')|trim}) -%}
+        {{ block('form_row') }}
+        {%- if button_delete is defined and not button_delete.rendered -%}
+            {{ form_row(button_delete, {
+                row_attr: {class: 'cb-form-collection__delete-row'},
+                label: '×',
+                attr: {
+                    'class': 'cb-form-btn cb-form-collection__delete',
+                    'aria-label': 'Remove',
+                    'title': 'Remove',
+                },
+            }) }}
+        {%- endif -%}
+    </div>
+{%- endblock live_collection_entry_row %}

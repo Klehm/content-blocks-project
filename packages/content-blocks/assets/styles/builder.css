@@ -109,6 +109,8 @@ body.cb-dragging--block [data-cb-section-id] {
   font-size: 13px;
   padding: 4px;
   min-width: 160px;
+  max-height: 160px;
+  overflow: auto;
 }
 .cb-overlay-popover[hidden] {
   display: none;
@@ -222,6 +224,18 @@ body {
   border-color: #4f8df9;
   color: #4f8df9;
   outline: none;
+}
+
+/* Empty block placeholder: a block whose render produced no children would
+   otherwise collapse to zero height in the iframe, leaving the user with
+   nothing to click. The hatched dashed box gives it a visible target so the
+   overlay can still pick it up for selection and editing. */
+[data-cb-preview="1"] [data-cb-block-id]:not(:has(*)) {
+  display: block;
+  min-height: 60px;
+  background: repeating-linear-gradient(45deg, #f8f9fa, #f8f9fa 8px, #ffffff 8px, #ffffff 16px);
+  border: 1px dashed #c8ccd5;
+  border-radius: 4px;
 }
 
 /* ---------- Permanent "Add a section" tray ---------- */

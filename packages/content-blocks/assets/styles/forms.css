@@ -603,6 +603,65 @@
     cursor: not-allowed;
 }
 
+/* ---- Live collection (cards grid) ----
+ *
+ * Wraps any LiveCollectionType field rendered through the builder. The
+ * widget container becomes a CSS grid; each entry+delete is grouped in
+ * a `.cb-form-collection__item` card with the delete button as a small
+ * absolute icon in the corner. The "Add" row spans full width. */
+.cb-shell .cb-form-collection {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.cb-shell .cb-form-collection__item {
+    position: relative;
+    padding: 0.5rem;
+    background: var(--cb-form-bg-soft, #f6f7f9);
+    border: 1px solid var(--cb-form-border);
+    border-radius: var(--cb-form-radius);
+}
+.cb-shell .cb-form-collection__item-body {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.cb-shell .cb-form-collection__item-body > .cb-form-row:last-child {
+    margin-bottom: 0;
+}
+.cb-shell .cb-form-collection__delete-row {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    margin: 0;
+}
+.cb-shell .cb-form-collection__delete {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.9);
+    border-color: var(--cb-form-border);
+    color: var(--cb-form-danger);
+    font-size: 16px;
+    line-height: 1;
+    border-radius: 999px;
+}
+.cb-shell .cb-form-collection__delete:hover:not(:disabled) {
+    background: var(--cb-form-danger);
+    border-color: var(--cb-form-danger);
+    color: #fff;
+}
+.cb-shell .cb-form-collection__add-row {
+    margin-top: 0.25rem;
+}
+.cb-shell .cb-form-collection__add-row .cb-form-btn {
+    width: 100%;
+    justify-content: center;
+    border-style: dashed;
+}
+
 /* ---- Image / file upload widget (kit) ----
  *
  * Styling shared with the ContentBlocks-Kit image_theme: a thumbnail
