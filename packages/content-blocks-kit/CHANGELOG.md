@@ -5,6 +5,12 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.10] - 2026-05-19
+
+### Added
+
+- **ImageBlock: width and height range sliders.** Two new `RangeType` fields (0–1200 px, step 10) sit under "Alternative text" in the block sidebar. The view template applies them as HTML `width` / `height` attributes and an inline `style` when non-zero, falling back to the image's natural size when both are 0. Sliders use the companion `klehm/content-blocks` range widget — bounds visible underneath the track, live numeric readout next to the label.
+
 ## [0.1.0-alpha.9] - 2026-05-19
 
 Version bump only — no functional changes in `klehm/content-blocks-kit`. The companion `klehm/content-blocks` package adds a cards-grid form theme for `LiveCollectionType` fields (so multi-item blocks like gallery / accordion render as a grid rather than a stacked fieldset), makes the type-picker popover scroll past 160 px, and fixes the sidebar staying attached to a deleted element. See the `content-blocks` CHANGELOG for details.

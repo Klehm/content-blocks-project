@@ -5,6 +5,16 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.10] - 2026-05-19
+
+### Added
+
+- **Range slider form widget.** `cb_form_theme.html.twig` now defines a `range_widget` block that renders `<input type="range">` with min / max bounds underneath the track and a live numeric readout positioned at the row's top-right (visually aligned with the label). A new `cb-range` Stimulus controller keeps the `<output>` in sync as the user drags, since browsers don't auto-bind `<output>` to `<input type="range">`. The row gets a `cb-form-row--range` modifier (detected via `block_prefixes`, since `type` is only set inside the widget block) so it establishes the positioning context for the absolutely-placed readout. **Action required for upgrading hosts:** add `"@klehm/content-blocks/cb-range"` to `assets/controllers.json`.
+
+### Changed
+
+- **Live-collection cards now stack one per row.** `.cb-form-collection` switched from `repeat(auto-fill, minmax(140px, 1fr))` to a single-column grid — multi-item blocks like gallery / accordion are easier to read at typical sidebar widths than when cards squeeze side-by-side.
+
 ## [0.1.0-alpha.9] - 2026-05-19
 
 ### Added
