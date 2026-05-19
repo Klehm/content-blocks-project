@@ -5,6 +5,17 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.11] - 2026-05-19
+
+### Added
+
+- **`FileStorageInterface` gains `isStoredPath`, `read`, and `uploadFromString` methods.** Powers the new JSON Import / Export flow in `klehm/content-blocks` — the exporter detects asset references inside block data, embeds them as base64, and the importer re-materializes them on the host's storage. `LocalFileStorage` and `NullFileStorage` ship with implementations.
+- **`FileStorageAssetResolver`.** A bridge that adapts `FileStorageInterface` to the new `ContentBlocks\Asset\AssetResolverInterface` in the main package, auto-aliased so import / export works out of the box for any host that already wires up file uploads.
+
+### ⚠ Breaking changes
+
+- Custom implementations of `FileStorageInterface` must add `isStoredPath`, `read`, and `uploadFromString`. Return `false` / `null` / throw a `LogicException` respectively if your backend does not support these — the main package degrades gracefully (export will skip assets, import will refuse base64 payloads loudly).
+
 ## [0.1.0-alpha.10] - 2026-05-19
 
 ### Added

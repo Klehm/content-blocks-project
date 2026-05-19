@@ -5,6 +5,12 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.11] - 2026-05-19
+
+### Added
+
+- **JSON Import / Export.** A new "Import / Export" button sits in the builder topbar next to "Insert content" and opens an overlay panel exposing two flows: download the area as a self-contained JSON file (sections + columns + blocks + base64-encoded asset binaries, deduplicated by sha256), or upload a previously-exported file to replace the current draft (soft-delete + clone semantics, mirroring the existing replace-with flow — Publish commits the swap, Discard reverts). Endpoints are `GET /_content-blocks/area/{id}/export` and `POST /_content-blocks/area/{id}/import`, both CSRF + AccessChecker protected. The export walks block data recursively and rewrites any stored asset path to an `asset://{hash}` token; the importer re-uploads each blob and reverses the substitution. A new `ContentBlocks\Asset\AssetResolverInterface` abstracts asset I/O; the kit ships a default bridge over `FileStorageInterface`, so hosts already configured for image uploads get import/export for free.
+
 ## [0.1.0-alpha.10] - 2026-05-19
 
 ### Added
