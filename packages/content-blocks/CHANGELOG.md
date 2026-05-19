@@ -5,6 +5,20 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.7] - 2026-05-19
+
+### Added
+
+- **Block horizontal alignment (`styling.alignSelf`).** Blocks gain a `start`/`center`/`end` choice rendered as a three-bar text-align icon in the styling sidebar. Output as the CSS variable `--cb-align-self` on the block wrapper. Only meaningful when the block has a `maxWidth` cap — otherwise the block stretches to fill the column and align-self has no visible effect — so the row is hidden until a `maxWidth` value is entered. Visibility is driven by the new `cb-block-styling-form` Stimulus controller, which listens for `input` / `change` events on `[name$="[maxWidth][value]"]` and toggles the row's `hidden` attribute. **Action required for upgrading hosts:** add `"@klehm/content-blocks/cb-block-styling-form"` to `assets/controllers.json`.
+- **`CoreSectionDefaults` provider (mirror of `CoreStylingDefaults` for top-level section settings).** Seeds `maxWidth = 1320` so a freshly-created **Centered** section always presents a sensible cap in the form and renders with that cap when no explicit value is saved. Bound to a new container parameter `content_blocks.section.default_max_width` and shared via a targeted `bind('int $defaultMaxWidth', …)` with `BuiltInSectionDecorator`, `CoreSectionDefaults` and `SectionSettingsType` so the form pre-fill, the placeholder and the rendered fallback all read the same number — overriding the parameter in one place keeps them in lock-step.
+- **README section on customizing default values.** Documents the parameter-based override path (`content_blocks.section.default_max_width`) and the provider-based path (`SectionSettingsDefaultsProviderInterface`, `BlockDataDefaultsProviderInterface`), including how the form pre-fill / renderer fallback / default-stripping pipeline fit together.
+
+### Changed
+
+- **Centered sections without an explicit `maxWidth` now fall back to the configured default** (1320 px out of the box) instead of being rendered uncapped. The literal value `0` is preserved as an explicit opt-out, distinct from a missing key.
+- **Section sidebar title removed.** `sidebar_section.html.twig` no longer renders the `cb.section.settings.title` heading — the sidebar context is already clear from the focused-section outline, and dropping the redundant title gives the form a few extra pixels of vertical room.
+- **Block-form `styling` sub-form now opts into `include_align_self`** (alongside the existing `include_max_width`). Section settings keep the previous flag set untouched.
+
 ## [0.1.0-alpha.6] - 2026-05-18
 
 ### Changed
