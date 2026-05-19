@@ -5,6 +5,20 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.9] - 2026-05-19
+
+### Added
+
+- **Live-collection form theme.** `LiveCollectionType` fields rendered through the builder (gallery, accordion, list, info-card…) now lay out as a CSS grid of cards instead of a vertical stack of fieldsets — overriding `live_collection_widget` and `live_collection_entry_row` in the bundled `cb_form_theme.html.twig`. Each entry is wrapped in a `.cb-form-collection__item` card with the delete button rendered as a small absolute "×" in the corner; the add button spans full width with a dashed border. Applies automatically to every block whose form uses a `LiveCollectionType` — no per-block form theme needed.
+
+### Changed
+
+- **Type-picker popover scrolls past 160 px.** `.cb-overlay-popover` now caps at `max-height: 160px` with `overflow: auto`, so the section / block type list stays usable when many types are registered.
+
+### Fixed
+
+- **Sidebar no longer freezes on a stale form when its target element is deleted.** Removing a block or section from the iframe now clears the focused-element sidebar instead of leaving the previously-rendered form attached to a non-existent id.
+
 ## [0.1.0-alpha.7] - 2026-05-19
 
 ### Added
