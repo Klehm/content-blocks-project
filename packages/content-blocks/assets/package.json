@@ -45,6 +45,12 @@
                 "name": "cb-viewport-tabs",
                 "fetch": "eager",
                 "enabled": true
+            },
+            "cb-range": {
+                "main": "controllers/cb-range_controller.js",
+                "name": "cb-range",
+                "fetch": "eager",
+                "enabled": true
             }
         },
         "importmap": {

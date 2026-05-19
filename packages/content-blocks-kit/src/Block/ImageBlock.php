@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\AsContentBlock;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
+use Symfony\Component\Form\Extension\Core\Type\RangeType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Translation\TranslatableMessage;
@@ -37,6 +38,20 @@ final class ImageBlock extends AbstractBlockType
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
                 'constraints' => [new Assert\Length(max: 255)],
+            ])
+            ->add('width', RangeType::class, [
+                'label' => 'cb_kit.block.image.field.width',
+                'translation_domain' => 'content_blocks_kit',
+                'required' => false,
+                'empty_data' => '0',
+                'attr' => ['min' => 0, 'max' => 1200, 'step' => 10],
+            ])
+            ->add('height', RangeType::class, [
+                'label' => 'cb_kit.block.image.field.height',
+                'translation_domain' => 'content_blocks_kit',
+                'required' => false,
+                'empty_data' => '0',
+                'attr' => ['min' => 0, 'max' => 1200, 'step' => 10],
             ]);
     }
 
@@ -45,6 +60,8 @@ final class ImageBlock extends AbstractBlockType
         return [
             'src' => '',
             'alt' => '',
+            'width' => 0,
+            'height' => 0,
         ];
     }
 

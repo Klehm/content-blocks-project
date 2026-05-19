@@ -17,6 +17,8 @@ cb_kit:
             field:
                 file: "Fichier image"
                 alt: "Texte alternatif"
+                width: "Largeur (px)"
+                height: "Hauteur (px)"
         tabs:
             label: "Onglets"
             empty: "Aucun onglet"

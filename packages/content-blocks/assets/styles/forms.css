@@ -290,6 +290,33 @@
         0 0 0 4px var(--cb-form-focus-ring);
 }
 
+/* Range row gets `position: relative` so the live value readout can
+   float at the row's top-right, visually aligned with the label. */
+.cb-shell .cb-form-row--range {
+    position: relative;
+}
+.cb-shell .cb-form-range-wrap {
+    display: block;
+    width: 100%;
+}
+.cb-shell .cb-form-range-wrap__value {
+    position: absolute;
+    top: 0;
+    right: 0;
+    color: var(--cb-form-text);
+    font-size: var(--cb-form-font-size);
+    line-height: var(--cb-form-line-height);
+    font-variant-numeric: tabular-nums;
+}
+.cb-shell .cb-form-range-wrap__bounds {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2px;
+    color: #5b6478;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+}
+
 /* ---- File input ----
  *
  * Native file inputs vary wildly across browsers. We style the wrapper
@@ -603,15 +630,15 @@
     cursor: not-allowed;
 }
 
-/* ---- Live collection (cards grid) ----
+/* ---- Live collection (cards stack) ----
  *
  * Wraps any LiveCollectionType field rendered through the builder. The
- * widget container becomes a CSS grid; each entry+delete is grouped in
- * a `.cb-form-collection__item` card with the delete button as a small
- * absolute icon in the corner. The "Add" row spans full width. */
+ * widget container is a single-column grid (one card per row); each
+ * entry+delete is grouped in a `.cb-form-collection__item` card with
+ * the delete button as a small absolute icon in the corner. */
 .cb-shell .cb-form-collection {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: 1fr;
     gap: 0.5rem;
     margin-bottom: 0.5rem;
 }

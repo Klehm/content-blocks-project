@@ -17,6 +17,8 @@ cb_kit:
             field:
                 file: "Image file"
                 alt: "Alternative text"
+                width: "Width (px)"
+                height: "Height (px)"
         tabs:
             label: "Tabs"
             empty: "No tabs"

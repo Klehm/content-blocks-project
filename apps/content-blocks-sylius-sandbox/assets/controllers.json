@@ -27,7 +27,8 @@
             "cb-section-settings-form": { "enabled": true, "fetch": "eager" },
             "cb-block-styling-form": { "enabled": true, "fetch": "eager" },
             "cb-spacing-link": { "enabled": true, "fetch": "eager" },
-            "cb-viewport-tabs": { "enabled": true, "fetch": "eager" }
+            "cb-viewport-tabs": { "enabled": true, "fetch": "eager" },
+            "cb-range": { "enabled": true, "fetch": "eager" }
         },
         "@klehm/content-blocks-kit": {
             "cb-file-upload": { "enabled": true, "fetch": "eager" }

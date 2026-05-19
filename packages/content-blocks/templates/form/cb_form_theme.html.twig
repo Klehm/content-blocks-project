@@ -151,6 +151,31 @@
 {%- endblock file_widget %}
 
 
+{# Range slider rendered with min/max bounds under the track and a live
+   numeric readout positioned next to the label (the row gets a
+   `cb-form-row--range` modifier in form_row_render so the readout can
+   be absolutely positioned on the row's top-right). The cb-range
+   Stimulus controller keeps the <output> in sync as the user drags. #}
+{% block range_widget -%}
+    {%- set required = false -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-range')|trim}) -%}
+    <div class="cb-form-range-wrap" data-controller="cb-range">
+        <output class="cb-form-range-wrap__value"
+                data-cb-range-target="output"
+                aria-hidden="true">{{ value }}</output>
+        <input type="range"
+               {{- block('widget_attributes') }}
+               {% if value is not empty %}value="{{ value }}"{% endif %}
+               data-cb-range-target="input"
+               data-action="input->cb-range#update" />
+        <div class="cb-form-range-wrap__bounds">
+            <span>{{ attr.min|default('') }}</span>
+            <span>{{ attr.max|default('') }}</span>
+        </div>
+    </div>
+{%- endblock range_widget %}
+
+
 {% block money_widget -%}
     {%- set prepend = not (money_pattern starts with '{{') -%}
     {%- set append = not (money_pattern ends with '}}') -%}
@@ -308,6 +333,13 @@
         {%- set element = 'fieldset' -%}
     {%- endif -%}
     {%- set row_class = row_class|default(row_attr.class|default('cb-form-row')|trim) -%}
+    {# `type` is only set inside the widget block, not at the row level.
+       Detect range fields via block_prefixes (always available on the
+       form view) so the row can establish a positioning context for the
+       absolutely-positioned value readout. #}
+    {%- if block_prefixes is defined and 'range' in block_prefixes -%}
+        {%- set row_class = (row_class ~ ' cb-form-row--range')|trim -%}
+    {%- endif -%}
     <{{ element|default('div') }}{% with {attr: row_attr|merge({class: row_class})} %}{{ block('attributes') }}{% endwith %}>
         {{- form_label(form) -}}
         {{- form_widget(form, widget_attr) -}}

@@ -7,10 +7,15 @@
    responsibility. #}
 {% if data.src|default %}
     {% set alt = data.alt|default('') %}
+    {% set width = data.width|default(0) %}
+    {% set height = data.height|default(0) %}
+    {% set sizing = (width > 0 ? 'width: ' ~ width ~ 'px;' : '') ~ (height > 0 ? ' height: ' ~ height ~ 'px;' : '') %}
     <div class="cb-block-image-preview">
         <img src="{{ data.src }}"
              alt="{{ alt }}"
-             style="max-height: 120px; max-width: 100%;">
+             {% if width > 0 %}width="{{ width }}"{% endif %}
+             {% if height > 0 %}height="{{ height }}"{% endif %}
+             style="{{ sizing }} max-width: 100%;">
         {% if alt %}
             <small style="display: block; margin-top: 0.25rem; color: #5b6478;">{{ alt }}</small>
         {% endif %}
