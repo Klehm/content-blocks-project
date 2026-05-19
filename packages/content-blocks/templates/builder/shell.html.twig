@@ -26,6 +26,16 @@
                 <span class="cb-shell__btn-icon" aria-hidden="true">⇆</span>
                 <span class="cb-shell__btn-label">{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}</span>
             </button>
+            <button type="button"
+                    class="cb-shell__import-export"
+                    data-action="cb-builder#openImportExport"
+                    aria-haspopup="dialog"
+                    aria-expanded="false"
+                    title="{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}"
+                    aria-label="{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}">
+                <span class="cb-shell__btn-icon" aria-hidden="true">⇅</span>
+                <span class="cb-shell__btn-label">{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}</span>
+            </button>
         </div>
 
         <div class="cb-shell__topbar-center">
@@ -100,6 +110,56 @@
                data-cb-builder-target="replacePickerStatus"
                role="status"
                aria-live="polite"></p>
+        </div>
+    </div>
+
+    {# Import / Export overlay panel — anchored to the topbar Import/Export
+       button. Identical positioning rules as the replace picker so both
+       overlays read as siblings. #}
+    <div class="cb-import-export-picker"
+         data-cb-builder-target="importExportPicker"
+         role="dialog"
+         aria-label="{{ 'cb.builder.import_export.title'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-import-export-confirm="{{ 'cb.builder.import_export.confirm'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-import-export-no-file="{{ 'cb.builder.import_export.no_file'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-import-export-importing="{{ 'cb.builder.import_export.importing'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-import-export-error="{{ 'cb.builder.import_export.error'|trans({}, 'content_blocks') }}"
+         hidden>
+        <header class="cb-import-export-picker__header">
+            <h3 class="cb-import-export-picker__title">{{ 'cb.builder.import_export.title'|trans({}, 'content_blocks') }}</h3>
+            <button type="button"
+                    class="cb-import-export-picker__close"
+                    data-action="cb-builder#closeImportExport"
+                    aria-label="{{ 'cb.builder.close'|trans({}, 'content_blocks') }}">×</button>
+        </header>
+        <div class="cb-import-export-picker__body">
+            <section class="cb-import-export-picker__section">
+                <h4 class="cb-import-export-picker__heading">{{ 'cb.builder.import_export.export_heading'|trans({}, 'content_blocks') }}</h4>
+                <p class="cb-import-export-picker__hint">{{ 'cb.builder.import_export.export_hint'|trans({}, 'content_blocks') }}</p>
+                <button type="button"
+                        class="cb-import-export-picker__btn cb-import-export-picker__btn--primary"
+                        data-action="cb-builder#runExport">
+                    {{ 'cb.builder.import_export.export_action'|trans({}, 'content_blocks') }}
+                </button>
+            </section>
+            <div class="cb-import-export-picker__separator" aria-hidden="true"></div>
+            <section class="cb-import-export-picker__section">
+                <h4 class="cb-import-export-picker__heading">{{ 'cb.builder.import_export.import_heading'|trans({}, 'content_blocks') }}</h4>
+                <p class="cb-import-export-picker__hint cb-import-export-picker__hint--warning">{{ 'cb.builder.import_export.import_hint'|trans({}, 'content_blocks') }}</p>
+                <input type="file"
+                       class="cb-import-export-picker__file"
+                       data-cb-builder-target="importFile"
+                       accept="application/json,.json">
+                <button type="button"
+                        class="cb-import-export-picker__btn cb-import-export-picker__btn--primary"
+                        data-action="cb-builder#runImport">
+                    {{ 'cb.builder.import_export.import_action'|trans({}, 'content_blocks') }}
+                </button>
+                <p class="cb-import-export-picker__status"
+                   data-cb-builder-target="importExportStatus"
+                   role="status"
+                   aria-live="polite"></p>
+            </section>
         </div>
     </div>
 

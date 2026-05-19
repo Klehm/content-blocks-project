@@ -24,4 +24,22 @@ final class NullFileStorage implements FileStorageInterface
     {
         // No-op: nothing to remove
     }
+
+    public function isStoredPath(string $value): bool
+    {
+        return false;
+    }
+
+    public function read(string $publicPath): ?string
+    {
+        return null;
+    }
+
+    public function uploadFromString(string $contents, string $extension, string $directory = ''): string
+    {
+        throw new \LogicException(
+            'No FileStorageInterface configured. Register an implementation '
+            . '(e.g. LocalFileStorage) in your services to enable file uploads.'
+        );
+    }
 }

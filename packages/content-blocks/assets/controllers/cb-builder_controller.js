@@ -29,6 +29,9 @@ export default class extends Controller {
         'replacePickerSearch',
         'replacePickerList',
         'replacePickerStatus',
+        'importExportPicker',
+        'importFile',
+        'importExportStatus',
     ];
 
     static values = {
@@ -837,15 +840,145 @@ export default class extends Controller {
     /**
      * Tiny translation lookup. The host's translation strings are not
      * available client-side; we read precomputed values from data-*
-     * attributes on the picker root if present, otherwise fall back to the
-     * English default. This keeps the bundle dependency-free while still
-     * letting hosts override the wording.
+     * attributes on any picker root that carries them, otherwise fall back
+     * to the English default. This keeps the bundle dependency-free while
+     * still letting hosts override the wording.
      */
     _t(key, fallback) {
-        if (!this.hasReplacePickerTarget) return fallback;
         const attr = 'data-i18n-' + key.replace(/[._]/g, '-');
-        const value = this.replacePickerTarget.getAttribute(attr);
-        return value && value.length > 0 ? value : fallback;
+        const sources = [];
+        if (this.hasReplacePickerTarget) sources.push(this.replacePickerTarget);
+        if (this.hasImportExportPickerTarget) sources.push(this.importExportPickerTarget);
+        for (const el of sources) {
+            const value = el.getAttribute(attr);
+            if (value && value.length > 0) return value;
+        }
+        return fallback;
+    }
+
+    // ---------- Import / Export picker ----------
+
+    /**
+     * Action: opens the Import / Export overlay. Pure show/hide — no
+     * server roundtrip needed; the panel only contains a download button
+     * and a file picker.
+     */
+    openImportExport(event) {
+        if (event) event.preventDefault();
+        if (!this.hasImportExportPickerTarget) return;
+        this.importExportPickerTarget.hidden = false;
+        const trigger = this.element.querySelector('.cb-shell__import-export');
+        if (trigger) trigger.setAttribute('aria-expanded', 'true');
+        this._setImportExportStatus('');
+    }
+
+    /** Action: × button on the picker header. */
+    closeImportExport(event) {
+        if (event) event.preventDefault();
+        if (!this.hasImportExportPickerTarget) return;
+        this.importExportPickerTarget.hidden = true;
+        const trigger = this.element.querySelector('.cb-shell__import-export');
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    /**
+     * Action: download the area as a JSON file. Uses a programmatic
+     * <a download> click so the browser handles the save dialog with the
+     * filename the server provides via Content-Disposition.
+     */
+    runExport(event) {
+        if (event) event.preventDefault();
+        const link = document.createElement('a');
+        link.href = `/_content-blocks/area/${this.areaIdValue}/export`;
+        link.rel = 'noopener';
+        // download="" lets the server-provided Content-Disposition filename win.
+        link.download = '';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    }
+
+    /**
+     * Action: upload the picked JSON file and replace the current draft.
+     * Mirrors the replace-with flow: confirms, posts the file as multipart,
+     * then reloads the iframe so the new draft is visible.
+     */
+    async runImport(event) {
+        if (event) event.preventDefault();
+        if (!this.hasImportFileTarget) return;
+        const file = this.importFileTarget.files && this.importFileTarget.files[0];
+        if (!file) {
+            this._setImportExportStatus(
+                this._t('cb.builder.import_export.no_file', 'Pick a JSON file first.'),
+            );
+            return;
+        }
+
+        const confirmText = this._t(
+            'cb.builder.import_export.confirm',
+            'Are you sure you want to overwrite the current content with the imported one?',
+        );
+        if (!window.confirm(confirmText)) return;
+
+        this._setImportExportStatus(
+            this._t('cb.builder.import_export.importing', 'Importing…'),
+        );
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const csrfToken = this.element.dataset.cbCsrfToken || '';
+        this._beginLoading();
+        let payload = null;
+        let ok = false;
+        try {
+            const response = await fetch(
+                `/_content-blocks/area/${this.areaIdValue}/import`,
+                {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-CSRF-Token': csrfToken,
+                        Accept: 'application/json',
+                    },
+                    body: formData,
+                },
+            );
+            payload = await response.json().catch(() => null);
+            ok = response.ok;
+            if (!ok) {
+                const msg = payload && payload.error
+                    ? payload.error
+                    : this._t('cb.builder.import_export.error', 'Import failed.');
+                this._setImportExportStatus(msg);
+                return;
+            }
+        } catch (e) {
+            console.error('[cb-builder] import failed', e);
+            this._setImportExportStatus(
+                this._t('cb.builder.import_export.error', 'Import failed.'),
+            );
+            return;
+        } finally {
+            this._endLoading();
+        }
+
+        // Reset the picker so the next open starts clean, then refresh the
+        // preview to surface the freshly-imported draft.
+        this.importFileTarget.value = '';
+        this.closeImportExport();
+        this._replacePickerLoaded = false;
+        this._applyDraftState(
+            payload && payload.hasUnpublishedChanges !== undefined
+                ? payload.hasUnpublishedChanges
+                : true,
+        );
+        this.reload();
+    }
+
+    _setImportExportStatus(text) {
+        if (!this.hasImportExportStatusTarget) return;
+        this.importExportStatusTarget.textContent = text;
     }
 
     // ---------- Sidebar resize ----------

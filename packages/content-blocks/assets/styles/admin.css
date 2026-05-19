@@ -312,6 +312,154 @@
   display: none;
 }
 
+/* ---- Import / Export topbar button + picker overlay ----
+   Visually consistent with the Replace button & picker so the topbar
+   reads as one cohesive toolbar. The picker sits in the same overlay
+   stack (z-index 30) and is anchored to the topbar's left edge. */
+
+.cb-shell__import-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.375rem 0.75rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  color: #4f8df9;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+.cb-shell__import-export:hover:not([disabled]) {
+  background: rgba(79, 141, 249, 0.08);
+  border-color: rgba(79, 141, 249, 0.25);
+}
+.cb-shell__import-export .cb-shell__btn-icon {
+  display: none;
+  font-size: 1.15rem;
+}
+
+.cb-import-export-picker {
+  position: absolute;
+  top: 56px;
+  left: 12px;
+  width: 360px;
+  max-width: calc(100% - 24px);
+  max-height: calc(100% - 80px);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #e3e5e9;
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 30;
+  overflow: hidden;
+}
+.cb-import-export-picker[hidden] {
+  display: none;
+}
+.cb-import-export-picker__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #eef0f3;
+  background: #fafbfc;
+}
+.cb-import-export-picker__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2330;
+}
+.cb-import-export-picker__close {
+  background: transparent;
+  border: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0.15rem 0.35rem;
+  cursor: pointer;
+  color: #666;
+}
+.cb-import-export-picker__close:hover {
+  color: #1f2330;
+}
+.cb-import-export-picker__body {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+}
+.cb-import-export-picker__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.cb-import-export-picker__heading {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #4f5867;
+}
+.cb-import-export-picker__hint {
+  margin: 0;
+  color: #666;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+.cb-import-export-picker__hint--warning {
+  color: #a66100;
+}
+.cb-import-export-picker__separator {
+  border-top: 1px solid #eef0f3;
+}
+.cb-import-export-picker__file {
+  font-size: 0.85rem;
+}
+.cb-import-export-picker__btn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid #d8dbe0;
+  border-radius: 0.375rem;
+  padding: 0.4rem 0.85rem;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #1f2330;
+}
+.cb-import-export-picker__btn:hover:not([disabled]) {
+  background: rgba(79, 141, 249, 0.08);
+  border-color: rgba(79, 141, 249, 0.4);
+}
+.cb-import-export-picker__btn--primary {
+  background: #4f8df9;
+  border-color: #4f8df9;
+  color: #fff;
+}
+.cb-import-export-picker__btn--primary:hover:not([disabled]) {
+  background: #3a7be5;
+  border-color: #3a7be5;
+  color: #fff;
+}
+.cb-import-export-picker__status {
+  margin: 0;
+  color: #666;
+  font-size: 0.85rem;
+  min-height: 1rem;
+}
+.cb-import-export-picker__status:empty {
+  display: none;
+}
+
 .cb-shell__viewport {
   display: inline-flex;
   background: #f5f6f8;
@@ -425,16 +573,20 @@
     display: none;
   }
   /* Replace collapses to icon-only on mobile for the same reason. */
-  .cb-shell__replace {
+  .cb-shell__replace,
+  .cb-shell__import-export {
     padding: 0.375rem 0.5rem;
   }
-  .cb-shell__replace .cb-shell__btn-icon {
+  .cb-shell__replace .cb-shell__btn-icon,
+  .cb-shell__import-export .cb-shell__btn-icon {
     display: inline-flex;
   }
-  .cb-shell__replace .cb-shell__btn-label {
+  .cb-shell__replace .cb-shell__btn-label,
+  .cb-shell__import-export .cb-shell__btn-label {
     display: none;
   }
-  .cb-replace-picker {
+  .cb-replace-picker,
+  .cb-import-export-picker {
     left: 6px;
     right: 6px;
     width: auto;

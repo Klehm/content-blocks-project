@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use ContentBlocks\Asset\AssetResolverInterface;
+use ContentBlocks\Asset\NullAssetResolver;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Doctrine\ContentAreaTouchListener;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
@@ -14,6 +16,8 @@ use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\DenyAllAccessChecker;
+use ContentBlocks\Service\ContentAreaExporter;
+use ContentBlocks\Service\ContentAreaImporter;
 use ContentBlocks\Service\SectionCloner;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -48,6 +52,15 @@ return static function (ContainerConfigurator $container): void {
     $services->set(NullContentAreaUrlResolver::class);
     $services->alias(ContentAreaUrlResolverInterface::class, NullContentAreaUrlResolver::class);
 
+    // Default asset resolver is a no-op. The kit ships a bridge
+    // (FileStorageAssetResolver) that re-aliases AssetResolverInterface to
+    // the host's FileStorageInterface — exports embed assets, imports
+    // re-upload them. Without the kit (or without a FileStorageInterface
+    // implementation), exports run with zero assets and imports throw if
+    // the payload references any.
+    $services->set(NullAssetResolver::class);
+    $services->alias(AssetResolverInterface::class, NullAssetResolver::class);
+
     $services->load('ContentBlocks\\Twig\\Component\\', '../src/Twig/Component/')
         ->tag('twig.component');
 
@@ -59,6 +72,9 @@ return static function (ContainerConfigurator $container): void {
     $services->set(\ContentBlocks\Service\ContentAreaPublisher::class);
 
     $services->set(SectionCloner::class);
+
+    $services->set(ContentAreaExporter::class);
+    $services->set(ContentAreaImporter::class);
 
     // Replace flow: default provider is usable out of the box; hosts
     // override by aliasing ContentAreaProviderInterface to their own
