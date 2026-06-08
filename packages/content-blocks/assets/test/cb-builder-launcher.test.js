@@ -78,7 +78,7 @@ describe('cb-builder-launcher: dialog re-parenting', () => {
     });
 });
 
-describe('cb-builder-launcher: open / close', () => {
+describe('cb-builder-launcher: open', () => {
     it('sets iframe src on first open from the shell data attribute', () => {
         const { controller, dialog } = setup();
         const iframe = dialog.querySelector('iframe');
@@ -101,16 +101,5 @@ describe('cb-builder-launcher: open / close', () => {
         controller.open();
 
         expect(iframe.getAttribute('src')).toBe('http://example.test/already-loaded');
-    });
-
-    it('closes the dialog directly — autosave removes the "unsaved changes" guard', () => {
-        const { controller, dialog } = setup();
-        dialog.setAttribute('open', '');
-        const confirmSpy = vi.spyOn(window, 'confirm');
-
-        controller.close({ preventDefault: () => {} });
-
-        expect(dialog.close).toHaveBeenCalled();
-        expect(confirmSpy).not.toHaveBeenCalled();
     });
 });

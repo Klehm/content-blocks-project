@@ -58,10 +58,4 @@ export default class extends Controller {
 
         this._dialog.showModal();
     }
-
-    close(event) {
-        if (event) event.preventDefault();
-        if (!this._dialog || !this._dialog.open) return;
-        this._dialog.close();
-    }
 }

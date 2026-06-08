@@ -570,6 +570,19 @@ export default class extends Controller {
         this._resetSidebarToEmptyState();
     }
 
+    /**
+     * Action: close the builder dialog. Handled here rather than on the
+     * launcher controller because the launcher re-parents the <dialog> to
+     * document.body on connect — that moves this close button out of the
+     * launcher's element, so its Stimulus action no longer resolves. The
+     * cb-builder controller lives inside the shell (inside the dialog), so
+     * it stays in scope and can close the enclosing <dialog> directly.
+     */
+    close(event) {
+        if (event) event.preventDefault();
+        this.element.closest('dialog')?.close();
+    }
+
     /** Action: toggle the sidebar between expanded and collapsed widths. */
     toggleSidebar(event) {
         if (event) event.preventDefault();

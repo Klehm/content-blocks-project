@@ -313,6 +313,30 @@ describe('cb-builder: sidebar toggle', () => {
     });
 });
 
+describe('cb-builder: close', () => {
+    it('close() closes the enclosing <dialog>', () => {
+        // The launcher re-parents the dialog out of its own element, so the
+        // close button's action is handled here instead. Wrap the shell in a
+        // dialog the way the real markup does.
+        const { controller, element } = setupController();
+        const dialog = document.createElement('dialog');
+        dialog.setAttribute('open', '');
+        dialog.close = vi.fn(() => dialog.removeAttribute('open'));
+        element.parentElement.insertBefore(dialog, element);
+        dialog.appendChild(element);
+
+        controller.close({ preventDefault: () => {} });
+
+        expect(dialog.close).toHaveBeenCalled();
+        expect(dialog.hasAttribute('open')).toBe(false);
+    });
+
+    it('close() is a no-op (no throw) when not inside a dialog', () => {
+        const { controller } = setupController();
+        expect(() => controller.close({ preventDefault: () => {} })).not.toThrow();
+    });
+});
+
 describe('cb-builder: sidebar resize', () => {
     let controller, sidebar, iframe, store;
 
