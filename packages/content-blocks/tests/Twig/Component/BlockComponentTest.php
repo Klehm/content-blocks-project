@@ -11,6 +11,7 @@ use ContentBlocks\Form\Type\BlockFormType;
 use ContentBlocks\Security\AllowAllAccessChecker;
 use ContentBlocks\Twig\Component\BlockComponent;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
@@ -237,5 +238,54 @@ final class BlockComponentTest extends TestCase
         $method = (new \ReflectionClass($component))->getMethod('instantiateForm');
 
         return $method->invoke($component);
+    }
+
+    /**
+     * @param list<string>      $data
+     * @param list<string>|null $expected
+     */
+    #[DataProvider('reorderCollectionProvider')]
+    public function testReorderCollectionMovesItemPositionally(array $data, int $from, int $to, ?array $expected): void
+    {
+        self::assertSame($expected, $this->invokeReorderCollection($data, $from, $to));
+    }
+
+    /**
+     * @return iterable<string, array{0: list<string>, 1: int, 2: int, 3: list<string>|null}>
+     */
+    public static function reorderCollectionProvider(): iterable
+    {
+        yield 'move down one slot' => [['a', 'b', 'c'], 0, 1, ['b', 'a', 'c']];
+        yield 'move up one slot' => [['a', 'b', 'c'], 2, 1, ['a', 'c', 'b']];
+        yield 'drag last to first' => [['a', 'b', 'c', 'd'], 3, 0, ['d', 'a', 'b', 'c']];
+        yield 'drag first to last' => [['a', 'b', 'c'], 0, 2, ['b', 'c', 'a']];
+        yield 'same index is a no-op' => [['a', 'b'], 1, 1, null];
+        yield 'from out of range' => [['a', 'b'], 5, 0, null];
+        yield 'to out of range' => [['a', 'b'], 0, 5, null];
+        yield 'negative index' => [['a', 'b'], -1, 0, null];
+    }
+
+    public function testReorderCollectionNormalizesSparseKeysFromPriorDeletion(): void
+    {
+        // A LiveCollection delete leaves a hole in the keys (here index 1 is
+        // gone). SortableJS still reports contiguous DOM positions, so the
+        // reorder must operate on the positional view and return a 0..n list.
+        $sparse = [0 => 'a', 2 => 'c', 3 => 'd'];
+
+        // Positionally: [a, c, d]; move position 0 (a) to position 2.
+        self::assertSame(['c', 'd', 'a'], $this->invokeReorderCollection($sparse, 0, 2));
+    }
+
+    /**
+     * @param array<int|string, mixed> $data
+     *
+     * @return list<mixed>|null
+     */
+    private function invokeReorderCollection(array $data, int $from, int $to): ?array
+    {
+        $method = (new \ReflectionClass(BlockComponent::class))->getMethod('reorderCollection');
+        $method->setAccessible(true);
+
+        return $method->invoke(null, $data, $from, $to);
     }
 }

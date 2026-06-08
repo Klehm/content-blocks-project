@@ -57,4 +57,7 @@ return [
         'path' => '../../packages/content-blocks/assets/styles/admin.css',
         'type' => 'css',
     ],
+    'sortablejs' => [
+        'version' => '1.15.7',
+    ],
 ];

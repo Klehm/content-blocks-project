@@ -57,13 +57,21 @@
                 "name": "cb-tabs",
                 "fetch": "eager",
                 "enabled": true
+            },
+            "cb-collection-sort": {
+                "main": "controllers/cb-collection-sort_controller.js",
+                "name": "cb-collection-sort",
+                "fetch": "eager",
+                "enabled": true
             }
         },
         "importmap": {
-            "@hotwired/stimulus": "^3.0.0"
+            "@hotwired/stimulus": "^3.0.0",
+            "sortablejs": "^1.15.0"
         }
     },
     "peerDependencies": {
-        "@hotwired/stimulus": "^3.0.0"
+        "@hotwired/stimulus": "^3.0.0",
+        "sortablejs": "^1.15.0"
     }
 }

@@ -55,6 +55,10 @@ cb:
             general: "General"
             style: "Styling"
             has_errors: "This group contains errors"
+    collection:
+        reorder: "Drag to reorder"
+        move_up: "Move up"
+        move_down: "Move down"
     builder:
         open: "Edit content"
         close: "Close"

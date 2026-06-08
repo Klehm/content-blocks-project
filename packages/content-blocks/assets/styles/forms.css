@@ -689,6 +689,72 @@
     border-style: dashed;
 }
 
+/* ---- Reorder controls (cb-collection-sort) ----
+ *
+ * A small toolbar at the top-left of each card: a drag handle SortableJS
+ * grabs, plus up/down buttons that double as the keyboard-accessible
+ * fallback. The delete button keeps its absolute top-right slot, so the
+ * toolbar gets right padding to avoid sitting under it. */
+.cb-shell .cb-form-collection__controls {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    margin-bottom: 0.375rem;
+    padding-right: 1.75rem;
+    color: var(--cb-form-muted, #8a91a0);
+}
+.cb-shell .cb-form-collection__drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 14px;
+    line-height: 1;
+    cursor: grab;
+    touch-action: none;
+}
+.cb-shell .cb-form-collection__drag-handle:active {
+    cursor: grabbing;
+}
+.cb-shell .cb-form-collection__move {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--cb-form-radius-sm);
+    color: inherit;
+    font-size: 10px;
+    line-height: 1;
+    cursor: pointer;
+}
+.cb-shell .cb-form-collection__move:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: var(--cb-form-border);
+    color: var(--cb-form-accent);
+}
+.cb-shell .cb-form-collection__move:focus-visible {
+    outline: 2px solid var(--cb-form-border-focus);
+    outline-offset: 1px;
+}
+/* SortableJS drag affordances. */
+.cb-shell .cb-form-collection__item.sortable-ghost {
+    opacity: 0.5;
+    background: var(--cb-form-bg-soft, #eef1f6);
+    border-style: dashed;
+}
+.cb-shell .cb-form-collection__item.sortable-chosen {
+    border-color: var(--cb-form-border-focus);
+}
+
 /* ---- Image / file upload widget (kit) ----
  *
  * Styling shared with the ContentBlocks-Kit image_theme: a thumbnail

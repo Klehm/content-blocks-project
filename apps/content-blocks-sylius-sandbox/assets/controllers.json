@@ -29,7 +29,8 @@
             "cb-spacing-link": { "enabled": true, "fetch": "eager" },
             "cb-viewport-tabs": { "enabled": true, "fetch": "eager" },
             "cb-range": { "enabled": true, "fetch": "eager" },
-            "cb-tabs": { "enabled": true, "fetch": "eager" }
+            "cb-tabs": { "enabled": true, "fetch": "eager" },
+            "cb-collection-sort": { "enabled": true, "fetch": "eager" }
         },
         "@klehm/content-blocks-kit": {
             "cb-file-upload": { "enabled": true, "fetch": "eager" },

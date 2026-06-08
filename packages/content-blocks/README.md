@@ -62,7 +62,8 @@ Add the following to `assets/controllers.json`:
             "cb-autosave":              { "enabled": true, "fetch": "eager" },
             "cb-section-settings-form": { "enabled": true, "fetch": "eager" },
             "cb-spacing-link":          { "enabled": true, "fetch": "eager" },
-            "cb-viewport-tabs":         { "enabled": true, "fetch": "eager" }
+            "cb-viewport-tabs":         { "enabled": true, "fetch": "eager" },
+            "cb-collection-sort":       { "enabled": true, "fetch": "eager" }
         },
         "@klehm/content-blocks-kit": {
             "cb-file-upload": { "enabled": true, "fetch": "eager" }
@@ -70,6 +71,14 @@ Add the following to `assets/controllers.json`:
     },
     "entrypoints": []
 }
+```
+
+The `cb-collection-sort` controller (drag-and-drop reordering of collection
+fields) depends on [SortableJS](https://github.com/SortableJS/Sortable). Pin it
+in your importmap once:
+
+```bash
+php bin/console importmap:require sortablejs
 ```
 
 Then re-run `php bin/console asset-map:compile` (or your normal asset build).
