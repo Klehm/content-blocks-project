@@ -30,6 +30,15 @@
 
 {# ---- Widgets ---- #}
 
+{# SeparatorType: a non-mapped pseudo-field rendering a horizontal rule so a
+   block can visually group its fields. The parent HiddenType makes the row
+   resolve to `hidden_row` (widget only — no label / help / errors wrapper),
+   and this widget replaces the hidden <input> with an <hr>. #}
+{% block cb_separator_widget -%}
+    <hr class="cb-form-separator" />
+{%- endblock cb_separator_widget %}
+
+
 {% block form_widget_simple -%}
     {%- set widget_class = 'cb-form-control' -%}
     {%- if type|default('') == 'color' -%}

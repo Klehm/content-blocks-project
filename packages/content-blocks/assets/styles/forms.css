@@ -731,6 +731,18 @@
 }
 
 
+/* ---- Field separator (SeparatorType) ----
+ * Renders a thin rule between groups of fields in the sidebar. Slightly more
+ * vertical breathing room than the inter-row gap so the break reads as a
+ * deliberate grouping, not just spacing. */
+.cb-shell .cb-form-separator {
+    height: 0;
+    margin: calc(var(--cb-form-gap) * 1.5) 0;
+    border: 0;
+    border-top: 1px solid var(--cb-form-border);
+}
+
+
 /* ---- Visually-hidden helper ---- */
 .cb-shell .cb-form-sr-only {
     position: absolute !important;
