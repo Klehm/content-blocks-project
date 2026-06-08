@@ -43,6 +43,18 @@ export default class extends Controller {
         // Snapshot the initial form state so the first save is only
         // issued when something has actually changed (see _saveNow).
         this._lastSerialized = this._serializeForm();
+
+        // Structural edits — LiveCollection add/delete and any other live
+        // re-render — don't emit field input/change events, so the field
+        // listeners above miss them (an item removed via a live action would
+        // vanish from the sidebar but never persist to the draft, leaving a
+        // stale preview). Observe the form's node tree and reconcile: when a
+        // re-render changes the serialized form state, save it. _saveNow()'s
+        // serialized comparison makes this idempotent (a save's own re-render
+        // yields an identical snapshot → no loop).
+        this._observer = new MutationObserver(() => this._onMutation());
+        const form = this.element.querySelector('form') ?? this.element;
+        this._observer.observe(form, { childList: true, subtree: true });
     }
 
     disconnect() {
@@ -51,6 +63,8 @@ export default class extends Controller {
         this.element.removeEventListener('focusout', this._onFocusOut);
         this.element.removeEventListener('keydown', this._onKeydown);
         clearTimeout(this._timer);
+        clearTimeout(this._mutationTimer);
+        this._observer?.disconnect();
     }
 
     _onInput(event) {
@@ -99,6 +113,19 @@ export default class extends Controller {
     _scheduleSave() {
         clearTimeout(this._timer);
         this._timer = setTimeout(() => this._saveNow(), this.debounceValue);
+    }
+
+    /**
+     * A live re-render mutated the form's node tree (collection add/delete,
+     * or any structural change). Debounce and reconcile via _saveNow(), which
+     * only saves when the serialized state actually changed — so the morph
+     * caused by the save itself is a no-op and there's no loop. The `_saving`
+     * guard additionally skips the synchronous DOM churn we cause ourselves.
+     */
+    _onMutation() {
+        if (this._saving) return;
+        clearTimeout(this._mutationTimer);
+        this._mutationTimer = setTimeout(() => this._saveNow(), this.debounceValue);
     }
 
     _saveNow() {

@@ -5,6 +5,12 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Structural edits in a block form now autosave.** Adding or removing an item in a block that renders a `LiveCollectionType` (e.g. the kit's Tabs block) goes through a Live action that re-renders the sidebar **without** emitting any field `input`/`change` event — so `cb-autosave`'s field listeners missed it and the change was never persisted to the draft, leaving the preview stale (a removed item silently reappeared on the next edit). `cb-autosave` now also watches the form's node tree with a `MutationObserver`: any re-render that changes the form's serialized state triggers a save. The save stays idempotent — `_saveNow()` only POSTs when the serialized state actually differs from the last snapshot, so the morph caused by the save itself is a no-op and there is no loop.
+
 ## [0.1.0-alpha.11] - 2026-05-19
 
 ### Added

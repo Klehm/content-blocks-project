@@ -33,6 +33,38 @@ function setup({ debounce = 250 } = {}) {
     return { controller, element, input, textarea, saveBtn, clickSpy };
 }
 
+/**
+ * Variant with a LiveCollection-style list inside the form, used to exercise
+ * the MutationObserver path. Real timers are used by these tests because the
+ * observer delivers on a microtask, which fake timers don't drive.
+ */
+function setupCollection({ debounce = 20 } = {}) {
+    document.body.innerHTML = `
+        <div data-controller="cb-autosave">
+            <form>
+                <input type="text" name="title" id="title" value="t">
+                <div data-collection>
+                    <div class="cb-item"><input name="items[0][label]" value="a"></div>
+                    <div class="cb-item"><input name="items[1][label]" value="b"></div>
+                </div>
+                <button type="button" data-cb-sidebar-save id="save">Save</button>
+            </form>
+        </div>
+    `;
+    const element = document.querySelector('[data-controller="cb-autosave"]');
+    const controller = new Controller();
+    Object.defineProperty(controller, 'element', { value: element });
+    Object.defineProperty(controller, 'debounceValue', { value: debounce });
+    controller.connect();
+
+    const clickSpy = vi.fn();
+    element.querySelector('#save').addEventListener('click', clickSpy);
+
+    return { controller, element, clickSpy, debounce };
+}
+
+const flush = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 describe('cb-autosave', () => {
     beforeEach(() => {
         vi.useFakeTimers();
@@ -175,6 +207,64 @@ describe('cb-autosave', () => {
         textarea.dispatchEvent(event);
 
         expect(event.defaultPrevented).toBe(false);
+        expect(clickSpy).not.toHaveBeenCalled();
+    });
+
+    it('saves once when a structural re-render removes a collection item', async () => {
+        vi.useRealTimers();
+        const { controller, element, clickSpy, debounce } = setupCollection();
+
+        // Simulate the LiveCollection "×" re-render: the item node disappears
+        // from the form without any field input/change event.
+        element.querySelector('[data-collection] .cb-item:last-child').remove();
+
+        await flush(debounce + 40);
+        // The observer reconciled the structural change into exactly one save.
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+
+        controller.disconnect();
+    });
+
+    it('does not save when a structural re-render leaves the serialized state unchanged', async () => {
+        vi.useRealTimers();
+        const { controller, element, clickSpy, debounce } = setupCollection();
+
+        // A live morph can replace nodes without changing any field/value
+        // (e.g. re-rendering the same list). Churn the node tree but keep the
+        // serialized form identical — _saveNow must treat it as a no-op.
+        const collection = element.querySelector('[data-collection]');
+        collection.innerHTML = collection.innerHTML;
+
+        await flush(debounce + 40);
+        expect(clickSpy).not.toHaveBeenCalled();
+
+        controller.disconnect();
+    });
+
+    it('typing a value (no node mutation) still saves once, with no duplicate from the observer', async () => {
+        vi.useRealTimers();
+        const { controller, element, clickSpy, debounce } = setupCollection();
+
+        // Editing an input changes its value (property), not the node tree, so
+        // the childList/subtree observer stays silent — the save comes solely
+        // from the input-debounce path, exactly once.
+        const input = element.querySelector('#title');
+        input.value = 'typed';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+
+        await flush(debounce + 40);
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+
+        controller.disconnect();
+    });
+
+    it('disconnect stops the mutation observer', async () => {
+        vi.useRealTimers();
+        const { controller, element, clickSpy, debounce } = setupCollection();
+        controller.disconnect();
+
+        element.querySelector('[data-collection] .cb-item:last-child').remove();
+        await flush(debounce + 40);
         expect(clickSpy).not.toHaveBeenCalled();
     });
 
