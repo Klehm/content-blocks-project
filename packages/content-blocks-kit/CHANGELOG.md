@@ -5,6 +5,12 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.12] - 2026-06-08
+
+### Changed
+
+- **Kit blocks opt into preview hot reload.** `TextBlock`, `TitleBlock`, `ImageBlock`, `RichTextBlock` and `TabsBlock` now return `true` from `supportsPreviewHotReload()` — their views are static or CSS-only, so the builder refreshes them in place after an edit instead of reloading the whole preview iframe. The upload widget and TinyMCE run in the edit form, never in the rendered view, so `image` / `rich_text` qualify too. Requires `klehm/content-blocks >= 0.1.0-alpha.12`.
+
 ## [0.1.0-alpha.11] - 2026-05-19
 
 ### Added

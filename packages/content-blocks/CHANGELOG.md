@@ -5,11 +5,24 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0-alpha.12] - 2026-06-08
+
+### Added
+
+- **Preview hot reload.** After an inline block edit the builder now refreshes just that block's markup in place instead of reloading the whole preview iframe — no flash, and the host page's scripts aren't re-run. A new `BlockTypeInterface::supportsPreviewHotReload()` (default `false` in `AbstractBlockType`) lets a block type opt in when its rendered *view* is self-contained (static or CSS-only); JS-dependent views keep the full reload. The decision is enforced server-side via `GET /_content-blocks/block/{id}/render`, which returns the single block's fragment (`{hotReload:true, html}`) or `{hotReload:false}`. Block deletes also drop the element in place (no reload — deleted blocks render hidden anyway), and the overlay dispatches a `cb:block:rendered` DOM event on each swapped block so JS-enhanced views can re-initialise idempotently.
+- **Drag & drop reordering of LiveCollection items.** Collection fields (tabs, cards, FAQ…) edited in the sidebar can be reordered by dragging a handle or via keyboard up/down buttons. Works for any block with a `LiveCollectionType`, no host wiring. **Action required for upgrading hosts:** add `"@klehm/content-blocks/cb-collection-sort"` to `assets/controllers.json`.
+- **Block fields grouped into sidebar tabs.** Fields are bucketed into tabs by a `data-cb-group` attribute, with a default "General" tab and a trailing "Style" tab; hidden tabs stay in the DOM so autosave and validation keep working across them. **Action required for upgrading hosts:** add `"@klehm/content-blocks/cb-tabs"` to `assets/controllers.json`.
+- **`SeparatorType` form field.** A non-mapped pseudo-field rendering an `<hr>` in the sidebar so a block can visually group its fields, picked up by the generic form theme (`cb_separator_widget`) — no per-block `getFormTheme()` wiring needed.
 
 ### Fixed
 
 - **Structural edits in a block form now autosave.** Adding or removing an item in a block that renders a `LiveCollectionType` (e.g. the kit's Tabs block) goes through a Live action that re-renders the sidebar **without** emitting any field `input`/`change` event — so `cb-autosave`'s field listeners missed it and the change was never persisted to the draft, leaving the preview stale (a removed item silently reappeared on the next edit). `cb-autosave` now also watches the form's node tree with a `MutationObserver`: any re-render that changes the form's serialized state triggers a save. The save stays idempotent — `_saveNow()` only POSTs when the serialized state actually differs from the last snapshot, so the morph caused by the save itself is a no-op and there is no loop.
+- **Autosave no longer loops the upload on file fields.** Before saving, `cb-autosave` synthesises a `change` on the focused field to flush its value into the Live model binding. On an `<input type="file">` that re-triggered `cb-file-upload`, which re-uploaded the same file under a fresh random name, wrote a new hidden `src`, and fired another save — an infinite loop ("Uploading…" that never stopped after picking an image). File inputs are now skipped: their value is already committed via the hidden input the upload controller writes.
+- **Builder close (×) button.** The launcher re-parents the `<dialog>` to `document.body` on connect, which moved the close button out of the launcher controller's scope so its action never bound (only the native Escape key closed the builder). The close action now lives on `cb-builder`, which stays inside the dialog and closes it directly.
+
+### Changed
+
+- **Builder preview spacing aligned with the production render.** Dropped builder-only column padding and section `padding-top` (the preview overlay markers don't exist in prod, so they skewed fidelity) and bumped the inline "+ Block" pill margin to compensate.
 
 ## [0.1.0-alpha.11] - 2026-05-19
 
