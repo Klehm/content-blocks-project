@@ -275,6 +275,97 @@ describe('cb-builder: sidebar mount + empty state', () => {
     });
 });
 
+describe('cb-builder: block hot reload', () => {
+    let controller, sidebar, iframe;
+
+    beforeEach(() => {
+        ({ controller, sidebar, iframe } = setupController());
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    it('cb:block:saved on a focused block schedules a hot refresh, not a full reload', () => {
+        vi.useFakeTimers();
+        sidebar.setAttribute('data-cb-sidebar-block-id', '7');
+        const refreshSpy = vi.spyOn(controller, '_refreshBlock').mockImplementation(() => {});
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        controller._onBlockSaved({ detail: {} });
+
+        expect(refreshSpy).not.toHaveBeenCalled(); // debounced
+        vi.advanceTimersByTime(Controller.SAVE_RELOAD_DEBOUNCE_MS + 10);
+        expect(refreshSpy).toHaveBeenCalledWith(7);
+        expect(reloadSpy).not.toHaveBeenCalled();
+        vi.useRealTimers();
+    });
+
+    it('cb:block:saved with no focused block falls back to a full reload', () => {
+        vi.useFakeTimers();
+        const refreshSpy = vi.spyOn(controller, '_refreshBlock').mockImplementation(() => {});
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        controller._onBlockSaved({ detail: {} });
+
+        vi.advanceTimersByTime(Controller.SAVE_RELOAD_DEBOUNCE_MS + 10);
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+        expect(refreshSpy).not.toHaveBeenCalled();
+        vi.useRealTimers();
+    });
+
+    it('_refreshBlock posts cb:block:replace when the server allows hot reload', async () => {
+        const html = '<div class="cb-block" data-cb-block-id="7">Fresh</div>';
+        global.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ hotReload: true, type: 'text', html }),
+        }));
+        const postSpy = vi.spyOn(iframe.contentWindow, 'postMessage').mockImplementation(() => {});
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        await controller._refreshBlock(7);
+
+        expect(global.fetch).toHaveBeenCalledWith(
+            '/_content-blocks/block/7/render',
+            expect.objectContaining({ headers: { Accept: 'application/json' } }),
+        );
+        expect(postSpy).toHaveBeenCalledWith(
+            { type: 'cb:block:replace', blockId: 7, html },
+            window.location.origin,
+        );
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_refreshBlock falls back to a full reload when the server opts out', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ hotReload: false }),
+        }));
+        const postSpy = vi.spyOn(iframe.contentWindow, 'postMessage').mockImplementation(() => {});
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        await controller._refreshBlock(7);
+
+        expect(postSpy).not.toHaveBeenCalled();
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('_refreshBlock falls back to a full reload on a network error', async () => {
+        global.fetch = vi.fn(() => Promise.reject(new Error('offline')));
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        await controller._refreshBlock(7);
+
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('_refreshBlock falls back to a full reload on a non-OK response', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({ ok: false, status: 404 }));
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        await controller._refreshBlock(7);
+
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+    });
+});
+
 describe('cb-builder: sidebar toggle', () => {
     let controller, sidebarToggle, store;
 
@@ -490,10 +581,37 @@ describe('cb-builder: structural AJAX handlers', () => {
         expect(mountSpy).not.toHaveBeenCalled();
     });
 
-    it('_deleteBlock issues DELETE and reloads', async () => {
+    it('_deleteBlock issues DELETE and removes the block in place (no full reload)', async () => {
+        reqSpy.mockResolvedValueOnce({ deleted: true });
+        const removeSpy = vi.spyOn(controller, '_removeBlockFromPreview').mockImplementation(() => {});
+
         await controller._deleteBlock(42);
+
         expect(reqSpy).toHaveBeenCalledWith('DELETE', '/_content-blocks/block/42');
-        expect(reloadSpy).toHaveBeenCalled();
+        expect(removeSpy).toHaveBeenCalledWith(42);
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_deleteBlock leaves the preview untouched when the DELETE fails', async () => {
+        reqSpy.mockResolvedValueOnce(null);
+        const removeSpy = vi.spyOn(controller, '_removeBlockFromPreview').mockImplementation(() => {});
+
+        await controller._deleteBlock(42);
+
+        expect(removeSpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_removeBlockFromPreview posts cb:block:remove to the iframe', () => {
+        const postSpy = vi.spyOn(controller.iframeTarget.contentWindow, 'postMessage').mockImplementation(() => {});
+
+        controller._removeBlockFromPreview(42);
+
+        expect(postSpy).toHaveBeenCalledWith(
+            { type: 'cb:block:remove', blockId: 42 },
+            window.location.origin,
+        );
+        expect(reloadSpy).not.toHaveBeenCalled();
     });
 
     it('_moveBlock posts to block/{id}/move with target column + position', async () => {

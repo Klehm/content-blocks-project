@@ -51,4 +51,11 @@ final class RichTextBlock extends AbstractBlockType
     {
         return '@ContentBlocksKit/block/rich_text/view.html.twig';
     }
+
+    // The view renders stored HTML statically; TinyMCE only runs in the
+    // edit form — safe to hot-reload in place.
+    public function supportsPreviewHotReload(): bool
+    {
+        return true;
+    }
 }

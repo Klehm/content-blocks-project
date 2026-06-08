@@ -235,6 +235,75 @@
         toolbar.classList.remove('is-visible');
     }
 
+    // ---------- Single-block hot reload ----------
+
+    /**
+     * Replaces one block's markup in place with server-rendered HTML, instead
+     * of reloading the whole iframe. Used by the parent after an inline edit
+     * of a block whose type opts into hot reload (supportsPreviewHotReload).
+     *
+     * Preserves the editing experience across the swap: any hover/focus
+     * pinned on the old node is dropped (it's about to be detached) and
+     * re-pinned on the fresh node so the blue outline + toolbar survive.
+     *
+     * A `cb:block:rendered` event is dispatched on the new element so a
+     * JS-enhanced view can (re)initialise — this is the only place page
+     * scripts don't re-run on their own, since we inject HTML rather than
+     * reload the document.
+     */
+    function replaceBlock(blockId, html) {
+        const oldEl = document.querySelector(`[data-cb-block-id="${blockId}"]`);
+        if (!oldEl) {
+            // The block vanished (e.g. deleted in another path) — let the
+            // parent know so it can clear the stale sidebar.
+            postToParent('cb:focus:not-found');
+            return;
+        }
+
+        const tpl = document.createElement('template');
+        tpl.innerHTML = html.trim();
+        const newEl = tpl.content.firstElementChild;
+        if (!newEl) return;
+
+        const wasFocused = focusedEl === oldEl;
+        // Drop references to the node we're about to detach so the overlay
+        // never holds a pointer to an orphaned element.
+        if (hoveredEl === oldEl) { hoveredEl = null; hoveredKind = null; }
+        if (focusedEl === oldEl) { focusedEl = null; focusedKind = null; }
+
+        oldEl.replaceWith(newEl);
+
+        newEl.dispatchEvent(new CustomEvent('cb:block:rendered', {
+            bubbles: true,
+            detail: { blockId },
+        }));
+
+        if (wasFocused) {
+            focusElement(newEl, 'block');
+        }
+    }
+
+    /**
+     * Removes one block from the preview in place after a delete, instead of
+     * reloading the whole iframe. The block is soft-deleted on the server
+     * (Discard can still bring it back via a later full reload); visually it
+     * just disappears — same end state as a reload, where deleted blocks
+     * render hidden (`[data-cb-deleted="1"] { display: none }`).
+     */
+    function removeBlock(blockId) {
+        const el = document.querySelector(`[data-cb-block-id="${blockId}"]`);
+        if (!el) return;
+        // Drop overlay references to the node we're removing and retract the
+        // toolbar if it was pinned to this block.
+        if (hoveredEl === el) { hoveredEl = null; hoveredKind = null; }
+        if (focusedEl === el) {
+            focusedEl = null;
+            focusedKind = null;
+            toolbar.classList.remove('is-visible');
+        }
+        el.remove();
+    }
+
     // ---------- Drag & drop ----------
 
     // Single reusable drop indicator (a thin blue bar). We position it at the
@@ -573,6 +642,21 @@
         if (event.origin !== PARENT_ORIGIN) return;
         const data = event.data;
         if (!data || typeof data.type !== 'string') return;
+
+        // Hot reload: swap a single block's markup in place.
+        if (data.type === 'cb:block:replace'
+            && Number.isFinite(data.blockId)
+            && typeof data.html === 'string') {
+            replaceBlock(data.blockId, data.html);
+            return;
+        }
+
+        // Hot delete: drop a single block from the preview in place.
+        if (data.type === 'cb:block:remove' && Number.isFinite(data.blockId)) {
+            removeBlock(data.blockId);
+            return;
+        }
+
         if (!data.type.startsWith('cb:focus:')) return;
 
         if (data.type === 'cb:focus:block' && Number.isFinite(data.blockId)) {

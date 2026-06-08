@@ -306,6 +306,51 @@ final class BlockRendererTest extends TestCase
         $this->assertStringContainsString('<p class="cb-custom">Custom: Hello</p>', $html);
     }
 
+    /**
+     * renderBlock() produces a standalone fragment: just the block's own
+     * wrapper (with its data-cb-block-id marker and rendered view), without
+     * the surrounding section/column chrome or the preview overlay script.
+     * This is what the builder hot-swaps into the iframe.
+     */
+    public function testRenderBlockProducesStandaloneFragment(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $column = $this->makeColumn($section, position: 0, previewPosition: 0);
+        $block = $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Old'], draftData: ['title' => 'Fresh'], position: 0, previewPosition: 0, id: 4242);
+
+        $renderer = $this->makeRenderer(mode: RenderMode::PREVIEW);
+        $html = $renderer->renderBlock($block, RenderMode::PREVIEW);
+
+        // Draft data wins in preview, and the block keeps its marker so the
+        // overlay can pin focus on the swapped element.
+        $this->assertStringContainsString('Fresh', $html);
+        $this->assertStringNotContainsString('Old', $html);
+        $this->assertStringContainsString('data-cb-block-id="4242"', $html);
+        $this->assertStringContainsString('data-cb-block-type="text"', $html);
+
+        // Fragment only — no section/column wrappers or overlay bootstrap.
+        $this->assertStringNotContainsString('data-cb-section-id', $html);
+        $this->assertStringNotContainsString('content_blocks_asset_preview_overlay', $html);
+    }
+
+    /**
+     * In public mode renderBlock() omits the preview-only markers.
+     */
+    public function testRenderBlockPublicModeOmitsPreviewMarkers(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $column = $this->makeColumn($section, position: 0, previewPosition: 0);
+        $block = $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Pub'], position: 0, previewPosition: 0, id: 7);
+
+        $renderer = $this->makeRenderer(mode: RenderMode::PUBLIC);
+        $html = $renderer->renderBlock($block, RenderMode::PUBLIC);
+
+        $this->assertStringContainsString('Pub', $html);
+        $this->assertStringNotContainsString('data-cb-block-id', $html);
+    }
+
     // -------- Test factories below --------
 
     private function makeRenderer(RenderMode $mode = RenderMode::PUBLIC): BlockRenderer

@@ -315,11 +315,35 @@ export default class extends Controller {
 
     async _deleteBlock(blockId) {
         if (!blockId) return;
-        await this._jsonRequest('DELETE', `/_content-blocks/block/${blockId}`);
+        const result = await this._jsonRequest('DELETE', `/_content-blocks/block/${blockId}`);
+        // Delete failed (CSRF/access/network) — leave the preview untouched.
+        if (result === null) return;
         if (this._isSidebarFocusedOnBlock(blockId)) {
             this._resetSidebarToEmptyState();
         }
-        this._afterStructuralOp();
+        // A delete is a pure removal: nothing new to render, so drop the block
+        // from the preview in place instead of reloading the whole iframe.
+        this._applyDraftState(true);
+        this._removeBlockFromPreview(blockId);
+    }
+
+    /**
+     * Asks the preview overlay to remove a block element in place. Falls back
+     * to a full reload if the iframe can't be reached.
+     */
+    _removeBlockFromPreview(blockId) {
+        if (!this.hasIframeTarget) {
+            this.reload();
+            return;
+        }
+        try {
+            this.iframeTarget.contentWindow?.postMessage(
+                { type: 'cb:block:remove', blockId },
+                window.location.origin,
+            );
+        } catch (_) {
+            this.reload();
+        }
     }
 
     async _moveBlock(blockId, toColumnId, position) {
@@ -680,19 +704,34 @@ export default class extends Controller {
 
     /**
      * Autosave callback: a block was just persisted by the form. Bump the
-     * dirty indicators, flash "Saved", and schedule an iframe reload (the
-     * preview should reflect the change, but coalesce back-to-back saves
-     * so the iframe doesn't reload on every keystroke).
+     * dirty indicators, flash "Saved", and refresh the preview.
+     *
+     * Hybrid reload: if we know which block is focused we try to hot-swap
+     * just that block's markup in the iframe (no flash, no re-running the
+     * host page's JS). The server has the final say — a JS-dependent block
+     * type answers "no hot reload" and we fall back to a full iframe reload.
+     * Both paths are coalesced through the same debounce timer so a burst of
+     * keystroke-saves only triggers one refresh.
      */
     _onBlockSaved(event) {
         this._applyDraftState(true);
         this._flashSaved();
-        this._scheduleReload();
+        const blockId = this.hasSidebarTarget
+            ? this.sidebarTarget.getAttribute('data-cb-sidebar-block-id')
+            : null;
+        if (blockId) {
+            this._scheduleBlockRefresh(parseInt(blockId, 10));
+        } else {
+            this._scheduleReload();
+        }
     }
 
     _onSectionSaved(event) {
         this._applyDraftState(true);
         this._flashSaved();
+        // Section settings change the section wrapper (and can cascade to
+        // its columns) — there's no single block to swap, so always do a
+        // full reload.
         this._scheduleReload();
     }
 
@@ -702,6 +741,58 @@ export default class extends Controller {
             () => this.reload(),
             this.constructor.SAVE_RELOAD_DEBOUNCE_MS,
         );
+    }
+
+    _scheduleBlockRefresh(blockId) {
+        clearTimeout(this._reloadTimer);
+        this._reloadTimer = setTimeout(
+            () => this._refreshBlock(blockId),
+            this.constructor.SAVE_RELOAD_DEBOUNCE_MS,
+        );
+    }
+
+    /**
+     * Fetches the freshly-rendered markup for a single block and asks the
+     * preview overlay to swap it in place. Any failure — network error,
+     * missing block, or a block type that opts out of hot reload — falls
+     * back to a full iframe reload so the preview is never left stale.
+     */
+    async _refreshBlock(blockId) {
+        if (!blockId || !this.hasIframeTarget) {
+            this.reload();
+            return;
+        }
+
+        this._beginLoading();
+        let payload = null;
+        try {
+            const response = await fetch(`/_content-blocks/block/${blockId}/render`, {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+            });
+            if (response.ok) {
+                payload = await response.json().catch(() => null);
+            }
+        } catch (_) {
+            // Network/detached frame — fall through to the full reload below.
+        } finally {
+            this._endLoading();
+        }
+
+        if (!payload || payload.hotReload !== true || typeof payload.html !== 'string') {
+            this.reload();
+            return;
+        }
+
+        try {
+            this.iframeTarget.contentWindow?.postMessage(
+                { type: 'cb:block:replace', blockId, html: payload.html },
+                window.location.origin,
+            );
+        } catch (_) {
+            // Couldn't reach the iframe — last-resort full reload.
+            this.reload();
+        }
     }
 
     _flashSaved() {

@@ -170,6 +170,30 @@ Sub-templates are included with `with_context = false` — the listed variables 
 
 If you override `section`/`column`/`block`, keep the existing `cb-*` classes and `data-cb-*` attributes intact. The builder's Stimulus controllers and the preview-overlay script attach to those selectors; renaming them breaks the in-context editing UI.
 
+### Preview hot reload
+
+After an inline block edit, the builder refreshes the preview iframe. By default a block type triggers a **full iframe reload** (`AbstractBlockType::supportsPreviewHotReload()` returns `false`). When a block's *view* is self-contained — static HTML or CSS-only behaviour, with no JavaScript init needed once the markup is in the DOM — override it to return `true`:
+
+```php
+public function supportsPreviewHotReload(): bool
+{
+    return true;
+}
+```
+
+The builder then swaps just that block's markup in place (no flash, no re-running the host page's scripts) by fetching `GET /_content-blocks/block/{id}/render`. The server has the final say: an unknown type or one that returns `false` answers `{ "hotReload": false }` and the builder falls back to a full reload.
+
+This is about the rendered **view**, not the edit form — the kit's `image` and `rich_text` blocks opt in even though their *forms* use JavaScript (upload widget, TinyMCE), because that JS lives in the sidebar, never in the preview.
+
+If a view needs a little JavaScript but you still want hot reload, return `true` and (re)initialise idempotently from the `cb:block:rendered` DOM event the overlay dispatches on the freshly-swapped element:
+
+```js
+// runs inside the preview iframe
+document.addEventListener('cb:block:rendered', (e) => {
+    initMyWidget(e.target); // e.detail.blockId is also available
+});
+```
+
 ### Lifecycle
 
 `ContentAreaType` does **not** write to the database on a `GET` request. If the host entity has no `ContentArea` yet (new entity, or legacy data), the widget renders a "save first" placeholder instead of the builder. Once the form is submitted and the host entity is persisted, the next edit shows the builder normally.

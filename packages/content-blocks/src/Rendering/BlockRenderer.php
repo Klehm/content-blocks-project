@@ -33,6 +33,7 @@ final class BlockRenderer
 {
     public const QUERY_PARAM = 'cb_preview';
     private const RENDER_TEMPLATE = '@ContentBlocks/render/content_area.html.twig';
+    private const BLOCK_TEMPLATE = '@ContentBlocks/render/block.html.twig';
 
     public function __construct(
         private readonly Environment $twig,
@@ -88,6 +89,21 @@ final class BlockRenderer
         }
 
         return RenderMode::PREVIEW;
+    }
+
+    /**
+     * Renders a single block's markup in isolation — the same
+     * `block.html.twig` wrapper used inside a full area render, so the
+     * fragment keeps its data-cb-block-id marker, decorators and view
+     * template. Used by the builder to hot-swap one block in the preview
+     * iframe without reloading the whole page.
+     */
+    public function renderBlock(Block $block, RenderMode $mode = RenderMode::PREVIEW): string
+    {
+        return $this->twig->render(self::BLOCK_TEMPLATE, [
+            'block' => $this->buildBlockViewModel($block, $mode, false),
+            'isPreview' => $mode === RenderMode::PREVIEW,
+        ]);
     }
 
     /**
@@ -175,35 +191,47 @@ final class BlockRenderer
 
         $out = [];
         foreach ($blocks as $block) {
-            $blockType = $this->blockTypeRegistry->has($block->getType())
-                ? $this->blockTypeRegistry->get($block->getType())
-                : null;
-
-            $data = $mode === RenderMode::PREVIEW
-                ? ($block->getDraftData() ?? $block->getPublishedData() ?? [])
-                : ($block->getPublishedData() ?? []);
-
-            // Strip default-equal entries so the rendered markup stays
-            // clean: a block saved with the framework-provided default
-            // (e.g. styling.backgroundColor=#ffffff) won't get an inline
-            // style for it, only user-overridden values do. Decoration
-            // sees the trimmed payload; the block type's view template
-            // still receives the original $data.
-            $decorationData = $this->blockDataDefaults->withoutDefaults($data);
-            $decoration = $this->blockDecorators->decorate($decorationData, $block);
-
-            $out[] = [
-                'id' => $block->getId(),
-                'type' => $block->getType(),
-                'data' => $data,
-                'viewTemplate' => $blockType?->getViewTemplate(),
-                'deleted' => $parentDeleted || $block->isDeleted(),
-                'extraClasses' => $decoration->classString(),
-                'inlineStyle' => $decoration->styleString(),
-                'extraAttributes' => $decoration->attributes,
-            ];
+            $out[] = $this->buildBlockViewModel($block, $mode, $parentDeleted);
         }
 
         return $out;
+    }
+
+    /**
+     * Builds the template view-model for a single block. Shared by the full
+     * area render (buildBlockList) and the single-block render (renderBlock)
+     * so a hot-swapped block is byte-for-byte identical to its in-page form.
+     *
+     * @return array{id: ?int, type: string, data: array<string, mixed>, viewTemplate: ?string, deleted: bool, extraClasses: string, inlineStyle: string, extraAttributes: array<string, string>}
+     */
+    private function buildBlockViewModel(Block $block, RenderMode $mode, bool $parentDeleted): array
+    {
+        $blockType = $this->blockTypeRegistry->has($block->getType())
+            ? $this->blockTypeRegistry->get($block->getType())
+            : null;
+
+        $data = $mode === RenderMode::PREVIEW
+            ? ($block->getDraftData() ?? $block->getPublishedData() ?? [])
+            : ($block->getPublishedData() ?? []);
+
+        // Strip default-equal entries so the rendered markup stays
+        // clean: a block saved with the framework-provided default
+        // (e.g. styling.backgroundColor=#ffffff) won't get an inline
+        // style for it, only user-overridden values do. Decoration
+        // sees the trimmed payload; the block type's view template
+        // still receives the original $data.
+        $decorationData = $this->blockDataDefaults->withoutDefaults($data);
+        $decoration = $this->blockDecorators->decorate($decorationData, $block);
+
+        return [
+            'id' => $block->getId(),
+            'type' => $block->getType(),
+            'data' => $data,
+            'viewTemplate' => $blockType?->getViewTemplate(),
+            'deleted' => $parentDeleted || $block->isDeleted(),
+            'extraClasses' => $decoration->classString(),
+            'inlineStyle' => $decoration->styleString(),
+            'extraAttributes' => $decoration->attributes,
+        ];
     }
 }

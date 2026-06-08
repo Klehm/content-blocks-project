@@ -43,4 +43,10 @@ final class TextBlock extends AbstractBlockType
     {
         return '@ContentBlocksKit/block/text/view.html.twig';
     }
+
+    // Static markup, no view-side JS — safe to hot-reload in place.
+    public function supportsPreviewHotReload(): bool
+    {
+        return true;
+    }
 }

@@ -74,4 +74,11 @@ final class ImageBlock extends AbstractBlockType
     {
         return '@ContentBlocksKit/block/image/view.html.twig';
     }
+
+    // Static <img> markup; the upload JS lives in the edit form, not the
+    // view — safe to hot-reload in place.
+    public function supportsPreviewHotReload(): bool
+    {
+        return true;
+    }
 }

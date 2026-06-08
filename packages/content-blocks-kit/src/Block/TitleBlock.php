@@ -63,4 +63,10 @@ final class TitleBlock extends AbstractBlockType
     {
         return '@ContentBlocksKit/block/title/view.html.twig';
     }
+
+    // Static markup, no view-side JS — safe to hot-reload in place.
+    public function supportsPreviewHotReload(): bool
+    {
+        return true;
+    }
 }

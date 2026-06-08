@@ -18,4 +18,14 @@ abstract class AbstractBlockType implements BlockTypeInterface
     {
         return null;
     }
+
+    /**
+     * Conservative default: full iframe reload. A wrong full reload only
+     * costs a little performance, whereas a wrong hot reload leaves a
+     * JS-dependent view broken — so blocks opt in explicitly.
+     */
+    public function supportsPreviewHotReload(): bool
+    {
+        return false;
+    }
 }

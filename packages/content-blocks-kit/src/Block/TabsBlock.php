@@ -61,4 +61,10 @@ final class TabsBlock extends AbstractBlockType
     {
         return '@ContentBlocksKit/block/tabs/view.html.twig';
     }
+
+    // CSS-only tabs (radio + sibling selectors), no JS — safe to hot-reload.
+    public function supportsPreviewHotReload(): bool
+    {
+        return true;
+    }
 }

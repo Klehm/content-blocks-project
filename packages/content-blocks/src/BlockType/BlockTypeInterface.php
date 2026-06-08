@@ -49,4 +49,21 @@ interface BlockTypeInterface
      * Template receives: { data, block, blockType }
      */
     public function getViewTemplate(): ?string;
+
+    /**
+     * Whether the builder may refresh this block's preview in place (hot
+     * reload) instead of reloading the whole iframe after an edit.
+     *
+     * This is about the *rendered view*, not the edit form: return true only
+     * when the view template produces self-contained markup that works as
+     * soon as it is inserted into the DOM (static HTML, CSS-only behaviour).
+     * Return false when the view needs a JavaScript init pass to function
+     * (a carousel, a map, a third-party widget bootstrapped on load) — the
+     * builder will fall back to a full iframe reload so that init runs again.
+     *
+     * Blocks that ship a little view JS but want hot reload can return true
+     * and (re)initialise idempotently from the `cb:block:rendered` DOM event
+     * the overlay dispatches on the freshly-swapped element.
+     */
+    public function supportsPreviewHotReload(): bool;
 }
