@@ -57,6 +57,17 @@ function postMessage(data, origin = window.location.origin) {
     return { data, origin };
 }
 
+// jsdom doesn't implement window.matchMedia, which the controller calls via
+// _isMobile(). Default every test to "desktop"; tests that need the mobile
+// branch override this within their own block (see the resize specs).
+beforeEach(() => {
+    window.matchMedia = vi.fn(() => ({
+        matches: false,
+        addEventListener() {},
+        removeEventListener() {},
+    }));
+});
+
 describe('cb-builder: postMessage origin check', () => {
     let controller, errorSpy;
 
