@@ -154,7 +154,15 @@ export default class extends Controller {
         this._saving = true;
         try {
             const active = document.activeElement;
-            if (active instanceof HTMLElement && this.element.contains(active) && this._isFormField(active)) {
+            // Never re-dispatch `change` on a file input. Its value is
+            // already committed elsewhere (cb-file-upload writes the upload
+            // result into a hidden input), and firing `change` again would
+            // re-trigger that upload controller — which re-uploads the same
+            // file under a fresh random name and fires another save, looping
+            // forever ("Uploading…" that never stops after picking an image).
+            const isFileInput = active instanceof HTMLInputElement && active.type === 'file';
+            if (active instanceof HTMLElement && this.element.contains(active)
+                && this._isFormField(active) && !isFileInput) {
                 active.dispatchEvent(new Event('change', { bubbles: true }));
             }
             btn.click();

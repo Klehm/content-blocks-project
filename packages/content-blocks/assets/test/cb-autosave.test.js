@@ -148,6 +148,48 @@ describe('cb-autosave', () => {
         expect(clickSpy).toHaveBeenCalledTimes(1);
     });
 
+    it('does NOT re-dispatch change on a focused file input (would loop the upload)', () => {
+        // Regression: cb-file-upload listens for `change` on the file input
+        // and re-uploads on each one. If autosave synthesised a `change`
+        // here, every save would re-trigger the upload — which writes a new
+        // hidden src and fires another save — looping forever.
+        document.body.innerHTML = `
+            <div data-controller="cb-autosave" data-cb-csrf-token="x">
+                <form>
+                    <input type="file" id="file">
+                    <input type="hidden" name="src" id="src">
+                    <button type="button" data-cb-sidebar-save id="save">Save</button>
+                </form>
+            </div>
+        `;
+        const element = document.querySelector('[data-controller="cb-autosave"]');
+        const controller = new Controller();
+        Object.defineProperty(controller, 'element', { value: element });
+        Object.defineProperty(controller, 'debounceValue', { value: 100 });
+        controller.connect();
+
+        const fileInput = element.querySelector('#file');
+        const hidden = element.querySelector('#src');
+        fileInput.focus();
+        expect(document.activeElement).toBe(fileInput);
+
+        const fileChanges = vi.fn();
+        fileInput.addEventListener('change', fileChanges);
+        const clickSpy = vi.fn();
+        element.querySelector('#save').addEventListener('click', clickSpy);
+
+        // Simulate cb-file-upload committing an upload result: the hidden
+        // input changes, which bubbles to autosave and triggers a save.
+        hidden.value = '/uploads/abc.jpg';
+        hidden.dispatchEvent(new Event('change', { bubbles: true }));
+
+        // The save happened…
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+        // …but NO synthetic change leaked onto the file input, so the
+        // upload controller is never re-triggered. No loop.
+        expect(fileChanges).not.toHaveBeenCalled();
+    });
+
     it('skips the save when the serialized form is identical to the last snapshot', () => {
         const { input, clickSpy } = setup();
 
