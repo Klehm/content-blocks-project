@@ -141,7 +141,10 @@ body.cb-dragging--block [data-cb-section-id] {
  */
 
 [data-cb-section-id] {
-  /* Default 60px keeps empty sections clickable in the builder.
+  /* No padding-top so the builder preview matches the production
+       render; the hover toolbar straddles the top border via JS and
+       does not rely on it.
+       Default 60px keeps empty sections clickable in the builder.
        Falling through `--cb-min-h` lets a user-configured minHeight
        (set by StylingSectionDecorator) win over the builder fallback —
        without it, this rule would shadow the user's value because
@@ -149,18 +152,17 @@ body.cb-dragging--block [data-cb-section-id] {
        loaded after styling.css. */
   min-height: var(--cb-min-h, 60px);
   box-sizing: border-box;
-  padding-top: 18px;
   position: relative;
   outline: 1px dashed #d8dbe2;
   outline-offset: -1px;
 }
 /* Columns have no outline — the permanent "+ Bloc" pill at the bottom
-   visually marks each column on its own. Padding + min-height stay so
-   empty columns still have a clickable area. */
+   visually marks each column on its own. No padding so the builder
+   matches the production render; min-height keeps empty columns
+   clickable. */
 [data-cb-column-id] {
   min-height: 60px;
   box-sizing: border-box;
-  padding: 6px;
   border-radius: 2px;
 }
 
@@ -202,7 +204,7 @@ body {
   display: block;
   width: 100%;
   max-width: 80px;
-  margin: 6px auto 0;
+  margin: 18px auto 0;
   padding: 4px 8px;
   background: transparent;
   border: 1px solid #c8ccd5;
