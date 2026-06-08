@@ -51,6 +51,12 @@
                 "name": "cb-range",
                 "fetch": "eager",
                 "enabled": true
+            },
+            "cb-tabs": {
+                "main": "controllers/cb-tabs_controller.js",
+                "name": "cb-tabs",
+                "fetch": "eager",
+                "enabled": true
             }
         },
         "importmap": {

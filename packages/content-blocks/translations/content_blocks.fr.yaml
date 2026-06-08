@@ -51,6 +51,10 @@ cb:
         cancel: "Annuler"
         remove: "Supprimer"
         duplicate: "Dupliquer"
+        tab:
+            general: "Général"
+            style: "Style"
+            has_errors: "Ce groupe contient des erreurs"
     builder:
         open: "Modifier le contenu"
         close: "Fermer"

@@ -644,9 +644,14 @@
   border-right: 1px solid #e3e5e9;
   box-shadow: 2px 0 12px rgba(20, 22, 30, 0.04);
   min-width: 0;
-  /* No overflow:hidden — the toggle button is absolute-positioned and
-       deliberately overhangs the right edge. min-height:0 on the content
-       child below still lets it scroll internally. */
+  /* min-height:0 stops this grid item from growing past its track when the
+       form is tall — without it the implicit row expands to fit the content
+       and .cb-shell__main's overflow:hidden clips the bottom, so the
+       sidebar-content's overflow-y:auto never engages and lower fields
+       become unreachable.
+     No overflow:hidden here — the toggle button is absolute-positioned and
+       deliberately overhangs the right edge; the content child scrolls. */
+  min-height: 0;
 }
 
 /* Collapsed: hide content, resize handle, saved-flash; only the
@@ -897,6 +902,77 @@
 
 .cb-sidebar__group-body > :last-child {
   margin-bottom: 0;
+}
+
+/* ---- Block edit form: tabbed field groups ----
+ *
+ * Block fields are bucketed into tabs by their `data-cb-group` attribute
+ * (rendered in components/Block.html.twig). A horizontal tablist sits above
+ * the panels; only the active panel is shown. All panels stay in the DOM so
+ * autosave and validation keep working across hidden tabs. */
+
+.cb-block__tabs {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The tablist stays visible while the (now scrollable) sidebar scrolls a
+   tall form, so the user can switch tabs from anywhere. It sticks to the
+   top of the scroll container (.cb-shell__sidebar-content); the negative
+   top + matching padding swallow the container's 1rem padding so no field
+   peeks above it, and the white background hides rows scrolling underneath.
+   Reachability itself is handled by .cb-shell__sidebar { min-height: 0 },
+   which lets sidebar-content's overflow-y:auto engage on tall content. */
+.cb-block__tablist {
+  position: sticky;
+  top: -1rem;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-bottom: 1rem;
+  padding-top: 1rem;
+  background: #fff;
+  border-bottom: 1px solid #f0f1f4;
+}
+
+.cb-block__tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #5b6478;
+  padding: 6px 10px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cb-block__tab:hover {
+  color: #1f2330;
+}
+
+.cb-block__tab--active {
+  color: #1f2330;
+  border-bottom-color: #4f8df9;
+}
+
+/* Red dot appended to a tab whose panel holds an invalid field, so a
+   validation error on a hidden tab is still discoverable after a save. */
+.cb-block__tab--has-error::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 5px;
+  vertical-align: middle;
+  border-radius: 50%;
+  background: #d83a3a;
+}
+
+.cb-block__tabpanel[hidden] {
+  display: none;
 }
 
 /* ---- Styling: responsive box spacing (padding / margin) ---- */

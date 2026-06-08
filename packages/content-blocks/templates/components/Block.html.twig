@@ -26,31 +26,77 @@
 
         {{ form_start(form) }}
 
-            {# Same two-group layout as section settings — see
-               sidebar_section.html.twig for the rationale. No tabs:
-               both groups are always visible, sidebar scrolls if
-               needed. #}
-            <section class="cb-sidebar__group">
-                <h4 class="cb-sidebar__group-title">
-                    {{ 'cb.section.settings.tab.general'|trans({}, 'content_blocks') }}
-                </h4>
-                <div class="cb-sidebar__group-body">
-                    {% for child in form %}
-                        {% if child.vars.name != 'styling' %}
-                            {{ form_row(child) }}
-                        {% endif %}
-                    {% endfor %}
-                </div>
-            </section>
+            {# Group the block's own fields into tabs by their `data-cb-group`
+               attribute (set via the field's `attr` option in buildForm).
+               Fields without the attribute fall into the default "General"
+               tab; the styling sub-form is always appended as a trailing
+               "Style" tab. Group labels are run through the content_blocks
+               translation domain, so a block can pass either a literal label
+               or a translation key as `data-cb-group`.
 
-            <section class="cb-sidebar__group">
-                <h4 class="cb-sidebar__group-title">
-                    {{ 'cb.section.settings.tab.styling'|trans({}, 'content_blocks') }}
-                </h4>
-                <div class="cb-sidebar__group-body">
-                    {{ form_row(form.styling) }}
-                </div>
-            </section>
+               Every field stays rendered — inactive panels are only hidden —
+               so autosave still serializes hidden tabs and server-side
+               validation is unaffected. The cb-tabs Stimulus controller
+               toggles visibility; Live's external-mutation tracker re-applies
+               the active tab across morphs. #}
+            {% set general_label = 'cb.block.tab.general'|trans({}, 'content_blocks') %}
+            {% set style_label = 'cb.block.tab.style'|trans({}, 'content_blocks') %}
+
+            {% set order = [] %}
+            {% set buckets = {} %}
+            {% for child in form %}
+                {% if child.vars.name != 'styling' %}
+                    {% set raw = child.vars.attr['data-cb-group']|default('') %}
+                    {% set label = raw is empty ? general_label : raw|trans({}, 'content_blocks') %}
+                    {% if label not in order %}{% set order = order|merge([label]) %}{% endif %}
+                    {% set buckets = buckets|merge({ (label): (buckets[label]|default([]))|merge([child]) }) %}
+                {% endif %}
+            {% endfor %}
+
+            {# Pin the default "General" tab first, then the rest in
+               first-seen order; "Style" is always last. #}
+            {% if general_label in order %}
+                {% set order = [general_label]|merge(order|filter(l => l != general_label)) %}
+            {% endif %}
+            {% set order = order|merge([style_label]) %}
+
+            <div class="cb-block__tabs" data-controller="cb-tabs">
+                {% if order|length > 1 %}
+                    <div class="cb-block__tablist" role="tablist">
+                        {% for label in order %}
+                            {% set has_error = label == style_label
+                                ? not form.styling.vars.valid
+                                : buckets[label]|filter(c => not c.vars.valid)|length > 0 %}
+                            <button type="button"
+                                    class="cb-block__tab{{ has_error ? ' cb-block__tab--has-error' : '' }}"
+                                    role="tab"
+                                    data-cb-tabs-target="tab"
+                                    data-cb-tab="{{ loop.index0 }}"
+                                    data-action="cb-tabs#select"
+                                    aria-selected="{{ loop.first ? 'true' : 'false' }}"
+                                    {% if has_error %}title="{{ 'cb.block.tab.has_errors'|trans({}, 'content_blocks') }}"{% endif %}>
+                                {{ label }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% for label in order %}
+                    <section class="cb-block__tabpanel"
+                             role="tabpanel"
+                             data-cb-tabs-target="panel"
+                             data-cb-tab="{{ loop.index0 }}"
+                             {% if not loop.first %}hidden{% endif %}>
+                        {% if label == style_label %}
+                            {{ form_row(form.styling) }}
+                        {% else %}
+                            {% for child in buckets[label] %}
+                                {{ form_row(child) }}
+                            {% endfor %}
+                        {% endif %}
+                    </section>
+                {% endfor %}
+            </div>
         {{ form_end(form) }}
 
         {# Hidden save trigger clicked by cb-autosave when an input event
