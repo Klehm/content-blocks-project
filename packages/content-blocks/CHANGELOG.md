@@ -5,6 +5,12 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.13] - 2026-06-09
+
+### Fixed
+
+- **`cb-form-row` wrapper was no longer applied.** The form theme's row block was named `form_row_render` — a name Symfony's `form_row()` never invokes (the rendered block has been `form_row` since Symfony ≥5.3), so the custom row markup was silently bypassed. Renamed to `form_row`, and folded in the native `widget_attr` (`aria-describedby` linking the help text) that the built-in `form_row` provides.
+
 ## [0.1.0-alpha.12] - 2026-06-08
 
 ### Added
