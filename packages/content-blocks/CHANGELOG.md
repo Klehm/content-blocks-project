@@ -5,6 +5,16 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.16] - 2026-06-09
+
+### Added
+
+- **Icon-grid block picker.** The "+Bloc" popover in the preview is now a 3-column grid of tiles (icon + label) with a themed hover state, replacing the plain scrolling text list — it scans far better as the number of registered block types grows. Block types expose an icon via the new `BlockTypeInterface::getIcon(): ?string` (return self-contained inline SVG using `currentColor`, or `null` for a generic fallback glyph). `AbstractBlockType` defaults to `null`, so existing custom blocks keep working unchanged. The kit blocks (Text, Title, Image, Rich text, Tabs) ship dedicated icons.
+
+### Fixed
+
+- **Themed radios and checkboxes now render their `checked` state.** The form theme's `radio_widget` / `checkbox_widget` routed the input through `form_widget_simple`, but `form_div_layout` emits `checked` from the radio/checkbox widget blocks themselves — so no themed radio or checkbox was ever marked checked (most visibly, the section settings "Largeur" / `widthMode` radios showed no selection despite a valid default). `checked` is now folded into the input attributes.
+
 ## [0.1.0-alpha.15] - 2026-06-09
 
 ### Added
