@@ -102,33 +102,84 @@ body.cb-dragging--block [data-cb-section-id] {
   position: absolute;
   background: #fff;
   border: 1px solid #e3e5e9;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(17, 20, 28, 0.18);
   z-index: 2147483001;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 13px;
-  padding: 4px;
-  min-width: 160px;
-  max-height: 160px;
+  padding: 8px;
+  width: 264px;
+  max-height: 320px;
   overflow: auto;
 }
 .cb-overlay-popover[hidden] {
   display: none;
 }
-.cb-overlay-popover__btn {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: transparent;
-  border: 0;
-  padding: 6px 10px;
-  cursor: pointer;
-  border-radius: 4px;
-  color: #1f2330;
-  font: inherit;
+.cb-overlay-popover__header {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8a90a0;
+  padding: 4px 6px 8px;
 }
-.cb-overlay-popover__btn:hover {
-  background: #f0f1f4;
+.cb-overlay-popover__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.cb-overlay-popover__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  aspect-ratio: 1 / 1;
+  background: #f6f7f9;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 4px;
+  cursor: pointer;
+  color: #4a5163;
+  font: inherit;
+  text-align: center;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease,
+    transform 0.06s ease;
+}
+.cb-overlay-popover__tile:hover {
+  background: #eef4ff;
+  border-color: #2f6bff;
+  color: #1b46c2;
+}
+.cb-overlay-popover__tile:active {
+  transform: translateY(1px);
+}
+.cb-overlay-popover__tile:focus-visible {
+  outline: 2px solid #2f6bff;
+  outline-offset: 1px;
+}
+.cb-overlay-popover__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5b6477;
+}
+.cb-overlay-popover__tile:hover .cb-overlay-popover__icon {
+  color: #2f6bff;
+}
+.cb-overlay-popover__icon svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+.cb-overlay-popover__label {
+  font-size: 11.5px;
+  line-height: 1.2;
+  color: #2b2f3a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 /* ---------- Section/column visual guides ----------

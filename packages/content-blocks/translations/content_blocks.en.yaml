@@ -46,6 +46,7 @@ cb:
             three_cols: "3 columns"
     block:
         add: "+ Block"
+        add_title: "Add a block"
         edit: "Edit"
         save: "Save"
         cancel: "Cancel"

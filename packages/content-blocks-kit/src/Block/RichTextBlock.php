@@ -24,6 +24,15 @@ final class RichTextBlock extends AbstractBlockType
         return new TranslatableMessage('cb_kit.block.rich_text.label', [], 'content_blocks_kit');
     }
 
+    public static function getIcon(): ?string
+    {
+        // Pilcrow — formatted/rich text.
+        return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" '
+            . 'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
+            . 'stroke-linejoin="round"><path d="M13 4v16M17 4v16M13 4h-3a4 4 0 0 0 0 8h3"/>'
+            . '<path d="M5 20h6"/></svg>';
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
         // The TextareaType is enhanced client-side by the cb-tinymce

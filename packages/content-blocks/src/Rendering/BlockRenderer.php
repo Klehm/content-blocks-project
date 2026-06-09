@@ -55,12 +55,16 @@ final class BlockRenderer
 
         $blockTypes = [];
         if ($mode === RenderMode::PREVIEW) {
-            foreach ($this->blockTypeRegistry->getChoices() as $type => $label) {
+            foreach ($this->blockTypeRegistry->all() as $type => $blockType) {
+                $label = $blockType::getLabel();
                 $blockTypes[] = [
                     'type' => $type,
                     'label' => $label instanceof TranslatableInterface
                         ? $label->trans($this->translator)
                         : $this->translator->trans((string) $label),
+                    // Inline SVG markup or null; the overlay supplies a
+                    // generic fallback glyph when null.
+                    'icon' => $blockType::getIcon(),
                 ];
             }
         }

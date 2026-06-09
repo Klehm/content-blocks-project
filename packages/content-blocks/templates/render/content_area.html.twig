@@ -52,6 +52,7 @@
         </div>
     </aside>
     <script>window.__cbBlockTypes = {{ blockTypes|json_encode|raw }};</script>
+    <script>window.__cbAddBlockLabel = {{ 'cb.block.add_title'|trans({}, 'content_blocks')|json_encode|raw }};</script>
     <script type="module" src="{{ path('content_blocks_asset_preview_overlay') }}"></script>
 {% endif %}
 </div>

@@ -24,6 +24,17 @@ interface BlockTypeInterface
     public static function getLabel(): string|TranslatableInterface;
 
     /**
+     * Icon shown next to the label in the block-type picker (the "+Bloc"
+     * popover in the preview). Return self-contained inline SVG markup —
+     * use `currentColor` for strokes/fills so the icon inherits the
+     * picker's theme color. Return null to fall back to a generic icon.
+     *
+     * The markup is injected as-is into the picker DOM, so it must come
+     * from trusted block-author code (never interpolate user input).
+     */
+    public static function getIcon(): ?string;
+
+    /**
      * Builds the Symfony Form for this block type.
      * Called by BlockFormType to render the edit form.
      */

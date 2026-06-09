@@ -9,6 +9,15 @@ namespace ContentBlocks\BlockType;
  */
 abstract class AbstractBlockType implements BlockTypeInterface
 {
+    /**
+     * No icon by default — the picker shows a generic fallback glyph.
+     * Override to return inline SVG markup (see BlockTypeInterface::getIcon).
+     */
+    public static function getIcon(): ?string
+    {
+        return null;
+    }
+
     public function getFormTheme(): ?string
     {
         return null;

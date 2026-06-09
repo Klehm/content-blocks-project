@@ -27,6 +27,15 @@ final class ImageBlock extends AbstractBlockType
         return new TranslatableMessage('cb_kit.block.image.label', [], 'content_blocks_kit');
     }
 
+    public static function getIcon(): ?string
+    {
+        // Framed picture with horizon + sun.
+        return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" '
+            . 'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
+            . 'stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/>'
+            . '<circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5-5-7 7"/></svg>';
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
         $builder

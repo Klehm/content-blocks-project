@@ -24,6 +24,14 @@ final class TextBlock extends AbstractBlockType
         return new TranslatableMessage('cb_kit.block.text.label', [], 'content_blocks_kit');
     }
 
+    public static function getIcon(): ?string
+    {
+        // Paragraph lines.
+        return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" '
+            . 'stroke="currentColor" stroke-width="1.6" stroke-linecap="round">'
+            . '<path d="M4 6h16M4 10h16M4 14h12M4 18h8"/></svg>';
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
         $builder->add('content', TextareaType::class, [

@@ -82,24 +82,52 @@
     popover.hidden = true;
     document.body.appendChild(popover);
 
+    // Generic fallback glyph for block types that don't ship an icon.
+    const FALLBACK_ICON =
+        '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" ' +
+        'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" ' +
+        'stroke-linejoin="round" aria-hidden="true">' +
+        '<rect x="3" y="3" width="18" height="18" rx="2"/>' +
+        '<path d="M12 8v8M8 12h8"/></svg>';
+
     function openBlockTypePopover(triggerBtn, columnId) {
         const types = Array.isArray(window.__cbBlockTypes) ? window.__cbBlockTypes : [];
         if (types.length === 0) return;
 
         popover.innerHTML = '';
+
+        const header = document.createElement('div');
+        header.className = 'cb-overlay-popover__header';
+        header.textContent = window.__cbAddBlockLabel || 'Ajouter un bloc';
+        popover.appendChild(header);
+
+        const grid = document.createElement('div');
+        grid.className = 'cb-overlay-popover__grid';
         for (const item of types) {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'cb-overlay-popover__btn';
-            btn.textContent = item.label;
-            btn.addEventListener('click', (e) => {
+            const tile = document.createElement('button');
+            tile.type = 'button';
+            tile.className = 'cb-overlay-popover__tile';
+            tile.title = item.label;
+
+            const icon = document.createElement('span');
+            icon.className = 'cb-overlay-popover__icon';
+            // Trusted markup: block-author SVG, never user input.
+            icon.innerHTML = item.icon || FALLBACK_ICON;
+
+            const label = document.createElement('span');
+            label.className = 'cb-overlay-popover__label';
+            label.textContent = item.label;
+
+            tile.append(icon, label);
+            tile.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 hidePopover();
                 postToParent('cb:block:add-requested', { columnId, blockType: item.type });
             });
-            popover.appendChild(btn);
+            grid.appendChild(tile);
         }
+        popover.appendChild(grid);
 
         const rect = triggerBtn.getBoundingClientRect();
         popover.style.top = (rect.bottom + window.scrollY + 4) + 'px';

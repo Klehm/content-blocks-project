@@ -26,6 +26,15 @@ final class TabsBlock extends AbstractBlockType
         return new TranslatableMessage('cb_kit.block.tabs.label', [], 'content_blocks_kit');
     }
 
+    public static function getIcon(): ?string
+    {
+        // Tabbed panel.
+        return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" '
+            . 'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
+            . 'stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/>'
+            . '<path d="M3 11h18"/><path d="M7 7V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2"/></svg>';
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
         $builder->add('tabs', LiveCollectionType::class, [
