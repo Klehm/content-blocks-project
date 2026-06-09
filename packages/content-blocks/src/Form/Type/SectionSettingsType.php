@@ -38,6 +38,7 @@ final class SectionSettingsType extends AbstractType
     public function __construct(
         private readonly SectionStyleRegistry $styleRegistry,
         private readonly int $defaultMaxWidth = 1320,
+        private readonly string $defaultWidthMode = 'full',
     ) {
     }
 
@@ -57,7 +58,7 @@ final class SectionSettingsType extends AbstractType
                     'cb.section.settings.width.centered' => 'centered',
                 ],
                 'label' => 'cb.section.settings.width',
-                'data' => $options['data']['widthMode'] ?? 'full',
+                'data' => $options['data']['widthMode'] ?? $this->defaultWidthMode,
             ])
             ->add('maxWidth', IntegerType::class, [
                 'required' => false,

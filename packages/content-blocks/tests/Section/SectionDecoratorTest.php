@@ -65,7 +65,9 @@ final class SectionDecoratorTest extends TestCase
         );
 
         $this->assertSame('cb-section--centered', $deco->classString());
-        $this->assertSame('max-width:1100px;margin-left:auto;margin-right:auto;', $deco->styleString());
+        // The cap is emitted as a CSS var the inner `.cb-row` reads — the
+        // <section> stays full-width so its background bleeds edge to edge.
+        $this->assertSame('--cb-row-max-w:1100px;', $deco->styleString());
     }
 
     public function testBuiltInDecoratorIgnoresMaxWidthWhenFullWidth(): void
@@ -90,7 +92,7 @@ final class SectionDecoratorTest extends TestCase
         $deco = $decorator->decorate(['widthMode' => 'centered'], $section);
 
         $this->assertSame('cb-section--centered', $deco->classString());
-        $this->assertSame('max-width:1320px;margin-left:auto;margin-right:auto;', $deco->styleString());
+        $this->assertSame('--cb-row-max-w:1320px;', $deco->styleString());
     }
 
     public function testBuiltInDecoratorHonorsCustomDefaultMaxWidth(): void
@@ -102,7 +104,20 @@ final class SectionDecoratorTest extends TestCase
 
         $deco = $decorator->decorate(['widthMode' => 'centered'], $section);
 
-        $this->assertSame('max-width:1400px;margin-left:auto;margin-right:auto;', $deco->styleString());
+        $this->assertSame('--cb-row-max-w:1400px;', $deco->styleString());
+    }
+
+    public function testBuiltInDecoratorHonorsCustomDefaultWidthMode(): void
+    {
+        // Host flips the project default to 'centered' — a section whose
+        // settings carry no explicit widthMode is centered, not full.
+        $decorator = new BuiltInSectionDecorator(new SectionStyleRegistry(), 1200, 'centered');
+        $section = new Section();
+
+        $deco = $decorator->decorate([], $section);
+
+        $this->assertSame('cb-section--centered', $deco->classString());
+        $this->assertSame('--cb-row-max-w:1200px;', $deco->styleString());
     }
 
     public function testBuiltInDecoratorTreatsExplicitZeroMaxWidthAsNoCap(): void

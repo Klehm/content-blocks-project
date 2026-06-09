@@ -25,6 +25,16 @@
     width: 100%;
 }
 
+/* Centered sections cap and center their inner row, NOT the <section>
+   itself — so the section's background spans the full viewport width while
+   its content stays contained. `--cb-row-max-w` is emitted inline on the
+   section by BuiltInSectionDecorator; absent (full-width mode) the row is
+   uncapped and the auto margins are a no-op. */
+.cb-section--centered > .cb-row {
+    max-width: var(--cb-row-max-w, none);
+    margin-inline: auto;
+}
+
 .cb-col {
     flex: 1 1 0;
     min-width: 0;

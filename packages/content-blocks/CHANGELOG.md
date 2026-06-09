@@ -5,7 +5,15 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0-alpha.13] - 2026-06-09
+## [0.1.0-alpha.14] - 2026-06-09
+
+### Added
+
+- **Configurable default section width.** New sections now inherit a project-wide default width mode instead of always starting `full`. Set `content_blocks.section.default_width_mode` (`full` | `centered`) — paired with the existing `content_blocks.section.default_max_width`, a host can make every new section centered at a chosen container width in one place. The shipped default stays `full`, so existing projects are unchanged. Wired through `CoreSectionDefaults` (form pre-fill), `SectionSettingsType` (radio pre-selection) and `BuiltInSectionDecorator` (render fallback) so all three move together.
+
+### Changed
+
+- **Centered sections keep a full-width background.** A `centered` section's max-width + centering now applies to the inner `.cb-row` (via a `--cb-row-max-w` custom property read in `layout.css`) instead of the `<section>` element itself. The section background therefore spans the full viewport width while its content stays contained — the standard full-bleed pattern. **Visual change for existing centered sections that have a background colour:** the colour now bleeds edge to edge instead of being capped to the container width.
 
 ### Fixed
 

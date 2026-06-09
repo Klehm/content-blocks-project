@@ -12,10 +12,11 @@ use ContentBlocks\Entity\Section;
  *
  * Settings shape:
  *  - classes:    string  free-form whitespace-separated CSS classes
- *  - widthMode:  'full'|'centered'  default 'full'
- *  - maxWidth:   int|null           when widthMode==='centered', applies max-width:Npx + auto margins;
- *                                   missing or 0 falls back to $defaultMaxWidth so a centered section
- *                                   is never uncapped. Type 0 explicitly is treated as "no cap".
+ *  - widthMode:  'full'|'centered'  defaults to $defaultWidthMode (host-configurable, ships 'full')
+ *  - maxWidth:   int|null           when widthMode==='centered', emits `--cb-row-max-w:Npx` so the inner
+ *                                   `.cb-row` is capped + centered while the section background stays
+ *                                   full-width; missing or 0 falls back to $defaultMaxWidth so a centered
+ *                                   section is never uncapped. Type 0 explicitly is treated as "no cap".
  *  - styleName:  string|null        a name registered via SectionStyleRegistry
  *
  * The default cap is bound to the parameter
@@ -29,6 +30,7 @@ final class BuiltInSectionDecorator implements SectionDecoratorInterface
     public function __construct(
         private readonly SectionStyleRegistry $styleRegistry,
         private readonly int $defaultMaxWidth = 1320,
+        private readonly string $defaultWidthMode = 'full',
     ) {
     }
 
@@ -46,7 +48,7 @@ final class BuiltInSectionDecorator implements SectionDecoratorInterface
             }
         }
 
-        $widthMode = $settings['widthMode'] ?? 'full';
+        $widthMode = $settings['widthMode'] ?? $this->defaultWidthMode;
         if ($widthMode === 'centered') {
             $classes[] = 'cb-section--centered';
             // Missing key → fall back to the configured default. The
@@ -55,9 +57,13 @@ final class BuiltInSectionDecorator implements SectionDecoratorInterface
                 ? $settings['maxWidth']
                 : $this->defaultMaxWidth;
             if (\is_int($maxWidth) && $maxWidth > 0) {
-                $styles['max-width'] = $maxWidth . 'px';
-                $styles['margin-left'] = 'auto';
-                $styles['margin-right'] = 'auto';
+                // Constrain the inner `.cb-row`, not the `<section>` itself,
+                // so the section's background still spans the full viewport
+                // width while its content stays centered. The var is read by
+                // `.cb-section--centered > .cb-row` in layout.css; emitting it
+                // as an inline custom property keeps the decorator writing to
+                // the section element only (it has no handle on the row).
+                $styles['--cb-row-max-w'] = $maxWidth . 'px';
             }
         }
 
