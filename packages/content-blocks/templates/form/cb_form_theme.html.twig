@@ -120,6 +120,14 @@
    `cb-form-label`. Used by both block bodies below. #}
 {% block _cb_form_check_render -%}
     {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-check__input')|trim}) -%}
+    {# form_div_layout emits `checked` from the radio_widget / checkbox_widget
+       blocks themselves, not from form_widget_simple. Since we route the
+       input through form_widget_simple, fold `checked` into attr so the
+       `attributes` block renders it (otherwise no radio/checkbox is ever
+       marked checked). #}
+    {%- if checked|default(false) -%}
+        {%- set attr = attr|merge({checked: true}) -%}
+    {%- endif -%}
     {%- set row_class = 'cb-form-check' -%}
     {%- set parent_label_class = parent_label_class|default(label_attr.class|default('')) -%}
     {%- if 'cb-form-check--inline' in parent_label_class or 'inline' in parent_label_class -%}
