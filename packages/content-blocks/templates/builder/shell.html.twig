@@ -26,16 +26,18 @@
                 <span class="cb-shell__btn-icon" aria-hidden="true">⇆</span>
                 <span class="cb-shell__btn-label">{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}</span>
             </button>
-            <button type="button"
-                    class="cb-shell__import-export"
-                    data-action="cb-builder#openImportExport"
-                    aria-haspopup="dialog"
-                    aria-expanded="false"
-                    title="{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}"
-                    aria-label="{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}">
-                <span class="cb-shell__btn-icon" aria-hidden="true">⇅</span>
-                <span class="cb-shell__btn-label">{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}</span>
-            </button>
+            {% if cb_import_export_enabled %}
+                <button type="button"
+                        class="cb-shell__import-export"
+                        data-action="cb-builder#openImportExport"
+                        aria-haspopup="dialog"
+                        aria-expanded="false"
+                        title="{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}"
+                        aria-label="{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}">
+                    <span class="cb-shell__btn-icon" aria-hidden="true">⇅</span>
+                    <span class="cb-shell__btn-label">{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}</span>
+                </button>
+            {% endif %}
         </div>
 
         <div class="cb-shell__topbar-center">
@@ -115,7 +117,9 @@
 
     {# Import / Export overlay panel — anchored to the topbar Import/Export
        button. Identical positioning rules as the replace picker so both
-       overlays read as siblings. #}
+       overlays read as siblings. Skipped entirely when the feature is off
+       (cb_import_export_enabled global). #}
+    {% if cb_import_export_enabled %}
     <div class="cb-import-export-picker"
          data-cb-builder-target="importExportPicker"
          role="dialog"
@@ -162,6 +166,7 @@
             </section>
         </div>
     </div>
+    {% endif %}
 
     {# Two-column main area: sidebar on the left, iframe on the right.
        The sidebar is permanent — it always occupies its own grid column

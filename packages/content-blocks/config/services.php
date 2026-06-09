@@ -33,7 +33,19 @@ return static function (ContainerConfigurator $container): void {
     // a section is centered.
     $container->parameters()
         ->set('content_blocks.section.default_width_mode', 'full')
-        ->set('content_blocks.section.default_max_width', 1320);
+        ->set('content_blocks.section.default_max_width', 1320)
+        // Import/export toggle. Resolves in this order:
+        //  1. the env var CONTENT_BLOCKS_IMPORT_EXPORT_ENABLED if set
+        //     (bool-cast: "0"/"false"/"" → off, "1"/"true" → on);
+        //  2. otherwise the `..._default` parameter below.
+        // A host can therefore flip the feature with a single env var, or
+        // override the parameter directly in services.yaml. Default: on,
+        // so existing projects are unchanged.
+        ->set('content_blocks.import_export.enabled_default', true)
+        ->set(
+            'content_blocks.import_export.enabled',
+            '%env(bool:default:content_blocks.import_export.enabled_default:CONTENT_BLOCKS_IMPORT_EXPORT_ENABLED)%',
+        );
 
     $services = $container->services()
         ->defaults()
@@ -44,7 +56,10 @@ return static function (ContainerConfigurator $container): void {
         // these up — currently BuiltInSectionDecorator, CoreSectionDefaults,
         // and SectionSettingsType.
         ->bind('int $defaultMaxWidth', '%content_blocks.section.default_max_width%')
-        ->bind('string $defaultWidthMode', '%content_blocks.section.default_width_mode%');
+        ->bind('string $defaultWidthMode', '%content_blocks.section.default_width_mode%')
+        // Consumed by ImportExportController (route gate) and
+        // ContentBlocksExtension (Twig global that hides the topbar UI).
+        ->bind('bool $importExportEnabled', '%content_blocks.import_export.enabled%');
 
     $services->set(BlockTypeRegistry::class)
         ->public();

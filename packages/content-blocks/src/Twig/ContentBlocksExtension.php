@@ -8,14 +8,29 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Rendering\BlockRenderer;
 use Twig\Extension\AbstractExtension;
+use Twig\Extension\GlobalsInterface;
 use Twig\TwigFunction;
 
-final class ContentBlocksExtension extends AbstractExtension
+final class ContentBlocksExtension extends AbstractExtension implements GlobalsInterface
 {
     public function __construct(
         private readonly BlockRenderer $renderer,
         private readonly ContentAreaUrlResolverInterface $urlResolver,
+        private readonly bool $importExportEnabled = true,
     ) {
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getGlobals(): array
+    {
+        return [
+            // Read by builder/shell.html.twig to show/hide the topbar
+            // Import/Export button and its overlay. The backend route is
+            // gated independently in ImportExportController.
+            'cb_import_export_enabled' => $this->importExportEnabled,
+        ];
     }
 
     /**

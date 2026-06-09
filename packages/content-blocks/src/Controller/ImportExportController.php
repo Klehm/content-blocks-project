@@ -42,6 +42,7 @@ final class ImportExportController
         private readonly ContentAreaExporter $exporter,
         private readonly ContentAreaImporter $importer,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly bool $importExportEnabled = true,
     ) {
     }
 
@@ -58,6 +59,10 @@ final class ImportExportController
     )]
     public function export(int $id): Response
     {
+        if (!$this->importExportEnabled) {
+            return new JsonResponse(['error' => 'Import/export is disabled.'], Response::HTTP_NOT_FOUND);
+        }
+
         $area = $this->em->find(ContentArea::class, $id);
         if (!$area) {
             return new JsonResponse(['error' => 'ContentArea not found'], Response::HTTP_NOT_FOUND);
@@ -97,6 +102,9 @@ final class ImportExportController
     )]
     public function import(int $id, Request $request): JsonResponse
     {
+        if (!$this->importExportEnabled) {
+            return new JsonResponse(['error' => 'Import/export is disabled.'], Response::HTTP_NOT_FOUND);
+        }
         if ($error = $this->csrfFailureOrNull($request)) {
             return $error;
         }

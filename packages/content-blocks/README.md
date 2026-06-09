@@ -398,6 +398,21 @@ parameters:
 
 Both `BuiltInSectionDecorator` and `CoreSectionDefaults` are bound to this parameter, so the form pre-fill, placeholder, and rendered fallback all move together.
 
+> **Note on centered sections.** The cap is applied to the inner `.cb-row`, not the `<section>` element — so a centered section's **background spans the full viewport width** while its content stays contained (the standard full-bleed pattern). The cap is emitted as a `--cb-row-max-w` custom property read by `layout.css`.
+
+### Default section width mode (built-in)
+
+New sections start in **full** width by default. To make every new section start **centered** project-wide, set the width mode default — via a parameter or the `CONTENT_BLOCKS` env layer:
+
+```yaml
+# config/services.yaml
+parameters:
+    content_blocks.section.default_width_mode: centered   # 'full' (default) | 'centered'
+    content_blocks.section.default_max_width: 1140         # the cap centered sections use
+```
+
+Like `maxWidth`, this drives the form radio pre-selection (`SectionSettingsType`), the defaults provider (`CoreSectionDefaults`), and the render fallback (`BuiltInSectionDecorator`) in lock-step.
+
 ### Adding (or overriding) defaults via a provider
 
 For multi-key defaults, nested values, or anything computed at runtime, register a `SectionSettingsDefaultsProviderInterface`:
@@ -428,6 +443,29 @@ At render time, values **equal to the default are stripped** from the saved sett
 ### Block-side equivalent
 
 For block defaults, implement `ContentBlocks\Block\BlockDataDefaultsProviderInterface` (mirror of the section interface). It's the same pattern: form pre-fill + `BlockDataDefaults::withoutDefaults()` at render. The package's `CoreBlockStylingDefaults` sets `styling.backgroundColor = #ffffff` to dodge the `<input type="color">` black fallback — extend it the same way.
+
+## Enabling / disabling import & export
+
+The builder ships an **Import / Export** topbar button that exports a `ContentArea` to a self-contained JSON file (sections + blocks + base64-encoded assets) and re-imports it elsewhere. It is **on by default**.
+
+To turn it off — either an env var (no config file needed) or a parameter:
+
+```bash
+# .env / environment
+CONTENT_BLOCKS_IMPORT_EXPORT_ENABLED=0
+```
+
+```yaml
+# config/services.yaml — equivalent, and wins if you prefer not to use the env var
+parameters:
+    content_blocks.import_export.enabled: false
+```
+
+Resolution order: the env var `CONTENT_BLOCKS_IMPORT_EXPORT_ENABLED` (bool-cast: `0`/`false`/empty → off, `1`/`true` → on) if set, otherwise the `content_blocks.import_export.enabled_default` parameter (ships `true`).
+
+The toggle gates **both ends**:
+- the topbar button and its overlay are hidden (`cb_import_export_enabled` Twig global);
+- the `GET …/export` and `POST …/import` routes return **404** — so disabling it actually closes the endpoints, not just the UI.
 
 ## Security notes
 

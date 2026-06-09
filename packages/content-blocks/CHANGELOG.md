@@ -5,6 +5,12 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.15] - 2026-06-09
+
+### Added
+
+- **Import / export can be toggled off.** The builder's Import/Export feature is now gated by `content_blocks.import_export.enabled` (ships `true`), overridable in one place: set the env var `CONTENT_BLOCKS_IMPORT_EXPORT_ENABLED` (`0`/`false`/empty → off, `1`/`true` → on) or the parameter directly. When off, the topbar button + overlay are hidden (via the new `cb_import_export_enabled` Twig global) **and** the `GET …/export` / `POST …/import` routes return 404 — the endpoints close, not just the UI.
+
 ## [0.1.0-alpha.14] - 2026-06-09
 
 ### Added
