@@ -5,6 +5,16 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.23] - 2026-06-10
+
+### Added
+
+- **Section style changes hot-reload in place.** Saving a section's settings (padding/margin/background/gap/alignment/width mode + column widths) now patches the section's wrapper class/style and its columns' class/style directly in the preview instead of reloading the whole iframe — the inner blocks (and their JS state) are left untouched, so it's always safe. New `BlockRenderer::renderSection()` + `GET /_content-blocks/section/{id}/render`; the overlay copies wrapper + column attributes, preserving the focus outline; the builder falls back to a full reload on any error.
+
+### Fixed
+
+- **Section styles no longer leak into blocks.** Section and block styling shared the same CSS custom property names (`--cb-pad-*`, `--cb-mar-*`, `--cb-bg`); since custom properties inherit, a section's padding/margin/background cascaded into its descendant blocks (e.g. a padding-top set on a section was inherited by the blocks inside it). Section vars are now namespaced `--cb-s-*` and block vars `--cb-b-*`, so each scope is independent. Non-shared vars are unchanged.
+
 ## [0.1.0-alpha.22] - 2026-06-10
 
 ### Fixed
