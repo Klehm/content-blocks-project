@@ -454,6 +454,14 @@
                     data-action="cb-collection-sort#moveDown"
                     aria-label="{{ 'cb.collection.move_down'|trans({}, 'content_blocks') }}"
                     title="{{ 'cb.collection.move_down'|trans({}, 'content_blocks') }}">▼</button>
+            {# Duplicate the entry: inserts a copy right after it via the
+               Block component's duplicateCollectionItem live action. Carries
+               no `name`, so it's never serialized into the submitted form. #}
+            <button type="button"
+                    class="cb-form-collection__move cb-form-collection__duplicate"
+                    data-action="cb-collection-sort#duplicate"
+                    aria-label="{{ 'cb.collection.duplicate'|trans({}, 'content_blocks') }}"
+                    title="{{ 'cb.collection.duplicate'|trans({}, 'content_blocks') }}">⧉</button>
         </div>
         {# Strip the cb-form-row margin from the inner fieldset — the
            item card already provides spacing via the grid gap. #}

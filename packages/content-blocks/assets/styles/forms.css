@@ -745,6 +745,10 @@
     outline: 2px solid var(--cb-form-border-focus);
     outline-offset: 1px;
 }
+/* The duplicate glyph (⧉) reads better a touch larger than the arrows. */
+.cb-shell .cb-form-collection__duplicate {
+    font-size: 13px;
+}
 /* SortableJS drag affordances. */
 .cb-shell .cb-form-collection__item.sortable-ghost {
     opacity: 0.5;

@@ -58,6 +58,12 @@ export default class extends Controller {
         if (index >= 0 && index < this._items().length - 1) this._move(index, index + 1);
     }
 
+    /** Duplicate the clicked entry, inserting the copy right after it. */
+    duplicate(event) {
+        const index = this._indexOf(event.currentTarget);
+        if (index >= 0) this._duplicate(index);
+    }
+
     /** Direct `.cb-form-collection__item` children, in DOM order. */
     _items() {
         return Array.from(this.element.querySelectorAll(':scope > .cb-form-collection__item'));
@@ -87,6 +93,26 @@ export default class extends Controller {
                 name: this.nameValue,
                 from,
                 to,
+            }))
+            .catch(() => {
+                /* No Live component in scope — nothing to persist to. */
+            });
+    }
+
+    /**
+     * Persist a duplicate via the Block live action. The component clones the
+     * entry's form data, inserts the copy after the original and re-renders;
+     * cb-autosave then reloads the preview — same structural-edit path as
+     * add/delete/reorder. Same getComponent-on-root caveat as _move().
+     */
+    _duplicate(index) {
+        if (index < 0) return;
+        const root = this.element.closest('[data-controller~="live"]');
+        if (!root) return;
+        getComponent(root)
+            .then((component) => component.action('duplicateCollectionItem', {
+                name: this.nameValue,
+                index,
             }))
             .catch(() => {
                 /* No Live component in scope — nothing to persist to. */

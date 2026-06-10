@@ -60,6 +60,7 @@ cb:
         reorder: "Drag to reorder"
         move_up: "Move up"
         move_down: "Move down"
+        duplicate: "Duplicate"
     builder:
         open: "Edit content"
         close: "Close"

@@ -18,6 +18,7 @@ function setup({ name = 'content_block[items]', count = 3 } = {}) {
                 <button class="cb-form-collection__drag-handle"></button>
                 <button class="cb-form-collection__move--up" data-action="cb-collection-sort#moveUp">▲</button>
                 <button class="cb-form-collection__move--down" data-action="cb-collection-sort#moveDown">▼</button>
+                <button class="cb-form-collection__duplicate" data-action="cb-collection-sort#duplicate">⧉</button>
             </div>
             <input name="items[${i}][label]" value="v${i}">
         </div>`,
@@ -40,6 +41,7 @@ function setup({ name = 'content_block[items]', count = 3 } = {}) {
 
 const up = (item) => item.querySelector('.cb-form-collection__move--up');
 const down = (item) => item.querySelector('.cb-form-collection__move--down');
+const dup = (item) => item.querySelector('.cb-form-collection__duplicate');
 
 describe('cb-collection-sort', () => {
     beforeEach(() => {
@@ -116,5 +118,41 @@ describe('cb-collection-sort', () => {
         await Promise.resolve();
 
         expect(action).toHaveBeenCalledWith('moveCollectionItem', { name, from: 3, to: 0 });
+    });
+
+    it('duplicate dispatches duplicateCollectionItem with the clicked index and field name', async () => {
+        const { controller, element, action, name } = setup({ count: 3 });
+        const items = element.querySelectorAll('.cb-form-collection__item');
+
+        controller.duplicate({ currentTarget: dup(items[1]) });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(action).toHaveBeenCalledTimes(1);
+        expect(action).toHaveBeenCalledWith('duplicateCollectionItem', { name, index: 1 });
+    });
+
+    it('duplicate works on the last entry', async () => {
+        const { controller, element, action, name } = setup({ count: 3 });
+        const items = element.querySelectorAll('.cb-form-collection__item');
+
+        controller.duplicate({ currentTarget: dup(items[2]) });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(action).toHaveBeenCalledWith('duplicateCollectionItem', { name, index: 2 });
+    });
+
+    it('_duplicate is a no-op when there is no Live component in scope', async () => {
+        const { controller, action } = setup({ count: 2 });
+        // Strip the live root so getComponent has nothing to resolve.
+        document.body.innerHTML = '';
+        document.body.appendChild(controller.element);
+
+        controller._duplicate(0);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(action).not.toHaveBeenCalled();
     });
 });

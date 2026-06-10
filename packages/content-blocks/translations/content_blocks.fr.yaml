@@ -60,6 +60,7 @@ cb:
         reorder: "Glisser pour réordonner"
         move_up: "Monter"
         move_down: "Descendre"
+        duplicate: "Dupliquer"
     builder:
         open: "Modifier le contenu"
         close: "Fermer"

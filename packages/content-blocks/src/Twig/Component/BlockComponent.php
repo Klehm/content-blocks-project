@@ -143,6 +143,41 @@ final class BlockComponent
     }
 
     /**
+     * Duplicate the entry at position $index of a LiveCollectionType field,
+     * inserting the copy right after the original. Driven by the duplicate
+     * button rendered by the cb_form_theme on each collection card, routed
+     * through the cb-collection-sort Stimulus controller.
+     *
+     * Like moveCollectionItem, this is an in-place value change with no
+     * childList mutation the cb-autosave observer could catch (the copy reuses
+     * the next positional widget id), so it persists the draft itself and
+     * dispatches cb:block:saved. $index is the 0-based DOM position.
+     */
+    #[LiveAction]
+    public function duplicateCollectionItem(
+        PropertyAccessorInterface $propertyAccessor,
+        #[LiveArg] string $name,
+        #[LiveArg] int $index,
+    ): void {
+        $this->denyUnlessCanEdit();
+
+        $propertyPath = $this->collectionPropertyPath($name);
+        $data = $propertyAccessor->getValue($this->formValues, $propertyPath);
+        if (!\is_array($data)) {
+            return;
+        }
+
+        $duplicated = self::duplicateInCollection($data, $index);
+        if (null === $duplicated) {
+            return;
+        }
+
+        $propertyAccessor->setValue($this->formValues, $propertyPath, $duplicated);
+
+        $this->persistDraft();
+    }
+
+    /**
      * Submit the live form and commit its data to the block's draft, then tell
      * the admin window to reload the preview iframe. Shared by save() and
      * moveCollectionItem(). A no-op (returns early) when the block type is gone
@@ -190,6 +225,29 @@ final class BlockComponent
 
         $moved = array_splice($values, $from, 1);
         array_splice($values, $to, 0, $moved);
+
+        return $values;
+    }
+
+    /**
+     * Insert a copy of the item at $index immediately after it within a
+     * positional list. Returns null when $index is out of range, so the caller
+     * can skip the write. Keys are normalized to a contiguous 0..n list — the
+     * live collection re-renders positionally.
+     *
+     * @param array<int|string, mixed> $data
+     *
+     * @return list<mixed>|null
+     */
+    private static function duplicateInCollection(array $data, int $index): ?array
+    {
+        $values = array_values($data);
+        $count = \count($values);
+        if ($index < 0 || $index >= $count) {
+            return null;
+        }
+
+        array_splice($values, $index + 1, 0, [$values[$index]]);
 
         return $values;
     }

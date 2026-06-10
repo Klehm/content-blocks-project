@@ -288,4 +288,51 @@ final class BlockComponentTest extends TestCase
 
         return $method->invoke(null, $data, $from, $to);
     }
+
+    /**
+     * @param list<string>      $data
+     * @param list<string>|null $expected
+     */
+    #[DataProvider('duplicateInCollectionProvider')]
+    public function testDuplicateInCollectionInsertsCopyAfterItem(array $data, int $index, ?array $expected): void
+    {
+        self::assertSame($expected, $this->invokeDuplicateInCollection($data, $index));
+    }
+
+    /**
+     * @return iterable<string, array{0: list<string>, 1: int, 2: list<string>|null}>
+     */
+    public static function duplicateInCollectionProvider(): iterable
+    {
+        yield 'duplicate first' => [['a', 'b', 'c'], 0, ['a', 'a', 'b', 'c']];
+        yield 'duplicate middle' => [['a', 'b', 'c'], 1, ['a', 'b', 'b', 'c']];
+        yield 'duplicate last appends' => [['a', 'b', 'c'], 2, ['a', 'b', 'c', 'c']];
+        yield 'single item' => [['a'], 0, ['a', 'a']];
+        yield 'index out of range' => [['a', 'b'], 5, null];
+        yield 'negative index' => [['a', 'b'], -1, null];
+    }
+
+    public function testDuplicateInCollectionNormalizesSparseKeysFromPriorDeletion(): void
+    {
+        // A prior LiveCollection delete leaves a hole in the keys. The copy
+        // must be inserted by positional index and the result returned as a
+        // contiguous 0..n list (the collection re-renders positionally).
+        $sparse = [0 => 'a', 2 => 'c', 3 => 'd'];
+
+        // Positionally: [a, c, d]; duplicate position 1 (c) → [a, c, c, d].
+        self::assertSame(['a', 'c', 'c', 'd'], $this->invokeDuplicateInCollection($sparse, 1));
+    }
+
+    /**
+     * @param array<int|string, mixed> $data
+     *
+     * @return list<mixed>|null
+     */
+    private function invokeDuplicateInCollection(array $data, int $index): ?array
+    {
+        $method = (new \ReflectionClass(BlockComponent::class))->getMethod('duplicateInCollection');
+        $method->setAccessible(true);
+
+        return $method->invoke(null, $data, $index);
+    }
 }
