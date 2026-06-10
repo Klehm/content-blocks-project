@@ -51,6 +51,15 @@ final class StylingType extends AbstractType
                 'label' => 'cb.styling.background_color',
             ]);
 
+        if ($options['include_gap']) {
+            // Section-only: the gap between columns, responsive (D/T/M).
+            // Falls back to the framework default (1rem) when unset.
+            $builder->add('gap', ResponsiveLengthType::class, [
+                'label' => 'cb.styling.gap',
+                'placeholder' => '16',
+            ]);
+        }
+
         if ($options['include_min_height']) {
             $builder->add('minHeight', LengthType::class, [
                 'required' => false,
@@ -122,6 +131,7 @@ final class StylingType extends AbstractType
             'include_alignment' => false,
             'include_max_width' => false,
             'include_align_self' => false,
+            'include_gap' => false,
             'translation_domain' => 'content_blocks',
             'label' => false,
         ]);
@@ -129,6 +139,7 @@ final class StylingType extends AbstractType
         $resolver->setAllowedTypes('include_alignment', 'bool');
         $resolver->setAllowedTypes('include_max_width', 'bool');
         $resolver->setAllowedTypes('include_align_self', 'bool');
+        $resolver->setAllowedTypes('include_gap', 'bool');
     }
 
     public function getBlockPrefix(): string

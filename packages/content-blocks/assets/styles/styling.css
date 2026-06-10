@@ -33,6 +33,12 @@
     justify-content: var(--cb-valign, flex-start);
 }
 
+/* Column gap: the --cb-gap-* vars are set on the section and inherited by
+   the inner row. Falls back to the framework default (1rem in layout.css). */
+.cb-section--styled > .cb-row {
+    gap: var(--cb-gap-d, 1rem);
+}
+
 /* ----- Tablet (≤ 991px) ----- */
 @media (max-width: 991px) {
     .cb-section--styled {
@@ -44,6 +50,9 @@
         margin-right: var(--cb-mar-t-r, var(--cb-mar-d-r, 0));
         margin-bottom: var(--cb-mar-t-b, var(--cb-mar-d-b, 0));
         margin-left: var(--cb-mar-t-l, var(--cb-mar-d-l, 0));
+    }
+    .cb-section--styled > .cb-row {
+        gap: var(--cb-gap-t, var(--cb-gap-d, 1rem));
     }
 }
 
@@ -58,6 +67,9 @@
         margin-right:  var(--cb-mar-m-r, var(--cb-mar-t-r, var(--cb-mar-d-r, 0)));
         margin-bottom: var(--cb-mar-m-b, var(--cb-mar-t-b, var(--cb-mar-d-b, 0)));
         margin-left:   var(--cb-mar-m-l, var(--cb-mar-t-l, var(--cb-mar-d-l, 0)));
+    }
+    .cb-section--styled > .cb-row {
+        gap: var(--cb-gap-m, var(--cb-gap-t, var(--cb-gap-d, 1rem)));
     }
 }
 

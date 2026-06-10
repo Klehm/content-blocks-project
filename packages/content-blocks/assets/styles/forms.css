@@ -813,6 +813,81 @@
 }
 
 
+/* ---- Column widths control (section settings) ---- */
+.cb-shell .cb-col-widths__presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 0.5rem;
+}
+.cb-shell .cb-col-widths__preset {
+    appearance: none;
+    padding: 3px 8px;
+    background: #fff;
+    border: 1px solid var(--cb-form-border);
+    border-radius: var(--cb-form-radius-sm);
+    color: var(--cb-form-text, #3a4150);
+    font: inherit;
+    font-size: 0.78rem;
+    line-height: 1.3;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.cb-shell .cb-col-widths__preset:hover,
+.cb-shell .cb-col-widths__preset:focus-visible {
+    border-color: var(--cb-form-accent);
+    color: var(--cb-form-accent);
+    outline: none;
+}
+.cb-shell .cb-col-widths__preset--active {
+    border-color: var(--cb-form-accent);
+    color: var(--cb-form-accent);
+    background: rgba(79, 141, 249, 0.08);
+}
+.cb-shell .cb-col-widths__custom {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+/* The class rule above would otherwise beat the UA [hidden] = display:none. */
+.cb-shell .cb-col-widths__custom[hidden] {
+    display: none;
+}
+.cb-shell .cb-col-widths__field {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+.cb-shell .cb-col-widths__input {
+    width: 3.25rem;
+    padding: 4px 6px;
+    border: 1px solid var(--cb-form-border);
+    border-radius: var(--cb-form-radius-sm);
+    font: inherit;
+    text-align: center;
+}
+.cb-shell .cb-col-widths__input:focus {
+    border-color: var(--cb-form-border-focus);
+    outline: none;
+}
+.cb-shell .cb-col-widths__pct {
+    color: var(--cb-form-muted, #8a91a0);
+    font-size: 0.8rem;
+}
+.cb-shell .cb-col-widths__sep {
+    color: var(--cb-form-muted, #8a91a0);
+}
+.cb-shell .cb-col-widths__total {
+    margin-left: auto;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #2e7d46;
+}
+.cb-shell .cb-col-widths__total--invalid {
+    color: #d83a3a;
+}
+
 /* ---- Visually-hidden helper ---- */
 .cb-shell .cb-form-sr-only {
     position: absolute !important;

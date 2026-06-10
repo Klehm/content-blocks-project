@@ -141,7 +141,7 @@ final class BlockRenderer
                 'extraClasses' => $decoration->classString(),
                 'inlineStyle' => $decoration->styleString(),
                 'extraAttributes' => $decoration->attributes,
-                'columns' => $this->buildColumnTree($section, $mode, $sectionDeleted),
+                'columns' => $this->buildColumnTree($section, $mode, $sectionDeleted, $settings['columnWidths'] ?? null),
             ];
         }
 
@@ -149,9 +149,15 @@ final class BlockRenderer
     }
 
     /**
-     * @return list<array{id: ?int, preset: string, deleted: bool, blocks: list<array<string, mixed>>}>
+     * @param mixed $columnWidths Raw `columnWidths` section setting (a CSV
+     *                            string like "40,60"), or null for equal
+     *                            widths. Applied as per-column flex weights
+     *                            only when it parses to exactly one positive
+     *                            integer per column.
+     *
+     * @return list<array{id: ?int, preset: string, deleted: bool, width: ?int, blocks: list<array<string, mixed>>}>
      */
-    private function buildColumnTree(Section $section, RenderMode $mode, bool $parentDeleted): array
+    private function buildColumnTree(Section $section, RenderMode $mode, bool $parentDeleted, mixed $columnWidths = null): array
     {
         $columns = $section->getColumns()->toArray();
 
@@ -162,18 +168,56 @@ final class BlockRenderer
             usort($columns, fn (Column $a, Column $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
         }
 
+        $widths = self::parseColumnWidths($columnWidths, \count($columns));
+
         $out = [];
-        foreach ($columns as $column) {
+        foreach ($columns as $i => $column) {
             $columnDeleted = $parentDeleted || $column->isDeleted();
             $out[] = [
                 'id' => $column->getId(),
                 'preset' => $column->getPreset(),
                 'deleted' => $columnDeleted,
+                'width' => $widths[$i] ?? null,
                 'blocks' => $this->buildBlockList($column, $mode, $columnDeleted),
             ];
         }
 
         return $out;
+    }
+
+    /**
+     * Parse the `columnWidths` setting into a positional list of integer
+     * weights. Returns null (→ equal widths) unless the value is a CSV of
+     * exactly $expected positive integers, so malformed or stale data falls
+     * back to the clean preset-based layout.
+     *
+     * @return list<int>|null
+     */
+    private static function parseColumnWidths(mixed $value, int $expected): ?array
+    {
+        if (!\is_string($value) || $value === '' || $expected < 2) {
+            return null;
+        }
+
+        $parts = explode(',', $value);
+        if (\count($parts) !== $expected) {
+            return null;
+        }
+
+        $widths = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part === '' || !ctype_digit($part)) {
+                return null;
+            }
+            $n = (int) $part;
+            if ($n < 1) {
+                return null;
+            }
+            $widths[] = $n;
+        }
+
+        return $widths;
     }
 
     /**

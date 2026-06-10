@@ -17,6 +17,10 @@ cb:
             width.full: "Pleine largeur"
             width.centered: "Centré"
             max_width: "Largeur max (px)"
+            column_widths: "Largeur des colonnes"
+            column_widths_equal: "Égales"
+            column_widths_custom: "Personnalisé"
+            column_width_n: "Largeur de la colonne %n% (%)"
             style: "Style prédéfini"
             style.none: "— Aucun —"
             tab.general: "Général"
@@ -24,6 +28,7 @@ cb:
     styling:
         padding: "Marge intérieure"
         margin: "Marge extérieure"
+        gap: "Espace entre colonnes"
         background_color: "Couleur de fond"
         min_height: "Hauteur min."
         max_width: "Largeur max."

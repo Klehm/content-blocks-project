@@ -847,3 +847,36 @@ test.describe('builder shell — selection affordances', () => {
         await expect(frame.locator('.cb-overlay-popover')).toBeVisible();
     });
 });
+
+test.describe('builder shell — column widths', () => {
+    test('applying a 40/60 preset weights the two columns and persists after reload', async ({ page }) => {
+        const frame = await openBuilder(page);
+
+        // Add a two-column section.
+        await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="two_cols"]').click();
+        await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);
+        await page.waitForTimeout(200);
+
+        // Open the section settings via the hover-revealed handle.
+        const section = frame.locator('[data-cb-section-id]').first();
+        await section.hover();
+        await section.locator('.cb-section-handle').click();
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar.locator('.cb-col-widths')).toBeVisible();
+
+        // Apply the 40/60 preset → save → preview reload re-renders weighted.
+        await sidebar.locator('.cb-col-widths__preset', { hasText: '40/60' }).click();
+        await expect
+            .poll(() => frame.locator('[data-cb-column-id]').first().getAttribute('style'))
+            .toContain('--cb-col-grow: 40');
+
+        // Reopen the builder: the weight is persisted to the draft.
+        await page.reload();
+        await page.locator('.cb-launcher__button').click();
+        await expect(page.locator('.cb-shell')).toBeVisible();
+        const reloaded = page.frameLocator('.cb-shell__iframe');
+        await expect
+            .poll(() => reloaded.locator('[data-cb-column-id]').first().getAttribute('style'))
+            .toContain('--cb-col-grow: 40');
+    });
+});

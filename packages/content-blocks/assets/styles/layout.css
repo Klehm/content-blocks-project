@@ -50,11 +50,19 @@
 .cb-col--col-6  { flex-basis: calc((100% - 1rem) / 2); }
 .cb-col--col-4  { flex-basis: calc((100% - 2rem) / 3); }
 
+/* Custom column widths: a per-column grow weight (from the section's
+   `columnWidths` setting, e.g. 40/60) distributes the row proportionally.
+   flex-basis 0 so the weights alone decide the ratio; the row gap is taken
+   out by flex. Declared after the presets so the shorthand's basis:0 wins
+   over a preset's fixed flex-basis when both classes are present. */
+.cb-col--weighted { flex: var(--cb-col-grow, 1) 1 0; }
+
 @media (max-width: 768px) {
     .cb-col--col-4 { flex-basis: calc((100% - 1rem) / 2); }
 }
 
 @media (max-width: 540px) {
     .cb-col--col-6,
-    .cb-col--col-4 { flex-basis: 100%; }
+    .cb-col--col-4,
+    .cb-col--weighted { flex-basis: 100%; }
 }

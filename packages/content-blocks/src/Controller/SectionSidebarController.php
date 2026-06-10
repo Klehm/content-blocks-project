@@ -74,9 +74,20 @@ final class SectionSidebarController
         // the existing styling sub-form rather than replacing it.
         $current = $section->getEffectiveSettings(preferDraft: true);
         $initial = array_replace_recursive($this->settingsDefaults->get(), $current);
+
+        // Number of (live) columns: drives whether the column-widths control
+        // is offered and how many width inputs the sidebar renders.
+        $columnCount = 0;
+        foreach ($section->getColumns() as $column) {
+            if (!$column->isDeleted()) {
+                ++$columnCount;
+            }
+        }
+
         $form = $this->formFactory->create(SectionSettingsType::class, $initial, [
             'action' => '/_content-blocks/section/' . $id . '/settings',
             'method' => 'POST',
+            'column_count' => $columnCount,
         ]);
 
         if ($request->isMethod('POST')) {
@@ -88,6 +99,7 @@ final class SectionSidebarController
             if ($form->isSubmitted() && $form->isValid()) {
                 /** @var array<string, mixed> $data */
                 $data = $form->getData() ?? [];
+                $data['columnWidths'] = $this->sanitizeColumnWidths($data['columnWidths'] ?? null, $columnCount);
                 $section->setDraftSettings($this->normalize($data));
                 $this->em->flush();
 
@@ -99,6 +111,7 @@ final class SectionSidebarController
                 $this->twig->render('@ContentBlocks/builder/sidebar_section.html.twig', [
                     'form' => $form->createView(),
                     'sectionId' => $id,
+                    'columnCount' => $columnCount,
                 ]),
                 Response::HTTP_UNPROCESSABLE_ENTITY,
             );
@@ -107,7 +120,47 @@ final class SectionSidebarController
         return new Response($this->twig->render('@ContentBlocks/builder/sidebar_section.html.twig', [
             'form' => $form->createView(),
             'sectionId' => $id,
+            'columnCount' => $columnCount,
         ]));
+    }
+
+    /**
+     * Keep a column-widths CSV only when it's exactly $columnCount positive
+     * integers summing to 100; otherwise drop it (→ equal widths). The
+     * Stimulus controller already commits valid values, so this just guards
+     * against direct/forged posts and keeps the stored JSON trustworthy.
+     */
+    private function sanitizeColumnWidths(mixed $value, int $columnCount): ?string
+    {
+        if (!\is_string($value) || $value === '' || $columnCount < 2) {
+            return null;
+        }
+
+        $parts = explode(',', $value);
+        if (\count($parts) !== $columnCount) {
+            return null;
+        }
+
+        $sum = 0;
+        $clean = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part === '' || !ctype_digit($part)) {
+                return null;
+            }
+            $n = (int) $part;
+            if ($n < 1 || $n > 99) {
+                return null;
+            }
+            $sum += $n;
+            $clean[] = (string) $n;
+        }
+
+        if ($sum !== 100) {
+            return null;
+        }
+
+        return implode(',', $clean);
     }
 
     /**

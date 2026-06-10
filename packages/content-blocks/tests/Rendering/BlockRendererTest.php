@@ -270,6 +270,36 @@ final class BlockRendererTest extends TestCase
         $this->assertStringContainsString('background-color:#ff00ff', $html);
     }
 
+    public function testColumnWidthsAreEmittedAsPerColumnFlexWeights(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_TWO_COLS, position: 0, previewPosition: 0);
+        $this->makeColumn($section, position: 0, previewPosition: 0);
+        $this->makeColumn($section, position: 1, previewPosition: 1);
+        $section->setPublishedSettings(['columnWidths' => '40,60']);
+
+        $html = $this->makeRenderer()->render($area, RenderMode::PUBLIC);
+
+        $this->assertStringContainsString('cb-col--weighted', $html);
+        $this->assertStringContainsString('--cb-col-grow: 40', $html);
+        $this->assertStringContainsString('--cb-col-grow: 60', $html);
+    }
+
+    public function testMalformedColumnWidthsFallBackToEqualLayout(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_TWO_COLS, position: 0, previewPosition: 0);
+        $this->makeColumn($section, position: 0, previewPosition: 0);
+        $this->makeColumn($section, position: 1, previewPosition: 1);
+        // Wrong count for a 2-column section → ignored, no weighted markup.
+        $section->setPublishedSettings(['columnWidths' => '33,33,34']);
+
+        $html = $this->makeRenderer()->render($area, RenderMode::PUBLIC);
+
+        $this->assertStringNotContainsString('cb-col--weighted', $html);
+        $this->assertStringNotContainsString('--cb-col-grow', $html);
+    }
+
     /**
      * If a block type defines a viewTemplate, it is included with `data` arg.
      */

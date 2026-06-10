@@ -17,6 +17,10 @@ cb:
             width.full: "Full width"
             width.centered: "Centered"
             max_width: "Max width (px)"
+            column_widths: "Column widths"
+            column_widths_equal: "Equal"
+            column_widths_custom: "Custom"
+            column_width_n: "Column %n% width (%)"
             style: "Style preset"
             style.none: "— None —"
             tab.general: "General"
@@ -24,6 +28,7 @@ cb:
     styling:
         padding: "Padding"
         margin: "Margin"
+        gap: "Column gap"
         background_color: "Background color"
         min_height: "Min height"
         max_width: "Max width"

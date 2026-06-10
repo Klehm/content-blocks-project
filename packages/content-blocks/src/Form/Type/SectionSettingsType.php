@@ -8,6 +8,7 @@ use ContentBlocks\Form\Type\Styling\StylingType;
 use ContentBlocks\Section\SectionStyleRegistry;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -70,6 +71,18 @@ final class SectionSettingsType extends AbstractType
                 'attr' => ['placeholder' => (string) $this->defaultMaxWidth],
             ]);
 
+        // Multi-column sections can carry per-column widths as a CSV string
+        // of percentages summing to 100 (e.g. "40,60"). Stored as a single
+        // hidden field; the visible presets + number inputs are rendered by
+        // sidebar_section.html.twig and driven by the cb-section-settings-form
+        // Stimulus controller, which keeps this field's value canonical.
+        if ($options['column_count'] >= 2) {
+            $builder->add('columnWidths', HiddenType::class, [
+                'required' => false,
+                'label' => 'cb.section.settings.column_widths',
+            ]);
+        }
+
         $choices = $this->styleRegistry->getChoices();
         if (!empty($choices)) {
             $builder->add('styleName', ChoiceType::class, [
@@ -86,6 +99,7 @@ final class SectionSettingsType extends AbstractType
         $builder->add('styling', StylingType::class, [
             'include_min_height' => true,
             'include_alignment' => true,
+            'include_gap' => true,
         ]);
     }
 
@@ -94,6 +108,10 @@ final class SectionSettingsType extends AbstractType
         $resolver->setDefaults([
             'data_class' => null,
             'translation_domain' => 'content_blocks',
+            // Number of columns in the section being edited; drives whether
+            // the column-widths control is offered. Set by SectionSidebarController.
+            'column_count' => 1,
         ]);
+        $resolver->setAllowedTypes('column_count', 'int');
     }
 }

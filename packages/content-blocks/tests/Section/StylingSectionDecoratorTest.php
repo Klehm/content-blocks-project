@@ -74,6 +74,32 @@ final class StylingSectionDecoratorTest extends TestCase
         $this->assertArrayNotHasKey('--cb-bg', $b->inlineStyles);
     }
 
+    public function testGapEmitsPerViewportPxVars(): void
+    {
+        $settings = [
+            'styling' => [
+                'gap' => ['d' => 24, 'm' => 8],
+            ],
+        ];
+
+        $decoration = (new StylingSectionDecorator())->decorate($settings, new Section());
+
+        $this->assertSame('24px', $decoration->inlineStyles['--cb-gap-d']);
+        $this->assertSame('8px', $decoration->inlineStyles['--cb-gap-m']);
+        $this->assertArrayNotHasKey('--cb-gap-t', $decoration->inlineStyles, 'tablet was unset');
+    }
+
+    public function testGapIgnoresNonIntAndNegativeValues(): void
+    {
+        $deco = (new StylingSectionDecorator());
+
+        $decoration = $deco->decorate(['styling' => ['gap' => ['d' => -4, 't' => null, 'm' => 12]]], new Section());
+
+        $this->assertArrayNotHasKey('--cb-gap-d', $decoration->inlineStyles);
+        $this->assertArrayNotHasKey('--cb-gap-t', $decoration->inlineStyles);
+        $this->assertSame('12px', $decoration->inlineStyles['--cb-gap-m']);
+    }
+
     public function testMinHeightAppendsUnit(): void
     {
         $deco = (new StylingSectionDecorator());

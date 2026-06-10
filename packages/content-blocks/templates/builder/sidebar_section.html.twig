@@ -22,9 +22,67 @@
                 {{ 'cb.section.settings.tab.general'|trans({}, 'content_blocks') }}
             </h4>
             <div class="cb-sidebar__group-body">
+                {% set width_presets = columnCount == 3
+                    ? [
+                        { label: 'cb.section.settings.column_widths_equal'|trans({}, 'content_blocks'), value: '34,33,33' },
+                        { label: '50/25/25', value: '50,25,25' },
+                        { label: '25/50/25', value: '25,50,25' },
+                        { label: '25/25/50', value: '25,25,50' },
+                        { label: '40/30/30', value: '40,30,30' },
+                      ]
+                    : [
+                        { label: '50/50', value: '50,50' },
+                        { label: '33/67', value: '33,67' },
+                        { label: '40/60', value: '40,60' },
+                        { label: '60/40', value: '60,40' },
+                        { label: '67/33', value: '67,33' },
+                      ] %}
                 {% for child in form %}
                     {% if child.vars.name == 'styling' %}
                         {# Rendered in the Styling group below. #}
+                    {% elseif child.vars.name == 'columnWidths' %}
+                        {# Per-column widths: a hidden CSV field carries the
+                           canonical value; the presets + number inputs below
+                           are driven by cb-section-settings-form, which keeps
+                           the hidden field in sync (and only commits valid
+                           sets summing to 100). The number inputs have no
+                           `name`, so they never reach the submitted FormData. #}
+                        <div class="cb-form-row cb-col-widths">
+                            <span class="cb-form-label">
+                                {{ 'cb.section.settings.column_widths'|trans({}, 'content_blocks') }}
+                            </span>
+                            {{ form_widget(child, { attr: { 'data-cb-section-settings-form-target': 'widthsField' } }) }}
+                            <div class="cb-col-widths__presets">
+                                {% for preset in width_presets %}
+                                    <button type="button"
+                                            class="cb-col-widths__preset"
+                                            data-action="cb-section-settings-form#applyWidthPreset"
+                                            data-cb-widths="{{ preset.value }}">{{ preset.label }}</button>
+                                {% endfor %}
+                                {# Reveals the free inputs below; stays hidden until the
+                                   user wants a value the presets don't cover. #}
+                                <button type="button"
+                                        class="cb-col-widths__preset cb-col-widths__preset--custom"
+                                        data-cb-section-settings-form-target="customToggle"
+                                        data-action="cb-section-settings-form#showCustomWidths">
+                                    {{ 'cb.section.settings.column_widths_custom'|trans({}, 'content_blocks') }}
+                                </button>
+                            </div>
+                            <div class="cb-col-widths__custom" data-cb-section-settings-form-target="customRow" hidden>
+                                {% for i in 1..columnCount %}
+                                    <span class="cb-col-widths__field">
+                                        <input type="number" min="1" max="99" step="1" inputmode="numeric"
+                                               class="cb-col-widths__input"
+                                               aria-label="{{ 'cb.section.settings.column_width_n'|trans({ '%n%': i }, 'content_blocks') }}"
+                                               data-cb-section-settings-form-target="widthInput"
+                                               data-action="input->cb-section-settings-form#onWidthInput change->cb-section-settings-form#onWidthCommit">
+                                        <span class="cb-col-widths__pct">%</span>
+                                    </span>
+                                    {%- if not loop.last %}<span class="cb-col-widths__sep">/</span>{% endif -%}
+                                {% endfor %}
+                                <span class="cb-col-widths__total" data-cb-section-settings-form-target="widthsTotal" aria-live="polite"></span>
+                            </div>
+                        </div>
                     {% elseif child.vars.name == 'maxWidth' %}
                         {# Only meaningful when widthMode is "centered" —
                            the row is hidden otherwise. JS keeps the

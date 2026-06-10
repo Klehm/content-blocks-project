@@ -63,6 +63,19 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
             }
         }
 
+        // Column gap: responsive single px value (D/T/M). The var is set on
+        // the section and inherited by the inner .cb-row; styling.css maps it
+        // with the usual D→T→M fallback cascade.
+        $gap = $styling['gap'] ?? null;
+        if (\is_array($gap)) {
+            foreach (['d', 't', 'm'] as $viewport) {
+                $value = $gap[$viewport] ?? null;
+                if (\is_int($value) && $value >= 0) {
+                    $vars["--cb-gap-{$viewport}"] = $value . 'px';
+                }
+            }
+        }
+
         // Background color.
         $bg = $styling['backgroundColor'] ?? null;
         if (\is_string($bg) && $bg !== '') {

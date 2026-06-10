@@ -97,6 +97,47 @@
     </div>
 {% endblock %}
 
+{# Responsive single length (e.g. gap): same D/T/M tabs, a single input. #}
+{% block cb_responsive_length_row %}
+    <div class="cb-form-row">
+        <div class="cb-form-row__header">
+            <label class="cb-form-label">{{ form.vars.label|trans({}, 'content_blocks') }}</label>
+            <div class="cb-viewport-tabs" data-controller="cb-viewport-tabs" data-cb-viewport-tabs-active-value="d">
+                {% set viewports = [
+                    { key: 'd', icon: '▭', label: 'cb.styling.viewport.desktop' },
+                    { key: 't', icon: '▢', label: 'cb.styling.viewport.tablet' },
+                    { key: 'm', icon: '▯', label: 'cb.styling.viewport.mobile' },
+                ] %}
+                {% for v in viewports %}
+                    <button type="button"
+                            class="cb-viewport-tabs__btn"
+                            data-cb-viewport-tabs-target="tab"
+                            data-viewport="{{ v.key }}"
+                            data-action="cb-viewport-tabs#select"
+                            aria-pressed="{{ v.key == 'd' ? 'true' : 'false' }}"
+                            title="{{ v.label|trans({}, 'content_blocks') }}">
+                        <span aria-hidden="true">{{ v.icon }}</span>
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+        {{ form_widget(form) }}
+    </div>
+{% endblock %}
+
+{% block cb_responsive_length_widget %}
+    <div class="cb-responsive-length">
+        {% for vp in ['d', 't', 'm'] %}
+            <div class="cb-responsive-length__viewport" data-viewport="{{ vp }}">
+                <span class="cb-length cb-form-input-group">
+                    {{ form_widget(form[vp], { attr: { class: 'cb-responsive-length__input' } }) }}
+                    <span class="cb-length__unit cb-responsive-length__unit">px</span>
+                </span>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
+
 {# Alignment radios rendered as an icon button-group. The native radios
    are visually hidden but kept in the DOM so they submit normally and
    stay keyboard-accessible. CSS targets `:checked + .cb-align-btn__face`
