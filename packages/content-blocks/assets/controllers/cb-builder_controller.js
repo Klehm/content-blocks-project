@@ -735,10 +735,18 @@ export default class extends Controller {
     _onSectionSaved(event) {
         this._applyDraftState(true);
         this._flashSaved();
-        // Section settings change the section wrapper (and can cascade to
-        // its columns) — there's no single block to swap, so always do a
-        // full reload.
-        this._scheduleReload();
+        // Section settings only change the section wrapper's style + its column
+        // widths (never structure), so hot-reload just that section's
+        // attributes in place instead of reloading the whole iframe. Falls
+        // back to a full reload if the section id is unknown.
+        const sectionId = this.hasSidebarTarget
+            ? this.sidebarTarget.getAttribute('data-cb-sidebar-section-id')
+            : null;
+        if (sectionId) {
+            this._scheduleSectionRefresh(parseInt(sectionId, 10));
+        } else {
+            this._scheduleReload();
+        }
     }
 
     _scheduleReload() {
@@ -797,6 +805,57 @@ export default class extends Controller {
             );
         } catch (_) {
             // Couldn't reach the iframe — last-resort full reload.
+            this.reload();
+        }
+    }
+
+    _scheduleSectionRefresh(sectionId) {
+        clearTimeout(this._reloadTimer);
+        this._reloadTimer = setTimeout(
+            () => this._refreshSection(sectionId),
+            this.constructor.SAVE_RELOAD_DEBOUNCE_MS,
+        );
+    }
+
+    /**
+     * Fetches the freshly-rendered markup for a single section and asks the
+     * preview overlay to patch its wrapper (class/style) + column widths in
+     * place. Any failure falls back to a full iframe reload so the preview is
+     * never left stale.
+     */
+    async _refreshSection(sectionId) {
+        if (!sectionId || !this.hasIframeTarget) {
+            this.reload();
+            return;
+        }
+
+        this._beginLoading();
+        let payload = null;
+        try {
+            const response = await fetch(`/_content-blocks/section/${sectionId}/render`, {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+            });
+            if (response.ok) {
+                payload = await response.json().catch(() => null);
+            }
+        } catch (_) {
+            // Network/detached frame — fall through to the full reload below.
+        } finally {
+            this._endLoading();
+        }
+
+        if (!payload || payload.hotReload !== true || typeof payload.html !== 'string') {
+            this.reload();
+            return;
+        }
+
+        try {
+            this.iframeTarget.contentWindow?.postMessage(
+                { type: 'cb:section:patch', sectionId, html: payload.html },
+                window.location.origin,
+            );
+        } catch (_) {
             this.reload();
         }
     }

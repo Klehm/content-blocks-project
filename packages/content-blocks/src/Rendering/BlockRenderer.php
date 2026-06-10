@@ -34,6 +34,7 @@ final class BlockRenderer
     public const QUERY_PARAM = 'cb_preview';
     private const RENDER_TEMPLATE = '@ContentBlocks/render/content_area.html.twig';
     private const BLOCK_TEMPLATE = '@ContentBlocks/render/block.html.twig';
+    private const SECTION_TEMPLATE = '@ContentBlocks/render/section.html.twig';
 
     public function __construct(
         private readonly Environment $twig,
@@ -111,6 +112,22 @@ final class BlockRenderer
     }
 
     /**
+     * Renders a single section's markup in isolation — the same
+     * `section.html.twig` wrapper used inside a full area render. The builder
+     * uses it to hot-reload a section's style (wrapper class/style + column
+     * widths) after a settings change without reloading the whole page; it
+     * only copies the wrapper attributes from this output, leaving the inner
+     * blocks (and their JS state) untouched.
+     */
+    public function renderSection(Section $section, RenderMode $mode = RenderMode::PREVIEW): string
+    {
+        return $this->twig->render(self::SECTION_TEMPLATE, [
+            'section' => $this->buildSectionViewModel($section, $mode),
+            'isPreview' => $mode === RenderMode::PREVIEW,
+        ]);
+    }
+
+    /**
      * @return list<array{id: ?int, layout: string, deleted: bool, columns: list<array<string, mixed>>}>
      */
     private function buildSectionTree(ContentArea $area, RenderMode $mode): array
@@ -126,26 +143,40 @@ final class BlockRenderer
 
         $out = [];
         foreach ($sections as $section) {
-            $sectionDeleted = $section->isDeleted();
-            $settings = $section->getEffectiveSettings(preferDraft: $mode === RenderMode::PREVIEW);
-            // Strip default-equal entries so the rendered markup stays
-            // clean: a section saved with the framework-provided default
-            // (e.g. backgroundColor=#ffffff) won't get an inline style for
-            // it, only user-overridden values do.
-            $settings = $this->settingsDefaults->withoutDefaults($settings);
-            $decoration = $this->sectionDecorators->decorate($settings, $section);
-            $out[] = [
-                'id' => $section->getId(),
-                'layout' => $section->getLayout(),
-                'deleted' => $sectionDeleted,
-                'extraClasses' => $decoration->classString(),
-                'inlineStyle' => $decoration->styleString(),
-                'extraAttributes' => $decoration->attributes,
-                'columns' => $this->buildColumnTree($section, $mode, $sectionDeleted, $settings['columnWidths'] ?? null),
-            ];
+            $out[] = $this->buildSectionViewModel($section, $mode);
         }
 
         return $out;
+    }
+
+    /**
+     * Builds the template view-model for a single section. Shared by the full
+     * area render (buildSectionTree) and the single-section render
+     * (renderSection) so a hot-reloaded section is byte-for-byte identical to
+     * its in-page form.
+     *
+     * @return array{id: ?int, layout: string, deleted: bool, extraClasses: string, inlineStyle: string, extraAttributes: array<string, string>, columns: list<array<string, mixed>>}
+     */
+    private function buildSectionViewModel(Section $section, RenderMode $mode): array
+    {
+        $sectionDeleted = $section->isDeleted();
+        $settings = $section->getEffectiveSettings(preferDraft: $mode === RenderMode::PREVIEW);
+        // Strip default-equal entries so the rendered markup stays clean: a
+        // section saved with the framework-provided default (e.g.
+        // backgroundColor=#ffffff) won't get an inline style for it, only
+        // user-overridden values do.
+        $settings = $this->settingsDefaults->withoutDefaults($settings);
+        $decoration = $this->sectionDecorators->decorate($settings, $section);
+
+        return [
+            'id' => $section->getId(),
+            'layout' => $section->getLayout(),
+            'deleted' => $sectionDeleted,
+            'extraClasses' => $decoration->classString(),
+            'inlineStyle' => $decoration->styleString(),
+            'extraAttributes' => $decoration->attributes,
+            'columns' => $this->buildColumnTree($section, $mode, $sectionDeleted, $settings['columnWidths'] ?? null),
+        ];
     }
 
     /**

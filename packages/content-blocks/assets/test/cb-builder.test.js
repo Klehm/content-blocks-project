@@ -366,6 +366,61 @@ describe('cb-builder: block hot reload', () => {
     });
 });
 
+describe('cb-builder: section hot reload', () => {
+    let controller, sidebar, iframe;
+
+    beforeEach(() => {
+        ({ controller, sidebar, iframe } = setupController());
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    it('cb:section:saved on a focused section schedules a hot refresh, not a full reload', () => {
+        vi.useFakeTimers();
+        sidebar.setAttribute('data-cb-sidebar-section-id', '5');
+        const refreshSpy = vi.spyOn(controller, '_refreshSection').mockImplementation(() => {});
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        controller._onSectionSaved({ detail: {} });
+
+        expect(refreshSpy).not.toHaveBeenCalled(); // debounced
+        vi.advanceTimersByTime(Controller.SAVE_RELOAD_DEBOUNCE_MS + 10);
+        expect(refreshSpy).toHaveBeenCalledWith(5);
+        expect(reloadSpy).not.toHaveBeenCalled();
+        vi.useRealTimers();
+    });
+
+    it('_refreshSection posts cb:section:patch when the server allows hot reload', async () => {
+        const html = '<section class="cb-section cb-section--styled" data-cb-section-id="5"></section>';
+        global.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ hotReload: true, html }),
+        }));
+        const postSpy = vi.spyOn(iframe.contentWindow, 'postMessage').mockImplementation(() => {});
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        await controller._refreshSection(5);
+
+        expect(global.fetch).toHaveBeenCalledWith(
+            '/_content-blocks/section/5/render',
+            expect.objectContaining({ headers: { Accept: 'application/json' } }),
+        );
+        expect(postSpy).toHaveBeenCalledWith(
+            { type: 'cb:section:patch', sectionId: 5, html },
+            window.location.origin,
+        );
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_refreshSection falls back to a full reload on a network error', async () => {
+        global.fetch = vi.fn(() => Promise.reject(new Error('offline')));
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        await controller._refreshSection(5);
+
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+    });
+});
+
 describe('cb-builder: sidebar toggle', () => {
     let controller, sidebarToggle, store;
 

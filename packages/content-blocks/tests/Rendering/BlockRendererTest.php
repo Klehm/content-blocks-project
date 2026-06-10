@@ -285,6 +285,25 @@ final class BlockRendererTest extends TestCase
         $this->assertStringContainsString('--cb-col-grow: 60', $html);
     }
 
+    public function testRenderSectionEmitsTheSectionWrapperWithColumnWidths(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_TWO_COLS, position: 0, previewPosition: 0);
+        $this->makeColumn($section, position: 0, previewPosition: 0);
+        $this->makeColumn($section, position: 1, previewPosition: 1);
+        $section->setDraftSettings(['columnWidths' => '40,60']);
+
+        $html = $this->makeRenderer(mode: RenderMode::PREVIEW)->renderSection($section, RenderMode::PREVIEW);
+
+        // A single <section> wrapper carrying its preview marker + the weighted
+        // columns — i.e. exactly what the builder copies onto the live nodes.
+        $this->assertSame(1, substr_count($html, '<section'));
+        $this->assertStringContainsString('data-cb-section-id="' . $section->getId() . '"', $html);
+        $this->assertStringContainsString('cb-col--weighted', $html);
+        $this->assertStringContainsString('--cb-col-grow: 40', $html);
+        $this->assertStringContainsString('--cb-col-grow: 60', $html);
+    }
+
     public function testMalformedColumnWidthsFallBackToEqualLayout(): void
     {
         $area = $this->makeArea();

@@ -360,6 +360,61 @@
     }
 
     /**
+     * Hot-reloads a section's STYLE in place after a settings change: copies
+     * the freshly-rendered wrapper attributes (the <section> class + style and
+     * each column's class + style — i.e. padding/margin/bg/gap/alignment/width
+     * mode and per-column widths) onto the existing nodes, WITHOUT touching the
+     * inner blocks. Leaving the blocks in place preserves their DOM + JS state,
+     * so this is always safe (a section's settings never change its structure).
+     *
+     * Overlay-owned classes (the focus/hover outline) are re-applied after the
+     * className swap since the server markup doesn't know about them.
+     */
+    function patchSection(sectionId, html) {
+        const oldEl = document.querySelector(`[data-cb-section-id="${sectionId}"]`);
+        if (!oldEl) {
+            postToParent('cb:focus:not-found');
+            return;
+        }
+
+        const tpl = document.createElement('template');
+        tpl.innerHTML = html.trim();
+        const newEl = tpl.content.firstElementChild;
+        if (!newEl) return;
+
+        // Section wrapper: copy class + style, preserving the overlay outline.
+        const wasOutlined = oldEl.classList.contains('cb-overlay-outline');
+        oldEl.setAttribute('class', newEl.getAttribute('class') || '');
+        const newStyle = newEl.getAttribute('style');
+        if (newStyle !== null) {
+            oldEl.setAttribute('style', newStyle);
+        } else {
+            oldEl.removeAttribute('style');
+        }
+        if (wasOutlined) oldEl.classList.add('cb-overlay-outline');
+
+        // Columns: copy class + style by matching data-cb-column-id, so column
+        // width changes (cb-col--weighted / --cb-col-grow) land too.
+        newEl.querySelectorAll('[data-cb-column-id]').forEach((newCol) => {
+            const id = newCol.getAttribute('data-cb-column-id');
+            const oldCol = oldEl.querySelector(`[data-cb-column-id="${id}"]`);
+            if (!oldCol) return;
+            const wasColOutlined = oldCol.classList.contains('cb-overlay-outline');
+            oldCol.setAttribute('class', newCol.getAttribute('class') || '');
+            const colStyle = newCol.getAttribute('style');
+            if (colStyle !== null) {
+                oldCol.setAttribute('style', colStyle);
+            } else {
+                oldCol.removeAttribute('style');
+            }
+            if (wasColOutlined) oldCol.classList.add('cb-overlay-outline');
+        });
+
+        // The focused element's box may have moved/resized — re-place its toolbar.
+        if (focusedEl === oldEl) positionToolbarFor(oldEl, focusedKind);
+    }
+
+    /**
      * Removes one block from the preview in place after a delete, instead of
      * reloading the whole iframe. The block is soft-deleted on the server
      * (Discard can still bring it back via a later full reload); visually it
@@ -730,6 +785,14 @@
         // Hot delete: drop a single block from the preview in place.
         if (data.type === 'cb:block:remove' && Number.isFinite(data.blockId)) {
             removeBlock(data.blockId);
+            return;
+        }
+
+        // Hot reload: patch a single section's style (wrapper + columns) in place.
+        if (data.type === 'cb:section:patch'
+            && Number.isFinite(data.sectionId)
+            && typeof data.html === 'string') {
+            patchSection(data.sectionId, data.html);
             return;
         }
 
