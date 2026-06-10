@@ -5,6 +5,12 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.22] - 2026-06-10
+
+### Fixed
+
+- **Section vertical alignment now aligns the columns.** Previously the setting only applied `justify-content` to the section (a flex column), which has no visible effect unless the section also has a `min-height` leaving spare room — so on a normal multi-column section it did nothing. The vertical-align value is now also applied as `align-items` on the inner `.cb-row`, so columns align relative to each other (e.g. a short column centers against a taller sibling) with no `min-height` required. The min-height "hero" centering still works via the section's `justify-content`; the default (no alignment) keeps columns stretched to equal height.
+
 ## [0.1.0-alpha.21] - 2026-06-10
 
 ### Added
