@@ -11,7 +11,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
-#[AsContentBlock]
+#[AsContentBlock(priority: 80)]
 final class RichTextBlock extends AbstractBlockType
 {
     public static function getType(): string

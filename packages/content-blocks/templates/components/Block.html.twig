@@ -1,5 +1,22 @@
 <div{{ attributes }}>
     <div class="cb-block__edit-form" data-controller="cb-autosave cb-block-styling-form">
+        {# Lightweight heading showing which block is being edited, above the
+           fields. Icon is trusted block-author SVG markup, never user input. #}
+        <header class="cb-block__heading">
+            {% if this.blockType and this.blockType.icon %}
+                <span class="cb-block__heading-icon">{{ this.blockType.icon|raw }}</span>
+            {% endif %}
+            <span class="cb-block__heading-label">
+                {%- if this.blockType -%}
+                    {# getLabel() may return a TranslatableInterface (carries its
+                       own domain) or a plain string — `|trans` handles both. #}
+                    {{ this.blockType.label|trans }}
+                {%- else -%}
+                    {{ this.blockTypeLabel }}
+                {%- endif -%}
+            </span>
+        </header>
+
         {# Apply the form theme inside the component so the rendering
            doesn't depend on the host app's global twig.form_themes
            config — the builder must look the same in every environment.

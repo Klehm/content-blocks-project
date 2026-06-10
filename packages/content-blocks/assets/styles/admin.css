@@ -904,6 +904,42 @@
   margin-bottom: 0;
 }
 
+/* ---- Block edit form: heading ----
+ *
+ * Lightweight title above the fields, showing which block is being edited.
+ * Icon (block-author SVG) sits in a soft accent-tinted chip. */
+
+.cb-block__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.cb-block__heading-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: #4f8df9;
+  background: rgba(79, 141, 249, 0.1);
+}
+
+.cb-block__heading-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.cb-block__heading-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1f2330;
+  letter-spacing: 0.01em;
+}
+
 /* ---- Block edit form: tabbed field groups ----
  *
  * Block fields are bucketed into tabs by their `data-cb-group` attribute

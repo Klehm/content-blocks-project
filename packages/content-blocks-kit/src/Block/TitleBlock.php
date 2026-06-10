@@ -13,7 +13,7 @@ use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
-#[AsContentBlock]
+#[AsContentBlock(priority: 100)]
 final class TitleBlock extends AbstractBlockType
 {
     public static function getType(): string

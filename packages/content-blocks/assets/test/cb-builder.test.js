@@ -581,6 +581,24 @@ describe('cb-builder: structural AJAX handlers', () => {
         expect(mountSpy).not.toHaveBeenCalled();
     });
 
+    it('_addSection auto-opens the settings sidebar on the freshly created section', async () => {
+        reqSpy.mockResolvedValueOnce({ id: 456 });
+        const mountSpy = vi.spyOn(controller, '_mountSectionSettings').mockImplementation(() => {});
+
+        await controller._addSection('two_cols');
+
+        expect(mountSpy).toHaveBeenCalledWith(456);
+    });
+
+    it('_addSection skips settings mount when the response has no id', async () => {
+        reqSpy.mockResolvedValueOnce(null);
+        const mountSpy = vi.spyOn(controller, '_mountSectionSettings').mockImplementation(() => {});
+
+        await controller._addSection('full');
+
+        expect(mountSpy).not.toHaveBeenCalled();
+    });
+
     it('_deleteBlock issues DELETE and removes the block in place (no full reload)', async () => {
         reqSpy.mockResolvedValueOnce({ deleted: true });
         const removeSpy = vi.spyOn(controller, '_removeBlockFromPreview').mockImplementation(() => {});

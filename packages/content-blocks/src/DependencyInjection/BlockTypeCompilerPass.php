@@ -6,11 +6,13 @@ namespace ContentBlocks\DependencyInjection;
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
+use Symfony\Component\DependencyInjection\Compiler\PriorityTaggedServiceTrait;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Reference;
 
 final class BlockTypeCompilerPass implements CompilerPassInterface
 {
+    use PriorityTaggedServiceTrait;
+
     public function process(ContainerBuilder $container): void
     {
         if (!$container->has(BlockTypeRegistry::class)) {
@@ -18,10 +20,14 @@ final class BlockTypeCompilerPass implements CompilerPassInterface
         }
 
         $definition = $container->findDefinition(BlockTypeRegistry::class);
-        $taggedServices = $container->findTaggedServiceIds('content_blocks.block_type');
 
-        foreach ($taggedServices as $id => $tags) {
-            $definition->addMethodCall('register', [new Reference($id)]);
+        // findAndSortTaggedServices honours the `priority` tag attribute set by
+        // #[AsContentBlock] — higher priority first. The registry's insertion
+        // order is what the block-picker grid renders, so this controls it.
+        $refs = $this->findAndSortTaggedServices('content_blocks.block_type', $container);
+
+        foreach ($refs as $ref) {
+            $definition->addMethodCall('register', [$ref]);
         }
     }
 }

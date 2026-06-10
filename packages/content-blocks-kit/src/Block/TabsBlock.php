@@ -13,7 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
 
-#[AsContentBlock]
+#[AsContentBlock(priority: 60)]
 final class TabsBlock extends AbstractBlockType
 {
     public static function getType(): string

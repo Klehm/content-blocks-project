@@ -10,7 +10,12 @@ namespace ContentBlocks\BlockType;
 #[\Attribute(\Attribute::TARGET_CLASS)]
 final class AsContentBlock
 {
-    public function __construct()
+    /**
+     * @param int $priority Higher priority blocks appear first in the block
+     *                      picker grid. Blocks sharing a priority keep their
+     *                      service-discovery order. Defaults to 0.
+     */
+    public function __construct(public readonly int $priority = 0)
     {
     }
 }

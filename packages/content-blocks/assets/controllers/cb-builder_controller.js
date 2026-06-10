@@ -296,8 +296,14 @@ export default class extends Controller {
     async _addSection(layout) {
         const allowed = ['full', 'two_cols', 'three_cols'];
         const finalLayout = allowed.includes(layout) ? layout : 'full';
-        await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/sections`, { layout: finalLayout });
+        const result = await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/sections`, { layout: finalLayout });
         this._afterStructuralOp();
+        // Open the settings sidebar on the freshly-created section so the user
+        // can configure it immediately — mirrors _addBlock. The iframe reload
+        // above runs in parallel; the sidebar fetches its HTML separately.
+        if (result?.id) {
+            this._mountSectionSettings(result.id);
+        }
     }
 
     async _addBlock(columnId, blockType) {

@@ -62,7 +62,7 @@ final class ContentBlocksBundle extends AbstractBundle
         $container->registerAttributeForAutoconfiguration(
             AsContentBlock::class,
             static function (ChildDefinition $definition, AsContentBlock $attribute, \Reflector $reflector): void {
-                $definition->addTag('content_blocks.block_type');
+                $definition->addTag('content_blocks.block_type', ['priority' => $attribute->priority]);
             },
         );
 

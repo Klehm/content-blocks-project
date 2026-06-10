@@ -14,7 +14,7 @@ use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
-#[AsContentBlock]
+#[AsContentBlock(priority: 70)]
 final class ImageBlock extends AbstractBlockType
 {
     public static function getType(): string
