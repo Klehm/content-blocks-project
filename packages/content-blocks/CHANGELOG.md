@@ -5,6 +5,17 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.17] - 2026-06-10
+
+### Added
+
+- **Block picker ordering.** `#[AsContentBlock]` now accepts a `priority` (higher appears first in the "+Bloc" grid); blocks sharing a priority keep their service-discovery order. The `BlockTypeCompilerPass` registers types via `findAndSortTaggedServices`, so the registry insertion order — which drives the grid — is now controllable. Defaults to `0`, so existing custom blocks are unaffected. The kit ships an explicit order: Title, Text, Rich text, Image, Tabs.
+- **Block name in the edit sidebar.** The block edit form now shows a lightweight heading (the block's icon in an accent chip + its translated label) above the fields, so it's always clear which block is being edited.
+
+### Changed
+
+- **Adding a section auto-opens its settings sidebar.** Creating a section now focuses its settings panel immediately — parity with adding a block, which already opened its edit sidebar.
+
 ## [0.1.0-alpha.16] - 2026-06-09
 
 ### Added
