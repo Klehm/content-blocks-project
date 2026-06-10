@@ -5,6 +5,12 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.19] - 2026-06-10
+
+### Added
+
+- **Keyboard shortcuts on the focused element.** With a section or block pinned (clicked) in the preview, `Delete` / `Backspace` deletes it — the same soft-delete intent as the toolbar × button — and `Escape` deselects it (retracts the pinned toolbar and closes the sidebar). Shortcuts are ignored while typing in a preview form field, during a drag, while the block-type popover is open, and when a modifier key is held. Covered by Playwright E2E.
+
 ## [0.1.0-alpha.18] - 2026-06-10
 
 ### Added
