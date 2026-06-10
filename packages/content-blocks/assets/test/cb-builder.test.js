@@ -687,19 +687,45 @@ describe('cb-builder: structural AJAX handlers', () => {
         expect(reloadSpy).not.toHaveBeenCalled();
     });
 
-    it('_moveBlock posts to block/{id}/move with target column + position', async () => {
+    it('_moveBlock posts the move then relocates the block in place (no full reload)', async () => {
+        const postSpy = vi.spyOn(controller.iframeTarget.contentWindow, 'postMessage').mockImplementation(() => {});
         await controller._moveBlock(42, 3, 2);
         expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/block/42/move', {
             toColumnId: 3,
             position: 2,
         });
-        expect(reloadSpy).toHaveBeenCalled();
+        expect(postSpy).toHaveBeenCalledWith(
+            { type: 'cb:block:reorder:apply', blockId: 42, toColumnId: 3, position: 2 },
+            window.location.origin,
+        );
+        expect(reloadSpy).not.toHaveBeenCalled();
     });
 
-    it('_moveSection posts to section/{id}/move with direction', async () => {
+    it('_moveBlock leaves the preview untouched when the move fails', async () => {
+        reqSpy.mockResolvedValueOnce(null);
+        const postSpy = vi.spyOn(controller.iframeTarget.contentWindow, 'postMessage').mockImplementation(() => {});
+        await controller._moveBlock(42, 3, 2);
+        expect(postSpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_moveSection posts the move then nudges the section in place (no full reload)', async () => {
+        const postSpy = vi.spyOn(controller.iframeTarget.contentWindow, 'postMessage').mockImplementation(() => {});
         await controller._moveSection(5, 'up');
         expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/section/5/move', { direction: 'up' });
-        expect(reloadSpy).toHaveBeenCalled();
+        expect(postSpy).toHaveBeenCalledWith(
+            { type: 'cb:section:move:apply', sectionId: 5, direction: 'up' },
+            window.location.origin,
+        );
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_moveSection does not touch the preview when the section is already at the edge', async () => {
+        reqSpy.mockResolvedValueOnce({ moved: false });
+        const postSpy = vi.spyOn(controller.iframeTarget.contentWindow, 'postMessage').mockImplementation(() => {});
+        await controller._moveSection(5, 'up');
+        expect(postSpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
     });
 
     it('_moveSection rejects unknown direction', async () => {
@@ -708,10 +734,15 @@ describe('cb-builder: structural AJAX handlers', () => {
         expect(reloadSpy).not.toHaveBeenCalled();
     });
 
-    it('_reorderSection posts to section/{id}/move with position and reloads', async () => {
+    it('_reorderSection posts the move then relocates the section in place (no full reload)', async () => {
+        const postSpy = vi.spyOn(controller.iframeTarget.contentWindow, 'postMessage').mockImplementation(() => {});
         await controller._reorderSection(5, 3);
         expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/section/5/move', { position: 3 });
-        expect(reloadSpy).toHaveBeenCalled();
+        expect(postSpy).toHaveBeenCalledWith(
+            { type: 'cb:section:reorder:apply', sectionId: 5, position: 3 },
+            window.location.origin,
+        );
+        expect(reloadSpy).not.toHaveBeenCalled();
     });
 
     it('_reorderSection no-ops on a missing or invalid position', async () => {
