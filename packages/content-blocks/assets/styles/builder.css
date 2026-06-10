@@ -218,6 +218,9 @@ body.cb-dragging--block [data-cb-section-id] {
   min-height: 60px;
   box-sizing: border-box;
   border-radius: 2px;
+  /* Anchor for the absolutely-positioned "+ Block" pill below. Preview-only,
+     so it never affects the production render. */
+  position: relative;
 }
 
 /* The hovered/focused entity (block / column / section) gets a stronger
@@ -227,6 +230,56 @@ body.cb-dragging--block [data-cb-section-id] {
 .cb-overlay-outline {
   outline: 2px solid #4f8df9 !important;
   outline-offset: -2px !important;
+}
+
+/* ---------- Section handle ---------- */
+
+/* A small tab pinned to the section's top-left corner, revealed while the
+   section is hovered (CSS :hover bubbles from any descendant, so it shows
+   even when the cursor is over a block). Clicking it selects the section and
+   opens its settings — the dependable way to grab a section that's full of
+   blocks. Floats (absolute) so it never affects the production-matching flow. */
+.cb-section-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 2px 8px;
+  background: #fff;
+  border: 1px solid #d8dbe2;
+  /* Square against the top-left corner, rounded on the inner side — reads
+     as a tab hanging off the section frame. */
+  border-radius: 0 0 6px 0;
+  color: #6b7280;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+[data-cb-section-id]:hover > .cb-section-handle {
+  opacity: 1;
+  pointer-events: auto;
+}
+.cb-section-handle:hover,
+.cb-section-handle:focus-visible {
+  border-color: #4f8df9;
+  color: #4f8df9;
+  outline: none;
+}
+.cb-section-handle__grip {
+  letter-spacing: -2px;
+  opacity: 0.7;
 }
 
 /* Soft-deleted entities are hidden in preview — the user clicked delete,
@@ -248,19 +301,24 @@ body {
 
 /* ---------- Permanent inline "+ Block" affordance ---------- */
 
-/* Renders at the bottom of every column in preview mode so the user can
-   add a block without first hovering the column. Default state is neutral
-   gray (a quiet hint) — it lights up to the blue accent on hover/focus
-   so the user knows it's the actionable element, not a structural guide.
+/* Floats over the bottom border of each column so it takes NO space in the
+   flow — the builder preview stays WYSIWYG with the production render. It's
+   hidden by default and revealed only when it's actually useful: when the
+   column is empty (nothing else to click) or while the parent section is
+   hovered. Lights up to the blue accent on hover/focus.
    Capped at 80px wide and centered so multiple columns side-by-side don't
    end up with full-width pills that read as a single bar. */
 .cb-add-block-inline {
-  display: block;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%, 50%);
+  z-index: 4;
   width: 100%;
   max-width: 80px;
-  margin: 18px auto 0;
+  margin: 0;
   padding: 4px 8px;
-  background: transparent;
+  background: #fff;
   border: 1px solid #c8ccd5;
   border-radius: 4px;
   color: #6b7280;
@@ -269,14 +327,24 @@ body {
   line-height: 1.2;
   cursor: pointer;
   text-align: center;
+  opacity: 0;
+  pointer-events: none;
   transition:
+    opacity 0.12s ease,
     background-color 0.12s ease,
     border-color 0.12s ease,
     color 0.12s ease;
 }
+/* Reveal when the column is empty (no live block to click) or while the
+   section is hovered. `:has()` is already used elsewhere in this file. */
+[data-cb-section-id]:hover .cb-add-block-inline,
+[data-cb-column-id]:not(:has([data-cb-block-id]:not([data-cb-deleted="1"]))) .cb-add-block-inline {
+  opacity: 1;
+  pointer-events: auto;
+}
 .cb-add-block-inline:hover,
 .cb-add-block-inline:focus-visible {
-  background: rgba(79, 141, 249, 0.06);
+  background: #fff;
   border-color: #4f8df9;
   color: #4f8df9;
   outline: none;

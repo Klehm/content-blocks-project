@@ -819,3 +819,31 @@ test.describe('builder shell — keyboard shortcuts', () => {
         await expect(frame.locator('[data-cb-section-id]')).toHaveCount(1);
     });
 });
+
+test.describe('builder shell — selection affordances', () => {
+    test('section handle selects a section even when it is full of blocks', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+
+        // The block fills the section, so a plain click inside would hit the
+        // block. The hover-revealed handle is the dependable way in.
+        const section = frame.locator('[data-cb-section-id]').first();
+        await section.hover();
+        await section.locator('.cb-section-handle').click();
+
+        // The section settings sidebar opens (its width radios are unique to it).
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar.locator('input[name="section_settings[widthMode]"][value="full"]')).toBeAttached();
+    });
+
+    test('+ Block pill is interactable on an empty column without hovering first', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+
+        // Empty column → the pill is revealed (pointer-events:auto) right away.
+        const addBtn = frame.locator('.cb-add-block-inline').first();
+        await addBtn.click();
+        await expect(frame.locator('.cb-overlay-popover')).toBeVisible();
+    });
+});

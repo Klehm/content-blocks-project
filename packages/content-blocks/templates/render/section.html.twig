@@ -5,6 +5,20 @@
     {% if section.deleted %}data-cb-deleted="1"{% endif %}
     {% if section.inlineStyle %}style="{{ section.inlineStyle }}"{% endif %}
     {% for k, v in section.extraAttributes %} {{ k }}="{{ v }}"{% endfor %}>
+    {% if isPreview %}
+        {# Hover-revealed handle: a reliable way to select the section even
+           when it's full of blocks (clicking inside would otherwise hit a
+           block). As a direct child of <section> — not inside .cb-row — a
+           click on it is routed as a section click by the preview overlay,
+           which pins focus and opens the section settings sidebar. #}
+        <button type="button"
+                class="cb-section-handle"
+                aria-label="{{ 'cb.section.select'|trans({}, 'content_blocks') }}"
+                title="{{ 'cb.section.select'|trans({}, 'content_blocks') }}">
+            <span class="cb-section-handle__grip" aria-hidden="true">⋮⋮</span>
+            {{ 'cb.section.handle'|trans({}, 'content_blocks') }}
+        </button>
+    {% endif %}
     <div class="cb-row">
         {% for column in section.columns %}
             {{ include('@ContentBlocks/render/column.html.twig', { column: column, isPreview: isPreview }, with_context = false) }}

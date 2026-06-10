@@ -1,6 +1,8 @@
 cb:
     section:
         label: "Section %index% — %layout%"
+        handle: "Section"
+        select: "Sélectionner la section"
         add: "Ajouter une section :"
         move_up: "Monter"
         move_down: "Descendre"
