@@ -605,10 +605,47 @@ describe('cb-builder: structural AJAX handlers', () => {
         reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
     });
 
-    it('_addBlock posts to column/{id}/blocks with type and reloads', async () => {
+    it('_addBlock inserts the block in place when the server ships hot-reload html', async () => {
+        reqSpy.mockResolvedValueOnce({ id: 9, hotReload: true, html: '<div data-cb-block-id="9"></div>' });
+        const insertSpy = vi.spyOn(controller, '_insertBlockInPreview').mockImplementation(() => {});
+
         await controller._addBlock(7, 'text');
+
         expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/column/7/blocks', { type: 'text' });
+        expect(insertSpy).toHaveBeenCalledWith(7, '<div data-cb-block-id="9"></div>');
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_addBlock falls back to a full reload for a JS-dependent block (no html)', async () => {
+        reqSpy.mockResolvedValueOnce({ id: 9, hotReload: false });
+        const insertSpy = vi.spyOn(controller, '_insertBlockInPreview').mockImplementation(() => {});
+
+        await controller._addBlock(7, 'custom');
+
         expect(reloadSpy).toHaveBeenCalled();
+        expect(insertSpy).not.toHaveBeenCalled();
+    });
+
+    it('_addBlock leaves the preview untouched when create fails', async () => {
+        reqSpy.mockResolvedValueOnce(null);
+        const insertSpy = vi.spyOn(controller, '_insertBlockInPreview').mockImplementation(() => {});
+
+        await controller._addBlock(7, 'text');
+
+        expect(insertSpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_insertBlockInPreview posts cb:block:insert to the iframe', () => {
+        const postSpy = vi.spyOn(controller.iframeTarget.contentWindow, 'postMessage').mockImplementation(() => {});
+
+        controller._insertBlockInPreview(7, '<div data-cb-block-id="9"></div>');
+
+        expect(postSpy).toHaveBeenCalledWith(
+            { type: 'cb:block:insert', columnId: 7, html: '<div data-cb-block-id="9"></div>' },
+            window.location.origin,
+        );
+        expect(reloadSpy).not.toHaveBeenCalled();
     });
 
     it('_addBlock no-ops when columnId or type is missing', async () => {

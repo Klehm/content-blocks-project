@@ -225,10 +225,10 @@ test.describe('builder shell — blocks', () => {
         const popover = frame.locator('.cb-overlay-popover');
         await expect(popover).toBeVisible();
 
-        // The list reflects the registered block types (4 in the kit:
-        // text, title, image, tabs).
+        // The list reflects the registered block types (5 in the kit:
+        // text, title, image, tabs, richtext).
         const items = popover.locator('button');
-        await expect(items).toHaveCount(4);
+        await expect(items).toHaveCount(5);
 
         await items.first().click();
         await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);

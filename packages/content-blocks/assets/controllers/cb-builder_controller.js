@@ -309,13 +309,42 @@ export default class extends Controller {
     async _addBlock(columnId, blockType) {
         if (!columnId || !blockType) return;
         const result = await this._jsonRequest('POST', `/_content-blocks/column/${columnId}/blocks`, { type: blockType });
-        this._afterStructuralOp();
-        // Open the edit sidebar on the freshly-created block so the user
-        // can fill it in immediately. The iframe reload triggered above
-        // happens in parallel — the sidebar mount fetches its HTML from a
-        // separate endpoint so it doesn't need to wait.
-        if (result?.id) {
+        // Create failed (CSRF/access/network) — leave the preview untouched.
+        if (result === null) return;
+        this._applyDraftState(true);
+        // A static / CSS-only block ships its rendered markup: drop it into the
+        // preview in place. A JS-dependent block opts out (no html) and needs a
+        // full reload so its scripts run.
+        if (result.hotReload && typeof result.html === 'string') {
+            this._insertBlockInPreview(columnId, result.html);
+        } else {
+            this.reload();
+        }
+        // Open the edit sidebar on the freshly-created block so the user can
+        // fill it in immediately. The insert/reload above happens in parallel —
+        // the sidebar mount fetches its HTML from a separate endpoint.
+        if (result.id) {
             this._mountSidebar(result.id);
+        }
+    }
+
+    /**
+     * Asks the preview overlay to insert a freshly-rendered block at the end of
+     * its column (ahead of the permanent "+ Block" button). Falls back to a
+     * full reload if the iframe can't be reached.
+     */
+    _insertBlockInPreview(columnId, html) {
+        if (!this.hasIframeTarget) {
+            this.reload();
+            return;
+        }
+        try {
+            this.iframeTarget.contentWindow?.postMessage(
+                { type: 'cb:block:insert', columnId: parseInt(columnId, 10), html },
+                window.location.origin,
+            );
+        } catch (_) {
+            this.reload();
         }
     }
 

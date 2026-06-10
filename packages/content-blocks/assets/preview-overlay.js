@@ -436,6 +436,43 @@
     }
 
     /**
+     * Inserts a freshly-rendered block at the end of its column — ahead of the
+     * permanent "+ Block" button sentinel — after a server-confirmed add,
+     * instead of reloading the iframe. Dispatches cb:block:rendered so a
+     * JS-enhanced view can initialise (page scripts don't re-run on injected
+     * HTML), then focuses the new block so its toolbar + outline appear, the
+     * same end state the old reload path produced.
+     */
+    function insertBlock(columnId, html) {
+        const column = document.querySelector(`[data-cb-column-id="${columnId}"]`);
+        if (!column) {
+            // Column not in the DOM — let the parent fall back to a reload.
+            postToParent('cb:reorder:desync');
+            return;
+        }
+        const tpl = document.createElement('template');
+        tpl.innerHTML = html.trim();
+        const newEl = tpl.content.firstElementChild;
+        if (!newEl) return;
+
+        // A new block always lands at the end of its column, before the +Block
+        // button (its only non-block sibling).
+        const addBtn = column.querySelector('.cb-add-block-inline');
+        if (addBtn) {
+            addBtn.before(newEl);
+        } else {
+            column.appendChild(newEl);
+        }
+
+        newEl.dispatchEvent(new CustomEvent('cb:block:rendered', {
+            bubbles: true,
+            detail: { blockId: parseInt(newEl.getAttribute('data-cb-block-id'), 10) },
+        }));
+
+        focusElement(newEl, 'block');
+    }
+
+    /**
      * Relocates an existing block node to a new column/position in place after
      * a server-confirmed reorder, instead of reloading the iframe. Moving the
      * live node (rather than re-rendering it) preserves the block's DOM + JS
@@ -864,6 +901,14 @@
         // Hot delete: drop a single block from the preview in place.
         if (data.type === 'cb:block:remove' && Number.isFinite(data.blockId)) {
             removeBlock(data.blockId);
+            return;
+        }
+
+        // Hot insert: drop a freshly-added block into its column in place.
+        if (data.type === 'cb:block:insert'
+            && Number.isFinite(data.columnId)
+            && typeof data.html === 'string') {
+            insertBlock(data.columnId, data.html);
             return;
         }
 

@@ -7,6 +7,8 @@ namespace ContentBlocks\Controller;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
+use ContentBlocks\Rendering\BlockRenderer;
+use ContentBlocks\Rendering\RenderMode;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -34,6 +36,7 @@ final class BlocksController
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly TranslatorInterface $translator,
+        private readonly BlockRenderer $blockRenderer,
     ) {
     }
 
@@ -93,7 +96,22 @@ final class BlocksController
         $this->em->persist($block);
         $this->em->flush();
 
-        return new JsonResponse(['id' => $block->getId()]);
+        // Mirror BlockRenderController's policy: a static / CSS-only block can
+        // be inserted into the preview in place (no full reload), so ship its
+        // rendered markup. A JS-dependent block opts out and the builder falls
+        // back to a full reload so its scripts run.
+        if ($blockType->supportsPreviewHotReload()) {
+            return new JsonResponse([
+                'id' => $block->getId(),
+                'hotReload' => true,
+                'html' => $this->blockRenderer->renderBlock($block, RenderMode::PREVIEW),
+            ]);
+        }
+
+        return new JsonResponse([
+            'id' => $block->getId(),
+            'hotReload' => false,
+        ]);
     }
 
     #[Route('/block/{id}/move', name: 'content_blocks_block_move', methods: ['POST'], requirements: ['id' => '\d+'])]
