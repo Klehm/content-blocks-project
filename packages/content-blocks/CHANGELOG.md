@@ -5,6 +5,13 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.21] - 2026-06-10
+
+### Added
+
+- **Configurable column widths per section.** Two- and three-column sections can now use unequal widths (e.g. 33/67, 40/60) via presets or free values that must sum to 100. Stored as a `columnWidths` CSV in the section settings JSON (no migration; rides the existing draft/publish/discard lifecycle) and rendered as per-column `flex-grow` weights (`.cb-col--weighted` + `--cb-col-grow`), with a clean fallback to equal widths when unset or malformed. The control offers preset buttons (with an active/selected state) plus a "Custom" toggle that reveals free per-column inputs; the active preset is reflected on open.
+- **Responsive column gap per section.** A new "Column gap" control (Styling tab) sets the gap between columns per viewport (desktop / tablet / mobile), reusing the existing viewport-tabs UI. Emitted as `--cb-gap-{d,t,m}` on the section and applied to the inner row with the usual D→T→M fallback cascade; defaults to the framework 1rem when unset.
+
 ## [0.1.0-alpha.20] - 2026-06-10
 
 ### Changed
