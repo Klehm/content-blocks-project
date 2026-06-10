@@ -25,12 +25,20 @@
     min-height: var(--cb-min-h, auto);
 }
 
-/* Vertical alignment: section becomes flex column so its single .cb-row
-   child can be vertically placed when min-height creates spare room. */
+/* Vertical alignment. Two complementary effects from one setting:
+   1. align-items on the row aligns the COLUMNS relative to each other
+      (the common case for multi-column sections — works with no min-height,
+      e.g. center a short column against a taller sibling).
+   2. justify-content on the section (a flex column) places the row's block
+      vertically when a min-height leaves spare room (hero-style centering).
+   Default (no valign) keeps columns stretched to equal height. */
 .cb-section--has-valign {
     display: flex;
     flex-direction: column;
     justify-content: var(--cb-valign, flex-start);
+}
+.cb-section--has-valign > .cb-row {
+    align-items: var(--cb-valign, stretch);
 }
 
 /* Column gap: the --cb-gap-* vars are set on the section and inherited by
