@@ -5,6 +5,12 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.18] - 2026-06-10
+
+### Added
+
+- **Duplicate button on LiveCollection entries.** Each collection card (tabs, FAQ entries…) now carries a duplicate button (⧉) next to the reorder controls; it inserts a copy of the entry right after the original via the new `duplicateCollectionItem` live action. Like a reorder, it's an in-place value change with no `childList` mutation the autosave observer could catch, so the action persists the draft itself and reloads the preview — the copy survives a full reload. Covered by Playwright E2E plus Vitest and PHPUnit unit tests.
+
 ## [0.1.0-alpha.17] - 2026-06-10
 
 ### Added
