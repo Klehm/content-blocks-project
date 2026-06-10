@@ -43,8 +43,10 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
         $vars = [];
         $classes = [];
 
-        // Padding and margin: responsive (D/T/M) × 4 sides.
-        foreach (['padding' => 'pad', 'margin' => 'mar'] as $key => $short) {
+        // Padding and margin: responsive (D/T/M) × 4 sides. Section vars are
+        // namespaced `--cb-s-*` so they don't inherit into descendant blocks
+        // (which read `--cb-b-*`); see styling.css.
+        foreach (['padding' => 's-pad', 'margin' => 's-mar'] as $key => $short) {
             $responsive = $styling[$key] ?? null;
             if (!\is_array($responsive)) {
                 continue;
@@ -79,7 +81,7 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
         // Background color.
         $bg = $styling['backgroundColor'] ?? null;
         if (\is_string($bg) && $bg !== '') {
-            $vars['--cb-bg'] = $bg;
+            $vars['--cb-s-bg'] = $bg;
         }
 
         // Min height (value + unit).

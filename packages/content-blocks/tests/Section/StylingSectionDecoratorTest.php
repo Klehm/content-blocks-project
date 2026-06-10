@@ -39,12 +39,12 @@ final class StylingSectionDecoratorTest extends TestCase
 
         $decoration = (new StylingSectionDecorator())->decorate($settings, new Section());
 
-        $this->assertSame('10px', $decoration->inlineStyles['--cb-pad-d-t']);
-        $this->assertSame('20px', $decoration->inlineStyles['--cb-pad-d-r']);
-        $this->assertSame('30px', $decoration->inlineStyles['--cb-pad-d-b']);
-        $this->assertSame('40px', $decoration->inlineStyles['--cb-pad-d-l']);
-        $this->assertSame('5px', $decoration->inlineStyles['--cb-pad-m-t']);
-        $this->assertArrayNotHasKey('--cb-pad-t-t', $decoration->inlineStyles, 'tablet was unset');
+        $this->assertSame('10px', $decoration->inlineStyles['--cb-s-pad-d-t']);
+        $this->assertSame('20px', $decoration->inlineStyles['--cb-s-pad-d-r']);
+        $this->assertSame('30px', $decoration->inlineStyles['--cb-s-pad-d-b']);
+        $this->assertSame('40px', $decoration->inlineStyles['--cb-s-pad-d-l']);
+        $this->assertSame('5px', $decoration->inlineStyles['--cb-s-pad-m-t']);
+        $this->assertArrayNotHasKey('--cb-s-pad-t-t', $decoration->inlineStyles, 'tablet was unset');
         $this->assertContains('cb-section--styled', $decoration->classes);
     }
 
@@ -60,7 +60,7 @@ final class StylingSectionDecoratorTest extends TestCase
 
         $decoration = (new StylingSectionDecorator())->decorate($settings, new Section());
 
-        $this->assertSame('-8px', $decoration->inlineStyles['--cb-mar-d-t']);
+        $this->assertSame('-8px', $decoration->inlineStyles['--cb-s-mar-d-t']);
     }
 
     public function testBackgroundColorEmitsVarOnlyWhenNonEmpty(): void
@@ -70,8 +70,8 @@ final class StylingSectionDecoratorTest extends TestCase
         $a = $deco->decorate(['styling' => ['backgroundColor' => '#ff0000']], new Section());
         $b = $deco->decorate(['styling' => ['backgroundColor' => '']], new Section());
 
-        $this->assertSame('#ff0000', $a->inlineStyles['--cb-bg']);
-        $this->assertArrayNotHasKey('--cb-bg', $b->inlineStyles);
+        $this->assertSame('#ff0000', $a->inlineStyles['--cb-s-bg']);
+        $this->assertArrayNotHasKey('--cb-s-bg', $b->inlineStyles);
     }
 
     public function testGapEmitsPerViewportPxVars(): void
@@ -162,8 +162,8 @@ final class StylingSectionDecoratorTest extends TestCase
             ['cb-section--has-valign', 'cb-section--styled'],
             $decoration->classes,
         );
-        $this->assertSame('10px', $decoration->inlineStyles['--cb-pad-d-t']);
-        $this->assertSame('#0a0a0a', $decoration->inlineStyles['--cb-bg']);
+        $this->assertSame('10px', $decoration->inlineStyles['--cb-s-pad-d-t']);
+        $this->assertSame('#0a0a0a', $decoration->inlineStyles['--cb-s-bg']);
         $this->assertSame('500px', $decoration->inlineStyles['--cb-min-h']);
         $this->assertSame('center', $decoration->inlineStyles['--cb-valign']);
     }

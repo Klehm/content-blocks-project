@@ -33,10 +33,10 @@ final class StylingBlockDecoratorTest extends TestCase
 
         $decoration = (new StylingBlockDecorator())->decorate($data, new Block());
 
-        $this->assertSame('10px', $decoration->inlineStyles['--cb-pad-d-t']);
-        $this->assertSame('20px', $decoration->inlineStyles['--cb-pad-d-r']);
-        $this->assertSame('5px', $decoration->inlineStyles['--cb-mar-m-t']);
-        $this->assertSame('0px', $decoration->inlineStyles['--cb-mar-m-r']);
+        $this->assertSame('10px', $decoration->inlineStyles['--cb-b-pad-d-t']);
+        $this->assertSame('20px', $decoration->inlineStyles['--cb-b-pad-d-r']);
+        $this->assertSame('5px', $decoration->inlineStyles['--cb-b-mar-m-t']);
+        $this->assertSame('0px', $decoration->inlineStyles['--cb-b-mar-m-r']);
         $this->assertContains('cb-block--styled', $decoration->classes);
     }
 
@@ -47,7 +47,7 @@ final class StylingBlockDecoratorTest extends TestCase
             new Block(),
         );
 
-        $this->assertSame('#abc', $decoration->inlineStyles['--cb-bg']);
+        $this->assertSame('#abc', $decoration->inlineStyles['--cb-b-bg']);
     }
 
     public function testMaxWidthEmitsMaxWidthVar(): void

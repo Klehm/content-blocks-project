@@ -42,7 +42,9 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
 
         $vars = [];
 
-        foreach (['padding' => 'pad', 'margin' => 'mar'] as $key => $short) {
+        // Block vars are namespaced `--cb-b-*` so a section's `--cb-s-*`
+        // padding/margin/background never inherits into the block; see styling.css.
+        foreach (['padding' => 'b-pad', 'margin' => 'b-mar'] as $key => $short) {
             $responsive = $styling[$key] ?? null;
             if (!\is_array($responsive)) {
                 continue;
@@ -63,7 +65,7 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
 
         $bg = $styling['backgroundColor'] ?? null;
         if (\is_string($bg) && $bg !== '') {
-            $vars['--cb-bg'] = $bg;
+            $vars['--cb-b-bg'] = $bg;
         }
 
         $maxWidth = $styling['maxWidth'] ?? null;
