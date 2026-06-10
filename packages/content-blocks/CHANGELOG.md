@@ -5,6 +5,16 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.20] - 2026-06-10
+
+### Changed
+
+- **WYSIWYG preview: the "+ Block" pill no longer takes flow space.** It now floats absolutely, straddling the bottom border of its column (`margin: 0`), so the builder preview matches the production layout instead of being pushed around by the affordance. It's hidden by default and revealed only when useful — on an empty column or while the parent section is hovered. Its hover state keeps a white background (only the border/text turn accent blue).
+
+### Added
+
+- **Hover-revealed section handle.** A small tab pinned to a section's top-left corner appears on hover (even with the cursor over a block, since `:hover` bubbles) and selects the section + opens its settings — a dependable way to grab a section that's full of blocks, where a plain click would hit a block instead. It floats, so it never affects the production-matching flow. Covered by Playwright E2E.
+
 ## [0.1.0-alpha.19] - 2026-06-10
 
 ### Added
