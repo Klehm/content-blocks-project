@@ -263,6 +263,54 @@
         toolbar.classList.remove('is-visible');
     }
 
+    // ---------- Keyboard shortcuts (focused element) ----------
+    //
+    // Shortcuts act on the pinned (focused) section/block — the same target
+    // the toolbar buttons drive — so they only ever fire after an explicit
+    // click. Each maps to the exact same postToParent intent its toolbar
+    // button uses, keeping a single source of truth in the parent.
+
+    /** True for fields where a keystroke means "type", not "act on element". */
+    function isTypingTarget(t) {
+        if (!t || t.nodeType !== 1) return false;
+        if (t.isContentEditable) return true;
+        const tag = t.tagName;
+        return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    }
+
+    document.addEventListener('keydown', (event) => {
+        // Only when an element is pinned, never mid-drag, and never while the
+        // block-type popover owns the keyboard.
+        if (!focusedEl || dragState || !popover.hidden) return;
+        // Don't hijack keystrokes typed into a preview form field.
+        if (isTypingTarget(event.target)) return;
+        // Let modifier combos (browser/OS shortcuts) through untouched.
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+        const blockId = () => parseInt(focusedEl.dataset.cbBlockId, 10);
+        const sectionId = () => parseInt(focusedEl.dataset.cbSectionId, 10);
+
+        switch (event.key) {
+            // Delete the focused element (soft-delete in draft, revertible via
+            // Discard) — mirrors the toolbar × button.
+            case 'Delete':
+            case 'Backspace':
+                event.preventDefault();
+                if (focusedKind === 'block' && Number.isFinite(blockId())) {
+                    postToParent('cb:block:delete-requested', { blockId: blockId() });
+                } else if (focusedKind === 'section' && Number.isFinite(sectionId())) {
+                    postToParent('cb:section:delete-requested', { sectionId: sectionId() });
+                }
+                break;
+            // Deselect: drop the pin and let the parent close the sidebar.
+            case 'Escape':
+                event.preventDefault();
+                clearFocus();
+                postToParent('cb:preview:outside-click');
+                break;
+        }
+    });
+
     // ---------- Single-block hot reload ----------
 
     /**

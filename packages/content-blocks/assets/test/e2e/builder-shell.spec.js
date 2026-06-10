@@ -757,3 +757,65 @@ test.describe('builder shell — publish / discard', () => {
         await expect(frame.locator('[data-cb-block-id]')).toHaveCount(1);
     });
 });
+
+test.describe('builder shell — keyboard shortcuts', () => {
+    test('Delete on a focused section soft-deletes it (mirrors the toolbar ×)', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+
+        // Click the section's top strip to pin focus on it (not a column/block),
+        // then press Delete — the overlay forwards the same delete intent as
+        // the toolbar × button.
+        await frame.locator('[data-cb-section-id]').first().click({ position: { x: 5, y: 5 } });
+        await page.keyboard.press('Delete');
+
+        await expect.poll(() => frame.locator('[data-cb-section-id][data-cb-deleted="1"]').count()).toBe(1);
+    });
+
+    test('Delete on a focused block removes it from the preview', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+
+        await frame.locator('[data-cb-block-id]').first().click({ position: { x: 10, y: 10 } });
+        await page.keyboard.press('Delete');
+
+        // A never-published block is removed from the preview in place.
+        await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(0);
+    });
+
+    test('Backspace deletes the focused element too', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+
+        await frame.locator('[data-cb-block-id]').first().click({ position: { x: 10, y: 10 } });
+        await page.keyboard.press('Backspace');
+
+        await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(0);
+    });
+
+    test('Escape deselects the focused element (retracts the pinned toolbar)', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+
+        await frame.locator('[data-cb-section-id]').first().click({ position: { x: 5, y: 5 } });
+        await expect(frame.locator('.cb-overlay-toolbar.is-visible')).toBeVisible();
+
+        await page.keyboard.press('Escape');
+        await expect(frame.locator('.cb-overlay-toolbar.is-visible')).toHaveCount(0);
+    });
+
+    test('Delete does nothing when no element is focused', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+
+        // Click empty preview space to ensure nothing is pinned.
+        await frame.locator('body').click({ position: { x: 1, y: 1 } });
+        await page.keyboard.press('Delete');
+
+        // The section is untouched.
+        await expect.poll(() => frame.locator('[data-cb-section-id][data-cb-deleted="1"]').count()).toBe(0);
+        await expect(frame.locator('[data-cb-section-id]')).toHaveCount(1);
+    });
+});
