@@ -208,6 +208,66 @@ describe('cb-autosave', () => {
         expect(clickSpy).toHaveBeenCalledTimes(1);
     });
 
+    it('does not save when only a box-spacing [linked] toggle flips after the snapshot', () => {
+        // Regression: cb-spacing-link engages the link on connect when the four
+        // sides are uniform (a freshly-focused block), checking a hidden
+        // [linked] checkbox AFTER cb-autosave's baseline snapshot. That flag is
+        // a UI-only convenience re-derived on load, so flipping it must not look
+        // like a user edit and trip a spurious save (which would hot-reload the
+        // block on mere focus).
+        document.body.innerHTML = `
+            <div data-controller="cb-autosave">
+                <form>
+                    <input type="text" name="content_block[alt]" id="alt">
+                    <input type="checkbox" name="content_block[styling][margin][d][linked]" id="linked" value="1">
+                    <button type="button" data-cb-sidebar-save id="save">Save</button>
+                </form>
+            </div>
+        `;
+        const element = document.querySelector('[data-controller="cb-autosave"]');
+        const controller = new Controller();
+        Object.defineProperty(controller, 'element', { value: element });
+        Object.defineProperty(controller, 'debounceValue', { value: 100 });
+        controller.connect(); // baseline snapshot: link checkbox still unchecked
+
+        const clickSpy = vi.fn();
+        element.querySelector('#save').addEventListener('click', clickSpy);
+
+        // cb-spacing-link engages the link post-connect, then a benign trigger
+        // (focusout when the user clicks away) reaches autosave.
+        element.querySelector('#linked').checked = true;
+        element.querySelector('#alt').dispatchEvent(new Event('focusout', { bubbles: true }));
+
+        expect(clickSpy).not.toHaveBeenCalled();
+    });
+
+    it('still saves on a real field change even when a [linked] toggle also flipped', () => {
+        document.body.innerHTML = `
+            <div data-controller="cb-autosave">
+                <form>
+                    <input type="text" name="content_block[alt]" id="alt">
+                    <input type="checkbox" name="content_block[styling][margin][d][linked]" id="linked" value="1">
+                    <button type="button" data-cb-sidebar-save id="save">Save</button>
+                </form>
+            </div>
+        `;
+        const element = document.querySelector('[data-controller="cb-autosave"]');
+        const controller = new Controller();
+        Object.defineProperty(controller, 'element', { value: element });
+        Object.defineProperty(controller, 'debounceValue', { value: 100 });
+        controller.connect();
+
+        const clickSpy = vi.fn();
+        element.querySelector('#save').addEventListener('click', clickSpy);
+
+        element.querySelector('#linked').checked = true; // UI flag flips…
+        const alt = element.querySelector('#alt');
+        alt.value = 'photo'; // …and the user actually edits a field
+        alt.dispatchEvent(new Event('change', { bubbles: true }));
+
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+    });
+
     it('saves again once the user changes the value a second time', () => {
         const { input, clickSpy } = setup();
 

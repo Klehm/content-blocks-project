@@ -178,12 +178,24 @@ export default class extends Controller {
      * part of the persisted state and is intentionally excluded.
      * FormData entries are sorted so the serialization order doesn't
      * shift between calls.
+     *
+     * Box-spacing `[linked]` toggles are dropped: the cb-spacing-link
+     * controller engages them on connect when the four sides are uniform
+     * (the case for a freshly-focused block), which would otherwise dirty
+     * the form right after this baseline snapshot and trip a spurious save.
+     * The flag is a UI-only convenience re-derived from side uniformity on
+     * load, so excluding it from dirty-detection costs nothing — real
+     * spacing edits still flow through the side inputs, and the checkbox is
+     * still POSTed on genuine saves.
      */
     _serializeForm() {
         const form = this.element.querySelector('form');
         if (!form) return '';
         try {
             const params = new URLSearchParams(new FormData(form));
+            for (const key of [...params.keys()]) {
+                if (key.endsWith('[linked]')) params.delete(key);
+            }
             params.sort();
             return params.toString();
         } catch (_) {
