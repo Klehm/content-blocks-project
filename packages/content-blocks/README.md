@@ -12,17 +12,23 @@ This package provides the core: entities, admin UI (Live Components + Stimulus),
 
 ## Installation
 
-The package is not tagged yet. Until `0.1.0-alpha` ships, install the dev branch:
+The packages are tagged as `0.1.0-alpha.*` pre-releases. With `minimum-stability: stable`, add an explicit constraint (`composer require klehm/content-blocks:^0.1@alpha`), or lower the stability to `alpha`/`dev` with `prefer-stable: true`.
+
+### With the Flex recipe (recommended)
+
+A self-hosted Flex recipe endpoint automates the bundle registration, route mounts and config templates. Add it **before** requiring the packages:
 
 ```bash
-composer require klehm/content-blocks:dev-main klehm/content-blocks-kit:dev-main
+composer config extra.symfony.endpoint \
+  '["https://raw.githubusercontent.com/klehm/content-blocks-project/flex/main/index.json", "flex://defaults"]'
+composer require klehm/content-blocks klehm/content-blocks-kit
 ```
 
-If your project uses `minimum-stability: stable`, either lower it to `dev` (with `prefer-stable: true`) or add the `:dev-main` constraint as shown above.
+Each package has its own recipe: requiring only `klehm/content-blocks` applies only its recipe; the kit's recipe (its bundle, upload route and file-storage config template) is applied when `klehm/content-blocks-kit` is required.
 
-### Bundle registration & routes
+The recipe registers the bundles, mounts the `/_content-blocks/*` routes, and copies a documented `config/packages/content_blocks.yaml` where the two **required** host services are wired (see below). Flex itself (independently of the recipe) syncs the Stimulus controllers and the `sortablejs` importmap entry into your `assets/controllers.json`.
 
-If you use Symfony Flex, the auto-generated recipe registers both bundles in `config/bundles.php` and creates a `config/routes/content_blocks.yaml` that mounts the `/_content-blocks/*` AJAX endpoints (block CRUD, section reorder, file upload). Nothing to do.
+### Without Flex
 
 If you don't use Flex, add them manually:
 

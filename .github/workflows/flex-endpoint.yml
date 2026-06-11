@@ -1,0 +1,51 @@
+name: Flex endpoint
+
+# Regenerates the Symfony Flex recipe endpoint (served from the `flex/main`
+# branch) whenever a recipe under recipes/ changes on master. Consumers point
+# their composer.json at:
+#   https://raw.githubusercontent.com/klehm/content-blocks-project/flex/main/index.json
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'recipes/**'
+  workflow_dispatch: ~
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install recipes-checker
+        run: |
+          git clone --depth=1 https://github.com/symfony-tools/recipes-checker.git /tmp/recipes-checker
+          composer install -d /tmp/recipes-checker --no-dev --no-progress --quiet
+
+      - name: Generate the endpoint files
+        working-directory: recipes
+        run: |
+          mkdir -p /tmp/flex-out
+          git ls-tree HEAD */*/* | /tmp/recipes-checker/run generate:flex-endpoint \
+            klehm/content-blocks-project master flex/main /tmp/flex-out --contrib
+
+      - name: Publish to the flex/main branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan flex/main
+          git rm -rfq .
+          cp -r /tmp/flex-out/. .
+          git add -A
+          git commit -m "Generate Flex endpoint from $GITHUB_SHA"
+          git push --force origin flex/main
