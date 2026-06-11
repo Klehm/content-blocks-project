@@ -8,7 +8,10 @@
                 "main": "controllers/cb-builder-launcher_controller.js",
                 "name": "cb-builder-launcher",
                 "fetch": "eager",
-                "enabled": true
+                "enabled": true,
+                "autoimport": {
+                    "@klehm/content-blocks/styles/admin.css": true
+                }
             },
             "cb-builder": {
                 "main": "controllers/cb-builder_controller.js",

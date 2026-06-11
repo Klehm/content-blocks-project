@@ -3,7 +3,10 @@
         "@klehm/content-blocks": {
             "cb-builder-launcher": {
                 "enabled": true,
-                "fetch": "eager"
+                "fetch": "eager",
+                "autoimport": {
+                    "@klehm/content-blocks/styles/admin.css": true
+                }
             },
             "cb-builder": {
                 "enabled": true,
