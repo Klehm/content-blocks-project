@@ -3,7 +3,15 @@
     "description": "Modular page builder for Symfony — entities, admin UI, form integration.",
     "type": "symfony-bundle",
     "license": "MIT",
-    "keywords": ["symfony", "symfony-bundle", "page-builder", "cms", "content", "blocks", "live-components"],
+    "keywords": [
+        "symfony",
+        "symfony-bundle",
+        "page-builder",
+        "cms",
+        "content",
+        "blocks",
+        "live-components"
+    ],
     "homepage": "https://github.com/klehm/content-blocks-project",
     "support": {
         "issues": "https://github.com/klehm/content-blocks-project/issues",
@@ -45,6 +53,9 @@
     "extra": {
         "symfony": {
             "bundle": "ContentBlocks\\ContentBlocksBundle"
+        },
+        "branch-alias": {
+            "dev-master": "0.1.x-dev"
         }
     },
     "minimum-stability": "dev",

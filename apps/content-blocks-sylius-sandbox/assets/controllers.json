@@ -19,22 +19,6 @@
                     "@symfony/ux-live-component/dist/live.min.css": true
                 }
             }
-        },
-        "@klehm/content-blocks": {
-            "cb-builder-launcher": { "enabled": true, "fetch": "eager" },
-            "cb-builder": { "enabled": true, "fetch": "eager" },
-            "cb-autosave": { "enabled": true, "fetch": "eager" },
-            "cb-section-settings-form": { "enabled": true, "fetch": "eager" },
-            "cb-block-styling-form": { "enabled": true, "fetch": "eager" },
-            "cb-spacing-link": { "enabled": true, "fetch": "eager" },
-            "cb-viewport-tabs": { "enabled": true, "fetch": "eager" },
-            "cb-range": { "enabled": true, "fetch": "eager" },
-            "cb-tabs": { "enabled": true, "fetch": "eager" },
-            "cb-collection-sort": { "enabled": true, "fetch": "eager" }
-        },
-        "@klehm/content-blocks-kit": {
-            "cb-file-upload": { "enabled": true, "fetch": "eager" },
-            "cb-tinymce": { "enabled": true, "fetch": "lazy" }
         }
     },
     "entrypoints": []

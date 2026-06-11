@@ -3,7 +3,13 @@
     "description": "Ready-to-use block types for ContentBlocks (Text, Title, Image, Tabs).",
     "type": "symfony-bundle",
     "license": "MIT",
-    "keywords": ["symfony", "symfony-bundle", "page-builder", "content-blocks", "blocks"],
+    "keywords": [
+        "symfony",
+        "symfony-bundle",
+        "page-builder",
+        "content-blocks",
+        "blocks"
+    ],
     "homepage": "https://github.com/klehm/content-blocks-project",
     "support": {
         "issues": "https://github.com/klehm/content-blocks-project/issues",
@@ -17,7 +23,7 @@
     ],
     "require": {
         "php": ">=8.2",
-        "klehm/content-blocks": "@dev",
+        "klehm/content-blocks": "^0.1",
         "symfony/form": "^6.4 || ^7.0 || ^8.0",
         "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
         "symfony/mime": "^6.4 || ^7.0 || ^8.0",
@@ -40,6 +46,9 @@
     "extra": {
         "symfony": {
             "bundle": "ContentBlocks\\Kit\\ContentBlocksKitBundle"
+        },
+        "branch-alias": {
+            "dev-master": "0.1.x-dev"
         }
     },
     "minimum-stability": "dev",

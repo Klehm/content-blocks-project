@@ -5,10 +5,17 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0-beta.1] - 2026-06-11
+
+First **beta**: from this release on, the public API (entities, interfaces, endpoints, form types, Twig/Stimulus contracts) is considered frozen — further breaking changes bump to `0.2`. New infrastructure backs that promise: a CI matrix (PHP 8.2–8.4 × PHPUnit / Vitest / Playwright) now gates the package split and tag propagation, the AJAX controllers and the import/export pipeline are unit-tested, and Symfony Flex recipes are served from a self-hosted endpoint (see the README installation section).
+
+### Changed
+
+- **Packaging — the kit now declares a real version constraint.** `klehm/content-blocks-kit` required `klehm/content-blocks: "@dev"`, which made any tagged kit release uninstallable for stability-normal consumers; it now requires `^0.1`. Both packages alias `dev-master` to `0.1.x-dev` so monorepo path installs keep resolving.
 
 ### Added
 
+- **Symfony Flex recipes.** Bundles, routes and documented config templates are applied automatically when installing via the self-hosted recipe endpoint (one `composer config` line — see README). Each package has its own independent recipe.
 - **Deleting a block or section can be undone in one click.** Deletes are immediate (no confirm dialog) and the only recovery used to be Discard — which throws away the *whole* draft. After every delete, a snackbar ("Block deleted — Undo") now floats at the bottom of the shell for 6 seconds; clicking Undo flips the draft soft-delete flag back via the new `POST /_content-blocks/block/{id}/restore` / `POST /_content-blocks/section/{id}/restore` endpoints (CSRF + `AccessCheckerInterface` protected, like every mutation) and reloads the preview. The offer is single-slot (a newer delete replaces it) and is withdrawn on publish/discard, where it could no longer be honoured. Also fixed: a failed section delete used to reload the preview as if it had succeeded.
 - **Save failures are now visible (and recoverable).** Every save path — structural ops (add/move/delete/duplicate, publish, discard, replace), block-form autosaves (Live Component), and the section-settings POST — now surfaces a persistent "not saved" banner in the topbar on failure (HTTP error or network loss); the banner clears on the next successful save. Previously failures were console-only: the editor had no way to know their edits were not stored. Three silent-failure bugs fixed along the way: a network error during a structural op threw an unhandled rejection; a network error during a Live Component save left the component permanently wedged (its request queue never drained, so no later save could run); and a failed autosave was treated as "already saved" by the dirty-detection baseline, so the unchanged value was never re-sent. After a failure, the editor's next interaction with the form retries the save.
 

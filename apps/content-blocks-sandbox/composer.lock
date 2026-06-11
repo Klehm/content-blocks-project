@@ -1198,21 +1198,21 @@
         },
         {
             "name": "klehm/content-blocks",
-            "version": "dev-main",
+            "version": "dev-master",
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks",
-                "reference": "032b96e09a773f0c6a17f783f5e33b7d9bac82df"
+                "reference": "4e43e5c33aa652e43e39577bedd48c53471a1c7d"
             },
             "require": {
                 "doctrine/orm": "^2.12 || ^3.0",
                 "php": ">=8.2",
-                "symfony/form": "^7.0",
-                "symfony/framework-bundle": "^7.0",
-                "symfony/http-kernel": "^7.0",
-                "symfony/security-csrf": "^7.0",
+                "symfony/form": "^6.4 || ^7.0 || ^8.0",
+                "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
+                "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0",
+                "symfony/security-csrf": "^6.4 || ^7.0 || ^8.0",
                 "symfony/stimulus-bundle": "^2.0",
-                "symfony/twig-bundle": "^7.0",
+                "symfony/twig-bundle": "^6.4 || ^7.0 || ^8.0",
                 "symfony/ux-live-component": "^2.0",
                 "symfony/ux-twig-component": "^2.0",
                 "twig/twig": "^3.10"
@@ -1224,6 +1224,9 @@
             "extra": {
                 "symfony": {
                     "bundle": "ContentBlocks\\ContentBlocksBundle"
+                },
+                "branch-alias": {
+                    "dev-master": "0.1.x-dev"
                 }
             },
             "autoload": {
@@ -1240,7 +1243,27 @@
             "license": [
                 "MIT"
             ],
-            "description": "Page builder modulaire pour Symfony — entites, UI admin, formulaires.",
+            "authors": [
+                {
+                    "name": "Clément Muller",
+                    "email": "klehm.muller@gmail.com"
+                }
+            ],
+            "description": "Modular page builder for Symfony — entities, admin UI, form integration.",
+            "homepage": "https://github.com/klehm/content-blocks-project",
+            "keywords": [
+                "blocks",
+                "cms",
+                "content",
+                "live-components",
+                "page-builder",
+                "symfony",
+                "symfony-bundle"
+            ],
+            "support": {
+                "issues": "https://github.com/klehm/content-blocks-project/issues",
+                "source": "https://github.com/klehm/content-blocks"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1248,18 +1271,20 @@
         },
         {
             "name": "klehm/content-blocks-kit",
-            "version": "dev-main",
+            "version": "dev-master",
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks-kit",
-                "reference": "47f162cc616f403e438a28a23046b4ac6dc47bc4"
+                "reference": "c8a3c57dcaa63f7350931ad1516992945d21f32a"
             },
             "require": {
-                "klehm/content-blocks": "@dev",
+                "klehm/content-blocks": "^0.1",
                 "php": ">=8.2",
-                "symfony/form": "^7.0",
-                "symfony/framework-bundle": "^7.0",
-                "symfony/validator": "^7.0"
+                "symfony/form": "^6.4 || ^7.0 || ^8.0",
+                "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
+                "symfony/mime": "^6.4 || ^7.0 || ^8.0",
+                "symfony/security-csrf": "^6.4 || ^7.0 || ^8.0",
+                "symfony/validator": "^6.4 || ^7.0 || ^8.0"
             },
             "require-dev": {
                 "phpunit/phpunit": "^11.0"
@@ -1268,6 +1293,9 @@
             "extra": {
                 "symfony": {
                     "bundle": "ContentBlocks\\Kit\\ContentBlocksKitBundle"
+                },
+                "branch-alias": {
+                    "dev-master": "0.1.x-dev"
                 }
             },
             "autoload": {
@@ -1283,7 +1311,25 @@
             "license": [
                 "MIT"
             ],
-            "description": "Blocs prets a l'emploi pour ContentBlocks (Text, Title, Image).",
+            "authors": [
+                {
+                    "name": "Clément Muller",
+                    "email": "klehm.muller@gmail.com"
+                }
+            ],
+            "description": "Ready-to-use block types for ContentBlocks (Text, Title, Image, Tabs).",
+            "homepage": "https://github.com/klehm/content-blocks-project",
+            "keywords": [
+                "blocks",
+                "content-blocks",
+                "page-builder",
+                "symfony",
+                "symfony-bundle"
+            ],
+            "support": {
+                "issues": "https://github.com/klehm/content-blocks-project/issues",
+                "source": "https://github.com/klehm/content-blocks-kit"
+            },
             "transport-options": {
                 "symlink": true,
                 "relative": true
