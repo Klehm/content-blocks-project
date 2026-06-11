@@ -473,6 +473,62 @@
     }
 
     /**
+     * Drops a freshly-rendered block duplicate into the preview in place,
+     * anchored right after its source node — the same slot the server inserted
+     * the copy at — instead of reloading the iframe. Dispatches
+     * cb:block:rendered so a JS-enhanced view can initialise (page scripts
+     * don't re-run on injected HTML). Focus is left untouched: the source stays
+     * selected, mirroring the pre-reload behaviour.
+     */
+    function insertBlockAfter(sourceId, html) {
+        const source = document.querySelector(`[data-cb-block-id="${sourceId}"]`);
+        if (!source) {
+            // The source vanished — the DOM drifted from the server's model.
+            postToParent('cb:reorder:desync');
+            return;
+        }
+        const tpl = document.createElement('template');
+        tpl.innerHTML = html.trim();
+        const newEl = tpl.content.firstElementChild;
+        if (!newEl) return;
+
+        source.after(newEl);
+
+        newEl.dispatchEvent(new CustomEvent('cb:block:rendered', {
+            bubbles: true,
+            detail: { blockId: parseInt(newEl.getAttribute('data-cb-block-id'), 10) },
+        }));
+    }
+
+    /**
+     * Drops a freshly-rendered section duplicate into the preview in place,
+     * anchored right after its source section. Re-fires cb:block:rendered on
+     * every inner block so JS-enhanced (but hot-reload-capable) views
+     * initialise — the duplicate endpoint only ships section markup when all of
+     * its blocks opt into hot reload, so this is always safe.
+     */
+    function insertSectionAfter(sourceId, html) {
+        const source = document.querySelector(`[data-cb-section-id="${sourceId}"]`);
+        if (!source) {
+            postToParent('cb:reorder:desync');
+            return;
+        }
+        const tpl = document.createElement('template');
+        tpl.innerHTML = html.trim();
+        const newEl = tpl.content.firstElementChild;
+        if (!newEl) return;
+
+        source.after(newEl);
+
+        newEl.querySelectorAll('[data-cb-block-id]').forEach((block) => {
+            block.dispatchEvent(new CustomEvent('cb:block:rendered', {
+                bubbles: true,
+                detail: { blockId: parseInt(block.getAttribute('data-cb-block-id'), 10) },
+            }));
+        });
+    }
+
+    /**
      * Relocates an existing block node to a new column/position in place after
      * a server-confirmed reorder, instead of reloading the iframe. Moving the
      * live node (rather than re-rendering it) preserves the block's DOM + JS
@@ -909,6 +965,22 @@
             && Number.isFinite(data.columnId)
             && typeof data.html === 'string') {
             insertBlock(data.columnId, data.html);
+            return;
+        }
+
+        // Hot duplicate: drop a block copy right after its source.
+        if (data.type === 'cb:block:duplicate:apply'
+            && Number.isFinite(data.sourceId)
+            && typeof data.html === 'string') {
+            insertBlockAfter(data.sourceId, data.html);
+            return;
+        }
+
+        // Hot duplicate: drop a section copy right after its source.
+        if (data.type === 'cb:section:duplicate:apply'
+            && Number.isFinite(data.sourceId)
+            && typeof data.html === 'string') {
+            insertSectionAfter(data.sourceId, data.html);
             return;
         }
 

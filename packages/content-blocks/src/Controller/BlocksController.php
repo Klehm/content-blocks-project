@@ -221,7 +221,25 @@ final class BlocksController
         $this->em->persist($copy);
         $this->em->flush();
 
-        return new JsonResponse(['id' => $copy->getId()]);
+        // Mirror create()'s policy: a static / CSS-only copy ships its rendered
+        // markup so the overlay can drop it in place (right after the source),
+        // no full reload. A JS-dependent block opts out and the builder reloads
+        // the whole iframe so its scripts run. `sourceId` tells the overlay
+        // which node to anchor the copy after.
+        $response = ['id' => $copy->getId(), 'sourceId' => $block->getId()];
+
+        $blockType = $this->blockTypeRegistry->has($copy->getType())
+            ? $this->blockTypeRegistry->get($copy->getType())
+            : null;
+
+        if ($blockType !== null && $blockType->supportsPreviewHotReload()) {
+            $response['hotReload'] = true;
+            $response['html'] = $this->blockRenderer->renderBlock($copy, RenderMode::PREVIEW);
+        } else {
+            $response['hotReload'] = false;
+        }
+
+        return new JsonResponse($response);
     }
 
     #[Route('/block/{id}', name: 'content_blocks_block_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]

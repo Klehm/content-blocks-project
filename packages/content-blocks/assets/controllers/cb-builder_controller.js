@@ -438,14 +438,52 @@ export default class extends Controller {
 
     async _duplicateSection(sectionId) {
         if (!sectionId) return;
-        await this._jsonRequest('POST', `/_content-blocks/section/${sectionId}/duplicate`);
-        this._afterStructuralOp();
+        const result = await this._jsonRequest('POST', `/_content-blocks/section/${sectionId}/duplicate`);
+        // Duplicate failed (CSRF/access/network) — leave the preview untouched.
+        if (result === null) return;
+        this._applyDraftState(true);
+        // A section whose blocks all hot-reload ships its rendered markup: drop
+        // the copy into the preview in place, right after the source. A section
+        // carrying a JS-dependent block opts out (no html) and needs a full
+        // reload so its scripts run.
+        if (result.hotReload && typeof result.html === 'string') {
+            this._duplicateInPreview({ type: 'cb:section:duplicate:apply', sourceId: sectionId, html: result.html });
+        } else {
+            this.reload();
+        }
     }
 
     async _duplicateBlock(blockId) {
         if (!blockId) return;
-        await this._jsonRequest('POST', `/_content-blocks/block/${blockId}/duplicate`);
-        this._afterStructuralOp();
+        const result = await this._jsonRequest('POST', `/_content-blocks/block/${blockId}/duplicate`);
+        // Duplicate failed (CSRF/access/network) — leave the preview untouched.
+        if (result === null) return;
+        this._applyDraftState(true);
+        // Same policy as _addBlock: a static / CSS-only copy ships its markup
+        // and lands in place (right after the source); a JS-dependent block
+        // opts out (no html) and falls back to a full reload.
+        if (result.hotReload && typeof result.html === 'string') {
+            this._duplicateInPreview({ type: 'cb:block:duplicate:apply', sourceId: blockId, html: result.html });
+        } else {
+            this.reload();
+        }
+    }
+
+    /**
+     * Asks the preview overlay to drop a freshly-rendered duplicate into place,
+     * anchored right after its source node. Falls back to a full reload if the
+     * iframe can't be reached.
+     */
+    _duplicateInPreview(message) {
+        if (!this.hasIframeTarget) {
+            this.reload();
+            return;
+        }
+        try {
+            this.iframeTarget.contentWindow?.postMessage(message, window.location.origin);
+        } catch (_) {
+            this.reload();
+        }
     }
 
     async _deleteSection(sectionId) {

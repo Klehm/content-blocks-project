@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Controller;
 
+use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Rendering\BlockRenderer;
+use ContentBlocks\Rendering\RenderMode;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Service\SectionCloner;
@@ -38,6 +41,8 @@ final class SectionsController
         private readonly AccessCheckerInterface $accessChecker,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly SectionCloner $sectionCloner,
+        private readonly BlockRenderer $blockRenderer,
+        private readonly BlockTypeRegistry $blockTypeRegistry,
     ) {
     }
 
@@ -198,7 +203,44 @@ final class SectionsController
         $this->em->persist($copy);
         $this->em->flush();
 
-        return new JsonResponse(['id' => $copy->getId()]);
+        // A section can be dropped into the preview in place (right after the
+        // source) only when every one of its blocks renders without a JS init
+        // pass; otherwise the builder falls back to a full reload so those
+        // scripts run. `sourceId` tells the overlay which node to anchor after.
+        $response = ['id' => $copy->getId(), 'sourceId' => $section->getId()];
+
+        if ($this->sectionSupportsHotReload($copy)) {
+            $response['hotReload'] = true;
+            $response['html'] = $this->blockRenderer->renderSection($copy, RenderMode::PREVIEW);
+        } else {
+            $response['hotReload'] = false;
+        }
+
+        return new JsonResponse($response);
+    }
+
+    /**
+     * A section is safe to hot-insert only when every one of its (non-deleted)
+     * blocks opts into preview hot reload. A single JS-dependent block forces a
+     * full iframe reload so its init pass runs. An empty section trivially
+     * qualifies.
+     */
+    private function sectionSupportsHotReload(Section $section): bool
+    {
+        foreach ($section->getColumns() as $column) {
+            foreach ($column->getBlocks() as $block) {
+                if ($block->isDeleted()) {
+                    continue;
+                }
+                $type = $block->getType();
+                if (!$this->blockTypeRegistry->has($type)
+                    || !$this->blockTypeRegistry->get($type)->supportsPreviewHotReload()) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     #[Route('/section/{id}', name: 'content_blocks_section_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
