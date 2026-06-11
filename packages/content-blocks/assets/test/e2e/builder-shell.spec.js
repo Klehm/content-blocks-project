@@ -45,8 +45,94 @@ async function addFullSection(page, frame) {
  */
 async function addFirstBlock(page, frame) {
     const before = await frame.locator('[data-cb-block-id]').count();
-    await frame.locator('.cb-add-block-inline').first().click();
-    await frame.locator('.cb-overlay-popover button').first().click();
+    // Target the LAST pill (the just-added, empty section) and click its upper
+    // half: the pill floats half-below its column (translateY 50%), so an
+    // earlier section's pill is both pointer-events:none (non-empty column) and
+    // overlapped by the next section. The last section's column is empty (pill
+    // always interactive) with nothing below to intercept the pointer.
+    await frame.locator('.cb-add-block-inline').last().click({ position: { x: 8, y: 3 } });
+    await clickPopoverTile(page, frame);
+    await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(before + 1);
+    await page.waitForTimeout(200);
+}
+
+/**
+ * Dispatches a click on the nth element matching `selector` INSIDE the preview
+ * iframe. Routing the click through the overlay's own document handler (rather
+ * than a coordinate click) sidesteps two obstacles that otherwise intercept the
+ * pointer: the section's top-left "select" handle (z-index 5, revealed on
+ * hover) and the sidebar that floats over the iframe once it's open. Same
+ * technique the outside-click test already relies on.
+ */
+async function clickInPreview(page, selector, n = 0) {
+    await page.locator('.cb-shell__iframe').evaluate((iframe, [sel, idx]) => {
+        const els = iframe.contentDocument.querySelectorAll(sel);
+        els[idx]?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    }, [selector, n]);
+}
+
+/**
+ * Dispatches a keydown on the preview iframe's document, driving the overlay's
+ * keyboard-shortcut handler directly. A real `page.keyboard.press` would land
+ * in whatever currently holds focus (often a sidebar form field that the editor
+ * auto-focuses), never reaching the in-iframe handler.
+ */
+async function pressInPreview(page, key) {
+    await page.locator('.cb-shell__iframe').evaluate((iframe, k) => {
+        iframe.contentDocument.dispatchEvent(
+            new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }),
+        );
+    }, key);
+}
+
+/**
+ * Opens a block's editor in the sidebar. The overlay toolbar no longer carries
+ * an "edit" button — clicking the block itself opens the editor.
+ */
+async function openBlockEditor(page, frame, n = 0) {
+    await clickInPreview(page, '[data-cb-block-id]', n);
+    const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+    await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+}
+
+/**
+ * Opens a section's settings in the sidebar. As with blocks, the toolbar has no
+ * "settings" button — clicking the section opens it.
+ */
+async function openSectionSettings(page, frame, n = 0) {
+    await clickInPreview(page, '[data-cb-section-id]', n);
+    const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+    await expect(sidebar.locator('input[name="section_settings[classes]"]')).toBeVisible();
+    // Give the form's autosave controller a beat to connect before callers
+    // start editing — a fill fired before connect never triggers a save.
+    await page.waitForTimeout(300);
+}
+
+/**
+ * Picks a block type from the (already-open) overlay popover by dispatching the
+ * tile's click in-iframe. On mobile the sidebar bottom-sheet floats over the
+ * lower preview and intercepts a real pointer click on the popover; dispatching
+ * the tile's own click event drives the overlay handler directly. `title`
+ * matches the tile's title attribute; omit it to pick the first tile.
+ */
+async function clickPopoverTile(page, frame, { title } = {}) {
+    await frame.locator('.cb-overlay-popover button').first().waitFor();
+    await page.locator('.cb-shell__iframe').evaluate((iframe, t) => {
+        const tiles = Array.from(iframe.contentDocument.querySelectorAll('.cb-overlay-popover button'));
+        const tile = t ? tiles.find((b) => new RegExp(t).test(b.getAttribute('title') || '')) : tiles[0];
+        tile?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    }, title ?? null);
+}
+
+/**
+ * Adds a Title block (a deterministic single <input type="text"> bound to
+ * data.text) to the just-added section — handy for autosave assertions that
+ * need a known editable text field.
+ */
+async function addTitleBlock(page, frame) {
+    const before = await frame.locator('[data-cb-block-id]').count();
+    await frame.locator('.cb-add-block-inline').last().click({ position: { x: 8, y: 3 } });
+    await clickPopoverTile(page, frame, { title: '^(Titre|Title)$' });
     await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(before + 1);
     await page.waitForTimeout(200);
 }
@@ -80,8 +166,7 @@ test.describe('builder shell — basics', () => {
         await expect(page.locator('.cb-shell__iframe')).toBeVisible();
     });
 
-    test('iframe loads the preview URL with cb_preview=1 and emits cb:ready', async ({ page }) => {
-        const logs = attachConsoleSink(page);
+    test('iframe loads the preview URL with cb_preview=1 and the overlay comes up', async ({ page }) => {
         const url = await createFreshPage(page);
         await page.goto(url);
         await page.locator('.cb-launcher__button').click();
@@ -89,7 +174,11 @@ test.describe('builder shell — basics', () => {
         const iframe = page.locator('.cb-shell__iframe');
         await expect(iframe).toHaveAttribute('src', /\/page\/\d+\?cb_preview=1$/);
 
-        await expect.poll(() => logs.some((l) => l.includes('iframe ready'))).toBe(true);
+        // The preview rendered and the overlay is live (the in-iframe add-section
+        // tray is injected by preview-overlay once it signals cb:ready).
+        await expect(
+            page.frameLocator('.cb-shell__iframe').locator('.cb-add-section-tray__btn').first(),
+        ).toBeVisible();
     });
 });
 
@@ -124,7 +213,7 @@ test.describe('builder shell — sections', () => {
 
         // Hover the top strip of the section (above the column grid) so the
         // section toolbar wins over the inner column toolbar.
-        await frame.locator('[data-cb-section-id]').nth(1).hover({ position: { x: 5, y: 5 } });
+        await clickInPreview(page, '[data-cb-section-id]', 1);
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="move-up"]').click();
 
         await expect.poll(async () => (await readOrder()).join(',')).toBe([before[1], before[0]].join(','));
@@ -134,7 +223,7 @@ test.describe('builder shell — sections', () => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
 
-        await frame.locator('[data-cb-section-id]').first().hover({ position: { x: 5, y: 5 } });
+        await clickInPreview(page, '[data-cb-section-id]');
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="delete"]').click();
 
         await expect.poll(() => frame.locator('[data-cb-section-id][data-cb-deleted="1"]').count()).toBe(1);
@@ -144,8 +233,7 @@ test.describe('builder shell — sections', () => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
 
-        await frame.locator('[data-cb-section-id]').first().hover({ position: { x: 5, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="settings"]').click();
+        await openSectionSettings(page, frame);
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar).not.toHaveAttribute('hidden');
@@ -153,9 +241,12 @@ test.describe('builder shell — sections', () => {
         await expect(sidebar.locator('input[name="section_settings[classes]"]')).toBeVisible();
         await expect(sidebar.locator('input[name="section_settings[widthMode]"][value="full"]')).toBeAttached();
         await expect(sidebar.locator('input[name="section_settings[widthMode]"][value="centered"]')).toBeAttached();
-        await expect(sidebar.locator('input[name="section_settings[maxWidth]"]')).toBeVisible();
-        // Sandbox FormTypeExtension contributed an additional field.
-        await expect(sidebar.locator('input[name="section_settings[backgroundColor]"]')).toBeAttached();
+        // maxWidth only un-hides once the section is "centered"; in the default
+        // "full" mode it's present but hidden.
+        await expect(sidebar.locator('input[name="section_settings[maxWidth]"]')).toBeAttached();
+        // Sandbox StylingPaletteExtension overrides the Styling sub-form's
+        // backgroundColor with a brand-palette <select>.
+        await expect(sidebar.locator('select[name="section_settings[styling][backgroundColor]"]')).toBeAttached();
     });
 
     test('section settings save applies custom classes + width and the host backgroundColor extension', async ({ page }) => {
@@ -163,53 +254,49 @@ test.describe('builder shell — sections', () => {
         await addFullSection(page, frame);
 
         // Open settings.
-        await frame.locator('[data-cb-section-id]').first().hover({ position: { x: 5, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="settings"]').click();
+        await openSectionSettings(page, frame);
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await sidebar.locator('input[name="section_settings[classes]"]').fill('e2e-decorated');
         await sidebar.locator('input[name="section_settings[widthMode]"][value="centered"]').check();
         await sidebar.locator('input[name="section_settings[maxWidth]"]').fill('900');
-        // Sandbox extension field — a ColorType picker. Playwright fills
-        // <input type="color"> via a hex value.
-        await sidebar.locator('input[name="section_settings[backgroundColor]"]').fill('#ffeecc');
-        await page.locator('.cb-shell__sidebar-save').click();
-
-        // Sidebar stays open after save (the user can keep tweaking) — but
-        // the iframe reloads with the new draft applied.
-        await expect(sidebar).not.toHaveAttribute('hidden');
+        // Sandbox StylingPaletteExtension field — a brand-palette <select>.
+        await sidebar.locator('select[name="section_settings[styling][backgroundColor]"]').selectOption('#0a84ff');
+        // No manual Save button anymore — autosave persists each field change
+        // (fill/check/select fire input/change, which the cb-autosave controller
+        // debounces into a save). The section hot-reloads with the new draft.
+        // The sidebar stays on screen (permanent-sidebar model).
         const section = frame.locator('[data-cb-section-id]').first();
         await expect.poll(async () => section.getAttribute('class')).toContain('e2e-decorated');
         await expect.poll(async () => section.getAttribute('class')).toContain('cb-section--centered');
-        const style = await section.getAttribute('style');
-        expect(style).toContain('max-width:900px');
-        expect(style).toContain('background-color:#ffeecc');
+        // The decorators emit CSS custom properties (responsive-friendly), not
+        // raw properties: maxWidth → --cb-row-max-w, backgroundColor → --cb-s-bg.
+        await expect.poll(async () => section.getAttribute('style')).toContain('--cb-row-max-w:900px');
+        await expect.poll(async () => section.getAttribute('style')).toContain('--cb-s-bg:#0a84ff');
     });
 
     test('section settings saved with the framework default value do not pollute the rendered markup', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
 
-        await frame.locator('[data-cb-section-id]').first().hover({ position: { x: 5, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="settings"]').click();
+        await openSectionSettings(page, frame);
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
-        // The form opens with backgroundColor pre-set to #ffffff (sandbox default).
-        const colorInput = sidebar.locator('input[name="section_settings[backgroundColor]"]');
-        await expect(colorInput).toHaveValue('#ffffff');
+        // The brand-palette backgroundColor <select> opens unset (placeholder) —
+        // its default is "no color".
+        await expect(sidebar.locator('select[name="section_settings[styling][backgroundColor]"]')).toHaveValue('');
 
-        // Save without changing anything. The sidebar stays open.
-        await page.locator('.cb-shell__sidebar-save').click();
-        await expect(sidebar).not.toHaveAttribute('hidden');
+        // Autosave only fires on a change, so force a save via an unrelated
+        // field (classes) while leaving backgroundColor unset — the point is
+        // that the default (no color) must not leak into the markup.
+        await sidebar.locator('input[name="section_settings[classes]"]').fill('e2e-default-probe');
 
-        // Iframe reloads — the section MUST NOT carry background-color in
-        // its inline style because the saved value matches the registered
-        // default.
         const section = frame.locator('[data-cb-section-id]').first();
-        // Wait for the iframe reload to settle.
-        await page.waitForTimeout(400);
+        // Wait until the save round-trip applied the class to the section,
+        // then assert no background var was emitted.
+        await expect.poll(async () => section.getAttribute('class')).toContain('e2e-default-probe');
         const style = await section.getAttribute('style');
-        expect(style ?? '').not.toContain('background-color');
+        expect(style ?? '').not.toContain('--cb-s-bg');
     });
 });
 
@@ -234,98 +321,64 @@ test.describe('builder shell — blocks', () => {
         await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
     });
 
-    test('clicking Edit on a block mounts the BlockComponent in the sidebar', async ({ page }) => {
+    test('clicking a block mounts the BlockComponent in the sidebar', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
+        await openBlockEditor(page, frame);
 
+        // Permanent-sidebar model: the sidebar is always on screen (never
+        // `hidden`) and now carries the mounted block edit form. There is no
+        // manual Save button — autosave persists changes.
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar).not.toHaveAttribute('hidden');
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
-        // Header Save button is visible + enabled once the form is mounted.
-        await expect(page.locator('.cb-shell__sidebar-save')).toBeVisible();
-        await expect(page.locator('.cb-shell__sidebar-save')).toBeEnabled();
     });
 
-    test('clicking outside the sidebar (in the iframe preview) closes it', async ({ page }) => {
+    test('clicking outside the form (in the iframe preview) reverts the sidebar to its empty state', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
+        await openBlockEditor(page, frame);
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
 
-        // Dispatch a click directly on the iframe's <body>. We deliberately
-        // avoid coordinate-based clicks here: the layout is in flux because
-        // adding a block auto-opens the sidebar (which can shift content),
-        // and a coordinate that's "outside" can land inside a section
-        // depending on how the iframe paints. Targeting `body` itself is
-        // unambiguously outside any [data-cb-block-id]/[data-cb-section-id]
-        // ancestor, so preview-overlay routes it as a true outside-click.
-        await page.locator('.cb-shell__iframe').evaluate((iframe) => {
-            iframe.contentDocument.body.dispatchEvent(
-                new MouseEvent('click', { bubbles: true, cancelable: true }),
-            );
-        });
+        // Click empty preview space. The permanent sidebar stays on screen but
+        // drops the mounted form and reverts to its empty placeholder.
+        await clickInPreview(page, 'body');
 
-        await expect(sidebar).toHaveAttribute('hidden', '');
+        await expect(sidebar.locator('.cb-block__edit-form')).toHaveCount(0);
     });
 
-    test('× in sidebar header closes it without reloading', async ({ page }) => {
+    test('autosave persists a block edit and keeps the form mounted', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
-        await addFirstBlock(page, frame);
-
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
+        // addTitleBlock auto-opens the editor (and waits long enough for the
+        // autosave controller to connect), so we don't re-open it.
+        await addTitleBlock(page, frame);
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
 
-        await sidebar.locator('.cb-shell__sidebar-close').click();
+        // No manual Save — type into the title field and let autosave persist.
+        // The "Saved" pill flashing is the observable signal a save happened.
+        await sidebar.locator('.cb-block__edit-form input[type="text"]').first().fill('e2e-autosave');
+        await expect(page.locator('[data-cb-builder-target="savedFlash"]')).toBeVisible();
 
-        await expect(sidebar).toHaveAttribute('hidden', '');
-    });
-
-    test('saving a block keeps the sidebar open and reloads the iframe', async ({ page }) => {
-        const logs = attachConsoleSink(page);
-        const frame = await openBuilder(page);
-        await addFullSection(page, frame);
-        await addFirstBlock(page, frame);
-
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
-
-        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
-        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
-
-        await page.locator('.cb-shell__sidebar-save').click();
-
-        // block:saved was logged AND the form is still visible afterwards.
-        await expect.poll(() => logs.some((l) => l.startsWith('[cb-builder] block:saved'))).toBe(true);
+        // The form stays mounted after the autosave (permanent-sidebar model).
         await expect(sidebar).not.toHaveAttribute('hidden');
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
     });
 
-    test('saving with focus still in the input persists the typed value', async ({ page }) => {
-        // High-level regression for the "header Save loses the typed value"
-        // bug: with Live's `on(change)` form binding, the header Save action
-        // (saveSidebar in cb-builder) fires a synthetic `.click()` on the
-        // in-form submit button. That click does NOT move focus, so the
-        // user's last keystrokes never produce a change event — the Live
-        // POST goes out with stale props and persists empty data.
-        //
-        // The fix in saveSidebar() blurs the focused sidebar input first,
-        // which fires change synchronously and updates Live's model
-        // before the action POSTs. This e2e test reads back the persisted
-        // value by reopening the block edit form post-save, so it verifies
-        // the round-trip rather than just the iframe re-render.
+    test('autosave persists the typed value across a reopen (no value loss with focus still in the field)', async ({ page }) => {
+        // Regression for the "last keystrokes lost" class of bug: with Live's
+        // `on(change)` binding, a save fired while the input still holds focus
+        // must flush the pending value first. We type, let autosave persist
+        // while focus stays in the field, then reopen the form and read the
+        // value back — verifying the round-trip, not just the iframe re-render.
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
 
@@ -337,9 +390,7 @@ test.describe('builder shell — blocks', () => {
         await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
         await page.waitForTimeout(200);
 
-        const block = frame.locator('[data-cb-block-id]').first();
-        await block.hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
+        await openBlockEditor(page, frame);
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
@@ -352,16 +403,14 @@ test.describe('builder shell — blocks', () => {
         // implicit change) — leaves focus on the input at the end.
         await field.pressSequentially(typed, { delay: 5 });
         await expect(field).toBeFocused();
-
-        await page.locator('.cb-shell__sidebar-save').click();
+        // Let the debounced autosave fire and the save round-trip complete.
         await page.waitForTimeout(1500);
 
-        // Reopen the form: if save persisted, the input should now show the typed value.
-        await sidebar.locator('.cb-shell__sidebar-close').click();
-        await page.waitForTimeout(300);
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
-        await page.waitForTimeout(500);
+        // Revert the sidebar to empty, then reopen: if autosave persisted, the
+        // input should now show the typed value.
+        await clickInPreview(page, 'body');
+        await expect(sidebar.locator('.cb-block__edit-form')).toHaveCount(0);
+        await openBlockEditor(page, frame);
 
         await expect(sidebar.locator('.cb-block__edit-form input[type="text"]').first()).toHaveValue(typed);
     });
@@ -373,8 +422,7 @@ test.describe('builder shell — blocks', () => {
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
+        await openBlockEditor(page, frame);
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar).not.toHaveAttribute('hidden');
@@ -387,14 +435,6 @@ test.describe('builder shell — blocks', () => {
         expect(box.width).toBeGreaterThan(300);
         const computedBottom = await sidebar.evaluate((el) => getComputedStyle(el).bottom);
         expect(computedBottom).toBe('0px');
-
-        // Shell carries the open class; iframe area gets padding-bottom so
-        // the preview content stays scrollable up to its real bottom edge.
-        await expect(page.locator('.cb-shell.cb-shell--sidebar-open')).toBeVisible();
-        const paddingBottom = await page.locator('.cb-shell__main').evaluate(
-            (el) => getComputedStyle(el).paddingBottom,
-        );
-        expect(paddingBottom).not.toBe('0px');
     });
 
     test('sidebar is resizable and the chosen width persists across opens', async ({ page }) => {
@@ -402,8 +442,7 @@ test.describe('builder shell — blocks', () => {
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
+        await openBlockEditor(page, frame);
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar).not.toHaveAttribute('hidden');
@@ -419,9 +458,11 @@ test.describe('builder shell — blocks', () => {
             const startX = rect.x + rect.width / 2;
             const startY = rect.y + rect.height / 2;
 
+            // Sidebar is left-anchored with the handle on its right edge —
+            // drag the handle RIGHT to grow it.
             handle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: startX, clientY: startY }));
-            document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX: startX - 120, clientY: startY }));
-            document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, clientX: startX - 120, clientY: startY }));
+            document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX: startX + 120, clientY: startY }));
+            document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, clientX: startX + 120, clientY: startY }));
 
             return sb.getBoundingClientRect().width;
         });
@@ -430,31 +471,26 @@ test.describe('builder shell — blocks', () => {
         const storedWidth = await page.evaluate(() => window.localStorage.getItem('cb-builder.sidebarWidth'));
         expect(parseInt(storedWidth, 10)).toBeGreaterThan(420);
 
-        // Close + reopen: the saved width should be restored.
-        await sidebar.locator('.cb-shell__sidebar-close').click();
-        await expect(sidebar).toHaveAttribute('hidden', '');
-
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
-        await expect(sidebar).not.toHaveAttribute('hidden');
-        // Wait for the sidebar mount + form render to settle.
+        // Re-mount a form into the (permanent) sidebar: the resized width is
+        // held on the shell, so it survives the content swap.
+        await openBlockEditor(page, frame);
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
 
         const widthAfterReopen = await sidebar.evaluate((el) => el.getBoundingClientRect().width);
         expect(widthAfterReopen).toBeCloseTo(widthAfter, 0);
     });
 
-    test('block delete overlay soft-deletes (deleted marker stays in DOM)', async ({ page }) => {
+    test('block delete removes the block from the preview in place', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
+        await clickInPreview(page, '[data-cb-block-id]');
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="delete"]').click();
 
-        await expect.poll(() => frame.locator('[data-cb-block-id][data-cb-deleted="1"]').count()).toBe(1);
-        // The block is still in the DOM, just marked.
-        await expect(frame.locator('[data-cb-block-id]')).toHaveCount(1);
+        // A never-published block is dropped from the preview in place
+        // (soft-deleted on the server; Discard can still bring it back).
+        await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(0);
     });
 });
 
@@ -472,7 +508,7 @@ test.describe('builder shell — preview hardening', () => {
         expect(new Set(tops).size).toBe(1);
     });
 
-    test('opening the sidebar does not shrink the iframe (it floats over)', async ({ page }) => {
+    test('mounting a block form does not shrink the iframe', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
@@ -480,19 +516,14 @@ test.describe('builder shell — preview hardening', () => {
         const iframe = page.locator('.cb-shell__iframe');
         const widthBefore = await iframe.evaluate((el) => el.getBoundingClientRect().width);
 
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
+        await openBlockEditor(page, frame);
 
         await expect(page.locator('aside[data-cb-builder-target="sidebar"]')).not.toHaveAttribute('hidden');
 
+        // The sidebar is permanent, so mounting a form into it doesn't reflow
+        // the iframe — its width is unchanged.
         const widthAfter = await iframe.evaluate((el) => el.getBoundingClientRect().width);
         expect(widthAfter).toBe(widthBefore);
-
-        // Sidebar is positioned absolutely.
-        const position = await page.locator('aside[data-cb-builder-target="sidebar"]').evaluate(
-            (el) => getComputedStyle(el).position,
-        );
-        expect(position).toBe('absolute');
     });
 
     test('clicks on links inside the iframe preview are intercepted', async ({ page }) => {
@@ -530,7 +561,7 @@ test.describe('builder shell — duplicate', () => {
         await addFullSection(page, frame);
         const before = await frame.locator('[data-cb-section-id]').count();
 
-        await frame.locator('[data-cb-section-id]').first().hover({ position: { x: 5, y: 5 } });
+        await clickInPreview(page, '[data-cb-section-id]');
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="duplicate"]').click();
 
         await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(before + 1);
@@ -542,7 +573,9 @@ test.describe('builder shell — duplicate', () => {
         await addFirstBlock(page, frame);
         const sourceType = await frame.locator('[data-cb-block-id]').first().getAttribute('data-cb-block-type');
 
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
+        // The freshly-added block is already focused (its toolbar is pinned
+        // visible), so fire the duplicate action straight from the toolbar —
+        // no hover needed (a top-left hover would hit the section handle).
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="duplicate"]').click();
 
         await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(2);
@@ -558,10 +591,9 @@ test.describe('builder shell — feedback', () => {
     test('saving a block flashes a "Saved" pill in the sidebar header', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
-        await addFirstBlock(page, frame);
-
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
+        // addTitleBlock auto-opens the editor (and waits long enough for the
+        // autosave controller to connect), so we don't re-open it.
+        await addTitleBlock(page, frame);
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
@@ -569,7 +601,8 @@ test.describe('builder shell — feedback', () => {
         const flash = page.locator('[data-cb-builder-target="savedFlash"]');
         await expect(flash).toBeHidden();
 
-        await page.locator('.cb-shell__sidebar-save').click();
+        // Autosave: typing into the title field persists it and flashes the pill.
+        await sidebar.locator('.cb-block__edit-form input[type="text"]').first().fill('e2e-pill');
 
         // Visible briefly, then auto-hidden — assert the visible window only.
         await expect(flash).toBeVisible();
@@ -605,7 +638,7 @@ test.describe('builder shell — focus + permanent affordances', () => {
         await addFirstBlock(page, frame);
 
         // Click the block — pinning the focus instead of just hovering.
-        await frame.locator('[data-cb-block-id]').first().click({ position: { x: 10, y: 10 } });
+        await clickInPreview(page, '[data-cb-block-id]');
 
         const toolbar = frame.locator('.cb-overlay-toolbar.is-visible');
         await expect(toolbar).toBeVisible();
@@ -637,25 +670,10 @@ test.describe('builder shell — focus + permanent affordances', () => {
 });
 
 test.describe('builder shell — polish', () => {
-    test('opening sidebar auto-focuses the first form field', async ({ page }) => {
-        const frame = await openBuilder(page);
-        await addFullSection(page, frame);
-        await addFirstBlock(page, frame);
-
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
-
-        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
-        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
-
-        // The first focusable input inside the sidebar should be the active element.
-        await expect.poll(async () => {
-            return await page.evaluate(() => {
-                const sidebar = document.querySelector('aside[data-cb-builder-target="sidebar"]');
-                return sidebar.contains(document.activeElement) ? document.activeElement.tagName : null;
-            });
-        }).toMatch(/INPUT|TEXTAREA/);
-    });
+    // The "opening sidebar auto-focuses the first form field" test was removed:
+    // block edit forms no longer auto-focus a field on mount (only the section
+    // settings form focuses its width input), so the behavior it asserted is
+    // gone.
 
     test('close button without sidebar form just closes the dialog', async ({ page }) => {
         await openBuilder(page);
@@ -666,38 +684,9 @@ test.describe('builder shell — polish', () => {
         await expect(dialog).not.toHaveAttribute('open');
     });
 
-    test('close while sidebar form is open prompts confirmation, declined keeps dialog open', async ({ page }) => {
-        const frame = await openBuilder(page);
-        await addFullSection(page, frame);
-        await addFirstBlock(page, frame);
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
-
-        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
-        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
-
-        // Decline the native confirm.
-        page.once('dialog', async (d) => { await d.dismiss(); });
-        await page.locator('.cb-shell__close').click();
-
-        await expect(page.locator('.cb-builder-dialog')).toHaveAttribute('open', '');
-    });
-
-    test('close while sidebar form is open, accept confirmation, dialog closes', async ({ page }) => {
-        const frame = await openBuilder(page);
-        await addFullSection(page, frame);
-        await addFirstBlock(page, frame);
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
-        await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="edit"]').click();
-
-        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
-        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
-
-        page.once('dialog', async (d) => { await d.accept(); });
-        await page.locator('.cb-shell__close').click();
-
-        await expect(page.locator('.cb-builder-dialog')).not.toHaveAttribute('open');
-    });
+    // The "close while a form is open prompts a confirmation" tests were
+    // removed: autosave replaced manual save, so there are no unsaved changes
+    // to confirm — close() now just closes the dialog (covered above).
 });
 
 test.describe('builder shell — publish / discard', () => {
@@ -744,17 +733,17 @@ test.describe('builder shell — publish / discard', () => {
         await page.locator('.cb-shell__publish').click();
         await expect(page.locator('.cb-shell__discard')).toBeHidden();
 
-        // Now soft-delete the block.
-        await frame.locator('[data-cb-block-id]').first().hover({ position: { x: 10, y: 5 } });
+        // Now soft-delete the block — it's dropped from the preview in place
+        // (soft-deleted on the server since the area is published).
+        await clickInPreview(page, '[data-cb-block-id]');
         await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="delete"]').click();
-        await expect.poll(() => frame.locator('[data-cb-block-id][data-cb-deleted="1"]').count()).toBe(1);
+        await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(0);
         await expect(page.locator('.cb-shell__discard')).toBeVisible();
 
-        // Discard the soft-delete.
+        // Discard the soft-delete → the published block comes back.
         await page.locator('.cb-shell__discard').click();
 
-        await expect.poll(() => frame.locator('[data-cb-block-id][data-cb-deleted="1"]').count()).toBe(0);
-        await expect(frame.locator('[data-cb-block-id]')).toHaveCount(1);
+        await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
     });
 });
 
@@ -766,8 +755,8 @@ test.describe('builder shell — keyboard shortcuts', () => {
         // Click the section's top strip to pin focus on it (not a column/block),
         // then press Delete — the overlay forwards the same delete intent as
         // the toolbar × button.
-        await frame.locator('[data-cb-section-id]').first().click({ position: { x: 5, y: 5 } });
-        await page.keyboard.press('Delete');
+        await clickInPreview(page, '[data-cb-section-id]');
+        await pressInPreview(page, 'Delete');
 
         await expect.poll(() => frame.locator('[data-cb-section-id][data-cb-deleted="1"]').count()).toBe(1);
     });
@@ -777,8 +766,8 @@ test.describe('builder shell — keyboard shortcuts', () => {
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().click({ position: { x: 10, y: 10 } });
-        await page.keyboard.press('Delete');
+        await clickInPreview(page, '[data-cb-block-id]');
+        await pressInPreview(page, 'Delete');
 
         // A never-published block is removed from the preview in place.
         await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(0);
@@ -789,8 +778,8 @@ test.describe('builder shell — keyboard shortcuts', () => {
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
 
-        await frame.locator('[data-cb-block-id]').first().click({ position: { x: 10, y: 10 } });
-        await page.keyboard.press('Backspace');
+        await clickInPreview(page, '[data-cb-block-id]');
+        await pressInPreview(page, 'Backspace');
 
         await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(0);
     });
@@ -799,10 +788,10 @@ test.describe('builder shell — keyboard shortcuts', () => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
 
-        await frame.locator('[data-cb-section-id]').first().click({ position: { x: 5, y: 5 } });
+        await clickInPreview(page, '[data-cb-section-id]');
         await expect(frame.locator('.cb-overlay-toolbar.is-visible')).toBeVisible();
 
-        await page.keyboard.press('Escape');
+        await pressInPreview(page, 'Escape');
         await expect(frame.locator('.cb-overlay-toolbar.is-visible')).toHaveCount(0);
     });
 
@@ -811,8 +800,8 @@ test.describe('builder shell — keyboard shortcuts', () => {
         await addFullSection(page, frame);
 
         // Click empty preview space to ensure nothing is pinned.
-        await frame.locator('body').click({ position: { x: 1, y: 1 } });
-        await page.keyboard.press('Delete');
+        await clickInPreview(page, 'body');
+        await pressInPreview(page, 'Delete');
 
         // The section is untouched.
         await expect.poll(() => frame.locator('[data-cb-section-id][data-cb-deleted="1"]').count()).toBe(0);
@@ -857,10 +846,8 @@ test.describe('builder shell — column widths', () => {
         await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);
         await page.waitForTimeout(200);
 
-        // Open the section settings via the hover-revealed handle.
-        const section = frame.locator('[data-cb-section-id]').first();
-        await section.hover();
-        await section.locator('.cb-section-handle').click();
+        // Open the section settings (clicking the section opens them).
+        await openSectionSettings(page, frame);
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar.locator('.cb-col-widths')).toBeVisible();
 
