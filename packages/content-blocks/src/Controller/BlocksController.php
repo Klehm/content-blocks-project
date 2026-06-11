@@ -268,6 +268,35 @@ final class BlocksController
         return new JsonResponse(['deleted' => true]);
     }
 
+    /**
+     * Undo of a soft-delete: flips the draft `deleted` flag back. Only valid
+     * while the deletion is still a draft — once publish ran, the row was
+     * physically removed and this endpoint 404s (the builder then surfaces
+     * its save-error banner).
+     */
+    #[Route('/block/{id}/restore', name: 'content_blocks_block_restore', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function restore(int $id, Request $request): JsonResponse
+    {
+        if ($error = $this->csrfFailureOrNull($request)) {
+            return $error;
+        }
+
+        $block = $this->em->find(Block::class, $id);
+        if (!$block) {
+            return new JsonResponse(['error' => 'Block not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $area = $block->getColumn()?->getSection()?->getContentArea();
+        if (!$area || !$this->accessChecker->canEdit($area)) {
+            throw new ContentBlocksAccessDeniedException();
+        }
+
+        $block->setDeleted(false);
+        $this->em->flush();
+
+        return new JsonResponse(['restored' => true]);
+    }
+
     private function nextPreviewPosition(Column $column): int
     {
         $max = -1;

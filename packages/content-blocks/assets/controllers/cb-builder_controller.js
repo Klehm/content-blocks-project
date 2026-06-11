@@ -26,6 +26,8 @@ export default class extends Controller {
         'progress',
         'savedFlash',
         'saveError',
+        'undoBar',
+        'undoLabel',
         'replacePicker',
         'replacePickerSearch',
         'replacePickerList',
@@ -58,6 +60,12 @@ export default class extends Controller {
      */
     static SAVE_RELOAD_DEBOUNCE_MS = 500;
     static MOBILE_BREAKPOINT = '(max-width: 768px)';
+    /**
+     * How long the "deleted — Undo" snackbar stays actionable. Deletes are
+     * immediate (no confirm dialog), so this window is the editor's only
+     * one-click recovery short of discarding the whole draft.
+     */
+    static UNDO_TIMEOUT_MS = 6000;
     /**
      * Minimum shell width (in px) for each emulated viewport. The "desktop"
      * viewport always fits because it tracks the shell's actual width. A
@@ -115,6 +123,7 @@ export default class extends Controller {
         document.removeEventListener('mousemove', this._onResizeMove);
         document.removeEventListener('mouseup', this._onResizeEnd);
         clearTimeout(this._reloadTimer);
+        clearTimeout(this._undoTimer);
     }
 
     _onWindowResize() {
@@ -254,6 +263,9 @@ export default class extends Controller {
         if (event) event.preventDefault();
         const result = await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/publish`);
         if (result === null) return;
+        // Publish physically removed soft-deleted rows — a pending undo
+        // offer can no longer be honoured.
+        this._hideUndo();
         this._applyDraftState(result.hasUnpublishedChanges);
         this.reload();
     }
@@ -262,6 +274,9 @@ export default class extends Controller {
         if (event) event.preventDefault();
         const result = await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/discard`);
         if (result === null) return;
+        // Discard already reverted every draft deletion (or removed
+        // never-published rows) — the undo offer is moot either way.
+        this._hideUndo();
         this._applyDraftState(result.hasUnpublishedChanges);
         this.reload();
     }
@@ -372,6 +387,7 @@ export default class extends Controller {
         // from the preview in place instead of reloading the whole iframe.
         this._applyDraftState(true);
         this._removeBlockFromPreview(blockId);
+        this._offerUndo('block', blockId);
     }
 
     /**
@@ -500,7 +516,9 @@ export default class extends Controller {
 
     async _deleteSection(sectionId) {
         if (!sectionId) return;
-        await this._jsonRequest('DELETE', `/_content-blocks/section/${sectionId}`);
+        const result = await this._jsonRequest('DELETE', `/_content-blocks/section/${sectionId}`);
+        // Delete failed (CSRF/access/network) — leave the preview untouched.
+        if (result === null) return;
         // Direct case: the focused element is the section itself. The
         // cascading case (a focused block lived inside this section) is
         // caught after reload via the iframe's `cb:focus:not-found` reply.
@@ -508,6 +526,7 @@ export default class extends Controller {
             this._resetSidebarToEmptyState();
         }
         this._afterStructuralOp();
+        this._offerUndo('section', sectionId);
     }
 
     _isSidebarFocusedOnBlock(blockId) {
@@ -645,6 +664,53 @@ export default class extends Controller {
     _clearSaveError() {
         if (!this.hasSaveErrorTarget) return;
         this.saveErrorTarget.hidden = true;
+    }
+
+    // ---------- Undo delete (snackbar) ----------
+
+    /**
+     * Deletes are immediate (no confirm dialog) and the only other recovery
+     * is discarding the WHOLE draft — far too coarse for one mis-click. So
+     * after every delete we offer a one-click undo for a few seconds. The
+     * offer is single-slot (a newer delete replaces it), which matches the
+     * usual snackbar pattern.
+     */
+    _offerUndo(kind, id) {
+        if (!this.hasUndoBarTarget) return;
+        this._pendingUndo = { kind, id };
+        if (this.hasUndoLabelTarget) {
+            const key = kind === 'section' ? 'cbBuilderUndoSectionDeleted' : 'cbBuilderUndoBlockDeleted';
+            this.undoLabelTarget.textContent = this.undoBarTarget.dataset[key] || '';
+        }
+        this.undoBarTarget.hidden = false;
+        clearTimeout(this._undoTimer);
+        this._undoTimer = setTimeout(() => this._hideUndo(), this.constructor.UNDO_TIMEOUT_MS);
+    }
+
+    _hideUndo() {
+        clearTimeout(this._undoTimer);
+        this._pendingUndo = null;
+        if (this.hasUndoBarTarget) this.undoBarTarget.hidden = true;
+    }
+
+    /** Action: the snackbar's "Undo" button. */
+    async undoDelete(event) {
+        if (event) event.preventDefault();
+        const pending = this._pendingUndo;
+        // Hide first: whatever the outcome, the offer is consumed (a failed
+        // restore surfaces the save-error banner via _jsonRequest).
+        this._hideUndo();
+        if (!pending) return;
+        const result = await this._jsonRequest(
+            'POST',
+            `/_content-blocks/${pending.kind}/${pending.id}/restore`,
+        );
+        if (result === null) return;
+        // The restored element comes back with its full subtree — simplest
+        // correct refresh is a full reload (undo is rare; no need for the
+        // hot-reload path here).
+        this._applyDraftState(true);
+        this.reload();
     }
 
     setViewport(event) {

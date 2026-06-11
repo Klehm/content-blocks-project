@@ -224,4 +224,22 @@
                 class="cb-shell__iframe"
                 title="{{ 'cb.builder.preview'|trans({}, 'content_blocks') }}"></iframe>
     </main>
+
+    {# Undo snackbar: deletes are immediate (no confirm dialog), so this is
+       the editor's one-click recovery — the alternative, Discard, throws
+       away the whole draft. Shown for a few seconds after each delete. #}
+    <div class="cb-shell__undo"
+         data-cb-builder-target="undoBar"
+         data-cb-builder-undo-block-deleted="{{ 'cb.builder.undo.block_deleted'|trans({}, 'content_blocks') }}"
+         data-cb-builder-undo-section-deleted="{{ 'cb.builder.undo.section_deleted'|trans({}, 'content_blocks') }}"
+         role="status"
+         aria-live="polite"
+         hidden>
+        <span class="cb-shell__undo-label" data-cb-builder-target="undoLabel"></span>
+        <button type="button"
+                class="cb-shell__undo-btn"
+                data-action="cb-builder#undoDelete">
+            {{ 'cb.builder.undo.action'|trans({}, 'content_blocks') }}
+        </button>
+    </div>
 </div>

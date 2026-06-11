@@ -79,6 +79,10 @@ cb:
         draft_pending: "Brouillon en attente"
         saved: "Enregistré"
         save_error: "Modifications non enregistrées — vérifiez votre connexion et réessayez"
+        undo:
+            block_deleted: "Bloc supprimé"
+            section_deleted: "Section supprimée"
+            action: "Annuler"
         pending: "Enregistrez d'abord cette entité pour commencer à ajouter du contenu."
         toggle_sidebar: "Afficher / masquer la sidebar"
         sidebar:

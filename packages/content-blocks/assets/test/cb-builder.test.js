@@ -18,6 +18,13 @@ function setupController(options = {}) {
                     data-cb-builder-viewport-param="mobile"></button>
             <iframe></iframe>
             <span class="cb-shell__save-error" hidden></span>
+            <div class="cb-shell__undo"
+                 data-cb-builder-undo-block-deleted="Block deleted"
+                 data-cb-builder-undo-section-deleted="Section deleted"
+                 hidden>
+                <span class="cb-shell__undo-label"></span>
+                <button type="button" class="cb-shell__undo-btn"></button>
+            </div>
             <aside>
                 <button class="cb-shell__sidebar-toggle"></button>
                 <div class="cb-shell__sidebar-content">__EMPTY__</div>
@@ -28,6 +35,8 @@ function setupController(options = {}) {
     const element = document.querySelector('[data-controller="cb-builder"]');
     const iframe = element.querySelector('iframe');
     const saveError = element.querySelector('.cb-shell__save-error');
+    const undoBar = element.querySelector('.cb-shell__undo');
+    const undoLabel = element.querySelector('.cb-shell__undo-label');
     const sidebar = element.querySelector('aside');
     const sidebarContent = sidebar.querySelector('.cb-shell__sidebar-content');
     const sidebarToggle = sidebar.querySelector('.cb-shell__sidebar-toggle');
@@ -47,6 +56,10 @@ function setupController(options = {}) {
     Object.defineProperty(controller, 'sidebarResizeTarget', { value: sidebarResize });
     Object.defineProperty(controller, 'hasSaveErrorTarget', { value: true });
     Object.defineProperty(controller, 'saveErrorTarget', { value: saveError });
+    Object.defineProperty(controller, 'hasUndoBarTarget', { value: true });
+    Object.defineProperty(controller, 'undoBarTarget', { value: undoBar });
+    Object.defineProperty(controller, 'hasUndoLabelTarget', { value: true });
+    Object.defineProperty(controller, 'undoLabelTarget', { value: undoLabel });
     Object.defineProperty(controller, 'areaIdValue', { value: options.areaId ?? 42 });
     Object.defineProperty(controller, 'iframeUrlValue', { value: options.iframeUrl ?? 'http://localhost/page/1?cb_preview=1' });
 
@@ -54,7 +67,7 @@ function setupController(options = {}) {
     // don't run connect() still need _resetSidebarToEmptyState to work.
     controller._sidebarEmptyHtml = sidebarContent.innerHTML;
 
-    return { controller, element, iframe, saveError, sidebar, sidebarContent, sidebarToggle, sidebarResize };
+    return { controller, element, iframe, saveError, undoBar, undoLabel, sidebar, sidebarContent, sidebarToggle, sidebarResize };
 }
 
 function postMessage(data, origin = window.location.origin) {
@@ -1206,5 +1219,141 @@ describe('cb-builder: save-error feedback', () => {
         element.dispatchEvent(new CustomEvent('live:connect', { bubbles: true }));
         expect(saveError.hidden).toBe(true);
         controller.disconnect();
+    });
+});
+
+describe('cb-builder: undo delete snackbar', () => {
+    let controller, undoBar, undoLabel, saveError, errorSpy;
+
+    function okJson(payload = {}) {
+        return { ok: true, json: () => Promise.resolve(payload) };
+    }
+
+    beforeEach(() => {
+        ({ controller, undoBar, undoLabel, saveError } = setupController());
+        errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        // Deletes route preview updates through these; not under test here.
+        vi.spyOn(controller, '_removeBlockFromPreview').mockImplementation(() => {});
+        vi.spyOn(controller, '_afterStructuralOp').mockImplementation(() => {});
+        vi.spyOn(controller, '_applyDraftState').mockImplementation(() => {});
+        vi.spyOn(controller, 'reload').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        errorSpy.mockRestore();
+        vi.unstubAllGlobals();
+        vi.useRealTimers();
+    });
+
+    it('a successful block delete offers the undo with the block label', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okJson({ deleted: true })));
+
+        await controller._deleteBlock(7);
+
+        expect(undoBar.hidden).toBe(false);
+        expect(undoLabel.textContent).toBe('Block deleted');
+        expect(controller._pendingUndo).toEqual({ kind: 'block', id: 7 });
+    });
+
+    it('a successful section delete offers the undo with the section label', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okJson({ deleted: true })));
+
+        await controller._deleteSection(5);
+
+        expect(undoBar.hidden).toBe(false);
+        expect(undoLabel.textContent).toBe('Section deleted');
+        expect(controller._pendingUndo).toEqual({ kind: 'section', id: 5 });
+    });
+
+    it('a failed section delete neither reloads nor offers an undo', async () => {
+        // Regression: _deleteSection used to ignore the request result and
+        // reload anyway, hiding the failure.
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+
+        await controller._deleteSection(5);
+
+        expect(undoBar.hidden).toBe(true);
+        expect(controller._afterStructuralOp).not.toHaveBeenCalled();
+        expect(saveError.hidden).toBe(false);
+    });
+
+    it('undoDelete POSTs the restore endpoint, hides the bar and reloads', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(okJson({ deleted: true }));
+        vi.stubGlobal('fetch', fetchMock);
+        await controller._deleteBlock(7);
+
+        fetchMock.mockResolvedValue(okJson({ restored: true }));
+        await controller.undoDelete();
+
+        const [url, init] = fetchMock.mock.calls.at(-1);
+        expect(url).toBe('/_content-blocks/block/7/restore');
+        expect(init.method).toBe('POST');
+        expect(undoBar.hidden).toBe(true);
+        expect(controller._pendingUndo).toBeNull();
+        expect(controller.reload).toHaveBeenCalled();
+    });
+
+    it('a failed restore consumes the offer and surfaces the save-error banner', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(okJson({ deleted: true }));
+        vi.stubGlobal('fetch', fetchMock);
+        await controller._deleteBlock(7);
+
+        fetchMock.mockResolvedValue({ ok: false, status: 404 });
+        await controller.undoDelete();
+
+        expect(undoBar.hidden).toBe(true);
+        expect(controller.reload).not.toHaveBeenCalled();
+        expect(saveError.hidden).toBe(false);
+    });
+
+    it('undoDelete without a pending offer is a no-op', async () => {
+        const fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
+
+        await controller.undoDelete();
+
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(controller.reload).not.toHaveBeenCalled();
+    });
+
+    it('the offer expires after UNDO_TIMEOUT_MS', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okJson({ deleted: true })));
+        vi.useFakeTimers();
+
+        await controller._deleteBlock(7);
+        expect(undoBar.hidden).toBe(false);
+
+        vi.advanceTimersByTime(controller.constructor.UNDO_TIMEOUT_MS + 1);
+
+        expect(undoBar.hidden).toBe(true);
+        expect(controller._pendingUndo).toBeNull();
+    });
+
+    it('a newer delete replaces the pending offer (single slot)', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okJson({ deleted: true })));
+
+        await controller._deleteBlock(7);
+        await controller._deleteSection(5);
+
+        expect(controller._pendingUndo).toEqual({ kind: 'section', id: 5 });
+        expect(undoLabel.textContent).toBe('Section deleted');
+    });
+
+    it('publish and discard withdraw the pending offer', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(okJson({ deleted: true }));
+        vi.stubGlobal('fetch', fetchMock);
+        await controller._deleteBlock(7);
+        expect(undoBar.hidden).toBe(false);
+
+        fetchMock.mockResolvedValue(okJson({ hasUnpublishedChanges: false }));
+        await controller.publish();
+        expect(undoBar.hidden).toBe(true);
+        expect(controller._pendingUndo).toBeNull();
+
+        await controller._deleteBlock(8);
+        expect(undoBar.hidden).toBe(false);
+        await controller.discard();
+        expect(undoBar.hidden).toBe(true);
+        expect(controller._pendingUndo).toBeNull();
     });
 });

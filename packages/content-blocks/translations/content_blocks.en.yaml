@@ -79,6 +79,10 @@ cb:
         draft_pending: "Draft pending"
         saved: "Saved"
         save_error: "Changes could not be saved — check your connection and try again"
+        undo:
+            block_deleted: "Block deleted"
+            section_deleted: "Section deleted"
+            action: "Undo"
         pending: "Save this entity first to start adding content."
         toggle_sidebar: "Toggle sidebar"
         sidebar:

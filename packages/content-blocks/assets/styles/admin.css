@@ -80,6 +80,8 @@
 /* ---- Shell layout ---- */
 
 .cb-shell {
+  /* Positioning context for the floating undo snackbar. */
+  position: relative;
   display: grid;
   grid-template-rows: 56px 1fr;
   height: 100%;
@@ -513,6 +515,47 @@
   .cb-shell__save-error > span:not(.cb-shell__btn-icon) {
     display: none;
   }
+}
+
+/* ---- Undo snackbar ----
+ *
+ * Floating chip at the bottom-center of the shell, shown for a few
+ * seconds after a block/section delete. Dark (inverse) styling so it
+ * reads as transient system feedback, not part of the page.
+ */
+.cb-shell__undo {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: #1f2330;
+  color: #fff;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+}
+.cb-shell__undo[hidden] {
+  display: none;
+}
+.cb-shell__undo-btn {
+  background: transparent;
+  border: 0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  color: #8db4fb;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cb-shell__undo-btn:hover {
+  background: rgba(141, 180, 251, 0.12);
 }
 
 /* ---- Top-right action buttons (Discard / Publish) ---- */
