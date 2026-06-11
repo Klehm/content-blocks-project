@@ -208,6 +208,28 @@ describe('cb-autosave', () => {
         expect(clickSpy).toHaveBeenCalledTimes(1);
     });
 
+    it('cb:save:error resets the baseline so the next interaction retries the save', () => {
+        const { element, input, clickSpy } = setup();
+
+        // First save: baseline is bumped to the new state BEFORE the POST.
+        input.value = 'hello';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+
+        // Without the error signal, the same value would be deduped forever
+        // — the failed state would read as "already saved".
+        input.dispatchEvent(new Event('focusout', { bubbles: true }));
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+
+        // The save failed downstream (Live error / network) — cb-builder or
+        // the section form dispatches cb:save:error on/through this element.
+        element.dispatchEvent(new CustomEvent('cb:save:error', { bubbles: true }));
+
+        // Next interaction, even with the unchanged value, retries the save.
+        input.dispatchEvent(new Event('focusout', { bubbles: true }));
+        expect(clickSpy).toHaveBeenCalledTimes(2);
+    });
+
     it('does not save when only a box-spacing [linked] toggle flips after the snapshot', () => {
         // Regression: cb-spacing-link engages the link on connect when the four
         // sides are uniform (a freshly-focused block), checking a hidden

@@ -65,6 +65,16 @@
         </div>
 
         <div class="cb-shell__topbar-right">
+            {# Persistent save-failure banner. Unlike the transient "Saved"
+               flash it stays visible until a later save succeeds — the
+               editor must know their latest edits are not stored. #}
+            <span class="cb-shell__save-error"
+                  data-cb-builder-target="saveError"
+                  role="alert"
+                  hidden>
+                <span class="cb-shell__btn-icon" aria-hidden="true">⚠</span>
+                <span>{{ 'cb.builder.save_error'|trans({}, 'content_blocks') }}</span>
+            </span>
             <button type="button"
                     class="cb-shell__discard"
                     data-action="cb-builder#discard"

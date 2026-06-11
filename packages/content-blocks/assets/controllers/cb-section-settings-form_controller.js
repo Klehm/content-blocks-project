@@ -223,12 +223,20 @@ export default class extends Controller {
         const csrfToken = this.element.closest('[data-cb-csrf-token]')?.dataset.cbCsrfToken || '';
         const formData = new FormData(this.formTarget);
 
-        const response = await fetch(this.formTarget.action, {
-            method: 'POST',
-            body: formData,
-            credentials: 'same-origin',
-            headers: { 'X-CSRF-Token': csrfToken },
-        });
+        let response;
+        try {
+            response = await fetch(this.formTarget.action, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: { 'X-CSRF-Token': csrfToken },
+            });
+        } catch (e) {
+            // Network failure — surface it instead of dying silently.
+            console.error('[cb-section-settings-form] save failed', e);
+            this._dispatchSaveError();
+            return;
+        }
 
         if (response.ok) {
             this.element.dispatchEvent(new CustomEvent('cb:section:saved', {
@@ -246,5 +254,15 @@ export default class extends Controller {
         }
 
         console.error('[cb-section-settings-form] save failed', response.status);
+        this._dispatchSaveError();
+    }
+
+    /**
+     * Bubbles cb:save:error up the tree: cb-autosave (same element) resets
+     * its dirty baseline so the next interaction retries, and cb-builder
+     * shows the persistent topbar error banner.
+     */
+    _dispatchSaveError() {
+        this.element.dispatchEvent(new CustomEvent('cb:save:error', { bubbles: true }));
     }
 }

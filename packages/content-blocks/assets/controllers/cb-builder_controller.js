@@ -25,6 +25,7 @@ export default class extends Controller {
         'sidebarToggle',
         'progress',
         'savedFlash',
+        'saveError',
         'replacePicker',
         'replacePickerSearch',
         'replacePickerList',
@@ -73,6 +74,8 @@ export default class extends Controller {
         this._onResizeMove = this._onResizeMove.bind(this);
         this._onResizeEnd = this._onResizeEnd.bind(this);
         this._onWindowResize = this._onWindowResize.bind(this);
+        this._onLiveConnect = this._onLiveConnect.bind(this);
+        this._onSaveError = this._onSaveError.bind(this);
 
         window.addEventListener('message', this._onMessage);
         window.addEventListener('resize', this._onWindowResize);
@@ -80,6 +83,13 @@ export default class extends Controller {
         // dispatchBrowserEvent on save; the events bubble up to here.
         this.element.addEventListener('cb:block:saved', this._onBlockSaved);
         this.element.addEventListener('cb:section:saved', this._onSectionSaved);
+        // Save-failure feedback: live:connect bubbles up from every Live
+        // Component mounted in the sidebar (block edit forms) — we hook each
+        // component's error paths there. cb:save:error bubbles up from the
+        // section-settings form (its own fetch) and from the live error
+        // hooks below; both end in the persistent topbar error banner.
+        this.element.addEventListener('live:connect', this._onLiveConnect);
+        this.element.addEventListener('cb:save:error', this._onSaveError);
 
         this._restoreSidebarWidth();
         this._restoreSidebarCollapsed();
@@ -100,6 +110,8 @@ export default class extends Controller {
         window.removeEventListener('resize', this._onWindowResize);
         this.element.removeEventListener('cb:block:saved', this._onBlockSaved);
         this.element.removeEventListener('cb:section:saved', this._onSectionSaved);
+        this.element.removeEventListener('live:connect', this._onLiveConnect);
+        this.element.removeEventListener('cb:save:error', this._onSaveError);
         document.removeEventListener('mousemove', this._onResizeMove);
         document.removeEventListener('mouseup', this._onResizeEnd);
         clearTimeout(this._reloadTimer);
@@ -540,16 +552,99 @@ export default class extends Controller {
 
         this._beginLoading();
         try {
-            const response = await fetch(url, init);
+            let response;
+            try {
+                response = await fetch(url, init);
+            } catch (e) {
+                // Network failure (offline, DNS, aborted) — without this catch
+                // the rejection would propagate to callers that never handle
+                // it, and the editor would get zero feedback.
+                console.error('[cb-builder] request failed', method, url, e);
+                this._showSaveError();
+                return null;
+            }
             if (!response.ok) {
                 console.error('[cb-builder] request failed', method, url, response.status);
+                this._showSaveError();
                 return null;
             }
 
+            this._clearSaveError();
             return await response.json().catch(() => null);
         } finally {
             this._endLoading();
         }
+    }
+
+    // ---------- Save-failure feedback ----------
+
+    /**
+     * A Live Component connected somewhere under the shell (block edit form
+     * in the sidebar). Hook its two failure paths:
+     *  - `response:error`  — the server answered with a non-component
+     *    response (500, expired session…). We suppress Live's default
+     *    raw-HTML error modal in favour of the topbar banner.
+     *  - network failure   — Live's own request promise has no rejection
+     *    handler at all (the save dies silently), so we attach one through
+     *    the `loading.state:started` hook, which receives the request.
+     */
+    _onLiveConnect(event) {
+        const component = event.detail?.component;
+        if (!component || typeof component.on !== 'function') return;
+        component.on('response:error', (backendResponse, controls) => {
+            controls.displayError = false;
+            this._signalSaveError(component.element);
+        });
+        component.on('loading.state:started', (el, request) => {
+            request?.promise?.catch(() => {
+                // Live never resets `backendRequest` when its request
+                // rejects, so every subsequent action would queue behind the
+                // dead request forever — the component is wedged and the
+                // editor's retry would silently do nothing. Clear it so the
+                // next interaction can actually re-save.
+                if (component.backendRequest === request) {
+                    component.backendRequest = null;
+                }
+                this._signalSaveError(component.element);
+            });
+        });
+    }
+
+    /**
+     * Route a save failure detected on a Live form. Dispatching cb:save:error
+     * on the form's autosave wrapper kills two birds: cb-autosave resets its
+     * dirty-detection baseline (so the next interaction re-attempts the save
+     * instead of considering the failed state "already saved"), and the event
+     * bubbles back up to our own cb:save:error listener which shows the
+     * banner. Falls back to showing the banner directly when the form has no
+     * autosave wrapper.
+     */
+    _signalSaveError(fromElement) {
+        const autosaveEl = fromElement?.querySelector?.('[data-controller~="cb-autosave"]');
+        if (autosaveEl) {
+            autosaveEl.dispatchEvent(new CustomEvent('cb:save:error', { bubbles: true }));
+        } else {
+            this._showSaveError();
+        }
+    }
+
+    _onSaveError() {
+        this._showSaveError();
+    }
+
+    /**
+     * Persistent (non-flashing) error banner in the topbar: unlike the
+     * transient "Saved" flash, it stays visible until a subsequent save
+     * succeeds — the editor must know their latest edits are not stored.
+     */
+    _showSaveError() {
+        if (!this.hasSaveErrorTarget) return;
+        this.saveErrorTarget.hidden = false;
+    }
+
+    _clearSaveError() {
+        if (!this.hasSaveErrorTarget) return;
+        this.saveErrorTarget.hidden = true;
     }
 
     setViewport(event) {
@@ -967,6 +1062,8 @@ export default class extends Controller {
     }
 
     _flashSaved() {
+        // A successful save supersedes any earlier failure.
+        this._clearSaveError();
         if (!this.hasSavedFlashTarget) return;
         const el = this.savedFlashTarget;
         el.hidden = false;

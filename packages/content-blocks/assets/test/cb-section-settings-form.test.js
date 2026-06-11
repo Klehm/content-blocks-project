@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Controller from '../controllers/cb-section-settings-form_controller.js';
 
 /**
@@ -171,5 +171,88 @@ describe('cb-section-settings-form — column widths', () => {
         c._initWidths();
         expect(customRow.hidden).toBe(false);
         expect(inputs.map((i) => i.value)).toEqual(['35', '65']);
+    });
+});
+
+/**
+ * Submit error handling: a failed POST (network or non-422 HTTP error) must
+ * dispatch a bubbling cb:save:error so cb-autosave resets its baseline and
+ * cb-builder shows the persistent topbar banner. A 422 swaps the form HTML
+ * (validation feedback) and is NOT a save error.
+ */
+function setupSubmit() {
+    document.body.innerHTML = `
+        <div data-cb-csrf-token="tok">
+            <div data-controller="cb-section-settings-form">
+                <form action="/save"><input name="x" value="1"></form>
+            </div>
+        </div>`;
+    const root = document.querySelector('[data-controller]');
+    const form = root.querySelector('form');
+
+    const c = new Controller();
+    Object.defineProperty(c, 'element', { value: root });
+    Object.defineProperty(c, 'hasFormTarget', { value: true });
+    Object.defineProperty(c, 'formTarget', { value: form });
+    Object.defineProperty(c, 'sectionIdValue', { value: 5 });
+    Object.defineProperty(c, 'widthInputTargets', { value: [] });
+
+    const events = [];
+    document.body.addEventListener('cb:save:error', () => events.push('error'));
+    document.body.addEventListener('cb:section:saved', () => events.push('saved'));
+    return { c, root, form, events };
+}
+
+describe('cb-section-settings-form — submit error feedback', () => {
+    let errorSpy;
+
+    beforeEach(() => {
+        errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        errorSpy.mockRestore();
+        vi.unstubAllGlobals();
+    });
+
+    it('dispatches cb:save:error on a network failure instead of throwing', async () => {
+        const { c, events } = setupSubmit();
+        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+        await c._onSubmit(new Event('submit', { cancelable: true }));
+
+        expect(events).toEqual(['error']);
+    });
+
+    it('dispatches cb:save:error on a non-422 HTTP error', async () => {
+        const { c, events } = setupSubmit();
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+
+        await c._onSubmit(new Event('submit', { cancelable: true }));
+
+        expect(events).toEqual(['error']);
+    });
+
+    it('a 422 swaps the form with the re-rendered HTML and is not a save error', async () => {
+        const { c, events } = setupSubmit();
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: false,
+            status: 422,
+            text: () => Promise.resolve('<div id="rerendered"></div>'),
+        }));
+
+        await c._onSubmit(new Event('submit', { cancelable: true }));
+
+        expect(events).toEqual([]);
+        expect(document.getElementById('rerendered')).not.toBeNull();
+    });
+
+    it('a successful POST dispatches cb:section:saved only', async () => {
+        const { c, events } = setupSubmit();
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+
+        await c._onSubmit(new Event('submit', { cancelable: true }));
+
+        expect(events).toEqual(['saved']);
     });
 });

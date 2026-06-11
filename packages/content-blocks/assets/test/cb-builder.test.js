@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Controller from '../controllers/cb-builder_controller.js';
 
 /**
@@ -17,6 +17,7 @@ function setupController(options = {}) {
             <button class="cb-shell__viewport-btn"
                     data-cb-builder-viewport-param="mobile"></button>
             <iframe></iframe>
+            <span class="cb-shell__save-error" hidden></span>
             <aside>
                 <button class="cb-shell__sidebar-toggle"></button>
                 <div class="cb-shell__sidebar-content">__EMPTY__</div>
@@ -26,6 +27,7 @@ function setupController(options = {}) {
     `;
     const element = document.querySelector('[data-controller="cb-builder"]');
     const iframe = element.querySelector('iframe');
+    const saveError = element.querySelector('.cb-shell__save-error');
     const sidebar = element.querySelector('aside');
     const sidebarContent = sidebar.querySelector('.cb-shell__sidebar-content');
     const sidebarToggle = sidebar.querySelector('.cb-shell__sidebar-toggle');
@@ -43,6 +45,8 @@ function setupController(options = {}) {
     Object.defineProperty(controller, 'sidebarToggleTarget', { value: sidebarToggle });
     Object.defineProperty(controller, 'hasSidebarResizeTarget', { value: true });
     Object.defineProperty(controller, 'sidebarResizeTarget', { value: sidebarResize });
+    Object.defineProperty(controller, 'hasSaveErrorTarget', { value: true });
+    Object.defineProperty(controller, 'saveErrorTarget', { value: saveError });
     Object.defineProperty(controller, 'areaIdValue', { value: options.areaId ?? 42 });
     Object.defineProperty(controller, 'iframeUrlValue', { value: options.iframeUrl ?? 'http://localhost/page/1?cb_preview=1' });
 
@@ -50,7 +54,7 @@ function setupController(options = {}) {
     // don't run connect() still need _resetSidebarToEmptyState to work.
     controller._sidebarEmptyHtml = sidebarContent.innerHTML;
 
-    return { controller, element, iframe, sidebar, sidebarContent, sidebarToggle, sidebarResize };
+    return { controller, element, iframe, saveError, sidebar, sidebarContent, sidebarToggle, sidebarResize };
 }
 
 function postMessage(data, origin = window.location.origin) {
@@ -1068,5 +1072,139 @@ describe('cb-builder: viewport visibility', () => {
         expect(mobile.classList.contains('cb-shell__viewport-btn--active')).toBe(false);
         expect(desktop.classList.contains('cb-shell__viewport-btn--active')).toBe(true);
         expect(iframe.style.maxWidth).toBe('100%');
+    });
+});
+
+describe('cb-builder: save-error feedback', () => {
+    let controller, saveError, element, errorSpy;
+
+    beforeEach(() => {
+        ({ controller, saveError, element } = setupController());
+        errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        errorSpy.mockRestore();
+        vi.unstubAllGlobals();
+    });
+
+    it('_jsonRequest shows the banner on an HTTP error response', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+
+        const result = await controller._jsonRequest('POST', '/_content-blocks/area/42/publish');
+
+        expect(result).toBeNull();
+        expect(saveError.hidden).toBe(false);
+    });
+
+    it('_jsonRequest shows the banner on a network failure instead of throwing', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+        // Must resolve to null, NOT reject — callers never catch.
+        const result = await controller._jsonRequest('DELETE', '/_content-blocks/block/7');
+
+        expect(result).toBeNull();
+        expect(saveError.hidden).toBe(false);
+    });
+
+    it('a later successful _jsonRequest clears the banner', async () => {
+        controller._showSaveError();
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve({ ok: true }),
+        }));
+
+        await controller._jsonRequest('POST', '/_content-blocks/area/42/sections', { layout: 'full' });
+
+        expect(saveError.hidden).toBe(true);
+    });
+
+    it('a later successful autosave (_flashSaved) clears the banner', () => {
+        controller._showSaveError();
+        expect(saveError.hidden).toBe(false);
+
+        controller._flashSaved();
+
+        expect(saveError.hidden).toBe(true);
+    });
+
+    it('a bubbling cb:save:error event shows the banner', () => {
+        controller.connect();
+        const inner = document.createElement('div');
+        element.appendChild(inner);
+
+        inner.dispatchEvent(new CustomEvent('cb:save:error', { bubbles: true }));
+
+        expect(saveError.hidden).toBe(false);
+        controller.disconnect();
+    });
+
+    it('live:connect hooks response:error — suppresses the Live modal and signals the failure', () => {
+        controller.connect();
+        // Simulated Live component root containing an autosave wrapper, the
+        // way Block.html.twig nests them.
+        const liveRoot = document.createElement('div');
+        liveRoot.innerHTML = '<div data-controller="cb-autosave"></div>';
+        element.appendChild(liveRoot);
+
+        const hooks = {};
+        const component = {
+            element: liveRoot,
+            on: (name, cb) => { hooks[name] = cb; },
+        };
+        element.dispatchEvent(new CustomEvent('live:connect', { bubbles: true, detail: { component } }));
+        expect(typeof hooks['response:error']).toBe('function');
+        expect(typeof hooks['loading.state:started']).toBe('function');
+
+        // The autosave wrapper must receive cb:save:error (baseline reset)…
+        const autosaveEl = liveRoot.querySelector('[data-controller~="cb-autosave"]');
+        const received = vi.fn();
+        autosaveEl.addEventListener('cb:save:error', received);
+
+        const controls = { displayError: true };
+        hooks['response:error']({}, controls);
+
+        // …Live's raw error modal is suppressed, and the banner is up.
+        expect(controls.displayError).toBe(false);
+        expect(received).toHaveBeenCalledOnce();
+        expect(saveError.hidden).toBe(false);
+        controller.disconnect();
+    });
+
+    it('live:connect hooks the request promise — a network rejection signals the failure', async () => {
+        controller.connect();
+        const liveRoot = document.createElement('div');
+        element.appendChild(liveRoot);
+
+        const hooks = {};
+        const component = {
+            element: liveRoot,
+            on: (name, cb) => { hooks[name] = cb; },
+        };
+        element.dispatchEvent(new CustomEvent('live:connect', { bubbles: true, detail: { component } }));
+
+        // Live never attaches a rejection handler to its own request — ours
+        // must catch it and surface the banner (no autosave wrapper here, so
+        // the direct fallback path shows it).
+        const request = { promise: Promise.reject(new Error('offline')) };
+        component.backendRequest = request;
+        hooks['loading.state:started'](liveRoot, request);
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(saveError.hidden).toBe(false);
+        // The wedged component was unblocked: Live leaves `backendRequest`
+        // set forever on rejection, which queues every later save behind a
+        // dead request. Our catch must clear it so retries can run.
+        expect(component.backendRequest).toBeNull();
+        controller.disconnect();
+    });
+
+    it('ignores live:connect events without a usable component', () => {
+        controller.connect();
+        // Must not throw.
+        element.dispatchEvent(new CustomEvent('live:connect', { bubbles: true, detail: {} }));
+        element.dispatchEvent(new CustomEvent('live:connect', { bubbles: true }));
+        expect(saveError.hidden).toBe(true);
+        controller.disconnect();
     });
 });

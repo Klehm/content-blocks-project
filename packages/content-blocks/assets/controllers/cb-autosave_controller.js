@@ -36,10 +36,12 @@ export default class extends Controller {
         this._onChange = this._onChange.bind(this);
         this._onFocusOut = this._onFocusOut.bind(this);
         this._onKeydown = this._onKeydown.bind(this);
+        this._onSaveError = this._onSaveError.bind(this);
         this.element.addEventListener('input', this._onInput);
         this.element.addEventListener('change', this._onChange);
         this.element.addEventListener('focusout', this._onFocusOut);
         this.element.addEventListener('keydown', this._onKeydown);
+        this.element.addEventListener('cb:save:error', this._onSaveError);
         // Snapshot the initial form state so the first save is only
         // issued when something has actually changed (see _saveNow).
         this._lastSerialized = this._serializeForm();
@@ -62,6 +64,7 @@ export default class extends Controller {
         this.element.removeEventListener('change', this._onChange);
         this.element.removeEventListener('focusout', this._onFocusOut);
         this.element.removeEventListener('keydown', this._onKeydown);
+        this.element.removeEventListener('cb:save:error', this._onSaveError);
         clearTimeout(this._timer);
         clearTimeout(this._mutationTimer);
         this._observer?.disconnect();
@@ -75,6 +78,18 @@ export default class extends Controller {
     _onChange(event) {
         if (!this._isFormField(event.target)) return;
         this._saveNow();
+    }
+
+    /**
+     * A downstream save failed (Live error response, network failure, or a
+     * section-form POST error — dispatched as cb:save:error on/through this
+     * element). _saveNow() had already bumped `_lastSerialized` to the failed
+     * state *before* the POST, so without this reset the exact same values
+     * would read as "already saved" and never be re-sent. Nulling the
+     * baseline makes the very next input/change/focusout retry the save.
+     */
+    _onSaveError() {
+        this._lastSerialized = null;
     }
 
     _onFocusOut(event) {

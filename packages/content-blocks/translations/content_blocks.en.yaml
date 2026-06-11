@@ -78,6 +78,7 @@ cb:
         empty_cta: "Start by adding a section"
         draft_pending: "Draft pending"
         saved: "Saved"
+        save_error: "Changes could not be saved — check your connection and try again"
         pending: "Save this entity first to start adding content."
         toggle_sidebar: "Toggle sidebar"
         sidebar:
