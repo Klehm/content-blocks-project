@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **RangeType fields accept a precise typed value.** The range widget now renders an editable number input next to the slider, so the editor can enter a value finer than the slider's step (e.g. `345` on a step-10 slider). The number input is the submitted field and stays in two-way sync with the slider; its step defaults to `1` and is overridable per field via `attr.precise_step`.
 - **Duplicating a block or section no longer reloads the preview.** The duplicate endpoints ship the copy's rendered markup when it's safe to hot-reload (the block — or every block in the section — opts into `supportsPreviewHotReload`), and the overlay drops the copy in place, right after its source, preserving sibling DOM + JS state. An unsafe copy still falls back to a full reload.
 - **Topbar features are now toggled per field, via `ContentAreaType` options.** `enable_replace` (Insert content) and `enable_import_export` (Import / Export) both default to `true` and hide their topbar button + overlay when set to `false`: `$builder->add('contentArea', ContentAreaType::class, ['enable_import_export' => false])`.
 

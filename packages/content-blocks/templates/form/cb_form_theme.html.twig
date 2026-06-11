@@ -168,26 +168,52 @@
 {%- endblock file_widget %}
 
 
-{# Range slider rendered with min/max bounds under the track and a live
-   numeric readout positioned next to the label (the row gets a
-   `cb-form-row--range` modifier in form_row so the readout can
-   be absolutely positioned on the row's top-right). The cb-range
-   Stimulus controller keeps the <output> in sync as the user drags. #}
+{# Range slider rendered with min/max bounds under the track and an
+   editable numeric input positioned next to the label (the row gets a
+   `cb-form-row--range` modifier in form_row so the input can be
+   absolutely positioned on the row's top-right).
+
+   The number input — not the slider — carries the form `name`/`id` and is
+   the submitted field: a range <input> can't hold a value off its `step`
+   grid, so binding the name to the number input is what lets the editor
+   type a value finer than the slider allows. The slider keeps its own
+   (coarser) `step` for quick dragging and only mirrors the number input.
+   The cb-range Stimulus controller keeps the two in sync both ways.
+
+   The number input's step defaults to 1 (integer precision); a block can
+   override it per-field with `attr.precise_step`. #}
 {% block range_widget -%}
     {%- set required = false -%}
-    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-range')|trim}) -%}
+    {%- set slider_min = attr.min|default('') -%}
+    {%- set slider_max = attr.max|default('') -%}
+    {%- set slider_step = attr.step|default('') -%}
+    {%- set precise_step = attr.precise_step|default(1) -%}
+    {%- set has_value = value is defined and value is not null and value|trim != '' -%}
+    {# Strip our private `precise_step` key (it isn't a real HTML attribute)
+       and point the number input's step at it instead of the slider step. #}
+    {%- set attr = attr|filter((v, k) => k != 'precise_step')|merge({
+        class: (attr.class|default('') ~ ' cb-form-range-wrap__number')|trim,
+        step: precise_step,
+    }) -%}
     <div class="cb-form-range-wrap" data-controller="cb-range">
-        <output class="cb-form-range-wrap__value"
-                data-cb-range-target="output"
-                aria-hidden="true">{{ value }}</output>
-        <input type="range"
+        <input type="number"
                {{- block('widget_attributes') }}
-               {% if value is not empty %}value="{{ value }}"{% endif %}
-               data-cb-range-target="input"
-               data-action="input->cb-range#update" />
+               {% if has_value %}value="{{ value }}"{% endif %}
+               data-cb-range-target="number"
+               data-action="input->cb-range#fromNumber change->cb-range#clampNumber" />
+        <input type="range"
+               class="cb-form-range"
+               {% if slider_min is not same as('') %}min="{{ slider_min }}"{% endif %}
+               {% if slider_max is not same as('') %}max="{{ slider_max }}"{% endif %}
+               {% if slider_step is not same as('') %}step="{{ slider_step }}"{% endif %}
+               {% if has_value %}value="{{ value }}"{% endif %}
+               data-cb-range-target="slider"
+               data-action="input->cb-range#fromSlider change->cb-range#commitSlider"
+               tabindex="-1"
+               aria-hidden="true" />
         <div class="cb-form-range-wrap__bounds">
-            <span>{{ attr.min|default('') }}</span>
-            <span>{{ attr.max|default('') }}</span>
+            <span>{{ slider_min }}</span>
+            <span>{{ slider_max }}</span>
         </div>
     </div>
 {%- endblock range_widget %}

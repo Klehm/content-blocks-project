@@ -299,14 +299,47 @@
     display: block;
     width: 100%;
 }
-.cb-shell .cb-form-range-wrap__value {
+/* Editable numeric readout floated at the row's top-right, aligned with
+   the label. It's a real <input type="number"> (the submitted field), so
+   it gets a compact bordered look rather than the full-width control. */
+.cb-shell .cb-form-range-wrap__number {
     position: absolute;
-    top: 0;
+    top: -2px;
     right: 0;
+    width: 3rem;
+    padding: 1px 6px;
+    text-align: right;
     color: var(--cb-form-text);
-    font-size: var(--cb-form-font-size);
+    background-color: var(--cb-form-bg);
+    border: 1px solid var(--cb-form-border);
+    border-radius: var(--cb-form-radius-sm);
+    font-family: inherit;
+    font-size: var(--cb-form-font-size-sm);
     line-height: var(--cb-form-line-height);
     font-variant-numeric: tabular-nums;
+    /* Hide the native spinner arrows: they crowd the compact field and the
+       slider already covers coarse stepping. */
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.cb-shell .cb-form-range-wrap__number::-webkit-outer-spin-button,
+.cb-shell .cb-form-range-wrap__number::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.cb-shell .cb-form-range-wrap__number:hover {
+    border-color: var(--cb-form-border-hover);
+}
+.cb-shell .cb-form-range-wrap__number:focus {
+    outline: 0;
+    border-color: var(--cb-form-border-focus);
+    box-shadow: 0 0 0 3px var(--cb-form-focus-ring);
+}
+.cb-shell .cb-form-range-wrap__number.cb-form-control--invalid {
+    border-color: var(--cb-form-danger);
+}
+.cb-shell .cb-form-range-wrap__number.cb-form-control--invalid:focus {
+    box-shadow: 0 0 0 3px var(--cb-form-danger-ring);
 }
 .cb-shell .cb-form-range-wrap__bounds {
     display: flex;
