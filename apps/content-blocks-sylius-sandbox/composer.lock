@@ -1365,7 +1365,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks",
-                "reference": "4e43e5c33aa652e43e39577bedd48c53471a1c7d"
+                "reference": "2b3f3c87680f630eaecd72b87aa5b94449085252"
             },
             "require": {
                 "doctrine/orm": "^2.12 || ^3.0",
@@ -1421,7 +1421,8 @@
                 "live-components",
                 "page-builder",
                 "symfony",
-                "symfony-bundle"
+                "symfony-bundle",
+                "symfony-ux"
             ],
             "support": {
                 "issues": "https://github.com/klehm/content-blocks-project/issues",
@@ -1438,7 +1439,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks-kit",
-                "reference": "c8a3c57dcaa63f7350931ad1516992945d21f32a"
+                "reference": "16da43ab47400d4cf635f2be73835b71ef9326f2"
             },
             "require": {
                 "klehm/content-blocks": "^0.1",
@@ -1487,7 +1488,8 @@
                 "content-blocks",
                 "page-builder",
                 "symfony",
-                "symfony-bundle"
+                "symfony-bundle",
+                "symfony-ux"
             ],
             "support": {
                 "issues": "https://github.com/klehm/content-blocks-project/issues",

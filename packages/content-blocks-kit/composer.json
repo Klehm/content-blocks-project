@@ -1,15 +1,16 @@
 {
     "name": "klehm/content-blocks-kit",
     "description": "Ready-to-use block types for ContentBlocks (Text, Title, Image, Tabs).",
-    "type": "symfony-bundle",
-    "license": "MIT",
     "keywords": [
+        "blocks",
+        "content-blocks",
+        "page-builder",
         "symfony",
         "symfony-bundle",
-        "page-builder",
-        "content-blocks",
-        "blocks"
+        "symfony-ux"
     ],
+    "type": "symfony-bundle",
+    "license": "MIT",
     "homepage": "https://github.com/klehm/content-blocks-project",
     "support": {
         "issues": "https://github.com/klehm/content-blocks-project/issues",
