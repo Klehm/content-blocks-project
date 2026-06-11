@@ -45,9 +45,20 @@ async function addTabsBlock(page, frame) {
 }
 
 async function openBlockEditor(page, frame) {
-    await frame.locator('[data-cb-block-id]').first().click({ position: { x: 10, y: 10 } });
+    // Wait for the block to exist (the iframe may still be loading after a
+    // reload), then dispatch the click in-iframe so the section's top-left
+    // select handle (revealed on hover) can't intercept a coordinate click.
+    await frame.locator('[data-cb-block-id]').first().waitFor();
+    await page.locator('.cb-shell__iframe').evaluate((iframe) => {
+        iframe.contentDocument.querySelector('[data-cb-block-id]')?.dispatchEvent(
+            new MouseEvent('click', { bubbles: true, cancelable: true }),
+        );
+    });
     const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
     await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+    // Let the autosave controller connect before callers start editing — an
+    // edit fired before connect never persists.
+    await page.waitForTimeout(300);
     return sidebar;
 }
 
