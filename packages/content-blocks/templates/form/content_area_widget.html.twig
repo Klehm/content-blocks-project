@@ -7,6 +7,11 @@
             </p>
         </div>
     {% else %}
-        {% include '@ContentBlocks/builder/launcher.html.twig' with { area: content_area, iframeUrl: cb_preview_url(content_area) } only %}
+        {% include '@ContentBlocks/builder/launcher.html.twig' with {
+            area: content_area,
+            iframeUrl: cb_preview_url(content_area),
+            enableReplace: enable_replace|default(true),
+            enableImportExport: enable_import_export|default(true),
+        } only %}
     {% endif %}
 {% endblock %}

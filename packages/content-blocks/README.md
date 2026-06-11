@@ -444,28 +444,23 @@ At render time, values **equal to the default are stripped** from the saved sett
 
 For block defaults, implement `ContentBlocks\Block\BlockDataDefaultsProviderInterface` (mirror of the section interface). It's the same pattern: form pre-fill + `BlockDataDefaults::withoutDefaults()` at render. The package's `CoreBlockStylingDefaults` sets `styling.backgroundColor = #ffffff` to dodge the `<input type="color">` black fallback — extend it the same way.
 
-## Enabling / disabling import & export
+## Toggling topbar features (Insert content, Import / Export)
 
-The builder ships an **Import / Export** topbar button that exports a `ContentArea` to a self-contained JSON file (sections + blocks + base64-encoded assets) and re-imports it elsewhere. It is **on by default**.
+The builder topbar ships two optional features:
 
-To turn it off — either an env var (no config file needed) or a parameter:
+- **Insert content** (`⇆`) — overwrite the area's content with a clone of another area's content (the replace-content flow).
+- **Import / Export** (`⇅`) — export a `ContentArea` to a self-contained JSON file (sections + blocks + base64-encoded assets) and re-import it elsewhere.
 
-```bash
-# .env / environment
-CONTENT_BLOCKS_IMPORT_EXPORT_ENABLED=0
+Both are **on by default** and are toggled **per field**, via `ContentAreaType` options — so the host picks its own strategy per form (an admin form can keep them, a lighter editor can drop them):
+
+```php
+$builder->add('contentArea', ContentAreaType::class, [
+    'enable_replace' => false,        // hide the "Insert content" button + picker
+    'enable_import_export' => false,  // hide the Import / Export button + overlay
+]);
 ```
 
-```yaml
-# config/services.yaml — equivalent, and wins if you prefer not to use the env var
-parameters:
-    content_blocks.import_export.enabled: false
-```
-
-Resolution order: the env var `CONTENT_BLOCKS_IMPORT_EXPORT_ENABLED` (bool-cast: `0`/`false`/empty → off, `1`/`true` → on) if set, otherwise the `content_blocks.import_export.enabled_default` parameter (ships `true`).
-
-The toggle gates **both ends**:
-- the topbar button and its overlay are hidden (`cb_import_export_enabled` Twig global);
-- the `GET …/export` and `POST …/import` routes return **404** — so disabling it actually closes the endpoints, not just the UI.
+Both options are **UI-only**: they hide the topbar button and its overlay. The underlying endpoints (`…/replace-with`, `…/export`, `…/import`) stay reachable and remain protected by your `AccessCheckerInterface` (and CSRF for writes). If you need to close the endpoints server-side too, gate them with your firewall or `AccessChecker` — the form option does not, by design, since the route has no per-form context.
 
 ## Security notes
 

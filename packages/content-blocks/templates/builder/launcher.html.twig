@@ -1,5 +1,7 @@
 {# @var area \ContentBlocks\Entity\ContentArea #}
 {# @var iframeUrl string #}
+{# @var enableReplace bool #}
+{# @var enableImportExport bool #}
 <div class="cb-launcher"
      data-controller="cb-builder-launcher">
     <button type="button"
@@ -16,6 +18,11 @@
     <dialog data-cb-builder-launcher-target="dialog"
             class="cb-builder-dialog"
             aria-label="{{ 'cb.builder.open'|trans({}, 'content_blocks') }}">
-        {% include '@ContentBlocks/builder/shell.html.twig' with { area: area, iframeUrl: iframeUrl|default('about:blank') } only %}
+        {% include '@ContentBlocks/builder/shell.html.twig' with {
+            area: area,
+            iframeUrl: iframeUrl|default('about:blank'),
+            enableReplace: enableReplace|default(true),
+            enableImportExport: enableImportExport|default(true),
+        } only %}
     </dialog>
 </div>

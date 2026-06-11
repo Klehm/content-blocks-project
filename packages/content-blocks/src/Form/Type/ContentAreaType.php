@@ -47,7 +47,19 @@ final class ContentAreaType extends AbstractType implements DataTransformerInter
         $resolver->setDefaults([
             'compound' => false,
             'data_class' => null,
+            // Whether the builder topbar shows the "Insert content" (replace)
+            // button and its overlay. UI-only: the replace endpoints stay
+            // reachable (and AccessChecker-protected) regardless. Defaults to
+            // true so existing integrations keep the button.
+            'enable_replace' => true,
+            // Whether the builder topbar shows the Import/Export button and its
+            // overlay. UI-only as well: the export/import endpoints stay
+            // reachable (AccessChecker + CSRF protected). The host wires its own
+            // strategy (per-form here, or a firewall/AccessChecker server-side).
+            'enable_import_export' => true,
         ]);
+        $resolver->setAllowedTypes('enable_replace', 'bool');
+        $resolver->setAllowedTypes('enable_import_export', 'bool');
     }
 
     public function getParent(): string
@@ -69,6 +81,8 @@ final class ContentAreaType extends AbstractType implements DataTransformerInter
         $view->vars['content_area_id'] = $isPersisted ? $contentArea->getId() : null;
         $view->vars['value'] = $isPersisted ? $contentArea->getId() : '';
         $view->vars['is_pending'] = !$isPersisted;
+        $view->vars['enable_replace'] = $options['enable_replace'];
+        $view->vars['enable_import_export'] = $options['enable_import_export'];
     }
 
     /** @param ContentArea|null $value */

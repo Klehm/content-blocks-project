@@ -5,6 +5,17 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Duplicating a block or section no longer reloads the preview.** The duplicate endpoints ship the copy's rendered markup when it's safe to hot-reload (the block — or every block in the section — opts into `supportsPreviewHotReload`), and the overlay drops the copy in place, right after its source, preserving sibling DOM + JS state. An unsafe copy still falls back to a full reload.
+- **Topbar features are now toggled per field, via `ContentAreaType` options.** `enable_replace` (Insert content) and `enable_import_export` (Import / Export) both default to `true` and hide their topbar button + overlay when set to `false`: `$builder->add('contentArea', ContentAreaType::class, ['enable_import_export' => false])`.
+
+### Changed
+
+- **BREAKING — Import/Export is no longer toggled globally.** The `content_blocks.import_export.enabled[_default]` parameters, the `CONTENT_BLOCKS_IMPORT_EXPORT_ENABLED` env var, and the `cb_import_export_enabled` Twig global have been removed in favour of the per-field `enable_import_export` option above. The feature is now **UI-only**: the `GET …/export` / `POST …/import` routes no longer return 404 when "disabled" — they stay reachable and remain protected by `AccessCheckerInterface` + CSRF. Hosts that relied on the env/parameter to *close the endpoints* should gate them via their firewall or `AccessChecker` instead.
+
 ## [0.1.0-alpha.23] - 2026-06-10
 
 ### Added

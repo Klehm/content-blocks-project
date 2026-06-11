@@ -1,5 +1,7 @@
 {# @var area \ContentBlocks\Entity\ContentArea #}
 {# @var iframeUrl string #}
+{# @var enableReplace bool #}
+{# @var enableImportExport bool #}
 <div class="cb-shell"
      data-controller="cb-builder"
      data-cb-builder-area-id-value="{{ area.id }}"
@@ -16,17 +18,19 @@
                     aria-label="{{ 'cb.builder.close'|trans({}, 'content_blocks') }}">
                 ×
             </button>
-            <button type="button"
-                    class="cb-shell__replace"
-                    data-action="cb-builder#openReplacePicker"
-                    aria-haspopup="dialog"
-                    aria-expanded="false"
-                    title="{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}"
-                    aria-label="{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}">
-                <span class="cb-shell__btn-icon" aria-hidden="true">⇆</span>
-                <span class="cb-shell__btn-label">{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}</span>
-            </button>
-            {% if cb_import_export_enabled %}
+            {% if enableReplace|default(true) %}
+                <button type="button"
+                        class="cb-shell__replace"
+                        data-action="cb-builder#openReplacePicker"
+                        aria-haspopup="dialog"
+                        aria-expanded="false"
+                        title="{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}"
+                        aria-label="{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}">
+                    <span class="cb-shell__btn-icon" aria-hidden="true">⇆</span>
+                    <span class="cb-shell__btn-label">{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}</span>
+                </button>
+            {% endif %}
+            {% if enableImportExport|default(true) %}
                 <button type="button"
                         class="cb-shell__import-export"
                         data-action="cb-builder#openImportExport"
@@ -80,7 +84,10 @@
     </header>
 
     {# Replace-content picker (overlay panel rendered inside the shell). Stays
-       hidden until the user clicks the Insert content button in the topbar. #}
+       hidden until the user clicks the Insert content button in the topbar.
+       Skipped entirely when the feature is off (enable_replace form option),
+       mirroring the Import/Export overlay below. #}
+    {% if enableReplace|default(true) %}
     <div class="cb-replace-picker"
          data-cb-builder-target="replacePicker"
          role="dialog"
@@ -114,12 +121,13 @@
                aria-live="polite"></p>
         </div>
     </div>
+    {% endif %}
 
     {# Import / Export overlay panel — anchored to the topbar Import/Export
        button. Identical positioning rules as the replace picker so both
        overlays read as siblings. Skipped entirely when the feature is off
-       (cb_import_export_enabled global). #}
-    {% if cb_import_export_enabled %}
+       (enable_import_export form option). #}
+    {% if enableImportExport|default(true) %}
     <div class="cb-import-export-picker"
          data-cb-builder-target="importExportPicker"
          role="dialog"
