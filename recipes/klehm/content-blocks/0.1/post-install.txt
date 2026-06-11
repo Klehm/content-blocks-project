@@ -1,0 +1,20 @@
+  <bg=blue;fg=white>                                </>
+  <bg=blue;fg=white> ContentBlocks is almost ready! </>
+  <bg=blue;fg=white>                                </>
+
+  * <fg=blue>Wire the two REQUIRED host services</> (the bundle is deny-all by default):
+    edit <comment>config/packages/content_blocks.yaml</comment> and implement
+    <comment>AccessCheckerInterface</comment> + <comment>ContentAreaUrlResolverInterface</comment>.
+
+  * <fg=blue>Link a ContentArea to your entity</>:
+    <comment>#[ORM\OneToOne(targetEntity: ContentArea::class, cascade: ['persist', 'remove'])]</comment>
+    then add <comment>->add('contentArea', ContentAreaType::class)</comment> to its form.
+
+  * <fg=blue>Update your database schema</> (4 tables: cb_content_area, cb_section,
+    cb_column, cb_block): <comment>php bin/console doctrine:migrations:diff</comment>
+
+  * If your admin firewall does not cover <comment>/_content-blocks</comment>, extend its
+    pattern: <comment>^/(admin|_content-blocks)</comment> — and make sure sessions + CSRF
+    are enabled (session-based tokens).
+
+  * Full docs: <href=https://github.com/klehm/content-blocks#readme>github.com/klehm/content-blocks</>

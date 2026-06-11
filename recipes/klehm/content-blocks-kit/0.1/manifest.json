@@ -1,0 +1,9 @@
+{
+    "bundles": {
+        "ContentBlocks\\Kit\\ContentBlocksKitBundle": ["all"]
+    },
+    "copy-from-recipe": {
+        "config/": "%CONFIG_DIR%/"
+    },
+    "aliases": ["content-blocks-kit"]
+}

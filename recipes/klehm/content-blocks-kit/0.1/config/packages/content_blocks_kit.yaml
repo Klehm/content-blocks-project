@@ -1,0 +1,11 @@
+# ContentBlocks Kit — file storage for the Image block uploads.
+#
+# The default storage throws on purpose (NullFileStorage); uncomment to store
+# uploads on the local filesystem, or plug your own implementation (S3, …):
+#
+# services:
+#     ContentBlocks\Kit\Storage\FileStorageInterface:
+#         class: ContentBlocks\Kit\Storage\LocalFileStorage
+#         arguments:
+#             $uploadDir: '%kernel.project_dir%/public/uploads/content-blocks'
+#             $publicPrefix: '/uploads/content-blocks'

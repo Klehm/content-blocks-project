@@ -1,0 +1,9 @@
+  <bg=blue;fg=white>                                          </>
+  <bg=blue;fg=white> ContentBlocks Kit: blocks ready to use!  </>
+  <bg=blue;fg=white>                                          </>
+
+  * Title, Text, RichText, Image and Tabs block types are now registered.
+
+  * <fg=blue>For the Image block</>, wire a file storage: uncomment the
+    <comment>LocalFileStorage</comment> example in <comment>config/packages/content_blocks_kit.yaml</comment>
+    (or plug your own <comment>FileStorageInterface</comment> implementation).

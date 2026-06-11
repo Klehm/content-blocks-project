@@ -1,0 +1,20 @@
+# ContentBlocks — required host services.
+#
+# The bundle is secure by default and ships NO working implementation for
+# these two interfaces; the builder will refuse every request (DenyAll) and
+# the preview iframe will throw until you wire them:
+#
+# services:
+#     # REQUIRED — authorization (IDOR protection). Implement canEdit() /
+#     # canView() against your own auth model.
+#     ContentBlocks\Security\AccessCheckerInterface:
+#         class: App\Security\PageAccessChecker
+#
+#     # REQUIRED — maps a ContentArea to the public URL of its owning entity
+#     # (used by the builder's preview iframe).
+#     ContentBlocks\Preview\ContentAreaUrlResolverInterface:
+#         class: App\Preview\PageContentAreaUrlResolver
+#
+#     # OPTIONAL — drives the "Insert content" picker labels/search.
+#     # ContentBlocks\Replace\ContentAreaProviderInterface:
+#     #     class: App\ContentBlocks\PageContentAreaProvider
