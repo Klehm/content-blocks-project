@@ -38,7 +38,12 @@ async function addFullSection(page, frame) {
 
 async function addFirstBlock(page, frame) {
     const before = await frame.locator('[data-cb-block-id]').count();
-    await frame.locator('.cb-add-block-inline').first().click();
+    // Target the LAST pill — the just-added (empty) section. `.first()` would
+    // grab an earlier, now non-empty section whose pill is pointer-events:none
+    // (revealed only on hover), and whose hover is unreachable because the next
+    // section overlaps the pill's lower half. The last section's column is
+    // empty (pill always interactive) with nothing below it to intercept.
+    await frame.locator('.cb-add-block-inline').last().click({ position: { x: 8, y: 3 } });
     await frame.locator('.cb-overlay-popover button').first().click();
     await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(before + 1);
     await page.waitForTimeout(200);
