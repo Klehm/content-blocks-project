@@ -1,0 +1,28 @@
+{
+    "aliases": {
+        "content-blocks": "klehm/content-blocks",
+        "content-blocks-kit": "klehm/content-blocks-kit",
+        "contentblocks": "klehm/content-blocks",
+        "contentblockskit": "klehm/content-blocks-kit"
+    },
+    "recipes": {
+        "klehm/content-blocks": [
+            "0.1"
+        ],
+        "klehm/content-blocks-kit": [
+            "0.1"
+        ]
+    },
+    "recipe-conflicts": [],
+    "versions": [],
+    "branch": "master",
+    "is_contrib": true,
+    "_links": {
+        "repository": "github.com/klehm/content-blocks-project",
+        "origin_template": "{package}:{version}@github.com/klehm/content-blocks-project:master",
+        "recipe_template": "https://raw.githubusercontent.com/klehm/content-blocks-project/flex/main/{package_dotted}.{version}.json",
+        "recipe_template_relative": "{package_dotted}.{version}.json",
+        "archived_recipes_template": "https://raw.githubusercontent.com/klehm/content-blocks-project/flex/main/archived/{package_dotted}/{ref}.json",
+        "archived_recipes_template_relative": "archived/{package_dotted}/{ref}.json"
+    }
+}

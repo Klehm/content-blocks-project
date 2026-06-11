@@ -1,0 +1,75 @@
+{
+    "manifests": {
+        "klehm/content-blocks": {
+            "manifest": {
+                "bundles": {
+                    "ContentBlocks\\ContentBlocksBundle": [
+                        "all"
+                    ]
+                },
+                "copy-from-recipe": {
+                    "config/": "%CONFIG_DIR%/"
+                },
+                "post-install-output": [
+                    "  <bg=blue;fg=white>                                </>",
+                    "  <bg=blue;fg=white> ContentBlocks is almost ready! </>",
+                    "  <bg=blue;fg=white>                                </>",
+                    "",
+                    "  * <fg=blue>Wire the two REQUIRED host services</> (the bundle is deny-all by default):",
+                    "    edit <comment>config/packages/content_blocks.yaml</comment> and implement",
+                    "    <comment>AccessCheckerInterface</comment> + <comment>ContentAreaUrlResolverInterface</comment>.",
+                    "",
+                    "  * <fg=blue>Link a ContentArea to your entity</>:",
+                    "    <comment>#[ORM\\OneToOne(targetEntity: ContentArea::class, cascade: ['persist', 'remove'])]</comment>",
+                    "    then add <comment>->add('contentArea', ContentAreaType::class)</comment> to its form.",
+                    "",
+                    "  * <fg=blue>Update your database schema</> (4 tables: cb_content_area, cb_section,",
+                    "    cb_column, cb_block): <comment>php bin/console doctrine:migrations:diff</comment>",
+                    "",
+                    "  * If your admin firewall does not cover <comment>/_content-blocks</comment>, extend its",
+                    "    pattern: <comment>^/(admin|_content-blocks)</comment> \u2014 and make sure sessions + CSRF",
+                    "    are enabled (session-based tokens).",
+                    "",
+                    "  * Full docs: <href=https://github.com/klehm/content-blocks#readme>github.com/klehm/content-blocks</>"
+                ]
+            },
+            "files": {
+                "config/packages/content_blocks.yaml": {
+                    "contents": [
+                        "# ContentBlocks \u2014 required host services.",
+                        "#",
+                        "# The bundle is secure by default and ships NO working implementation for",
+                        "# these two interfaces; the builder will refuse every request (DenyAll) and",
+                        "# the preview iframe will throw until you wire them:",
+                        "#",
+                        "# services:",
+                        "#     # REQUIRED \u2014 authorization (IDOR protection). Implement canEdit() /",
+                        "#     # canView() against your own auth model.",
+                        "#     ContentBlocks\\Security\\AccessCheckerInterface:",
+                        "#         class: App\\Security\\PageAccessChecker",
+                        "#",
+                        "#     # REQUIRED \u2014 maps a ContentArea to the public URL of its owning entity",
+                        "#     # (used by the builder's preview iframe).",
+                        "#     ContentBlocks\\Preview\\ContentAreaUrlResolverInterface:",
+                        "#         class: App\\Preview\\PageContentAreaUrlResolver",
+                        "#",
+                        "#     # OPTIONAL \u2014 drives the \"Insert content\" picker labels/search.",
+                        "#     # ContentBlocks\\Replace\\ContentAreaProviderInterface:",
+                        "#     #     class: App\\ContentBlocks\\PageContentAreaProvider",
+                        ""
+                    ],
+                    "executable": false
+                },
+                "config/routes/content_blocks.yaml": {
+                    "contents": [
+                        "content_blocks:",
+                        "    resource: '@ContentBlocksBundle/config/routes.php'",
+                        ""
+                    ],
+                    "executable": false
+                }
+            },
+            "ref": "3711586c60137ee49c5b0ed2d2c304a7cdeee8ba"
+        }
+    }
+}
