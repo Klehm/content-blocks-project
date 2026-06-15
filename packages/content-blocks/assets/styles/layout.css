@@ -46,9 +46,14 @@
     flex-direction: column;
 }
 
+/* Each preset reserves exactly the row's actual gap: (N-1) gaps split across
+   N columns. The gap is configurable per section via --cb-gap-d (set on the
+   section in styling.css, inherited down to the columns); falls back to the
+   framework default 1rem for unstyled sections. Subtracting a hardcoded gap
+   here made columns wrap once the configured gap grew past 1rem. */
 .cb-col--col-12 { flex-basis: 100%; }
-.cb-col--col-6  { flex-basis: calc((100% - 1rem) / 2); }
-.cb-col--col-4  { flex-basis: calc((100% - 2rem) / 3); }
+.cb-col--col-6  { flex-basis: calc((100% - var(--cb-gap-d, 1rem)) / 2); }
+.cb-col--col-4  { flex-basis: calc((100% - 2 * var(--cb-gap-d, 1rem)) / 3); }
 
 /* Custom column widths: a per-column grow weight (from the section's
    `columnWidths` setting, e.g. 40/60) distributes the row proportionally.
@@ -58,7 +63,9 @@
 .cb-col--weighted { flex: var(--cb-col-grow, 1) 1 0; }
 
 @media (max-width: 768px) {
-    .cb-col--col-4 { flex-basis: calc((100% - 1rem) / 2); }
+    /* At this width styling.css's tablet gap (≤991px) is active, so match its
+       fallback chain when reserving the gap for the now-2-column layout. */
+    .cb-col--col-4 { flex-basis: calc((100% - var(--cb-gap-t, var(--cb-gap-d, 1rem))) / 2); }
 }
 
 @media (max-width: 540px) {

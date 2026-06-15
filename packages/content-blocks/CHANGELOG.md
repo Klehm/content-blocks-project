@@ -5,6 +5,12 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-beta.2] - 2026-06-15
+
+### Fixed
+
+- **A wide column gap no longer stacks the columns.** The front-side column presets subtracted a hardcoded `1rem` from their `flex-basis`, so once a section's configured gap grew past `1rem` (e.g. `40px`) the columns no longer fit on one row and wrapped onto separate lines. The presets now reserve the section's actual gap (`--cb-gap-d`, with the tablet chain at the `≤768px` breakpoint), falling back to `1rem` for sections with no gap configured.
+
 ## [0.1.0-beta.1] - 2026-06-11
 
 First **beta**: from this release on, the public API (entities, interfaces, endpoints, form types, Twig/Stimulus contracts) is considered frozen — further breaking changes bump to `0.2`. New infrastructure backs that promise: a CI matrix (PHP 8.2–8.4 × PHPUnit / Vitest / Playwright) now gates the package split and tag propagation, the AJAX controllers and the import/export pipeline are unit-tested, and Symfony Flex recipes are served from a self-hosted endpoint (see the README installation section).

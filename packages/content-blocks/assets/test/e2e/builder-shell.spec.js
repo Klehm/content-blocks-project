@@ -508,6 +508,34 @@ test.describe('builder shell — preview hardening', () => {
         expect(new Set(tops).size).toBe(1);
     });
 
+    test('a wide column gap keeps two columns side by side, not stacked', async ({ page }) => {
+        // Regression: the col presets subtracted a hardcoded 1rem gap from
+        // flex-basis. Once the configured gap grew past 1rem (here 40px) the
+        // two col-6 columns no longer fit on one row and wrapped. The presets
+        // now reserve the actual --cb-gap-d, so they stay side by side.
+        const frame = await openBuilder(page);
+        await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="two_cols"]').click();
+        await expect.poll(() => frame.locator('[data-cb-column-id]').count()).toBe(2);
+        await page.waitForTimeout(200);
+
+        await openSectionSettings(page, frame);
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+
+        // Set the desktop column gap to 40px (the 'd' viewport tab is active by
+        // default, so its input is the visible one). Autosave persists it and
+        // the preview reloads with --cb-gap-d:40px on the section.
+        await sidebar.locator('input[name="section_settings[styling][gap][d]"]').fill('40');
+        const section = frame.locator('[data-cb-section-id]').first();
+        await expect.poll(async () => section.getAttribute('style')).toContain('--cb-gap-d:40px');
+
+        const tops = await frame.locator('[data-cb-column-id]').evaluateAll((els) =>
+            els.map((el) => Math.round(el.getBoundingClientRect().top)),
+        );
+        // Both columns share the same top → the 40px gap did not push the
+        // second column onto a new row.
+        expect(new Set(tops).size).toBe(1);
+    });
+
     test('mounting a block form does not shrink the iframe', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
