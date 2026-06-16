@@ -7,10 +7,20 @@
     <h1 style="margin: 0 0 1rem;">{{ page.title }}</h1>
 
     {% if page.contentArea %}
-        {% include '@ContentBlocks/builder/launcher.html.twig' with {
-            area: page.contentArea,
-            iframeUrl: cb_preview_url(page.contentArea),
-        } only %}
+        {# The host wires its own builder topbar actions: each entry renders a
+           button that dispatches the generic `cb:builder:action` event, which
+           the cb-host-actions controller below picks up off `document`. #}
+        <div data-controller="cb-host-actions"
+             data-cb-host-actions-save-as-model-url-value="{{ path('app_page_save_as_model', { id: page.id }) }}">
+            {% include '@ContentBlocks/builder/launcher.html.twig' with {
+                area: page.contentArea,
+                iframeUrl: cb_preview_url(page.contentArea),
+                topbarActions: [
+                    { key: 'save-as-model', label: 'Save as model', icon: '💾', title: 'Save this content as a reusable model' },
+                ],
+            } only %}
+            <p class="sandbox-muted" data-cb-host-actions-target="status" style="margin-top: 1rem;" hidden></p>
+        </div>
     {% else %}
         <p class="sandbox-muted">ContentArea not available.</p>
     {% endif %}
