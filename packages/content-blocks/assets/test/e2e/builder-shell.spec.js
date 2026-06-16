@@ -744,6 +744,8 @@ test.describe('builder shell — publish / discard', () => {
         await addFullSection(page, frame);
         expect(await frame.locator('[data-cb-section-id]').count()).toBe(1);
 
+        // Discard is gated behind a native confirm — accept it.
+        page.once('dialog', (dialog) => dialog.accept());
         await page.locator('.cb-shell__discard').click();
 
         // Section was added but never published → discardDraft removes it.
@@ -751,6 +753,21 @@ test.describe('builder shell — publish / discard', () => {
         // Discard button is hidden (no pending changes left), Publish disabled.
         await expect(page.locator('.cb-shell__discard')).toBeHidden();
         await expect(page.locator('.cb-shell__publish')).toBeDisabled();
+    });
+
+    test('Discard asks for confirmation; dismissing it keeps the draft', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        expect(await frame.locator('[data-cb-section-id]').count()).toBe(1);
+
+        // Dismiss the confirm → the discard is aborted and nothing changes.
+        let dialogShown = false;
+        page.once('dialog', (dialog) => { dialogShown = true; dialog.dismiss(); });
+        await page.locator('.cb-shell__discard').click();
+
+        expect(dialogShown).toBe(true);
+        await expect(page.locator('.cb-shell__discard')).toBeVisible();
+        expect(await frame.locator('[data-cb-section-id]').count()).toBe(1);
     });
 
     test('Discard restores a soft-deleted block from a published area', async ({ page }) => {
@@ -768,7 +785,9 @@ test.describe('builder shell — publish / discard', () => {
         await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(0);
         await expect(page.locator('.cb-shell__discard')).toBeVisible();
 
-        // Discard the soft-delete → the published block comes back.
+        // Discard the soft-delete → the published block comes back. Accept
+        // the confirm dialog that now guards the discard action.
+        page.once('dialog', (dialog) => dialog.accept());
         await page.locator('.cb-shell__discard').click();
 
         await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
