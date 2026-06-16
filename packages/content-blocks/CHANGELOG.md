@@ -5,6 +5,16 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-beta.3] - 2026-06-16
+
+### Added
+
+- **Discarding all changes now asks for confirmation.** The "Discard changes" topbar button threw away every unpublished draft edit at once, with no prompt and no recovery short of redoing the work — far more destructive than a single delete (which has its own one-click Undo). It now shows a native confirm dialog before reverting, mirroring the "Insert content" replace flow. The prompt text is translatable via the new `cb.builder.discard_confirm` key (FR + EN).
+
+### Fixed
+
+- **Drag & drop reorders no longer silently revert.** On pages with many elements, a section or block move could look like it applied but snap back to its original slot after a reload — intermittently, and more often the larger the page. The reorder/duplicate endpoints each rewrite a whole sibling set's draft position (`previewPosition`), and the builder fired these requests with no serialization: two overlapping requests read each other's pre-commit state and the later commit clobbered the earlier move (a lost update). Structural mutations now run one at a time, in submission order. Also fixed along the way: a cross-column block move re-indexed the source column from its *published* order instead of its draft order, reverting any unpublished reorder of the blocks left behind.
+
 ## [0.1.0-beta.2] - 2026-06-15
 
 ### Fixed
