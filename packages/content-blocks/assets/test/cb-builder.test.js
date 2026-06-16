@@ -999,6 +999,59 @@ describe('cb-builder: _jsonRequest', () => {
     });
 });
 
+describe('cb-builder: _jsonRequest serialization', () => {
+    let controller;
+    // setTimeout(0) drains the microtask queue AND lets the serialization
+    // chain advance to the next request — robust without fake timers.
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    beforeEach(() => {
+        ({ controller } = setupController());
+        controller.element.dataset.cbCsrfToken = 'csrf-xyz';
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    it('runs structural requests one at a time, in submission order', async () => {
+        // Each fetch hangs until we resolve it by hand, so we can observe that
+        // the second request never starts while the first is still in flight.
+        const resolvers = [];
+        global.fetch = vi.fn(() => new Promise((resolve) => { resolvers.push(resolve); }));
+
+        controller._jsonRequest('POST', '/first');
+        controller._jsonRequest('POST', '/second');
+        await flush();
+
+        // Only the first request was dispatched; the second waits in the queue.
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(global.fetch.mock.calls[0][0]).toBe('/first');
+
+        // Settling the first must release the slot for the second.
+        resolvers[0]({ ok: true, json: () => Promise.resolve({}) });
+        await flush();
+
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(global.fetch.mock.calls[1][0]).toBe('/second');
+
+        resolvers[1]({ ok: true, json: () => Promise.resolve({}) });
+        await flush();
+    });
+
+    it('a failed request does not wedge the queued ones behind it', async () => {
+        global.fetch = vi.fn()
+            .mockImplementationOnce(() => Promise.reject(new Error('offline')))
+            .mockImplementationOnce(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: 1 }) }));
+
+        const firstP = controller._jsonRequest('POST', '/first');
+        const secondP = controller._jsonRequest('POST', '/second');
+        const [first, second] = await Promise.all([firstP, secondP]);
+        await flush();
+
+        expect(first).toBeNull();           // network failure → null, slot released
+        expect(second).toEqual({ ok: 1 });  // the queue advanced past the failure
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+});
+
 describe('cb-builder: setViewport', () => {
     let controller, element, iframe;
 

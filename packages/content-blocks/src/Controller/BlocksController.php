@@ -160,6 +160,12 @@ final class BlocksController
                 $source->getBlocks()->toArray(),
                 fn (Block $b) => $b->getId() !== $block->getId() && !$b->isDeleted(),
             ));
+            // Sort by previewPosition before re-indexing: getBlocks() is ordered
+            // by the *published* position (the collection's #[OrderBy]), so a
+            // source column carrying an unpublished reorder would otherwise be
+            // re-indexed back into published order — reverting the draft order of
+            // the blocks left behind. The target branch below already sorts first.
+            usort($sourceBlocks, fn (Block $a, Block $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
             $this->reindexPreview($sourceBlocks);
 
             $block->setColumn($target);
