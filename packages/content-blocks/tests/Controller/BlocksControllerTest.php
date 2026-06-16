@@ -161,6 +161,29 @@ final class BlocksControllerTest extends ControllerTestCase
         $this->assertSame(0, $staying->getPreviewPosition());
     }
 
+    public function testMoveAcrossColumnsPreservesTheSourceColumnDraftOrder(): void
+    {
+        $area = $this->makeArea(1);
+        $section = $this->makeSection($area, 2);
+        $source = $this->makeColumn($section, 3, previewPosition: 0);
+        $target = $this->makeColumn($section, 4, previewPosition: 1);
+
+        // Insertion order ($a then $b) — the collection's in-memory order, and
+        // the *published*-position order once hydrated from the DB — is the
+        // reverse of the draft order encoded in previewPosition ($b before $a).
+        $moving = $this->makeBlock($source, 10, previewPosition: 1);
+        $a = $this->makeBlock($source, 11, previewPosition: 2);
+        $b = $this->makeBlock($source, 12, previewPosition: 0);
+        $controller = $this->makeController($this->makeEm([$source, $target, $moving]));
+
+        $controller->move(10, $this->makeJsonRequest(['toColumnId' => 4, 'position' => 0]));
+
+        // The survivors keep their draft order (B before A), densely reindexed —
+        // not reset to the published/insertion order, which would put A first.
+        $this->assertSame(0, $b->getPreviewPosition());
+        $this->assertSame(1, $a->getPreviewPosition());
+    }
+
     public function testMoveIgnoresDeletedSiblingsInPositionMath(): void
     {
         $column = $this->makeGraph();
