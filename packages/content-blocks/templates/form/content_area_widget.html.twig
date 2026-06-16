@@ -10,8 +10,8 @@
         {% include '@ContentBlocks/builder/launcher.html.twig' with {
             area: content_area,
             iframeUrl: cb_preview_url(content_area),
-            enableReplace: enable_replace|default(true),
-            enableImportExport: enable_import_export|default(true),
+            enableReplace: enable_replace ?? true,
+            enableImportExport: enable_import_export ?? true,
             topbarActions: topbar_actions|default([]),
         } only %}
     {% endif %}
