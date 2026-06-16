@@ -1107,6 +1107,43 @@ describe('cb-builder: setViewport', () => {
     });
 });
 
+describe('cb-builder: runAction (host topbar actions)', () => {
+    let controller, element;
+
+    beforeEach(() => {
+        ({ controller, element } = setupController({ areaId: 42 }));
+    });
+
+    it('dispatches a single generic cb:builder:action carrying the key', () => {
+        const button = document.createElement('button');
+        const received = [];
+        element.addEventListener('cb:builder:action', (e) => received.push(e));
+
+        controller.runAction({
+            params: { actionKey: 'save-as-model' },
+            currentTarget: button,
+            preventDefault: () => {},
+        });
+
+        expect(received).toHaveLength(1);
+        const event = received[0];
+        expect(event.bubbles).toBe(true);
+        expect(event.detail.key).toBe('save-as-model');
+        expect(event.detail.areaId).toBe(42);
+        expect(event.detail.button).toBe(button);
+    });
+
+    it('does nothing when the action key is missing', () => {
+        const spy = vi.fn();
+        element.addEventListener('cb:builder:action', spy);
+
+        controller.runAction({ params: {}, preventDefault: () => {} });
+        controller.runAction({ preventDefault: () => {} });
+
+        expect(spy).not.toHaveBeenCalled();
+    });
+});
+
 describe('cb-builder: viewport visibility', () => {
     let controller, element, iframe;
 
