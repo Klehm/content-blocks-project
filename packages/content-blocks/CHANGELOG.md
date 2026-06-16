@@ -5,6 +5,12 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-beta.5] - 2026-06-16
+
+### Fixed
+
+- **`enable_replace` / `enable_import_export` set to `false` now actually hide their buttons.** The builder templates read these `ContentAreaType` flags with Twig's `|default(true)`, which treats a boolean `false` as "empty" and falls back to `true` — so a host passing `enable_replace: false` (or `enable_import_export: false`) could never turn the feature off. The templates now use the null-coalescing `?? true`, which only defaults when the value is undefined. Both flags still default to `true` for hosts that don't set them.
+
 ## [0.1.0-beta.4] - 2026-06-16
 
 ### Added
