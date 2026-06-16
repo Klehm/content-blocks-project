@@ -760,6 +760,24 @@ export default class extends Controller {
         this._applyViewport(viewport);
     }
 
+    /**
+     * Action: a host-provided topbar button was clicked. The bundle stays
+     * agnostic about what the action does — it just emits a single generic
+     * `cb:builder:action` event carrying the button's key (plus the area id
+     * and the clicked button for context). The host listens once on the
+     * shell and filters on `detail.key`; using one stable event name (rather
+     * than per-key event types) keeps add/removeEventListener simple.
+     */
+    runAction(event) {
+        if (event) event.preventDefault();
+        const key = event?.params?.actionKey;
+        if (!key) return;
+        this.element.dispatchEvent(new CustomEvent('cb:builder:action', {
+            bubbles: true,
+            detail: { key, areaId: this.areaIdValue, button: event.currentTarget },
+        }));
+    }
+
     _onMessage(event) {
         // Origin check: only trust same-origin posts.
         if (event.origin !== window.location.origin) return;

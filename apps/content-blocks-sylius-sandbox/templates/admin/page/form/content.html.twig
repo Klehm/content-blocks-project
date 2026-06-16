@@ -33,10 +33,20 @@
                 <div class="tab-pane" id="tab-builder" role="tabpanel">
                     <div class="card mb-3">
                         <div class="card-body">
-                            {% include '@ContentBlocks/builder/launcher.html.twig' with {
-                                area: resource.contentArea,
-                                iframeUrl: cb_preview_url(resource.contentArea),
-                            } only %}
+                            {# Host-wired builder topbar action: the button
+                               dispatches the generic `cb:builder:action` event,
+                               which cb-host-actions picks up off `document`. #}
+                            <div data-controller="cb-host-actions"
+                                 data-cb-host-actions-save-as-model-url-value="{{ path('app_page_save_as_model', { id: resource.id }) }}">
+                                {% include '@ContentBlocks/builder/launcher.html.twig' with {
+                                    area: resource.contentArea,
+                                    iframeUrl: cb_preview_url(resource.contentArea),
+                                    topbarActions: [
+                                        { key: 'save-as-model', label: 'Save as model', icon: '💾', title: 'Save this content as a reusable model' },
+                                    ],
+                                } only %}
+                                <p class="text-muted mt-3" data-cb-host-actions-target="status" hidden></p>
+                            </div>
                         </div>
                     </div>
                 </div>

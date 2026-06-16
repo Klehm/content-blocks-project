@@ -8,10 +8,55 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Form\Type\ContentAreaType;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
+use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 final class ContentAreaTypeTest extends TestCase
 {
+    public function testTopbarActionsDefaultsToEmptyArray(): void
+    {
+        $options = $this->resolveOptions();
+
+        $this->assertSame([], $options['topbar_actions']);
+    }
+
+    public function testTopbarActionsRejectsNonArray(): void
+    {
+        $this->expectException(InvalidOptionsException::class);
+
+        $this->resolveOptions(['topbar_actions' => 'nope']);
+    }
+
+    public function testBuildViewExposesTopbarActions(): void
+    {
+        $actions = [
+            ['key' => 'save-as-model', 'label' => 'Save as model', 'icon' => '💾'],
+        ];
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $type = new ContentAreaType($em);
+
+        $form = $this->createMock(FormInterface::class);
+        $form->method('getData')->willReturn(null);
+
+        $view = new FormView();
+        $type->buildView($view, $form, $this->resolveOptions(['topbar_actions' => $actions]));
+
+        $this->assertSame($actions, $view->vars['topbar_actions']);
+    }
+
+    /** Resolve the type's options the way Symfony's form factory would. */
+    private function resolveOptions(array $options = []): array
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $resolver = new OptionsResolver();
+        (new ContentAreaType($em))->configureOptions($resolver);
+
+        return $resolver->resolve($options);
+    }
+
     public function testReverseTransformPersistsButDoesNotFlushOnSubmit(): void
     {
         $em = $this->createMock(EntityManagerInterface::class);

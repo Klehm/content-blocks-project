@@ -57,9 +57,18 @@ final class ContentAreaType extends AbstractType implements DataTransformerInter
             // reachable (AccessChecker + CSRF protected). The host wires its own
             // strategy (per-form here, or a firewall/AccessChecker server-side).
             'enable_import_export' => true,
+            // Host-provided extra topbar buttons. Each entry is an associative
+            // array: ['key' => 'save-as-model', 'label' => 'Save as model',
+            // 'icon' => '💾' (optional, may be inline SVG), 'title' => '…'
+            // (optional, defaults to label)]. Clicking a button dispatches a
+            // single generic `cb:builder:action` event carrying detail.key — the
+            // host listens once and filters on the key. Labels/icons are the
+            // host's responsibility (already translated, trusted markup).
+            'topbar_actions' => [],
         ]);
         $resolver->setAllowedTypes('enable_replace', 'bool');
         $resolver->setAllowedTypes('enable_import_export', 'bool');
+        $resolver->setAllowedTypes('topbar_actions', 'array');
     }
 
     public function getParent(): string
@@ -83,6 +92,7 @@ final class ContentAreaType extends AbstractType implements DataTransformerInter
         $view->vars['is_pending'] = !$isPersisted;
         $view->vars['enable_replace'] = $options['enable_replace'];
         $view->vars['enable_import_export'] = $options['enable_import_export'];
+        $view->vars['topbar_actions'] = $options['topbar_actions'];
     }
 
     /** @param ContentArea|null $value */
