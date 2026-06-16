@@ -2,6 +2,7 @@
 {# @var iframeUrl string #}
 {# @var enableReplace bool #}
 {# @var enableImportExport bool #}
+{# @var topbarActions array #}
 <div class="cb-shell"
      data-controller="cb-builder"
      data-cb-builder-area-id-value="{{ area.id }}"
@@ -43,6 +44,23 @@
                     <span class="cb-shell__btn-label">{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}</span>
                 </button>
             {% endif %}
+            {# Host-provided extra actions. Each click dispatches a single
+               generic `cb:builder:action` event carrying detail.key — the host
+               listens once and filters on the key. icon|raw allows an inline
+               SVG; its markup is host-supplied and therefore trusted. #}
+            {% for action in topbarActions|default([]) %}
+                <button type="button"
+                        class="cb-shell__action cb-shell__action--{{ action.key }}"
+                        data-action="cb-builder#runAction"
+                        data-cb-builder-action-key-param="{{ action.key }}"
+                        title="{{ action.title|default(action.label) }}"
+                        aria-label="{{ action.title|default(action.label) }}">
+                    {% if action.icon|default('') is not empty %}
+                        <span class="cb-shell__btn-icon" aria-hidden="true">{{ action.icon|raw }}</span>
+                    {% endif %}
+                    <span class="cb-shell__btn-label">{{ action.label }}</span>
+                </button>
+            {% endfor %}
         </div>
 
         <div class="cb-shell__topbar-center">

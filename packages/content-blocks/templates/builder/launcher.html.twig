@@ -2,6 +2,7 @@
 {# @var iframeUrl string #}
 {# @var enableReplace bool #}
 {# @var enableImportExport bool #}
+{# @var topbarActions array #}
 <div class="cb-launcher"
      data-controller="cb-builder-launcher">
     <button type="button"
@@ -23,6 +24,7 @@
             iframeUrl: iframeUrl|default('about:blank'),
             enableReplace: enableReplace|default(true),
             enableImportExport: enableImportExport|default(true),
+            topbarActions: topbarActions|default([]),
         } only %}
     </dialog>
 </div>
