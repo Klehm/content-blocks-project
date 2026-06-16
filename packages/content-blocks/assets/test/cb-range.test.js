@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Controller from '../controllers/cb-range_controller.js';
 
 /**
@@ -9,7 +9,7 @@ import Controller from '../controllers/cb-range_controller.js';
  * submitted field) mirrored by a range slider.
  */
 
-function setup({ value = '', min = '0', max = '1200', step = '10' } = {}) {
+function setup({ value = '', min = '0', max = '1200', step = '10', commitDelay = 400 } = {}) {
     document.body.innerHTML = `
         <div class="cb-form-range-wrap" data-controller="cb-range">
             <input type="number" data-cb-range-target="number"
@@ -31,6 +31,7 @@ function setup({ value = '', min = '0', max = '1200', step = '10' } = {}) {
     Object.defineProperty(controller, 'numberTarget', { value: number });
     Object.defineProperty(controller, 'hasSliderTarget', { value: true });
     Object.defineProperty(controller, 'sliderTarget', { value: slider });
+    Object.defineProperty(controller, 'commitDelayValue', { value: commitDelay });
 
     controller.connect();
     return { controller, number, slider };
@@ -38,6 +39,7 @@ function setup({ value = '', min = '0', max = '1200', step = '10' } = {}) {
 
 describe('cb-range', () => {
     beforeEach(() => { document.body.innerHTML = ''; });
+    afterEach(() => { vi.useRealTimers(); });
 
     it('connect reflects the number value onto the slider', () => {
         const { slider } = setup({ value: '300' });
@@ -90,6 +92,90 @@ describe('cb-range', () => {
         number.value = '337';
         // No clamp/snap touches the number on input; it stays exact.
         expect(number.value).toBe('337');
+    });
+
+    it('debounces typed keystrokes into a single change after the idle window', () => {
+        // Without the debounce each keystroke's input would reach autosave and
+        // commit mid-typing (clamp + slider snap + Live morph) — the "jump".
+        vi.useFakeTimers();
+        const { controller, number } = setup({ value: '100', commitDelay: 400 });
+        const changes = [];
+        number.addEventListener('change', () => changes.push(number.value));
+
+        number.value = '1';
+        controller.fromNumber(new Event('input', { bubbles: true }));
+        vi.advanceTimersByTime(200); // pause shorter than the window
+        number.value = '15';
+        controller.fromNumber(new Event('input', { bubbles: true }));
+
+        // Still mid-debounce after the latest keystroke -> nothing committed yet.
+        vi.advanceTimersByTime(399);
+        expect(changes).toEqual([]);
+
+        // The idle window elapses -> exactly one change, carrying the last value.
+        vi.advanceTimersByTime(1);
+        expect(changes).toEqual(['15']);
+    });
+
+    it('stops a typed input event from bubbling to autosave (commits on pause instead)', () => {
+        const { controller } = setup({ value: '100' });
+        const event = new Event('input', { bubbles: true });
+        const stop = vi.spyOn(event, 'stopPropagation');
+
+        controller.fromNumber(event);
+
+        expect(stop).toHaveBeenCalledOnce();
+    });
+
+    it('does not debounce or swallow the slider-mirrored input event', () => {
+        vi.useFakeTimers();
+        const { controller, number, slider } = setup({ value: '100' });
+        // Mimic the Stimulus `input->cb-range#fromNumber` wiring so the mirrored
+        // event reaches the handler exactly as it does in the browser.
+        number.addEventListener('input', (e) => controller.fromNumber(e));
+        let reachedAutosave = false; // autosave listens on an ancestor element
+        controller.element.addEventListener('input', () => { reachedAutosave = true; });
+        const changes = [];
+        number.addEventListener('change', () => changes.push(number.value));
+
+        slider.value = '250';
+        controller.fromSlider();
+
+        expect(number.value).toBe('250');
+        expect(reachedAutosave).toBe(true); // mirror was not stopped
+        vi.advanceTimersByTime(400);
+        expect(changes).toEqual([]); // and no debounced commit was scheduled
+    });
+
+    it('a real change (blur/Enter -> clampNumber) cancels the pending debounced commit', () => {
+        vi.useFakeTimers();
+        const { controller, number } = setup({ value: '100' });
+        const changes = [];
+        number.addEventListener('change', () => changes.push(number.value));
+
+        number.value = '50';
+        controller.fromNumber(new Event('input', { bubbles: true }));
+        controller.clampNumber(); // the commit the browser fires on blur/Enter
+
+        vi.advanceTimersByTime(400);
+        expect(changes).toEqual([]); // _commit must not fire a second change
+    });
+
+    it('releasing the slider cancels a pending typed-value commit', () => {
+        vi.useFakeTimers();
+        const { controller, number, slider } = setup({ value: '100' });
+        const changes = [];
+        number.addEventListener('change', () => changes.push(number.value));
+
+        number.value = '7';
+        controller.fromNumber(new Event('input', { bubbles: true }));
+
+        slider.value = '250';
+        controller.commitSlider();
+        expect(changes).toEqual(['250']);
+
+        vi.advanceTimersByTime(400);
+        expect(changes).toEqual(['250']); // the typed commit did not fire afterwards
     });
 
     it('clampNumber pins a value above max down to max', () => {
