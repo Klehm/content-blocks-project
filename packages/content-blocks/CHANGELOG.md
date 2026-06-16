@@ -5,6 +5,16 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-beta.4] - 2026-06-16
+
+### Added
+
+- **Host-provided builder topbar actions.** A new `topbar_actions` option on `ContentAreaType` lets the host app render its own buttons in the builder topbar (after the Import/Export button) without the bundle knowing what they do. Each entry is `['key' => …, 'label' => …, 'icon' => … (optional, may be inline SVG), 'title' => … (optional)]`. Clicking a button dispatches a single generic, bubbling `cb:builder:action` event carrying `detail.key` (plus `areaId` and the clicked `button`); the host adds one stable listener and filters on the key — no per-key event names. Note: the builder `<dialog>` is re-parented to `<body>`, so host listeners attach to `document`/`window` rather than the launcher element.
+
+### Fixed
+
+- **Typing a value into a range field no longer jumps.** The range widget's number input committed mid-keystroke: each input event reached autosave, whose debounce flushed a change on the still-focused field — clamping the partial value, snapping the slider, and triggering a Live morph between two keystrokes. `cb-range` now owns a local debounce for the typing path (emitting a single change once the editor pauses, `commitDelay` default 400 ms); a real change (blur/Enter) or a slider release commits immediately and cancels the pending one. The slider drag path is unchanged.
+
 ## [0.1.0-beta.3] - 2026-06-16
 
 ### Added
