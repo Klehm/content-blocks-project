@@ -923,7 +923,8 @@ describe('cb-builder: publish/discard', () => {
         expect(reloadSpy).toHaveBeenCalled();
     });
 
-    it('discard posts to area/{id}/discard, applies state, reloads', async () => {
+    it('discard posts to area/{id}/discard, applies state, reloads (when confirmed)', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
         reqSpy.mockResolvedValue({ hasUnpublishedChanges: false });
 
         await controller.discard({ preventDefault: () => {} });
@@ -931,6 +932,26 @@ describe('cb-builder: publish/discard', () => {
         expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/discard');
         expect(applySpy).toHaveBeenCalledWith(false);
         expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('discard asks for confirmation and does nothing when declined', async () => {
+        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+        await controller.discard({ preventDefault: () => {} });
+
+        expect(confirmSpy).toHaveBeenCalled();
+        expect(reqSpy).not.toHaveBeenCalled();
+        expect(applySpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('discard confirm prompt uses the localized text from the shell root', async () => {
+        controller.element.setAttribute('data-i18n-cb-builder-discard-confirm', 'Tout annuler ?');
+        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+        await controller.discard({ preventDefault: () => {} });
+
+        expect(confirmSpy).toHaveBeenCalledWith('Tout annuler ?');
     });
 
     it('publish does not act when the request fails', async () => {
@@ -1405,6 +1426,7 @@ describe('cb-builder: undo delete snackbar', () => {
 
         await controller._deleteBlock(8);
         expect(undoBar.hidden).toBe(false);
+        vi.spyOn(window, 'confirm').mockReturnValue(true); // discard is now gated by a confirm
         await controller.discard();
         expect(undoBar.hidden).toBe(true);
         expect(controller._pendingUndo).toBeNull();
