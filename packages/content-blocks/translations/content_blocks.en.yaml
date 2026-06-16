@@ -74,6 +74,7 @@ cb:
         preview: "Content preview"
         publish: "Publish"
         discard: "Discard changes"
+        discard_confirm: "Are you sure you want to discard all unpublished changes? This cannot be undone."
         add_section: "Add a section:"
         empty_cta: "Start by adding a section"
         draft_pending: "Draft pending"

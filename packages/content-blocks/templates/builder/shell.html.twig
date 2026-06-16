@@ -6,7 +6,8 @@
      data-controller="cb-builder"
      data-cb-builder-area-id-value="{{ area.id }}"
      data-cb-builder-iframe-url-value="{{ iframeUrl }}"
-     data-cb-csrf-token="{{ csrf_token('content_blocks') }}">
+     data-cb-csrf-token="{{ csrf_token('content_blocks') }}"
+     data-i18n-cb-builder-discard-confirm="{{ 'cb.builder.discard_confirm'|trans({}, 'content_blocks') }}">
 
     <div class="cb-shell__progress" data-cb-builder-target="progress" aria-hidden="true"></div>
 

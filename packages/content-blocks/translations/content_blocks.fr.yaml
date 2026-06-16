@@ -74,6 +74,7 @@ cb:
         preview: "Aperçu du contenu"
         publish: "Publier"
         discard: "Annuler les modifications"
+        discard_confirm: "Voulez-vous vraiment annuler toutes les modifications non publiées ? Cette action est irréversible."
         add_section: "Ajouter une section :"
         empty_cta: "Commencez par ajouter une section"
         draft_pending: "Brouillon en attente"

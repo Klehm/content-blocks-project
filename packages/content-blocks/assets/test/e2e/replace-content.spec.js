@@ -207,7 +207,9 @@ test.describe('replace-content picker — happy path', () => {
         await expect.poll(() => targetFrame.locator('[data-cb-section-id]').count()).toBe(1);
 
         // Now discard — the target had no published content, so discardDraft
-        // should remove the cloned never-published sections entirely.
+        // should remove the cloned never-published sections entirely. Accept
+        // the confirm dialog that now guards the discard action.
+        page.once('dialog', async (d) => { await d.accept(); });
         await page.locator('.cb-shell__discard').click();
         await expect.poll(() => targetFrame.locator('[data-cb-section-id]').count()).toBe(0);
         await expect(page.locator('.cb-shell__discard')).toBeHidden();

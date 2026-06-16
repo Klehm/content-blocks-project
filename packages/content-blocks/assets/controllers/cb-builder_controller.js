@@ -47,6 +47,9 @@ export default class extends Controller {
     /** Confirm prompt shown before applying a destructive replace. */
     static REPLACE_PICKER_CONFIRM_FALLBACK =
         'Are you sure you want to overwrite the current content with the selected one?';
+    /** Confirm prompt shown before discarding all unpublished draft changes. */
+    static DISCARD_CONFIRM_FALLBACK =
+        'Are you sure you want to discard all unpublished changes? This cannot be undone.';
 
     static SIDEBAR_WIDTH_KEY = 'cb-builder.sidebarWidth';
     static SIDEBAR_COLLAPSED_KEY = 'cb-builder.sidebarCollapsed';
@@ -272,6 +275,12 @@ export default class extends Controller {
 
     async discard(event) {
         if (event) event.preventDefault();
+        // Discard throws away every unpublished edit at once — far more
+        // destructive than a single delete (which has its own Undo snackbar)
+        // and irreversible. Gate it behind a native confirm, same as the
+        // "Insert content" replace flow.
+        const confirmText = this._t('cb.builder.discard_confirm', this.constructor.DISCARD_CONFIRM_FALLBACK);
+        if (!window.confirm(confirmText)) return;
         const result = await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/discard`);
         if (result === null) return;
         // Discard already reverted every draft deletion (or removed
@@ -1310,15 +1319,19 @@ export default class extends Controller {
     /**
      * Tiny translation lookup. The host's translation strings are not
      * available client-side; we read precomputed values from data-*
-     * attributes on any picker root that carries them, otherwise fall back
-     * to the English default. This keeps the bundle dependency-free while
-     * still letting hosts override the wording.
+     * attributes on any picker root that carries them, plus the shell root
+     * itself for topbar-level strings (e.g. the discard confirm) that live
+     * outside the optional pickers. Falls back to the English default. This
+     * keeps the bundle dependency-free while still letting hosts override the
+     * wording.
      */
     _t(key, fallback) {
         const attr = 'data-i18n-' + key.replace(/[._]/g, '-');
         const sources = [];
         if (this.hasReplacePickerTarget) sources.push(this.replacePickerTarget);
         if (this.hasImportExportPickerTarget) sources.push(this.importExportPickerTarget);
+        // Shell root: always present, carries topbar strings the pickers don't.
+        sources.push(this.element);
         for (const el of sources) {
             const value = el.getAttribute(attr);
             if (value && value.length > 0) return value;
