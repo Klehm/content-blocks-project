@@ -551,10 +551,42 @@ export default class extends Controller {
     }
 
     /**
-     * Shared AJAX helper. Pulls the CSRF token from the shell wrapper element
-     * (`data-cb-csrf-token`) and forwards it as `X-CSRF-Token`.
+     * Shared AJAX helper for every structural mutation. Calls are SERIALIZED:
+     * each request waits for the previous one to settle before it starts, so at
+     * most one mutation is ever in flight.
+     *
+     * Why serialize? Every reorder / duplicate / create / delete endpoint does a
+     * read-modify-write of a whole sibling set's previewPosition (the draft
+     * order). Two overlapping requests would each read the other's pre-commit
+     * state, and whichever committed last would clobber the earlier reorder — a
+     * classic lost update. The visible symptom was a drag that looked like it
+     * worked but silently snapped back to its old slot after a reload:
+     * intermittent, and worse on large pages where slower requests widen the
+     * overlap window. Funnelling every mutation through one in-flight slot
+     * removes the race entirely; the added latency is invisible for
+     * click/drag-driven actions.
      */
-    async _jsonRequest(method, url, body) {
+    _jsonRequest(method, url, body) {
+        const exec = () => this._performJsonRequest(method, url, body);
+        // Chain onto the queue tail (run on both fulfil and reject so a prior
+        // failure still releases the slot). _performJsonRequest never rejects —
+        // it catches network + non-OK and resolves to null — so callers keep
+        // getting their result (or null) in submission order.
+        const result = this._mutationQueue
+            ? this._mutationQueue.then(exec, exec)
+            : exec();
+        // Swallow rejections on the tail only, so one failed request can't wedge
+        // every later mutation behind a permanently-rejected promise.
+        this._mutationQueue = result.catch(() => {});
+
+        return result;
+    }
+
+    /**
+     * Performs a single JSON request. Pulls the CSRF token from the shell
+     * wrapper element (`data-cb-csrf-token`) and forwards it as `X-CSRF-Token`.
+     */
+    async _performJsonRequest(method, url, body) {
         const csrfToken = this.element.dataset.cbCsrfToken || '';
         const init = {
             method,
