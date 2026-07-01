@@ -2,7 +2,9 @@ doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
     orm:
-        auto_generate_proxy_classes: true
+        # `auto_generate_proxy_classes` was removed in doctrine-bundle 3.0 (a no-op
+        # under ORM 3 + PHP 8.4 native lazy objects). Omitting it keeps this config
+        # valid on both bundle 2.x (Symfony 7 leg) and 3.x (Symfony 8 · PHP 8.4).
         naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
         auto_mapping: true
         mappings:
