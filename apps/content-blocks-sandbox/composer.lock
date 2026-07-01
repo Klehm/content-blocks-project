@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "503460609b3415ea8831171bfff1cc3f",
+    "content-hash": "f597221f198739b912408f3f00c65392",
     "packages": [
         {
             "name": "composer/semver",
@@ -1202,7 +1202,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks",
-                "reference": "2b3f3c87680f630eaecd72b87aa5b94449085252"
+                "reference": "270167e4339fba31a6cf849ac0788dffbcc2b09a"
             },
             "require": {
                 "doctrine/orm": "^2.12 || ^3.0",
@@ -1211,10 +1211,10 @@
                 "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
                 "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0",
                 "symfony/security-csrf": "^6.4 || ^7.0 || ^8.0",
-                "symfony/stimulus-bundle": "^2.0",
+                "symfony/stimulus-bundle": "^2.0 || ^3.0",
                 "symfony/twig-bundle": "^6.4 || ^7.0 || ^8.0",
-                "symfony/ux-live-component": "^2.0",
-                "symfony/ux-twig-component": "^2.0",
+                "symfony/ux-live-component": "^2.0 || ^3.0",
+                "symfony/ux-twig-component": "^2.0 || ^3.0",
                 "twig/twig": "^3.10"
             },
             "require-dev": {
