@@ -5,6 +5,13 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-beta.6] - 2026-07-01
+
+### Added
+
+- **Symfony 8.1 and PHP 8.4 support.** The package already declared `symfony/* ^8.0` and `php >=8.2`, so both were resolvable; this release verifies it — the package resolves against Symfony 8.1 and the source carries no PHP 8.4 deprecations (no implicitly-nullable parameters). CI now runs the browser suite on a `PHP 8.4 · Symfony 8` leg in addition to the locked `PHP 8.3 · Symfony 7` baseline, so the newest stack is exercised end to end.
+- **Symfony UX 3.x support.** `symfony/ux-live-component`, `symfony/ux-twig-component` and `symfony/stimulus-bundle` are now accepted as `^2.0 || ^3.0`. UX 3 requires PHP 8.4 + Symfony 7.4, so Composer only selects it on that stack and keeps UX 2 otherwise — a backward-compatible widening. The one Live Component uses only stable core APIs and none of UX 3's removed ones (the `csrf` argument on `AsLiveComponent`, `LegacyLivePropMetadata`, `ux_controller_link_tags()`).
+
 ## [0.1.0-beta.5] - 2026-06-16
 
 ### Fixed
