@@ -95,7 +95,14 @@ jobs:
           --health-retries=10
 
     steps:
+      # fetch-depth: 0 so the path-repo'd klehm packages resolve during
+      # `composer update`: without tags, composer versions the local package as
+      # `dev-<sha>`, which does not satisfy the kit's `klehm/content-blocks: ^0.1`
+      # constraint and the update fails. Full history lets it derive a matching
+      # version. (The `install` baseline reads the lock and is unaffected.)
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - uses: shivammathur/setup-php@v2
         with:
