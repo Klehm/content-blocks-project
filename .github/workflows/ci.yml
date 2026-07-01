@@ -62,8 +62,24 @@ jobs:
         run: npm run test:unit
 
   e2e-tests:
-    name: Playwright (e2e)
+    name: Playwright (PHP ${{ matrix.php }} · ${{ matrix.stack }})
     runs-on: ubuntu-latest
+
+    # Two legs, both gating the split:
+    #   - 8.3 `install` reproduces the locked baseline (Symfony 7 · UX 2).
+    #   - 8.4 `update` resolves the highest compatible set (Symfony 8 · UX 3) —
+    #     what consumers on the newest stack actually get — so the browser suite
+    #     validates the UX 3 JS (Live checksum, controllers) end to end too.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.3'
+            composer: install
+            stack: 'locked (Symfony 7 · UX 2)'
+          - php: '8.4'
+            composer: update
+            stack: 'highest (Symfony 8 · UX 3)'
 
     services:
       mysql:
@@ -79,11 +95,18 @@ jobs:
           --health-retries=10
 
     steps:
+      # fetch-depth: 0 so the path-repo'd klehm packages resolve during
+      # `composer update`: without tags, composer versions the local package as
+      # `dev-<sha>`, which does not satisfy the kit's `klehm/content-blocks: ^0.1`
+      # constraint and the update fails. Full history lets it derive a matching
+      # version. (The `install` baseline reads the lock and is unaffected.)
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: ${{ matrix.php }}
           extensions: pdo_mysql, intl, mbstring
           coverage: none
 
@@ -93,9 +116,12 @@ jobs:
           cache: npm
           cache-dependency-path: packages/content-blocks/package-lock.json
 
+      # `install` on the locked leg (reproducible baseline); `update` on the 8.4
+      # leg so composer resolves the newest compatible set (Symfony 8 · UX 3)
+      # rather than the Symfony-7 versions pinned in the committed lock.
       - name: Install sandbox dependencies
         working-directory: apps/content-blocks-sandbox
-        run: composer install --prefer-dist --no-progress --no-interaction
+        run: composer ${{ matrix.composer }} --prefer-dist --no-progress --no-interaction
 
       - name: Configure the sandbox database
         working-directory: apps/content-blocks-sandbox
@@ -120,7 +146,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-php${{ matrix.php }}
           path: |
             packages/content-blocks/test-results/
           retention-days: 7
