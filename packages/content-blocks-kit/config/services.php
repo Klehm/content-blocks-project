@@ -10,7 +10,9 @@ return static function (ContainerConfigurator $container): void {
         ->autowire()
         ->autoconfigure();
 
-    $services->load('ContentBlocks\\Kit\\Block\\', '../src/Block/');
+    // Form types are always available; block services are registered
+    // conditionally by ContentBlocksKitBundle::loadExtension() so a
+    // disabled block never reaches the registry.
     $services->load('ContentBlocks\\Kit\\Form\\', '../src/Form/');
 
     // File storage, the upload endpoint and the asset resolver bridge all

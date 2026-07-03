@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Kit\Block;
 
-use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\AsContentBlock;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -12,7 +11,7 @@ use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 #[AsContentBlock(priority: 90)]
-final class TextBlock extends AbstractBlockType
+final class TextBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {

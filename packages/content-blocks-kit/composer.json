@@ -52,5 +52,11 @@
         }
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": {
+        "core": {
+            "type": "path",
+            "url": "../content-blocks"
+        }
+    }
 }
