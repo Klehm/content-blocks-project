@@ -31,7 +31,7 @@ export default class extends Controller {
         // One generic event for every host action — filter on the key.
         if (event.detail?.key !== 'save-as-model') return;
 
-        this._setStatus('Saving as model…');
+        this._setStatus('Enregistrement du modèle…');
 
         let payload = null;
         try {
@@ -44,7 +44,7 @@ export default class extends Controller {
             payload = await response.json();
         } catch (e) {
             console.error('[sandbox] save-as-model failed', e);
-            this._setStatus('Could not save as model.');
+            this._setStatus('Impossible d\'enregistrer le modèle.', 'danger');
             return;
         }
 
@@ -53,24 +53,35 @@ export default class extends Controller {
 
     _renderSuccess(payload) {
         if (!this.hasStatusTarget) return;
+        this._applyAlert('success');
         this.statusTarget.hidden = false;
         this.statusTarget.innerHTML = '';
 
         const label = document.createElement('span');
-        label.textContent = 'Model created: ';
+        const count = payload.sectionCount ?? 0;
+        label.textContent = `✓ Modèle « ${payload.name} » créé (${count} section${count > 1 ? 's' : ''}). `;
 
         const link = document.createElement('a');
-        link.href = payload.builderUrl;
-        link.textContent = `${payload.title} (#${payload.id})`;
+        link.href = payload.editUrl;
+        link.textContent = 'Ouvrir le modèle';
+        link.className = 'alert-link';
         link.setAttribute('data-cb-model-link', '');
 
         this.statusTarget.appendChild(label);
         this.statusTarget.appendChild(link);
     }
 
-    _setStatus(text) {
+    _setStatus(text, variant = 'info') {
         if (!this.hasStatusTarget) return;
+        this._applyAlert(variant);
         this.statusTarget.hidden = false;
         this.statusTarget.textContent = text;
+    }
+
+    /** Swap the status paragraph to a Bootstrap alert of the given variant. */
+    _applyAlert(variant) {
+        if (!this.hasStatusTarget) return;
+        this.statusTarget.className = `alert alert-${variant} mt-3`;
+        this.statusTarget.setAttribute('role', 'status');
     }
 }

@@ -4,39 +4,39 @@ declare(strict_types=1);
 
 namespace App\Grid;
 
-use App\Entity\Page;
+use App\Entity\Model;
 use Sylius\Bundle\GridBundle\Builder\Action\CreateAction;
 use Sylius\Bundle\GridBundle\Builder\Action\DeleteAction;
-use Sylius\Bundle\GridBundle\Builder\Action\ShowAction;
 use Sylius\Bundle\GridBundle\Builder\Action\UpdateAction;
 use Sylius\Bundle\GridBundle\Builder\ActionGroup\BulkActionGroup;
 use Sylius\Bundle\GridBundle\Builder\ActionGroup\ItemActionGroup;
 use Sylius\Bundle\GridBundle\Builder\ActionGroup\MainActionGroup;
+use Sylius\Bundle\GridBundle\Builder\Field\DateTimeField;
 use Sylius\Bundle\GridBundle\Builder\Field\StringField;
 use Sylius\Bundle\GridBundle\Builder\Filter\Filter;
 use Sylius\Bundle\GridBundle\Builder\GridBuilderInterface;
 use Sylius\Bundle\GridBundle\Grid\AbstractGrid;
 use Sylius\Component\Grid\Attribute\AsGrid;
 
-#[AsGrid(resourceClass: Page::class, name: 'app_page')]
-final class PageGrid extends AbstractGrid
+#[AsGrid(resourceClass: Model::class, name: 'app_model')]
+final class ModelGrid extends AbstractGrid
 {
     public function __invoke(GridBuilderInterface $gridBuilder): void
     {
         $gridBuilder
             ->addField(
-                StringField::create('title')
-                    ->setLabel('Titre')
+                StringField::create('name')
+                    ->setLabel('Nom')
                     ->setSortable(true),
             )
             ->addField(
-                StringField::create('slug')
-                    ->setLabel('Slug')
+                DateTimeField::create('createdAt')
+                    ->setLabel('Créé le')
                     ->setSortable(true),
             )
             ->addFilter(
-                Filter::create('title', 'string')
-                    ->setLabel('Titre'),
+                Filter::create('name', 'string')
+                    ->setLabel('Nom'),
             )
             ->addActionGroup(
                 MainActionGroup::create(
@@ -45,10 +45,6 @@ final class PageGrid extends AbstractGrid
             )
             ->addActionGroup(
                 ItemActionGroup::create(
-                    // Opens the public rendered page (/page/{id}).
-                    ShowAction::create(['link' => ['route' => 'app_page_show']])
-                        ->setLabel('Voir la page')
-                        ->setIcon('tabler:external-link'),
                     UpdateAction::create(),
                     DeleteAction::create(),
                 ),

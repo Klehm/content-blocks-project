@@ -1,0 +1,51 @@
+{% set form = hookable_metadata.context.form %}
+{% set resource = hookable_metadata.context.resource|default(null) %}
+
+<div class="container-xl">
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#tab-general" role="tab">
+                        Général
+                    </a>
+                </li>
+                {% if resource and resource.contentArea %}
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#tab-builder" role="tab">
+                        Constructeur
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane show active" id="tab-general" role="tabpanel">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            {{ form_row(form.name) }}
+                            <p class="text-muted mb-0">
+                                Un modèle est une mise en page réutilisable. Construisez-le ici, puis
+                                réutilisez-le sur n'importe quelle page via le bouton
+                                « Insérer du contenu » du constructeur.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {% if resource and resource.contentArea %}
+                <div class="tab-pane" id="tab-builder" role="tabpanel">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            {% include '@ContentBlocks/builder/launcher.html.twig' with {
+                                area: resource.contentArea,
+                                iframeUrl: cb_preview_url(resource.contentArea),
+                            } only %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

@@ -7,13 +7,13 @@
             <ul class="nav nav-tabs mb-3" role="tablist">
                 <li class="nav-item">
                     <a class="nav-link active" data-bs-toggle="tab" href="#tab-general" role="tab">
-                        General
+                        Général
                     </a>
                 </li>
                 {% if resource and resource.contentArea %}
                 <li class="nav-item">
                     <a class="nav-link" data-bs-toggle="tab" href="#tab-builder" role="tab">
-                        Page Builder
+                        Constructeur
                     </a>
                 </li>
                 {% endif %}
@@ -42,10 +42,10 @@
                                     area: resource.contentArea,
                                     iframeUrl: cb_preview_url(resource.contentArea),
                                     topbarActions: [
-                                        { key: 'save-as-model', label: 'Save as model', icon: '💾', title: 'Save this content as a reusable model' },
+                                        { key: 'save-as-model', label: 'Enregistrer comme modèle', icon: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>', title: 'Enregistrer cette page comme modèle réutilisable' },
                                     ],
                                 } only %}
-                                <p class="text-muted mt-3" data-cb-host-actions-target="status" hidden></p>
+                                <p data-cb-host-actions-target="status" hidden></p>
                             </div>
                         </div>
                     </div>
@@ -61,6 +61,14 @@
                 </div>
                 <div class="card-body">
                     {{ form_row(form.enabled) }}
+                    {% if resource and resource.id %}
+                        <a href="{{ path('app_page_show', { id: resource.id }) }}"
+                           target="_blank" rel="noopener"
+                           class="btn btn-outline-primary w-100 mt-2">
+                            Voir la page publiée
+                            {{ ux_icon('tabler:external-link', {class: 'ms-1'}) }}
+                        </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
