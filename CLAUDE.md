@@ -23,7 +23,7 @@ content-blocks/
 │   │   ├── templates/           # Twig components
 │   │   ├── composer.json        # PHP deps
 │   │   └── package.json         # JS deps (vitest, playwright)
-│   └── content-blocks-kit/      # Blocs par défaut (Text, Title, Image)
+│   └── content-blocks-kit/      # ~17 blocs prêts à l'emploi, autonomes (kit.css)
 │
 ├── apps/
 │   ├── content-blocks-sandbox/          # App Symfony de dev/test (fixture Playwright)
@@ -76,7 +76,10 @@ Les contributeurs clonent le monorepo et ont tout (packages + sandboxes + tests)
 
 ### Architecture & responsabilités
 - **content-blocks** : package unique contenant les entités Doctrine (`ContentArea`, `Section`, `Column`, `Block`), le système de blocs (`BlockTypeInterface`, `AsContentBlock`, `BlockTypeRegistry`, `BlockTypeCompilerPass`), l'UI admin (Live Components, Stimulus), et le `ContentAreaType` (FormType Symfony)
-- **content-blocks-kit** : dépend de content-blocks. Fournit des implémentations de blocs prêts à l'emploi (`TextBlock`, `TitleBlock`, `ImageBlock`)
+- **content-blocks-kit** : dépend de content-blocks. Fournit ~17 blocs prêts à l'emploi, **autonomes** (aucune dépendance Tailwind/Bootstrap/LiipImagine/icônes ; markup neutre `cb-kit-*` stylé par une feuille `kit.css` servie à la route publique `content_blocks_kit_asset_css`) : title, text, rich_text, image (avec resize/fit/légende/coins arrondis), gallery (grille/carrousel), button, card, list, icon (IconSet livré), alert, divider, accordion (`<details>` natif), table, embed (`cb_embed_url` YouTube/Vimeo), breadcrumb, html_raw, tabs.
+  - **Config sémantique** (`config/packages/content_blocks_kit.yaml`) : `content_blocks_kit.blocks.<type>.{enabled, options}` — désactiver un bloc dé-enregistre son service (jamais dans le picker) ; options par bloc (ex. `gallery`/`card` `max_columns`). Base `AbstractKitBlock` (options), gating dans `ContentBlocksKitBundle::configure()`/`resolveBlocks()`.
+  - Les champs couleur des blocs réutilisent le `PaletteColorType` du core ; le `color_map` TinyMCE lit la palette via `cb_color_palette()`.
+  - **CI/tests** : le kit a son propre PHPUnit + Vitest, et un path repository vers le core local (composer.json) — il teste toujours le core courant du monorepo, pas la dernière release Packagist.
 
 ### Installation locale
 Les packages sont liés en symlink via les repositories `path` de Composer.

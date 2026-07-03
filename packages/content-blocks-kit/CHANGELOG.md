@@ -7,8 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Twelve new self-contained blocks:** `button`, `gallery` (grid + slider),
+  `card` (grid + list), `list` (bullet/check/numbered), `icon` (shipped icon
+  set), `alert`, `divider`, `accordion` (native `<details>`, zero JS), `table`,
+  `embed` (YouTube/Vimeo via `cb_embed_url()`), `breadcrumb`, `html_raw`. All
+  render neutral `cb-kit-*` markup — no Tailwind/Bootstrap/LiipImagine/icon
+  library — styled by a single shipped stylesheet served at the public route
+  `content_blocks_kit_asset_css` (include it once in the host layout).
+- **`image` gains sizing controls:** size preset (small/medium/large/full) or a
+  custom width + optional exact height with object-fit, plus alignment, link,
+  caption and per-corner radius. Custom fields reveal via the core
+  `cb-condition` controller. Still a plain `<img>` (no image-processing dep).
+- **Per-block semantic config:** `content_blocks_kit.blocks.<type>.{enabled,
+  options}` turns any block off or configures it (e.g. `gallery`/`card`
+  `max_columns`). Disabled blocks are never registered. New base
+  `AbstractKitBlock` carries the options; the bundle's `configure()` /
+  `resolveBlocks()` drive gated registration.
+- **`IconSet`** — ~24 inline SVG icons shipped with the kit (`cb_kit_icon()`),
+  and **`EmbedExtension`** (`cb_embed_url()`, YouTube/Vimeo).
+- Kit now has its own PHPUnit + Vitest setup (path repository to the sibling
+  core so it tests against the monorepo's current core), gating the split.
+
 ### Changed
 
+- **TinyMCE bridge hardened** (`cb-tinymce`): re-parents the aux popup/modal
+  container into the builder `<dialog>` (top layer), keeps `data-live-ignore` +
+  `editor.save()`-before-bubble autosave sync, adds a drag-resize status bar,
+  and seeds the color swatches from the ContentBlocks palette (via the core
+  `cb_color_palette()` Twig function), falling back to a standard web palette.
+- Color fields on kit blocks use the core `PaletteColorType` (palette dropdown
+  + custom picker), storing a plain `#hex`.
 - **Upload brick moved to the main package.** `ContentBlocks\Kit\Storage\*` (FileStorageInterface, LocalFileStorage, NullFileStorage), the kit `UploadController`, `FileStorageAssetResolver` and the `cb-file-upload` Stimulus controller now live in `klehm/content-blocks` (`ContentBlocks\Storage\*`, `ContentBlocks\Controller\UploadController`, `ContentBlocks\Asset\FileStorageAssetResolver`). Update your service wiring to the new namespaces — or drop it entirely in favor of the `content_blocks.upload` bundle config — and move the `cb-file-upload` entry in `assets/controllers.json` from `@klehm/content-blocks-kit` to `@klehm/content-blocks`. The kit's `config/routes.php` is kept as a no-op so existing route imports don't break.
 - **`ImageBlock` uses the core `ImageUploadType`.** The hidden `src` field + `image_theme.html.twig` form-theme override are replaced by the main package's upload widget; the kit no longer ships a form theme for the image block.
 
