@@ -1,0 +1,16 @@
+{# EmbedBlock view. cb_embed_url() → embeddable player URL (or null). #}
+{% set url = data.url|default('')|trim %}
+{% if url is not empty %}
+    {% set embedUrl = cb_embed_url(url) %}
+    {% if embedUrl %}
+        <div class="cb-kit-embed">
+            <iframe src="{{ embedUrl }}"
+                    title="{{ data.title|default('Embedded video') }}"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen></iframe>
+        </div>
+    {% else %}
+        <p class="cb-kit-embed__error">{{ 'cb_kit.block.embed.unsupported'|trans({}, 'content_blocks_kit') }}</p>
+    {% endif %}
+{% endif %}

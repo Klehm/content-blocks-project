@@ -63,6 +63,32 @@ cb_kit:
                 solid: "Solid"
                 dashed: "Dashed"
                 dotted: "Dotted"
+        accordion:
+            label: "Accordion"
+            field:
+                exclusive: "One panel open at a time"
+                items: "Panels"
+                item_title: "Title"
+                item_content: "Content"
+            exclusive_help: "When on, opening a panel closes the others."
+        embed:
+            label: "Video embed"
+            unsupported: "Unrecognized URL (YouTube or Vimeo expected)."
+            field:
+                url: "Video URL"
+                title: "Title (accessibility)"
+            url_help: "Paste a YouTube or Vimeo link."
+        breadcrumb:
+            label: "Breadcrumb"
+            field:
+                items: "Steps"
+                item_label: "Label"
+                item_url: "Link (leave empty for the current page)"
+        html_raw:
+            label: "Raw HTML"
+            field:
+                html: "HTML"
+            help: "Rendered verbatim. Only use trusted markup."
         text:
             label: "Text"
             empty: "No content"
