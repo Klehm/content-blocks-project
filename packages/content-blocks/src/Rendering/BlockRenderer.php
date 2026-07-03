@@ -11,6 +11,7 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Section\SectionDecoratorCollection;
 use ContentBlocks\Section\SectionSettingsDefaults;
+use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Contracts\Translation\TranslatableInterface;
@@ -43,6 +44,7 @@ final class BlockRenderer
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly SectionDecoratorCollection $sectionDecorators,
         private readonly SectionSettingsDefaults $settingsDefaults,
+        private readonly SectionStyleRegistry $styleRegistry,
         private readonly TranslatorInterface $translator,
         private readonly \ContentBlocks\Block\BlockDecoratorCollection $blockDecorators,
         private readonly \ContentBlocks\Block\BlockDataDefaults $blockDataDefaults,
@@ -161,10 +163,14 @@ final class BlockRenderer
     {
         $sectionDeleted = $section->isDeleted();
         $settings = $section->getEffectiveSettings(preferDraft: $mode === RenderMode::PREVIEW);
+        // Style presets can carry settings values (padding, background…):
+        // they apply as the base layer, the section's own saved settings win
+        // key-by-key. With "Customize styling" off the saved settings hold
+        // no styling subtree at all, so the preset applies untouched.
+        $settings = $this->applyPresetSettings($settings);
         // Strip default-equal entries so the rendered markup stays clean: a
-        // section saved with the framework-provided default (e.g.
-        // backgroundColor=#ffffff) won't get an inline style for it, only
-        // user-overridden values do.
+        // section saved with a framework-provided default won't get an
+        // inline style for it, only user-overridden values do.
         $settings = $this->settingsDefaults->withoutDefaults($settings);
         $decoration = $this->sectionDecorators->decorate($settings, $section);
 
@@ -177,6 +183,28 @@ final class BlockRenderer
             'extraAttributes' => $decoration->attributes,
             'columns' => $this->buildColumnTree($section, $mode, $sectionDeleted, $settings['columnWidths'] ?? null),
         ];
+    }
+
+    /**
+     * Merges the selected style preset's settings (if any) underneath the
+     * section's own settings — rightmost wins per key.
+     *
+     * @param array<string, mixed> $settings
+     * @return array<string, mixed>
+     */
+    private function applyPresetSettings(array $settings): array
+    {
+        $styleName = $settings['styleName'] ?? null;
+        if (!\is_string($styleName) || $styleName === '') {
+            return $settings;
+        }
+
+        $preset = $this->styleRegistry->get($styleName)?->settings ?? [];
+        if ($preset === []) {
+            return $settings;
+        }
+
+        return array_replace_recursive($preset, $settings);
     }
 
     /**

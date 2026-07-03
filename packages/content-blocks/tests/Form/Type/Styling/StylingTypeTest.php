@@ -69,7 +69,8 @@ final class StylingTypeTest extends TypeTestCase
                 't' => ['top' => '', 'right' => '', 'bottom' => '', 'left' => '', 'linked' => ''],
                 'm' => ['top' => '', 'right' => '', 'bottom' => '', 'left' => '', 'linked' => ''],
             ],
-            'backgroundColor' => '#ff0000',
+            // Compound palette color: the "Custom…" choice + free picker.
+            'backgroundColor' => ['palette' => 'custom', 'custom' => '#ff0000'],
             'minHeight' => ['value' => '400', 'unit' => 'vh'],
             'verticalAlign' => 'center',
         ];

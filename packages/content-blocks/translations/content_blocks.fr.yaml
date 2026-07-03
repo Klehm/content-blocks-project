@@ -23,6 +23,8 @@ cb:
             column_width_n: "Largeur de la colonne %n% (%)"
             style: "Style prédéfini"
             style.none: "— Aucun —"
+            styling_custom: "Personnaliser le style"
+            styling_custom_help: "Désactivé : le style prédéfini s'applique tel quel. Activé : les champs ci-dessous l'affinent ou le remplacent."
             tab.general: "Général"
             tab.styling: "Style"
     styling:
@@ -30,6 +32,9 @@ cb:
         margin: "Marge extérieure"
         gap: "Espace entre colonnes"
         background_color: "Couleur de fond"
+        palette:
+            none: "— Aucune —"
+            custom: "Personnalisé…"
         min_height: "Hauteur min."
         max_width: "Largeur max."
         vertical_align: "Alignement vertical"
