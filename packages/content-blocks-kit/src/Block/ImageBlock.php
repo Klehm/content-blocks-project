@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Kit\Block;
 
-use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\Form\Type\ImageUploadType;
 use Symfony\Component\Form\Extension\Core\Type\RangeType;
@@ -15,7 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 #[AsContentBlock(priority: 70)]
-final class ImageBlock extends AbstractBlockType
+final class ImageBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {

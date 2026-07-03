@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Kit\Block;
 
-use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\AsContentBlock;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -14,7 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 #[AsContentBlock(priority: 100)]
-final class TitleBlock extends AbstractBlockType
+final class TitleBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {
