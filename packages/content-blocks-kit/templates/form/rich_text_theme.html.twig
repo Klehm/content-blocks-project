@@ -9,7 +9,11 @@
 {% block _content_block_content_row %}
     <div class="cb-form-row">
         {{ form_label(form) }}
-        <div data-controller="cb-tinymce" data-live-ignore>
+        {# Seed the editor's color swatches from the ContentBlocks palette
+           (cb_color_palette(), the same colors PaletteColorType offers).
+           Empty palette → the controller falls back to the web colors. #}
+        <div data-controller="cb-tinymce" data-live-ignore
+             data-cb-tinymce-palette-value="{{ cb_color_palette()|json_encode|e('html_attr') }}">
             {{ form_widget(form, { attr: form.vars.attr|merge({
                 'data-cb-tinymce-target': 'textarea'
             }) }) }}

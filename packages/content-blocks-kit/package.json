@@ -5,14 +5,13 @@
     "version": "0.1.0",
     "private": true,
     "type": "module",
-    "symfony": {
-        "controllers": {
-            "cb-file-upload": {
-                "main": "controllers/cb-file-upload_controller.js",
-                "name": "cb-file-upload",
-                "fetch": "eager",
-                "enabled": true
-            }
-        }
+    "scripts": {
+        "test:unit": "vitest run",
+        "test:unit:watch": "vitest"
+    },
+    "devDependencies": {
+        "@hotwired/stimulus": "^3.2.0",
+        "jsdom": "^26.1.0",
+        "vitest": "^3.2.1"
     }
 }
