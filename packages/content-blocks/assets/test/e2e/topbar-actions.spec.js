@@ -47,7 +47,7 @@ test.describe('builder topbar — host actions (cb:builder:action)', () => {
 
         const actionBtn = page.locator('.cb-shell__action--save-as-model');
         await expect(actionBtn).toBeVisible();
-        await expect(actionBtn).toHaveText(/Save as model/);
+        await expect(actionBtn).toHaveText(/Save page as model/);
         // The optional title falls through to both title + aria-label.
         await expect(actionBtn).toHaveAttribute('aria-label', 'Save this content as a reusable model');
     });
