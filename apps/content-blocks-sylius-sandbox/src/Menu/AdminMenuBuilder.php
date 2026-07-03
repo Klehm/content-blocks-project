@@ -6,8 +6,9 @@ namespace App\Menu;
 
 use Knp\Menu\FactoryInterface;
 use Knp\Menu\ItemInterface;
+use Sylius\AdminUi\Knp\Menu\MenuBuilderInterface;
 
-final class AdminMenuBuilder
+final class AdminMenuBuilder implements MenuBuilderInterface
 {
     public function __construct(
         private readonly FactoryInterface $factory,
@@ -22,7 +23,7 @@ final class AdminMenuBuilder
         $menu = $this->factory->createItem('root');
 
         $content = $menu->addChild('content', [
-            'label' => 'Content',
+            'label' => 'Contenu',
         ]);
         $content->setLabelAttribute('icon', 'tabler:file-text');
         $content->setExtra('always_open', true);
@@ -30,6 +31,11 @@ final class AdminMenuBuilder
         $content->addChild('pages', [
             'label' => 'Pages',
             'route' => 'app_admin_page_index',
+        ]);
+
+        $content->addChild('models', [
+            'label' => 'Modèles',
+            'route' => 'app_admin_model_index',
         ]);
 
         return $menu;

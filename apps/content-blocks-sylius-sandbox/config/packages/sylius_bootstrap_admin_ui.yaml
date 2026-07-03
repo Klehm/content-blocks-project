@@ -16,3 +16,17 @@ sylius_twig_hooks:
             page_form:
                 template: 'admin/page/form/content.html.twig'
                 priority: 0
+
+        'sylius_admin.model.create.content.form.sections':
+            general:
+                enabled: false
+            model_form:
+                template: 'admin/model/form/content.html.twig'
+                priority: 0
+
+        'sylius_admin.model.update.content.form.sections':
+            general:
+                enabled: false
+            model_form:
+                template: 'admin/model/form/content.html.twig'
+                priority: 0

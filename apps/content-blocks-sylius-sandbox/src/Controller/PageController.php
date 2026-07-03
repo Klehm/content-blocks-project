@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Model;
 use App\Entity\Page;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
@@ -12,6 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
 
 final class PageController
@@ -20,6 +22,7 @@ final class PageController
         private readonly Environment $twig,
         private readonly EntityManagerInterface $em,
         private readonly SectionCloner $sectionCloner,
+        private readonly UrlGeneratorInterface $urls,
     ) {
     }
 
@@ -38,11 +41,30 @@ final class PageController
     }
 
     /**
-     * Host-side handler for the builder's "Save as model" topbar action — the
-     * receiving end of the package's generic `cb:builder:action` event. Deep-
-     * clones the page's ContentArea (via the package's SectionCloner) into a
-     * new "(model)" Page so editors can reuse the layout through the "Insert
-     * content" picker. Mirrors the Symfony sandbox handler.
+     * Renders a Model's ContentArea. Not a public marketing page — this route
+     * exists so the builder iframe has a URL to preview/edit a model's layout
+     * (ContentAreaUrlResolver points model areas here).
+     */
+    #[Route('/model/{id}', name: 'app_model_show', requirements: ['id' => '\d+'])]
+    public function showModel(int $id): Response
+    {
+        $model = $this->em->find(Model::class, $id);
+
+        if (!$model) {
+            return new Response('Model not found', 404);
+        }
+
+        return new Response($this->twig->render('model/show.html.twig', [
+            'model' => $model,
+        ]));
+    }
+
+    /**
+     * Host-side handler for the builder's "Save page as model" topbar action —
+     * the receiving end of the package's generic `cb:builder:action` event.
+     * Deep-clones the page's ContentArea (via the package's SectionCloner) into
+     * a new Model entity so editors can reuse the layout on other pages through
+     * the builder's "Insert content" picker.
      */
     #[Route('/admin/page/{id}/save-as-model', name: 'app_page_save_as_model', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function saveAsModel(int $id): Response
@@ -53,9 +75,8 @@ final class PageController
             return new JsonResponse(['error' => 'Page not found'], Response::HTTP_NOT_FOUND);
         }
 
-        $model = new Page();
-        $model->setTitle($source->getTitle() . ' (model)');
-        $model->setSlug(Page::slugify($source->getTitle() ?? '') . '-model-' . bin2hex(random_bytes(3)));
+        $model = new Model();
+        $model->setName(($source->getTitle() ?? 'Page') . ' (modèle)');
 
         $area = new ContentArea();
         $model->setContentArea($area);
@@ -78,15 +99,15 @@ final class PageController
             $this->em->persist($copy);
         }
 
-        // cascade: ['persist'] on Page::$contentArea commits the new area too.
+        // cascade: ['persist'] on Model::$contentArea commits the new area too.
         $this->em->persist($model);
         $this->em->flush();
 
         return new JsonResponse([
             'id' => $model->getId(),
-            'title' => $model->getTitle(),
+            'name' => $model->getName(),
             'sectionCount' => \count($sections),
-            'builderUrl' => '/admin/pages/' . $model->getId() . '/edit',
+            'editUrl' => $this->urls->generate('app_admin_model_update', ['id' => $model->getId()]),
         ]);
     }
 }
