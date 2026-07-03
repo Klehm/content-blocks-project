@@ -1,0 +1,15 @@
+{# ButtonBlock view. Neutral cb-kit-* classes styled by kit.css. #}
+{% set text = data.text|default('')|trim %}
+{% if text is not empty %}
+    {% set align = data.align|default('start') %}
+    {% set align = align in ['start', 'center', 'end'] ? align : 'start' %}
+    {% set variant = data.variant|default('primary') %}
+    {% set variant = variant in ['primary', 'secondary', 'outline', 'link'] ? variant : 'primary' %}
+    {% set size = data.size|default('md') %}
+    {% set size = size in ['sm', 'md', 'lg'] ? size : 'md' %}
+    <div class="cb-kit-btn-wrap cb-kit-btn-wrap--{{ align }}">
+        <a class="cb-kit-btn cb-kit-btn--{{ variant }} cb-kit-btn--{{ size }}{{ data.fullWidth|default(false) ? ' cb-kit-btn--block' : '' }}"
+           href="{{ data.href|default('#')|default('#') }}"
+           {%- if data.newTab|default(false) %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ text }}</a>
+    </div>
+{% endif %}

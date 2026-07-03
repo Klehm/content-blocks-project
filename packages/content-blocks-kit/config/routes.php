@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 
-// The kit no longer ships controllers — the upload endpoint moved to the
-// main package (`ContentBlocks\Controller\UploadController`, imported by
-// the main bundle's routes). Kept as a no-op so hosts importing
-// `@ContentBlocksKitBundle/config/routes.php` don't break.
+// The kit ships one controller: the public stylesheet endpoint
+// (AssetController). The upload endpoint moved to the main package.
 return static function (RoutingConfigurator $routes): void {
+    $routes->import('../src/Controller/', 'attribute');
 };
