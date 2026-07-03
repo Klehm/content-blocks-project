@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Twig;
 
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Palette\ColorPaletteRegistry;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Rendering\BlockRenderer;
 use Twig\Extension\AbstractExtension;
@@ -15,6 +16,7 @@ final class ContentBlocksExtension extends AbstractExtension
     public function __construct(
         private readonly BlockRenderer $renderer,
         private readonly ContentAreaUrlResolverInterface $urlResolver,
+        private readonly ColorPaletteRegistry $palette,
     ) {
     }
 
@@ -33,7 +35,28 @@ final class ContentBlocksExtension extends AbstractExtension
                 'cb_preview_url',
                 [$this, 'previewUrl'],
             ),
+            new TwigFunction(
+                'cb_color_palette',
+                [$this, 'colorPalette'],
+            ),
         ];
+    }
+
+    /**
+     * The configured color palette as a list of `{label, color}` maps —
+     * handy for surfacing the same named colors a `PaletteColorType`
+     * offers to a JS widget (e.g. a rich-text editor's color swatches).
+     *
+     * @return list<array{label: string, color: string}>
+     */
+    public function colorPalette(): array
+    {
+        $out = [];
+        foreach ($this->palette->all() as $color) {
+            $out[] = ['label' => $color->label, 'color' => $color->color];
+        }
+
+        return $out;
     }
 
     public function renderContentArea(?ContentArea $area): string

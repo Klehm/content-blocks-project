@@ -1018,6 +1018,12 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         allowed_mime_types?: list<scalar|Param|null>,
  *     },
  * }
+ * @psalm-type ContentBlocksKitConfig = array{
+ *     blocks?: array<string, array{ // Default: []
+ *         enabled?: bool|Param, // Default: true
+ *         options?: mixed, // Block-specific options; merged over the block's coded defaults. // Default: []
+ *     }>,
+ * }
  * @psalm-type KnpMenuConfig = array{
  *     providers?: array{
  *         builder_alias?: bool|Param, // Default: true
@@ -1553,6 +1559,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     live_component?: LiveComponentConfig,
  *     twig?: TwigConfig,
  *     content_blocks?: ContentBlocksConfig,
+ *     content_blocks_kit?: ContentBlocksKitConfig,
  *     knp_menu?: KnpMenuConfig,
  *     ux_icons?: UxIconsConfig,
  *     security?: SecurityConfig,
@@ -1576,6 +1583,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         live_component?: LiveComponentConfig,
  *         twig?: TwigConfig,
  *         content_blocks?: ContentBlocksConfig,
+ *         content_blocks_kit?: ContentBlocksKitConfig,
  *         knp_menu?: KnpMenuConfig,
  *         ux_icons?: UxIconsConfig,
  *         security?: SecurityConfig,
@@ -1599,6 +1607,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         live_component?: LiveComponentConfig,
  *         twig?: TwigConfig,
  *         content_blocks?: ContentBlocksConfig,
+ *         content_blocks_kit?: ContentBlocksKitConfig,
  *         knp_menu?: KnpMenuConfig,
  *         ux_icons?: UxIconsConfig,
  *         security?: SecurityConfig,
@@ -1622,6 +1631,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         live_component?: LiveComponentConfig,
  *         twig?: TwigConfig,
  *         content_blocks?: ContentBlocksConfig,
+ *         content_blocks_kit?: ContentBlocksKitConfig,
  *         knp_menu?: KnpMenuConfig,
  *         ux_icons?: UxIconsConfig,
  *         security?: SecurityConfig,
