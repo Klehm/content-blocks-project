@@ -181,7 +181,8 @@
 
 /* ---- Top-left Replace button (matches Discard's ghost style) ---- */
 
-.cb-shell__replace {
+.cb-shell__replace,
+.cb-shell__action {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -200,11 +201,13 @@
     border-color 0.12s ease,
     color 0.12s ease;
 }
-.cb-shell__replace:hover:not([disabled]) {
+.cb-shell__replace:hover:not([disabled]),
+.cb-shell__action:hover:not([disabled]) {
   background: rgba(79, 141, 249, 0.08);
   border-color: rgba(79, 141, 249, 0.25);
 }
-.cb-shell__replace .cb-shell__btn-icon {
+.cb-shell__replace .cb-shell__btn-icon,
+.cb-shell__action .cb-shell__btn-icon {
   display: none;
   font-size: 1.15rem;
 }
@@ -732,17 +735,21 @@
   .cb-shell__discard .cb-shell__btn-label {
     display: none;
   }
-  /* Replace collapses to icon-only on mobile for the same reason. */
+  /* Replace + host actions collapse to icon-only on mobile for the same
+     reason. */
   .cb-shell__replace,
-  .cb-shell__import-export {
+  .cb-shell__import-export,
+  .cb-shell__action {
     padding: 0.375rem 0.5rem;
   }
   .cb-shell__replace .cb-shell__btn-icon,
-  .cb-shell__import-export .cb-shell__btn-icon {
+  .cb-shell__import-export .cb-shell__btn-icon,
+  .cb-shell__action .cb-shell__btn-icon {
     display: inline-flex;
   }
   .cb-shell__replace .cb-shell__btn-label,
-  .cb-shell__import-export .cb-shell__btn-label {
+  .cb-shell__import-export .cb-shell__btn-label,
+  .cb-shell__action .cb-shell__btn-label {
     display: none;
   }
   .cb-replace-picker,
