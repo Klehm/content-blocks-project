@@ -171,6 +171,8 @@
                 postToParent('cb:section:move-requested', { sectionId, direction: 'down' })));
             toolbar.appendChild(makeBtn('⎘', 'Duplicate', 'duplicate', () =>
                 postToParent('cb:section:duplicate-requested', { sectionId })));
+            toolbar.appendChild(makeBtn('☆', 'Save as template', 'save-template', () =>
+                postToParent('cb:section:save-template-requested', { sectionId })));
             toolbar.appendChild(makeBtn('×', 'Delete', 'delete', () =>
                 postToParent('cb:section:delete-requested', { sectionId })));
         }
@@ -876,6 +878,13 @@
                 if (layout) {
                     postToParent('cb:section:add-requested', { layout });
                 }
+                return;
+            }
+            const insertTemplateBtn = target.closest?.('[data-cb-insert-template]');
+            if (insertTemplateBtn) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                postToParent('cb:template:insert-requested', {});
                 return;
             }
 

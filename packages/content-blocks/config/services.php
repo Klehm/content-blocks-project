@@ -16,9 +16,13 @@ use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\DenyAllAccessChecker;
+use ContentBlocks\SectionTemplate\DenyAllSectionTemplateManager;
+use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\Service\ContentAreaExporter;
 use ContentBlocks\Service\ContentAreaImporter;
 use ContentBlocks\Service\SectionCloner;
+use ContentBlocks\Service\SectionTemplateInstantiator;
+use ContentBlocks\Service\SectionTemplateSerializer;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -80,6 +84,16 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(ContentAreaExporter::class);
     $services->set(ContentAreaImporter::class);
+
+    // Section-template library: snapshot a section, re-insert it anywhere.
+    // Serializer + instantiator are plain services. Saving/inserting is gated
+    // by AccessCheckerInterface on the area at hand; managing the shared
+    // library (rename/delete) has no area to key off, so it gets its own
+    // capability — deny by default, hosts alias their own implementation.
+    $services->set(SectionTemplateSerializer::class);
+    $services->set(SectionTemplateInstantiator::class);
+    $services->set(DenyAllSectionTemplateManager::class);
+    $services->alias(SectionTemplateManagerInterface::class, DenyAllSectionTemplateManager::class);
 
     // Replace flow: default provider is usable out of the box; hosts
     // override by aliasing ContentAreaProviderInterface to their own

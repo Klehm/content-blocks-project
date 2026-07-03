@@ -409,6 +409,7 @@ body {
 .cb-add-section-tray__buttons {
   display: inline-flex;
   gap: 8px;
+  vertical-align: middle;
 }
 .cb-add-section-tray__btn {
   display: inline-flex;
@@ -428,6 +429,33 @@ body {
 }
 .cb-add-section-tray__btn:hover,
 .cb-add-section-tray__btn:focus-visible {
+  border-color: #4f8df9;
+  color: #4f8df9;
+  background: rgba(79, 141, 249, 0.06);
+  outline: none;
+}
+.cb-add-section-tray__library {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  height: 44px;
+  margin-left: 8px;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid #d8dbe2;
+  border-radius: 6px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 13px;
+  color: #5b6172;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    color 0.12s ease,
+    background-color 0.12s ease;
+}
+.cb-add-section-tray__library:hover,
+.cb-add-section-tray__library:focus-visible {
   border-color: #4f8df9;
   color: #4f8df9;
   background: rgba(79, 141, 249, 0.06);
