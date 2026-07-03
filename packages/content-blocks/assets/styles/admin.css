@@ -233,7 +233,8 @@
   display: none;
 }
 
-.cb-replace-picker__header {
+.cb-replace-picker__header,
+.cb-template-picker__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -241,13 +242,15 @@
   border-bottom: 1px solid #eef0f3;
   background: #fafbfc;
 }
-.cb-replace-picker__title {
+.cb-replace-picker__title,
+.cb-template-picker__title {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 600;
   color: #1f2330;
 }
-.cb-replace-picker__close {
+.cb-replace-picker__close,
+.cb-template-picker__close {
   background: transparent;
   border: 0;
   font-size: 1.25rem;
@@ -256,11 +259,13 @@
   cursor: pointer;
   color: #666;
 }
-.cb-replace-picker__close:hover {
+.cb-replace-picker__close:hover,
+.cb-template-picker__close:hover {
   color: #1f2330;
 }
 
-.cb-replace-picker__body {
+.cb-replace-picker__body,
+.cb-template-picker__body {
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -268,7 +273,8 @@
   overflow-y: auto;
 }
 
-.cb-replace-picker__search {
+.cb-replace-picker__search,
+.cb-template-picker__search {
   width: 100%;
   padding: 0.375rem 0.5rem;
   border: 1px solid #d8dbe0;
@@ -276,7 +282,8 @@
   font: inherit;
 }
 
-.cb-replace-picker__list {
+.cb-replace-picker__list,
+.cb-template-picker__list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -284,10 +291,12 @@
   flex-direction: column;
   gap: 0.125rem;
 }
-.cb-replace-picker__item {
+.cb-replace-picker__item,
+.cb-template-picker__item {
   display: flex;
 }
-.cb-replace-picker__item-btn {
+.cb-replace-picker__item-btn,
+.cb-template-picker__item-btn {
   flex: 1 1 auto;
   text-align: left;
   background: transparent;
@@ -300,19 +309,23 @@
   cursor: pointer;
 }
 .cb-replace-picker__item-btn:hover,
-.cb-replace-picker__item-btn:focus-visible {
+.cb-replace-picker__item-btn:focus-visible,
+.cb-template-picker__item-btn:hover,
+.cb-template-picker__item-btn:focus-visible {
   background: rgba(79, 141, 249, 0.08);
   border-color: rgba(79, 141, 249, 0.25);
   outline: none;
 }
 
-.cb-replace-picker__status {
+.cb-replace-picker__status,
+.cb-template-picker__status {
   margin: 0;
   color: #666;
   font-size: 0.85rem;
   min-height: 1rem;
 }
-.cb-replace-picker__status:empty {
+.cb-replace-picker__status:empty,
+.cb-template-picker__status:empty {
   display: none;
 }
 

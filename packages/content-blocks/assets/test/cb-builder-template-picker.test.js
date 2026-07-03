@@ -99,7 +99,7 @@ describe('cb-builder template picker: list rendering', () => {
 
         await controller.openTemplatePicker();
 
-        const btns = list.querySelectorAll('.cb-replace-picker__item-btn');
+        const btns = list.querySelectorAll('.cb-template-picker__item-btn');
         expect(btns).toHaveLength(2);
         expect(btns[0].textContent).toBe('Hero');
         expect(btns[0].disabled).toBe(false);
@@ -116,7 +116,7 @@ describe('cb-builder template picker: list rendering', () => {
 
         await controller.openTemplatePicker();
 
-        const btn = list.querySelector('.cb-replace-picker__item-btn');
+        const btn = list.querySelector('.cb-template-picker__item-btn');
         expect(btn.disabled).toBe(true);
         expect(btn.title).toMatch(/gallery, map/);
         expect(list.querySelector('.cb-template-picker__item--disabled')).not.toBeNull();
@@ -165,7 +165,7 @@ describe('cb-builder template picker: list rendering', () => {
             '/_content-blocks/area/99/section-templates?page=1',
             expect.any(Object),
         );
-        expect(list.querySelectorAll('.cb-replace-picker__item-btn')).toHaveLength(2);
+        expect(list.querySelectorAll('.cb-template-picker__item-btn')).toHaveLength(2);
         expect(list.querySelector('.cb-template-picker__more')).toBeNull();
     });
 
