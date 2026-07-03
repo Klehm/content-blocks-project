@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit;
 
 use ContentBlocks\Kit\Block\AbstractKitBlock;
+use ContentBlocks\Kit\Block\AlertBlock;
+use ContentBlocks\Kit\Block\ButtonBlock;
+use ContentBlocks\Kit\Block\DividerBlock;
+use ContentBlocks\Kit\Block\IconBlock;
 use ContentBlocks\Kit\Block\ImageBlock;
+use ContentBlocks\Kit\Block\ListBlock;
 use ContentBlocks\Kit\Block\RichTextBlock;
 use ContentBlocks\Kit\Block\TabsBlock;
 use ContentBlocks\Kit\Block\TextBlock;
@@ -28,6 +33,11 @@ final class ContentBlocksKitBundle extends AbstractBundle
         'text' => TextBlock::class,
         'rich_text' => RichTextBlock::class,
         'image' => ImageBlock::class,
+        'button' => ButtonBlock::class,
+        'list' => ListBlock::class,
+        'icon' => IconBlock::class,
+        'alert' => AlertBlock::class,
+        'divider' => DividerBlock::class,
         'tabs' => TabsBlock::class,
     ];
 

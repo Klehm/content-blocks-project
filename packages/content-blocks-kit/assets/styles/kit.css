@@ -1,0 +1,99 @@
+/*
+ * ContentBlocks Kit — self-contained front styles for the default blocks.
+ *
+ * Neutral, framework-agnostic: no Tailwind/Bootstrap, no CSS reset assumed.
+ * Everything is namespaced under `cb-kit-*` and uses CSS custom properties so a
+ * host can retheme by overriding the `--cb-kit-*` tokens (or the classes) in
+ * its own stylesheet loaded after this one.
+ *
+ * Include once on the front layout (and it flows into the builder preview):
+ *   <link rel="stylesheet" href="{{ path('content_blocks_kit_asset_css') }}">
+ */
+
+:where(.cb-kit-btn, .cb-kit-alert, .cb-kit-list, .cb-kit-icon) {
+    --cb-kit-primary: #4f46e5;
+    --cb-kit-primary-contrast: #ffffff;
+    --cb-kit-secondary: #64748b;
+    --cb-kit-secondary-contrast: #ffffff;
+    --cb-kit-border: #d1d5db;
+    --cb-kit-text: #1f2937;
+    --cb-kit-radius: 8px;
+}
+
+/* ---------- Button ---------- */
+.cb-kit-btn-wrap { display: flex; }
+.cb-kit-btn-wrap--start { justify-content: flex-start; }
+.cb-kit-btn-wrap--center { justify-content: center; }
+.cb-kit-btn-wrap--end { justify-content: flex-end; }
+
+.cb-kit-btn {
+    --cb-kit-primary: #4f46e5;
+    --cb-kit-secondary: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5em;
+    border: 1px solid transparent;
+    border-radius: var(--cb-kit-radius, 8px);
+    font: inherit;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+    transition: filter .15s ease, background-color .15s ease, color .15s ease;
+}
+.cb-kit-btn--sm { padding: .4em .9em; font-size: .875rem; }
+.cb-kit-btn--md { padding: .6em 1.2em; font-size: 1rem; }
+.cb-kit-btn--lg { padding: .8em 1.6em; font-size: 1.125rem; }
+.cb-kit-btn--block { display: flex; width: 100%; }
+.cb-kit-btn--primary { background: var(--cb-kit-primary); color: var(--cb-kit-primary-contrast, #fff); }
+.cb-kit-btn--secondary { background: var(--cb-kit-secondary); color: var(--cb-kit-secondary-contrast, #fff); }
+.cb-kit-btn--outline { background: transparent; border-color: currentColor; color: var(--cb-kit-primary); }
+.cb-kit-btn--link { background: transparent; color: var(--cb-kit-primary); padding-left: 0; padding-right: 0; text-decoration: underline; text-underline-offset: 3px; }
+.cb-kit-btn:hover { filter: brightness(1.06); }
+.cb-kit-btn--outline:hover, .cb-kit-btn--link:hover { filter: none; text-decoration: underline; }
+
+/* ---------- Divider ---------- */
+.cb-kit-divider { border: 0; border-top: 2px solid var(--cb-kit-border, #d1d5db); margin: 1.25rem 0; }
+.cb-kit-divider--solid { border-top-style: solid; }
+.cb-kit-divider--dashed { border-top-style: dashed; }
+.cb-kit-divider--dotted { border-top-style: dotted; }
+
+/* ---------- Icon ---------- */
+.cb-kit-icon { display: flex; color: var(--cb-kit-primary, #4f46e5); }
+.cb-kit-icon--start { justify-content: flex-start; }
+.cb-kit-icon--center { justify-content: center; }
+.cb-kit-icon--end { justify-content: flex-end; }
+.cb-kit-icon svg { display: block; }
+
+/* ---------- Alert ---------- */
+.cb-kit-alert {
+    display: flex;
+    gap: .75rem;
+    align-items: flex-start;
+    padding: 1rem 1.1rem;
+    border: 1px solid;
+    border-radius: var(--cb-kit-radius, 8px);
+    color: var(--cb-kit-text, #1f2937);
+}
+.cb-kit-alert__icon { flex: 0 0 auto; line-height: 0; margin-top: .1rem; }
+.cb-kit-alert__body { min-width: 0; }
+.cb-kit-alert__title { margin: 0 0 .2rem; font-weight: 700; }
+.cb-kit-alert__message { margin: 0; }
+.cb-kit-alert--info { background: #eff6ff; border-color: #bfdbfe; }
+.cb-kit-alert--info .cb-kit-alert__icon { color: #2563eb; }
+.cb-kit-alert--success { background: #ecfdf5; border-color: #a7f3d0; }
+.cb-kit-alert--success .cb-kit-alert__icon { color: #059669; }
+.cb-kit-alert--warning { background: #fffbeb; border-color: #fde68a; }
+.cb-kit-alert--warning .cb-kit-alert__icon { color: #d97706; }
+.cb-kit-alert--error { background: #fef2f2; border-color: #fecaca; }
+.cb-kit-alert--error .cb-kit-alert__icon { color: #dc2626; }
+
+/* ---------- List ---------- */
+.cb-kit-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .4rem; }
+.cb-kit-list--bullet { list-style: disc; padding-left: 1.4rem; }
+.cb-kit-list--bullet .cb-kit-list__item { display: list-item; }
+.cb-kit-list--numbered { list-style: decimal; padding-left: 1.6rem; }
+.cb-kit-list--numbered .cb-kit-list__item { display: list-item; }
+.cb-kit-list--check .cb-kit-list__item { display: flex; align-items: flex-start; gap: .5rem; }
+.cb-kit-list__check { flex: 0 0 auto; line-height: 0; color: var(--cb-kit-primary, #4f46e5); margin-top: .12rem; }

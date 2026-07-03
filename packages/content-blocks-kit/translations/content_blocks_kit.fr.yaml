@@ -1,5 +1,68 @@
 cb_kit:
     block:
+        field:
+            align: "Alignement"
+        align:
+            left: "Gauche"
+            center: "Centré"
+            right: "Droite"
+        size:
+            small: "Petit"
+            normal: "Normal"
+            large: "Grand"
+        action:
+            add_item: "Ajouter un élément"
+            remove_item: "Supprimer"
+        button:
+            label: "Bouton"
+            field:
+                text: "Libellé"
+                href: "Lien"
+                variant: "Style"
+                size: "Taille"
+                full_width: "Pleine largeur"
+                new_tab: "Ouvrir dans un nouvel onglet"
+            variant:
+                primary: "Primaire"
+                secondary: "Secondaire"
+                outline: "Contour"
+                link: "Lien"
+        list:
+            label: "Liste"
+            field:
+                style: "Style"
+                items: "Éléments"
+                item_text: "Texte"
+            style:
+                bullet: "Puces"
+                check: "Coches"
+                numbered: "Numérotée"
+        icon:
+            label: "Icône"
+            field:
+                name: "Icône"
+                color: "Couleur"
+                size: "Taille (px)"
+        alert:
+            label: "Alerte"
+            field:
+                type: "Type"
+                title: "Titre"
+                message: "Message"
+            type:
+                info: "Information"
+                success: "Succès"
+                warning: "Avertissement"
+                error: "Erreur"
+        divider:
+            label: "Séparateur"
+            field:
+                style: "Style"
+                color: "Couleur"
+            style:
+                solid: "Plein"
+                dashed: "Tirets"
+                dotted: "Pointillés"
         text:
             label: "Texte"
             empty: "Aucun contenu"
