@@ -1,7 +1,7 @@
 {# @var form Symfony\Component\Form\FormView #}
 {# @var sectionId int #}
 <div class="cb-sidebar__section-settings"
-     data-controller="cb-section-settings-form cb-autosave"
+     data-controller="cb-section-settings-form cb-autosave cb-condition"
      data-cb-section-settings-form-section-id-value="{{ sectionId }}">
 
     {# Single form_theme call so both themes actually stack (each
@@ -38,7 +38,7 @@
                         { label: '67/33', value: '67,33' },
                       ] %}
                 {% for child in form %}
-                    {% if child.vars.name == 'styling' %}
+                    {% if child.vars.name == 'styling' or child.vars.name == 'stylingCustom' %}
                         {# Rendered in the Styling group below. #}
                     {% elseif child.vars.name == 'columnWidths' %}
                         {# Per-column widths: a hidden CSV field carries the
@@ -104,7 +104,15 @@
                 {{ 'cb.section.settings.tab.styling'|trans({}, 'content_blocks') }}
             </h4>
             <div class="cb-sidebar__group-body">
-                {{ form_row(form.styling) }}
+                {# Progressive disclosure: the styling fields only show when
+                   the "Customize styling" switch is on (cb-condition reads
+                   the checkbox). While off, the selected preset — if any —
+                   applies untouched; the server drops the styling subtree
+                   on save so stale values never fight a preset change. #}
+                {{ form_row(form.stylingCustom) }}
+                <div data-cb-condition="stylingCustom:true">
+                    {{ form_row(form.styling) }}
+                </div>
             </div>
         </section>
 

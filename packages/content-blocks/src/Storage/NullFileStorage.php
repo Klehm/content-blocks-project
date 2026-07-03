@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ContentBlocks\Kit\Storage;
+namespace ContentBlocks\Storage;
 
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -15,7 +15,7 @@ final class NullFileStorage implements FileStorageInterface
     public function upload(UploadedFile $file, string $directory = ''): string
     {
         throw new \LogicException(
-            'No FileStorageInterface configured. Register an implementation '
+            'No FileStorageInterface configured. Set content_blocks.upload.dir or register an implementation '
             . '(e.g. LocalFileStorage) in your services to enable file uploads.'
         );
     }
@@ -38,7 +38,7 @@ final class NullFileStorage implements FileStorageInterface
     public function uploadFromString(string $contents, string $extension, string $directory = ''): string
     {
         throw new \LogicException(
-            'No FileStorageInterface configured. Register an implementation '
+            'No FileStorageInterface configured. Set content_blocks.upload.dir or register an implementation '
             . '(e.g. LocalFileStorage) in your services to enable file uploads.'
         );
     }

@@ -3,23 +3,22 @@ import { Controller } from '@hotwired/stimulus';
 /**
  * File upload controller for ContentBlocks.
  * Uploads a file via AJAX to /_content-blocks/upload, then writes the
- * returned URL into the linked data-model field on the LiveComponent.
+ * returned URL into the hidden path input and dispatches `change` so
+ * autosave / LiveComponent bindings pick the new value up.
  *
- * Usage in a block edit template:
- *   <div data-controller="cb-file-upload"
- *        data-cb-file-upload-target-model-value="formData.src"
- *        data-cb-file-upload-preview-value="{{ formData.src }}">
+ * Rendered by the `cb_image_upload_widget` form-theme block
+ * (ImageUploadType); can also be used standalone:
+ *
+ *   <div data-controller="cb-file-upload">
  *       <input type="file" data-action="change->cb-file-upload#upload" accept="image/*">
- *       <img data-cb-file-upload-target="preview" src="{{ formData.src }}">
+ *       <img data-cb-file-upload-target="preview" hidden>
  *       <input type="hidden" data-cb-file-upload-target="hiddenInput">
  *   </div>
+ *
+ * The CSRF token is read from the nearest `[data-cb-csrf-token]` ancestor
+ * (rendered by the builder shell).
  */
 export default class extends Controller {
-    static values = {
-        targetModel: String,
-        preview: String,
-    };
-
     static targets = ['preview', 'hiddenInput', 'status'];
 
     _getCsrfToken() {
@@ -52,14 +51,16 @@ export default class extends Controller {
                 return;
             }
 
-            // Update preview
+            // Update the preview — both the img and its wrapper start
+            // hidden when the field has no value yet.
             if (this.hasPreviewTarget) {
                 this.previewTarget.src = data.url;
-                this.previewTarget.style.display = '';
+                this.previewTarget.hidden = false;
+                this.previewTarget.closest('.cb-image-upload__preview')?.removeAttribute('hidden');
             }
 
             // Write URL into the form's hidden input — dispatch 'change' to
-            // trigger LiveComponent's on(change)|* data-model binding
+            // trigger autosave / LiveComponent data-model bindings.
             if (this.hasHiddenInputTarget) {
                 this.hiddenInputTarget.value = data.url;
                 this.hiddenInputTarget.dispatchEvent(new Event('change', { bubbles: true }));

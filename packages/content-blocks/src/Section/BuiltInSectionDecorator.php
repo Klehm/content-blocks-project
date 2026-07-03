@@ -70,7 +70,9 @@ final class BuiltInSectionDecorator implements SectionDecoratorInterface
         $styleName = $settings['styleName'] ?? null;
         if (\is_string($styleName) && $styleName !== '') {
             $style = $this->styleRegistry->get($styleName);
-            if ($style !== null) {
+            // Settings-only presets have no class to attach — their values
+            // are merged into $settings upstream (BlockRenderer).
+            if ($style !== null && $style->cssClass !== '') {
                 $classes[] = $style->cssClass;
             }
         }

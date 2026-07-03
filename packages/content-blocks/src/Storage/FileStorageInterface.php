@@ -2,16 +2,26 @@
 
 declare(strict_types=1);
 
-namespace ContentBlocks\Kit\Storage;
+namespace ContentBlocks\Storage;
 
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
- * Abstraction for file storage. The host application must provide an implementation
- * (local filesystem, S3, Flysystem, etc.).
+ * Abstraction for file storage, used by the builder's upload endpoint
+ * ({@see \ContentBlocks\Controller\UploadController}), upload-driven form
+ * fields, and the ContentArea export/import flow (via
+ * {@see \ContentBlocks\Asset\FileStorageAssetResolver}).
  *
- * Used by UploadController, ImageBlock, and the ContentArea export/import flow
- * (via FileStorageAssetResolver).
+ * Defaults to {@see NullFileStorage} (throws on upload). The quickest opt-in
+ * is the bundle config — it registers a {@see LocalFileStorage}:
+ *
+ *     content_blocks:
+ *         upload:
+ *             dir: '%kernel.project_dir%/public/uploads/content-blocks'
+ *             public_prefix: '/uploads/content-blocks'
+ *
+ * For S3/Flysystem/CDN storage, alias this interface to your own
+ * implementation instead.
  */
 interface FileStorageInterface
 {

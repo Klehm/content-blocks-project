@@ -69,10 +69,9 @@ Add the following to `assets/controllers.json`:
             "cb-section-settings-form": { "enabled": true, "fetch": "eager" },
             "cb-spacing-link":          { "enabled": true, "fetch": "eager" },
             "cb-viewport-tabs":         { "enabled": true, "fetch": "eager" },
-            "cb-collection-sort":       { "enabled": true, "fetch": "eager" }
-        },
-        "@klehm/content-blocks-kit": {
-            "cb-file-upload": { "enabled": true, "fetch": "eager" }
+            "cb-collection-sort":       { "enabled": true, "fetch": "eager" },
+            "cb-condition":             { "enabled": true, "fetch": "eager" },
+            "cb-file-upload":           { "enabled": true, "fetch": "eager" }
         }
     },
     "entrypoints": []
@@ -330,19 +329,86 @@ The replace itself writes to the **draft** state on the target: existing section
 
 ### File storage (optional, only if your blocks accept uploads)
 
+The quickest opt-in is the bundle config — it registers a `LocalFileStorage`
+and enables the `/_content-blocks/upload` endpoint (CSRF-guarded, size-capped,
+MIME-whitelisted):
+
+```yaml
+# config/packages/content_blocks.yaml
+content_blocks:
+    upload:
+        dir: '%kernel.project_dir%/public/uploads/content-blocks'
+        public_prefix: '/uploads/content-blocks'
+        # max_size: 10485760                       # bytes, default 10 MB
+        # allowed_mime_types: ['image/jpeg', ...]  # default: common images + PDF
+```
+
+For S3/Flysystem/CDN storage, alias the interface to your own implementation
+instead:
+
 ```yaml
 ContentBlocks\Storage\FileStorageInterface:
-    class: ContentBlocks\Storage\LocalFileStorage
-    arguments:
-        $uploadDir: '%kernel.project_dir%/public/uploads/content-blocks'
-        $publicPrefix: '/uploads/content-blocks'
+    class: App\Storage\S3FileStorage
+```
+
+Block forms get upload UI for free through `ImageUploadType` (file picker +
+preview around a hidden path input, wired to the `cb-file-upload` controller):
+
+```php
+use ContentBlocks\Form\Type\ImageUploadType;
+
+$builder->add('src', ImageUploadType::class);
 ```
 
 ## Styling sections and blocks
 
-Each section's settings sidebar carries a **Styling** tab with padding, margin (per viewport), background color, min-height and alignment. Block edit forms carry the same tab with padding, margin, background color and max-width.
+Each section's settings sidebar carries a **Styling** group with padding, margin (per viewport), background color, min-height and alignment. Block edit forms carry the same group with padding, margin, background color and max-width.
 
-These fields land in JSON under `settings.styling` for sections and `data.styling` for blocks. They are stored as-is — no DB migration; existing content keeps working untouched.
+On sections, the styling fields sit behind a **"Customize styling" switch** (progressive disclosure): everyday editors only see the style-preset dropdown; flipping the switch reveals the full fields, prefilled from the selected preset. While the switch is off, the styling subtree is dropped on save so a later preset change never fights stale values.
+
+These fields land in JSON under `settings.styling` for sections and `data.styling` for blocks. They are stored as-is — no DB migration; existing content keeps working untouched (sections saved before the switch existed are treated as customized).
+
+### Color palette
+
+Background colors use `PaletteColorType`: a dropdown of named project colors plus a **Custom…** option revealing a free color picker. It stores a plain `#hex` (`''` for none) so decorators and templates are unaffected. Declare the palette in config:
+
+```yaml
+# config/packages/content_blocks.yaml
+content_blocks:
+    palette:
+        - { label: 'Primary', color: '#eb0540' }
+        - { label: 'Dark',    color: '#252525' }
+```
+
+…or implement `ContentBlocks\Palette\ColorPaletteProviderInterface` (autoconfigured) for runtime palettes; both sources merge. With no palette declared, the dropdown still offers **None / Custom…** — which is what gives the field a real empty state (backgrounds now default to *transparent*; the old `#ffffff` pre-fill hack is gone).
+
+`PaletteColorType` is reusable in your own block forms (option `allow_custom: false` locks editors to the palette).
+
+### Section style presets
+
+Presets are named styles offered in the section sidebar. Each carries a CSS class and/or **settings values** applied underneath the section's own settings at render time (the user's explicit values win key-by-key):
+
+```yaml
+content_blocks:
+    styles:
+        - name: boxed
+          label: 'Boxed'
+          css_class: 'my-section--boxed'
+          settings:
+              styling:
+                  backgroundColor: '#f1f5f9'
+                  padding: { d: { top: 40, right: 40, bottom: 40, left: 40 } }
+        - name: airy            # settings-only preset (no class)
+          label: 'Airy'
+          settings:
+              styling: { padding: { d: { top: 96, bottom: 96 } } }
+```
+
+…or implement `ContentBlocks\Section\SectionStyleProviderInterface` and return `SectionStyle` instances (the fourth constructor arg is the settings array).
+
+### Conditional form fields (`cb-condition`)
+
+The sidebar's show/hide logic is a generic Stimulus controller you can reuse in your own block forms: attach `data-controller="cb-condition"` on a container (form type `attr`) and tag rows with `row_attr` → `data-cb-condition="field:value1|value2"` (checkboxes match `true`/`false`; `field` alone means "non-empty"). The field name matches the last bracket segment of the input's `name`.
 
 At render time, two decorators (`StylingSectionDecorator`, `StylingBlockDecorator`) translate the values into **CSS custom properties** on the outer element, and a stylesheet shipped at `/_content-blocks/public/styling` maps those vars to real properties with `@media` rules for tablet (`max-width: 991px`) and mobile (`max-width: 575px`) — so per-viewport overrides actually work (inline `style` can't carry media queries).
 
@@ -350,15 +416,15 @@ The fallback chain inside each `@media` block is: mobile → tablet → desktop 
 
 ### Extending the Styling sub-form
 
-The `StylingType` form holds the styling fields. Register a Symfony `FormTypeExtension` against it to inject or override fields without forking — they will render inside the sidebar's **Styling** tab:
+The `StylingType` form holds the styling fields. Register a Symfony `FormTypeExtension` against it to inject (or override, by re-`add()`ing an existing name) fields without forking — they will render inside the sidebar's **Styling** group, for sections and blocks alike:
 
 ```php
 use ContentBlocks\Form\Type\Styling\StylingType;
 use Symfony\Component\Form\AbstractTypeExtension;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\FormBuilderInterface;
 
-final class BrandPaletteExtension extends AbstractTypeExtension
+final class ZIndexExtension extends AbstractTypeExtension
 {
     public static function getExtendedTypes(): iterable
     {
@@ -367,20 +433,16 @@ final class BrandPaletteExtension extends AbstractTypeExtension
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        // Re-adding an existing field overrides it — here we replace the
-        // raw HTML5 ColorType with a curated brand palette.
-        $builder->add('backgroundColor', ChoiceType::class, [
-            'required' => false,
-            'choices' => [
-                'Brand / Primary' => '#0a84ff',
-                'Brand / Accent' => '#ff375f',
-            ],
-        ]);
+        // `include_gap` is only true for sections — use it to gate
+        // section-only fields.
+        if ($options['include_gap']) {
+            $builder->add('zIndex', IntegerType::class, ['required' => false]);
+        }
     }
 }
 ```
 
-See the sandbox at [apps/content-blocks-sandbox/src/Form/Extension/StylingPaletteExtension.php](apps/content-blocks-sandbox/src/Form/Extension/StylingPaletteExtension.php) for a runnable example.
+Pair it with a `SectionDecoratorInterface` reading `$settings['styling']['zIndex']` to emit the style. (For curated background colors, prefer the built-in `palette` config above.)
 
 ### Adding your own block decorator
 
@@ -448,7 +510,7 @@ At render time, values **equal to the default are stripped** from the saved sett
 
 ### Block-side equivalent
 
-For block defaults, implement `ContentBlocks\Block\BlockDataDefaultsProviderInterface` (mirror of the section interface). It's the same pattern: form pre-fill + `BlockDataDefaults::withoutDefaults()` at render. The package's `CoreBlockStylingDefaults` sets `styling.backgroundColor = #ffffff` to dodge the `<input type="color">` black fallback — extend it the same way.
+For block defaults, implement `ContentBlocks\Block\BlockDataDefaultsProviderInterface` (mirror of the section interface). It's the same pattern: form pre-fill + `BlockDataDefaults::withoutDefaults()` at render. The package's `CoreBlockStylingDefaults` sets `styling.backgroundColor = ''` (transparent) — override it the same way if your project wants a different starting background.
 
 ## Toggling topbar features (Insert content, Import / Export)
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ContentBlocks\Kit\Storage;
+namespace ContentBlocks\Storage;
 
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 

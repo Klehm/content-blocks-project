@@ -7,6 +7,7 @@ namespace ContentBlocks\Controller;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Form\Type\SectionSettingsType;
 use ContentBlocks\Section\SectionSettingsDefaults;
+use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -40,6 +41,7 @@ final class SectionSidebarController
         private readonly Environment $twig,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly SectionSettingsDefaults $settingsDefaults,
+        private readonly SectionStyleRegistry $styleRegistry,
     ) {
     }
 
@@ -66,14 +68,23 @@ final class SectionSidebarController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        // Initial form data: defaults backfill any keys the section's
-        // current settings don't already have. This is what gives widgets
-        // without an "empty" state (notably <input type="color">) a sane
-        // starting value. Recursive merge so nested defaults (e.g.
-        // ['styling' => ['backgroundColor' => '#ffffff']]) backfill into
-        // the existing styling sub-form rather than replacing it.
+        // Initial form data, three layers (rightmost wins per key):
+        //   defaults ← preset settings ← the section's saved settings.
+        // Defaults backfill keys so widgets without an "empty" state get a
+        // sane starting value; the selected preset's settings backfill next,
+        // so flipping "Customize styling" on presents the preset's values as
+        // the starting point instead of blank fields.
         $current = $section->getEffectiveSettings(preferDraft: true);
-        $initial = array_replace_recursive($this->settingsDefaults->get(), $current);
+        $initial = array_replace_recursive(
+            $this->settingsDefaults->get(),
+            $this->presetSettings($current),
+            $current,
+        );
+
+        // Sections saved before the stylingCustom switch existed carry
+        // styling values but no flag: treat them as customized so their
+        // values stay visible (and survive the next save).
+        $initial['stylingCustom'] ??= ($current['styling'] ?? []) !== [];
 
         // Number of (live) columns: drives whether the column-widths control
         // is offered and how many width inputs the sidebar renders.
@@ -100,6 +111,14 @@ final class SectionSidebarController
                 /** @var array<string, mixed> $data */
                 $data = $form->getData() ?? [];
                 $data['columnWidths'] = $this->sanitizeColumnWidths($data['columnWidths'] ?? null, $columnCount);
+                // Customize-styling switch off → drop the styling subtree
+                // entirely: the preset (if any) applies untouched, and a
+                // later preset change never fights values persisted while
+                // the fields were hidden. The false flag itself is pruned by
+                // normalize(); its absence reads as "off" on the next GET.
+                if (($data['stylingCustom'] ?? false) !== true) {
+                    unset($data['styling']);
+                }
                 $section->setDraftSettings($this->normalize($data));
                 $this->em->flush();
 
@@ -122,6 +141,23 @@ final class SectionSidebarController
             'sectionId' => $id,
             'columnCount' => $columnCount,
         ]));
+    }
+
+    /**
+     * Settings carried by the currently selected style preset, or [] when
+     * no preset is selected / the preset is class-only.
+     *
+     * @param array<string, mixed> $current
+     * @return array<string, mixed>
+     */
+    private function presetSettings(array $current): array
+    {
+        $styleName = $current['styleName'] ?? null;
+        if (!\is_string($styleName) || $styleName === '') {
+            return [];
+        }
+
+        return $this->styleRegistry->get($styleName)?->settings ?? [];
     }
 
     /**
@@ -164,9 +200,17 @@ final class SectionSidebarController
     }
 
     /**
-     * Normalize the form payload before persisting. Empty maxWidth becomes
-     * null; empty strings collapse to absent keys so the JSON column stays
-     * tidy.
+     * Normalize the form payload before persisting: recursively drop empty
+     * or default-off leaves (null, '', false, and arrays left empty after
+     * pruning) so the JSON column only carries values the user actually
+     * set. 0 is meaningful (zero padding) and is kept.
+     *
+     * Untouched styling fields submit as nulls; persisting them would mask
+     * a preset's values on the next sidebar prefill (an explicit null would
+     * "win" over the preset in the defaults ← preset ← current merge).
+     * Unchecked checkboxes (stylingCustom, the spacing "linked" toggles)
+     * prune the same way: their absence reads as false everywhere the
+     * settings are consumed.
      *
      * @param array<string, mixed> $data
      * @return array<string, mixed>
@@ -175,7 +219,10 @@ final class SectionSidebarController
     {
         $out = [];
         foreach ($data as $key => $value) {
-            if ($value === null || $value === '' || $value === []) {
+            if (\is_array($value)) {
+                $value = $this->normalize($value);
+            }
+            if ($value === null || $value === '' || $value === false || $value === []) {
                 continue;
             }
             $out[$key] = $value;

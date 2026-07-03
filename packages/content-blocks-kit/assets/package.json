@@ -4,12 +4,6 @@
     "license": "MIT",
     "symfony": {
         "controllers": {
-            "cb-file-upload": {
-                "main": "controllers/cb-file-upload_controller.js",
-                "name": "cb-file-upload",
-                "fetch": "eager",
-                "enabled": true
-            },
             "cb-tinymce": {
                 "main": "controllers/cb-tinymce_controller.js",
                 "name": "cb-tinymce",

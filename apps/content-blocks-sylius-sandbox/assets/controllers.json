@@ -43,13 +43,17 @@
             "cb-collection-sort": {
                 "enabled": true,
                 "fetch": "eager"
-            }
-        },
-        "@klehm/content-blocks-kit": {
-            "cb-file-upload": {
+            },
+            "cb-condition": {
                 "enabled": true,
                 "fetch": "eager"
             },
+            "cb-file-upload": {
+                "enabled": true,
+                "fetch": "eager"
+            }
+        },
+        "@klehm/content-blocks-kit": {
             "cb-tinymce": {
                 "enabled": true,
                 "fetch": "lazy"
