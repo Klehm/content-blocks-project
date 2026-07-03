@@ -63,6 +63,32 @@ cb_kit:
                 solid: "Plein"
                 dashed: "Tirets"
                 dotted: "Pointillés"
+        accordion:
+            label: "Accordéon"
+            field:
+                exclusive: "Un seul panneau ouvert à la fois"
+                items: "Panneaux"
+                item_title: "Titre"
+                item_content: "Contenu"
+            exclusive_help: "Activé, ouvrir un panneau ferme les autres."
+        embed:
+            label: "Vidéo intégrée"
+            unsupported: "URL non reconnue (YouTube ou Vimeo attendu)."
+            field:
+                url: "URL de la vidéo"
+                title: "Titre (accessibilité)"
+            url_help: "Collez un lien YouTube ou Vimeo."
+        breadcrumb:
+            label: "Fil d'Ariane"
+            field:
+                items: "Étapes"
+                item_label: "Libellé"
+                item_url: "Lien (laisser vide pour la page actuelle)"
+        html_raw:
+            label: "HTML brut"
+            field:
+                html: "HTML"
+            help: "Rendu tel quel. N'utilisez que du code de confiance."
         text:
             label: "Texte"
             empty: "Aucun contenu"

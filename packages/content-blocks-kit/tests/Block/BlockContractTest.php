@@ -30,6 +30,10 @@ final class BlockContractTest extends TestCase
         'icon' => ['name', 'color', 'size', 'align'],
         'alert' => ['type', 'title', 'message'],
         'divider' => ['style', 'color'],
+        'accordion' => ['exclusive', 'items'],
+        'embed' => ['url', 'title'],
+        'breadcrumb' => ['items'],
+        'html_raw' => ['html'],
         'tabs' => ['tabs'],
     ];
 

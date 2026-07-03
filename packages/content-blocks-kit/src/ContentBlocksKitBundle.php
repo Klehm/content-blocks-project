@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit;
 
 use ContentBlocks\Kit\Block\AbstractKitBlock;
+use ContentBlocks\Kit\Block\AccordionBlock;
 use ContentBlocks\Kit\Block\AlertBlock;
+use ContentBlocks\Kit\Block\BreadcrumbBlock;
 use ContentBlocks\Kit\Block\ButtonBlock;
 use ContentBlocks\Kit\Block\DividerBlock;
+use ContentBlocks\Kit\Block\EmbedBlock;
+use ContentBlocks\Kit\Block\HtmlRawBlock;
 use ContentBlocks\Kit\Block\IconBlock;
 use ContentBlocks\Kit\Block\ImageBlock;
 use ContentBlocks\Kit\Block\ListBlock;
@@ -38,6 +42,10 @@ final class ContentBlocksKitBundle extends AbstractBundle
         'icon' => IconBlock::class,
         'alert' => AlertBlock::class,
         'divider' => DividerBlock::class,
+        'accordion' => AccordionBlock::class,
+        'embed' => EmbedBlock::class,
+        'breadcrumb' => BreadcrumbBlock::class,
+        'html_raw' => HtmlRawBlock::class,
         'tabs' => TabsBlock::class,
     ];
 
