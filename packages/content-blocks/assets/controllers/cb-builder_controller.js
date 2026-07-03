@@ -32,6 +32,10 @@ export default class extends Controller {
         'replacePickerSearch',
         'replacePickerList',
         'replacePickerStatus',
+        'templatePicker',
+        'templatePickerSearch',
+        'templatePickerList',
+        'templatePickerStatus',
         'importExportPicker',
         'importFile',
         'importExportStatus',
@@ -50,6 +54,11 @@ export default class extends Controller {
     /** Confirm prompt shown before discarding all unpublished draft changes. */
     static DISCARD_CONFIRM_FALLBACK =
         'Are you sure you want to discard all unpublished changes? This cannot be undone.';
+    /** Prompt asking for a name when saving a section to the library. */
+    static TEMPLATE_NAME_FALLBACK = 'Name this section template:';
+    /** Confirm prompt shown before deleting a library template. */
+    static TEMPLATE_DELETE_CONFIRM_FALLBACK =
+        'Delete this section template? This cannot be undone.';
 
     static SIDEBAR_WIDTH_KEY = 'cb-builder.sidebarWidth';
     static SIDEBAR_COLLAPSED_KEY = 'cb-builder.sidebarCollapsed';
@@ -813,6 +822,12 @@ export default class extends Controller {
             case 'cb:section:duplicate-requested':
                 this._duplicateSection(data.sectionId);
                 break;
+            case 'cb:section:save-template-requested':
+                this._saveSectionAsTemplate(data.sectionId);
+                break;
+            case 'cb:template:insert-requested':
+                this.openTemplatePicker();
+                break;
             case 'cb:section:delete-requested':
                 this._deleteSection(data.sectionId);
                 break;
@@ -1334,6 +1349,212 @@ export default class extends Controller {
         this.replacePickerStatusTarget.textContent = text;
     }
 
+    // ---------- Section-template library ----------
+
+    /**
+     * Saves the given section into the global template library. Triggered from
+     * the section toolbar (via the iframe overlay). The name prompt mirrors the
+     * confirm-based UX used elsewhere in the builder — no extra dialog markup.
+     */
+    async _saveSectionAsTemplate(sectionId) {
+        const id = parseInt(sectionId, 10);
+        if (!Number.isFinite(id)) return;
+
+        const raw = window.prompt(this._t('cb.builder.template.name_prompt', this.constructor.TEMPLATE_NAME_FALLBACK));
+        if (raw === null) return; // cancelled
+        const name = raw.trim();
+        if (!name) return;
+
+        const result = await this._jsonRequest(
+            'POST',
+            `/_content-blocks/section/${id}/save-as-template`,
+            { name },
+        );
+        if (result === null) return;
+        // The library changed — force the next picker open to re-fetch.
+        this._templatePickerLoaded = false;
+        this._flashSaved();
+    }
+
+    /**
+     * Action: opens the "insert a saved section" library picker. Also invoked
+     * from the iframe tray (cb:template:insert-requested). First open loads the
+     * list; later opens re-use the cache unless a save/delete invalidated it.
+     */
+    async openTemplatePicker(event) {
+        if (event) event.preventDefault();
+        if (!this.hasTemplatePickerTarget) return;
+        this.templatePickerTarget.hidden = false;
+        if (this.hasTemplatePickerSearchTarget) {
+            this.templatePickerSearchTarget.focus({ preventScroll: true });
+        }
+        if (!this._templatePickerLoaded) {
+            await this._loadTemplates(this._templatePickerFilter ?? '', 0, false);
+            this._templatePickerLoaded = true;
+        }
+    }
+
+    /** Action: × button on the template picker header. */
+    closeTemplatePicker(event) {
+        if (event) event.preventDefault();
+        if (!this.hasTemplatePickerTarget) return;
+        this.templatePickerTarget.hidden = true;
+    }
+
+    /** Action: input event on the template picker's search field (debounced). */
+    onTemplatePickerSearch(event) {
+        const value = event?.target?.value ?? '';
+        clearTimeout(this._templatePickerSearchTimer);
+        this._templatePickerSearchTimer = setTimeout(() => {
+            this._loadTemplates(value, 0, false);
+        }, this.constructor.REPLACE_PICKER_DEBOUNCE_MS);
+    }
+
+    async _loadTemplates(filter, page = 0, append = false) {
+        if (!this.hasTemplatePickerListTarget) return;
+        this._templatePickerFilter = filter;
+        if (!append) {
+            this.templatePickerListTarget.innerHTML = '';
+            this._setTemplatePickerStatus(this._t('cb.builder.template.loading', 'Loading…'));
+        }
+
+        const params = new URLSearchParams();
+        if (filter) params.set('q', filter);
+        if (page > 0) params.set('page', String(page));
+        const qs = params.toString();
+        const url = `/_content-blocks/area/${this.areaIdValue}/section-templates${qs ? `?${qs}` : ''}`;
+
+        let payload;
+        try {
+            const response = await fetch(url, {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+            });
+            if (!response.ok) throw new Error(`status ${response.status}`);
+            payload = await response.json();
+        } catch (e) {
+            console.error('[cb-builder] section templates failed', e);
+            this._setTemplatePickerStatus(this._t('cb.builder.template.error', 'Failed to load.'));
+            return;
+        }
+
+        this._renderTemplates(payload, filter, append);
+    }
+
+    _renderTemplates(payload, filter, append) {
+        const items = Array.isArray(payload?.items) ? payload.items : [];
+        const list = this.templatePickerListTarget;
+
+        // Drop any previous "load more" button before re-rendering the tail.
+        list.querySelector('.cb-template-picker__more')?.remove();
+
+        if (items.length === 0 && !append) {
+            this._setTemplatePickerStatus(filter
+                ? this._t('cb.builder.template.empty_filtered', 'No templates match this search')
+                : this._t('cb.builder.template.empty', 'No saved templates yet'),
+            );
+            return;
+        }
+        this._setTemplatePickerStatus('');
+
+        for (const item of items) {
+            list.appendChild(this._buildTemplateRow(item, filter));
+        }
+
+        if (payload?.hasMore) {
+            const more = document.createElement('button');
+            more.type = 'button';
+            more.className = 'cb-template-picker__more';
+            more.textContent = this._t('cb.builder.template.load_more', 'Load more');
+            const nextPage = (payload.page ?? 0) + 1;
+            more.addEventListener('click', () => this._loadTemplates(filter, nextPage, true));
+            list.appendChild(more);
+        }
+    }
+
+    _buildTemplateRow(item, filter) {
+        const li = document.createElement('li');
+        li.className = 'cb-replace-picker__item cb-template-picker__item';
+        li.setAttribute('role', 'option');
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'cb-replace-picker__item-btn';
+        btn.textContent = item.name ?? `#${item.id}`;
+
+        if (item.compatible === false) {
+            // A referenced block type is no longer registered — inserting would
+            // 422. Disable up front and explain why on hover.
+            btn.disabled = true;
+            const missing = Array.isArray(item.missingTypes) ? item.missingTypes.join(', ') : '';
+            const tpl = this._t('cb.builder.template.incompatible', 'Unavailable — missing block type(s): %types%');
+            btn.title = tpl.replace('%types%', missing);
+            li.classList.add('cb-template-picker__item--disabled');
+        } else {
+            btn.addEventListener('click', () => this._confirmInsert(item));
+        }
+        li.appendChild(btn);
+
+        if (item.canManage) {
+            const del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'cb-template-picker__delete';
+            del.textContent = '🗑';
+            del.title = this._t('cb.builder.template.delete', 'Delete template');
+            del.setAttribute('aria-label', del.title);
+            del.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this._deleteTemplate(item, filter);
+            });
+            li.appendChild(del);
+        }
+
+        return li;
+    }
+
+    async _confirmInsert(item) {
+        const result = await this._jsonRequest(
+            'POST',
+            `/_content-blocks/area/${this.areaIdValue}/insert-template/${item.id}`,
+        );
+        if (result === null) return;
+
+        // Surface non-blocking warnings (fields the block types no longer
+        // define). The insert still succeeded.
+        if (Array.isArray(result.warnings) && result.warnings.length > 0) {
+            const types = result.warnings.map((w) => w.blockType).join(', ');
+            const tpl = this._t(
+                'cb.builder.template.warnings',
+                'Inserted, but some stored fields no longer exist on: %types%',
+            );
+            this._setTemplatePickerStatus(tpl.replace('%types%', types));
+        }
+
+        this.closeTemplatePicker();
+        this._afterStructuralOp();
+        if (result.sectionId) {
+            this._mountSectionSettings(result.sectionId);
+        }
+    }
+
+    async _deleteTemplate(item, filter) {
+        const confirmText = this._t(
+            'cb.builder.template.delete_confirm',
+            this.constructor.TEMPLATE_DELETE_CONFIRM_FALLBACK,
+        );
+        if (!window.confirm(confirmText)) return;
+
+        const result = await this._jsonRequest('DELETE', `/_content-blocks/section-templates/${item.id}`);
+        if (result === null) return;
+        // Re-fetch the current page from the top so counts/pagination stay sane.
+        await this._loadTemplates(filter ?? this._templatePickerFilter ?? '', 0, false);
+    }
+
+    _setTemplatePickerStatus(text) {
+        if (!this.hasTemplatePickerStatusTarget) return;
+        this.templatePickerStatusTarget.textContent = text;
+    }
+
     /**
      * Tiny translation lookup. The host's translation strings are not
      * available client-side; we read precomputed values from data-*
@@ -1347,6 +1568,7 @@ export default class extends Controller {
         const attr = 'data-i18n-' + key.replace(/[._]/g, '-');
         const sources = [];
         if (this.hasReplacePickerTarget) sources.push(this.replacePickerTarget);
+        if (this.hasTemplatePickerTarget) sources.push(this.templatePickerTarget);
         if (this.hasImportExportPickerTarget) sources.push(this.importExportPickerTarget);
         // Shell root: always present, carries topbar strings the pickers don't.
         sources.push(this.element);

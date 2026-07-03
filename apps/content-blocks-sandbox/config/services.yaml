@@ -12,6 +12,11 @@ services:
     ContentBlocks\Security\AccessCheckerInterface:
         class: ContentBlocks\Security\AllowAllAccessChecker
 
+    # Override ContentBlocks default (DenyAll) so the section-template library
+    # is manageable (rename/delete) in the sandbox
+    ContentBlocks\SectionTemplate\SectionTemplateManagerInterface:
+        class: ContentBlocks\SectionTemplate\AllowAllSectionTemplateManager
+
     # Maps a ContentArea to its public URL (used by the iframe preview)
     ContentBlocks\Preview\ContentAreaUrlResolverInterface:
         class: App\Preview\PageContentAreaUrlResolver
