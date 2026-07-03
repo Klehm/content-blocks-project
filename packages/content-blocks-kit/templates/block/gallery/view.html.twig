@@ -1,0 +1,39 @@
+{# GalleryBlock view — grid (N columns) or one-row slider. Sizing/fit/radius via
+   CSS custom properties on the wrapper. #}
+{% import _self as gallery %}
+{% set items = data.items|default([])|filter(i => i.src|default('')|trim is not empty) %}
+{% if items|length > 0 %}
+    {% set layout = data.layout|default('grid') == 'slider' ? 'slider' : 'grid' %}
+    {% set columns = data.columns|default(3) %}
+    {% set fit = data.fit|default('cover') == 'contain' ? 'contain' : 'cover' %}
+    {% set br = data.borderRadius|default({}) %}
+    {% set has_radius = (br.top ?? null) is not null or (br.right ?? null) is not null or (br.bottom ?? null) is not null or (br.left ?? null) is not null %}
+    {% set vars = '--cb-kit-cols:' ~ columns ~ ';--cb-kit-fit:' ~ fit ~ ';'
+        ~ (has_radius ? '--cb-kit-radius:' ~ (br.top ?? 0) ~ 'px ' ~ (br.right ?? 0) ~ 'px ' ~ (br.bottom ?? 0) ~ 'px ' ~ (br.left ?? 0) ~ 'px;' : '') %}
+
+    {% if layout == 'slider' %}
+        <div class="cb-kit-gallery cb-kit-gallery--slider" style="{{ vars }}" data-controller="cb-gallery">
+            <button type="button" class="cb-kit-gallery__nav cb-kit-gallery__nav--prev" data-cb-gallery-target="prev" data-action="cb-gallery#prev" aria-label="Previous">{{ cb_kit_icon('arrow-right', 22)|raw }}</button>
+            <div class="cb-kit-gallery__track" data-cb-gallery-target="track">
+                {% for item in items %}{{ gallery.item(item, fit) }}{% endfor %}
+            </div>
+            <button type="button" class="cb-kit-gallery__nav cb-kit-gallery__nav--next" data-cb-gallery-target="next" data-action="cb-gallery#next" aria-label="Next">{{ cb_kit_icon('arrow-right', 22)|raw }}</button>
+        </div>
+    {% else %}
+        <div class="cb-kit-gallery cb-kit-gallery--grid" style="{{ vars }}">
+            {% for item in items %}{{ gallery.item(item, fit) }}{% endfor %}
+        </div>
+    {% endif %}
+{% endif %}
+
+{% macro item(item, fit) %}
+    {% set link = item.link|default('')|trim %}
+    <figure class="cb-kit-gallery__item">
+        {% if link is not empty %}<a href="{{ link }}">{% endif %}
+        <img class="cb-kit-gallery__img" src="{{ item.src }}" alt="{{ item.alt|default('') }}" loading="lazy" decoding="async">
+        {% if link is not empty %}</a>{% endif %}
+        {% if item.caption|default('')|trim is not empty %}
+            <figcaption class="cb-kit-gallery__caption">{{ item.caption }}</figcaption>
+        {% endif %}
+    </figure>
+{% endmacro %}

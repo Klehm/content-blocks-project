@@ -1,0 +1,22 @@
+{# CardBlock view — grid (N columns) or stacked list. #}
+{% set items = data.items|default([]) %}
+{% if items|length > 0 %}
+    {% set layout = data.layout|default('grid') == 'list' ? 'list' : 'grid' %}
+    {% set columns = data.columns|default(3) %}
+    <div class="cb-kit-cards cb-kit-cards--{{ layout }}"{% if layout == 'grid' %} style="--cb-kit-cols:{{ columns }}"{% endif %}>
+        {% for item in items %}
+            <article class="cb-kit-card">
+                {% if item.src|default('')|trim is not empty %}
+                    <div class="cb-kit-card__media"><img src="{{ item.src }}" alt="{{ item.title|default('') }}" loading="lazy" decoding="async"></div>
+                {% endif %}
+                <div class="cb-kit-card__body">
+                    {% if item.title|default('')|trim is not empty %}<h3 class="cb-kit-card__title">{{ item.title }}</h3>{% endif %}
+                    {% if item.content|default('')|trim is not empty %}<div class="cb-kit-card__text">{{ item.content|nl2br }}</div>{% endif %}
+                    {% if item.buttonUrl|default('')|trim is not empty and item.buttonLabel|default('')|trim is not empty %}
+                        <a class="cb-kit-btn cb-kit-btn--primary cb-kit-btn--sm cb-kit-card__btn" href="{{ item.buttonUrl }}">{{ item.buttonLabel }}</a>
+                    {% endif %}
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+{% endif %}

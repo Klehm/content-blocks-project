@@ -111,8 +111,59 @@ cb_kit:
             field:
                 file: "Fichier image"
                 alt: "Texte alternatif"
+                size: "Taille"
                 width: "Largeur (px)"
                 height: "Hauteur (px)"
+                height_auto: "Hauteur automatique (conserver le ratio)"
+                fit: "Ajustement"
+                link: "Lien (optionnel)"
+                caption: "Légende (optionnel)"
+                border_radius: "Coins arrondis (px)"
+            size:
+                sm: "Petite (400px)"
+                md: "Moyenne (800px)"
+                lg: "Grande (1200px)"
+                full: "Pleine largeur"
+                custom: "Personnalisée"
+            fit:
+                cover: "Remplir (rogner)"
+                contain: "Entière (visible)"
+        gallery:
+            label: "Galerie"
+            field:
+                layout: "Disposition"
+                columns: "Colonnes"
+                items: "Images"
+                item_caption: "Légende (optionnel)"
+            layout:
+                grid: "Grille"
+                slider: "Carrousel"
+        card:
+            label: "Cartes"
+            field:
+                layout: "Disposition"
+                columns: "Colonnes"
+                items: "Cartes"
+                item_title: "Titre"
+                item_content: "Texte"
+                item_button_url: "Lien du bouton (optionnel)"
+                item_button_label: "Libellé du bouton (optionnel)"
+            layout:
+                grid: "Grille"
+                list: "Liste"
+        table:
+            label: "Tableau"
+            field:
+                striped: "Lignes alternées"
+                columns: "Colonnes"
+                rows: "Lignes"
+                cells: "Cellules"
+                column_label: "En-tête"
+                cell_content: "Contenu"
+            action:
+                add_column: "Ajouter une colonne"
+                add_row: "Ajouter une ligne"
+                add_cell: "Ajouter une cellule"
         tabs:
             label: "Onglets"
             empty: "Aucun onglet"

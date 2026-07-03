@@ -57,6 +57,10 @@
             "cb-tinymce": {
                 "enabled": true,
                 "fetch": "lazy"
+            },
+            "cb-gallery": {
+                "enabled": true,
+                "fetch": "eager"
             }
         },
         "@symfony/ux-live-component": {
