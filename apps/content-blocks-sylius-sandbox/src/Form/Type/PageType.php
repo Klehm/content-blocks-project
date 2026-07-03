@@ -18,15 +18,15 @@ final class PageType extends AbstractType
     {
         $builder
             ->add('title', TextType::class, [
-                'label' => 'Title',
+                'label' => 'Titre',
             ])
             ->add('slug', TextType::class, [
                 'label' => 'Slug',
                 'required' => false,
-                'attr' => ['placeholder' => 'Auto-generated if empty'],
+                'attr' => ['placeholder' => 'Généré automatiquement si vide'],
             ])
             ->add('enabled', CheckboxType::class, [
-                'label' => 'Enabled',
+                'label' => 'Publiée',
                 'required' => false,
             ]);
     }

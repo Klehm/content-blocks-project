@@ -1,0 +1,9 @@
+{% extends 'site.html.twig' %}
+
+{% block title %}{{ model.name }} — Modèle Nova{% endblock %}
+
+{% block content %}
+    {% if model.contentArea %}
+        {{ cb_render_content_area(model.contentArea) }}
+    {% endif %}
+{% endblock %}
