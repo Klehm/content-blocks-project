@@ -211,7 +211,8 @@
 
 /* ---- Replace-content picker overlay (anchored to topbar Insert button) ---- */
 
-.cb-replace-picker {
+.cb-replace-picker,
+.cb-template-picker {
   position: absolute;
   top: 56px;
   left: 12px;
@@ -227,7 +228,8 @@
   z-index: 30;
   overflow: hidden;
 }
-.cb-replace-picker[hidden] {
+.cb-replace-picker[hidden],
+.cb-template-picker[hidden] {
   display: none;
 }
 
@@ -312,6 +314,78 @@
 }
 .cb-replace-picker__status:empty {
   display: none;
+}
+
+/* Section-template library picker: shares the replace picker's shell +
+   item classes, adds a per-row delete affordance, a disabled state for
+   incompatible templates, and a "load more" pagination control. */
+.cb-template-picker__item {
+  align-items: center;
+  gap: 0.25rem;
+}
+.cb-template-picker__item--disabled .cb-replace-picker__item-btn {
+  color: #9aa0ac;
+  cursor: not-allowed;
+}
+.cb-template-picker__item--disabled .cb-replace-picker__item-btn:hover {
+  background: transparent;
+  border-color: transparent;
+}
+.cb-template-picker__delete {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.375rem;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: #999;
+  cursor: pointer;
+}
+.cb-template-picker__delete:hover,
+.cb-template-picker__delete:focus-visible {
+  background: rgba(220, 53, 69, 0.1);
+  border-color: rgba(220, 53, 69, 0.3);
+  color: #dc3545;
+  outline: none;
+}
+.cb-template-picker__more {
+  margin-top: 0.25rem;
+  align-self: center;
+  background: transparent;
+  border: 1px solid rgba(79, 141, 249, 0.3);
+  border-radius: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: #4f8df9;
+  cursor: pointer;
+}
+.cb-template-picker__more:hover,
+.cb-template-picker__more:focus-visible {
+  background: rgba(79, 141, 249, 0.08);
+  outline: none;
+}
+
+/* "Insert from library" affordances (empty sidebar + iframe add tray). */
+.cb-sidebar-empty__library {
+  margin-top: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: transparent;
+  border: 1px solid rgba(79, 141, 249, 0.3);
+  border-radius: 0.25rem;
+  padding: 0.375rem 0.625rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: #4f8df9;
+  cursor: pointer;
+}
+.cb-sidebar-empty__library:hover,
+.cb-sidebar-empty__library:focus-visible {
+  background: rgba(79, 141, 249, 0.08);
+  outline: none;
 }
 
 /* ---- Import / Export topbar button + picker overlay ----

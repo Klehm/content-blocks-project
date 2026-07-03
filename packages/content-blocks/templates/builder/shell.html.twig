@@ -152,6 +152,49 @@
     </div>
     {% endif %}
 
+    {# Section-template library picker. Opened from the in-iframe add-section
+       tray and the empty sidebar (not the topbar). Lets the editor insert a
+       previously saved section snapshot, and — when management is allowed —
+       delete templates inline. Shares the replace picker's structure/CSS. #}
+    <div class="cb-template-picker"
+         data-cb-builder-target="templatePicker"
+         role="dialog"
+         aria-label="{{ 'cb.builder.template.title'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-loading="{{ 'cb.builder.template.loading'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-empty="{{ 'cb.builder.template.empty'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-empty-filtered="{{ 'cb.builder.template.empty_filtered'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-error="{{ 'cb.builder.template.error'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-load-more="{{ 'cb.builder.template.load_more'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-incompatible="{{ 'cb.builder.template.incompatible'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-warnings="{{ 'cb.builder.template.warnings'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-name-prompt="{{ 'cb.builder.template.name_prompt'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-delete="{{ 'cb.builder.template.delete'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-delete-confirm="{{ 'cb.builder.template.delete_confirm'|trans({}, 'content_blocks') }}"
+         hidden>
+        <header class="cb-replace-picker__header">
+            <h3 class="cb-replace-picker__title">{{ 'cb.builder.template.title'|trans({}, 'content_blocks') }}</h3>
+            <button type="button"
+                    class="cb-replace-picker__close"
+                    data-action="cb-builder#closeTemplatePicker"
+                    aria-label="{{ 'cb.builder.close'|trans({}, 'content_blocks') }}">×</button>
+        </header>
+        <div class="cb-replace-picker__body">
+            <input type="search"
+                   class="cb-replace-picker__search"
+                   data-cb-builder-target="templatePickerSearch"
+                   data-action="input->cb-builder#onTemplatePickerSearch"
+                   placeholder="{{ 'cb.builder.template.search_placeholder'|trans({}, 'content_blocks') }}"
+                   autocomplete="off">
+            <ul class="cb-replace-picker__list cb-template-picker__list"
+                data-cb-builder-target="templatePickerList"
+                role="listbox"></ul>
+            <p class="cb-replace-picker__status"
+               data-cb-builder-target="templatePickerStatus"
+               role="status"
+               aria-live="polite"></p>
+        </div>
+    </div>
+
     {# Import / Export overlay panel — anchored to the topbar Import/Export
        button. Identical positioning rules as the replace picker so both
        overlays read as siblings. Skipped entirely when the feature is off
