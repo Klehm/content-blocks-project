@@ -2,15 +2,17 @@
 
 declare(strict_types=1);
 
-namespace ContentBlocks\Kit\Asset;
+namespace ContentBlocks\Asset;
 
-use ContentBlocks\Asset\AssetResolverInterface;
-use ContentBlocks\Kit\Storage\FileStorageInterface;
+use ContentBlocks\Storage\FileStorageInterface;
 
 /**
- * Adapts the kit's FileStorageInterface to the main package's
- * AssetResolverInterface so the export/import flow can locate, read, and
- * write asset binaries without depending on the kit directly.
+ * Adapts FileStorageInterface to AssetResolverInterface so the export/
+ * import flow can locate, read, and write asset binaries through whatever
+ * storage backend the host configured. This is the default alias for
+ * AssetResolverInterface; with the default NullFileStorage behind it,
+ * exports simply see no assets and imports throw on asset payloads —
+ * the same net behavior NullAssetResolver used to provide.
  */
 final class FileStorageAssetResolver implements AssetResolverInterface
 {

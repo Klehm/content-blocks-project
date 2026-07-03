@@ -7,18 +7,16 @@ namespace ContentBlocks\Section;
 /**
  * Core defaults for the styling sub-form (added by SectionSettingsType).
  *
- * Why a default for backgroundColor: HTML5 `<input type="color">` has no
- * "empty" state — it always carries a value, defaulting to `#000000` on
- * an unset field. Without a sane initial value the form would persist
- * pure black the moment a user clicks Save without touching the color
- * picker, even though they never meant to set a background.
+ * `backgroundColor` defaults to '' (no background): the palette color
+ * field ({@see \ContentBlocks\Form\Type\PaletteColorType}) has a real
+ * "None" state, so — unlike the raw `<input type="color">` it replaced —
+ * an untouched form no longer needs a sacrificial `#ffffff` default to
+ * avoid persisting black. Sections start transparent, and picking White
+ * from the palette applies a real `#ffffff`.
  *
- * We pre-populate the form with `#ffffff` and rely on
- * {@see SectionSettingsDefaults::withoutDefaults()} to strip the value
- * out again before it reaches the decorator pipeline — so saving a
- * section with the default white background produces no inline style at
- * all. Users who explicitly want a white background pay the same price:
- * white is treated as "no override". This is a known compromise.
+ * Upgrade note: settings saved before this change may carry
+ * `styling.backgroundColor = '#ffffff'` that used to be stripped as
+ * default-equal and now renders as an actual white background.
  *
  * Hosts can override by registering their own provider that returns a
  * different default for `styling.backgroundColor`.
@@ -29,7 +27,7 @@ final class CoreStylingDefaults implements SectionSettingsDefaultsProviderInterf
     {
         return [
             'styling' => [
-                'backgroundColor' => '#ffffff',
+                'backgroundColor' => '',
             ],
         ];
     }

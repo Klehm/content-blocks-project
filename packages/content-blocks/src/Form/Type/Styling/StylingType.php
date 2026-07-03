@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Form\Type\Styling;
 
+use ContentBlocks\Form\Type\PaletteColorType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\ColorType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -46,7 +46,10 @@ final class StylingType extends AbstractType
                 'label' => 'cb.styling.margin',
                 'allow_negative' => true,
             ])
-            ->add('backgroundColor', ColorType::class, [
+            // Palette dropdown + custom picker, storing a plain '#hex' ('' for
+            // none). Having a real empty state is what allows the styling
+            // defaults to be transparent instead of the old #ffffff hack.
+            ->add('backgroundColor', PaletteColorType::class, [
                 'required' => false,
                 'label' => 'cb.styling.background_color',
             ]);

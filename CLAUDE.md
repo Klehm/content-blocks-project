@@ -144,7 +144,8 @@ Le bloc sera automatiquement détecté et enregistré dans le `BlockTypeRegistry
 - `cb-builder` : orchestration de la fenêtre builder (sidebar, postMessage iframe, sauvegarde)
 - `cb-block-edit-keys` : raccourcis clavier dans la sidebar d'édition de bloc
 - `cb-section-settings-form` : sync live de la sidebar de settings de section
-- (kit) `cb-file-upload` : upload AJAX avec progress + retry
+- `cb-condition` : affichage conditionnel générique de champs (`data-cb-condition="field:value1|value2"` sur une row ; checkbox → `true`/`false` ; `field` seul → non-vide). Les instances s'imbriquent (scope = plus proche ancêtre). Utilisé par le switch « Personnaliser le style » et `PaletteColorType` ; réutilisable dans les forms de blocs custom
+- `cb-file-upload` : upload AJAX vers `/_content-blocks/upload` (preview + status), utilisé par `ImageUploadType`
 
 Ces controllers doivent être déclarés dans `assets/controllers.json` côté host (jusqu'à publication d'une recette Flex officielle). Voir `packages/content-blocks/README.md`.
 
@@ -163,6 +164,36 @@ Cette règle évite les rangées `cb_content_area` orphelines créées à chaque
 
 ### Templates
 Les templates utilisent le namespace Twig `@ContentBlocks`.
+
+## Configuration sémantique du bundle
+
+Le bundle expose un arbre de config (`ContentBlocksBundle::configure()`), raccourci déclaratif des interfaces (qui restent la voie power-user et se cumulent avec la config) :
+
+```yaml
+# config/packages/content_blocks.yaml
+content_blocks:
+    section:
+        default_width_mode: full        # 'full' | 'centered'
+        default_max_width: 1320
+    palette:                            # couleurs nommées du PaletteColorType
+        - { label: 'Primaire', color: '#eb0540' }
+    styles:                             # presets de style de section
+        - name: boxed
+          label: 'Boxed'
+          css_class: 'my-section--boxed'
+          settings: { styling: { padding: { d: { top: 40, bottom: 40 } } } }
+    upload:
+        dir: null                       # non-null → active LocalFileStorage
+        public_prefix: '/uploads/content-blocks'
+        max_size: 10485760
+        allowed_mime_types: [...]
+```
+
+Points clés du styling :
+- **`PaletteColorType`** (`cb_palette_color`) : dropdown palette + « Personnalisé… » (colorpicker libre), stocke un `#hex` simple (`''` = aucune). Remplace le `ColorType` dans `StylingType`. Interfaces : `ColorPaletteProviderInterface` (autoconfiguré) + `ColorPaletteRegistry`.
+- **Défaut de fond transparent** : `CoreStylingDefaults` / `CoreBlockStylingDefaults` valent `''` (le hack `#ffffff` de l'époque `<input type=color>` est supprimé). Attention en upgrade : un `#ffffff` déjà persisté rend désormais un vrai fond blanc.
+- **Presets de section avec settings** : `SectionStyle` porte `cssClass` **et** `settings` (même forme que `draft_settings`), mergés *sous* les settings de la section au rendu (`BlockRenderer::applyPresetSettings`) — les valeurs explicites de l'utilisateur gagnent clé par clé.
+- **Switch « Personnaliser le style »** (`stylingCustom`) : les champs styling de la sidebar section sont cachés tant qu'il est off (progressive disclosure via `cb-condition`) ; off à la sauvegarde → le sous-arbre `styling` est purgé (le preset s'applique tel quel) ; on → champs préremplis depuis le preset. Les feuilles vides/false sont élaguées récursivement avant persistance (`SectionSidebarController::normalize`).
 
 ## Required host services
 
@@ -250,20 +281,21 @@ Each `BlockTypeInterface` controls its own data validation:
 
 ### File Upload
 
-Upload endpoint `/_content-blocks/upload` validates: CSRF token, file size (10 MB max), MIME type whitelist (image/*, PDF).
+Upload endpoint `/_content-blocks/upload` (core, `ContentBlocks\Controller\UploadController`) validates: CSRF token, file size, MIME whitelist — both configurables via `content_blocks.upload.max_size` / `.allowed_mime_types`.
 
-`FileStorageInterface` is the abstraction for file storage:
+`ContentBlocks\Storage\FileStorageInterface` is the abstraction for file storage (core — plus dans le kit) :
 - **Default**: `NullFileStorage` — throws (forces app to configure)
-- **Provided**: `LocalFileStorage` — local filesystem
+- **Provided**: `LocalFileStorage` — local filesystem, activé par la config sémantique :
 
 ```yaml
-# config/services.yaml
-ContentBlocks\Storage\FileStorageInterface:
-    class: ContentBlocks\Storage\LocalFileStorage
-    arguments:
-        $uploadDir: '%kernel.project_dir%/public/uploads/content-blocks'
-        $publicPrefix: '/uploads/content-blocks'
+# config/packages/content_blocks.yaml
+content_blocks:
+    upload:
+        dir: '%kernel.project_dir%/public/uploads/content-blocks'
+        public_prefix: '/uploads/content-blocks'
 ```
+
+Pour S3/Flysystem : aliaser `FileStorageInterface` vers sa propre implémentation. Côté formulaire, `ImageUploadType` (core) rend le picker + preview via le widget `cb_image_upload` de `cb_form_theme.html.twig`. L'export/import d'assets passe par `FileStorageAssetResolver` (core), branché par défaut sur `AssetResolverInterface`.
 
 ## Choix Techniques
 

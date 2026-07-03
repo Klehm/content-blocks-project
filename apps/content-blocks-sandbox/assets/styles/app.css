@@ -1,3 +1,11 @@
 body {
     background-color: #fff;
 }
+
+/* ContentBlocks demo section style preset (see config/packages/content_blocks.yaml).
+   The preset also carries settings values (background, padding); this class
+   only adds what settings can't express. */
+.demo-section--boxed > .cb-row {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}

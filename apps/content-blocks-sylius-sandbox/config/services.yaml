@@ -38,9 +38,5 @@ services:
     ContentBlocks\Preview\ContentAreaUrlResolverInterface:
         class: App\Preview\PageContentAreaUrlResolver
 
-    # Local file storage for ContentBlocks uploads
-    ContentBlocks\Kit\Storage\FileStorageInterface:
-        class: ContentBlocks\Kit\Storage\LocalFileStorage
-        arguments:
-            $uploadDir: '%kernel.project_dir%/public/uploads/content-blocks'
-            $publicPrefix: '/uploads/content-blocks'
+    # File storage moved to the main package and is now configured via the
+    # content_blocks.upload semantic config (see config/packages/content_blocks.yaml)
