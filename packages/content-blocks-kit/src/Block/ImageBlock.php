@@ -6,7 +6,7 @@ namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\AsContentBlock;
-use Symfony\Component\Form\Extension\Core\Type\HiddenType;
+use ContentBlocks\Form\Type\ImageUploadType;
 use Symfony\Component\Form\Extension\Core\Type\RangeType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -39,8 +39,11 @@ final class ImageBlock extends AbstractBlockType
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
         $builder
-            ->add('src', HiddenType::class, [
-                'attr' => ['data-cb-file-upload-target' => 'hiddenInput'],
+            // Upload UI (file picker + preview) rendered by the main
+            // package's cb_image_upload widget — no form theme needed.
+            ->add('src', ImageUploadType::class, [
+                'label' => 'cb_kit.block.image.field.file',
+                'translation_domain' => 'content_blocks_kit',
             ])
             ->add('alt', TextType::class, [
                 'label' => 'cb_kit.block.image.field.alt',
@@ -72,11 +75,6 @@ final class ImageBlock extends AbstractBlockType
             'width' => 0,
             'height' => 0,
         ];
-    }
-
-    public function getFormTheme(): ?string
-    {
-        return '@ContentBlocksKit/form/image_theme.html.twig';
     }
 
     public function getViewTemplate(): ?string

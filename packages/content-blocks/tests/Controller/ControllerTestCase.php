@@ -15,6 +15,7 @@ use ContentBlocks\Entity\Section;
 use ContentBlocks\Rendering\BlockRenderer;
 use ContentBlocks\Section\SectionDecoratorCollection;
 use ContentBlocks\Section\SectionSettingsDefaults;
+use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AllowAllAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
@@ -96,6 +97,7 @@ abstract class ControllerTestCase extends TestCase
             new BlockTypeRegistry(),
             new SectionDecoratorCollection([]),
             new SectionSettingsDefaults([]),
+            new SectionStyleRegistry([]),
             $this->createMock(TranslatorInterface::class),
             new BlockDecoratorCollection([]),
             new BlockDataDefaults([]),

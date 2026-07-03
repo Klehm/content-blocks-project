@@ -5,6 +5,13 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Upload brick moved to the main package.** `ContentBlocks\Kit\Storage\*` (FileStorageInterface, LocalFileStorage, NullFileStorage), the kit `UploadController`, `FileStorageAssetResolver` and the `cb-file-upload` Stimulus controller now live in `klehm/content-blocks` (`ContentBlocks\Storage\*`, `ContentBlocks\Controller\UploadController`, `ContentBlocks\Asset\FileStorageAssetResolver`). Update your service wiring to the new namespaces — or drop it entirely in favor of the `content_blocks.upload` bundle config — and move the `cb-file-upload` entry in `assets/controllers.json` from `@klehm/content-blocks-kit` to `@klehm/content-blocks`. The kit's `config/routes.php` is kept as a no-op so existing route imports don't break.
+- **`ImageBlock` uses the core `ImageUploadType`.** The hidden `src` field + `image_theme.html.twig` form-theme override are replaced by the main package's upload widget; the kit no longer ships a form theme for the image block.
+
 ## [0.1.0-alpha.12] - 2026-06-08
 
 ### Changed

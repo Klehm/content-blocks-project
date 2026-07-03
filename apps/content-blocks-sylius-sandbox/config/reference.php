@@ -996,6 +996,28 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         html_to_text_converter?: scalar|Param|null, // A service implementing the "Symfony\Component\Mime\HtmlToTextConverter\HtmlToTextConverterInterface". // Default: null
  *     },
  * }
+ * @psalm-type ContentBlocksConfig = array{
+ *     section?: array{
+ *         default_width_mode?: "full"|"centered"|Param, // Default: "full"
+ *         default_max_width?: int|Param, // Default: 1320
+ *     },
+ *     palette?: list<array{ // Default: []
+ *         label?: scalar|Param|null,
+ *         color?: scalar|Param|null,
+ *     }>,
+ *     styles?: list<array{ // Default: []
+ *         name?: scalar|Param|null,
+ *         label?: scalar|Param|null,
+ *         css_class?: scalar|Param|null, // Default: ""
+ *         settings?: mixed, // Section settings applied by the preset (same shape as draft_settings). // Default: []
+ *     }>,
+ *     upload?: array{
+ *         dir?: scalar|Param|null, // Filesystem dir for LocalFileStorage; leave null to keep uploads disabled (NullFileStorage) or wire your own FileStorageInterface. // Default: null
+ *         public_prefix?: scalar|Param|null, // Default: "/uploads/content-blocks"
+ *         max_size?: int|Param, // Default: 10485760
+ *         allowed_mime_types?: list<scalar|Param|null>,
+ *     },
+ * }
  * @psalm-type KnpMenuConfig = array{
  *     providers?: array{
  *         builder_alias?: bool|Param, // Default: true
@@ -1530,6 +1552,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     stimulus?: StimulusConfig,
  *     live_component?: LiveComponentConfig,
  *     twig?: TwigConfig,
+ *     content_blocks?: ContentBlocksConfig,
  *     knp_menu?: KnpMenuConfig,
  *     ux_icons?: UxIconsConfig,
  *     security?: SecurityConfig,
@@ -1552,6 +1575,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         stimulus?: StimulusConfig,
  *         live_component?: LiveComponentConfig,
  *         twig?: TwigConfig,
+ *         content_blocks?: ContentBlocksConfig,
  *         knp_menu?: KnpMenuConfig,
  *         ux_icons?: UxIconsConfig,
  *         security?: SecurityConfig,
@@ -1574,6 +1598,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         stimulus?: StimulusConfig,
  *         live_component?: LiveComponentConfig,
  *         twig?: TwigConfig,
+ *         content_blocks?: ContentBlocksConfig,
  *         knp_menu?: KnpMenuConfig,
  *         ux_icons?: UxIconsConfig,
  *         security?: SecurityConfig,
@@ -1596,6 +1621,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         stimulus?: StimulusConfig,
  *         live_component?: LiveComponentConfig,
  *         twig?: TwigConfig,
+ *         content_blocks?: ContentBlocksConfig,
  *         knp_menu?: KnpMenuConfig,
  *         ux_icons?: UxIconsConfig,
  *         security?: SecurityConfig,

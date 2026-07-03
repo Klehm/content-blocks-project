@@ -218,6 +218,7 @@ final class BlockRendererTest extends TestCase
                 $bgDecorator,
             ]),
             $defaults,
+            new \ContentBlocks\Section\SectionStyleRegistry([]),
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
             new \ContentBlocks\Block\BlockDataDefaults(),
@@ -260,6 +261,7 @@ final class BlockRendererTest extends TestCase
                     public function getDefaults(): array { return ['backgroundColor' => '#ffffff']; }
                 },
             ]),
+            new \ContentBlocks\Section\SectionStyleRegistry([]),
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
             new \ContentBlocks\Block\BlockDataDefaults(),
@@ -268,6 +270,85 @@ final class BlockRendererTest extends TestCase
         $html = $renderer->render($area, RenderMode::PUBLIC);
 
         $this->assertStringContainsString('background-color:#ff00ff', $html);
+    }
+
+    /**
+     * A style preset's settings apply as the base layer under the section's
+     * own settings: preset-only keys render, and the section's explicit
+     * values win key-by-key.
+     */
+    public function testPresetSettingsMergeUnderneathSectionSettings(): void
+    {
+        $styleRegistry = new \ContentBlocks\Section\SectionStyleRegistry([
+            new class implements \ContentBlocks\Section\SectionStyleProviderInterface {
+                public function getStyles(): array
+                {
+                    return [new \ContentBlocks\Section\SectionStyle(
+                        'boxed',
+                        'Boxed',
+                        'sec--boxed',
+                        ['backgroundColor' => '#111111'],
+                    )];
+                }
+            },
+        ]);
+
+        $bgDecorator = new class implements \ContentBlocks\Section\SectionDecoratorInterface {
+            public function decorate(array $settings, Section $section): \ContentBlocks\Section\SectionDecoration
+            {
+                $color = $settings['backgroundColor'] ?? null;
+                if (!\is_string($color)) {
+                    return new \ContentBlocks\Section\SectionDecoration();
+                }
+                return new \ContentBlocks\Section\SectionDecoration(inlineStyles: ['background-color' => $color]);
+            }
+        };
+
+        $registry = new BlockTypeRegistry();
+        $registry->register($this->textBlockType());
+
+        $makeRenderer = fn (): BlockRenderer => new BlockRenderer(
+            $this->makeTwig(['text_view.html.twig' => '']),
+            new RequestStack(),
+            new AllowAllAccessChecker(),
+            $registry,
+            new \ContentBlocks\Section\SectionDecoratorCollection([
+                new \ContentBlocks\Section\BuiltInSectionDecorator($styleRegistry),
+                $bgDecorator,
+            ]),
+            new \ContentBlocks\Section\SectionSettingsDefaults([]),
+            $styleRegistry,
+            $this->makeTranslator(),
+            new \ContentBlocks\Block\BlockDecoratorCollection([]),
+            new \ContentBlocks\Block\BlockDataDefaults(),
+        );
+
+        // Preset alone: its class AND its settings values render.
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $section->setPublishedSettings(['styleName' => 'boxed']);
+
+        $html = $makeRenderer()->render($area, RenderMode::PUBLIC);
+        $this->assertStringContainsString('sec--boxed', $html);
+        $this->assertStringContainsString('background-color:#111111', $html);
+
+        // Section's own value wins over the preset's for the same key.
+        $area2 = $this->makeArea();
+        $section2 = $this->makeSection($area2, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $section2->setPublishedSettings(['styleName' => 'boxed', 'backgroundColor' => '#222222']);
+
+        $html2 = $makeRenderer()->render($area2, RenderMode::PUBLIC);
+        $this->assertStringContainsString('sec--boxed', $html2);
+        $this->assertStringContainsString('background-color:#222222', $html2);
+        $this->assertStringNotContainsString('#111111', $html2);
+
+        // Unknown preset name: no class, no crash.
+        $area3 = $this->makeArea();
+        $section3 = $this->makeSection($area3, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $section3->setPublishedSettings(['styleName' => 'gone']);
+
+        $html3 = $makeRenderer()->render($area3, RenderMode::PUBLIC);
+        $this->assertStringNotContainsString('background-color', $html3);
     }
 
     public function testColumnWidthsAreEmittedAsPerColumnFlexWeights(): void
@@ -345,6 +426,7 @@ final class BlockRendererTest extends TestCase
             $registry,
             new \ContentBlocks\Section\SectionDecoratorCollection([]),
             new \ContentBlocks\Section\SectionSettingsDefaults([]),
+            new \ContentBlocks\Section\SectionStyleRegistry([]),
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
             new \ContentBlocks\Block\BlockDataDefaults(),
@@ -418,6 +500,7 @@ final class BlockRendererTest extends TestCase
             $registry,
             new \ContentBlocks\Section\SectionDecoratorCollection([]),
             new \ContentBlocks\Section\SectionSettingsDefaults([]),
+            new \ContentBlocks\Section\SectionStyleRegistry([]),
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
             new \ContentBlocks\Block\BlockDataDefaults(),
@@ -447,6 +530,7 @@ final class BlockRendererTest extends TestCase
             new BlockTypeRegistry(),
             new \ContentBlocks\Section\SectionDecoratorCollection([]),
             new \ContentBlocks\Section\SectionSettingsDefaults([]),
+            new \ContentBlocks\Section\SectionStyleRegistry([]),
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
             new \ContentBlocks\Block\BlockDataDefaults(),

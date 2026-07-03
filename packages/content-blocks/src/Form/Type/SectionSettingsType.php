@@ -7,6 +7,7 @@ namespace ContentBlocks\Form\Type;
 use ContentBlocks\Form\Type\Styling\StylingType;
 use ContentBlocks\Section\SectionStyleRegistry;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -92,6 +93,18 @@ final class SectionSettingsType extends AbstractType
                 'label' => 'cb.section.settings.style',
             ]);
         }
+
+        // Progressive disclosure switch for the styling sub-form: presets
+        // keep the everyday UX to a single dropdown; flipping the switch
+        // reveals the full styling fields. Off → the styling subtree is
+        // dropped on save (SectionSidebarController), so switching presets
+        // never fights stale field values; on → the fields refine the
+        // preset (user values win key-by-key at render time).
+        $builder->add('stylingCustom', CheckboxType::class, [
+            'required' => false,
+            'label' => 'cb.section.settings.styling_custom',
+            'help' => 'cb.section.settings.styling_custom_help',
+        ]);
 
         // Styling sub-form: rendered under the "Styling" sidebar tab.
         // Extensions targeting SectionSettingsType land in "General"; to

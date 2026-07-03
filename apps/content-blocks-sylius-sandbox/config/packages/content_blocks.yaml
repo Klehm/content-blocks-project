@@ -1,0 +1,41 @@
+# Semantic config of the ContentBlocks bundle — exercises every declarative
+# extension point (colors, style presets, uploads). Interfaces remain the
+# power-user path (ColorPaletteProviderInterface, SectionStyleProviderInterface,
+# FileStorageInterface).
+content_blocks:
+    section:
+        default_width_mode: full
+        default_max_width: 1320
+
+    # Named colors offered by the palette color picker (background colors of
+    # sections and blocks). Editors can still switch to "Custom…" for a free
+    # color picker.
+    palette:
+        - { label: 'Indigo', color: '#4f46e5' }
+        - { label: 'Sky', color: '#e0f2fe' }
+        - { label: 'Slate', color: '#f1f5f9' }
+        - { label: 'White', color: '#ffffff' }
+        - { label: 'Ink', color: '#111827' }
+
+    # Section style presets: a CSS class (styled in app.css) and/or settings
+    # values applied underneath the section's own settings. Editors pick a
+    # preset from the dropdown; the "Customize styling" switch reveals the
+    # full styling fields, prefilled from the preset.
+    styles:
+        - name: boxed
+          label: 'Boxed'
+          css_class: 'demo-section--boxed'
+          settings:
+              styling:
+                  backgroundColor: '#f1f5f9'
+                  padding: { d: { top: 40, right: 40, bottom: 40, left: 40 } }
+        - name: airy
+          label: 'Airy'
+          settings:
+              styling:
+                  padding: { d: { top: 96, bottom: 96 }, m: { top: 48, bottom: 48 } }
+
+    # Enables the upload endpoint with a LocalFileStorage.
+    upload:
+        dir: '%kernel.project_dir%/public/uploads/content-blocks'
+        public_prefix: '/uploads/content-blocks'

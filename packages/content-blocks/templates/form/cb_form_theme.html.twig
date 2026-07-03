@@ -506,3 +506,28 @@
         {%- endif -%}
     </div>
 {%- endblock live_collection_entry_row %}
+
+{# ---------- Image upload field (ImageUploadType) ----------
+   File picker + preview around the hidden path input. The cb-file-upload
+   controller uploads to /_content-blocks/upload and writes the returned
+   URL into the hidden input (dispatching `change` for autosave). #}
+{% block cb_image_upload_widget -%}
+    <div data-controller="cb-file-upload" class="cb-image-upload">
+        <input type="file"
+               class="cb-form-file"
+               accept="{{ accept|default('image/*') }}"
+               data-action="change->cb-file-upload#upload:stop">
+        <span data-cb-file-upload-target="status" class="cb-upload-status"></span>
+
+        {%- set src = form.vars.value -%}
+        <div class="cb-image-upload__preview"{% if not src %} hidden{% endif %}>
+            <img data-cb-file-upload-target="preview"
+                 {% if src %}src="{{ src }}"{% endif %}
+                 class="cb-thumbnail"
+                 {% if not src %}hidden{% endif %}>
+        </div>
+
+        {# Hidden input carrying the stored path; targets set by the type. #}
+        {{ block('hidden_widget') }}
+    </div>
+{%- endblock cb_image_upload_widget %}

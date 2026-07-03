@@ -23,6 +23,8 @@ cb:
             column_width_n: "Column %n% width (%)"
             style: "Style preset"
             style.none: "— None —"
+            styling_custom: "Customize styling"
+            styling_custom_help: "Off: the preset applies as-is. On: the fields below refine or replace it."
             tab.general: "General"
             tab.styling: "Styling"
     styling:
@@ -30,6 +32,9 @@ cb:
         margin: "Margin"
         gap: "Column gap"
         background_color: "Background color"
+        palette:
+            none: "— None —"
+            custom: "Custom…"
         min_height: "Min height"
         max_width: "Max width"
         vertical_align: "Vertical align"

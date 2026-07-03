@@ -66,6 +66,18 @@
                 "name": "cb-collection-sort",
                 "fetch": "eager",
                 "enabled": true
+            },
+            "cb-condition": {
+                "main": "controllers/cb-condition_controller.js",
+                "name": "cb-condition",
+                "fetch": "eager",
+                "enabled": true
+            },
+            "cb-file-upload": {
+                "main": "controllers/cb-file-upload_controller.js",
+                "name": "cb-file-upload",
+                "fetch": "eager",
+                "enabled": true
             }
         },
         "importmap": {
