@@ -211,7 +211,8 @@
 
 /* ---- Replace-content picker overlay (anchored to topbar Insert button) ---- */
 
-.cb-replace-picker {
+.cb-replace-picker,
+.cb-template-picker {
   position: absolute;
   top: 56px;
   left: 12px;
@@ -227,11 +228,13 @@
   z-index: 30;
   overflow: hidden;
 }
-.cb-replace-picker[hidden] {
+.cb-replace-picker[hidden],
+.cb-template-picker[hidden] {
   display: none;
 }
 
-.cb-replace-picker__header {
+.cb-replace-picker__header,
+.cb-template-picker__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -239,13 +242,15 @@
   border-bottom: 1px solid #eef0f3;
   background: #fafbfc;
 }
-.cb-replace-picker__title {
+.cb-replace-picker__title,
+.cb-template-picker__title {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 600;
   color: #1f2330;
 }
-.cb-replace-picker__close {
+.cb-replace-picker__close,
+.cb-template-picker__close {
   background: transparent;
   border: 0;
   font-size: 1.25rem;
@@ -254,11 +259,13 @@
   cursor: pointer;
   color: #666;
 }
-.cb-replace-picker__close:hover {
+.cb-replace-picker__close:hover,
+.cb-template-picker__close:hover {
   color: #1f2330;
 }
 
-.cb-replace-picker__body {
+.cb-replace-picker__body,
+.cb-template-picker__body {
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -266,7 +273,8 @@
   overflow-y: auto;
 }
 
-.cb-replace-picker__search {
+.cb-replace-picker__search,
+.cb-template-picker__search {
   width: 100%;
   padding: 0.375rem 0.5rem;
   border: 1px solid #d8dbe0;
@@ -274,7 +282,8 @@
   font: inherit;
 }
 
-.cb-replace-picker__list {
+.cb-replace-picker__list,
+.cb-template-picker__list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -282,10 +291,12 @@
   flex-direction: column;
   gap: 0.125rem;
 }
-.cb-replace-picker__item {
+.cb-replace-picker__item,
+.cb-template-picker__item {
   display: flex;
 }
-.cb-replace-picker__item-btn {
+.cb-replace-picker__item-btn,
+.cb-template-picker__item-btn {
   flex: 1 1 auto;
   text-align: left;
   background: transparent;
@@ -298,20 +309,96 @@
   cursor: pointer;
 }
 .cb-replace-picker__item-btn:hover,
-.cb-replace-picker__item-btn:focus-visible {
+.cb-replace-picker__item-btn:focus-visible,
+.cb-template-picker__item-btn:hover,
+.cb-template-picker__item-btn:focus-visible {
   background: rgba(79, 141, 249, 0.08);
   border-color: rgba(79, 141, 249, 0.25);
   outline: none;
 }
 
-.cb-replace-picker__status {
+.cb-replace-picker__status,
+.cb-template-picker__status {
   margin: 0;
   color: #666;
   font-size: 0.85rem;
   min-height: 1rem;
 }
-.cb-replace-picker__status:empty {
+.cb-replace-picker__status:empty,
+.cb-template-picker__status:empty {
   display: none;
+}
+
+/* Section-template library picker: shares the replace picker's shell +
+   item classes, adds a per-row delete affordance, a disabled state for
+   incompatible templates, and a "load more" pagination control. */
+.cb-template-picker__item {
+  align-items: center;
+  gap: 0.25rem;
+}
+.cb-template-picker__item--disabled .cb-replace-picker__item-btn {
+  color: #9aa0ac;
+  cursor: not-allowed;
+}
+.cb-template-picker__item--disabled .cb-replace-picker__item-btn:hover {
+  background: transparent;
+  border-color: transparent;
+}
+.cb-template-picker__delete {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.375rem;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: #999;
+  cursor: pointer;
+}
+.cb-template-picker__delete:hover,
+.cb-template-picker__delete:focus-visible {
+  background: rgba(220, 53, 69, 0.1);
+  border-color: rgba(220, 53, 69, 0.3);
+  color: #dc3545;
+  outline: none;
+}
+.cb-template-picker__more {
+  margin-top: 0.25rem;
+  align-self: center;
+  background: transparent;
+  border: 1px solid rgba(79, 141, 249, 0.3);
+  border-radius: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: #4f8df9;
+  cursor: pointer;
+}
+.cb-template-picker__more:hover,
+.cb-template-picker__more:focus-visible {
+  background: rgba(79, 141, 249, 0.08);
+  outline: none;
+}
+
+/* "Insert from library" affordances (empty sidebar + iframe add tray). */
+.cb-sidebar-empty__library {
+  margin-top: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: transparent;
+  border: 1px solid rgba(79, 141, 249, 0.3);
+  border-radius: 0.25rem;
+  padding: 0.375rem 0.625rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: #4f8df9;
+  cursor: pointer;
+}
+.cb-sidebar-empty__library:hover,
+.cb-sidebar-empty__library:focus-visible {
+  background: rgba(79, 141, 249, 0.08);
+  outline: none;
 }
 
 /* ---- Import / Export topbar button + picker overlay ----

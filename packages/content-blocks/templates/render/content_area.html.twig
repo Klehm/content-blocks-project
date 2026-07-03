@@ -50,6 +50,14 @@
                 </svg>
             </button>
         </div>
+        <button type="button"
+                class="cb-add-section-tray__library"
+                data-cb-insert-template
+                aria-label="{{ 'cb.builder.template.insert'|trans({}, 'content_blocks') }}"
+                title="{{ 'cb.builder.template.insert'|trans({}, 'content_blocks') }}">
+            <span aria-hidden="true">▤</span>
+            {{ 'cb.builder.template.insert'|trans({}, 'content_blocks') }}
+        </button>
     </aside>
     <script>window.__cbBlockTypes = {{ blockTypes|json_encode|raw }};</script>
     <script>window.__cbAddBlockLabel = {{ 'cb.block.add_title'|trans({}, 'content_blocks')|json_encode|raw }};</script>
