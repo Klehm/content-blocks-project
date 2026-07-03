@@ -1474,12 +1474,12 @@ export default class extends Controller {
 
     _buildTemplateRow(item, filter) {
         const li = document.createElement('li');
-        li.className = 'cb-replace-picker__item cb-template-picker__item';
+        li.className = 'cb-template-picker__item';
         li.setAttribute('role', 'option');
 
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'cb-replace-picker__item-btn';
+        btn.className = 'cb-template-picker__item-btn';
         btn.textContent = item.name ?? `#${item.id}`;
 
         if (item.compatible === false) {

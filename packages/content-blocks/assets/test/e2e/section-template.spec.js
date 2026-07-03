@@ -78,9 +78,9 @@ test.describe('section-template library — round trip', () => {
         const picker = page.locator('.cb-template-picker');
         await expect(picker).toBeVisible();
 
-        await picker.locator('.cb-replace-picker__search').fill(templateName);
-        await expect.poll(() => picker.locator('.cb-replace-picker__item-btn').count()).toBe(1);
-        await picker.locator('.cb-replace-picker__item-btn').first().click();
+        await picker.locator('.cb-template-picker__search').fill(templateName);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+        await picker.locator('.cb-template-picker__item-btn').first().click();
 
         // Inserted as one draft section carrying its block; publish is enabled.
         await expect(picker).toBeHidden();
@@ -107,9 +107,9 @@ test.describe('section-template library — round trip', () => {
         await targetFrame.locator('.cb-add-section-tray__library').click();
         const picker = page.locator('.cb-template-picker');
         await expect(picker).toBeVisible();
-        await picker.locator('.cb-replace-picker__search').fill(templateName);
-        await expect.poll(() => picker.locator('.cb-replace-picker__item-btn').count()).toBe(1);
-        await picker.locator('.cb-replace-picker__item-btn').first().click();
+        await picker.locator('.cb-template-picker__search').fill(templateName);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+        await picker.locator('.cb-template-picker__item-btn').first().click();
 
         await expect(picker).toBeHidden();
         await expect.poll(() => targetFrame.locator('[data-cb-section-id]').count()).toBe(2);
@@ -132,7 +132,7 @@ test.describe('section-template library — management', () => {
         await sourceFrame.locator('.cb-add-section-tray__library').click();
         const picker = page.locator('.cb-template-picker');
         await expect(picker).toBeVisible();
-        await picker.locator('.cb-replace-picker__search').fill(templateName);
+        await picker.locator('.cb-template-picker__search').fill(templateName);
         await expect.poll(() => picker.locator('.cb-template-picker__item').count()).toBe(1);
 
         const row = picker.locator('.cb-template-picker__item').first();
