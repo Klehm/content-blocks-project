@@ -9,12 +9,15 @@ use ContentBlocks\Kit\Block\AccordionBlock;
 use ContentBlocks\Kit\Block\AlertBlock;
 use ContentBlocks\Kit\Block\BreadcrumbBlock;
 use ContentBlocks\Kit\Block\ButtonBlock;
+use ContentBlocks\Kit\Block\CardBlock;
 use ContentBlocks\Kit\Block\DividerBlock;
 use ContentBlocks\Kit\Block\EmbedBlock;
+use ContentBlocks\Kit\Block\GalleryBlock;
 use ContentBlocks\Kit\Block\HtmlRawBlock;
 use ContentBlocks\Kit\Block\IconBlock;
 use ContentBlocks\Kit\Block\ImageBlock;
 use ContentBlocks\Kit\Block\ListBlock;
+use ContentBlocks\Kit\Block\TableBlock;
 use ContentBlocks\Kit\Block\RichTextBlock;
 use ContentBlocks\Kit\Block\TabsBlock;
 use ContentBlocks\Kit\Block\TextBlock;
@@ -37,12 +40,15 @@ final class ContentBlocksKitBundle extends AbstractBundle
         'text' => TextBlock::class,
         'rich_text' => RichTextBlock::class,
         'image' => ImageBlock::class,
+        'gallery' => GalleryBlock::class,
         'button' => ButtonBlock::class,
+        'card' => CardBlock::class,
         'list' => ListBlock::class,
         'icon' => IconBlock::class,
         'alert' => AlertBlock::class,
         'divider' => DividerBlock::class,
         'accordion' => AccordionBlock::class,
+        'table' => TableBlock::class,
         'embed' => EmbedBlock::class,
         'breadcrumb' => BreadcrumbBlock::class,
         'html_raw' => HtmlRawBlock::class,

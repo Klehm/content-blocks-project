@@ -111,8 +111,59 @@ cb_kit:
             field:
                 file: "Image file"
                 alt: "Alternative text"
+                size: "Size"
                 width: "Width (px)"
                 height: "Height (px)"
+                height_auto: "Automatic height (keep ratio)"
+                fit: "Fit"
+                link: "Link (optional)"
+                caption: "Caption (optional)"
+                border_radius: "Rounded corners (px)"
+            size:
+                sm: "Small (400px)"
+                md: "Medium (800px)"
+                lg: "Large (1200px)"
+                full: "Full width"
+                custom: "Custom"
+            fit:
+                cover: "Fill (crop)"
+                contain: "Contain (whole image)"
+        gallery:
+            label: "Gallery"
+            field:
+                layout: "Layout"
+                columns: "Columns"
+                items: "Images"
+                item_caption: "Caption (optional)"
+            layout:
+                grid: "Grid"
+                slider: "Slider"
+        card:
+            label: "Cards"
+            field:
+                layout: "Layout"
+                columns: "Columns"
+                items: "Cards"
+                item_title: "Title"
+                item_content: "Text"
+                item_button_url: "Button link (optional)"
+                item_button_label: "Button label (optional)"
+            layout:
+                grid: "Grid"
+                list: "List"
+        table:
+            label: "Table"
+            field:
+                striped: "Striped rows"
+                columns: "Columns"
+                rows: "Rows"
+                cells: "Cells"
+                column_label: "Header"
+                cell_content: "Content"
+            action:
+                add_column: "Add column"
+                add_row: "Add row"
+                add_cell: "Add cell"
         tabs:
             label: "Tabs"
             empty: "No tabs"
