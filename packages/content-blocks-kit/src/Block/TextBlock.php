@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\Form\Type\PaletteColorType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Translation\TranslatableMessage;
@@ -33,17 +34,25 @@ final class TextBlock extends AbstractKitBlock
 
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
-        $builder->add('content', TextareaType::class, [
-            'label' => 'cb_kit.block.text.field.content',
-            'translation_domain' => 'content_blocks_kit',
-            'required' => false,
-            'attr' => ['rows' => 5],
-        ]);
+        $builder
+            ->add('content', TextareaType::class, [
+                'label' => 'cb_kit.block.text.field.content',
+                'translation_domain' => 'content_blocks_kit',
+                'required' => false,
+                'attr' => ['rows' => 5],
+            ])
+            // Reuses the core palette — same named colors as the title block and
+            // the TinyMCE swatches. Stores a plain '#hex' ('' = inherit).
+            ->add('color', PaletteColorType::class, [
+                'label' => 'cb_kit.block.field.text_color',
+                'translation_domain' => 'content_blocks_kit',
+                'required' => false,
+            ]);
     }
 
-    public function getDefaultData(): array
+    protected function defaults(): array
     {
-        return ['content' => ''];
+        return ['content' => '', 'color' => ''];
     }
 
     public function getViewTemplate(): ?string

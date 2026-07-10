@@ -50,36 +50,24 @@ final class GalleryBlock extends AbstractKitBlock
 
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
-        $maxColumns = (int) $this->option('max_columns');
-        $columnChoices = [];
-        foreach (range(2, max(2, $maxColumns)) as $n) {
-            $columnChoices[(string) $n] = $n;
-        }
-
         $builder
             ->add('layout', ChoiceType::class, [
                 'label' => 'cb_kit.block.gallery.field.layout',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'cb_kit.block.gallery.layout.grid' => 'grid',
-                    'cb_kit.block.gallery.layout.slider' => 'slider',
-                ],
-                'constraints' => [new Assert\Choice(choices: ['grid', 'slider'])],
+                'choices' => $this->choices('layout'),
+                'constraints' => [$this->choiceConstraint('layout')],
             ])
             ->add('columns', ChoiceType::class, [
                 'label' => 'cb_kit.block.gallery.field.columns',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => $columnChoices,
-                'constraints' => [new Assert\Choice(choices: array_values($columnChoices))],
+                'choices' => $this->choices('columns'),
+                'constraints' => [$this->choiceConstraint('columns')],
             ])
             ->add('fit', ChoiceType::class, [
                 'label' => 'cb_kit.block.image.field.fit',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'cb_kit.block.image.fit.cover' => 'cover',
-                    'cb_kit.block.image.fit.contain' => 'contain',
-                ],
-                'constraints' => [new Assert\Choice(choices: ['cover', 'contain'])],
+                'choices' => $this->choices('fit'),
+                'constraints' => [$this->choiceConstraint('fit')],
             ])
             ->add('borderRadius', BoxSpacingType::class, [
                 'label' => 'cb_kit.block.image.field.border_radius',
@@ -106,7 +94,29 @@ final class GalleryBlock extends AbstractKitBlock
             ]);
     }
 
-    public function getDefaultData(): array
+    protected function choiceFields(): array
+    {
+        // `columns` is capped by the `max_columns` option, so it is computed
+        // rather than a static map — hence choiceFields() is instance-level.
+        $columnChoices = [];
+        foreach (range(2, max(2, (int) $this->option('max_columns'))) as $n) {
+            $columnChoices[(string) $n] = $n;
+        }
+
+        return [
+            'layout' => [
+                'cb_kit.block.gallery.layout.grid' => 'grid',
+                'cb_kit.block.gallery.layout.slider' => 'slider',
+            ],
+            'columns' => $columnChoices,
+            'fit' => [
+                'cb_kit.block.image.fit.cover' => 'cover',
+                'cb_kit.block.image.fit.contain' => 'contain',
+            ],
+        ];
+    }
+
+    protected function defaults(): array
     {
         return [
             'layout' => 'grid',

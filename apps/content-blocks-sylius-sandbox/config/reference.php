@@ -1021,7 +1021,9 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  * @psalm-type ContentBlocksKitConfig = array{
  *     blocks?: array<string, array{ // Default: []
  *         enabled?: bool|Param, // Default: true
- *         options?: mixed, // Block-specific options; merged over the block's coded defaults. // Default: []
+ *         options?: mixed, // Block-specific knobs (e.g. max_columns); merged over the block's coded defaults. // Default: []
+ *         choices?: mixed, // Per-field allow-list restricting/reordering a ChoiceType field, keyed by field name (e.g. { variant: [primary, secondary] }). Unknown values are ignored. // Default: []
+ *         defaults?: mixed, // Per-field overrides of the block's initial data, keyed by field name (e.g. { align: center }). // Default: []
  *     }>,
  * }
  * @psalm-type KnpMenuConfig = array{

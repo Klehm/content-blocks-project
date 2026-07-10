@@ -56,27 +56,70 @@ Enable the kit's controllers in your host `assets/controllers.json` under the
 `@klehm/content-blocks-kit` package: `cb-tinymce` (rich text) and `cb-gallery`
 (gallery slider).
 
-## Enabling / disabling blocks & options
+## Configuring blocks
 
-Every block can be turned off, and some accept options, via bundle config:
+Each block exposes four levers under `content_blocks_kit.blocks.<type>`:
+
+| Key        | Purpose                                                                    |
+|------------|----------------------------------------------------------------------------|
+| `enabled`  | `false` un-registers the block's service — it never reaches the picker.     |
+| `options`  | Block-level knobs (e.g. `max_columns`), merged over the block's coded ones. |
+| `choices`  | Per-field allow-list restricting/reordering a `ChoiceType` field.           |
+| `defaults` | Per-field overrides of a block's initial data (what a new block starts with).|
 
 ```yaml
 # config/packages/content_blocks_kit.yaml
 content_blocks_kit:
     blocks:
-        html_raw: { enabled: false }        # drop a block entirely
+        tabs: { enabled: false }                # drop a block entirely
+        html_raw: { enabled: true }             # opt into a default-disabled block
         gallery:
-            enabled: true
-            options: { max_columns: 4 }     # cap the column choices
-        card:
-            options: { max_columns: 3 }
+            options: { max_columns: 4 }         # cap the column choices
+        button:
+            choices:
+                variant: [primary, secondary]   # only these two, in this order, in the picker
+                size: [md, lg]
+            defaults:
+                variant: secondary              # new buttons start as "secondary"
+                align: center
+        title:
+            defaults: { size: h1 }              # new titles default to h1 size
 ```
 
-Blocks omitted from config are enabled with their default options. Disabling a
-block un-registers its service, so it never appears in the block picker.
+Notes:
 
-Custom colors (icon, divider, and rich-text swatches) come from the core
-`content_blocks.palette` config — see the main package README.
+- Blocks omitted from config are enabled with their coded defaults — **except**
+  `html_raw`, which is **disabled by default**: it renders unescaped markup
+  (`{{ html|raw }}`), so it trusts its editors and must be opted in explicitly.
+- `choices` values not offered by the block are ignored; an empty or all-invalid
+  list falls back to the full set (the select is never empty). Restricting the
+  picker does **not** invalidate content already stored with a now-hidden value —
+  validation still accepts the block's full coded set.
+- `defaults` only apply to fields the block declares; unknown keys are ignored.
+
+### Colors
+
+All color fields — icon and divider colors, the **title** and **text** blocks'
+text color, and the rich-text (TinyMCE) swatches — draw from the **one** core
+palette declared in `content_blocks.palette` (see the main package README). Add a
+named color there once and it appears everywhere:
+
+```yaml
+# config/packages/content_blocks.yaml
+content_blocks:
+    palette:
+        - { label: 'Brand', color: '#eb0540' }
+```
+
+### Discovering the surface
+
+List every block with its options, choice fields (default marked `*`) and data
+defaults — read straight from the code, so it never goes stale:
+
+```bash
+bin/console content-blocks-kit:blocks          # all blocks
+bin/console content-blocks-kit:blocks button   # one block
+```
 
 ## Overriding block templates
 

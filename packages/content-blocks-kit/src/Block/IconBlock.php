@@ -11,7 +11,6 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\RangeType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Translation\TranslatableMessage;
-use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
@@ -44,9 +43,9 @@ final class IconBlock extends AbstractKitBlock
             ->add('name', ChoiceType::class, [
                 'label' => 'cb_kit.block.icon.field.name',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => IconSet::choices(),
+                'choices' => $this->choices('name'),
                 'choice_translation_domain' => false,
-                'constraints' => [new Assert\Choice(choices: IconSet::names())],
+                'constraints' => [$this->choiceConstraint('name')],
             ])
             ->add('color', PaletteColorType::class, [
                 'label' => 'cb_kit.block.icon.field.color',
@@ -63,16 +62,22 @@ final class IconBlock extends AbstractKitBlock
             ->add('align', ChoiceType::class, [
                 'label' => 'cb_kit.block.field.align',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'cb_kit.block.align.left' => 'start',
-                    'cb_kit.block.align.center' => 'center',
-                    'cb_kit.block.align.right' => 'end',
-                ],
-                'constraints' => [new Assert\Choice(choices: ['start', 'center', 'end'])],
+                'choices' => $this->choices('align'),
+                'constraints' => [$this->choiceConstraint('align')],
             ]);
     }
 
-    public function getDefaultData(): array
+    protected function choiceFields(): array
+    {
+        return [
+            // Labels are the icon names themselves (choice_translation_domain
+            // is false on the field); restricting this narrows the icon set.
+            'name' => IconSet::choices(),
+            'align' => $this->alignChoices(),
+        ];
+    }
+
+    protected function defaults(): array
     {
         return [
             'name' => 'star',

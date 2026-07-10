@@ -9,7 +9,6 @@ use ContentBlocks\Form\Type\PaletteColorType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Translation\TranslatableMessage;
-use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
@@ -41,12 +40,8 @@ final class DividerBlock extends AbstractKitBlock
             ->add('style', ChoiceType::class, [
                 'label' => 'cb_kit.block.divider.field.style',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'cb_kit.block.divider.style.solid' => 'solid',
-                    'cb_kit.block.divider.style.dashed' => 'dashed',
-                    'cb_kit.block.divider.style.dotted' => 'dotted',
-                ],
-                'constraints' => [new Assert\Choice(choices: ['solid', 'dashed', 'dotted'])],
+                'choices' => $this->choices('style'),
+                'constraints' => [$this->choiceConstraint('style')],
             ])
             // Stores a plain '#hex' ('' = the stylesheet's default border color).
             ->add('color', PaletteColorType::class, [
@@ -56,7 +51,18 @@ final class DividerBlock extends AbstractKitBlock
             ]);
     }
 
-    public function getDefaultData(): array
+    protected function choiceFields(): array
+    {
+        return [
+            'style' => [
+                'cb_kit.block.divider.style.solid' => 'solid',
+                'cb_kit.block.divider.style.dashed' => 'dashed',
+                'cb_kit.block.divider.style.dotted' => 'dotted',
+            ],
+        ];
+    }
+
+    protected function defaults(): array
     {
         return [
             'style' => 'solid',

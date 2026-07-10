@@ -21,8 +21,8 @@ final class BlockContractTest extends TestCase
      * @return array<string, list<string>>
      */
     private const EXPECTED_KEYS = [
-        'title' => ['text', 'tag'],
-        'text' => ['content'],
+        'title' => ['text', 'size', 'tag', 'color'],
+        'text' => ['content', 'color'],
         'rich_text' => ['content'],
         'image' => ['src', 'alt', 'size', 'customWidth', 'customHeightAuto', 'customHeight', 'fit', 'align', 'link', 'caption', 'borderRadius'],
         'gallery' => ['layout', 'columns', 'fit', 'borderRadius', 'items'],
@@ -60,6 +60,50 @@ final class BlockContractTest extends TestCase
             $expected = self::EXPECTED_KEYS[$type];
             sort($expected);
             $this->assertSame($expected, $keys, "Default-data keys drifted for '$type'");
+        }
+    }
+
+    /**
+     * Every kit view is self-contained static markup (or CSS-only, or a Stimulus
+     * controller that auto-connects on DOM insertion), so it may hot-reload in
+     * place. The one exception is html_raw: its `{{ html|raw }}` can carry inline
+     * <script> tags, which a hot innerHTML swap would NOT execute — only a full
+     * iframe reload runs them — so it must decline hot reload.
+     *
+     * Pinned per type so adding a JS-dependent block (or forgetting the opt-in on
+     * a static one) fails loudly rather than silently degrading the preview.
+     *
+     * @return array<string, bool>
+     */
+    private const EXPECTED_HOT_RELOAD = [
+        'title' => true,
+        'text' => true,
+        'rich_text' => true,
+        'image' => true,
+        'gallery' => true,
+        'button' => true,
+        'card' => true,
+        'list' => true,
+        'icon' => true,
+        'alert' => true,
+        'divider' => true,
+        'accordion' => true,
+        'table' => true,
+        'embed' => true,
+        'breadcrumb' => true,
+        'html_raw' => false,
+        'tabs' => true,
+    ];
+
+    public function testPreviewHotReloadIsDeclaredPerType(): void
+    {
+        foreach (ContentBlocksKitBundle::BLOCKS as $type => $class) {
+            $this->assertArrayHasKey($type, self::EXPECTED_HOT_RELOAD, "No hot-reload expectation for '$type'");
+            $this->assertSame(
+                self::EXPECTED_HOT_RELOAD[$type],
+                (new $class())->supportsPreviewHotReload(),
+                "supportsPreviewHotReload() drifted for '$type'",
+            );
         }
     }
 }

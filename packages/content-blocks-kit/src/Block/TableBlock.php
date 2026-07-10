@@ -85,7 +85,7 @@ final class TableBlock extends AbstractKitBlock
             ]);
     }
 
-    public function getDefaultData(): array
+    protected function defaults(): array
     {
         return [
             'striped' => true,

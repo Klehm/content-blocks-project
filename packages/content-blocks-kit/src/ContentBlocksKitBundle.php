@@ -56,18 +56,32 @@ final class ContentBlocksKitBundle extends AbstractBundle
     ];
 
     /**
+     * Blocks shipped but OFF by default — the host must opt in explicitly.
+     * `html_raw` renders unescaped markup (`{{ html|raw }}`), so it trusts its
+     * editors; keeping it out of the picker until a host consciously enables it
+     * (`content_blocks_kit.blocks.html_raw.enabled: true`) is the safe default.
+     *
+     * @var list<string>
+     */
+    public const DEFAULT_DISABLED = ['html_raw'];
+
+    /**
      * Semantic config: enable/disable each block and pass per-block options.
      *
      *     content_blocks_kit:
      *         blocks:
-     *             html_raw: { enabled: false }   # drop a block entirely
+     *             tabs: { enabled: false }               # drop a block entirely
+     *             html_raw: { enabled: true }            # opt into a DEFAULT_DISABLED block
      *             gallery:
-     *                 enabled: true
-     *                 options: { max_columns: 6 }
+     *                 options: { max_columns: 6 }        # block-level knobs
+     *             button:
+     *                 choices:  { variant: [primary, secondary] }  # restrict/reorder a ChoiceType
+     *                 defaults: { align: center }                  # override initial field values
      *
      * Blocks omitted from config default to enabled with their coded option
-     * defaults. Disabling a block un-registers its service, so it never
-     * reaches the BlockTypeRegistry / picker.
+     * defaults — except {@see self::DEFAULT_DISABLED} blocks, which stay off
+     * until explicitly enabled. Disabling a block un-registers its service, so
+     * it never reaches the BlockTypeRegistry / picker.
      */
     public function configure(DefinitionConfigurator $definition): void
     {
@@ -75,14 +89,22 @@ final class ContentBlocksKitBundle extends AbstractBundle
         $definition->rootNode()
             ->children()
                 ->arrayNode('blocks')
-                    ->info('Per-block enable flag and options, keyed by block type.')
+                    ->info('Per-block enable flag, options, choice restrictions and default overrides, keyed by block type.')
                     ->useAttributeAsKey('type')
                     ->arrayPrototype()
                         ->addDefaultsIfNotSet()
                         ->children()
                             ->booleanNode('enabled')->defaultTrue()->end()
                             ->variableNode('options')
-                                ->info('Block-specific options; merged over the block\'s coded defaults.')
+                                ->info('Block-specific knobs (e.g. max_columns); merged over the block\'s coded defaults.')
+                                ->defaultValue([])
+                            ->end()
+                            ->variableNode('choices')
+                                ->info('Per-field allow-list restricting/reordering a ChoiceType field, keyed by field name (e.g. { variant: [primary, secondary] }). Unknown values are ignored.')
+                                ->defaultValue([])
+                            ->end()
+                            ->variableNode('defaults')
+                                ->info('Per-field overrides of the block\'s initial data, keyed by field name (e.g. { align: center }).')
                                 ->defaultValue([])
                             ->end()
                         ->end()
@@ -99,11 +121,13 @@ final class ContentBlocksKitBundle extends AbstractBundle
 
         $services = $container->services();
 
-        foreach (self::resolveBlocks($config) as $class => $options) {
+        foreach (self::resolveBlocks($config) as $class => $blockConfig) {
             $services->set($class)
                 ->autowire()
                 ->autoconfigure()
-                ->arg('$options', $options);
+                ->arg('$options', $blockConfig['options'])
+                ->arg('$choiceOverrides', $blockConfig['choices'])
+                ->arg('$defaultOverrides', $blockConfig['defaults']);
         }
     }
 
@@ -112,8 +136,9 @@ final class ContentBlocksKitBundle extends AbstractBundle
      * the processed `content_blocks_kit` config. Pure (no container) so the
      * gating + option-merge logic is unit-testable.
      *
-     * @param array{blocks?: array<string, array{enabled?: bool, options?: array<string, mixed>}>} $config
-     * @return array<class-string<AbstractKitBlock>, array<string, mixed>>  Enabled block class => merged options.
+     * @param array{blocks?: array<string, array{enabled?: bool, options?: array<string, mixed>, choices?: array<string, list<string>>, defaults?: array<string, mixed>}>} $config
+     * @return array<class-string<AbstractKitBlock>, array{options: array<string, mixed>, choices: array<string, list<string>>, defaults: array<string, mixed>}>
+     *         Enabled block class => resolved options + raw choice/default overrides.
      */
     public static function resolveBlocks(array $config): array
     {
@@ -122,13 +147,20 @@ final class ContentBlocksKitBundle extends AbstractBundle
 
         foreach (self::BLOCKS as $type => $class) {
             $blockConfig = $blocksConfig[$type] ?? [];
-            if (($blockConfig['enabled'] ?? true) === false) {
+            $defaultEnabled = !\in_array($type, self::DEFAULT_DISABLED, true);
+            if (($blockConfig['enabled'] ?? $defaultEnabled) === false) {
                 continue;
             }
 
-            // Merge coded defaults with host overrides so the block always
-            // receives a fully-populated option set.
-            $out[$class] = array_replace($class::defaultOptions(), $blockConfig['options'] ?? []);
+            $out[$class] = [
+                // Merge coded defaults with host overrides so the block always
+                // receives a fully-populated option set.
+                'options' => array_replace($class::defaultOptions(), $blockConfig['options'] ?? []),
+                // Choice/default overrides are consumed inside the block (against
+                // its coded schema), so they pass through raw here.
+                'choices' => $blockConfig['choices'] ?? [],
+                'defaults' => $blockConfig['defaults'] ?? [],
+            ];
         }
 
         return $out;

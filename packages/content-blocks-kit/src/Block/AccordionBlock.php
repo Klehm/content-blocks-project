@@ -66,7 +66,7 @@ final class AccordionBlock extends AbstractKitBlock
             ]);
     }
 
-    public function getDefaultData(): array
+    protected function defaults(): array
     {
         return [
             'exclusive' => false,

@@ -42,12 +42,8 @@ final class ListBlock extends AbstractKitBlock
             ->add('style', ChoiceType::class, [
                 'label' => 'cb_kit.block.list.field.style',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'cb_kit.block.list.style.bullet' => 'bullet',
-                    'cb_kit.block.list.style.check' => 'check',
-                    'cb_kit.block.list.style.numbered' => 'numbered',
-                ],
-                'constraints' => [new Assert\Choice(choices: ['bullet', 'check', 'numbered'])],
+                'choices' => $this->choices('style'),
+                'constraints' => [$this->choiceConstraint('style')],
             ])
             ->add('items', LiveCollectionType::class, [
                 'label' => 'cb_kit.block.list.field.items',
@@ -69,7 +65,18 @@ final class ListBlock extends AbstractKitBlock
             ]);
     }
 
-    public function getDefaultData(): array
+    protected function choiceFields(): array
+    {
+        return [
+            'style' => [
+                'cb_kit.block.list.style.bullet' => 'bullet',
+                'cb_kit.block.list.style.check' => 'check',
+                'cb_kit.block.list.style.numbered' => 'numbered',
+            ],
+        ];
+    }
+
+    protected function defaults(): array
     {
         return [
             'style' => 'bullet',

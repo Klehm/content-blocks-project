@@ -58,7 +58,7 @@ final class BreadcrumbBlock extends AbstractKitBlock
         ]);
     }
 
-    public function getDefaultData(): array
+    protected function defaults(): array
     {
         return [
             'items' => [

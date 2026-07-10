@@ -18,6 +18,10 @@ return static function (ContainerConfigurator $container): void {
     // Twig extensions (e.g. cb_embed_url).
     $services->load('ContentBlocks\\Kit\\Twig\\', '../src/Twig/');
 
+    // Console commands (e.g. content-blocks-kit:blocks); AsCommand +
+    // autoconfigure tags them as console.command.
+    $services->load('ContentBlocks\\Kit\\Command\\', '../src/Command/');
+
     // Controllers (the public kit.css endpoint).
     $services->load('ContentBlocks\\Kit\\Controller\\', '../src/Controller/')
         ->tag('controller.service_arguments');

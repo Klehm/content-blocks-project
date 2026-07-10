@@ -55,7 +55,7 @@ final class EmbedBlock extends AbstractKitBlock
             ]);
     }
 
-    public function getDefaultData(): array
+    protected function defaults(): array
     {
         return ['url' => '', 'title' => ''];
     }
@@ -63,5 +63,13 @@ final class EmbedBlock extends AbstractKitBlock
     public function getViewTemplate(): ?string
     {
         return '@ContentBlocksKit/block/embed/view.html.twig';
+    }
+
+    // Self-contained <iframe> markup: the third-party player boots inside the
+    // frame, not on our page, so the swapped-in view needs no init pass — hot
+    // reload is safe and spares a full preview-iframe reload on every edit.
+    public function supportsPreviewHotReload(): bool
+    {
+        return true;
     }
 }
