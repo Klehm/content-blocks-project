@@ -10,8 +10,8 @@ shipped stylesheet, so it drops into any host regardless of its CSS setup.
 
 | Type | What it is |
 |---|---|
-| `title` | Heading with tag choice |
-| `text` | Plain paragraph text |
+| `title` | Heading with visual size, semantic tag, and palette text color |
+| `text` | Plain paragraph text with palette text color |
 | `rich_text` | WYSIWYG (TinyMCE) rich text |
 | `image` | Image with size preset / custom size, fit, align, link, caption, rounded corners |
 | `gallery` | Image grid or slider (arrows) with columns, fit, rounded corners |
@@ -25,7 +25,7 @@ shipped stylesheet, so it drops into any host regardless of its CSS setup.
 | `table` | Columns + rows data table |
 | `embed` | Responsive YouTube / Vimeo embed |
 | `breadcrumb` | Breadcrumb trail |
-| `html_raw` | Raw HTML escape hatch |
+| `html_raw` | Raw HTML escape hatch (**disabled by default** — opt in) |
 | `tabs` | Tabbed panels |
 
 ## Installation
