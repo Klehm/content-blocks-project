@@ -41,13 +41,21 @@ final class ListBlocksCommand extends Command
     {
         $this
             ->addArgument('type', InputArgument::OPTIONAL, 'Restrict output to a single block type (e.g. "button").')
-            ->addOption('locale', null, InputOption::VALUE_REQUIRED, 'Locale used to render translated block labels.', 'en');
+            ->addOption('locale', null, InputOption::VALUE_REQUIRED, 'Locale used to render translated block labels.', 'en')
+            ->addOption('format', null, InputOption::VALUE_REQUIRED, 'Output format: "txt" (human) or "json" (machine, e.g. to generate docs).', 'txt');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $locale = (string) $input->getOption('locale');
+        $format = (string) $input->getOption('format');
+
+        if (!\in_array($format, ['txt', 'json'], true)) {
+            $io->error(sprintf('Unknown format "%s". Use "txt" or "json".', $format));
+
+            return Command::INVALID;
+        }
 
         $blocks = ContentBlocksKitBundle::BLOCKS;
         $type = $input->getArgument('type');
@@ -58,6 +66,12 @@ final class ListBlocksCommand extends Command
                 return Command::INVALID;
             }
             $blocks = [$type => $blocks[$type]];
+        }
+
+        if ('json' === $format) {
+            $output->writeln($this->toJson($blocks, $locale));
+
+            return Command::SUCCESS;
         }
 
         $io->title('ContentBlocks Kit — block library');
@@ -71,6 +85,47 @@ final class ListBlocksCommand extends Command
         }
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Machine-readable description of the whole library, keyed by block type.
+     * Consumed by the docs generator so the per-block reference pages never
+     * drift from the code. Each entry carries the block's label, its
+     * disabled-by-default flag, and the same `options` / `choices` / `defaults`
+     * surface {@see \ContentBlocks\Kit\Block\AbstractKitBlock::describe()} exposes —
+     * with each choice field flattened to its ordered value list plus the
+     * default value (the `*` marker of the text output, made explicit).
+     *
+     * @param array<string, class-string> $blocks
+     */
+    private function toJson(array $blocks, string $locale): string
+    {
+        $out = [];
+        foreach ($blocks as $type => $class) {
+            /** @var \ContentBlocks\Kit\Block\AbstractKitBlock $block */
+            $block = new $class();
+            $desc = $block->describe();
+            $label = $block::getLabel();
+
+            $choices = [];
+            foreach ($desc['choices'] as $field => $map) {
+                $choices[$field] = [
+                    'values' => array_values($map),
+                    'default' => $desc['defaults'][$field] ?? null,
+                ];
+            }
+
+            $out[$type] = [
+                'type' => $type,
+                'label' => $label instanceof TranslatableInterface ? $label->trans($this->translator, $locale) : (string) $label,
+                'disabledByDefault' => \in_array($type, ContentBlocksKitBundle::DEFAULT_DISABLED, true),
+                'options' => (object) $desc['options'],
+                'choices' => (object) $choices,
+                'defaults' => (object) $desc['defaults'],
+            ];
+        }
+
+        return json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
     }
 
     private function renderBlock(SymfonyStyle $io, string $type, object $block, string $locale): void

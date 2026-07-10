@@ -70,4 +70,49 @@ final class ListBlocksCommandTest extends TestCase
         $this->assertSame(Command::INVALID, $status);
         $this->assertStringContainsString('Unknown block type', $tester->getDisplay());
     }
+
+    public function testJsonFormatEmitsEveryBlockWithItsSurface(): void
+    {
+        $tester = $this->tester();
+        $tester->execute(['--format' => 'json']);
+
+        $tester->assertCommandIsSuccessful();
+        $data = json_decode($tester->getDisplay(), true, flags: \JSON_THROW_ON_ERROR);
+
+        // One entry per registered block, keyed by type.
+        $this->assertSame(array_keys(ContentBlocksKitBundle::BLOCKS), array_keys($data));
+
+        // A representative block carries label, flags, and the full surface.
+        $title = $data['title'];
+        $this->assertSame('title', $title['type']);
+        $this->assertArrayHasKey('label', $title);
+        $this->assertFalse($title['disabledByDefault']);
+        // Choice fields are flattened to an ordered value list + explicit default.
+        $this->assertSame(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'], $title['choices']['size']['values']);
+        $this->assertSame('h2', $title['choices']['size']['default']);
+        $this->assertArrayHasKey('text', $title['defaults']);
+
+        // The default-disabled block is flagged as such.
+        $this->assertTrue($data['html_raw']['disabledByDefault']);
+    }
+
+    public function testJsonFormatRespectsSingleTypeArgument(): void
+    {
+        $tester = $this->tester();
+        $tester->execute(['type' => 'button', '--format' => 'json']);
+
+        $tester->assertCommandIsSuccessful();
+        $data = json_decode($tester->getDisplay(), true, flags: \JSON_THROW_ON_ERROR);
+
+        $this->assertSame(['button'], array_keys($data));
+    }
+
+    public function testUnknownFormatFailsWithInvalidStatus(): void
+    {
+        $tester = $this->tester();
+        $status = $tester->execute(['--format' => 'yaml']);
+
+        $this->assertSame(Command::INVALID, $status);
+        $this->assertStringContainsString('Unknown format', $tester->getDisplay());
+    }
 }
