@@ -20,6 +20,18 @@
     --cb-kit-radius: 8px;
 }
 
+/* ---------- Title ---------- */
+/* Size is a class, decoupled from the element: cb-kit-title--h* sets the visual
+   scale so a semantic <h2> can look like an h1. `display:block` keeps span/p
+   titles behaving as headings. */
+.cb-kit-title { margin: 0 0 .5rem; display: block; font-weight: 700; line-height: 1.2; }
+.cb-kit-title--h1 { font-size: 2.5rem; }
+.cb-kit-title--h2 { font-size: 2rem; }
+.cb-kit-title--h3 { font-size: 1.5rem; }
+.cb-kit-title--h4 { font-size: 1.25rem; }
+.cb-kit-title--h5 { font-size: 1.1rem; }
+.cb-kit-title--h6 { font-size: .95rem; }
+
 /* ---------- Button ---------- */
 .cb-kit-btn-wrap { display: flex; }
 .cb-kit-btn-wrap--start { justify-content: flex-start; }
@@ -121,6 +133,9 @@
 .cb-kit-accordion__content { padding: 0 1.1rem 1rem; color: #374151; }
 
 /* ---------- Image ---------- */
+/* Full-width flex column so align-items can place the image; the display width
+   is capped on the <img> (not the figure), otherwise a max-width'd figure sits
+   at the column's left edge and left/center/right all look the same. */
 .cb-kit-image { margin: 0; display: flex; flex-direction: column; }
 .cb-kit-image--start { align-items: flex-start; }
 .cb-kit-image--center { align-items: center; }

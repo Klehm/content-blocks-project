@@ -46,29 +46,21 @@ final class CardBlock extends AbstractKitBlock
 
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
-        $maxColumns = (int) $this->option('max_columns');
-        $columnChoices = [];
-        foreach (range(2, max(2, $maxColumns)) as $n) {
-            $columnChoices[(string) $n] = $n;
-        }
-
         $builder
             ->add('layout', ChoiceType::class, [
                 'label' => 'cb_kit.block.card.field.layout',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'cb_kit.block.card.layout.grid' => 'grid',
-                    'cb_kit.block.card.layout.list' => 'list',
-                ],
-                'attr' => ['data-controller' => 'cb-condition'],
-                'constraints' => [new Assert\Choice(choices: ['grid', 'list'])],
+                'choices' => $this->choices('layout'),
+                // The columns row (below) reveals only for the grid layout,
+                // gated by the block edit form's cb-condition scope.
+                'constraints' => [$this->choiceConstraint('layout')],
             ])
             ->add('columns', ChoiceType::class, [
                 'label' => 'cb_kit.block.card.field.columns',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => $columnChoices,
+                'choices' => $this->choices('columns'),
                 'row_attr' => ['data-cb-condition' => 'layout:grid'],
-                'constraints' => [new Assert\Choice(choices: array_values($columnChoices))],
+                'constraints' => [$this->choiceConstraint('columns')],
             ])
             ->add('items', LiveCollectionType::class, [
                 'label' => 'cb_kit.block.card.field.items',
@@ -90,7 +82,25 @@ final class CardBlock extends AbstractKitBlock
             ]);
     }
 
-    public function getDefaultData(): array
+    protected function choiceFields(): array
+    {
+        // `columns` is capped by the `max_columns` option, so it is computed
+        // rather than a static map — hence choiceFields() is instance-level.
+        $columnChoices = [];
+        foreach (range(2, max(2, (int) $this->option('max_columns'))) as $n) {
+            $columnChoices[(string) $n] = $n;
+        }
+
+        return [
+            'layout' => [
+                'cb_kit.block.card.layout.grid' => 'grid',
+                'cb_kit.block.card.layout.list' => 'list',
+            ],
+            'columns' => $columnChoices,
+        ];
+    }
+
+    protected function defaults(): array
     {
         return [
             'layout' => 'grid',

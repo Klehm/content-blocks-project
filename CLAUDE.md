@@ -275,12 +275,26 @@ security:
 
 ### Block Data Sanitization
 
-Each `BlockTypeInterface` controls its own data validation:
-- `getAllowedDataKeys()` — whitelist of top-level keys
-- `sanitizeData(array $data): array` — full validation (override for nested structures like TabsBlock)
-- `processData(array $data, array $context): array` — pre-save transformation (file uploads, normalization)
+**The block's Symfony form _is_ the whitelist + validator.** A block's `data` is
+never written raw: `BlockComponent::persistDraft()` submits the form built by
+`buildForm()`, and only on success writes `$form->getData()` to the draft (see
+[packages/content-blocks/src/Twig/Component/BlockComponent.php](packages/content-blocks/src/Twig/Component/BlockComponent.php)). Two guarantees fall out of this:
 
-`AbstractBlockType` provides default: whitelist keys + cast to string. Override for complex blocks.
+- **Key whitelist**: the compound form only maps its declared children, so an
+  unexpected key in the POST is dropped — it never reaches `data`.
+- **Value validation**: each field's `constraints` (e.g. `Assert\Choice`,
+  `Assert\Length`) run on submit; a failure re-renders the form with errors and
+  writes nothing. Nested collections validate via their `entry_type`'s own
+  constraints.
+
+There is **no** `getAllowedDataKeys()` / `sanitizeData()` / `processData()` hook —
+a custom block secures its data purely by what it declares in `buildForm()`
+(fields + constraints). The kit's `AbstractKitBlock::choiceConstraint()` derives
+an `Assert\Choice` from the field's full coded choice set for exactly this reason.
+
+**Raw-HTML caveat**: the kit's `html_raw` block renders `{{ html|raw }}`, so it
+trusts its editors — it is **disabled by default** (`content_blocks_kit.blocks.html_raw.enabled: false`)
+and must be opted in.
 
 ### File Upload
 

@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Tests;
 
 use ContentBlocks\Kit\Block\AbstractKitBlock;
+use ContentBlocks\Kit\Block\ButtonBlock;
+use ContentBlocks\Kit\Block\GalleryBlock;
+use ContentBlocks\Kit\Block\HtmlRawBlock;
 use ContentBlocks\Kit\Block\TabsBlock;
 use ContentBlocks\Kit\Block\TitleBlock;
 use ContentBlocks\Kit\ContentBlocksKitBundle;
@@ -33,14 +36,30 @@ final class ContentBlocksKitBundleTest extends TestCase
         }
     }
 
-    public function testAllBlocksEnabledByDefault(): void
+    public function testAllBlocksExceptDefaultDisabledAreEnabledByDefault(): void
     {
         $resolved = ContentBlocksKitBundle::resolveBlocks([]);
 
-        $this->assertCount(\count(ContentBlocksKitBundle::BLOCKS), $resolved);
-        foreach (ContentBlocksKitBundle::BLOCKS as $class) {
-            $this->assertArrayHasKey($class, $resolved);
+        $expectedCount = \count(ContentBlocksKitBundle::BLOCKS) - \count(ContentBlocksKitBundle::DEFAULT_DISABLED);
+        $this->assertCount($expectedCount, $resolved);
+
+        foreach (ContentBlocksKitBundle::BLOCKS as $type => $class) {
+            if (\in_array($type, ContentBlocksKitBundle::DEFAULT_DISABLED, true)) {
+                $this->assertArrayNotHasKey($class, $resolved, "'$type' is DEFAULT_DISABLED and must be off by default");
+            } else {
+                $this->assertArrayHasKey($class, $resolved);
+            }
         }
+    }
+
+    public function testHtmlRawIsOffByDefaultButOptInReRegistersIt(): void
+    {
+        $this->assertArrayNotHasKey(HtmlRawBlock::class, ContentBlocksKitBundle::resolveBlocks([]));
+
+        $optedIn = ContentBlocksKitBundle::resolveBlocks([
+            'blocks' => ['html_raw' => ['enabled' => true]],
+        ]);
+        $this->assertArrayHasKey(HtmlRawBlock::class, $optedIn);
     }
 
     public function testDisablingABlockUnregistersIt(): void
@@ -59,7 +78,42 @@ final class ContentBlocksKitBundleTest extends TestCase
             'blocks' => ['title' => ['options' => ['foo' => 'bar']]],
         ]);
 
-        // TitleBlock declares no defaults, so the host option lands as-is.
-        $this->assertSame(['foo' => 'bar'], $resolved[TitleBlock::class]);
+        // TitleBlock declares no coded options, so the host option lands as-is.
+        $this->assertSame(['foo' => 'bar'], $resolved[TitleBlock::class]['options']);
+    }
+
+    public function testCodedOptionsSurviveWhenHostOverridesOnlySome(): void
+    {
+        // GalleryBlock codes max_columns=6; an unrelated host option merges in
+        // without dropping the coded default.
+        $resolved = ContentBlocksKitBundle::resolveBlocks([
+            'blocks' => ['gallery' => ['options' => ['foo' => 'bar']]],
+        ]);
+
+        $this->assertSame(['max_columns' => 6, 'foo' => 'bar'], $resolved[GalleryBlock::class]['options']);
+    }
+
+    public function testChoicesAndDefaultsPassThroughRaw(): void
+    {
+        $resolved = ContentBlocksKitBundle::resolveBlocks([
+            'blocks' => ['button' => [
+                'choices' => ['variant' => ['primary', 'secondary']],
+                'defaults' => ['align' => 'center'],
+            ]],
+        ]);
+
+        $this->assertSame(['variant' => ['primary', 'secondary']], $resolved[ButtonBlock::class]['choices']);
+        $this->assertSame(['align' => 'center'], $resolved[ButtonBlock::class]['defaults']);
+    }
+
+    public function testEnabledBlockAlwaysHasTheThreeConfigKeys(): void
+    {
+        // Every resolved block exposes options/choices/defaults so loadExtension
+        // can wire all three constructor args unconditionally.
+        foreach (ContentBlocksKitBundle::resolveBlocks([]) as $config) {
+            $this->assertArrayHasKey('options', $config);
+            $this->assertArrayHasKey('choices', $config);
+            $this->assertArrayHasKey('defaults', $config);
+        }
     }
 }

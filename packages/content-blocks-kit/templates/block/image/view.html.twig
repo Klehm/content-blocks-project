@@ -22,10 +22,14 @@
     {% set has_radius = (br.top ?? null) is not null or (br.right ?? null) is not null or (br.bottom ?? null) is not null or (br.left ?? null) is not null %}
     {% set radius = has_radius ? (br.top ?? 0) ~ 'px ' ~ (br.right ?? 0) ~ 'px ' ~ (br.bottom ?? 0) ~ 'px ' ~ (br.left ?? 0) ~ 'px' : null %}
 
-    {% set fig_style = (width ? 'max-width:' ~ width ~ 'px;' : '') %}
-    {% set img_style = (height ? 'height:' ~ height ~ 'px;object-fit:' ~ fit ~ ';' : '') ~ (radius ? 'border-radius:' ~ radius ~ ';' : '') %}
+    {# Width caps the <img>, not the <figure>: the figure stays a full-width flex
+       column so `align-items` (via cb-kit-image--{{ align }}) can place the image
+       left/center/right. max-width:100% (kit.css) keeps it responsive. #}
+    {% set img_style = (width ? 'width:' ~ width ~ 'px;' : '')
+        ~ (height ? 'height:' ~ height ~ 'px;object-fit:' ~ fit ~ ';' : '')
+        ~ (radius ? 'border-radius:' ~ radius ~ ';' : '') %}
 
-    <figure class="cb-kit-image cb-kit-image--{{ align }}"{% if fig_style %} style="{{ fig_style }}"{% endif %}>
+    <figure class="cb-kit-image cb-kit-image--{{ align }}">
         {% if data.link|default('')|trim is not empty %}<a href="{{ data.link }}">{% endif %}
         <img class="cb-kit-image__img" src="{{ src }}" alt="{{ data.alt|default('') }}"
              {%- if width %} width="{{ width }}"{% endif %}{% if height %} height="{{ height }}"{% endif %}

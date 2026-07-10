@@ -7,7 +7,7 @@
             <thead>
                 <tr>
                     {% for col in columns %}
-                        <th class="{{ align_map[col.align|default('left')]|default('cb-kit-table--l') }}">{{ col.label|default('') }}</th>
+                        <th scope="col" class="{{ align_map[col.align|default('left')]|default('cb-kit-table--l') }}">{{ col.label|default('') }}</th>
                     {% endfor %}
                 </tr>
             </thead>

@@ -46,7 +46,7 @@ final class HtmlRawBlock extends AbstractKitBlock
         ]);
     }
 
-    public function getDefaultData(): array
+    protected function defaults(): array
     {
         return ['html' => ''];
     }

@@ -66,19 +66,15 @@ final class ImageBlock extends AbstractKitBlock
                 'required' => false,
                 'constraints' => [new Assert\Length(max: 255)],
             ])
-            // The size row hosts the cb-condition scope for the custom fields.
+            // The custom width/height rows reveal only for the "custom" size,
+            // gated by the block edit form's cb-condition scope (see
+            // Block.html.twig). The height field additionally hides when
+            // "auto height" is on — the two clauses are ANDed via `;`.
             ->add('size', ChoiceType::class, [
                 'label' => 'cb_kit.block.image.field.size',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'cb_kit.block.image.size.sm' => 'sm',
-                    'cb_kit.block.image.size.md' => 'md',
-                    'cb_kit.block.image.size.lg' => 'lg',
-                    'cb_kit.block.image.size.full' => 'full',
-                    'cb_kit.block.image.size.custom' => 'custom',
-                ],
-                'attr' => ['data-controller' => 'cb-condition'],
-                'constraints' => [new Assert\Choice(choices: ['sm', 'md', 'lg', 'full', 'custom'])],
+                'choices' => $this->choices('size'),
+                'constraints' => [$this->choiceConstraint('size')],
             ])
             ->add('customWidth', RangeType::class, [
                 'label' => 'cb_kit.block.image.field.width',
@@ -97,27 +93,20 @@ final class ImageBlock extends AbstractKitBlock
                 'label' => 'cb_kit.block.image.field.height',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
-                'row_attr' => ['data-cb-condition' => 'size:custom'],
+                'row_attr' => ['data-cb-condition' => 'size:custom;customHeightAuto:false'],
                 'attr' => ['min' => 16, 'max' => 1920, 'step' => 10],
             ])
             ->add('fit', ChoiceType::class, [
                 'label' => 'cb_kit.block.image.field.fit',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'cb_kit.block.image.fit.cover' => 'cover',
-                    'cb_kit.block.image.fit.contain' => 'contain',
-                ],
-                'constraints' => [new Assert\Choice(choices: ['cover', 'contain'])],
+                'choices' => $this->choices('fit'),
+                'constraints' => [$this->choiceConstraint('fit')],
             ])
             ->add('align', ChoiceType::class, [
                 'label' => 'cb_kit.block.field.align',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'cb_kit.block.align.left' => 'start',
-                    'cb_kit.block.align.center' => 'center',
-                    'cb_kit.block.align.right' => 'end',
-                ],
-                'constraints' => [new Assert\Choice(choices: ['start', 'center', 'end'])],
+                'choices' => $this->choices('align'),
+                'constraints' => [$this->choiceConstraint('align')],
             ])
             ->add('link', UrlType::class, [
                 'label' => 'cb_kit.block.image.field.link',
@@ -139,7 +128,25 @@ final class ImageBlock extends AbstractKitBlock
             ]);
     }
 
-    public function getDefaultData(): array
+    protected function choiceFields(): array
+    {
+        return [
+            'size' => [
+                'cb_kit.block.image.size.sm' => 'sm',
+                'cb_kit.block.image.size.md' => 'md',
+                'cb_kit.block.image.size.lg' => 'lg',
+                'cb_kit.block.image.size.full' => 'full',
+                'cb_kit.block.image.size.custom' => 'custom',
+            ],
+            'fit' => [
+                'cb_kit.block.image.fit.cover' => 'cover',
+                'cb_kit.block.image.fit.contain' => 'contain',
+            ],
+            'align' => $this->alignChoices(),
+        ];
+    }
+
+    protected function defaults(): array
     {
         return [
             'src' => '',

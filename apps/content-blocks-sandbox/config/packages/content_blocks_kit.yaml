@@ -1,0 +1,7 @@
+# The dev/test sandbox intentionally enables the FULL kit so the Playwright
+# fixture exercises every block. html_raw ships DEFAULT_DISABLED (it renders
+# unescaped markup), so it must be opted in explicitly here.
+content_blocks_kit:
+    blocks:
+        html_raw:
+            enabled: true

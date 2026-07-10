@@ -44,13 +44,8 @@ final class AlertBlock extends AbstractKitBlock
             ->add('type', ChoiceType::class, [
                 'label' => 'cb_kit.block.alert.field.type',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'cb_kit.block.alert.type.info' => 'info',
-                    'cb_kit.block.alert.type.success' => 'success',
-                    'cb_kit.block.alert.type.warning' => 'warning',
-                    'cb_kit.block.alert.type.error' => 'error',
-                ],
-                'constraints' => [new Assert\Choice(choices: ['info', 'success', 'warning', 'error'])],
+                'choices' => $this->choices('type'),
+                'constraints' => [$this->choiceConstraint('type')],
             ])
             ->add('title', TextType::class, [
                 'label' => 'cb_kit.block.alert.field.title',
@@ -66,7 +61,19 @@ final class AlertBlock extends AbstractKitBlock
             ]);
     }
 
-    public function getDefaultData(): array
+    protected function choiceFields(): array
+    {
+        return [
+            'type' => [
+                'cb_kit.block.alert.type.info' => 'info',
+                'cb_kit.block.alert.type.success' => 'success',
+                'cb_kit.block.alert.type.warning' => 'warning',
+                'cb_kit.block.alert.type.error' => 'error',
+            ],
+        ];
+    }
+
+    protected function defaults(): array
     {
         return [
             'type' => 'info',

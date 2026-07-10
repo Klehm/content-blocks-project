@@ -1,0 +1,7 @@
+# Kit block configuration. Most blocks are enabled with their coded defaults;
+# html_raw ships DEFAULT_DISABLED (it renders unescaped markup) so we opt in
+# here — the demo (app:demo:load) seeds an html_raw block.
+content_blocks_kit:
+    blocks:
+        html_raw:
+            enabled: true

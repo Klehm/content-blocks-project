@@ -56,33 +56,20 @@ final class ButtonBlock extends AbstractKitBlock
             ->add('variant', ChoiceType::class, [
                 'label' => 'cb_kit.block.button.field.variant',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'cb_kit.block.button.variant.primary' => 'primary',
-                    'cb_kit.block.button.variant.secondary' => 'secondary',
-                    'cb_kit.block.button.variant.outline' => 'outline',
-                    'cb_kit.block.button.variant.link' => 'link',
-                ],
-                'constraints' => [new Assert\Choice(choices: ['primary', 'secondary', 'outline', 'link'])],
+                'choices' => $this->choices('variant'),
+                'constraints' => [$this->choiceConstraint('variant')],
             ])
             ->add('size', ChoiceType::class, [
                 'label' => 'cb_kit.block.button.field.size',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'cb_kit.block.size.small' => 'sm',
-                    'cb_kit.block.size.normal' => 'md',
-                    'cb_kit.block.size.large' => 'lg',
-                ],
-                'constraints' => [new Assert\Choice(choices: ['sm', 'md', 'lg'])],
+                'choices' => $this->choices('size'),
+                'constraints' => [$this->choiceConstraint('size')],
             ])
             ->add('align', ChoiceType::class, [
                 'label' => 'cb_kit.block.field.align',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'cb_kit.block.align.left' => 'start',
-                    'cb_kit.block.align.center' => 'center',
-                    'cb_kit.block.align.right' => 'end',
-                ],
-                'constraints' => [new Assert\Choice(choices: ['start', 'center', 'end'])],
+                'choices' => $this->choices('align'),
+                'constraints' => [$this->choiceConstraint('align')],
             ])
             ->add('fullWidth', CheckboxType::class, [
                 'label' => 'cb_kit.block.button.field.full_width',
@@ -96,10 +83,28 @@ final class ButtonBlock extends AbstractKitBlock
             ]);
     }
 
-    public function getDefaultData(): array
+    protected function choiceFields(): array
     {
         return [
-            'text' => 'En savoir plus',
+            'variant' => [
+                'cb_kit.block.button.variant.primary' => 'primary',
+                'cb_kit.block.button.variant.secondary' => 'secondary',
+                'cb_kit.block.button.variant.outline' => 'outline',
+                'cb_kit.block.button.variant.link' => 'link',
+            ],
+            'size' => [
+                'cb_kit.block.size.small' => 'sm',
+                'cb_kit.block.size.normal' => 'md',
+                'cb_kit.block.size.large' => 'lg',
+            ],
+            'align' => $this->alignChoices(),
+        ];
+    }
+
+    protected function defaults(): array
+    {
+        return [
+            'text' => 'Learn more',
             'href' => '',
             'variant' => 'primary',
             'size' => 'md',

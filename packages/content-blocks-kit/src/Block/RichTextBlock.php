@@ -45,7 +45,7 @@ final class RichTextBlock extends AbstractKitBlock
         ]);
     }
 
-    public function getDefaultData(): array
+    protected function defaults(): array
     {
         return ['content' => ''];
     }

@@ -1,5 +1,7 @@
 {% if data.content|default %}
-    <div class="cb-block-text">{{ data.content }}</div>
+    {# Optional palette color ('' = inherit). html_attr-escaped like the divider. #}
+    {% set color = data.color|default('') %}
+    <div class="cb-block-text"{% if color is not empty %} style="color: {{ color|e('html_attr') }}"{% endif %}>{{ data.content }}</div>
 {% else %}
     <small style="color: #5b6478;">{{ 'cb_kit.block.text.empty'|trans({}, 'content_blocks_kit') }}</small>
 {% endif %}
