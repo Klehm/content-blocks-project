@@ -1,5 +1,10 @@
 <div{{ attributes }}>
-    <div class="cb-block__edit-form" data-controller="cb-autosave cb-block-styling-form">
+    {# cb-condition on the form root gates block-level conditional rows
+       (fields declaring `data-cb-condition` via row_attr) the same way the
+       section sidebar does — self-contained compound types like
+       PaletteColorType carry their own nested cb-condition scope and stay
+       independent. #}
+    <div class="cb-block__edit-form" data-controller="cb-autosave cb-block-styling-form cb-condition">
         {# Lightweight heading showing which block is being edited, above the
            fields. Icon is trusted block-author SVG markup, never user input. #}
         <header class="cb-block__heading">

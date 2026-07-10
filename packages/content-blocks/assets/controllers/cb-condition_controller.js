@@ -14,6 +14,10 @@ import { Controller } from '@hotwired/stimulus';
  *                                               "true", unchecked to "false"
  *     data-cb-condition="link"                  no value — shown when the
  *                                               field is non-empty
+ *     data-cb-condition="size:custom;customHeightAuto:false"
+ *                                               AND — `;`-separated clauses,
+ *                                               ALL must match (each clause is
+ *                                               itself an OR over its `|` values)
  *
  * The field part matches the *last bracket segment* of the controlling
  * input's `name` (Symfony nests names like `settings[styling][bg][palette]`),
@@ -47,20 +51,31 @@ export default class extends Controller {
             // never resolves an inner row's field against the wrong scope.
             const scope = row.closest('[data-controller~="cb-condition"]');
             if (scope && scope !== this.element && this.element.contains(scope)) continue;
-            const spec = this._parse(row.getAttribute('data-cb-condition'));
-            if (!spec) continue;
-            row.hidden = !this._matches(spec);
+            const specs = this._parse(row.getAttribute('data-cb-condition'));
+            if (!specs) continue;
+            // AND across clauses: every clause must match for the row to show.
+            row.hidden = !specs.every((spec) => this._matches(spec));
         }
     }
 
     _parse(raw) {
         if (typeof raw !== 'string' || raw.trim() === '') return null;
-        const idx = raw.indexOf(':');
+        const specs = raw
+            .split(';')
+            .map((clause) => this._parseClause(clause))
+            .filter((spec) => spec !== null);
+        return specs.length > 0 ? specs : null;
+    }
+
+    _parseClause(raw) {
+        const clause = raw.trim();
+        if (clause === '') return null;
+        const idx = clause.indexOf(':');
         if (idx === -1) {
-            return { field: raw.trim(), values: null };
+            return { field: clause, values: null };
         }
-        const field = raw.slice(0, idx).trim();
-        const values = raw
+        const field = clause.slice(0, idx).trim();
+        const values = clause
             .slice(idx + 1)
             .split('|')
             .map((v) => v.trim());

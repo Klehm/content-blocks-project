@@ -64,6 +64,36 @@ describe('cb-condition', () => {
         expect(row.hidden).toBe(false);
     });
 
+    it('ANDs `;`-separated clauses — all must match', () => {
+        // Mirrors the image block: height reveals only when size is "custom"
+        // AND "auto height" is off.
+        const { element } = setup(`
+            <select name="data[size]">
+                <option value="md"></option>
+                <option value="custom" selected></option>
+            </select>
+            <input type="checkbox" name="data[customHeightAuto]" checked>
+            <div id="row" data-cb-condition="size:custom;customHeightAuto:false"></div>
+        `);
+        const select = element.querySelector('select');
+        const box = element.querySelector('input');
+        const row = element.querySelector('#row');
+
+        // size matches but auto height is on → hidden.
+        expect(row.hidden).toBe(true);
+
+        // Turn auto height off → both clauses match → shown.
+        box.checked = false;
+        box.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(row.hidden).toBe(false);
+
+        // Switch away from custom size → first clause fails → hidden again,
+        // even though auto height is still off.
+        select.value = 'md';
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(row.hidden).toBe(true);
+    });
+
     it('maps checkbox state to true/false', () => {
         const { element } = setup(`
             <input type="checkbox" name="settings[stylingCustom]">

@@ -9,6 +9,10 @@ cb:
         remove: "Remove"
         duplicate: "Duplicate"
         drag: "Drag to move"
+        layout:
+            full: "Full width"
+            two_cols: "2 columns"
+            three_cols: "3 columns"
         settings:
             title: "Section settings"
             classes: "Custom CSS classes"
@@ -51,11 +55,6 @@ cb:
         align.start: "Start"
         align.center: "Center"
         align.end: "End"
-        layout:
-            full: "1 column"
-            one_col: "1 column"
-            two_cols: "2 columns"
-            three_cols: "3 columns"
     block:
         add: "+ Block"
         add_title: "Add a block"
@@ -130,3 +129,5 @@ cb:
             importing: "Importing…"
             confirm: "Are you sure you want to overwrite the current content with the imported one?"
             error: "Import failed."
+    upload:
+        file: "Image file"
