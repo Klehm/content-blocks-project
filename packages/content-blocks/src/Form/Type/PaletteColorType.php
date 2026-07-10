@@ -57,6 +57,17 @@ final class PaletteColorType extends AbstractType implements DataMapperInterface
                 'label' => false,
                 'placeholder' => false,
                 'choices' => $choices,
+                // The None / Custom… option labels are core translation keys
+                // (cb.styling.palette.*), so they must resolve in the core
+                // `content_blocks` domain — NOT the field's translation_domain,
+                // which a host/kit block may set to its own catalog (e.g. a kit
+                // block passes 'content_blocks_kit', where those keys don't
+                // exist → they'd render as raw keys). Palette entry labels are
+                // literal strings, so trans() passes them through untouched.
+                // (A child form doesn't inherit translation_domain when
+                // ChoiceType resolves choice_translation_domain — left to its
+                // null default the labels fall back to the `messages` domain.)
+                'choice_translation_domain' => 'content_blocks',
                 // Expose each palette hex on its <option> so themes can
                 // paint a swatch; empty for None / Custom.
                 'choice_attr' => static fn (string $value): array => str_starts_with($value, '#')
