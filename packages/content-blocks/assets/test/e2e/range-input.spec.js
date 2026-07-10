@@ -43,6 +43,9 @@ test('slider moves update the number input and persist across the Live morph', a
     await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
 
     const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+    // The width/height RangeType fields reveal only for the "custom" size
+    // (gated by cb-condition); select it so the range widget under test shows.
+    await sidebar.locator('select[name="content_block[size]"]').selectOption('custom');
     const wrap = sidebar.locator('.cb-form-range-wrap').first();
     const slider = wrap.locator('input[type=range]');
     const number = wrap.locator('input[type=number]');
