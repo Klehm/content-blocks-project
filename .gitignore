@@ -14,3 +14,7 @@ blob-report/
 # IDE
 .vscode/
 *.code-workspace
+
+# VitePress build output & cache (generated .md block pages ARE committed)
+docs/.vitepress/dist/
+docs/.vitepress/cache/

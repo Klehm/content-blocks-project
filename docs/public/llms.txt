@@ -1,0 +1,34 @@
+# ContentBlocks
+
+> A modular, framework-native page builder for Symfony. Editors compose content from sections, columns and blocks with an in-context live preview, without turning the host app into a CMS. `ContentArea` is a generic container attached to any host entity (Page, Product, …) via a Doctrine `OneToOne`; the host keeps its routing, templates, auth and SEO. Distributed as two Composer packages: `klehm/content-blocks` (core) and `klehm/content-blocks-kit` (17 ready-made blocks).
+
+Key facts for integration:
+- Install: `composer require klehm/content-blocks klehm/content-blocks-kit`
+- Data model: ContentArea → Section → Column → Block (Block.data is free JSON per type)
+- Two REQUIRED host services: AccessCheckerInterface (auth) and ContentAreaUrlResolverInterface (preview URL). Defaults deny/throw.
+- Render on the public page with the Twig function `cb_render_content_area(area)` — required to produce editing markers.
+- A custom block is one class implementing BlockTypeInterface + `#[AsContentBlock]`; its Symfony form is the data whitelist and validator.
+- Current version line: 0.1.0-beta (pre-1.0).
+
+## Docs
+
+- [Introduction & vision](https://klehm.github.io/content-blocks-project/guide/): what it is, the mental model, what it does and doesn't do.
+- [Quick start](https://klehm.github.io/content-blocks-project/guide/quickstart): from composer require to a rendered area in five minutes.
+- [Installation](https://klehm.github.io/content-blocks-project/guide/installation): full install with and without Symfony Flex, Stimulus/asset wiring, DB schema.
+- [Core concepts](https://klehm.github.io/content-blocks-project/guide/concepts): data model, block-type system, Live Components + Stimulus split, form lifecycle.
+- [Host services](https://klehm.github.io/content-blocks-project/guide/host-services): the required and optional interfaces the host must/may wire, with implementations.
+- [Rendering & preview](https://klehm.github.io/content-blocks-project/guide/rendering): cb_render_content_area, preview vs public mode, overriding render templates, hot reload.
+- [Styling](https://klehm.github.io/content-blocks-project/guide/styling): color palette, section style presets, conditional fields, extending the styling form.
+- [Security](https://klehm.github.io/content-blocks-project/guide/security): CSRF, firewalls, access control, block data sanitization.
+- [Custom blocks](https://klehm.github.io/content-blocks-project/guide/custom-blocks): build your own block type.
+
+## Block Kit
+
+- [Block Kit overview](https://klehm.github.io/content-blocks-project/kit/): the 17 shipped blocks, install, stylesheet, controllers.
+- [Configuring blocks](https://klehm.github.io/content-blocks-project/kit/configuration): the four per-block levers (enabled, options, choices, defaults).
+- [title](https://klehm.github.io/content-blocks-project/kit/blocks/title), [text](https://klehm.github.io/content-blocks-project/kit/blocks/text), [rich_text](https://klehm.github.io/content-blocks-project/kit/blocks/rich_text), [image](https://klehm.github.io/content-blocks-project/kit/blocks/image), [gallery](https://klehm.github.io/content-blocks-project/kit/blocks/gallery), [button](https://klehm.github.io/content-blocks-project/kit/blocks/button), [card](https://klehm.github.io/content-blocks-project/kit/blocks/card), [list](https://klehm.github.io/content-blocks-project/kit/blocks/list), [icon](https://klehm.github.io/content-blocks-project/kit/blocks/icon), [alert](https://klehm.github.io/content-blocks-project/kit/blocks/alert), [divider](https://klehm.github.io/content-blocks-project/kit/blocks/divider), [accordion](https://klehm.github.io/content-blocks-project/kit/blocks/accordion), [table](https://klehm.github.io/content-blocks-project/kit/blocks/table), [embed](https://klehm.github.io/content-blocks-project/kit/blocks/embed), [breadcrumb](https://klehm.github.io/content-blocks-project/kit/blocks/breadcrumb), [tabs](https://klehm.github.io/content-blocks-project/kit/blocks/tabs), [html_raw](https://klehm.github.io/content-blocks-project/kit/blocks/html_raw) (disabled by default).
+
+## Optional
+
+- [AGENTS.md (integration guide for AI agents)](https://github.com/klehm/content-blocks-project/blob/master/AGENTS.md)
+- [Source monorepo](https://github.com/klehm/content-blocks-project)

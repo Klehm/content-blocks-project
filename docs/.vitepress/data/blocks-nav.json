@@ -1,0 +1,70 @@
+[
+  {
+    "text": "title — Title",
+    "link": "/kit/blocks/title"
+  },
+  {
+    "text": "text — Text",
+    "link": "/kit/blocks/text"
+  },
+  {
+    "text": "rich_text — Rich text",
+    "link": "/kit/blocks/rich_text"
+  },
+  {
+    "text": "image — Image",
+    "link": "/kit/blocks/image"
+  },
+  {
+    "text": "gallery — Gallery",
+    "link": "/kit/blocks/gallery"
+  },
+  {
+    "text": "button — Button",
+    "link": "/kit/blocks/button"
+  },
+  {
+    "text": "card — Cards",
+    "link": "/kit/blocks/card"
+  },
+  {
+    "text": "list — List",
+    "link": "/kit/blocks/list"
+  },
+  {
+    "text": "icon — Icon",
+    "link": "/kit/blocks/icon"
+  },
+  {
+    "text": "alert — Alert",
+    "link": "/kit/blocks/alert"
+  },
+  {
+    "text": "divider — Divider",
+    "link": "/kit/blocks/divider"
+  },
+  {
+    "text": "accordion — Accordion",
+    "link": "/kit/blocks/accordion"
+  },
+  {
+    "text": "table — Table",
+    "link": "/kit/blocks/table"
+  },
+  {
+    "text": "embed — Video embed",
+    "link": "/kit/blocks/embed"
+  },
+  {
+    "text": "breadcrumb — Breadcrumb",
+    "link": "/kit/blocks/breadcrumb"
+  },
+  {
+    "text": "html_raw — Raw HTML",
+    "link": "/kit/blocks/html_raw"
+  },
+  {
+    "text": "tabs — Tabs",
+    "link": "/kit/blocks/tabs"
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "name": "content-blocks-docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Documentation site for ContentBlocks (VitePress).",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview",
+    "docs:blocks": "node scripts/gen-blocks.mjs",
+    "docs:blocks:refresh": "php ../apps/content-blocks-sandbox/bin/console content-blocks-kit:blocks --format=json > .vitepress/data/blocks.json && node scripts/gen-blocks.mjs"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.3"
+  }
+}

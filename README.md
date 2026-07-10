@@ -1,96 +1,92 @@
-# ContentBlocks — Page Builder Modulaire pour Symfony
+<div align="center">
 
-ContentBlocks est un page builder modulaire pour Symfony. Il permet de construire des zones de contenu composées de sections, colonnes et blocs, avec une architecture extensible.
+# ContentBlocks
+
+**A page builder that lives inside your Symfony app.**
+
+Build content areas from sections, columns and blocks — edited in-context, with a live preview of your *real* page. Framework-native, extensible, no CMS lock-in.
+
+[![Packagist](https://img.shields.io/badge/packagist-klehm%2Fcontent--blocks-orange)](https://packagist.org/packages/klehm/content-blocks)
+[![License](https://img.shields.io/badge/license-MIT-blue)](#license)
+[![Symfony](https://img.shields.io/badge/Symfony-6.4%20%7C%207.x%20%7C%208.x-black)](https://symfony.com)
+[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777bb4)](https://php.net)
+
+📖 **[Documentation](https://klehm.github.io/content-blocks-project/)** ·
+🚀 **[Quick start](https://klehm.github.io/content-blocks-project/guide/quickstart)** ·
+🧩 **[Block Kit](https://klehm.github.io/content-blocks-project/kit/)** ·
+🤖 **[For AI agents](AGENTS.md)**
+
+</div>
+
+---
+
+## The idea in 30 seconds
+
+`ContentArea` is a **generic, titleless, slug-less container** of sections. It is *not* a page and has *no* URL — your app owns those. You attach it to your own entity with one Doctrine relation:
+
+```php
+#[ORM\OneToOne(targetEntity: ContentArea::class, cascade: ['persist', 'remove'])]
+private ?ContentArea $contentArea = null;
+```
+
+```
+ContentArea  →  Section  →  Column  →  Block
+ (container)    (layout)    (preset)   (type + JSON data)
+```
+
+The builder opens your **real public page in an iframe** and edits it in place, so the preview can never drift from production. That single design choice is why ContentBlocks drops into an app you already own instead of asking you to migrate into a CMS.
+
+## What it does — and deliberately doesn't
+
+| ✅ ContentBlocks does | ❌ ContentBlocks does not |
+|---|---|
+| Store structured content as *your* data | Own your routing, URLs, or SEO |
+| Render an in-context builder with live preview | Ship a CMS, admin panel, or user management |
+| Provide an extensible block-type system | Force a CSS framework on you |
+| Enforce *your* auth model via a thin interface | Know who your users are — you wire that |
+| Draft / publish / discard content states | Replace your templating — you keep the markup |
+
+## Install
+
+```bash
+composer require klehm/content-blocks klehm/content-blocks-kit
+php bin/console doctrine:migrations:diff && php bin/console doctrine:migrations:migrate
+```
+
+Then attach a `ContentArea`, add `ContentAreaType` to a form, and call `cb_render_content_area()` in your template. Full walk-through: **[Quick start »](https://klehm.github.io/content-blocks-project/guide/quickstart)**
 
 ## Packages
 
-| Package | Description | Install |
-|---|---|---|
-| [`klehm/content-blocks`](packages/content-blocks/) | Entités, UI admin, formulaires, controllers Stimulus | `composer require klehm/content-blocks:dev-main` |
-| [`klehm/content-blocks-kit`](packages/content-blocks-kit/) | Blocs par défaut (Text, Title, Image) | `composer require klehm/content-blocks-kit:dev-main` |
+| Package | Description |
+|---|---|
+| [`klehm/content-blocks`](packages/content-blocks/) | Core: entities, admin builder UI (Live Components + Stimulus), `ContentAreaType`, block-type system |
+| [`klehm/content-blocks-kit`](packages/content-blocks-kit/) | **17 ready-to-use, self-contained blocks** (title, text, image, gallery, button, card…) |
 
-> Aucune version stable n'est encore taguée — utiliser `:dev-main` jusqu'à la sortie de `0.1.0-alpha`.
+## Vision
 
-## Structure Monorepo
+A page builder that feels like a **native part of a Symfony application** rather than a platform you migrate into:
 
-```
-content-blocks/
-├── packages/
-│   ├── content-blocks/              # Package principal
-│   └── content-blocks-kit/          # Blocs par défaut
-├── apps/
-│   ├── content-blocks-sandbox/      # App Symfony de dev/test
-│   └── content-blocks-sylius-sandbox/  # App Sylius de dev/test
-└── composer.json
-```
+- **Framework-native** — Doctrine entities, Symfony forms, Live Components, Stimulus. No bespoke runtime, no proprietary storage.
+- **Extensible before featureful** — a block is one class + one form; `#[AsContentBlock]` auto-registers it. The form *is* the data whitelist and validator.
+- **Host-owned, not tool-owned** — your entity, URL, auth, and markup. ContentBlocks fills exactly one gap and gets out of the way.
+- **Secure and predictable by default** — deny-all access, CSRF everywhere, MIME/size-checked uploads. You opt into surface, never out of safety.
 
-Ce projet est un **monorepo**. Chaque package est publié séparément sur Packagist via [splitsh/lite](https://github.com/splitsh/lite). Les repos read-only sont générés automatiquement par la CI :
+## Contributing / monorepo
 
-- `klehm/content-blocks` → miroir de `packages/content-blocks/`
-- `klehm/content-blocks-kit` → miroir de `packages/content-blocks-kit/`
-
-## Prérequis
-
-- PHP >= 8.2 avec `pdo_mysql`
-- MySQL 8.0+
-- Symfony 7.x
-- Node.js >= 18 (pour les tests JS)
-
-## Contribuer
-
-### Installation
+This repo is a **monorepo**. Packages are published separately to Packagist via [splitsh/lite](https://github.com/splitsh/lite); the read-only mirrors (`klehm/content-blocks`, `klehm/content-blocks-kit`) are generated by CI. Contributors clone the monorepo and get everything — packages, two sandbox apps (Symfony + Sylius), and the JS/PHP test suites.
 
 ```bash
 git clone https://github.com/klehm/content-blocks-project.git
-cd content-blocks-project
-
-# PHP : installer les dépendances (packages liés en symlink)
-cd apps/content-blocks-sandbox
+cd content-blocks-project/apps/content-blocks-sandbox
 composer install
-
-# Base de données
-cp .env .env.local  # configurer DATABASE_URL
 php bin/console doctrine:database:create --if-not-exists
 php bin/console doctrine:schema:create
-
-# JS : installer les dépendances de test
-cd ../../packages/content-blocks
-npm install
-```
-
-### Lancer la sandbox
-
-```bash
-cd apps/content-blocks-sandbox
 php bin/console asset-map:compile
-php -S 127.0.0.1:8000 -t public
-# → http://127.0.0.1:8000
+php -S 127.0.0.1:8000 -t public   # → http://127.0.0.1:8000
 ```
 
-### Lancer les tests
+Docs live in [`docs/`](docs/) (VitePress). Run them locally with `cd docs && npm install && npm run docs:dev`. Planned and under-consideration work is tracked in [`ROADMAP.md`](ROADMAP.md).
 
-```bash
-cd packages/content-blocks
+## License
 
-# Tests JS unitaires (Vitest)
-npm run test:unit
-
-# Tests JS E2E (Playwright — démarre la sandbox automatiquement)
-npm run test:e2e
-
-# Tous les tests JS
-npm test
-```
-
-## Architecture UI
-
-Le page builder utilise un mix **Live Components + Stimulus** :
-
-- **Live Components** pour le CRUD serveur (ajout/suppression de sections et blocs)
-- **Stimulus** pour le contrôle DOM (drag & drop, réordonnancement, intégration d'éditeurs JS tiers)
-
-> **Règle** : ne pas utiliser de LiveAction pour des opérations qui réordonnent des composants Live enfants (limitation morphdom/Idiomorph).
-
-## Licence
-
-MIT
+[MIT](LICENSE)

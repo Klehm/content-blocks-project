@@ -1,0 +1,458 @@
+{
+    "title": {
+        "type": "title",
+        "label": "Title",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {
+            "size": {
+                "values": [
+                    "h1",
+                    "h2",
+                    "h3",
+                    "h4",
+                    "h5",
+                    "h6"
+                ],
+                "default": "h2"
+            },
+            "tag": {
+                "values": [
+                    "h1",
+                    "h2",
+                    "h3",
+                    "h4",
+                    "h5",
+                    "h6",
+                    "span",
+                    "p"
+                ],
+                "default": "h2"
+            }
+        },
+        "defaults": {
+            "text": "",
+            "size": "h2",
+            "tag": "h2",
+            "color": ""
+        }
+    },
+    "text": {
+        "type": "text",
+        "label": "Text",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {},
+        "defaults": {
+            "content": "",
+            "color": ""
+        }
+    },
+    "rich_text": {
+        "type": "rich_text",
+        "label": "Rich text",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {},
+        "defaults": {
+            "content": ""
+        }
+    },
+    "image": {
+        "type": "image",
+        "label": "Image",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {
+            "size": {
+                "values": [
+                    "sm",
+                    "md",
+                    "lg",
+                    "full",
+                    "custom"
+                ],
+                "default": "md"
+            },
+            "fit": {
+                "values": [
+                    "cover",
+                    "contain"
+                ],
+                "default": "cover"
+            },
+            "align": {
+                "values": [
+                    "start",
+                    "center",
+                    "end"
+                ],
+                "default": "center"
+            }
+        },
+        "defaults": {
+            "src": "",
+            "alt": "",
+            "size": "md",
+            "customWidth": 600,
+            "customHeightAuto": true,
+            "customHeight": 400,
+            "fit": "cover",
+            "align": "center",
+            "link": "",
+            "caption": "",
+            "borderRadius": {
+                "linked": true
+            }
+        }
+    },
+    "gallery": {
+        "type": "gallery",
+        "label": "Gallery",
+        "disabledByDefault": false,
+        "options": {
+            "max_columns": 6
+        },
+        "choices": {
+            "layout": {
+                "values": [
+                    "grid",
+                    "slider"
+                ],
+                "default": "grid"
+            },
+            "columns": {
+                "values": [
+                    2,
+                    3,
+                    4,
+                    5,
+                    6
+                ],
+                "default": 3
+            },
+            "fit": {
+                "values": [
+                    "cover",
+                    "contain"
+                ],
+                "default": "cover"
+            }
+        },
+        "defaults": {
+            "layout": "grid",
+            "columns": 3,
+            "fit": "cover",
+            "borderRadius": {
+                "linked": true
+            },
+            "items": [
+                {
+                    "src": "",
+                    "alt": "",
+                    "caption": "",
+                    "link": ""
+                }
+            ]
+        }
+    },
+    "button": {
+        "type": "button",
+        "label": "Button",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {
+            "variant": {
+                "values": [
+                    "primary",
+                    "secondary",
+                    "outline",
+                    "link"
+                ],
+                "default": "primary"
+            },
+            "size": {
+                "values": [
+                    "sm",
+                    "md",
+                    "lg"
+                ],
+                "default": "md"
+            },
+            "align": {
+                "values": [
+                    "start",
+                    "center",
+                    "end"
+                ],
+                "default": "start"
+            }
+        },
+        "defaults": {
+            "text": "Learn more",
+            "href": "",
+            "variant": "primary",
+            "size": "md",
+            "align": "start",
+            "fullWidth": false,
+            "newTab": false
+        }
+    },
+    "card": {
+        "type": "card",
+        "label": "Cards",
+        "disabledByDefault": false,
+        "options": {
+            "max_columns": 4
+        },
+        "choices": {
+            "layout": {
+                "values": [
+                    "grid",
+                    "list"
+                ],
+                "default": "grid"
+            },
+            "columns": {
+                "values": [
+                    2,
+                    3,
+                    4
+                ],
+                "default": 3
+            }
+        },
+        "defaults": {
+            "layout": "grid",
+            "columns": 3,
+            "items": [
+                {
+                    "src": "",
+                    "title": "Card title",
+                    "content": "Card text",
+                    "buttonUrl": "",
+                    "buttonLabel": ""
+                }
+            ]
+        }
+    },
+    "list": {
+        "type": "list",
+        "label": "List",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {
+            "style": {
+                "values": [
+                    "bullet",
+                    "check",
+                    "numbered"
+                ],
+                "default": "bullet"
+            }
+        },
+        "defaults": {
+            "style": "bullet",
+            "items": [
+                {
+                    "text": "List item"
+                }
+            ]
+        }
+    },
+    "icon": {
+        "type": "icon",
+        "label": "Icon",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {
+            "name": {
+                "values": [
+                    "star",
+                    "heart",
+                    "check",
+                    "check-circle",
+                    "info",
+                    "help",
+                    "warning",
+                    "lightbulb",
+                    "phone",
+                    "mail",
+                    "map-pin",
+                    "calendar",
+                    "clock",
+                    "user",
+                    "settings",
+                    "thumbs-up",
+                    "gift",
+                    "shield",
+                    "zap",
+                    "globe",
+                    "camera",
+                    "arrow-right",
+                    "quote"
+                ],
+                "default": "star"
+            },
+            "align": {
+                "values": [
+                    "start",
+                    "center",
+                    "end"
+                ],
+                "default": "center"
+            }
+        },
+        "defaults": {
+            "name": "star",
+            "color": "",
+            "size": 48,
+            "align": "center"
+        }
+    },
+    "alert": {
+        "type": "alert",
+        "label": "Alert",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {
+            "type": {
+                "values": [
+                    "info",
+                    "success",
+                    "warning",
+                    "error"
+                ],
+                "default": "info"
+            }
+        },
+        "defaults": {
+            "type": "info",
+            "title": "",
+            "message": ""
+        }
+    },
+    "divider": {
+        "type": "divider",
+        "label": "Divider",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {
+            "style": {
+                "values": [
+                    "solid",
+                    "dashed",
+                    "dotted"
+                ],
+                "default": "solid"
+            }
+        },
+        "defaults": {
+            "style": "solid",
+            "color": ""
+        }
+    },
+    "accordion": {
+        "type": "accordion",
+        "label": "Accordion",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {},
+        "defaults": {
+            "exclusive": false,
+            "items": [
+                {
+                    "title": "Question",
+                    "content": "Answer"
+                }
+            ]
+        }
+    },
+    "table": {
+        "type": "table",
+        "label": "Table",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {},
+        "defaults": {
+            "striped": true,
+            "columns": [
+                {
+                    "label": "Name",
+                    "align": "left"
+                },
+                {
+                    "label": "Value",
+                    "align": "right"
+                }
+            ],
+            "rows": [
+                {
+                    "cells": [
+                        {
+                            "content": "Row 1"
+                        },
+                        {
+                            "content": "—"
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    "embed": {
+        "type": "embed",
+        "label": "Video embed",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {},
+        "defaults": {
+            "url": "",
+            "title": ""
+        }
+    },
+    "breadcrumb": {
+        "type": "breadcrumb",
+        "label": "Breadcrumb",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {},
+        "defaults": {
+            "items": [
+                {
+                    "label": "Home",
+                    "url": "/"
+                },
+                {
+                    "label": "Current page",
+                    "url": ""
+                }
+            ]
+        }
+    },
+    "html_raw": {
+        "type": "html_raw",
+        "label": "Raw HTML",
+        "disabledByDefault": true,
+        "options": {},
+        "choices": {},
+        "defaults": {
+            "html": ""
+        }
+    },
+    "tabs": {
+        "type": "tabs",
+        "label": "Tabs",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {},
+        "defaults": {
+            "tabs": [
+                {
+                    "title": "Tab 1",
+                    "content": ""
+                }
+            ]
+        }
+    }
+}

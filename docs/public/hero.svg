@@ -1,0 +1,31 @@
+<svg width="340" height="300" viewBox="0 0 340 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eb0540"/>
+      <stop offset="1" stop-color="#ff5c8a"/>
+    </linearGradient>
+  </defs>
+  <!-- browser frame = the "real page in an iframe" idea -->
+  <rect x="20" y="24" width="300" height="252" rx="16" fill="var(--vp-c-bg-soft, #f6f6f7)" stroke="var(--vp-c-divider, #e2e2e3)" stroke-width="2"/>
+  <circle cx="44" cy="48" r="4" fill="#eb0540"/>
+  <circle cx="60" cy="48" r="4" fill="#eb0540" fill-opacity="0.5"/>
+  <circle cx="76" cy="48" r="4" fill="#eb0540" fill-opacity="0.25"/>
+  <line x1="20" y1="68" x2="320" y2="68" stroke="var(--vp-c-divider, #e2e2e3)" stroke-width="2"/>
+  <!-- full-width section (hero block) -->
+  <rect x="40" y="84" width="260" height="52" rx="8" fill="url(#cbg)"/>
+  <rect x="56" y="100" width="120" height="8" rx="4" fill="#fff" fill-opacity="0.9"/>
+  <rect x="56" y="116" width="180" height="6" rx="3" fill="#fff" fill-opacity="0.55"/>
+  <!-- two-column section -->
+  <rect x="40" y="148" width="124" height="112" rx="8" fill="#eb0540" fill-opacity="0.12" stroke="#eb0540" stroke-opacity="0.4" stroke-width="1.5"/>
+  <rect x="56" y="164" width="92" height="52" rx="6" fill="#eb0540" fill-opacity="0.35"/>
+  <rect x="56" y="226" width="70" height="7" rx="3.5" fill="#eb0540" fill-opacity="0.5"/>
+  <rect x="56" y="240" width="92" height="6" rx="3" fill="#eb0540" fill-opacity="0.3"/>
+  <rect x="176" y="148" width="124" height="112" rx="8" fill="#eb0540" fill-opacity="0.12" stroke="#eb0540" stroke-opacity="0.4" stroke-width="1.5"/>
+  <rect x="192" y="164" width="80" height="7" rx="3.5" fill="#eb0540" fill-opacity="0.5"/>
+  <rect x="192" y="178" width="92" height="6" rx="3" fill="#eb0540" fill-opacity="0.3"/>
+  <rect x="192" y="190" width="76" height="6" rx="3" fill="#eb0540" fill-opacity="0.3"/>
+  <rect x="192" y="228" width="72" height="20" rx="10" fill="url(#cbg)"/>
+  <!-- floating "+ block" add affordance -->
+  <circle cx="300" cy="148" r="16" fill="url(#cbg)"/>
+  <path d="M300 141v14M293 148h14" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
