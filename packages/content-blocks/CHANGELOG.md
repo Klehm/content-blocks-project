@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-beta.7] - 2026-07-10
+
 ### Added
 
 - **Semantic bundle configuration.** `ContentBlocksBundle` now exposes a config tree (`content_blocks:`) covering `section.default_width_mode` / `section.default_max_width` (previously parameter-only, still overridable via parameters), `palette` (named colors), `styles` (section style presets) and `upload` (dir, public prefix, max size, MIME allow-list). Config is the declarative shortcut; the provider interfaces remain the power-user path and both sources merge.
