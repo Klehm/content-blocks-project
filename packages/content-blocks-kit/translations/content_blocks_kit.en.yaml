@@ -1,5 +1,95 @@
 cb_kit:
     block:
+        field:
+            align: "Alignment"
+            text_color: "Text color"
+        align:
+            left: "Left"
+            center: "Center"
+            right: "Right"
+        size:
+            small: "Small"
+            normal: "Normal"
+            large: "Large"
+        action:
+            add_item: "Add item"
+            remove_item: "Remove"
+        button:
+            label: "Button"
+            field:
+                text: "Label"
+                href: "Link"
+                variant: "Style"
+                size: "Size"
+                full_width: "Full width"
+                new_tab: "Open in a new tab"
+            variant:
+                primary: "Primary"
+                secondary: "Secondary"
+                outline: "Outline"
+                link: "Link"
+        list:
+            label: "List"
+            field:
+                style: "Style"
+                items: "Items"
+                item_text: "Text"
+            style:
+                bullet: "Bulleted"
+                check: "Checkmarks"
+                numbered: "Numbered"
+        icon:
+            label: "Icon"
+            field:
+                name: "Icon"
+                color: "Color"
+                size: "Size (px)"
+        alert:
+            label: "Alert"
+            field:
+                type: "Type"
+                title: "Title"
+                message: "Message"
+            type:
+                info: "Info"
+                success: "Success"
+                warning: "Warning"
+                error: "Error"
+        divider:
+            label: "Divider"
+            field:
+                style: "Style"
+                color: "Color"
+            style:
+                solid: "Solid"
+                dashed: "Dashed"
+                dotted: "Dotted"
+        accordion:
+            label: "Accordion"
+            field:
+                exclusive: "One panel open at a time"
+                items: "Panels"
+                item_title: "Title"
+                item_content: "Content"
+            exclusive_help: "When on, opening a panel closes the others."
+        embed:
+            label: "Video embed"
+            unsupported: "Unrecognized URL (YouTube or Vimeo expected)."
+            field:
+                url: "Video URL"
+                title: "Title (accessibility)"
+            url_help: "Paste a YouTube or Vimeo link."
+        breadcrumb:
+            label: "Breadcrumb"
+            field:
+                items: "Steps"
+                item_label: "Label"
+                item_url: "Link (leave empty for the current page)"
+        html_raw:
+            label: "Raw HTML"
+            field:
+                html: "HTML"
+            help: "Rendered verbatim. Only use trusted markup."
         text:
             label: "Text"
             empty: "No content"
@@ -15,15 +105,74 @@ cb_kit:
             empty: "No title"
             field:
                 text: "Title text"
+                size: "Size"
                 tag: "Tag"
+            size:
+                h1: "Heading 1"
+                h2: "Heading 2"
+                h3: "Heading 3"
+                h4: "Heading 4"
+                h5: "Heading 5"
+                h6: "Heading 6"
         image:
             label: "Image"
             no_image: "No image uploaded"
             field:
                 file: "Image file"
                 alt: "Alternative text"
+                size: "Size"
                 width: "Width (px)"
                 height: "Height (px)"
+                height_auto: "Automatic height (keep ratio)"
+                fit: "Fit"
+                link: "Link (optional)"
+                caption: "Caption (optional)"
+                border_radius: "Rounded corners (px)"
+            size:
+                sm: "Small (400px)"
+                md: "Medium (800px)"
+                lg: "Large (1200px)"
+                full: "Full width"
+                custom: "Custom"
+            fit:
+                cover: "Fill (crop)"
+                contain: "Contain (whole image)"
+        gallery:
+            label: "Gallery"
+            field:
+                layout: "Layout"
+                columns: "Columns"
+                items: "Images"
+                item_caption: "Caption (optional)"
+            layout:
+                grid: "Grid"
+                slider: "Slider"
+        card:
+            label: "Cards"
+            field:
+                layout: "Layout"
+                columns: "Columns"
+                items: "Cards"
+                item_title: "Title"
+                item_content: "Text"
+                item_button_url: "Button link (optional)"
+                item_button_label: "Button label (optional)"
+            layout:
+                grid: "Grid"
+                list: "List"
+        table:
+            label: "Table"
+            field:
+                striped: "Striped rows"
+                columns: "Columns"
+                rows: "Rows"
+                cells: "Cells"
+                column_label: "Header"
+                cell_content: "Content"
+            action:
+                add_column: "Add column"
+                add_row: "Add row"
+                add_cell: "Add cell"
         tabs:
             label: "Tabs"
             empty: "No tabs"

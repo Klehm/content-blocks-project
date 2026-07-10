@@ -1,25 +1,44 @@
-{# ImageBlock view/preview template.
+{# ImageBlock view — plain <img> sized by a preset / custom width+height, with
+   object-fit, alignment, an optional link and caption, and per-corner radius.
+   No image-processing dependency: the stored src is rendered as-is; only the
+   *display* box is controlled here. #}
+{% set src = data.src|default('')|trim %}
+{% if src is not empty %}
+    {% set size = data.size|default('md') %}
+    {% set align = data.align|default('center') %}
+    {% set align = align in ['start', 'center', 'end'] ? align : 'center' %}
 
-   No CSS classes here on purpose: this template is rendered on the
-   host's front-end (and in the builder's preview iframe), neither of
-   which load the admin form stylesheet. Visual styling — beyond the
-   max-height ceiling that keeps the preview compact — is the host's
-   responsibility. #}
-{% if data.src|default %}
-    {% set alt = data.alt|default('') %}
-    {% set width = data.width|default(0) %}
-    {% set height = data.height|default(0) %}
-    {% set sizing = (width > 0 ? 'width: ' ~ width ~ 'px;' : '') ~ (height > 0 ? ' height: ' ~ height ~ 'px;' : '') %}
-    <div class="cb-block-image-preview">
-        <img src="{{ data.src }}"
-             alt="{{ alt }}"
-             {% if width > 0 %}width="{{ width }}"{% endif %}
-             {% if height > 0 %}height="{{ height }}"{% endif %}
-             style="{{ sizing }} max-width: 100%;">
-        {% if alt %}
-            <small style="display: block; margin-top: 0.25rem; color: #5b6478;">{{ alt }}</small>
+    {# Target display width. Presets are fixed; 'custom' reads the field;
+       'full' → fluid (max-width:100%). #}
+    {% set preset_width = { sm: 400, md: 800, lg: 1200 }[size]|default(null) %}
+    {% set width = size == 'custom' ? (data.customWidth|default(null)) : preset_width %}
+    {% set width = width ? width|abs : null %}
+    {% set height_auto = data.customHeightAuto ?? true %}
+    {% set height = (size == 'custom' and not height_auto and data.customHeight|default(null)) ? data.customHeight|abs : null %}
+    {% set fit = data.fit|default('cover') == 'contain' ? 'contain' : 'cover' %}
+
+    {# Per-corner radius from BoxSpacingType {top,right,bottom,left}. #}
+    {% set br = data.borderRadius|default({}) %}
+    {% set has_radius = (br.top ?? null) is not null or (br.right ?? null) is not null or (br.bottom ?? null) is not null or (br.left ?? null) is not null %}
+    {% set radius = has_radius ? (br.top ?? 0) ~ 'px ' ~ (br.right ?? 0) ~ 'px ' ~ (br.bottom ?? 0) ~ 'px ' ~ (br.left ?? 0) ~ 'px' : null %}
+
+    {# Width caps the <img>, not the <figure>: the figure stays a full-width flex
+       column so `align-items` (via cb-kit-image--{{ align }}) can place the image
+       left/center/right. max-width:100% (kit.css) keeps it responsive. #}
+    {% set img_style = (width ? 'width:' ~ width ~ 'px;' : '')
+        ~ (height ? 'height:' ~ height ~ 'px;object-fit:' ~ fit ~ ';' : '')
+        ~ (radius ? 'border-radius:' ~ radius ~ ';' : '') %}
+
+    <figure class="cb-kit-image cb-kit-image--{{ align }}">
+        {% if data.link|default('')|trim is not empty %}<a href="{{ data.link }}">{% endif %}
+        <img class="cb-kit-image__img" src="{{ src }}" alt="{{ data.alt|default('') }}"
+             {%- if width %} width="{{ width }}"{% endif %}{% if height %} height="{{ height }}"{% endif %}
+             {%- if img_style %} style="{{ img_style }}"{% endif %} loading="lazy" decoding="async">
+        {% if data.link|default('')|trim is not empty %}</a>{% endif %}
+        {% if data.caption|default('')|trim is not empty %}
+            <figcaption class="cb-kit-image__caption">{{ data.caption }}</figcaption>
         {% endif %}
-    </div>
+    </figure>
 {% else %}
-    <small style="color: #5b6478;">{{ 'cb_kit.block.image.no_image'|trans({}, 'content_blocks_kit') }}</small>
+    <small class="cb-kit-muted">{{ 'cb_kit.block.image.no_image'|trans({}, 'content_blocks_kit') }}</small>
 {% endif %}

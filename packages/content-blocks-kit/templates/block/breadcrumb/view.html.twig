@@ -1,0 +1,18 @@
+{# BreadcrumbBlock view. Empty url → current page (plain text). #}
+{% set items = data.items|default([])|filter(i => i.label|default('')|trim is not empty) %}
+{% if items|length > 0 %}
+    <nav class="cb-kit-breadcrumb" aria-label="Breadcrumb">
+        <ol class="cb-kit-breadcrumb__list">
+            {% for item in items %}
+                <li class="cb-kit-breadcrumb__item">
+                    {% if item.url|default('')|trim is not empty %}
+                        <a class="cb-kit-breadcrumb__link" href="{{ item.url }}">{{ item.label }}</a>
+                    {% else %}
+                        <span class="cb-kit-breadcrumb__current" aria-current="page">{{ item.label }}</span>
+                    {% endif %}
+                    {% if not loop.last %}<span class="cb-kit-breadcrumb__sep" aria-hidden="true">/</span>{% endif %}
+                </li>
+            {% endfor %}
+        </ol>
+    </nav>
+{% endif %}

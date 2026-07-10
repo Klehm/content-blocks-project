@@ -9,6 +9,10 @@ cb:
         remove: "Supprimer"
         duplicate: "Dupliquer"
         drag: "Glisser pour déplacer"
+        layout:
+            full: "Pleine largeur"
+            two_cols: "2 colonnes"
+            three_cols: "3 colonnes"
         settings:
             title: "Paramètres de la section"
             classes: "Classes CSS personnalisées"
@@ -51,11 +55,6 @@ cb:
         align.start: "Début"
         align.center: "Centre"
         align.end: "Fin"
-        layout:
-            full: "1 colonne"
-            one_col: "1 colonne"
-            two_cols: "2 colonnes"
-            three_cols: "3 colonnes"
     block:
         add: "+ Bloc"
         add_title: "Ajouter un bloc"
@@ -130,3 +129,5 @@ cb:
             importing: "Import en cours…"
             confirm: "Êtes-vous sûr de vouloir écraser le contenu actuel avec celui importé ?"
             error: "L'import a échoué."
+    upload:
+        file: "Fichier image"

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Kit\Block;
 
-use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\Form\Type\PaletteColorType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -14,7 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 #[AsContentBlock(priority: 100)]
-final class TitleBlock extends AbstractBlockType
+final class TitleBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {
@@ -42,28 +42,64 @@ final class TitleBlock extends AbstractBlockType
                 'translation_domain' => 'content_blocks_kit',
                 'constraints' => [new Assert\Length(max: 255)],
             ])
+            // Visual size, decoupled from the semantic element below: an editor
+            // can emit a semantically-correct <h2> that *looks* like an h1. The
+            // size drives a cb-kit-title--h* class; the tag drives the element.
+            ->add('size', ChoiceType::class, [
+                'label' => 'cb_kit.block.title.field.size',
+                'translation_domain' => 'content_blocks_kit',
+                'choices' => $this->choices('size'),
+                'constraints' => [$this->choiceConstraint('size')],
+            ])
             ->add('tag', ChoiceType::class, [
                 'label' => 'cb_kit.block.title.field.tag',
                 'translation_domain' => 'content_blocks_kit',
-                'choices' => [
-                    'H1' => 'h1',
-                    'H2' => 'h2',
-                    'H3' => 'h3',
-                    'H4' => 'h4',
-                    'H5' => 'h5',
-                    'H6' => 'h6',
-                    'span' => 'span',
-                    'p' => 'p',
-                ],
-                'constraints' => [new Assert\Choice(choices: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'p'])],
+                // Semantic element only — literal labels, not translation keys.
+                'choice_translation_domain' => false,
+                'choices' => $this->choices('tag'),
+                'constraints' => [$this->choiceConstraint('tag')],
+            ])
+            // Reuses the core palette (content_blocks.palette) — the same named
+            // colors as section/block backgrounds and the TinyMCE swatches.
+            // Stores a plain '#hex' ('' = inherit the theme's text color).
+            ->add('color', PaletteColorType::class, [
+                'label' => 'cb_kit.block.field.text_color',
+                'translation_domain' => 'content_blocks_kit',
+                'required' => false,
             ]);
     }
 
-    public function getDefaultData(): array
+    protected function choiceFields(): array
+    {
+        return [
+            'size' => [
+                'cb_kit.block.title.size.h1' => 'h1',
+                'cb_kit.block.title.size.h2' => 'h2',
+                'cb_kit.block.title.size.h3' => 'h3',
+                'cb_kit.block.title.size.h4' => 'h4',
+                'cb_kit.block.title.size.h5' => 'h5',
+                'cb_kit.block.title.size.h6' => 'h6',
+            ],
+            'tag' => [
+                'H1' => 'h1',
+                'H2' => 'h2',
+                'H3' => 'h3',
+                'H4' => 'h4',
+                'H5' => 'h5',
+                'H6' => 'h6',
+                'span' => 'span',
+                'p' => 'p',
+            ],
+        ];
+    }
+
+    protected function defaults(): array
     {
         return [
             'text' => '',
+            'size' => 'h2',
             'tag' => 'h2',
+            'color' => '',
         ];
     }
 

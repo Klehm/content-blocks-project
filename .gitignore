@@ -8,6 +8,8 @@ vendor
 # Test artefacts
 .phpunit.result.cache
 test-results/
+playwright-report/
+blob-report/
 
 # IDE
 .vscode/

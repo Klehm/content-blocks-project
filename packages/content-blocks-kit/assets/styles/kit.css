@@ -1,0 +1,182 @@
+/*
+ * ContentBlocks Kit — self-contained front styles for the default blocks.
+ *
+ * Neutral, framework-agnostic: no Tailwind/Bootstrap, no CSS reset assumed.
+ * Everything is namespaced under `cb-kit-*` and uses CSS custom properties so a
+ * host can retheme by overriding the `--cb-kit-*` tokens (or the classes) in
+ * its own stylesheet loaded after this one.
+ *
+ * Include once on the front layout (and it flows into the builder preview):
+ *   <link rel="stylesheet" href="{{ path('content_blocks_kit_asset_css') }}">
+ */
+
+:where(.cb-kit-btn, .cb-kit-alert, .cb-kit-list, .cb-kit-icon) {
+    --cb-kit-primary: #4f46e5;
+    --cb-kit-primary-contrast: #ffffff;
+    --cb-kit-secondary: #64748b;
+    --cb-kit-secondary-contrast: #ffffff;
+    --cb-kit-border: #d1d5db;
+    --cb-kit-text: #1f2937;
+    --cb-kit-radius: 8px;
+}
+
+/* ---------- Title ---------- */
+/* Size is a class, decoupled from the element: cb-kit-title--h* sets the visual
+   scale so a semantic <h2> can look like an h1. `display:block` keeps span/p
+   titles behaving as headings. */
+.cb-kit-title { margin: 0 0 .5rem; display: block; font-weight: 700; line-height: 1.2; }
+.cb-kit-title--h1 { font-size: 2.5rem; }
+.cb-kit-title--h2 { font-size: 2rem; }
+.cb-kit-title--h3 { font-size: 1.5rem; }
+.cb-kit-title--h4 { font-size: 1.25rem; }
+.cb-kit-title--h5 { font-size: 1.1rem; }
+.cb-kit-title--h6 { font-size: .95rem; }
+
+/* ---------- Button ---------- */
+.cb-kit-btn-wrap { display: flex; }
+.cb-kit-btn-wrap--start { justify-content: flex-start; }
+.cb-kit-btn-wrap--center { justify-content: center; }
+.cb-kit-btn-wrap--end { justify-content: flex-end; }
+
+.cb-kit-btn {
+    --cb-kit-primary: #4f46e5;
+    --cb-kit-secondary: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5em;
+    border: 1px solid transparent;
+    border-radius: var(--cb-kit-radius, 8px);
+    font: inherit;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+    transition: filter .15s ease, background-color .15s ease, color .15s ease;
+}
+.cb-kit-btn--sm { padding: .4em .9em; font-size: .875rem; }
+.cb-kit-btn--md { padding: .6em 1.2em; font-size: 1rem; }
+.cb-kit-btn--lg { padding: .8em 1.6em; font-size: 1.125rem; }
+.cb-kit-btn--block { display: flex; width: 100%; }
+.cb-kit-btn--primary { background: var(--cb-kit-primary); color: var(--cb-kit-primary-contrast, #fff); }
+.cb-kit-btn--secondary { background: var(--cb-kit-secondary); color: var(--cb-kit-secondary-contrast, #fff); }
+.cb-kit-btn--outline { background: transparent; border-color: currentColor; color: var(--cb-kit-primary); }
+.cb-kit-btn--link { background: transparent; color: var(--cb-kit-primary); padding-left: 0; padding-right: 0; text-decoration: underline; text-underline-offset: 3px; }
+.cb-kit-btn:hover { filter: brightness(1.06); }
+.cb-kit-btn--outline:hover, .cb-kit-btn--link:hover { filter: none; text-decoration: underline; }
+
+/* ---------- Divider ---------- */
+.cb-kit-divider { border: 0; border-top: 2px solid var(--cb-kit-border, #d1d5db); margin: 1.25rem 0; }
+.cb-kit-divider--solid { border-top-style: solid; }
+.cb-kit-divider--dashed { border-top-style: dashed; }
+.cb-kit-divider--dotted { border-top-style: dotted; }
+
+/* ---------- Icon ---------- */
+.cb-kit-icon { display: flex; color: var(--cb-kit-primary, #4f46e5); }
+.cb-kit-icon--start { justify-content: flex-start; }
+.cb-kit-icon--center { justify-content: center; }
+.cb-kit-icon--end { justify-content: flex-end; }
+.cb-kit-icon svg { display: block; }
+
+/* ---------- Alert ---------- */
+.cb-kit-alert {
+    display: flex;
+    gap: .75rem;
+    align-items: flex-start;
+    padding: 1rem 1.1rem;
+    border: 1px solid;
+    border-radius: var(--cb-kit-radius, 8px);
+    color: var(--cb-kit-text, #1f2937);
+}
+.cb-kit-alert__icon { flex: 0 0 auto; line-height: 0; margin-top: .1rem; }
+.cb-kit-alert__body { min-width: 0; }
+.cb-kit-alert__title { margin: 0 0 .2rem; font-weight: 700; }
+.cb-kit-alert__message { margin: 0; }
+.cb-kit-alert--info { background: #eff6ff; border-color: #bfdbfe; }
+.cb-kit-alert--info .cb-kit-alert__icon { color: #2563eb; }
+.cb-kit-alert--success { background: #ecfdf5; border-color: #a7f3d0; }
+.cb-kit-alert--success .cb-kit-alert__icon { color: #059669; }
+.cb-kit-alert--warning { background: #fffbeb; border-color: #fde68a; }
+.cb-kit-alert--warning .cb-kit-alert__icon { color: #d97706; }
+.cb-kit-alert--error { background: #fef2f2; border-color: #fecaca; }
+.cb-kit-alert--error .cb-kit-alert__icon { color: #dc2626; }
+
+/* ---------- List ---------- */
+.cb-kit-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .4rem; }
+.cb-kit-list--bullet { list-style: disc; padding-left: 1.4rem; }
+.cb-kit-list--bullet .cb-kit-list__item { display: list-item; }
+.cb-kit-list--numbered { list-style: decimal; padding-left: 1.6rem; }
+.cb-kit-list--numbered .cb-kit-list__item { display: list-item; }
+.cb-kit-list--check .cb-kit-list__item { display: flex; align-items: flex-start; gap: .5rem; }
+.cb-kit-list__check { flex: 0 0 auto; line-height: 0; color: var(--cb-kit-primary, #4f46e5); margin-top: .12rem; }
+
+/* ---------- Embed (responsive 16:9) ---------- */
+.cb-kit-embed { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--cb-kit-radius, 8px); background: #000; }
+.cb-kit-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.cb-kit-embed__error { color: #b45309; font-style: italic; }
+
+/* ---------- Breadcrumb ---------- */
+.cb-kit-breadcrumb__list { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.cb-kit-breadcrumb__item { display: inline-flex; align-items: center; gap: .4rem; }
+.cb-kit-breadcrumb__link { color: #4f46e5; text-decoration: none; }
+.cb-kit-breadcrumb__link:hover { text-decoration: underline; }
+.cb-kit-breadcrumb__current { color: #6b7280; }
+.cb-kit-breadcrumb__sep { color: #9ca3af; }
+
+/* ---------- Accordion (native <details>) ---------- */
+.cb-kit-accordion { display: flex; flex-direction: column; border: 1px solid #e5e7eb; border-radius: var(--cb-kit-radius, 8px); overflow: hidden; }
+.cb-kit-accordion__item + .cb-kit-accordion__item { border-top: 1px solid #e5e7eb; }
+.cb-kit-accordion__summary { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .9rem 1.1rem; font-weight: 600; cursor: pointer; list-style: none; }
+.cb-kit-accordion__summary::-webkit-details-marker { display: none; }
+.cb-kit-accordion__marker { line-height: 0; color: #6b7280; transition: transform .2s ease; transform: rotate(90deg); }
+.cb-kit-accordion__item[open] .cb-kit-accordion__marker { transform: rotate(-90deg); }
+.cb-kit-accordion__content { padding: 0 1.1rem 1rem; color: #374151; }
+
+/* ---------- Image ---------- */
+/* Full-width flex column so align-items can place the image; the display width
+   is capped on the <img> (not the figure), otherwise a max-width'd figure sits
+   at the column's left edge and left/center/right all look the same. */
+.cb-kit-image { margin: 0; display: flex; flex-direction: column; }
+.cb-kit-image--start { align-items: flex-start; }
+.cb-kit-image--center { align-items: center; }
+.cb-kit-image--end { align-items: flex-end; }
+.cb-kit-image__img { max-width: 100%; height: auto; display: block; }
+.cb-kit-image__caption { margin-top: .4rem; font-size: .875rem; color: #6b7280; }
+.cb-kit-muted { color: #6b7280; }
+
+/* ---------- Gallery ---------- */
+.cb-kit-gallery { --cb-kit-cols: 3; --cb-kit-fit: cover; }
+.cb-kit-gallery__item { margin: 0; }
+.cb-kit-gallery__img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: var(--cb-kit-fit, cover); border-radius: var(--cb-kit-radius, 6px); }
+.cb-kit-gallery__caption { margin-top: .35rem; text-align: center; font-size: .85rem; color: #6b7280; }
+.cb-kit-gallery--grid { display: grid; gap: 1rem; grid-template-columns: repeat(var(--cb-kit-cols, 3), minmax(0, 1fr)); }
+@media (max-width: 640px) { .cb-kit-gallery--grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.cb-kit-gallery--slider { display: flex; align-items: center; gap: .5rem; }
+.cb-kit-gallery--slider .cb-kit-gallery__track { display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; flex: 1 1 auto; scrollbar-width: thin; }
+.cb-kit-gallery--slider .cb-kit-gallery__item { flex: 0 0 calc((100% - (var(--cb-kit-cols, 3) - 1) * 1rem) / var(--cb-kit-cols, 3)); scroll-snap-align: start; }
+.cb-kit-gallery__nav { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; border: 1px solid #d1d5db; border-radius: 999px; background: #fff; color: #374151; cursor: pointer; line-height: 0; }
+.cb-kit-gallery__nav:disabled { opacity: .35; cursor: default; }
+.cb-kit-gallery__nav--prev { transform: rotate(180deg); }
+
+/* ---------- Cards ---------- */
+.cb-kit-cards--grid { display: grid; gap: 1.25rem; grid-template-columns: repeat(var(--cb-kit-cols, 3), minmax(0, 1fr)); }
+@media (max-width: 640px) { .cb-kit-cards--grid { grid-template-columns: 1fr; } }
+.cb-kit-cards--list { display: flex; flex-direction: column; gap: 1rem; }
+.cb-kit-card { display: flex; flex-direction: column; border: 1px solid #e5e7eb; border-radius: var(--cb-kit-radius, 8px); overflow: hidden; background: #fff; }
+.cb-kit-cards--list .cb-kit-card { flex-direction: row; }
+.cb-kit-card__media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cb-kit-cards--list .cb-kit-card__media { flex: 0 0 33%; max-width: 220px; }
+.cb-kit-card__body { display: flex; flex-direction: column; gap: .6rem; padding: 1.1rem; }
+.cb-kit-card__title { margin: 0; font-size: 1.15rem; }
+.cb-kit-card__text { margin: 0; color: #374151; }
+.cb-kit-card__btn { align-self: flex-start; margin-top: auto; }
+
+/* ---------- Table ---------- */
+.cb-kit-table-wrap { overflow-x: auto; }
+.cb-kit-table { width: 100%; border-collapse: collapse; }
+.cb-kit-table th, .cb-kit-table td { padding: .6rem .8rem; border-bottom: 1px solid #e5e7eb; }
+.cb-kit-table thead th { background: #f9fafb; font-weight: 700; }
+.cb-kit-table--striped tbody tr:nth-child(odd) { background: #f9fafb; }
+.cb-kit-table--l { text-align: left; }
+.cb-kit-table--c { text-align: center; }
+.cb-kit-table--r { text-align: right; }

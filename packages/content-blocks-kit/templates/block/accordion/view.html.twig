@@ -1,0 +1,18 @@
+{# AccordionBlock view — native <details>/<summary>, no JS.
+   `exclusive` gives every panel the same `name` so only one opens at a time
+   (native HTML behaviour). #}
+{% set items = data.items|default([])|filter(i => i.title|default('')|trim is not empty) %}
+{% if items|length > 0 %}
+    {% set group = data.exclusive|default(false) ? ('cb-acc-' ~ items|length) : null %}
+    <div class="cb-kit-accordion">
+        {% for item in items %}
+            <details class="cb-kit-accordion__item"{% if group %} name="{{ group }}"{% endif %}>
+                <summary class="cb-kit-accordion__summary">
+                    <span>{{ item.title }}</span>
+                    <span class="cb-kit-accordion__marker" aria-hidden="true">{{ cb_kit_icon('arrow-right', 18)|raw }}</span>
+                </summary>
+                <div class="cb-kit-accordion__content">{{ item.content|default('')|nl2br }}</div>
+            </details>
+        {% endfor %}
+    </div>
+{% endif %}

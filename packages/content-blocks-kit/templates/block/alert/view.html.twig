@@ -1,0 +1,15 @@
+{# AlertBlock view. Type drives the color scheme and the built-in glyph. #}
+{% set message = data.message|default('')|trim %}
+{% if message is not empty %}
+    {% set type = data.type|default('info') %}
+    {% set type = type in ['info', 'success', 'warning', 'error'] ? type : 'info' %}
+    {% set glyph = { info: 'info', success: 'check-circle', warning: 'warning', error: 'warning' }[type] %}
+    {% set title = data.title|default('')|trim %}
+    <div class="cb-kit-alert cb-kit-alert--{{ type }}" role="note">
+        <span class="cb-kit-alert__icon" aria-hidden="true">{{ cb_kit_icon(glyph, 20)|raw }}</span>
+        <div class="cb-kit-alert__body">
+            {% if title is not empty %}<p class="cb-kit-alert__title">{{ title }}</p>{% endif %}
+            <p class="cb-kit-alert__message">{{ message|nl2br }}</p>
+        </div>
+    </div>
+{% endif %}

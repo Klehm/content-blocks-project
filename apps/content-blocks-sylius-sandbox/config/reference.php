@@ -1018,6 +1018,14 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         allowed_mime_types?: list<scalar|Param|null>,
  *     },
  * }
+ * @psalm-type ContentBlocksKitConfig = array{
+ *     blocks?: array<string, array{ // Default: []
+ *         enabled?: bool|Param, // Default: true
+ *         options?: mixed, // Block-specific knobs (e.g. max_columns); merged over the block's coded defaults. // Default: []
+ *         choices?: mixed, // Per-field allow-list restricting/reordering a ChoiceType field, keyed by field name (e.g. { variant: [primary, secondary] }). Unknown values are ignored. // Default: []
+ *         defaults?: mixed, // Per-field overrides of the block's initial data, keyed by field name (e.g. { align: center }). // Default: []
+ *     }>,
+ * }
  * @psalm-type KnpMenuConfig = array{
  *     providers?: array{
  *         builder_alias?: bool|Param, // Default: true
@@ -1553,6 +1561,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     live_component?: LiveComponentConfig,
  *     twig?: TwigConfig,
  *     content_blocks?: ContentBlocksConfig,
+ *     content_blocks_kit?: ContentBlocksKitConfig,
  *     knp_menu?: KnpMenuConfig,
  *     ux_icons?: UxIconsConfig,
  *     security?: SecurityConfig,
@@ -1576,6 +1585,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         live_component?: LiveComponentConfig,
  *         twig?: TwigConfig,
  *         content_blocks?: ContentBlocksConfig,
+ *         content_blocks_kit?: ContentBlocksKitConfig,
  *         knp_menu?: KnpMenuConfig,
  *         ux_icons?: UxIconsConfig,
  *         security?: SecurityConfig,
@@ -1599,6 +1609,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         live_component?: LiveComponentConfig,
  *         twig?: TwigConfig,
  *         content_blocks?: ContentBlocksConfig,
+ *         content_blocks_kit?: ContentBlocksKitConfig,
  *         knp_menu?: KnpMenuConfig,
  *         ux_icons?: UxIconsConfig,
  *         security?: SecurityConfig,
@@ -1622,6 +1633,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         live_component?: LiveComponentConfig,
  *         twig?: TwigConfig,
  *         content_blocks?: ContentBlocksConfig,
+ *         content_blocks_kit?: ContentBlocksKitConfig,
  *         knp_menu?: KnpMenuConfig,
  *         ux_icons?: UxIconsConfig,
  *         security?: SecurityConfig,

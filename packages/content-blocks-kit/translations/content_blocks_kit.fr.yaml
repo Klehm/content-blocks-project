@@ -1,5 +1,95 @@
 cb_kit:
     block:
+        field:
+            align: "Alignement"
+            text_color: "Couleur du texte"
+        align:
+            left: "Gauche"
+            center: "Centré"
+            right: "Droite"
+        size:
+            small: "Petit"
+            normal: "Normal"
+            large: "Grand"
+        action:
+            add_item: "Ajouter un élément"
+            remove_item: "Supprimer"
+        button:
+            label: "Bouton"
+            field:
+                text: "Libellé"
+                href: "Lien"
+                variant: "Style"
+                size: "Taille"
+                full_width: "Pleine largeur"
+                new_tab: "Ouvrir dans un nouvel onglet"
+            variant:
+                primary: "Primaire"
+                secondary: "Secondaire"
+                outline: "Contour"
+                link: "Lien"
+        list:
+            label: "Liste"
+            field:
+                style: "Style"
+                items: "Éléments"
+                item_text: "Texte"
+            style:
+                bullet: "Puces"
+                check: "Coches"
+                numbered: "Numérotée"
+        icon:
+            label: "Icône"
+            field:
+                name: "Icône"
+                color: "Couleur"
+                size: "Taille (px)"
+        alert:
+            label: "Alerte"
+            field:
+                type: "Type"
+                title: "Titre"
+                message: "Message"
+            type:
+                info: "Information"
+                success: "Succès"
+                warning: "Avertissement"
+                error: "Erreur"
+        divider:
+            label: "Séparateur"
+            field:
+                style: "Style"
+                color: "Couleur"
+            style:
+                solid: "Plein"
+                dashed: "Tirets"
+                dotted: "Pointillés"
+        accordion:
+            label: "Accordéon"
+            field:
+                exclusive: "Un seul panneau ouvert à la fois"
+                items: "Panneaux"
+                item_title: "Titre"
+                item_content: "Contenu"
+            exclusive_help: "Activé, ouvrir un panneau ferme les autres."
+        embed:
+            label: "Vidéo intégrée"
+            unsupported: "URL non reconnue (YouTube ou Vimeo attendu)."
+            field:
+                url: "URL de la vidéo"
+                title: "Titre (accessibilité)"
+            url_help: "Collez un lien YouTube ou Vimeo."
+        breadcrumb:
+            label: "Fil d'Ariane"
+            field:
+                items: "Étapes"
+                item_label: "Libellé"
+                item_url: "Lien (laisser vide pour la page actuelle)"
+        html_raw:
+            label: "HTML brut"
+            field:
+                html: "HTML"
+            help: "Rendu tel quel. N'utilisez que du code de confiance."
         text:
             label: "Texte"
             empty: "Aucun contenu"
@@ -15,15 +105,74 @@ cb_kit:
             empty: "Aucun titre"
             field:
                 text: "Texte du titre"
+                size: "Taille"
                 tag: "Balise"
+            size:
+                h1: "Titre 1"
+                h2: "Titre 2"
+                h3: "Titre 3"
+                h4: "Titre 4"
+                h5: "Titre 5"
+                h6: "Titre 6"
         image:
             label: "Image"
             no_image: "Aucune image"
             field:
                 file: "Fichier image"
                 alt: "Texte alternatif"
+                size: "Taille"
                 width: "Largeur (px)"
                 height: "Hauteur (px)"
+                height_auto: "Hauteur automatique (conserver le ratio)"
+                fit: "Ajustement"
+                link: "Lien (optionnel)"
+                caption: "Légende (optionnel)"
+                border_radius: "Coins arrondis (px)"
+            size:
+                sm: "Petite (400px)"
+                md: "Moyenne (800px)"
+                lg: "Grande (1200px)"
+                full: "Pleine largeur"
+                custom: "Personnalisée"
+            fit:
+                cover: "Remplir (rogner)"
+                contain: "Entière (visible)"
+        gallery:
+            label: "Galerie"
+            field:
+                layout: "Disposition"
+                columns: "Colonnes"
+                items: "Images"
+                item_caption: "Légende (optionnel)"
+            layout:
+                grid: "Grille"
+                slider: "Carrousel"
+        card:
+            label: "Cartes"
+            field:
+                layout: "Disposition"
+                columns: "Colonnes"
+                items: "Cartes"
+                item_title: "Titre"
+                item_content: "Texte"
+                item_button_url: "Lien du bouton (optionnel)"
+                item_button_label: "Libellé du bouton (optionnel)"
+            layout:
+                grid: "Grille"
+                list: "Liste"
+        table:
+            label: "Tableau"
+            field:
+                striped: "Lignes alternées"
+                columns: "Colonnes"
+                rows: "Lignes"
+                cells: "Cellules"
+                column_label: "En-tête"
+                cell_content: "Contenu"
+            action:
+                add_column: "Ajouter une colonne"
+                add_row: "Ajouter une ligne"
+                add_cell: "Ajouter une cellule"
         tabs:
             label: "Onglets"
             empty: "Aucun onglet"

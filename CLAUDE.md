@@ -23,7 +23,7 @@ content-blocks/
 │   │   ├── templates/           # Twig components
 │   │   ├── composer.json        # PHP deps
 │   │   └── package.json         # JS deps (vitest, playwright)
-│   └── content-blocks-kit/      # Blocs par défaut (Text, Title, Image)
+│   └── content-blocks-kit/      # ~17 blocs prêts à l'emploi, autonomes (kit.css)
 │
 ├── apps/
 │   ├── content-blocks-sandbox/          # App Symfony de dev/test (fixture Playwright)
@@ -76,7 +76,10 @@ Les contributeurs clonent le monorepo et ont tout (packages + sandboxes + tests)
 
 ### Architecture & responsabilités
 - **content-blocks** : package unique contenant les entités Doctrine (`ContentArea`, `Section`, `Column`, `Block`), le système de blocs (`BlockTypeInterface`, `AsContentBlock`, `BlockTypeRegistry`, `BlockTypeCompilerPass`), l'UI admin (Live Components, Stimulus), et le `ContentAreaType` (FormType Symfony)
-- **content-blocks-kit** : dépend de content-blocks. Fournit des implémentations de blocs prêts à l'emploi (`TextBlock`, `TitleBlock`, `ImageBlock`)
+- **content-blocks-kit** : dépend de content-blocks. Fournit ~17 blocs prêts à l'emploi, **autonomes** (aucune dépendance Tailwind/Bootstrap/LiipImagine/icônes ; markup neutre `cb-kit-*` stylé par une feuille `kit.css` servie à la route publique `content_blocks_kit_asset_css`) : title (taille visuelle découplée du tag sémantique + couleur palette), text (+ couleur palette), rich_text, image (avec resize/fit/légende/coins arrondis), gallery (grille/carrousel), button, card, list, icon (IconSet livré), alert, divider, accordion (`<details>` natif), table, embed (`cb_embed_url` YouTube/Vimeo), breadcrumb, html_raw (**désactivé par défaut** — rend `{{ html|raw }}`, opt-in via `enabled: true`), tabs. Les champs couleur (title/text/icon/divider + swatches TinyMCE) puisent tous dans la palette core `content_blocks.palette`.
+  - **Config sémantique** (`config/packages/content_blocks_kit.yaml`) : `content_blocks_kit.blocks.<type>.{enabled, options, choices, defaults}` — `enabled:false` dé-enregistre le service (jamais dans le picker ; `html_raw` est off par défaut, cf. `ContentBlocksKitBundle::DEFAULT_DISABLED`) ; `options` = knobs bloc (ex. `gallery`/`card` `max_columns`) ; `choices` = allow-list qui restreint/réordonne un `ChoiceType` (fallback sur le set complet si vide/invalide) ; `defaults` = override des valeurs initiales. Base `AbstractKitBlock` : `choiceFields()` (source unique des maps, consommée par `choices()`/`choiceConstraint()` — contrainte = superset complet, restreindre le picker n'invalide jamais une donnée stockée), `defaults()` (mergé par le `getDefaultData()` final), `describe()` (introspection). Gating + merge dans `resolveBlocks()` (pur, testable). Commande `content-blocks-kit:blocks [type]` documente toute la surface (lit `describe()`, jamais périmée).
+  - Les champs couleur des blocs réutilisent le `PaletteColorType` du core ; le `color_map` TinyMCE lit la palette via `cb_color_palette()`.
+  - **CI/tests** : le kit a son propre PHPUnit + Vitest, et un path repository vers le core local (composer.json) — il teste toujours le core courant du monorepo, pas la dernière release Packagist.
 
 ### Installation locale
 Les packages sont liés en symlink via les repositories `path` de Composer.
@@ -144,7 +147,7 @@ Le bloc sera automatiquement détecté et enregistré dans le `BlockTypeRegistry
 - `cb-builder` : orchestration de la fenêtre builder (sidebar, postMessage iframe, sauvegarde)
 - `cb-block-edit-keys` : raccourcis clavier dans la sidebar d'édition de bloc
 - `cb-section-settings-form` : sync live de la sidebar de settings de section
-- `cb-condition` : affichage conditionnel générique de champs (`data-cb-condition="field:value1|value2"` sur une row ; checkbox → `true`/`false` ; `field` seul → non-vide). Les instances s'imbriquent (scope = plus proche ancêtre). Utilisé par le switch « Personnaliser le style » et `PaletteColorType` ; réutilisable dans les forms de blocs custom
+- `cb-condition` : affichage conditionnel générique de champs (`data-cb-condition="field:value1|value2"` sur une row ; checkbox → `true`/`false` ; `field` seul → non-vide). Plusieurs clauses se combinent en **ET** via `;` (ex. `size:custom;customHeightAuto:false`), chaque clause gardant son **OU** via `|`. Les instances s'imbriquent (scope = plus proche ancêtre) ; le controller est aussi posé sur la **racine du form d'édition de bloc** ([Block.html.twig]) pour qu'un `<select>` puisse gater des rows sœurs (resize image). Utilisé par le switch « Personnaliser le style » et `PaletteColorType` ; réutilisable dans les forms de blocs custom
 - `cb-file-upload` : upload AJAX vers `/_content-blocks/upload` (preview + status), utilisé par `ImageUploadType`
 
 Ces controllers doivent être déclarés dans `assets/controllers.json` côté host (jusqu'à publication d'une recette Flex officielle). Voir `packages/content-blocks/README.md`.
@@ -272,12 +275,26 @@ security:
 
 ### Block Data Sanitization
 
-Each `BlockTypeInterface` controls its own data validation:
-- `getAllowedDataKeys()` — whitelist of top-level keys
-- `sanitizeData(array $data): array` — full validation (override for nested structures like TabsBlock)
-- `processData(array $data, array $context): array` — pre-save transformation (file uploads, normalization)
+**The block's Symfony form _is_ the whitelist + validator.** A block's `data` is
+never written raw: `BlockComponent::persistDraft()` submits the form built by
+`buildForm()`, and only on success writes `$form->getData()` to the draft (see
+[packages/content-blocks/src/Twig/Component/BlockComponent.php](packages/content-blocks/src/Twig/Component/BlockComponent.php)). Two guarantees fall out of this:
 
-`AbstractBlockType` provides default: whitelist keys + cast to string. Override for complex blocks.
+- **Key whitelist**: the compound form only maps its declared children, so an
+  unexpected key in the POST is dropped — it never reaches `data`.
+- **Value validation**: each field's `constraints` (e.g. `Assert\Choice`,
+  `Assert\Length`) run on submit; a failure re-renders the form with errors and
+  writes nothing. Nested collections validate via their `entry_type`'s own
+  constraints.
+
+There is **no** `getAllowedDataKeys()` / `sanitizeData()` / `processData()` hook —
+a custom block secures its data purely by what it declares in `buildForm()`
+(fields + constraints). The kit's `AbstractKitBlock::choiceConstraint()` derives
+an `Assert\Choice` from the field's full coded choice set for exactly this reason.
+
+**Raw-HTML caveat**: the kit's `html_raw` block renders `{{ html|raw }}`, so it
+trusts its editors — it is **disabled by default** (`content_blocks_kit.blocks.html_raw.enabled: false`)
+and must be opted in.
 
 ### File Upload
 

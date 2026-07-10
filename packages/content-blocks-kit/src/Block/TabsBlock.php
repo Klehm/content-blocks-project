@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Kit\Block;
 
-use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\Kit\Form\Type\TabEntryType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -14,7 +13,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
 
 #[AsContentBlock(priority: 60)]
-final class TabsBlock extends AbstractBlockType
+final class TabsBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {
@@ -57,7 +56,7 @@ final class TabsBlock extends AbstractBlockType
         ]);
     }
 
-    public function getDefaultData(): array
+    protected function defaults(): array
     {
         return [
             'tabs' => [

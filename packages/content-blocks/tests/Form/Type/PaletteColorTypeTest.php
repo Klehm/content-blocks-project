@@ -101,6 +101,32 @@ final class PaletteColorTypeTest extends TypeTestCase
         );
     }
 
+    public function testChoiceLabelsTranslateInTheCoreDomain(): void
+    {
+        // Regression: the None / Custom… choice labels are translation keys. A
+        // child select does not inherit translation_domain when ChoiceType
+        // resolves choice_translation_domain, so without an explicit domain it
+        // falls back to null → labels look up in `messages`, miss, and render as
+        // the raw keys (cb.styling.palette.none / .custom).
+        $view = $this->factory->create(PaletteColorType::class)->createView();
+
+        $this->assertSame('content_blocks', $view['palette']->vars['choice_translation_domain']);
+    }
+
+    public function testChoiceDomainStaysCoreEvenWhenFieldDomainIsOverridden(): void
+    {
+        // Kit blocks add PaletteColorType with their own catalog, e.g.
+        // DividerBlock / IconBlock pass 'content_blocks_kit'. The None / Custom…
+        // keys live only in the core catalog, so the choice domain must stay
+        // 'content_blocks' regardless of the field's translation_domain — else
+        // the options render as raw keys inside kit block forms.
+        $view = $this->factory
+            ->create(PaletteColorType::class, null, ['translation_domain' => 'content_blocks_kit'])
+            ->createView();
+
+        $this->assertSame('content_blocks', $view['palette']->vars['choice_translation_domain']);
+    }
+
     public function testPaletteOptionsCarryTheirHexAsDataAttribute(): void
     {
         $view = $this->factory->create(PaletteColorType::class)->createView();
