@@ -9,7 +9,7 @@
     {% set size = size in ['sm', 'md', 'lg'] ? size : 'md' %}
     <div class="cb-kit-btn-wrap cb-kit-btn-wrap--{{ align }}">
         <a class="cb-kit-btn cb-kit-btn--{{ variant }} cb-kit-btn--{{ size }}{{ data.fullWidth|default(false) ? ' cb-kit-btn--block' : '' }}"
-           href="{{ data.href|default('#')|default('#') }}"
+           href="{{ data.url|default('#')|default('#') }}"
            {%- if data.newTab|default(false) %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ text }}</a>
     </div>
 {% endif %}

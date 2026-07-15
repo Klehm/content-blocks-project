@@ -27,11 +27,11 @@ final class TableColumnType extends AbstractType
                 'label' => 'cb_kit.block.field.align',
                 'translation_domain' => 'content_blocks_kit',
                 'choices' => [
-                    'cb_kit.block.align.left' => 'left',
+                    'cb_kit.block.align.left' => 'start',
                     'cb_kit.block.align.center' => 'center',
-                    'cb_kit.block.align.right' => 'right',
+                    'cb_kit.block.align.right' => 'end',
                 ],
-                'constraints' => [new Assert\Choice(choices: ['left', 'center', 'right'])],
+                'constraints' => [new Assert\Choice(choices: ['start', 'center', 'end'])],
             ]);
     }
 

@@ -13,7 +13,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
 
 #[AsContentBlock(priority: 60)]
-final class TabsBlock extends AbstractKitBlock
+class TabsBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {
@@ -36,7 +36,7 @@ final class TabsBlock extends AbstractKitBlock
 
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
-        $builder->add('tabs', LiveCollectionType::class, [
+        $builder->add('items', LiveCollectionType::class, [
             'entry_type' => TabEntryType::class,
             'allow_add' => true,
             'allow_delete' => true,
@@ -59,7 +59,7 @@ final class TabsBlock extends AbstractKitBlock
     protected function defaults(): array
     {
         return [
-            'tabs' => [
+            'items' => [
                 ['title' => 'Tab 1', 'content' => ''],
             ],
         ];

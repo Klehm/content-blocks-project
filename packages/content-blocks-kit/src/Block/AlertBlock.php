@@ -18,7 +18,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * a message and a type-matched glyph (shipped inline — no icon library).
  */
 #[AsContentBlock(priority: 35)]
-final class AlertBlock extends AbstractKitBlock
+class AlertBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {
@@ -53,7 +53,7 @@ final class AlertBlock extends AbstractKitBlock
                 'required' => false,
                 'constraints' => [new Assert\Length(max: 255)],
             ])
-            ->add('message', TextareaType::class, [
+            ->add('content', TextareaType::class, [
                 'label' => 'cb_kit.block.alert.field.message',
                 'translation_domain' => 'content_blocks_kit',
                 'attr' => ['rows' => 3],
@@ -78,7 +78,7 @@ final class AlertBlock extends AbstractKitBlock
         return [
             'type' => 'info',
             'title' => '',
-            'message' => '',
+            'content' => '',
         ];
     }
 

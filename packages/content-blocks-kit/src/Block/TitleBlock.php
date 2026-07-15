@@ -14,7 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 #[AsContentBlock(priority: 100)]
-final class TitleBlock extends AbstractKitBlock
+class TitleBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {

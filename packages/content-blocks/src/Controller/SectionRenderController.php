@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Controller;
 
 use ContentBlocks\Entity\Section;
-use ContentBlocks\Rendering\BlockRenderer;
+use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Rendering\RenderMode;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
@@ -28,7 +28,7 @@ final class SectionRenderController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly AccessCheckerInterface $accessChecker,
-        private readonly BlockRenderer $blockRenderer,
+        private readonly BlockRendererInterface $blockRenderer,
     ) {
     }
 

@@ -18,7 +18,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * (re)load to init, so this block does not opt into preview hot reload.
  */
 #[AsContentBlock(priority: 30)]
-final class EmbedBlock extends AbstractKitBlock
+class EmbedBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {

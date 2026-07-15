@@ -27,7 +27,7 @@
 {% endif %}
 
 {% macro item(item, fit) %}
-    {% set link = item.link|default('')|trim %}
+    {% set link = item.url|default('')|trim %}
     <figure class="cb-kit-gallery__item">
         {% if link is not empty %}<a href="{{ link }}">{% endif %}
         <img class="cb-kit-gallery__img" src="{{ item.src }}" alt="{{ item.alt|default('') }}" loading="lazy" decoding="async">

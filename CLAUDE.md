@@ -180,11 +180,11 @@ content_blocks:
         default_max_width: 1320
     palette:                            # couleurs nommées du PaletteColorType
         - { label: 'Primaire', color: '#eb0540' }
-    styles:                             # presets de style de section
+    section_styles:                             # presets de style de section
         - name: boxed
           label: 'Boxed'
           css_class: 'my-section--boxed'
-          settings: { styling: { padding: { d: { top: 40, bottom: 40 } } } }
+          settings: { styling: { padding: { desktop: { top: 40, bottom: 40 } } } }
     upload:
         dir: null                       # non-null → active LocalFileStorage
         public_prefix: '/uploads/content-blocks'

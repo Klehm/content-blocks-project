@@ -7,14 +7,14 @@ namespace ContentBlocks\Twig;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Palette\ColorPaletteRegistry;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
-use ContentBlocks\Rendering\BlockRenderer;
+use ContentBlocks\Rendering\BlockRendererInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 final class ContentBlocksExtension extends AbstractExtension
 {
     public function __construct(
-        private readonly BlockRenderer $renderer,
+        private readonly BlockRendererInterface $renderer,
         private readonly ContentAreaUrlResolverInterface $urlResolver,
         private readonly ColorPaletteRegistry $palette,
     ) {
@@ -78,6 +78,6 @@ final class ContentBlocksExtension extends AbstractExtension
         $url = $this->urlResolver->resolve($area);
         $separator = str_contains($url, '?') ? '&' : '?';
 
-        return $url . $separator . BlockRenderer::QUERY_PARAM . '=1';
+        return $url . $separator . BlockRendererInterface::QUERY_PARAM . '=1';
     }
 }

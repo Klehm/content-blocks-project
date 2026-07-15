@@ -12,8 +12,8 @@
                 <div class="cb-kit-card__body">
                     {% if item.title|default('')|trim is not empty %}<h3 class="cb-kit-card__title">{{ item.title }}</h3>{% endif %}
                     {% if item.content|default('')|trim is not empty %}<div class="cb-kit-card__text">{{ item.content|nl2br }}</div>{% endif %}
-                    {% if item.buttonUrl|default('')|trim is not empty and item.buttonLabel|default('')|trim is not empty %}
-                        <a class="cb-kit-btn cb-kit-btn--primary cb-kit-btn--sm cb-kit-card__btn" href="{{ item.buttonUrl }}">{{ item.buttonLabel }}</a>
+                    {% if item.url|default('')|trim is not empty and item.buttonText|default('')|trim is not empty %}
+                        <a class="cb-kit-btn cb-kit-btn--primary cb-kit-btn--sm cb-kit-card__btn" href="{{ item.url }}">{{ item.buttonText }}</a>
                     {% endif %}
                 </div>
             </article>

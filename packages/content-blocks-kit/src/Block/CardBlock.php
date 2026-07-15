@@ -20,7 +20,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * The column-count field reveals only for the grid layout (cb-condition).
  */
 #[AsContentBlock(priority: 65)]
-final class CardBlock extends AbstractKitBlock
+class CardBlock extends AbstractKitBlock
 {
     public static function defaultOptions(): array
     {
@@ -106,7 +106,7 @@ final class CardBlock extends AbstractKitBlock
             'layout' => 'grid',
             'columns' => 3,
             'items' => [
-                ['src' => '', 'title' => 'Card title', 'content' => 'Card text', 'buttonUrl' => '', 'buttonLabel' => ''],
+                ['src' => '', 'title' => 'Card title', 'content' => 'Card text', 'url' => '', 'buttonText' => ''],
             ],
         ];
     }

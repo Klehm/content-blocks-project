@@ -21,19 +21,19 @@ content_blocks:
     # values applied underneath the section's own settings. Editors pick a
     # preset from the dropdown; the "Customize styling" switch reveals the
     # full styling fields, prefilled from the preset.
-    styles:
+    section_styles:
         - name: boxed
           label: 'Boxed'
           css_class: 'demo-section--boxed'
           settings:
               styling:
                   backgroundColor: '#f1f5f9'
-                  padding: { d: { top: 40, right: 40, bottom: 40, left: 40 } }
+                  padding: { desktop: { top: 40, right: 40, bottom: 40, left: 40 } }
         - name: airy
           label: 'Airy'
           settings:
               styling:
-                  padding: { d: { top: 96, bottom: 96 }, m: { top: 48, bottom: 48 } }
+                  padding: { desktop: { top: 96, bottom: 96 }, mobile: { top: 48, bottom: 48 } }
 
     # Enables the upload endpoint with a LocalFileStorage.
     upload:

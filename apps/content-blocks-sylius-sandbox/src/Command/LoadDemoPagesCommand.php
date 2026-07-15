@@ -76,7 +76,7 @@ final class LoadDemoPagesCommand extends Command
         $l = $this->column($hero, 'col-6', 0);
         $this->block($l, 'title', ['text' => 'Composez des pages qui convertissent, sans écrire une ligne de code.', 'tag' => 'h1'], 0);
         $this->block($l, 'text', ['content' => 'Nova réunit sections, colonnes et blocs dans un éditeur visuel en temps réel. Vos équipes marketing publient des landing pages, des articles et des pages produit en quelques minutes — sans jamais ouvrir de ticket au pôle technique.'], 1);
-        $this->block($l, 'button', ['text' => 'Démarrer gratuitement', 'href' => '#', 'variant' => 'primary', 'size' => 'lg', 'align' => 'start', 'fullWidth' => false, 'newTab' => false], 2);
+        $this->block($l, 'button', ['text' => 'Démarrer gratuitement', 'url' => '#', 'variant' => 'primary', 'size' => 'lg', 'align' => 'start', 'fullWidth' => false, 'newTab' => false], 2);
         $r = $this->column($hero, 'col-6', 1);
         $this->block($r, 'image', $this->imageData($this->photo('nova-hero-workspace', 1000, 860), 'Une équipe qui construit une page dans Nova', 'full', '', 22), 0);
 
@@ -116,12 +116,12 @@ final class LoadDemoPagesCommand extends Command
             'layout' => 'grid', 'columns' => 3, 'fit' => 'cover',
             'borderRadius' => ['top' => 14, 'right' => 14, 'bottom' => 14, 'left' => 14, 'linked' => true],
             'items' => [
-                ['src' => $this->photo('nova-gal-studio', 800, 600), 'alt' => 'Page studio créatif', 'caption' => 'Studio Lumen', 'link' => ''],
-                ['src' => $this->photo('nova-gal-cafe', 800, 600), 'alt' => 'Page café de quartier', 'caption' => 'Café Nord', 'link' => ''],
-                ['src' => $this->photo('nova-gal-travel', 800, 600), 'alt' => 'Page agence de voyage', 'caption' => 'Voyages Méridien', 'link' => ''],
-                ['src' => $this->photo('nova-gal-fashion', 800, 600), 'alt' => 'Page mode', 'caption' => 'Atelier Nine', 'link' => ''],
-                ['src' => $this->photo('nova-gal-tech', 800, 600), 'alt' => 'Page produit tech', 'caption' => 'Halo Devices', 'link' => ''],
-                ['src' => $this->photo('nova-gal-food', 800, 600), 'alt' => 'Page restaurant', 'caption' => 'Table 12', 'link' => ''],
+                ['src' => $this->photo('nova-gal-studio', 800, 600), 'alt' => 'Page studio créatif', 'caption' => 'Studio Lumen', 'url' => ''],
+                ['src' => $this->photo('nova-gal-cafe', 800, 600), 'alt' => 'Page café de quartier', 'caption' => 'Café Nord', 'url' => ''],
+                ['src' => $this->photo('nova-gal-travel', 800, 600), 'alt' => 'Page agence de voyage', 'caption' => 'Voyages Méridien', 'url' => ''],
+                ['src' => $this->photo('nova-gal-fashion', 800, 600), 'alt' => 'Page mode', 'caption' => 'Atelier Nine', 'url' => ''],
+                ['src' => $this->photo('nova-gal-tech', 800, 600), 'alt' => 'Page produit tech', 'caption' => 'Halo Devices', 'url' => ''],
+                ['src' => $this->photo('nova-gal-food', 800, 600), 'alt' => 'Page restaurant', 'caption' => 'Table 12', 'url' => ''],
             ],
         ], 2);
 
@@ -133,9 +133,9 @@ final class LoadDemoPagesCommand extends Command
         $this->block($col, 'card', [
             'layout' => 'grid', 'columns' => 3,
             'items' => [
-                ['src' => $this->photo('nova-plan-starter', 800, 520), 'title' => 'Starter — 0 €', 'content' => "Tout pour se lancer.\nJusqu'à 3 pages et 1 utilisateur.\nModèles de base inclus.", 'buttonUrl' => '#', 'buttonLabel' => 'Commencer'],
-                ['src' => $this->photo('nova-plan-pro', 800, 520), 'title' => 'Pro — 29 €/mois', 'content' => "Pour les sites qui grandissent.\nPages illimitées, 5 utilisateurs.\nBlocs personnalisés et historique.", 'buttonUrl' => '#', 'buttonLabel' => 'Choisir Pro'],
-                ['src' => $this->photo('nova-plan-team', 800, 520), 'title' => 'Team — 79 €/mois', 'content' => "Collaboration à grande échelle.\nRôles, validation et support prioritaire.\nSSO et journal d'audit.", 'buttonUrl' => '#', 'buttonLabel' => 'Choisir Team'],
+                ['src' => $this->photo('nova-plan-starter', 800, 520), 'title' => 'Starter — 0 €', 'content' => "Tout pour se lancer.\nJusqu'à 3 pages et 1 utilisateur.\nModèles de base inclus.", 'url' => '#', 'buttonText' => 'Commencer'],
+                ['src' => $this->photo('nova-plan-pro', 800, 520), 'title' => 'Pro — 29 €/mois', 'content' => "Pour les sites qui grandissent.\nPages illimitées, 5 utilisateurs.\nBlocs personnalisés et historique.", 'url' => '#', 'buttonText' => 'Choisir Pro'],
+                ['src' => $this->photo('nova-plan-team', 800, 520), 'title' => 'Team — 79 €/mois', 'content' => "Collaboration à grande échelle.\nRôles, validation et support prioritaire.\nSSO et journal d'audit.", 'url' => '#', 'buttonText' => 'Choisir Team'],
             ],
         ], 2);
 
@@ -144,7 +144,7 @@ final class LoadDemoPagesCommand extends Command
         $col = $this->column($cta, 'col-12', 0);
         $this->block($col, 'title', ['text' => 'Prêt à publier votre première page ?', 'tag' => 'h2'], 0);
         $this->block($col, 'text', ['content' => 'Créez un compte en trente secondes. Aucune carte bancaire requise, aucun engagement.'], 1);
-        $this->block($col, 'button', ['text' => 'Créer mon compte', 'href' => '#', 'variant' => 'primary', 'size' => 'lg', 'align' => 'start', 'fullWidth' => false, 'newTab' => false], 2);
+        $this->block($col, 'button', ['text' => 'Créer mon compte', 'url' => '#', 'variant' => 'primary', 'size' => 'lg', 'align' => 'start', 'fullWidth' => false, 'newTab' => false], 2);
 
         // ---- Closing: demo video + note (alert / divider / embed). ----
         $foot = $this->section($area, Section::LAYOUT_FULL, $pos++, null, $this->look(96, 96, '', 900));
@@ -155,7 +155,7 @@ final class LoadDemoPagesCommand extends Command
         // and carries no third-party branding.
         $this->block($col, 'embed', ['url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'title' => 'Notre vidéo de présentation'], $b++);
         $this->block($col, 'divider', ['style' => 'dashed', 'color' => self::INDIGO], $b++);
-        $this->block($col, 'alert', ['type' => 'success', 'title' => 'Bon à savoir', 'message' => 'Chacun des blocs de cette page est éditable dans le builder : ouvrez /admin/pages pour les manipuler.'], $b++);
+        $this->block($col, 'alert', ['type' => 'success', 'title' => 'Bon à savoir', 'content' => 'Chacun des blocs de cette page est éditable dans le builder : ouvrez /admin/pages pour les manipuler.'], $b++);
 
         return $page;
     }
@@ -240,7 +240,7 @@ final class LoadDemoPagesCommand extends Command
         $tabs = $this->section($area, Section::LAYOUT_FULL, $pos++, null, $this->look(80, 96, '', 820));
         $col = $this->column($tabs, 'col-12', 0);
         $this->block($col, 'title', ['text' => 'Aller plus loin', 'tag' => 'h2'], 0);
-        $this->block($col, 'tabs', ['tabs' => [
+        $this->block($col, 'tabs', ['items' => [
             ['title' => 'Présentation', 'content' => 'Le bloc onglets regroupe des contenus liés derrière des onglets 100 % CSS — idéal pour une documentation dense sans surcharger la page.'],
             ['title' => 'Détails', 'content' => 'Aucun JavaScript requis : de simples boutons radio et des sélecteurs de voisinage suffisent. Léger, accessible et imprimable.'],
             ['title' => 'Astuce', 'content' => 'Combinez les onglets avec le bloc HTML brut pour intégrer un extrait de code ou un composant maison.'],
@@ -375,7 +375,7 @@ final class LoadDemoPagesCommand extends Command
             'customHeight' => 400,
             'fit' => 'cover',
             'align' => 'center',
-            'link' => '',
+            'url' => '',
             'caption' => $caption,
             'borderRadius' => ['top' => $radius, 'right' => $radius, 'bottom' => $radius, 'left' => $radius, 'linked' => true],
         ];

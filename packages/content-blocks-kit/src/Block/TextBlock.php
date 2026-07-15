@@ -12,7 +12,7 @@ use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 #[AsContentBlock(priority: 90)]
-final class TextBlock extends AbstractKitBlock
+class TextBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {

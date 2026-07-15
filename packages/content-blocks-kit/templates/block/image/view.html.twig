@@ -30,11 +30,11 @@
         ~ (radius ? 'border-radius:' ~ radius ~ ';' : '') %}
 
     <figure class="cb-kit-image cb-kit-image--{{ align }}">
-        {% if data.link|default('')|trim is not empty %}<a href="{{ data.link }}">{% endif %}
+        {% if data.url|default('')|trim is not empty %}<a href="{{ data.url }}">{% endif %}
         <img class="cb-kit-image__img" src="{{ src }}" alt="{{ data.alt|default('') }}"
              {%- if width %} width="{{ width }}"{% endif %}{% if height %} height="{{ height }}"{% endif %}
              {%- if img_style %} style="{{ img_style }}"{% endif %} loading="lazy" decoding="async">
-        {% if data.link|default('')|trim is not empty %}</a>{% endif %}
+        {% if data.url|default('')|trim is not empty %}</a>{% endif %}
         {% if data.caption|default('')|trim is not empty %}
             <figcaption class="cb-kit-image__caption">{{ data.caption }}</figcaption>
         {% endif %}

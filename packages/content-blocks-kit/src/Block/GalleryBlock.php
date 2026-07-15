@@ -23,7 +23,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * Option `max_columns` (config) caps the column choices offered.
  */
 #[AsContentBlock(priority: 60)]
-final class GalleryBlock extends AbstractKitBlock
+class GalleryBlock extends AbstractKitBlock
 {
     public static function defaultOptions(): array
     {
@@ -124,7 +124,7 @@ final class GalleryBlock extends AbstractKitBlock
             'fit' => 'cover',
             'borderRadius' => ['linked' => true],
             'items' => [
-                ['src' => '', 'alt' => '', 'caption' => '', 'link' => ''],
+                ['src' => '', 'alt' => '', 'caption' => '', 'url' => ''],
             ],
         ];
     }

@@ -60,14 +60,14 @@ final class StylingTypeTest extends TypeTestCase
 
         $submitted = [
             'padding' => [
-                'd' => ['top' => '10', 'right' => '20', 'bottom' => '10', 'left' => '20', 'linked' => '1'],
-                't' => ['top' => '', 'right' => '', 'bottom' => '', 'left' => '', 'linked' => ''],
-                'm' => ['top' => '5', 'right' => '5', 'bottom' => '5', 'left' => '5', 'linked' => '1'],
+                'desktop' => ['top' => '10', 'right' => '20', 'bottom' => '10', 'left' => '20', 'linked' => '1'],
+                'tablet' => ['top' => '', 'right' => '', 'bottom' => '', 'left' => '', 'linked' => ''],
+                'mobile' => ['top' => '5', 'right' => '5', 'bottom' => '5', 'left' => '5', 'linked' => '1'],
             ],
             'margin' => [
-                'd' => ['top' => '', 'right' => '', 'bottom' => '', 'left' => '', 'linked' => ''],
-                't' => ['top' => '', 'right' => '', 'bottom' => '', 'left' => '', 'linked' => ''],
-                'm' => ['top' => '', 'right' => '', 'bottom' => '', 'left' => '', 'linked' => ''],
+                'desktop' => ['top' => '', 'right' => '', 'bottom' => '', 'left' => '', 'linked' => ''],
+                'tablet' => ['top' => '', 'right' => '', 'bottom' => '', 'left' => '', 'linked' => ''],
+                'mobile' => ['top' => '', 'right' => '', 'bottom' => '', 'left' => '', 'linked' => ''],
             ],
             // Compound palette color: the "Custom…" choice + free picker.
             'backgroundColor' => ['palette' => 'custom', 'custom' => '#ff0000'],
@@ -80,10 +80,10 @@ final class StylingTypeTest extends TypeTestCase
         $this->assertTrue($form->isSynchronized(), 'Form should round-trip cleanly');
         $data = $form->getData();
 
-        $this->assertSame(10, $data['padding']['d']['top']);
-        $this->assertSame(20, $data['padding']['d']['right']);
-        $this->assertTrue($data['padding']['d']['linked']);
-        $this->assertSame(5, $data['padding']['m']['top']);
+        $this->assertSame(10, $data['padding']['desktop']['top']);
+        $this->assertSame(20, $data['padding']['desktop']['right']);
+        $this->assertTrue($data['padding']['desktop']['linked']);
+        $this->assertSame(5, $data['padding']['mobile']['top']);
         $this->assertSame('#ff0000', $data['backgroundColor']);
         $this->assertSame(400, $data['minHeight']['value']);
         $this->assertSame('vh', $data['minHeight']['unit']);

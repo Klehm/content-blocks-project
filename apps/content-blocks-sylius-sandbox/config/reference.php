@@ -1005,11 +1005,77 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         label?: scalar|Param|null,
  *         color?: scalar|Param|null,
  *     }>,
- *     styles?: list<array{ // Default: []
+ *     section_styles?: list<array{ // Default: []
  *         name?: scalar|Param|null,
  *         label?: scalar|Param|null,
  *         css_class?: scalar|Param|null, // Default: ""
- *         settings?: mixed, // Section settings applied by the preset (same shape as draft_settings). // Default: []
+ *         settings?: array{ // Section settings applied by the preset (subset of a section's settings).
+ *             classes?: scalar|Param|null,
+ *             widthMode?: "full"|"centered"|Param,
+ *             maxWidth?: int|Param,
+ *             columnWidths?: scalar|Param|null,
+ *             styleName?: scalar|Param|null,
+ *             stylingCustom?: bool|Param,
+ *             styling?: array{
+ *                 padding?: array{
+ *                     desktop?: array{
+ *                         top?: int|Param,
+ *                         right?: int|Param,
+ *                         bottom?: int|Param,
+ *                         left?: int|Param,
+ *                         linked?: bool|Param,
+ *                     },
+ *                     tablet?: array{
+ *                         top?: int|Param,
+ *                         right?: int|Param,
+ *                         bottom?: int|Param,
+ *                         left?: int|Param,
+ *                         linked?: bool|Param,
+ *                     },
+ *                     mobile?: array{
+ *                         top?: int|Param,
+ *                         right?: int|Param,
+ *                         bottom?: int|Param,
+ *                         left?: int|Param,
+ *                         linked?: bool|Param,
+ *                     },
+ *                 },
+ *                 margin?: array{
+ *                     desktop?: array{
+ *                         top?: int|Param,
+ *                         right?: int|Param,
+ *                         bottom?: int|Param,
+ *                         left?: int|Param,
+ *                         linked?: bool|Param,
+ *                     },
+ *                     tablet?: array{
+ *                         top?: int|Param,
+ *                         right?: int|Param,
+ *                         bottom?: int|Param,
+ *                         left?: int|Param,
+ *                         linked?: bool|Param,
+ *                     },
+ *                     mobile?: array{
+ *                         top?: int|Param,
+ *                         right?: int|Param,
+ *                         bottom?: int|Param,
+ *                         left?: int|Param,
+ *                         linked?: bool|Param,
+ *                     },
+ *                 },
+ *                 gap?: array{
+ *                     desktop?: int|Param,
+ *                     tablet?: int|Param,
+ *                     mobile?: int|Param,
+ *                 },
+ *                 backgroundColor?: scalar|Param|null,
+ *                 minHeight?: array{
+ *                     value?: int|Param,
+ *                     unit?: "px"|"vh"|Param,
+ *                 },
+ *                 verticalAlign?: "start"|"center"|"end"|Param,
+ *             },
+ *         },
  *     }>,
  *     upload?: array{
  *         dir?: scalar|Param|null, // Filesystem dir for LocalFileStorage; leave null to keep uploads disabled (NullFileStorage) or wire your own FileStorageInterface. // Default: null

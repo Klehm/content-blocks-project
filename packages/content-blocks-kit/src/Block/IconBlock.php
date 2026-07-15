@@ -18,7 +18,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * palette color and alignment. No external icon library needed.
  */
 #[AsContentBlock(priority: 45)]
-final class IconBlock extends AbstractKitBlock
+class IconBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {

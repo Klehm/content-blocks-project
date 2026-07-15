@@ -14,15 +14,15 @@ function setup() {
             <div class="cb-form-row__header">
                 <label>Padding</label>
                 <div class="cb-viewport-tabs">
-                    <button class="tab" data-viewport="d" aria-pressed="true"></button>
-                    <button class="tab" data-viewport="t" aria-pressed="false"></button>
-                    <button class="tab" data-viewport="m" aria-pressed="false"></button>
+                    <button class="tab" data-viewport="desktop" aria-pressed="true"></button>
+                    <button class="tab" data-viewport="tablet" aria-pressed="false"></button>
+                    <button class="tab" data-viewport="mobile" aria-pressed="false"></button>
                 </div>
             </div>
             <div class="cb-responsive-box-spacing">
-                <div class="pane" data-viewport="d">D</div>
-                <div class="pane" data-viewport="t">T</div>
-                <div class="pane" data-viewport="m">M</div>
+                <div class="pane" data-viewport="desktop">D</div>
+                <div class="pane" data-viewport="tablet">T</div>
+                <div class="pane" data-viewport="mobile">M</div>
             </div>
         </div>
     `;
@@ -33,7 +33,7 @@ function setup() {
     const controller = new Controller();
     Object.defineProperty(controller, 'element', { value: element });
     Object.defineProperty(controller, 'tabTargets', { value: tabs });
-    controller.activeValue = 'd';
+    controller.activeValue = 'desktop';
 
     controller.connect();
     return { controller, element, tabs };

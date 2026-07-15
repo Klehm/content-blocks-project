@@ -390,18 +390,18 @@ Presets are named styles offered in the section sidebar. Each carries a CSS clas
 
 ```yaml
 content_blocks:
-    styles:
+    section_styles:
         - name: boxed
           label: 'Boxed'
           css_class: 'my-section--boxed'
           settings:
               styling:
                   backgroundColor: '#f1f5f9'
-                  padding: { d: { top: 40, right: 40, bottom: 40, left: 40 } }
+                  padding: { desktop: { top: 40, right: 40, bottom: 40, left: 40 } }
         - name: airy            # settings-only preset (no class)
           label: 'Airy'
           settings:
-              styling: { padding: { d: { top: 96, bottom: 96 } } }
+              styling: { padding: { desktop: { top: 96, bottom: 96 } } }
 ```
 
 …or implement `ContentBlocks\Section\SectionStyleProviderInterface` and return `SectionStyle` instances (the fourth constructor arg is the settings array).

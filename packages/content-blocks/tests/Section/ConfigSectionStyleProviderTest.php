@@ -36,7 +36,7 @@ final class ConfigSectionStyleProviderTest extends TestCase
                 // Settings-only preset.
                 'name' => 'airy',
                 'label' => 'Airy',
-                'settings' => ['styling' => ['padding' => ['d' => ['top' => 80, 'bottom' => 80]]]],
+                'settings' => ['styling' => ['padding' => ['desktop' => ['top' => 80, 'bottom' => 80]]]],
             ],
         ])]);
 

@@ -38,14 +38,14 @@ final class CardItemType extends AbstractType
                 'required' => false,
                 'attr' => ['rows' => 3],
             ])
-            ->add('buttonUrl', UrlType::class, [
+            ->add('url', UrlType::class, [
                 'label' => 'cb_kit.block.card.field.item_button_url',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
                 'default_protocol' => null,
                 'constraints' => [new Assert\Length(max: 1024)],
             ])
-            ->add('buttonLabel', TextType::class, [
+            ->add('buttonText', TextType::class, [
                 'label' => 'cb_kit.block.card.field.item_button_label',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,

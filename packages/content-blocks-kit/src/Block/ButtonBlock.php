@@ -19,7 +19,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * choice, optional full-width and new-tab.
  */
 #[AsContentBlock(priority: 55)]
-final class ButtonBlock extends AbstractKitBlock
+class ButtonBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {
@@ -46,7 +46,7 @@ final class ButtonBlock extends AbstractKitBlock
                 'translation_domain' => 'content_blocks_kit',
                 'constraints' => [new Assert\NotBlank(), new Assert\Length(max: 100)],
             ])
-            ->add('href', UrlType::class, [
+            ->add('url', UrlType::class, [
                 'label' => 'cb_kit.block.button.field.href',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
@@ -105,7 +105,7 @@ final class ButtonBlock extends AbstractKitBlock
     {
         return [
             'text' => 'Learn more',
-            'href' => '',
+            'url' => '',
             'variant' => 'primary',
             'size' => 'md',
             'align' => 'start',

@@ -1,5 +1,5 @@
 {# AlertBlock view. Type drives the color scheme and the built-in glyph. #}
-{% set message = data.message|default('')|trim %}
+{% set message = data.content|default('')|trim %}
 {% if message is not empty %}
     {% set type = data.type|default('info') %}
     {% set type = type in ['info', 'success', 'warning', 'error'] ? type : 'info' %}

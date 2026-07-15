@@ -10,7 +10,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * Per-viewport BoxSpacingType: holds desktop / tablet / mobile values
- * under fixed keys (`d`, `t`, `m`). The viewport switcher (cb-viewport-tabs
+ * under fixed keys (`desktop`, `tablet`, `mobile`). The viewport switcher (cb-viewport-tabs
  * Stimulus controller) shows one set at a time in the sidebar — the form
  * always submits all three.
  *
@@ -21,7 +21,7 @@ final class ResponsiveBoxSpacingType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        foreach (['d', 't', 'm'] as $viewport) {
+        foreach (['desktop', 'tablet', 'mobile'] as $viewport) {
             $builder->add($viewport, BoxSpacingType::class, [
                 'allow_negative' => $options['allow_negative'],
             ]);

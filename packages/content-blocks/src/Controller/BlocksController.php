@@ -7,7 +7,7 @@ namespace ContentBlocks\Controller;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
-use ContentBlocks\Rendering\BlockRenderer;
+use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Rendering\RenderMode;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
@@ -36,7 +36,7 @@ final class BlocksController
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly TranslatorInterface $translator,
-        private readonly BlockRenderer $blockRenderer,
+        private readonly BlockRendererInterface $blockRenderer,
     ) {
     }
 

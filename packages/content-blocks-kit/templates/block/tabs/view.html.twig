@@ -5,10 +5,10 @@
    combinators. Inline `<style>` keeps the rendering self-contained on
    the host's front-end (which does not load the package's admin CSS).
 #}
-{% if data.tabs is defined and data.tabs is iterable and data.tabs|length > 0 %}
+{% if data.items is defined and data.items is iterable and data.items|length > 0 %}
     {% set uid = 'cb-tabs-' ~ random() %}
     <div class="cb-block-tabs" id="{{ uid }}">
-        {% for tab in data.tabs %}
+        {% for tab in data.items %}
             <input type="radio"
                    name="{{ uid }}__state"
                    id="{{ uid }}__r{{ loop.index0 }}"
@@ -17,14 +17,14 @@
                    {% if loop.first %}checked{% endif %}>
         {% endfor %}
         <div class="cb-block-tabs__nav" role="tablist">
-            {% for tab in data.tabs %}
+            {% for tab in data.items %}
                 <label for="{{ uid }}__r{{ loop.index0 }}" class="cb-block-tabs__tab" role="tab">
                     {{ tab.title|default('Untitled') }}
                 </label>
             {% endfor %}
         </div>
         <div class="cb-block-tabs__panels">
-            {% for tab in data.tabs %}
+            {% for tab in data.items %}
                 <div class="cb-block-tabs__panel" data-tab-index="{{ loop.index0 }}" role="tabpanel">
                     {{ tab.content|default('')|nl2br }}
                 </div>
@@ -63,7 +63,7 @@
         {# Active tab + matching panel via the sibling :checked selector.
            Each radio is followed by all tabs and all panels (flat layout),
            so we target by data-tab-index matching the radio's index. #}
-        {% for tab in data.tabs %}
+        {% for tab in data.items %}
             #{{ uid }}__r{{ loop.index0 }}:checked ~ .cb-block-tabs__nav .cb-block-tabs__tab:nth-of-type({{ loop.index }}) {
                 color: #1f2330;
                 background: #fff;

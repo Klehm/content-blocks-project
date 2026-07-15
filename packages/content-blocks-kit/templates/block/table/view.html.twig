@@ -1,13 +1,13 @@
 {# TableBlock view. Cells map to columns by position → rectangular table. #}
 {% set columns = data.columns|default([]) %}
 {% if columns|length > 0 %}
-    {% set align_map = { left: 'cb-kit-table--l', center: 'cb-kit-table--c', right: 'cb-kit-table--r' } %}
+    {% set align_map = { start: 'cb-kit-table--l', center: 'cb-kit-table--c', end: 'cb-kit-table--r' } %}
     <div class="cb-kit-table-wrap">
         <table class="cb-kit-table{{ data.striped|default(false) ? ' cb-kit-table--striped' : '' }}">
             <thead>
                 <tr>
                     {% for col in columns %}
-                        <th scope="col" class="{{ align_map[col.align|default('left')]|default('cb-kit-table--l') }}">{{ col.label|default('') }}</th>
+                        <th scope="col" class="{{ align_map[col.align|default('start')]|default('cb-kit-table--l') }}">{{ col.label|default('') }}</th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -16,7 +16,7 @@
                     <tr>
                         {% for i in 0..(columns|length - 1) %}
                             {% set cell = row.cells[i]|default(null) %}
-                            <td class="{{ align_map[columns[i].align|default('left')]|default('cb-kit-table--l') }}">{{ cell ? (cell.content|default(''))|nl2br : '' }}</td>
+                            <td class="{{ align_map[columns[i].align|default('start')]|default('cb-kit-table--l') }}">{{ cell ? (cell.content|default(''))|nl2br : '' }}</td>
                         {% endfor %}
                     </tr>
                 {% endfor %}

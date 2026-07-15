@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING — styling viewport keys `d`/`t`/`m` → `desktop`/`tablet`/`mobile`.**
+  The responsive styling sub-tree (`styling.padding`/`margin`/`gap`) now spells out
+  the viewport keys in stored data (section `draft_settings`/`published_settings`
+  and block `draft_data`/`published_data`). The emitted CSS custom-property names
+  stay terse (`--cb-s-pad-d-t`, `--cb-gap-d`) — the decorators map long→short — so
+  `styling.css` and any host CSS override are unaffected. Migrate existing rows with
+  the reference migration `Version20260715130000` (both sandboxes; reversible).
+- **BREAKING — config key `styles` → `section_styles`.** The section-style-presets
+  config key now matches the emitted parameter (`content_blocks.section_styles`);
+  host YAML under `content_blocks.styles:` must be renamed to `section_styles:`.
+- **`section_styles[].settings` is now a typed config node** (was a free-form
+  `variableNode`). Preset YAML is validated and self-documenting; the shape mirrors
+  `SectionSettingsType`/`StylingType`. Unknown keys and bad viewport/align/unit
+  values now fail at container build instead of silently persisting. Host presets
+  using the old `d`/`t`/`m` viewport keys must be updated to `desktop`/`tablet`/`mobile`.
+
+### Added
+
+- **`BlockRendererInterface` — rendering override seam (road to v1.0).** The
+  central `BlockRenderer` now implements a `BlockRendererInterface` (`render`,
+  `resolveMode`, `renderBlock`, `renderSection`, and the `QUERY_PARAM` constant),
+  aliased to the shipped implementation. Consumers (the Twig extension and the
+  render controllers) type-hint the interface, so a host can now customize
+  rendering — wrap output, add caching, swap the preview-mode heuristic — by
+  decorating it (`#[AsDecorator(BlockRendererInterface::class)]`) or re-aliasing.
+  Backward-compatible: the concrete `BlockRenderer` service id still resolves.
+
 ## [0.1.0-beta.7] - 2026-07-10
 
 ### Added

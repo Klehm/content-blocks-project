@@ -18,7 +18,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * native <details>/<summary>, so it needs zero JavaScript and stays accessible.
  */
 #[AsContentBlock(priority: 50)]
-final class AccordionBlock extends AbstractKitBlock
+class AccordionBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {

@@ -18,7 +18,7 @@ use ContentBlocks\Entity\Block;
  * responsive in this iteration.
  *
  * Data shape (under `$data['styling']`):
- *  - padding, margin: { d: BoxSpacing, t: BoxSpacing, m: BoxSpacing }
+ *  - padding, margin: { desktop: BoxSpacing, tablet: BoxSpacing, mobile: BoxSpacing }
  *      where BoxSpacing = { top, right, bottom, left: int, linked: bool }
  *  - backgroundColor: string (#hex)
  *  - maxWidth: { value: int, unit: 'px' }
@@ -27,6 +27,9 @@ use ContentBlocks\Entity\Block;
 final class StylingBlockDecorator implements BlockDecoratorInterface
 {
     private const SIDE_SHORT = ['top' => 't', 'right' => 'r', 'bottom' => 'b', 'left' => 'l'];
+    // Data keys are spelled out; emitted CSS var names stay terse (see
+    // StylingSectionDecorator). This map bridges the two.
+    private const VIEWPORT_SHORT = ['desktop' => 'd', 'tablet' => 't', 'mobile' => 'm'];
     private const ALIGN_SELF_MAP = [
         'start' => 'flex-start',
         'center' => 'center',
@@ -49,7 +52,7 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
             if (!\is_array($responsive)) {
                 continue;
             }
-            foreach (['d', 't', 'm'] as $viewport) {
+            foreach (self::VIEWPORT_SHORT as $viewport => $vpShort) {
                 $box = $responsive[$viewport] ?? null;
                 if (!\is_array($box)) {
                     continue;
@@ -57,7 +60,7 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
                 foreach (self::SIDE_SHORT as $side => $sideShort) {
                     $value = $box[$side] ?? null;
                     if (\is_int($value)) {
-                        $vars["--cb-{$short}-{$viewport}-{$sideShort}"] = $value . 'px';
+                        $vars["--cb-{$short}-{$vpShort}-{$sideShort}"] = $value . 'px';
                     }
                 }
             }

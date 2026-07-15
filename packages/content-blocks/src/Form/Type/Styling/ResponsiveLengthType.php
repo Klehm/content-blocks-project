@@ -11,7 +11,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * Per-viewport single length (px): desktop / tablet / mobile values under
- * fixed keys (`d`, `t`, `m`). Like ResponsiveBoxSpacingType but a single
+ * fixed keys (`desktop`, `tablet`, `mobile`). Like ResponsiveBoxSpacingType but a single
  * integer per viewport instead of a 4-side box — used for the section gap.
  *
  * The viewport switcher (cb-viewport-tabs) shows one at a time in the
@@ -22,7 +22,7 @@ final class ResponsiveLengthType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        foreach (['d', 't', 'm'] as $viewport) {
+        foreach (['desktop', 'tablet', 'mobile'] as $viewport) {
             $builder->add($viewport, IntegerType::class, [
                 'required' => false,
                 'attr' => [

@@ -37,7 +37,7 @@ final class GalleryItemType extends AbstractType
                 'required' => false,
                 'constraints' => [new Assert\Length(max: 255)],
             ])
-            ->add('link', UrlType::class, [
+            ->add('url', UrlType::class, [
                 'label' => 'cb_kit.block.image.field.link',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,

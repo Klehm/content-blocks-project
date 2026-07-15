@@ -63,12 +63,12 @@
     <div class="cb-form-row">
         <div class="cb-form-row__header">
             <label class="cb-form-label">{{ form.vars.label|trans({}, 'content_blocks') }}</label>
-            <div class="cb-viewport-tabs" data-controller="cb-viewport-tabs" data-cb-viewport-tabs-active-value="d">
+            <div class="cb-viewport-tabs" data-controller="cb-viewport-tabs" data-cb-viewport-tabs-active-value="desktop">
                 {# Match the topbar viewport switcher in builder/shell.html.twig. #}
                 {% set viewports = [
-                    { key: 'd', icon: '▭', label: 'cb.styling.viewport.desktop' },
-                    { key: 't', icon: '▢', label: 'cb.styling.viewport.tablet' },
-                    { key: 'm', icon: '▯', label: 'cb.styling.viewport.mobile' },
+                    { key: 'desktop', icon: '▭', label: 'cb.styling.viewport.desktop' },
+                    { key: 'tablet', icon: '▢', label: 'cb.styling.viewport.tablet' },
+                    { key: 'mobile', icon: '▯', label: 'cb.styling.viewport.mobile' },
                 ] %}
                 {% for v in viewports %}
                     <button type="button"
@@ -76,7 +76,7 @@
                             data-cb-viewport-tabs-target="tab"
                             data-viewport="{{ v.key }}"
                             data-action="cb-viewport-tabs#select"
-                            aria-pressed="{{ v.key == 'd' ? 'true' : 'false' }}"
+                            aria-pressed="{{ v.key == 'desktop' ? 'true' : 'false' }}"
                             title="{{ v.label|trans({}, 'content_blocks') }}">
                         <span aria-hidden="true">{{ v.icon }}</span>
                     </button>
@@ -89,7 +89,7 @@
 
 {% block cb_responsive_box_spacing_widget %}
     <div class="cb-responsive-box-spacing">
-        {% for vp in ['d', 't', 'm'] %}
+        {% for vp in ['desktop', 'tablet', 'mobile'] %}
             <div class="cb-responsive-box-spacing__viewport" data-viewport="{{ vp }}">
                 {{ form_widget(form[vp]) }}
             </div>
@@ -102,11 +102,11 @@
     <div class="cb-form-row">
         <div class="cb-form-row__header">
             <label class="cb-form-label">{{ form.vars.label|trans({}, 'content_blocks') }}</label>
-            <div class="cb-viewport-tabs" data-controller="cb-viewport-tabs" data-cb-viewport-tabs-active-value="d">
+            <div class="cb-viewport-tabs" data-controller="cb-viewport-tabs" data-cb-viewport-tabs-active-value="desktop">
                 {% set viewports = [
-                    { key: 'd', icon: '▭', label: 'cb.styling.viewport.desktop' },
-                    { key: 't', icon: '▢', label: 'cb.styling.viewport.tablet' },
-                    { key: 'm', icon: '▯', label: 'cb.styling.viewport.mobile' },
+                    { key: 'desktop', icon: '▭', label: 'cb.styling.viewport.desktop' },
+                    { key: 'tablet', icon: '▢', label: 'cb.styling.viewport.tablet' },
+                    { key: 'mobile', icon: '▯', label: 'cb.styling.viewport.mobile' },
                 ] %}
                 {% for v in viewports %}
                     <button type="button"
@@ -114,7 +114,7 @@
                             data-cb-viewport-tabs-target="tab"
                             data-viewport="{{ v.key }}"
                             data-action="cb-viewport-tabs#select"
-                            aria-pressed="{{ v.key == 'd' ? 'true' : 'false' }}"
+                            aria-pressed="{{ v.key == 'desktop' ? 'true' : 'false' }}"
                             title="{{ v.label|trans({}, 'content_blocks') }}">
                         <span aria-hidden="true">{{ v.icon }}</span>
                     </button>
@@ -127,7 +127,7 @@
 
 {% block cb_responsive_length_widget %}
     <div class="cb-responsive-length">
-        {% for vp in ['d', 't', 'm'] %}
+        {% for vp in ['desktop', 'tablet', 'mobile'] %}
             <div class="cb-responsive-length__viewport" data-viewport="{{ vp }}">
                 <span class="cb-length cb-form-input-group">
                     {{ form_widget(form[vp], { attr: { class: 'cb-responsive-length__input' } }) }}

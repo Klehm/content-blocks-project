@@ -108,6 +108,8 @@ return static function (ContainerConfigurator $container): void {
         ->tag('twig.extension');
 
     $services->set(\ContentBlocks\Rendering\BlockRenderer::class);
+    // Rendering override seam: host decorates/replaces via the interface.
+    $services->alias(\ContentBlocks\Rendering\BlockRendererInterface::class, \ContentBlocks\Rendering\BlockRenderer::class);
 
     $services->set(\ContentBlocks\Service\ContentAreaPublisher::class);
 

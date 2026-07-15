@@ -77,7 +77,7 @@ final class SectionSidebarControllerTest extends ControllerTestCase
             'stylingCustom' => '1',
             'styling' => [
                 'backgroundColor' => ['palette' => '', 'custom' => ''],
-                'padding' => ['d' => ['top' => '', 'right' => '', 'bottom' => '', 'left' => '']],
+                'padding' => ['desktop' => ['top' => '', 'right' => '', 'bottom' => '', 'left' => '']],
             ],
         ]));
 
@@ -100,7 +100,7 @@ final class SectionSidebarControllerTest extends ControllerTestCase
         $view = $this->renderedFormView();
 
         // Preset settings surface as the styling fields' starting values…
-        $this->assertSame('80', $view['styling']['padding']['d']['top']->vars['value']);
+        $this->assertSame('80', $view['styling']['padding']['desktop']['top']->vars['value']);
         // …but a fresh section starts with the switch off.
         $this->assertFalse($view['stylingCustom']->vars['checked']);
     }
@@ -140,7 +140,7 @@ final class SectionSidebarControllerTest extends ControllerTestCase
                 public function getStyles(): array
                 {
                     return [new SectionStyle('airy', 'Airy', '', [
-                        'styling' => ['padding' => ['d' => ['top' => 80, 'bottom' => 80]]],
+                        'styling' => ['padding' => ['desktop' => ['top' => 80, 'bottom' => 80]]],
                     ])];
                 }
             },

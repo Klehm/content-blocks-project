@@ -8,7 +8,7 @@ use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
-use ContentBlocks\Rendering\BlockRenderer;
+use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Rendering\RenderMode;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
@@ -41,7 +41,7 @@ final class SectionsController
         private readonly AccessCheckerInterface $accessChecker,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly SectionCloner $sectionCloner,
-        private readonly BlockRenderer $blockRenderer,
+        private readonly BlockRendererInterface $blockRenderer,
         private readonly BlockTypeRegistry $blockTypeRegistry,
     ) {
     }

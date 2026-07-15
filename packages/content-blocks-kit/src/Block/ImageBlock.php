@@ -30,7 +30,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * the generic cb-condition controller.
  */
 #[AsContentBlock(priority: 70)]
-final class ImageBlock extends AbstractKitBlock
+class ImageBlock extends AbstractKitBlock
 {
     public static function getType(): string
     {
@@ -108,7 +108,7 @@ final class ImageBlock extends AbstractKitBlock
                 'choices' => $this->choices('align'),
                 'constraints' => [$this->choiceConstraint('align')],
             ])
-            ->add('link', UrlType::class, [
+            ->add('url', UrlType::class, [
                 'label' => 'cb_kit.block.image.field.link',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
@@ -157,7 +157,7 @@ final class ImageBlock extends AbstractKitBlock
             'customHeight' => 400,
             'fit' => 'cover',
             'align' => 'center',
-            'link' => '',
+            'url' => '',
             'caption' => '',
             'borderRadius' => ['linked' => true],
         ];
