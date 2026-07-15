@@ -31,6 +31,45 @@ Legend: 🅿️ planned · 🤔 under consideration · 💡 idea
 
 ---
 
+## Kit — rich-text blocks (TinyMCE & CKEditor) with overridable init 🅿️
+
+**Context.** The kit ships a neutral `rich_text` block, but real editors want a full WYSIWYG. Two ecosystems dominate — **TinyMCE** and **CKEditor** — and hosts are rarely neutral: they already standardize on one. Hard-wiring either (or a single init config) would break the kit's "drops into any host" promise and fight whatever the host already loads.
+
+**Direction.** Ship the two rich-text blocks as **opt-in** kit blocks (like `html_raw`, off unless enabled), each self-contained but with a documented seam to override the editor's init config:
+
+- Two new kit blocks (`rich_text_tinymce`, `rich_text_ckeditor`) — Stimulus-driven, mounting the editor on a textarea, persisting HTML like the current `rich_text`.
+- **Override API**: the integrator supplies the init/config object without forking the block — via a Stimulus value / `data-*` config seam and/or a JS hook (e.g. `window`-scoped registry or a controller they extend), so the host's toolbar/plugins/branding win. Default init = a sane neutral toolbar.
+- Editor JS itself stays a **host concern** (importmap/CDN), not a kit `require` — the block wires the bridge, the host brings the library. Mirror the existing core TinyMCE bridge where it makes sense (palette `color_map` via `cb_color_palette()`).
+- Same raw-HTML caveat as `html_raw` → these blocks trust their editors; document the trust boundary.
+
+**Rough scope when picked up:**
+- [ ] `rich_text_tinymce` + `rich_text_ckeditor` blocks (opt-in, in `DEFAULT_DISABLED`)
+- [ ] Stimulus controller(s) mounting each editor on a textarea; HTML persisted + sanitization note
+- [ ] Init-config override seam (data-config / JS hook / extendable controller) — host config wins, neutral default otherwise
+- [ ] Palette bridge (swatches / color_map) reused from core where applicable
+- [ ] Docs: enable + override recipe for each editor; trust-boundary note
+
+---
+
+## New package — Translation / Multilingual 🅿️
+
+**Context.** Hosts need multilingual content areas. The design compromise: **one shared layout** (sections/columns/blocks structure is language-agnostic) but **translatable blocks/fields** — the same visual skeleton renders per language, with only tagged field values swapped.
+
+**Direction.** A dedicated package (e.g. `klehm/content-blocks-translation`) so the core stays single-language by default:
+
+- **Field-level opt-in**: let a block dev *tag* which fields are translatable; those (and only those) surface in a dedicated per-field translation UI. Untagged fields (and the whole layout structure) stay shared across languages.
+- **Language-aware rendering**: load a `ContentArea` in a given locale — defaulting to the Symfony request/translator context (`LocaleAwareInterface` / `Request::getLocale`) unless overridden.
+- **Data schema — the open design question**: decide between (a) a side table of per-field, per-locale overrides keyed by `(block_id, field, locale)`, vs (b) a locale-keyed JSON envelope inside `Block.data`, vs (c) cloned per-locale blocks sharing a layout id. Trade-offs: migration/diff cost, query complexity, fallback-to-default-locale behavior, and how it interacts with the draft/publish + replace-content flows. **Needs a schema spike before implementation.**
+
+**Rough scope when picked up:**
+- [ ] Design spike: data schema (side-table vs JSON envelope vs cloned blocks) + fallback rules — write it up before coding
+- [ ] Field-tagging mechanism (attribute/metadata on block fields) → drives the translatable-field allow-list
+- [ ] Per-field translation UI (field-by-field, per locale)
+- [ ] Locale-aware render path (default from Symfony context, explicit override)
+- [ ] Interaction with draft/publish + replace-content; migration story
+
+---
+
 ## Core — per-block form extension API 🅿️
 
 **Context.** A host cannot cleanly add a field to *one* existing block's edit form. `BlockFormType` calls `$blockType->buildForm()` on a single shared top-level builder, so **every** block uses one form type/prefix (`content_block`). A stock Symfony `FormTypeExtension` therefore matches by class and fires for **all** blocks — it can only be scoped to one block by a runtime `instanceof` guard, which is a workaround, not real per-block extension. Introducing a per-block *sub-type* wouldn't help either: Symfony extension matching is by type class, so sub-types sharing a class still can't be distinguished.
@@ -61,6 +100,26 @@ This is a small, high-leverage addition to the customization API — the current
 ## Core — Flex recipe for asset wiring 🅿️
 
 The Stimulus controllers + admin CSS (`assets/controllers.json`) and the `sortablejs` importmap entry are currently a manual install step (documented in [Installation](https://klehm.github.io/content-blocks-project/guide/installation)). A Symfony Flex recipe that injects this automatically is planned — once published, the manual step goes away.
+
+---
+
+## Release — stabilize and ship a first stable version 🅿️
+
+**Context.** The project is on `v0.1.0-beta.7`. The block set, core styling, security model, config surface and docs are in place. The goal now is to converge the beta line into a **first stable release** hosts can depend on with a real semver guarantee.
+
+**Direction.** Freeze and harden the public surface rather than add features:
+
+- **API freeze**: audit the public seams (interfaces, config keys, block data shapes, Twig namespaces/templates meant for override) and lock what's stable; mark anything still experimental.
+- **Backward-compat & upgrade**: document breaking changes accumulated over the beta line; ensure migrations exist for schema changes (e.g. `cb_content_area.updated_at`) with a clean upgrade path.
+- **Test & CI confidence**: full green across core + kit (PHPUnit, Vitest, Playwright) on the supported matrix (Symfony 6.4/7.x/8.x, PHP 8.2–8.4).
+- **Docs & CHANGELOG**: finalize the docs site, write the stable release notes, tag `v1.0.0` and let the split CI propagate to the read-only repos.
+
+**Rough scope when picked up:**
+- [ ] Public-surface audit → freeze list + "experimental" markers
+- [ ] Upgrade guide (beta → stable) + verified migrations
+- [ ] Green CI on the full supported matrix
+- [ ] Finalize docs site + stable release notes
+- [ ] Tag `v1.0.0`, verify Packagist split
 
 ---
 
