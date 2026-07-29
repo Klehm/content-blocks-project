@@ -241,7 +241,7 @@ describe('cb-autosave', () => {
             <div data-controller="cb-autosave">
                 <form>
                     <input type="text" name="content_block[alt]" id="alt">
-                    <input type="checkbox" name="content_block[styling][margin][d][linked]" id="linked" value="1">
+                    <input type="checkbox" name="content_block[styling][margin][desktop][linked]" id="linked" value="1">
                     <button type="button" data-cb-sidebar-save id="save">Save</button>
                 </form>
             </div>
@@ -268,7 +268,7 @@ describe('cb-autosave', () => {
             <div data-controller="cb-autosave">
                 <form>
                     <input type="text" name="content_block[alt]" id="alt">
-                    <input type="checkbox" name="content_block[styling][margin][d][linked]" id="linked" value="1">
+                    <input type="checkbox" name="content_block[styling][margin][desktop][linked]" id="linked" value="1">
                     <button type="button" data-cb-sidebar-save id="save">Save</button>
                 </form>
             </div>

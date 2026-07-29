@@ -342,7 +342,7 @@ test.describe('builder shell — sections', () => {
         await openSectionSettings(page, frame);
         await expect(sidebar.locator('input[name="section_settings[stylingCustom]"]')).toBeChecked();
         await expect(sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]')).toHaveValue('#4f46e5');
-        await expect(sidebar.locator('input[name="section_settings[styling][padding][d][top]"]')).toHaveValue('40');
+        await expect(sidebar.locator('input[name="section_settings[styling][padding][desktop][top]"]')).toHaveValue('40');
     });
 });
 
@@ -569,10 +569,11 @@ test.describe('builder shell — preview hardening', () => {
 
         // Styling fields are behind the "Customize styling" switch.
         await sidebar.locator('input[name="section_settings[stylingCustom]"]').check();
-        // Set the desktop column gap to 40px (the 'd' viewport tab is active by
-        // default, so its input is the visible one). Autosave persists it and
-        // the preview reloads with --cb-gap-d:40px on the section.
-        await sidebar.locator('input[name="section_settings[styling][gap][d]"]').fill('40');
+        // Set the desktop column gap to 40px (the desktop viewport tab is
+        // active by default, so its input is the visible one). Autosave
+        // persists it and the preview reloads with --cb-gap-d:40px on the
+        // section (stored keys are spelled out; CSS var names stay terse).
+        await sidebar.locator('input[name="section_settings[styling][gap][desktop]"]').fill('40');
         const section = frame.locator('[data-cb-section-id]').first();
         await expect.poll(async () => section.getAttribute('style')).toContain('--cb-gap-d:40px');
 
