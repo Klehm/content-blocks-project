@@ -13,12 +13,18 @@ on:
 
 jobs:
   php-tests:
-    name: PHPUnit (PHP ${{ matrix.php }})
+    name: PHPUnit (PHP ${{ matrix.php }} · Symfony ${{ matrix.symfony }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # Full support matrix: Symfony 6.4 LTS / 7.x / 8.x × PHP 8.2–8.4.
       matrix:
         php: ['8.2', '8.3', '8.4']
+        symfony: ['6.4.*', '7.*', '8.*']
+        exclude:
+          # Symfony 8.0 requires PHP >= 8.4.
+          - { php: '8.2', symfony: '8.*' }
+          - { php: '8.3', symfony: '8.*' }
 
     steps:
       - uses: actions/checkout@v6
@@ -29,11 +35,22 @@ jobs:
           extensions: pdo_mysql, intl, mbstring
           coverage: none
 
-      # `update` rather than `install`: the package is a library, so each
-      # PHP version resolves its own (highest compatible) dependency set —
-      # this is what consumers will actually get.
+      # Pin the Symfony release line for this leg. flex (installed globally so it
+      # is active for the local `composer update` without touching composer.json)
+      # reads SYMFONY_REQUIRE and constrains every symfony/* core package to the
+      # matrix version — otherwise `composer update` would just take the highest.
+      - name: Install flex (Symfony version constraint)
+        run: |
+          composer global config --no-plugins allow-plugins.symfony/flex true
+          composer global require --no-progress --no-scripts --no-plugins symfony/flex
+
+      # `update` rather than `install`: the package is a library, so it resolves
+      # its own (highest compatible within the pinned line) dependency set —
+      # what consumers on that Symfony line actually get.
       - name: Install dependencies
         working-directory: packages/content-blocks
+        env:
+          SYMFONY_REQUIRE: ${{ matrix.symfony }}
         run: composer update --prefer-dist --no-progress --no-interaction
 
       - name: Run PHPUnit
@@ -41,12 +58,18 @@ jobs:
         run: ./vendor/bin/phpunit
 
   kit-php-tests:
-    name: PHPUnit kit (PHP ${{ matrix.php }})
+    name: PHPUnit kit (PHP ${{ matrix.php }} · Symfony ${{ matrix.symfony }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # Same full matrix as the core: Symfony 6.4 / 7.x / 8.x × PHP 8.2–8.4.
       matrix:
         php: ['8.2', '8.3', '8.4']
+        symfony: ['6.4.*', '7.*', '8.*']
+        exclude:
+          # Symfony 8.0 requires PHP >= 8.4.
+          - { php: '8.2', symfony: '8.*' }
+          - { php: '8.3', symfony: '8.*' }
 
     steps:
       # fetch-depth: 0 so the path-repo'd klehm/content-blocks resolves during
@@ -63,11 +86,19 @@ jobs:
           extensions: pdo_mysql, intl, mbstring
           coverage: none
 
+      # Pin the Symfony release line for this leg (see the core job above).
+      - name: Install flex (Symfony version constraint)
+        run: |
+          composer global config --no-plugins allow-plugins.symfony/flex true
+          composer global require --no-progress --no-scripts --no-plugins symfony/flex
+
       # The kit resolves klehm/content-blocks from the sibling package via a
       # path repository (in the kit's composer.json), so it always tests
       # against the monorepo's current core, not the last Packagist release.
       - name: Install dependencies
         working-directory: packages/content-blocks-kit
+        env:
+          SYMFONY_REQUIRE: ${{ matrix.symfony }}
         run: composer update --prefer-dist --no-progress --no-interaction
 
       - name: Run PHPUnit
