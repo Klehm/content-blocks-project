@@ -122,6 +122,25 @@ describe('cb-builder template picker: list rendering', () => {
         expect(list.querySelector('.cb-template-picker__item--disabled')).not.toBeNull();
     });
 
+    it('disables templates whose payload envelope this build cannot read', async () => {
+        // A snapshot saved under an older payload structure. The insert would
+        // 422, so the row is greyed out with its own explanation — "missing
+        // block types" would be a lie here, the list is empty.
+        global.fetch = vi.fn(() => okJson({
+            items: [
+                { id: 6, name: 'Ancient', compatible: false, missingTypes: [], unreadableFormat: true, canManage: false },
+            ],
+            hasMore: false,
+        }));
+
+        await controller.openTemplatePicker();
+
+        const btn = list.querySelector('.cb-template-picker__item-btn');
+        expect(btn.disabled).toBe(true);
+        expect(btn.title).toMatch(/incompatible version/i);
+        expect(btn.title).not.toMatch(/block type/i);
+    });
+
     it('shows a delete button only when the template is manageable', async () => {
         global.fetch = vi.fn(() => okJson({
             items: [

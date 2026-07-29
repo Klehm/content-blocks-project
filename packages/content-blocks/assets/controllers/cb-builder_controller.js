@@ -1483,12 +1483,20 @@ export default class extends Controller {
         btn.textContent = item.name ?? `#${item.id}`;
 
         if (item.compatible === false) {
-            // A referenced block type is no longer registered — inserting would
-            // 422. Disable up front and explain why on hover.
+            // Either a referenced block type is no longer registered, or the
+            // payload envelope predates this build. Both 422 on insert, so
+            // disable up front and explain which one it is on hover.
             btn.disabled = true;
-            const missing = Array.isArray(item.missingTypes) ? item.missingTypes.join(', ') : '';
-            const tpl = this._t('cb.builder.template.incompatible', 'Unavailable — missing block type(s): %types%');
-            btn.title = tpl.replace('%types%', missing);
+            if (item.unreadableFormat) {
+                btn.title = this._t(
+                    'cb.builder.template.unreadable_format',
+                    'Unavailable — saved by an incompatible version of the section library',
+                );
+            } else {
+                const missing = Array.isArray(item.missingTypes) ? item.missingTypes.join(', ') : '';
+                const tpl = this._t('cb.builder.template.incompatible', 'Unavailable — missing block type(s): %types%');
+                btn.title = tpl.replace('%types%', missing);
+            }
             li.classList.add('cb-template-picker__item--disabled');
         } else {
             btn.addEventListener('click', () => this._confirmInsert(item));
@@ -1690,10 +1698,17 @@ export default class extends Controller {
             this._endLoading();
         }
 
-        // Reset the picker so the next open starts clean, then refresh the
-        // preview to surface the freshly-imported draft.
+        // Non-blocking warnings: the import succeeded, but some of what came in
+        // has no block type here, or carries fields nothing can hold. Same rule
+        // as the template picker — keep the panel open on its status line,
+        // since closing it would blank the only element carrying the message.
+        const warning = this._importWarning(payload);
         this.importFileTarget.value = '';
-        this.closeImportExport();
+        if (warning !== null) {
+            this._setImportExportStatus(warning);
+        } else {
+            this.closeImportExport();
+        }
         this._replacePickerLoaded = false;
         this._applyDraftState(
             payload && payload.hasUnpublishedChanges !== undefined
@@ -1701,6 +1716,33 @@ export default class extends Controller {
                 : true,
         );
         this.reload();
+    }
+
+    /**
+     * Message for an import that succeeded with reservations, or null when
+     * there is nothing to report. Missing block types come first: a block this
+     * app cannot render is worse news than a stray stored field.
+     */
+    _importWarning(payload) {
+        const missing = Array.isArray(payload?.missingBlockTypes) ? payload.missingBlockTypes : [];
+        if (missing.length > 0) {
+            return this._t(
+                'cb.builder.import_export.missing_types',
+                'Imported, but this app has no block type(s): %types%',
+            ).replace('%types%', missing.join(', '));
+        }
+
+        const fields = Array.isArray(payload?.unknownFields) ? payload.unknownFields : [];
+        if (fields.length > 0) {
+            const types = [...new Set(fields.map((f) => f.blockType))].join(', ');
+
+            return this._t(
+                'cb.builder.import_export.unknown_fields',
+                'Imported, but some stored fields are unknown on: %types%',
+            ).replace('%types%', types);
+        }
+
+        return null;
     }
 
     _setImportExportStatus(text) {

@@ -40,7 +40,7 @@ final class ImportExportControllerTest extends ControllerTestCase
             $em,
             $accessChecker ?? $this->makeAccessChecker(),
             new ContentAreaExporter($resolver),
-            new ContentAreaImporter($resolver),
+            new ContentAreaImporter($resolver, $this->makeRegistry(), $this->makeDataKeys()),
             $this->makeCsrfManager($csrfValid),
         );
     }
@@ -71,7 +71,7 @@ final class ImportExportControllerTest extends ControllerTestCase
                     'layout' => 'full',
                     'columns' => [[
                         'preset' => 'col-12',
-                        'blocks' => [['type' => 'text', 'data' => ['content' => 'imported']]],
+                        'blocks' => [['type' => 'fake', 'data' => ['content' => 'imported']]],
                     ]],
                 ]],
             ],
@@ -138,6 +138,8 @@ final class ImportExportControllerTest extends ControllerTestCase
         $payload = json_decode((string) $response->getContent(), true);
         $this->assertTrue($payload['imported']);
         $this->assertSame(1, $payload['sectionCount']);
+        $this->assertSame([], $payload['missingBlockTypes']);
+        $this->assertSame([], $payload['unknownFields']);
         $this->assertTrue($payload['hasUnpublishedChanges']);
 
         // Replace semantics: old section soft-deleted, imported one is a draft.
@@ -148,6 +150,33 @@ final class ImportExportControllerTest extends ControllerTestCase
             $imported->getColumns()[0]->getBlocks()[0]->getDraftData(),
         );
         $this->assertSame(1, $this->flushCount);
+    }
+
+    public function testImportReportsUnknownBlockTypesWithoutFailing(): void
+    {
+        // Payloads come from other installations, so a block type this app
+        // doesn't have is expected — it warns, it does not abort.
+        $area = $this->makeArea(1);
+        $json = json_encode([
+            'format' => ContentAreaExporter::FORMAT,
+            'contentArea' => ['sections' => [[
+                'layout' => 'full',
+                'columns' => [['preset' => 'col-12', 'blocks' => [
+                    ['type' => 'countdown', 'data' => ['ends' => 'soon']],
+                ]]],
+            ]]],
+            'assets' => [],
+        ], \JSON_THROW_ON_ERROR);
+
+        $controller = $this->makeController($this->makeEm([$area]));
+
+        $response = $controller->import(1, $this->makeUploadRequest($json));
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = json_decode((string) $response->getContent(), true);
+        $this->assertSame(1, $payload['sectionCount']);
+        $this->assertSame(['countdown'], $payload['missingBlockTypes']);
+        $this->assertSame(1, $this->flushCount, 'committed despite the warning');
     }
 
     public function testImportRejectsInvalidCsrf(): void

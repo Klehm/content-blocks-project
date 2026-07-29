@@ -76,6 +76,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   concrete service ids still resolve, and `ContentAreaExporter::FORMAT` still reads
   the same value through inheritance.
 
+- **BREAKING — `ContentAreaImporterInterface::import()` returns an `ImportResult`,
+  `SectionTemplateSerializerInterface::serialize()` a `SectionTemplateSnapshot`.**
+  Both used to return bare arrays/ints. `$snapshot->payload` / `->blockTypes`
+  replace `$serialized['payload']` / `['blockTypes']`; `$result->sectionCount`
+  replaces the returned `int`. Only relevant if you call these services directly.
+- **The import flow now reports what it could not fully understand.** It used to
+  accept any block type silently, producing blocks nothing could render. Unknown
+  block types and stored keys no registered type can hold come back in
+  `ImportResult` and are surfaced in the builder. They **warn**, they do not
+  abort — a payload comes from another installation, where the two apps not
+  having identical blocks is the normal case. This is deliberately different from
+  the section-template flow, which *refuses* an unknown block type: a template
+  comes from the same app, so a missing type there means it was deleted.
+- **Section-template payloads are validated against the envelope format they
+  declare.** `SectionTemplateSerializer::FORMAT` was written into every stored
+  payload since the feature shipped but never read back, so a payload written
+  under an older structure would have been replayed blind. The library picker now
+  greys those rows out up front (same treatment as a missing block type) and the
+  instantiator refuses them with a dedicated `UnsupportedTemplateFormatException`
+  — separate from `IncompatibleTemplateException`, whose `getMissingTypes()`
+  would be empty and read as "nothing is missing". The format versions the
+  payload *structure*, which the core owns; it says nothing about the shape of
+  the block data inside, which belongs to the block types.
+
 ### Fixed
 
 - **Section-template insert warned about fields that were perfectly valid.**

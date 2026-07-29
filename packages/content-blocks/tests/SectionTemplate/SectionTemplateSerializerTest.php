@@ -28,16 +28,16 @@ final class SectionTemplateSerializerTest extends TestCase
 
         $result = (new SectionTemplateSerializer())->serialize($section);
 
-        $this->assertSame(SectionTemplateSerializer::FORMAT, $result['payload']['format']);
-        $this->assertSame(Section::LAYOUT_TWO_COLS, $result['payload']['layout']);
-        $this->assertCount(2, $result['payload']['columns']);
-        $this->assertSame('col-6', $result['payload']['columns'][0]['preset']);
-        $this->assertCount(2, $result['payload']['columns'][0]['blocks']);
-        $this->assertSame('text', $result['payload']['columns'][0]['blocks'][0]['type']);
-        $this->assertSame(['text' => 'A'], $result['payload']['columns'][0]['blocks'][0]['data']);
+        $this->assertSame(SectionTemplateSerializer::FORMAT, $result->payload['format']);
+        $this->assertSame(Section::LAYOUT_TWO_COLS, $result->payload['layout']);
+        $this->assertCount(2, $result->payload['columns']);
+        $this->assertSame('col-6', $result->payload['columns'][0]['preset']);
+        $this->assertCount(2, $result->payload['columns'][0]['blocks']);
+        $this->assertSame('text', $result->payload['columns'][0]['blocks'][0]['type']);
+        $this->assertSame(['text' => 'A'], $result->payload['columns'][0]['blocks'][0]['data']);
 
         // Distinct types only, no duplicates.
-        $this->assertSame(['text', 'title'], $result['blockTypes']);
+        $this->assertSame(['text', 'title'], $result->blockTypes);
     }
 
     public function testDraftSettingsWinAndEmptyBecomesNull(): void
@@ -48,11 +48,11 @@ final class SectionTemplateSerializerTest extends TestCase
         $section->setDraftSettings(['classes' => 'new']);
 
         $result = (new SectionTemplateSerializer())->serialize($section);
-        $this->assertSame(['classes' => 'new'], $result['payload']['settings']);
+        $this->assertSame(['classes' => 'new'], $result->payload['settings']);
 
         $empty = new Section();
         $empty->setDraftSettings([]);
-        $this->assertNull((new SectionTemplateSerializer())->serialize($empty)['payload']['settings']);
+        $this->assertNull((new SectionTemplateSerializer())->serialize($empty)->payload['settings']);
     }
 
     public function testBlockDataFallsBackToPublishedThenEmpty(): void
@@ -63,7 +63,7 @@ final class SectionTemplateSerializerTest extends TestCase
         $col->addBlock((new Block())->setType('title')->setPublishedData(['text' => 'pub'])->setPreviewPosition(0));
         $col->addBlock((new Block())->setType('image')->setPreviewPosition(1));
 
-        $blocks = (new SectionTemplateSerializer())->serialize($section)['payload']['columns'][0]['blocks'];
+        $blocks = (new SectionTemplateSerializer())->serialize($section)->payload['columns'][0]['blocks'];
         $this->assertSame(['text' => 'pub'], $blocks[0]['data']);
         $this->assertSame([], $blocks[1]['data']);
     }
@@ -87,7 +87,7 @@ final class SectionTemplateSerializerTest extends TestCase
         $drop->setDeleted(true);
         $first->addBlock($drop);
 
-        $payload = (new SectionTemplateSerializer())->serialize($section)['payload'];
+        $payload = (new SectionTemplateSerializer())->serialize($section)->payload;
 
         $this->assertCount(2, $payload['columns'], 'deleted column is skipped');
         $this->assertSame('keep', $payload['columns'][0]['blocks'][0]['data']['text']);
@@ -106,7 +106,7 @@ final class SectionTemplateSerializerTest extends TestCase
                 ->setPreviewPosition(0),
         );
 
-        $data = (new SectionTemplateSerializer())->serialize($section)['payload']['columns'][0]['blocks'][0]['data'];
+        $data = (new SectionTemplateSerializer())->serialize($section)->payload['columns'][0]['blocks'][0]['data'];
         $this->assertSame('/uploads/content-blocks/photo.jpg', $data['src']);
     }
 }

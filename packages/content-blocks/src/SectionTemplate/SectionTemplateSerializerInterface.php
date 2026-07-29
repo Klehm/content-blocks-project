@@ -32,7 +32,6 @@ interface SectionTemplateSerializerInterface
      * returned so the library can flag an incompatible template cheaply,
      * without deserializing it.
      *
-     * @return array{payload: array<string, mixed>, blockTypes: list<string>}
      */
-    public function serialize(Section $section): array;
+    public function serialize(Section $section): SectionTemplateSnapshot;
 }

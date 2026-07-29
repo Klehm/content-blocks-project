@@ -205,6 +205,43 @@ build if you miss one — there is no silent-failure mode here.
 
 ---
 
+## 5. Two return types changed (only if you call these services yourself)
+
+The importer and the section-template serializer used to return bare
+arrays/ints; they now return value objects, matching `InstantiationResult` which
+already worked that way.
+
+```php
+- $count = $importer->import($area, $payload);
++ $result = $importer->import($area, $payload);
++ $count  = $result->sectionCount;
+
+- $payload    = $serialized['payload'];
+- $blockTypes = $serialized['blockTypes'];
++ $payload    = $snapshot->payload;
++ $blockTypes = $snapshot->blockTypes;
+```
+
+`ImportResult` also carries `missingBlockTypes` and `unknownFields` — what the
+payload referenced that this installation cannot render or edit. They are
+**warnings, never a refusal**: an import comes from another installation, so not
+having identical blocks on both sides is expected. (The section-template flow
+does the opposite and *refuses* an unknown block type, because a template comes
+from the same app — a missing type there means it was deleted.)
+
+::: warning Section templates saved by an older payload structure
+The section-template payload declares an envelope format, and it is now actually
+checked. Templates saved by any released version carry the current one, so
+nothing breaks today — but if a future release bumps it, the library picker will
+grey out the old snapshots instead of inserting them blind. Plan a migration of
+`cb_section_template.payload` when that happens.
+
+Note this versions the payload *structure*, which the package owns. It says
+nothing about the shape of your block data, which follows your block types.
+:::
+
+---
+
 ## Additive (no action needed)
 
 These landed in `1.0.0` but are backward-compatible — nothing to change:
@@ -239,4 +276,5 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
 - [ ] Rename kit `defaults`/`choices` config keyed by a renamed field.
 - [ ] Update any forked kit block templates to the new data keys.
 - [ ] Find-and-replace `ContentBlocks\Service\` with the new namespaces (§4).
+- [ ] Adjust any direct call to `import()` / `serialize()` to their value objects (§5).
 - [ ] Rebuild the container and clear the cache; verify pages render.

@@ -11,9 +11,10 @@ use ContentBlocks\Entity\SectionTemplate;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
-use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiatorInterface;
+use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
+use ContentBlocks\SectionTemplate\UnsupportedTemplateFormatException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -97,12 +98,12 @@ final class SectionTemplateController
             return new JsonResponse(['error' => 'A template name is required'], Response::HTTP_BAD_REQUEST);
         }
 
-        $serialized = $this->serializer->serialize($section);
+        $snapshot = $this->serializer->serialize($section);
 
         $template = (new SectionTemplate())
             ->setName($name)
-            ->setPayload($serialized['payload'])
-            ->setBlockTypes($serialized['blockTypes']);
+            ->setPayload($snapshot->payload)
+            ->setBlockTypes($snapshot->blockTypes);
 
         $this->em->persist($template);
         $this->em->flush();
@@ -157,11 +158,13 @@ final class SectionTemplateController
         $items = [];
         foreach ($rows as $template) {
             $missing = $this->missingTypes($template);
+            $readable = $this->hasReadableFormat($template);
             $items[] = [
                 'id' => $template->getId(),
                 'name' => $template->getName(),
-                'compatible' => $missing === [],
+                'compatible' => $missing === [] && $readable,
                 'missingTypes' => $missing,
+                'unreadableFormat' => !$readable,
                 'canManage' => $this->templateManager->canManage(),
                 'createdAt' => $template->getCreatedAt()->format(\DateTimeInterface::ATOM),
             ];
@@ -210,6 +213,14 @@ final class SectionTemplateController
             return new JsonResponse([
                 'error' => 'incompatible_template',
                 'missingTypes' => $e->getMissingTypes(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (UnsupportedTemplateFormatException $e) {
+            // Backstop: list() already greys these out, so reaching here means a
+            // stale picker or a hand-crafted request.
+            return new JsonResponse([
+                'error' => 'unsupported_template_format',
+                'found' => $e->getFound(),
+                'expected' => $e->getExpected(),
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
@@ -293,6 +304,17 @@ final class SectionTemplateController
             $template->getBlockTypes(),
             fn (string $type) => !$this->blockTypeRegistry->has($type),
         ));
+    }
+
+    /**
+     * Whether the stored payload's envelope is one this build can read. Checked
+     * here as well as in the instantiator so the picker greys the row out up
+     * front instead of letting the editor click into a 422 — same treatment as
+     * a missing block type.
+     */
+    private function hasReadableFormat(SectionTemplate $template): bool
+    {
+        return ($template->getPayload()['format'] ?? null) === SectionTemplateSerializerInterface::FORMAT;
     }
 
     private function readName(Request $request): ?string

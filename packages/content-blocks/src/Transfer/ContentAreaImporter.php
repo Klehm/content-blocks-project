@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Transfer;
 
 use ContentBlocks\Asset\AssetResolverInterface;
+use ContentBlocks\Block\BlockDataKeys;
+use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
@@ -21,15 +23,15 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
 
     public function __construct(
         private readonly AssetResolverInterface $assetResolver,
+        private readonly BlockTypeRegistry $registry,
+        private readonly BlockDataKeys $dataKeys,
     ) {
     }
 
     /**
      * @param array<string, mixed> $payload
-     *
-     * @return int Number of imported sections
      */
-    public function import(ContentArea $target, array $payload): int
+    public function import(ContentArea $target, array $payload): ImportResult
     {
         $this->assertFormat($payload);
 
@@ -47,17 +49,19 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         }
 
         $count = 0;
+        $missingTypes = [];
+        $unknownFields = [];
         foreach (array_values($sectionsRaw) as $i => $sectionRaw) {
             if (!is_array($sectionRaw)) {
                 continue;
             }
-            $section = $this->buildSection($sectionRaw, $assetMap);
+            $section = $this->buildSection($sectionRaw, $assetMap, $missingTypes, $unknownFields);
             $section->setPreviewPosition($i);
             $target->addSection($section);
             ++$count;
         }
 
-        return $count;
+        return new ImportResult($count, $missingTypes, $unknownFields);
     }
 
     /**
@@ -114,10 +118,12 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * @param array<string, mixed> $raw
-     * @param array<string, string> $assetMap
+     * @param array<string, mixed>                                      $raw
+     * @param array<string, string>                                     $assetMap
+     * @param list<string>                                              $missingTypes  accumulator
+     * @param list<array{blockType: string, unknownKeys: list<string>}> $unknownFields accumulator
      */
-    private function buildSection(array $raw, array $assetMap): Section
+    private function buildSection(array $raw, array $assetMap, array &$missingTypes, array &$unknownFields): Section
     {
         $section = new Section();
         if (isset($raw['layout']) && is_string($raw['layout'])) {
@@ -135,7 +141,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
                 if (!is_array($colRaw)) {
                     continue;
                 }
-                $col = $this->buildColumn($colRaw, $assetMap);
+                $col = $this->buildColumn($colRaw, $assetMap, $missingTypes, $unknownFields);
                 $col->setPreviewPosition($i);
                 $section->addColumn($col);
             }
@@ -145,10 +151,12 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * @param array<string, mixed> $raw
-     * @param array<string, string> $assetMap
+     * @param array<string, mixed>                                      $raw
+     * @param array<string, string>                                     $assetMap
+     * @param list<string>                                              $missingTypes  accumulator
+     * @param list<array{blockType: string, unknownKeys: list<string>}> $unknownFields accumulator
      */
-    private function buildColumn(array $raw, array $assetMap): Column
+    private function buildColumn(array $raw, array $assetMap, array &$missingTypes, array &$unknownFields): Column
     {
         $col = new Column();
         if (isset($raw['preset']) && is_string($raw['preset'])) {
@@ -161,7 +169,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
                 if (!is_array($blockRaw)) {
                     continue;
                 }
-                $block = $this->buildBlock($blockRaw, $assetMap);
+                $block = $this->buildBlock($blockRaw, $assetMap, $missingTypes, $unknownFields);
                 $block->setPreviewPosition($i);
                 $col->addBlock($block);
             }
@@ -171,17 +179,34 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * @param array<string, mixed> $raw
-     * @param array<string, string> $assetMap
+     * @param array<string, mixed>                                      $raw
+     * @param array<string, string>                                     $assetMap
+     * @param list<string>                                              $missingTypes  accumulator
+     * @param list<array{blockType: string, unknownKeys: list<string>}> $unknownFields accumulator
      */
-    private function buildBlock(array $raw, array $assetMap): Block
+    private function buildBlock(array $raw, array $assetMap, array &$missingTypes, array &$unknownFields): Block
     {
         $block = new Block();
-        if (isset($raw['type']) && is_string($raw['type'])) {
-            $block->setType($raw['type']);
+        $type = $raw['type'] ?? null;
+        if (is_string($type)) {
+            $block->setType($type);
+            if (!$this->registry->has($type) && !in_array($type, $missingTypes, true)) {
+                // Warned, not refused: the payload comes from another
+                // installation, so a type this app doesn't have is expected.
+                // See ImportResult for the reasoning.
+                $missingTypes[] = $type;
+            }
         }
+
         $data = $raw['data'] ?? null;
         if (is_array($data)) {
+            if (is_string($type)) {
+                $unknown = $this->dataKeys->unknownIn($type, $data);
+                if ($unknown !== []) {
+                    $unknownFields[] = ['blockType' => $type, 'unknownKeys' => $unknown];
+                }
+            }
+            // Kept verbatim either way — a warning never drops content.
             $block->setDraftData($this->rewriteAssets($data, $assetMap));
         }
 

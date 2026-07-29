@@ -6,8 +6,6 @@ namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Controller\SectionTemplateController;
 use ContentBlocks\Entity\SectionTemplate;
-use ContentBlocks\Form\Extension\BlockFormExtensionCollection;
-use ContentBlocks\Form\Type\BlockFormType;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\SectionTemplate\AllowAllSectionTemplateManager;
@@ -16,7 +14,6 @@ use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Form\Forms;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -38,12 +35,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
             $accessChecker ?? $this->makeAccessChecker(),
             $manager ?? new AllowAllSectionTemplateManager(),
             new SectionTemplateSerializer(),
-            new SectionTemplateInstantiator(
-                $this->makeRegistry(),
-                Forms::createFormFactoryBuilder()
-                    ->addType(new BlockFormType(new BlockFormExtensionCollection()))
-                    ->getFormFactory(),
-            ),
+            new SectionTemplateInstantiator($this->makeRegistry(), $this->makeDataKeys()),
             $this->makeRegistry(),
             $this->makeCsrfManager($csrfValid),
         );
@@ -270,6 +262,24 @@ final class SectionTemplateControllerTest extends ControllerTestCase
     }
 
     // ---------- list (guards only) ----------
+
+    public function testInsertRejectsAnUnreadableEnvelopeWith422(): void
+    {
+        $area = $this->makeArea(1);
+        $payload = $this->payloadWith([['type' => 'fake', 'data' => []]]);
+        $payload['format'] = 'content-blocks/section-v99';
+        $template = $this->makeTemplate(7, $payload, ['fake']);
+
+        $controller = $this->makeController($this->makeEm([$area, $template]));
+
+        $response = $controller->insert(1, 7, $this->makeJsonRequest());
+
+        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        $body = json_decode((string) $response->getContent(), true);
+        $this->assertSame('unsupported_template_format', $body['error']);
+        $this->assertSame('content-blocks/section-v99', $body['found']);
+        $this->assertCount(0, $this->persisted);
+    }
 
     public function testListReturns404ForUnknownArea(): void
     {

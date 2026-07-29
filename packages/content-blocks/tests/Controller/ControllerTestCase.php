@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Block\BlockDataDefaults;
+use ContentBlocks\Block\BlockDataKeys;
 use ContentBlocks\Block\BlockDecoratorCollection;
 use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\BlockTypeRegistry;
@@ -12,6 +13,8 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Form\Extension\BlockFormExtensionCollection;
+use ContentBlocks\Form\Type\BlockFormType;
 use ContentBlocks\Rendering\BlockRenderer;
 use ContentBlocks\Section\SectionDecoratorCollection;
 use ContentBlocks\Section\SectionSettingsDefaults;
@@ -20,6 +23,7 @@ use ContentBlocks\Security\AllowAllAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\Forms;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
@@ -111,6 +115,21 @@ abstract class ControllerTestCase extends TestCase
         $registry->register(new FakeBlockType());
 
         return $registry;
+    }
+
+    /**
+     * The two restore flows ask BlockDataKeys which keys a block may hold, and
+     * it answers by building the block's form — hence a real (bare) factory,
+     * which resolves BlockFormType's children through their no-arg constructors.
+     */
+    protected function makeDataKeys(?BlockTypeRegistry $registry = null): BlockDataKeys
+    {
+        return new BlockDataKeys(
+            $registry ?? $this->makeRegistry(),
+            Forms::createFormFactoryBuilder()
+                ->addType(new BlockFormType(new BlockFormExtensionCollection()))
+                ->getFormFactory(),
+        );
     }
 
     protected function makeJsonRequest(array $payload = []): Request

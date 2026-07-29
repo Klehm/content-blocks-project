@@ -4,43 +4,35 @@ declare(strict_types=1);
 
 namespace ContentBlocks\SectionTemplate;
 
+use ContentBlocks\Block\BlockDataKeys;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
-use ContentBlocks\Form\Type\BlockFormType;
-use Symfony\Component\Form\FormFactoryInterface;
 
 /**
  * Default {@see SectionTemplateInstantiatorInterface} — see it for the contract.
- *
- * "Known" keys are the union of two sources, because neither alone describes
- * what a block legitimately stores:
- *
- *  - the type's getDefaultData() — covers keys a block declares but does not
- *    expose as a form field;
- *  - the children of the block's built edit form — covers `styling` (added by
- *    BlockFormType, deliberately absent from getDefaultData()) and every field
- *    contributed by a host {@see \ContentBlocks\Form\Extension\BlockFormExtensionInterface}.
- *
- * Using getDefaultData() alone made the insert warn about `styling` on any
- * styled block, and about every host-added field.
+ * What counts as a "known" data key is decided by {@see BlockDataKeys}, shared
+ * with the import flow.
  */
 final class SectionTemplateInstantiator implements SectionTemplateInstantiatorInterface
 {
     public function __construct(
         private readonly BlockTypeRegistry $registry,
-        private readonly FormFactoryInterface $formFactory,
+        private readonly BlockDataKeys $dataKeys,
     ) {
     }
 
     /**
      * @param array<string, mixed> $payload
      *
-     * @throws IncompatibleTemplateException when a referenced block type is not registered
+     * @throws UnsupportedTemplateFormatException when the payload envelope is not readable
+     * @throws IncompatibleTemplateException      when a referenced block type is not registered
      */
     public function instantiate(array $payload): InstantiationResult
     {
+        $this->assertFormat($payload);
+
         $missing = $this->collectMissingTypes($payload);
         if ($missing !== []) {
             throw new IncompatibleTemplateException($missing);
@@ -113,7 +105,7 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
         $data = $raw['data'] ?? null;
         if (is_array($data)) {
             if (is_string($type)) {
-                $unknown = $this->unknownKeys($type, $data);
+                $unknown = $this->dataKeys->unknownIn($type, $data);
                 if ($unknown !== []) {
                     $warnings[] = ['blockType' => $type, 'unknownKeys' => $unknown];
                 }
@@ -127,32 +119,22 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
     }
 
     /**
-     * Keys present in the stored data that nothing in the block's current
-     * shape can hold — see the class docblock for what counts as "known".
+     * The envelope format is written by the serializer and versions the payload
+     * *structure* (not the shape of the block data inside it, which belongs to
+     * the block types). A payload written under an older structure is refused
+     * rather than replayed blind.
      *
-     * @param array<string, mixed> $data
-     *
-     * @return list<string>
+     * @param array<string, mixed> $payload
      */
-    private function unknownKeys(string $type, array $data): array
+    private function assertFormat(array $payload): void
     {
-        $blockType = $this->registry->get($type);
-
-        // Building the form (rather than reading a static declaration) is the
-        // only definition that stays true when a host adds a field through a
-        // BlockFormExtension. Only the builder is created — no view, no data
-        // mapping — so this stays cheap enough for an admin-side insert.
-        $builder = $this->formFactory->createBuilder(BlockFormType::class, null, [
-            'block_type' => $blockType,
-            'block_data' => $data,
-        ]);
-
-        $known = [
-            ...array_keys($blockType->getDefaultData()),
-            ...array_keys($builder->all()),
-        ];
-
-        return array_values(array_diff(array_keys($data), $known));
+        $format = $payload['format'] ?? null;
+        if ($format !== SectionTemplateSerializerInterface::FORMAT) {
+            throw new UnsupportedTemplateFormatException(
+                is_string($format) ? $format : null,
+                SectionTemplateSerializerInterface::FORMAT,
+            );
+        }
     }
 
     /**

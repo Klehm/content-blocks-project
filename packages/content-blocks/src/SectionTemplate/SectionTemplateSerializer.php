@@ -13,10 +13,7 @@ use ContentBlocks\Entity\Section;
  */
 final class SectionTemplateSerializer implements SectionTemplateSerializerInterface
 {
-    /**
-     * @return array{payload: array<string, mixed>, blockTypes: list<string>}
-     */
-    public function serialize(Section $section): array
+    public function serialize(Section $section): SectionTemplateSnapshot
     {
         $blockTypes = [];
         $settings = $section->getDraftSettings() ?? $section->getPublishedSettings();
@@ -33,10 +30,7 @@ final class SectionTemplateSerializer implements SectionTemplateSerializerInterf
             'columns' => $columns,
         ];
 
-        return [
-            'payload' => $payload,
-            'blockTypes' => array_values(array_unique($blockTypes)),
-        ];
+        return new SectionTemplateSnapshot($payload, array_values(array_unique($blockTypes)));
     }
 
     /**

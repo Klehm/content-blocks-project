@@ -5,11 +5,18 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Transfer;
 
 use ContentBlocks\Asset\AssetResolverInterface;
+use ContentBlocks\Block\BlockDataKeys;
+use ContentBlocks\BlockType\AbstractBlockType;
+use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Transfer\ContentAreaExporter;
+use ContentBlocks\Form\Extension\BlockFormExtensionCollection;
+use ContentBlocks\Form\Type\BlockFormType;
 use ContentBlocks\Transfer\ContentAreaImporter;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\Forms;
 
 final class ContentAreaImporterTest extends TestCase
 {
@@ -29,6 +36,31 @@ final class ContentAreaImporterTest extends TestCase
         return $resolver;
     }
 
+    /**
+     * Importer wired against a registry holding the `text` and `image` fixtures
+     * the payloads below use. A type absent from the registry comes back as a
+     * `missingBlockTypes` warning rather than aborting — pass `withTypes: false`
+     * to exercise that.
+     */
+    private function importer(?AssetResolverInterface $resolver = null, bool $withTypes = true): ContentAreaImporter
+    {
+        $registry = new BlockTypeRegistry();
+        if ($withTypes) {
+            $registry->register(new FakeTextBlockType());
+            $registry->register(new FakeImageBlockType());
+        }
+
+        $factory = Forms::createFormFactoryBuilder()
+            ->addType(new BlockFormType(new BlockFormExtensionCollection()))
+            ->getFormFactory();
+
+        return new ContentAreaImporter(
+            $resolver ?? $this->makeResolver(),
+            $registry,
+            new BlockDataKeys($registry, $factory),
+        );
+    }
+
     private function makePayload(array $sections = [], array $assets = []): array
     {
         return [
@@ -40,7 +72,7 @@ final class ContentAreaImporterTest extends TestCase
 
     public function testImportRejectsAnUnknownFormat(): void
     {
-        $importer = new ContentAreaImporter($this->makeResolver());
+        $importer = $this->importer();
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Unsupported format');
@@ -49,7 +81,7 @@ final class ContentAreaImporterTest extends TestCase
 
     public function testImportRejectsAMissingSectionsKey(): void
     {
-        $importer = new ContentAreaImporter($this->makeResolver());
+        $importer = $this->importer();
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('contentArea.sections');
@@ -74,9 +106,10 @@ final class ContentAreaImporterTest extends TestCase
             ],
         ]);
 
-        $count = (new ContentAreaImporter($this->makeResolver()))->import($target, $payload);
+        $result = $this->importer()->import($target, $payload);
 
-        $this->assertSame(1, $count);
+        $this->assertSame(1, $result->sectionCount);
+        $this->assertFalse($result->hasWarnings(), 'known types, known fields');
         $this->assertTrue($existing->isDeleted());
 
         $imported = $target->getSections()[1];
@@ -100,7 +133,7 @@ final class ContentAreaImporterTest extends TestCase
             ['layout' => Section::LAYOUT_FULL, 'columns' => []],
         ]);
 
-        (new ContentAreaImporter($this->makeResolver()))->import($target, $payload);
+        $this->importer()->import($target, $payload);
 
         $this->assertSame([0, 1], array_map(
             fn (Section $s) => $s->getPreviewPosition(),
@@ -124,7 +157,7 @@ final class ContentAreaImporterTest extends TestCase
         );
 
         $target = new ContentArea();
-        (new ContentAreaImporter($this->makeResolver()))->import($target, $payload);
+        $this->importer()->import($target, $payload);
 
         $this->assertSame([$binary], $this->stored);
         $block = $target->getSections()[0]->getColumns()[0]->getBlocks()[0];
@@ -142,7 +175,7 @@ final class ContentAreaImporterTest extends TestCase
         ]]);
 
         $target = new ContentArea();
-        (new ContentAreaImporter($this->makeResolver()))->import($target, $payload);
+        $this->importer()->import($target, $payload);
 
         $block = $target->getSections()[0]->getColumns()[0]->getBlocks()[0];
         // Unknown hash: surfaced as-is instead of silently dropped.
@@ -155,7 +188,7 @@ final class ContentAreaImporterTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Malformed asset entry');
-        (new ContentAreaImporter($this->makeResolver()))->import(new ContentArea(), $payload);
+        $this->importer()->import(new ContentArea(), $payload);
     }
 
     public function testImportRejectsInvalidBase64AssetData(): void
@@ -164,7 +197,74 @@ final class ContentAreaImporterTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid base64');
-        (new ContentAreaImporter($this->makeResolver()))->import(new ContentArea(), $payload);
+        $this->importer()->import(new ContentArea(), $payload);
+    }
+
+    public function testUnknownBlockTypeWarnsInsteadOfAborting(): void
+    {
+        // A payload from another installation naturally references blocks this
+        // app doesn't have — refusing would make cross-install transfer
+        // useless, so it lands as a warning and the content is kept verbatim.
+        $target = new ContentArea();
+        $payload = $this->makePayload([[
+            'layout' => Section::LAYOUT_FULL,
+            'columns' => [['preset' => 'col-12', 'blocks' => [
+                ['type' => 'text', 'data' => ['content' => 'known']],
+                ['type' => 'countdown', 'data' => ['ends' => 'soon']],
+                ['type' => 'countdown', 'data' => ['ends' => 'later']],
+            ]]],
+        ]]);
+
+        $result = $this->importer()->import($target, $payload);
+
+        $this->assertSame(1, $result->sectionCount, 'the section still came in');
+        $this->assertSame(['countdown'], $result->missingBlockTypes, 'reported once, not per block');
+        $this->assertTrue($result->hasWarnings());
+
+        $blocks = $target->getSections()[0]->getColumns()[0]->getBlocks();
+        $this->assertCount(3, $blocks);
+        $this->assertSame(['ends' => 'soon'], $blocks[1]->getDraftData(), 'data kept verbatim');
+    }
+
+    public function testUnknownDataKeysWarnWithoutDroppingThem(): void
+    {
+        $target = new ContentArea();
+        $payload = $this->makePayload([[
+            'layout' => Section::LAYOUT_FULL,
+            'columns' => [['preset' => 'col-12', 'blocks' => [
+                ['type' => 'text', 'data' => ['content' => 'ok', 'legacy' => 'v', 'styling' => ['gap' => 1]]],
+            ]]],
+        ]]);
+
+        $result = $this->importer()->import($target, $payload);
+
+        // `styling` is a real form field, `legacy` is nobody's.
+        $this->assertSame(
+            [['blockType' => 'text', 'unknownKeys' => ['legacy']]],
+            $result->unknownFields,
+        );
+        $this->assertSame([], $result->missingBlockTypes);
+
+        $data = $target->getSections()[0]->getColumns()[0]->getBlocks()[0]->getDraftData();
+        $this->assertSame('v', $data['legacy'], 'never dropped');
+    }
+
+    public function testAnUnregisteredTypeReportsNoFieldWarnings(): void
+    {
+        // No shape to compare against — reporting every key of an unknown type
+        // would bury the one warning that matters (the missing type itself).
+        $target = new ContentArea();
+        $payload = $this->makePayload([[
+            'layout' => Section::LAYOUT_FULL,
+            'columns' => [['preset' => 'col-12', 'blocks' => [
+                ['type' => 'text', 'data' => ['content' => 'x', 'whatever' => 1]],
+            ]]],
+        ]]);
+
+        $result = $this->importer(withTypes: false)->import($target, $payload);
+
+        $this->assertSame(['text'], $result->missingBlockTypes);
+        $this->assertSame([], $result->unknownFields);
     }
 
     public function testExportImportRoundTripPreservesTheTree(): void
@@ -196,9 +296,57 @@ final class ContentAreaImporterTest extends TestCase
         $exported = $exporter->export($source);
 
         $target = new ContentArea();
-        (new ContentAreaImporter($neverAsset))->import($target, $exported);
+        $this->importer($neverAsset)->import($target, $exported);
         $reExported = $exporter->export($target);
 
         $this->assertSame($exported['contentArea'], $reExported['contentArea']);
+    }
+}
+
+/**
+ * The registry keys by the *static* getType(), so each fixture type needs its
+ * own class rather than a constructor-parameterized factory.
+ */
+final class FakeTextBlockType extends AbstractBlockType
+{
+    public static function getType(): string
+    {
+        return 'text';
+    }
+
+    public static function getLabel(): string
+    {
+        return 'Text';
+    }
+
+    public function buildForm(FormBuilderInterface $builder, array $data): void
+    {
+    }
+
+    public function getDefaultData(): array
+    {
+        return ['content' => ''];
+    }
+}
+
+final class FakeImageBlockType extends AbstractBlockType
+{
+    public static function getType(): string
+    {
+        return 'image';
+    }
+
+    public static function getLabel(): string
+    {
+        return 'Image';
+    }
+
+    public function buildForm(FormBuilderInterface $builder, array $data): void
+    {
+    }
+
+    public function getDefaultData(): array
+    {
+        return ['src' => ''];
     }
 }

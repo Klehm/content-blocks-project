@@ -138,16 +138,21 @@ final class ImportExportController
         }
 
         try {
-            $count = $this->importer->import($target, $payload);
+            $result = $this->importer->import($target, $payload);
         } catch (\InvalidArgumentException $e) {
             return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
         }
 
         $this->em->flush();
 
+        // The warnings are non-blocking by design (see ImportResult): the import
+        // succeeded, and the editor is told what came in that this app cannot
+        // fully render or edit.
         return new JsonResponse([
             'imported' => true,
-            'sectionCount' => $count,
+            'sectionCount' => $result->sectionCount,
+            'missingBlockTypes' => $result->missingBlockTypes,
+            'unknownFields' => $result->unknownFields,
             'hasUnpublishedChanges' => $target->hasUnpublishedChanges(),
         ]);
     }

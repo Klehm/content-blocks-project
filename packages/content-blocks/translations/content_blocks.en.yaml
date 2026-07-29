@@ -113,6 +113,7 @@ cb:
             load_more: "Load more"
             name_prompt: "Name this section template:"
             incompatible: "Unavailable — missing block type(s): %types%"
+            unreadable_format: "Unavailable — saved by an incompatible version of the section library"
             warnings: "Inserted, but some stored fields no longer exist on: %types%"
             delete: "Delete template"
             delete_confirm: "Delete this section template? This cannot be undone."
@@ -129,5 +130,7 @@ cb:
             importing: "Importing…"
             confirm: "Are you sure you want to overwrite the current content with the imported one?"
             error: "Import failed."
+            missing_types: "Imported, but this app has no block type(s): %types%"
+            unknown_fields: "Imported, but some stored fields are unknown on: %types%"
     upload:
         file: "Image file"

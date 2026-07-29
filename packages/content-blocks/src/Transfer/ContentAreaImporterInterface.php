@@ -24,13 +24,18 @@ interface ContentAreaImporterInterface
      * untouched so the problem surfaces in the UI instead of vanishing.
      *
      * Does **not** flush — this builds, it does not commit (see
-     * {@see ContentAreaPublisherInterface} for the rule).
+     * {@see \ContentBlocks\Publishing\ContentAreaPublisherInterface} for the rule).
+     *
+     * Only the **envelope** is validated, and a bad one throws: the payload is a
+     * file that travelled, so an unreadable structure must not be replayed.
+     * Everything about the *content* is reported rather than refused — an
+     * unregistered block type or a stored key no type can hold comes back in the
+     * {@see ImportResult}, never dropped and never blocking. See that class for
+     * why this differs from the section-template flow.
      *
      * @param array<string, mixed> $payload
      *
-     * @return int number of imported sections
-     *
      * @throws \InvalidArgumentException when the payload's format is unsupported or its shape invalid
      */
-    public function import(ContentArea $target, array $payload): int;
+    public function import(ContentArea $target, array $payload): ImportResult;
 }

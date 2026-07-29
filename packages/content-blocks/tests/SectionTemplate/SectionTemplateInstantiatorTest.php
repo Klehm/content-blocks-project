@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\SectionTemplate;
 
+use ContentBlocks\Block\BlockDataKeys;
 use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Section;
@@ -13,6 +14,7 @@ use ContentBlocks\Form\Type\BlockFormType;
 use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
+use ContentBlocks\SectionTemplate\UnsupportedTemplateFormatException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -31,8 +33,9 @@ final class SectionTemplateInstantiatorTest extends TestCase
         $factory = Forms::createFormFactoryBuilder()
             ->addType(new BlockFormType($extensions ?? new BlockFormExtensionCollection()))
             ->getFormFactory();
+        $registry = $this->registry();
 
-        return new SectionTemplateInstantiator($this->registry(), $factory);
+        return new SectionTemplateInstantiator($registry, new BlockDataKeys($registry, $factory));
     }
 
     /** Wraps a global (`*`) extension the way the compiler pass would. */
@@ -138,6 +141,38 @@ final class SectionTemplateInstantiatorTest extends TestCase
         $this->assertSame(1, $blocks[1]->getPreviewPosition());
         // Data lands in draft slots, never published.
         $this->assertNull($blocks[0]->getPublishedData());
+    }
+
+    public function testAnUnreadableEnvelopeIsAHardStop(): void
+    {
+        // The format versions the payload *structure* (which the core owns),
+        // not the shape of the block data inside it. A snapshot written under
+        // an older structure is refused rather than replayed blind.
+        $payload = $this->payload([
+            ['preset' => 'col-12', 'blocks' => [['type' => 'text', 'data' => ['text' => 'A']]]],
+        ]);
+        $payload['format'] = 'content-blocks/section-v99';
+
+        try {
+            $this->instantiator()->instantiate($payload);
+            $this->fail('Expected UnsupportedTemplateFormatException.');
+        } catch (UnsupportedTemplateFormatException $e) {
+            $this->assertSame('content-blocks/section-v99', $e->getFound());
+            $this->assertSame(SectionTemplateSerializer::FORMAT, $e->getExpected());
+        }
+    }
+
+    public function testAMissingFormatIsAHardStopToo(): void
+    {
+        $payload = $this->payload([['preset' => 'col-12', 'blocks' => []]]);
+        unset($payload['format']);
+
+        try {
+            $this->instantiator()->instantiate($payload);
+            $this->fail('Expected UnsupportedTemplateFormatException.');
+        } catch (UnsupportedTemplateFormatException $e) {
+            $this->assertNull($e->getFound());
+        }
     }
 
     public function testUnknownBlockTypeIsAHardStop(): void
@@ -255,8 +290,8 @@ final class SectionTemplateInstantiatorTest extends TestCase
             (new \ContentBlocks\Entity\Block())->setType('text')->setDraftData(['text' => 'hello'])->setPreviewPosition(0),
         );
 
-        $serialized = (new SectionTemplateSerializer())->serialize($source);
-        $result = $this->instantiator()->instantiate($serialized['payload']);
+        $snapshot = (new SectionTemplateSerializer())->serialize($source);
+        $result = $this->instantiator()->instantiate($snapshot->payload);
 
         $this->assertSame(Section::LAYOUT_FULL, $result->section->getLayout());
         $this->assertSame(

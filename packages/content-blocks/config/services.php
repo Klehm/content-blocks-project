@@ -232,6 +232,11 @@ return static function (ContainerConfigurator $container): void {
         ->args([tagged_iterator('content_blocks.block_data_defaults')])
         ->public();
 
+    // "Which keys can this block type hold?" — shared by the two restore paths
+    // (section-template insert, area import) so the union rule it encodes lives
+    // in exactly one place.
+    $services->set(\ContentBlocks\Block\BlockDataKeys::class);
+
     // Form types + the per-block form-extension collection. The collection's
     // `$extensions` argument (the [extension, target block type ids] pairs) is
     // populated by BlockFormExtensionPass; empty until a host tags an extension.
