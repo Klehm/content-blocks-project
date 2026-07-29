@@ -1519,18 +1519,22 @@ export default class extends Controller {
         );
         if (result === null) return;
 
-        // Surface non-blocking warnings (fields the block types no longer
-        // define). The insert still succeeded.
-        if (Array.isArray(result.warnings) && result.warnings.length > 0) {
-            const types = result.warnings.map((w) => w.blockType).join(', ');
+        // Surface non-blocking warnings (fields no block type nor form
+        // extension declares any more). The insert still succeeded, so the
+        // picker stays open on its status line instead of closing: closing it
+        // would blank the only element carrying the message.
+        const warnings = Array.isArray(result.warnings) ? result.warnings : [];
+        if (warnings.length > 0) {
+            const types = warnings.map((w) => w.blockType).join(', ');
             const tpl = this._t(
                 'cb.builder.template.warnings',
                 'Inserted, but some stored fields no longer exist on: %types%',
             );
             this._setTemplatePickerStatus(tpl.replace('%types%', types));
+        } else {
+            this.closeTemplatePicker();
         }
 
-        this.closeTemplatePicker();
         this._afterStructuralOp();
         if (result.sectionId) {
             this._mountSectionSettings(result.sectionId);

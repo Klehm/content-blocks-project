@@ -17,14 +17,17 @@ use Doctrine\ORM\EntityManagerInterface;
  *  - A non-deleted entity has its draft state promoted: position ← previewPosition,
  *    publishedData ← draftData (Block only), draftData ← null.
  *
- * Discard semantics:
- *  - Block with publishedData === null is treated as "newly added, never
- *    published" and removed.
- *  - Other entities have their draft flags cleared (revert to last published
- *    state).
- *  - Note: a Section/Column added but never published is NOT auto-removed in V1
- *    — we don't track a hasBeenPublished flag for those. To be revisited when
- *    the add-section flow lands in phase 3.
+ * Discard semantics — an entity never published is a brand-new addition and is
+ * dropped entirely, everything else reverts to its last published state:
+ *  - Section/Column with publishedAt === null (see Section::isPublished()) is
+ *    removed; Doctrine's cascade wipes its descendants.
+ *  - Block with publishedData === null is removed.
+ *  - Other entities have their draft flags cleared.
+ *
+ * Both methods flush the EntityManager: they are the two terminal operations of
+ * the draft lifecycle, so committing is part of what they mean. The services
+ * that *build* rather than commit (SectionCloner, ContentAreaImporter,
+ * SectionTemplateInstantiator) leave the flush to their caller.
  */
 final class ContentAreaPublisher
 {

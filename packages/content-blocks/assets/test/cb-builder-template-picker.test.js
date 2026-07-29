@@ -245,12 +245,19 @@ describe('cb-builder template picker: insert', () => {
             sectionId: 55,
             warnings: [{ blockType: 'title', unknownKeys: ['subtitle'] }],
         });
-        vi.spyOn(controller, '_afterStructuralOp').mockImplementation(() => {});
+        const afterSpy = vi.spyOn(controller, '_afterStructuralOp').mockImplementation(() => {});
         vi.spyOn(controller, '_mountSectionSettings').mockImplementation(() => {});
+
+        // A row can only be clicked from an open picker.
+        controller.templatePickerTarget.hidden = false;
 
         await controller._confirmInsert({ id: 7 });
 
         expect(controller.templatePickerStatusTarget.textContent).toMatch(/title/);
+        // The status line lives inside the picker: closing it on the way out
+        // would blank the message before anyone could read it.
+        expect(controller.templatePickerTarget.hidden).toBe(false);
+        expect(afterSpy).toHaveBeenCalled();
     });
 
     it('does nothing further when the insert request fails', async () => {

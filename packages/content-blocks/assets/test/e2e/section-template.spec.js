@@ -114,6 +114,56 @@ test.describe('section-template library — round trip', () => {
         await expect(picker).toBeHidden();
         await expect.poll(() => targetFrame.locator('[data-cb-section-id]').count()).toBe(2);
     });
+
+    test('a block carrying styling and a host extension field inserts without warnings', async ({ page }) => {
+        // Regression guard. The instantiator flags stored keys that nothing in
+        // the block's current shape can hold. Reading getDefaultData() alone
+        // made it flag `styling` (added by BlockFormType, deliberately absent
+        // from getDefaultData) and every field a host BlockFormExtension
+        // contributes — here the sandbox's global `anchorId`.
+        //
+        // Since a warning now keeps the picker open on its status line, "the
+        // picker closed" *is* the assertion "no field was wrongly flagged".
+        const templateName = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+        const sourceUrl = await createFreshPage(page);
+        const sourceFrame = await openBuilder(page, sourceUrl);
+        await addFullSection(page, sourceFrame);
+        await addFirstBlock(page, sourceFrame);
+
+        // Editing the block persists the whole form — the block's own fields,
+        // the `styling` sub-tree and the extension's `anchorId`.
+        await page.locator('.cb-shell__iframe').evaluate((iframe) => {
+            iframe.contentDocument.querySelector('[data-cb-block-id]')?.dispatchEvent(
+                new MouseEvent('click', { bubbles: true, cancelable: true }),
+            );
+        });
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
+        await page.waitForTimeout(300); // let cb-autosave connect
+        await sidebar.locator('.cb-block__tab', { hasText: 'SEO' }).click();
+        await sidebar.locator('[name$="[anchorId]"]').fill('tpl-anchor');
+        await sidebar.locator('[name$="[anchorId]"]').blur();
+        await page.waitForTimeout(1200); // autosave debounce + round-trip
+
+        await saveFirstSectionAsTemplate(page, sourceFrame, templateName);
+        await page.locator('.cb-shell__close').click();
+
+        const targetUrl = await createFreshPage(page);
+        const targetFrame = await openBuilder(page, targetUrl);
+        await page.locator('.cb-sidebar-empty__library').click();
+        const picker = page.locator('.cb-template-picker');
+        await expect(picker).toBeVisible();
+        await picker.locator('.cb-template-picker__search').fill(templateName);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+        await picker.locator('.cb-template-picker__item-btn').first().click();
+
+        await expect(picker).toBeHidden();
+        await expect(page.locator('.cb-template-picker__status')).toHaveText('');
+        await expect.poll(() => targetFrame.locator('[data-cb-section-id]').count()).toBe(1);
+        // The extension field survived the snapshot round-trip.
+        await expect(targetFrame.locator('#tpl-anchor')).toHaveCount(1);
+    });
 });
 
 test.describe('section-template library — management', () => {

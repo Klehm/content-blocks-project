@@ -7,14 +7,40 @@ namespace ContentBlocks\Tests\Service;
 use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Form\Extension\BlockFormExtensionCollection;
+use ContentBlocks\Form\Extension\BlockFormExtensionInterface;
+use ContentBlocks\Form\Type\BlockFormType;
 use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
 use ContentBlocks\Service\SectionTemplateInstantiator;
 use ContentBlocks\Service\SectionTemplateSerializer;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\Forms;
 
 final class SectionTemplateInstantiatorTest extends TestCase
 {
+    /**
+     * The instantiator reads the *built* block form to know which keys a block
+     * can legitimately hold, so it needs a real factory. A bare one resolves
+     * BlockFormType's children (StylingType & co) through their no-arg
+     * constructors — same resolution BlockFormTypeTest relies on.
+     */
+    private function instantiator(?BlockFormExtensionCollection $extensions = null): SectionTemplateInstantiator
+    {
+        $factory = Forms::createFormFactoryBuilder()
+            ->addType(new BlockFormType($extensions ?? new BlockFormExtensionCollection()))
+            ->getFormFactory();
+
+        return new SectionTemplateInstantiator($this->registry(), $factory);
+    }
+
+    /** Wraps a global (`*`) extension the way the compiler pass would. */
+    private function extensions(BlockFormExtensionInterface $extension): BlockFormExtensionCollection
+    {
+        return new BlockFormExtensionCollection([[$extension, ['*']]]);
+    }
+
     private function registry(): BlockTypeRegistry
     {
         // The registry keys by the *static* getType(), so each fake type needs
@@ -90,7 +116,7 @@ final class SectionTemplateInstantiatorTest extends TestCase
             ]],
         ]);
 
-        $result = (new SectionTemplateInstantiator($this->registry()))->instantiate($payload);
+        $result = $this->instantiator()->instantiate($payload);
         $section = $result->section;
 
         $this->assertNull($section->getContentArea());
@@ -125,7 +151,7 @@ final class SectionTemplateInstantiatorTest extends TestCase
         ]);
 
         try {
-            (new SectionTemplateInstantiator($this->registry()))->instantiate($payload);
+            $this->instantiator()->instantiate($payload);
             $this->fail('Expected IncompatibleTemplateException.');
         } catch (IncompatibleTemplateException $e) {
             $this->assertSame(['gallery', 'countdown'], $e->getMissingTypes());
@@ -141,7 +167,7 @@ final class SectionTemplateInstantiatorTest extends TestCase
             ]],
         ]);
 
-        $result = (new SectionTemplateInstantiator($this->registry()))->instantiate($payload);
+        $result = $this->instantiator()->instantiate($payload);
 
         $this->assertSame(
             [['blockType' => 'title', 'unknownKeys' => ['subtitle']]],
@@ -161,8 +187,62 @@ final class SectionTemplateInstantiatorTest extends TestCase
             ]],
         ]);
 
-        $result = (new SectionTemplateInstantiator($this->registry()))->instantiate($payload);
+        $result = $this->instantiator()->instantiate($payload);
         $this->assertSame([], $result->warnings);
+    }
+
+    /**
+     * `styling` is added to every block form by BlockFormType and deliberately
+     * absent from getDefaultData(), so reading defaults alone flagged it on
+     * every styled block — a warning toast on virtually every template insert.
+     */
+    public function testStylingIsNotReportedAsAnUnknownField(): void
+    {
+        $payload = $this->payload([
+            ['preset' => 'col-12', 'blocks' => [
+                ['type' => 'title', 'data' => [
+                    'text' => 'Hi',
+                    'level' => 2,
+                    'styling' => ['backgroundColor' => '#eb0540'],
+                ]],
+            ]],
+        ]);
+
+        $result = $this->instantiator()->instantiate($payload);
+
+        $this->assertSame([], $result->warnings);
+    }
+
+    /**
+     * Same false positive for any field a host contributes through a
+     * BlockFormExtension: it is in the form and in the stored data, but never
+     * in the block type's getDefaultData().
+     */
+    public function testHostExtensionFieldIsNotReportedAsAnUnknownField(): void
+    {
+        $anchor = new class implements BlockFormExtensionInterface {
+            public function buildForm(FormBuilderInterface $builder, array $data, string $blockType): void
+            {
+                $builder->add('anchorId', TextType::class, [
+                    'required' => false,
+                    'data' => $data['anchorId'] ?? '',
+                ]);
+            }
+        };
+
+        $payload = $this->payload([
+            ['preset' => 'col-12', 'blocks' => [
+                ['type' => 'title', 'data' => ['text' => 'Hi', 'level' => 2, 'anchorId' => 'cta', 'ghost' => 1]],
+            ]],
+        ]);
+
+        $result = $this->instantiator($this->extensions($anchor))->instantiate($payload);
+
+        // `anchorId` is legitimate now; `ghost` is still nobody's field.
+        $this->assertSame(
+            [['blockType' => 'title', 'unknownKeys' => ['ghost']]],
+            $result->warnings,
+        );
     }
 
     public function testRoundTripsThroughTheSerializer(): void
@@ -176,7 +256,7 @@ final class SectionTemplateInstantiatorTest extends TestCase
         );
 
         $serialized = (new SectionTemplateSerializer())->serialize($source);
-        $result = (new SectionTemplateInstantiator($this->registry()))->instantiate($serialized['payload']);
+        $result = $this->instantiator()->instantiate($serialized['payload']);
 
         $this->assertSame(Section::LAYOUT_FULL, $result->section->getLayout());
         $this->assertSame(

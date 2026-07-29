@@ -6,6 +6,8 @@ namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Controller\SectionTemplateController;
 use ContentBlocks\Entity\SectionTemplate;
+use ContentBlocks\Form\Extension\BlockFormExtensionCollection;
+use ContentBlocks\Form\Type\BlockFormType;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\SectionTemplate\AllowAllSectionTemplateManager;
@@ -14,6 +16,7 @@ use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\Service\SectionTemplateInstantiator;
 use ContentBlocks\Service\SectionTemplateSerializer;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Form\Forms;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -35,7 +38,12 @@ final class SectionTemplateControllerTest extends ControllerTestCase
             $accessChecker ?? $this->makeAccessChecker(),
             $manager ?? new AllowAllSectionTemplateManager(),
             new SectionTemplateSerializer(),
-            new SectionTemplateInstantiator($this->makeRegistry()),
+            new SectionTemplateInstantiator(
+                $this->makeRegistry(),
+                Forms::createFormFactoryBuilder()
+                    ->addType(new BlockFormType(new BlockFormExtensionCollection()))
+                    ->getFormFactory(),
+            ),
             $this->makeRegistry(),
             $this->makeCsrfManager($csrfValid),
         );

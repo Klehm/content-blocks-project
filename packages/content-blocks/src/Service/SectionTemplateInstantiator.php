@@ -8,8 +8,10 @@ use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Form\Type\BlockFormType;
 use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
 use ContentBlocks\SectionTemplate\InstantiationResult;
+use Symfony\Component\Form\FormFactoryInterface;
 
 /**
  * Rebuilds a detached draft Section from a SectionTemplate payload (as produced
@@ -22,15 +24,27 @@ use ContentBlocks\SectionTemplate\InstantiationResult;
  *  - Unknown block type  -> hard stop: IncompatibleTemplateException. A block
  *    with no registered type has no form/renderer, so the whole insert is
  *    refused rather than dropping content silently.
- *  - Unknown data field  -> soft warning: the block type no longer defines a
- *    key present in the stored data. The value is kept as-is (never dropped)
- *    and reported so the editor can review it. "Known" fields are the keys of
- *    the type's getDefaultData(), the only introspectable shape available.
+ *  - Unknown data field  -> soft warning: nothing in the block's current shape
+ *    can hold a key present in the stored data. The value is kept as-is (never
+ *    dropped) and reported so the editor can review it.
+ *
+ * "Known" keys are the union of two sources, because neither alone describes
+ * what a block legitimately stores:
+ *
+ *  - the type's getDefaultData() — covers keys a block declares but does not
+ *    expose as a form field;
+ *  - the children of the block's built edit form — covers `styling` (added by
+ *    BlockFormType, deliberately absent from getDefaultData()) and every field
+ *    contributed by a host {@see \ContentBlocks\Form\Extension\BlockFormExtensionInterface}.
+ *
+ * Using getDefaultData() alone made the insert warn about `styling` on any
+ * styled block, and about every host-added field.
  */
 final class SectionTemplateInstantiator
 {
     public function __construct(
         private readonly BlockTypeRegistry $registry,
+        private readonly FormFactoryInterface $formFactory,
     ) {
     }
 
@@ -127,8 +141,8 @@ final class SectionTemplateInstantiator
     }
 
     /**
-     * Keys present in the stored data that the block type's current default
-     * shape no longer declares.
+     * Keys present in the stored data that nothing in the block's current
+     * shape can hold — see the class docblock for what counts as "known".
      *
      * @param array<string, mixed> $data
      *
@@ -136,7 +150,21 @@ final class SectionTemplateInstantiator
      */
     private function unknownKeys(string $type, array $data): array
     {
-        $known = array_keys($this->registry->get($type)->getDefaultData());
+        $blockType = $this->registry->get($type);
+
+        // Building the form (rather than reading a static declaration) is the
+        // only definition that stays true when a host adds a field through a
+        // BlockFormExtension. Only the builder is created — no view, no data
+        // mapping — so this stays cheap enough for an admin-side insert.
+        $builder = $this->formFactory->createBuilder(BlockFormType::class, null, [
+            'block_type' => $blockType,
+            'block_data' => $data,
+        ]);
+
+        $known = [
+            ...array_keys($blockType->getDefaultData()),
+            ...array_keys($builder->all()),
+        ];
 
         return array_values(array_diff(array_keys($data), $known));
     }
