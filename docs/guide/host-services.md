@@ -235,6 +235,19 @@ At render time, values **equal to the default are stripped** from the saved sett
 
 For block defaults, implement `ContentBlocks\Block\BlockDataDefaultsProviderInterface` (mirror of the section interface). It's the same pattern: form pre-fill + `BlockDataDefaults::withoutDefaults()` at render. The package's `CoreBlockStylingDefaults` sets `styling.backgroundColor = ''` (transparent) — override it the same way if your project wants a different starting background.
 
+### `ContentVersionUpgraderInterface` — older stored content
+
+Decides what happens to a section template saved under an earlier generation of
+*your* content schema. The shipped default refuses a known mismatch and accepts
+content that predates versioning. See [Content versioning](./content-versioning)
+for the whole picture — when to bump, what the stamp does and does not
+guarantee, and a complete migration.
+
+```yaml
+# config/services.yaml
+ContentBlocks\Versioning\ContentVersionUpgraderInterface: '@App\ContentBlocks\MyUpgrader'
+```
+
 ## Toggling topbar features (Insert content, Import / Export)
 
 The builder topbar ships two optional features:

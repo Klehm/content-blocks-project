@@ -430,6 +430,8 @@ When a release changes that structure, it ships an `EnvelopeUpgraderInterface` s
 
 You can add your own step (it is autoconfigured — just implement the interface) if you invented a format of your own, but the normal case is that this is invisible to you.
 
+📖 Full walkthrough, including a complete migration and the order to deploy it in: [Content versioning](https://klehm.github.io/content-blocks-project/guide/content-versioning).
+
 ## Styling sections and blocks
 
 Each section's settings sidebar carries a **Styling** group with padding, margin (per viewport), background color, min-height and alignment. Block edit forms carry the same group with padding, margin, background color and max-width.

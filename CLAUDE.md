@@ -175,6 +175,7 @@ Le bundle expose un arbre de config (`ContentBlocksBundle::configure()`), raccou
 ```yaml
 # config/packages/content_blocks.yaml
 content_blocks:
+    content_version: 1                  # génération du schéma de contenu de l'hôte
     section:
         default_width_mode: full        # 'full' | 'centered'
         default_max_width: 1320
@@ -191,6 +192,8 @@ content_blocks:
         max_size: 10485760
         allowed_mime_types: [...]
 ```
+
+**Versionnage de contenu** (`content_version`, int, défaut 1) : la forme de `block.data` est décidée par les types de blocs (hôte + kit), pas par le core — c'est donc l'hôte qui déclare sa génération de schéma et écrit ses migrations. Estampillé sur `cb_content_area.content_version` par `ContentAreaTouchListener` et sur `cb_section_template.content_version` à la sauvegarde d'un snapshot. **Le stamp d'une zone veut dire « dernière écriture sous la version N », pas « conforme à N »** : éditer un bloc ré-estampille toute la zone (index de ciblage, pas garantie) — migrer avant de laisser les éditeurs reprendre. `NULL` = antérieur au versionnage, jamais `0` (le node refuse `0`). Deux seams : `ContentVersionUpgraderInterface` (hôte, snapshots seulement — l'import ignore un numéro étranger) avec `DenyOnMismatchUpgrader` par défaut (refuse un écart connu, accepte `NULL`), et `EnvelopeUpgraderInterface`/`EnvelopeUpgradeChain` (core, structure du payload, chaîne vide aujourd'hui). Doc complète : [docs/guide/content-versioning.md](docs/guide/content-versioning.md).
 
 Points clés du styling :
 - **`PaletteColorType`** (`cb_palette_color`) : dropdown palette + « Personnalisé… » (colorpicker libre), stocke un `#hex` simple (`''` = aucune). Remplace le `ColorType` dans `StylingType`. Interfaces : `ColorPaletteProviderInterface` (autoconfiguré) + `ColorPaletteRegistry`.

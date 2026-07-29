@@ -77,8 +77,9 @@ Adds `cb_content_area.content_version` and `cb_section_template.content_version`
 both nullable and left `NULL`. They carry the host-owned
 `content_blocks.content_version` (default `1`), stamped as content is written so
 that *your* later migrations can target what predates a change of your own
-making. See *Content versioning* in the package README for what the number does
-and does not guarantee — in particular, `NULL` means "predates versioning" and is
+making. Read [Content versioning](./content-versioning) before you rely on the
+column — in particular, the area stamp means *"last written under version N"*,
+not *"conforms to version N"*, and `NULL` means "predates versioning", which is
 not the same as `0`.
 
 ```bash
