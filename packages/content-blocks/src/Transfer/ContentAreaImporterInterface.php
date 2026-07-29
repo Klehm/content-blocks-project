@@ -28,10 +28,10 @@ interface ContentAreaImporterInterface
      *
      * Only the **envelope** is validated, and a bad one throws: the payload is a
      * file that travelled, so an unreadable structure must not be replayed.
-     * Everything about the *content* is reported rather than refused — an
-     * unregistered block type or a stored key no type can hold comes back in the
-     * {@see ImportResult}, never dropped and never blocking. See that class for
-     * why this differs from the section-template flow.
+     * The *content* is taken optimistically — everything this installation can
+     * use comes in, the rest is reported in the {@see ImportResult}. A block
+     * whose type is unknown here is skipped; a stored key nothing declares is
+     * kept. See that class for why the two differ.
      *
      * @param array<string, mixed> $payload
      *

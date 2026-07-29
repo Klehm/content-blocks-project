@@ -145,13 +145,13 @@ final class ImportExportController
 
         $this->em->flush();
 
-        // The warnings are non-blocking by design (see ImportResult): the import
-        // succeeded, and the editor is told what came in that this app cannot
-        // fully render or edit.
+        // Non-blocking by design (see ImportResult): the import succeeded, and
+        // the editor is told what this app could not take in.
         return new JsonResponse([
             'imported' => true,
             'sectionCount' => $result->sectionCount,
-            'missingBlockTypes' => $result->missingBlockTypes,
+            'skippedBlockCount' => $result->skippedBlockCount,
+            'skippedBlockTypes' => $result->skippedBlockTypes,
             'unknownFields' => $result->unknownFields,
             'hasUnpublishedChanges' => $target->hasUnpublishedChanges(),
         ]);

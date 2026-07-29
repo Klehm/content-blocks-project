@@ -200,30 +200,35 @@ final class ContentAreaImporterTest extends TestCase
         $this->importer()->import(new ContentArea(), $payload);
     }
 
-    public function testUnknownBlockTypeWarnsInsteadOfAborting(): void
+    public function testBlocksWhoseTypeIsUnknownHereAreSkipped(): void
     {
         // A payload from another installation naturally references blocks this
-        // app doesn't have — refusing would make cross-install transfer
-        // useless, so it lands as a warning and the content is kept verbatim.
+        // app doesn't have. Importing them would leave inert placeholders the
+        // editor can neither see nor edit, so they are left out and reported —
+        // the JSON file remains the archive.
         $target = new ContentArea();
         $payload = $this->makePayload([[
             'layout' => Section::LAYOUT_FULL,
             'columns' => [['preset' => 'col-12', 'blocks' => [
-                ['type' => 'text', 'data' => ['content' => 'known']],
+                ['type' => 'text', 'data' => ['content' => 'first']],
                 ['type' => 'countdown', 'data' => ['ends' => 'soon']],
                 ['type' => 'countdown', 'data' => ['ends' => 'later']],
+                ['type' => 'text', 'data' => ['content' => 'second']],
             ]]],
         ]]);
 
         $result = $this->importer()->import($target, $payload);
 
         $this->assertSame(1, $result->sectionCount, 'the section still came in');
-        $this->assertSame(['countdown'], $result->missingBlockTypes, 'reported once, not per block');
+        $this->assertSame(2, $result->skippedBlockCount);
+        $this->assertSame(['countdown'], $result->skippedBlockTypes, 'types listed once, not per block');
         $this->assertTrue($result->hasWarnings());
 
-        $blocks = $target->getSections()[0]->getColumns()[0]->getBlocks();
-        $this->assertCount(3, $blocks);
-        $this->assertSame(['ends' => 'soon'], $blocks[1]->getDraftData(), 'data kept verbatim');
+        // The usable blocks came in, densely positioned.
+        $blocks = array_values($target->getSections()[0]->getColumns()[0]->getBlocks()->toArray());
+        $this->assertCount(2, $blocks);
+        $this->assertSame(['first', 'second'], array_map(fn ($b) => $b->getDraftData()['content'], $blocks));
+        $this->assertSame([0, 1], array_map(fn ($b) => $b->getPreviewPosition(), $blocks));
     }
 
     public function testUnknownDataKeysWarnWithoutDroppingThem(): void
@@ -243,16 +248,16 @@ final class ContentAreaImporterTest extends TestCase
             [['blockType' => 'text', 'unknownKeys' => ['legacy']]],
             $result->unknownFields,
         );
-        $this->assertSame([], $result->missingBlockTypes);
+        $this->assertSame(0, $result->skippedBlockCount, 'an unknown key never costs the block');
 
         $data = $target->getSections()[0]->getColumns()[0]->getBlocks()[0]->getDraftData();
         $this->assertSame('v', $data['legacy'], 'never dropped');
     }
 
-    public function testAnUnregisteredTypeReportsNoFieldWarnings(): void
+    public function testASkippedBlockReportsNoFieldWarnings(): void
     {
-        // No shape to compare against — reporting every key of an unknown type
-        // would bury the one warning that matters (the missing type itself).
+        // It never got built, so reporting its keys would bury the one warning
+        // that matters — that the block did not come in at all.
         $target = new ContentArea();
         $payload = $this->makePayload([[
             'layout' => Section::LAYOUT_FULL,
@@ -263,8 +268,9 @@ final class ContentAreaImporterTest extends TestCase
 
         $result = $this->importer(withTypes: false)->import($target, $payload);
 
-        $this->assertSame(['text'], $result->missingBlockTypes);
+        $this->assertSame(['text'], $result->skippedBlockTypes);
         $this->assertSame([], $result->unknownFields);
+        $this->assertCount(0, $target->getSections()[0]->getColumns()[0]->getBlocks());
     }
 
     public function testExportImportRoundTripPreservesTheTree(): void

@@ -30,6 +30,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   find-and-replace of `ContentBlocks\Service\` suffices, and a missed one fails
   loudly at container build. The matching `…Interface` classes follow the same
   mapping.
+- **BREAKING — `ContentAreaImporterInterface::import()` returns an `ImportResult`,
+  `SectionTemplateSerializerInterface::serialize()` a `SectionTemplateSnapshot`.**
+  Both used to return bare arrays/ints. `$snapshot->payload` / `->blockTypes`
+  replace `$serialized['payload']` / `['blockTypes']`; `$result->sectionCount`
+  replaces the returned `int`. Only relevant if you call these services directly.
+- **Both restore flows (area import, section-template insert) are now optimistic:
+  they bring in everything this installation can use and report the rest.**
+  A block whose type is not registered here is **skipped** — importing it would
+  hand the editor an inert placeholder (no view template, no edit form), and
+  nothing is lost since the JSON file / stored payload remains the archive:
+  install the block type and re-import. A stored key no registered type declares
+  is **kept** and merely reported — the block itself is usable, and the key may
+  well be a field about to be added. In short, "compatible" is judged per block,
+  not per key. Previously the import accepted any block type silently (producing
+  unrenderable blocks) while the template insert refused the whole operation.
+  The only hard stop left on content is a template that had blocks and kept none.
+  Both flows report through their result object (`ImportResult`,
+  `InstantiationResult`), which now share their vocabulary: `skippedBlockCount`,
+  `skippedBlockTypes`, `unknownFields`.
+- **The section-template picker warns instead of blocking when a template is
+  partially usable.** A row is disabled only when nothing would come in (an
+  unreadable payload envelope, or every one of its block types gone); otherwise
+  it stays clickable and its tooltip spells out how many blocks will be skipped
+  and of which types. The list response fields changed accordingly:
+  `compatible`/`missingTypes` → `insertable`/`skippedTypes`.
+- **Section-template payloads are validated against the envelope format they
+  declare.** `SectionTemplateSerializer::FORMAT` was written into every stored
+  payload since the feature shipped but never read back, so a payload written
+  under an older structure would have been replayed blind. Such a template is now
+  shown as unavailable in the library picker, and the instantiator refuses it with
+  a dedicated `UnsupportedTemplateFormatException`
+  — separate from `IncompatibleTemplateException`, whose `getMissingTypes()`
+  would be empty and read as "nothing is missing". The format versions the
+  payload *structure*, which the core owns; it says nothing about the shape of
+  the block data inside, which belongs to the block types.
 - **`section_styles[].settings` is now a typed config node** (was a free-form
   `variableNode`). Preset YAML is validated and self-documenting; the shape mirrors
   `SectionSettingsType`/`StylingType`. Unknown keys and bad viewport/align/unit
@@ -75,30 +110,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   longer leaves the importer checking the shipped class. Backward-compatible: the
   concrete service ids still resolve, and `ContentAreaExporter::FORMAT` still reads
   the same value through inheritance.
-
-- **BREAKING — `ContentAreaImporterInterface::import()` returns an `ImportResult`,
-  `SectionTemplateSerializerInterface::serialize()` a `SectionTemplateSnapshot`.**
-  Both used to return bare arrays/ints. `$snapshot->payload` / `->blockTypes`
-  replace `$serialized['payload']` / `['blockTypes']`; `$result->sectionCount`
-  replaces the returned `int`. Only relevant if you call these services directly.
-- **The import flow now reports what it could not fully understand.** It used to
-  accept any block type silently, producing blocks nothing could render. Unknown
-  block types and stored keys no registered type can hold come back in
-  `ImportResult` and are surfaced in the builder. They **warn**, they do not
-  abort — a payload comes from another installation, where the two apps not
-  having identical blocks is the normal case. This is deliberately different from
-  the section-template flow, which *refuses* an unknown block type: a template
-  comes from the same app, so a missing type there means it was deleted.
-- **Section-template payloads are validated against the envelope format they
-  declare.** `SectionTemplateSerializer::FORMAT` was written into every stored
-  payload since the feature shipped but never read back, so a payload written
-  under an older structure would have been replayed blind. The library picker now
-  greys those rows out up front (same treatment as a missing block type) and the
-  instantiator refuses them with a dedicated `UnsupportedTemplateFormatException`
-  — separate from `IncompatibleTemplateException`, whose `getMissingTypes()`
-  would be empty and read as "nothing is missing". The format versions the
-  payload *structure*, which the core owns; it says nothing about the shape of
-  the block data inside, which belongs to the block types.
 
 ### Fixed
 

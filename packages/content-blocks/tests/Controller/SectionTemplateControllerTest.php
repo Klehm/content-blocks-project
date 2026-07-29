@@ -144,20 +144,39 @@ final class SectionTemplateControllerTest extends ControllerTestCase
 
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $payload = json_decode((string) $response->getContent(), true);
-        $this->assertSame([], $payload['warnings']);
+        $this->assertSame(0, $payload['skippedBlockCount']);
+        $this->assertSame([], $payload['unknownFields']);
         $this->assertCount(1, $this->persisted);
         // Appended after the existing section (previewPosition 3 -> 4).
         $this->assertSame(4, $this->persisted[0]->getPreviewPosition());
         $this->assertCount(2, $area->getSections());
     }
 
-    public function testInsertRejectsIncompatibleTemplateWith422(): void
+    public function testInsertSkipsGoneBlockTypesAndInsertsTheRest(): void
     {
         $area = $this->makeArea(1);
         $template = $this->makeTemplate(7, $this->payloadWith([
             ['type' => 'fake', 'data' => []],
             ['type' => 'ghost', 'data' => []],
         ]), ['fake', 'ghost']);
+
+        $controller = $this->makeController($this->makeEm([$area, $template]));
+
+        $response = $controller->insert(1, 7, $this->makeJsonRequest());
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = json_decode((string) $response->getContent(), true);
+        $this->assertSame(1, $payload['skippedBlockCount']);
+        $this->assertSame(['ghost'], $payload['skippedBlockTypes']);
+        $this->assertCount(1, $this->persisted);
+    }
+
+    public function testInsertRejectsATemplateWhoseBlocksAreAllGoneWith422(): void
+    {
+        $area = $this->makeArea(1);
+        $template = $this->makeTemplate(7, $this->payloadWith([
+            ['type' => 'ghost', 'data' => []],
+        ]), ['ghost']);
 
         $controller = $this->makeController($this->makeEm([$area, $template]));
 
@@ -186,7 +205,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
         $payload = json_decode((string) $response->getContent(), true);
         $this->assertSame(
             [['blockType' => 'fake', 'unknownKeys' => ['legacy']]],
-            $payload['warnings'],
+            $payload['unknownFields'],
         );
         $this->assertCount(1, $this->persisted);
     }

@@ -6,6 +6,7 @@ namespace ContentBlocks\Transfer;
 
 use ContentBlocks\Asset\AssetResolverInterface;
 use ContentBlocks\Block\BlockDataKeys;
+use ContentBlocks\Block\BlockRestoreTally;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
@@ -49,19 +50,23 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         }
 
         $count = 0;
-        $missingTypes = [];
-        $unknownFields = [];
+        $tally = new BlockRestoreTally();
         foreach (array_values($sectionsRaw) as $i => $sectionRaw) {
             if (!is_array($sectionRaw)) {
                 continue;
             }
-            $section = $this->buildSection($sectionRaw, $assetMap, $missingTypes, $unknownFields);
+            $section = $this->buildSection($sectionRaw, $assetMap, $tally);
             $section->setPreviewPosition($i);
             $target->addSection($section);
             ++$count;
         }
 
-        return new ImportResult($count, $missingTypes, $unknownFields);
+        return new ImportResult(
+            $count,
+            $tally->skippedCount(),
+            $tally->skippedTypes(),
+            $tally->unknownFields(),
+        );
     }
 
     /**
@@ -120,10 +125,8 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     /**
      * @param array<string, mixed>                                      $raw
      * @param array<string, string>                                     $assetMap
-     * @param list<string>                                              $missingTypes  accumulator
-     * @param list<array{blockType: string, unknownKeys: list<string>}> $unknownFields accumulator
      */
-    private function buildSection(array $raw, array $assetMap, array &$missingTypes, array &$unknownFields): Section
+    private function buildSection(array $raw, array $assetMap, BlockRestoreTally $tally): Section
     {
         $section = new Section();
         if (isset($raw['layout']) && is_string($raw['layout'])) {
@@ -141,7 +144,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
                 if (!is_array($colRaw)) {
                     continue;
                 }
-                $col = $this->buildColumn($colRaw, $assetMap, $missingTypes, $unknownFields);
+                $col = $this->buildColumn($colRaw, $assetMap, $tally);
                 $col->setPreviewPosition($i);
                 $section->addColumn($col);
             }
@@ -153,10 +156,8 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     /**
      * @param array<string, mixed>                                      $raw
      * @param array<string, string>                                     $assetMap
-     * @param list<string>                                              $missingTypes  accumulator
-     * @param list<array{blockType: string, unknownKeys: list<string>}> $unknownFields accumulator
      */
-    private function buildColumn(array $raw, array $assetMap, array &$missingTypes, array &$unknownFields): Column
+    private function buildColumn(array $raw, array $assetMap, BlockRestoreTally $tally): Column
     {
         $col = new Column();
         if (isset($raw['preset']) && is_string($raw['preset'])) {
@@ -165,12 +166,18 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
 
         $blocks = $raw['blocks'] ?? null;
         if (is_array($blocks)) {
-            foreach (array_values($blocks) as $i => $blockRaw) {
+            // Positions come from the *kept* blocks so a skipped one doesn't
+            // leave a hole in the sequence.
+            $position = 0;
+            foreach (array_values($blocks) as $blockRaw) {
                 if (!is_array($blockRaw)) {
                     continue;
                 }
-                $block = $this->buildBlock($blockRaw, $assetMap, $missingTypes, $unknownFields);
-                $block->setPreviewPosition($i);
+                $block = $this->buildBlock($blockRaw, $assetMap, $tally);
+                if ($block === null) {
+                    continue;
+                }
+                $block->setPreviewPosition($position++);
                 $col->addBlock($block);
             }
         }
@@ -181,34 +188,36 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     /**
      * @param array<string, mixed>                                      $raw
      * @param array<string, string>                                     $assetMap
-     * @param list<string>                                              $missingTypes  accumulator
-     * @param list<array{blockType: string, unknownKeys: list<string>}> $unknownFields accumulator
+     *
+     * @return Block|null null when the block's type is not registered here
      */
-    private function buildBlock(array $raw, array $assetMap, array &$missingTypes, array &$unknownFields): Block
+    private function buildBlock(array $raw, array $assetMap, BlockRestoreTally $tally): ?Block
     {
-        $block = new Block();
         $type = $raw['type'] ?? null;
+        if (is_string($type) && !$this->registry->has($type)) {
+            // Skipped: not refused (the payload comes from another install, so
+            // a type this app lacks is expected) and not imported either (it
+            // would leave an inert block). See ImportResult.
+            $tally->skip($type);
+
+            return null;
+        }
+
+        $block = new Block();
         if (is_string($type)) {
             $block->setType($type);
-            if (!$this->registry->has($type) && !in_array($type, $missingTypes, true)) {
-                // Warned, not refused: the payload comes from another
-                // installation, so a type this app doesn't have is expected.
-                // See ImportResult for the reasoning.
-                $missingTypes[] = $type;
-            }
         }
 
         $data = $raw['data'] ?? null;
         if (is_array($data)) {
             if (is_string($type)) {
-                $unknown = $this->dataKeys->unknownIn($type, $data);
-                if ($unknown !== []) {
-                    $unknownFields[] = ['blockType' => $type, 'unknownKeys' => $unknown];
-                }
+                $tally->noteUnknownKeys($type, $this->dataKeys->unknownIn($type, $data));
             }
-            // Kept verbatim either way — a warning never drops content.
+            // Kept verbatim, unknown keys included — those warn, never drop.
             $block->setDraftData($this->rewriteAssets($data, $assetMap));
         }
+
+        $tally->keep();
 
         return $block;
     }

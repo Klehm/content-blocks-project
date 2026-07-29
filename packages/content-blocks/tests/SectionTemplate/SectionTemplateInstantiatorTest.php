@@ -126,7 +126,7 @@ final class SectionTemplateInstantiatorTest extends TestCase
         $this->assertNull($section->getId());
         $this->assertSame(Section::LAYOUT_TWO_COLS, $section->getLayout());
         $this->assertSame(['classes' => 'hero'], $section->getDraftSettings());
-        $this->assertSame([], $result->warnings);
+        $this->assertFalse($result->hasWarnings());
 
         $columns = array_values($section->getColumns()->toArray());
         $this->assertCount(2, $columns);
@@ -175,11 +175,36 @@ final class SectionTemplateInstantiatorTest extends TestCase
         }
     }
 
-    public function testUnknownBlockTypeIsAHardStop(): void
+    public function testBlocksWhoseTypeIsGoneAreSkippedNotRefused(): void
     {
         $payload = $this->payload([
             ['preset' => 'col-12', 'blocks' => [
                 ['type' => 'text', 'data' => ['text' => 'A']],
+                ['type' => 'gallery', 'data' => []],
+                ['type' => 'countdown', 'data' => []],
+                ['type' => 'text', 'data' => ['text' => 'B']],
+            ]],
+        ]);
+
+        $result = $this->instantiator()->instantiate($payload);
+
+        $this->assertSame(2, $result->skippedBlockCount);
+        $this->assertSame(['gallery', 'countdown'], $result->skippedBlockTypes);
+
+        // The usable blocks came in, densely positioned — a skipped block must
+        // not leave a hole in the sequence.
+        $blocks = array_values($result->section->getColumns()->first()->getBlocks()->toArray());
+        $this->assertCount(2, $blocks);
+        $this->assertSame(['A', 'B'], array_map(fn ($b) => $b->getDraftData()['text'], $blocks));
+        $this->assertSame([0, 1], array_map(fn ($b) => $b->getPreviewPosition(), $blocks));
+    }
+
+    public function testATemplateWhoseBlocksAreAllGoneIsRefused(): void
+    {
+        // Nothing left to insert: dropping an empty section into the area
+        // would only puzzle the editor.
+        $payload = $this->payload([
+            ['preset' => 'col-12', 'blocks' => [
                 ['type' => 'gallery', 'data' => []],
                 ['type' => 'countdown', 'data' => []],
             ]],
@@ -191,6 +216,17 @@ final class SectionTemplateInstantiatorTest extends TestCase
         } catch (IncompatibleTemplateException $e) {
             $this->assertSame(['gallery', 'countdown'], $e->getMissingTypes());
         }
+    }
+
+    public function testATemplateThatNeverHadBlocksStillInserts(): void
+    {
+        // A spacer section: no blocks to lose, so nothing to refuse.
+        $result = $this->instantiator()->instantiate($this->payload([
+            ['preset' => 'col-12', 'blocks' => []],
+        ]));
+
+        $this->assertFalse($result->hasWarnings());
+        $this->assertCount(1, $result->section->getColumns());
     }
 
     public function testUnknownFieldWarnsButKeepsDataAndInserts(): void
@@ -206,8 +242,9 @@ final class SectionTemplateInstantiatorTest extends TestCase
 
         $this->assertSame(
             [['blockType' => 'title', 'unknownKeys' => ['subtitle']]],
-            $result->warnings,
+            $result->unknownFields,
         );
+        $this->assertSame(0, $result->skippedBlockCount);
 
         // Non-blocking: the block is still built and the legacy value kept.
         $block = $result->section->getColumns()->first()->getBlocks()->first();
@@ -223,7 +260,7 @@ final class SectionTemplateInstantiatorTest extends TestCase
         ]);
 
         $result = $this->instantiator()->instantiate($payload);
-        $this->assertSame([], $result->warnings);
+        $this->assertFalse($result->hasWarnings());
     }
 
     /**
@@ -245,7 +282,7 @@ final class SectionTemplateInstantiatorTest extends TestCase
 
         $result = $this->instantiator()->instantiate($payload);
 
-        $this->assertSame([], $result->warnings);
+        $this->assertFalse($result->hasWarnings());
     }
 
     /**
@@ -276,7 +313,7 @@ final class SectionTemplateInstantiatorTest extends TestCase
         // `anchorId` is legitimate now; `ghost` is still nobody's field.
         $this->assertSame(
             [['blockType' => 'title', 'unknownKeys' => ['ghost']]],
-            $result->warnings,
+            $result->unknownFields,
         );
     }
 
@@ -298,6 +335,6 @@ final class SectionTemplateInstantiatorTest extends TestCase
             ['text' => 'hello'],
             $result->section->getColumns()->first()->getBlocks()->first()->getDraftData(),
         );
-        $this->assertSame([], $result->warnings);
+        $this->assertFalse($result->hasWarnings());
     }
 }

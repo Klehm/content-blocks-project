@@ -112,10 +112,13 @@ final class SectionTemplateController
     }
 
     /**
-     * Paginated, name-filtered list of library templates. Each entry carries a
-     * `compatible` flag (and the offending `missingTypes`) computed against the
-     * current registry, so the UI can disable incompatible templates up front
-     * rather than failing on insert.
+     * Paginated, name-filtered list of library templates. Each entry is scored
+     * against the current registry so the picker can warn (or refuse) up front
+     * rather than surprising the editor on insert:
+     *  - `skippedTypes` — block types this build no longer has. The template is
+     *    still insertable, minus those blocks; the UI says so before the click.
+     *  - `insertable` — false only when nothing would come in: an unreadable
+     *    payload envelope, or every one of its block types gone.
      */
     #[Route(
         '/area/{id}/section-templates',
@@ -159,11 +162,13 @@ final class SectionTemplateController
         foreach ($rows as $template) {
             $missing = $this->missingTypes($template);
             $readable = $this->hasReadableFormat($template);
+            $declared = $template->getBlockTypes();
+            $allGone = $declared !== [] && \count($missing) === \count($declared);
             $items[] = [
                 'id' => $template->getId(),
                 'name' => $template->getName(),
-                'compatible' => $missing === [] && $readable,
-                'missingTypes' => $missing,
+                'insertable' => $readable && !$allGone,
+                'skippedTypes' => $missing,
                 'unreadableFormat' => !$readable,
                 'canManage' => $this->templateManager->canManage(),
                 'createdAt' => $template->getCreatedAt()->format(\DateTimeInterface::ATOM),
@@ -179,8 +184,9 @@ final class SectionTemplateController
 
     /**
      * Instantiates a template into the target area as a new draft section
-     * appended at the end. Unknown block types abort with 422; unknown data
-     * fields only warn (returned in `warnings`, never blocking the insert).
+     * appended at the end. Blocks whose type is gone are skipped and reported;
+     * the insert only aborts with 422 when nothing survives, or when the
+     * payload envelope is unreadable.
      */
     #[Route(
         '/area/{id}/insert-template/{templateId}',
@@ -232,7 +238,9 @@ final class SectionTemplateController
 
         return new JsonResponse([
             'sectionId' => $section->getId(),
-            'warnings' => $result->warnings,
+            'skippedBlockCount' => $result->skippedBlockCount,
+            'skippedBlockTypes' => $result->skippedBlockTypes,
+            'unknownFields' => $result->unknownFields,
         ]);
     }
 

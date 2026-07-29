@@ -1482,23 +1482,33 @@ export default class extends Controller {
         btn.className = 'cb-template-picker__item-btn';
         btn.textContent = item.name ?? `#${item.id}`;
 
-        if (item.compatible === false) {
-            // Either a referenced block type is no longer registered, or the
-            // payload envelope predates this build. Both 422 on insert, so
-            // disable up front and explain which one it is on hover.
+        const skipped = Array.isArray(item.skippedTypes) ? item.skippedTypes : [];
+
+        if (item.insertable === false) {
+            // Nothing would come in: either the payload envelope predates this
+            // build, or every one of its block types is gone. Disable, and say
+            // which of the two it is.
             btn.disabled = true;
-            if (item.unreadableFormat) {
-                btn.title = this._t(
+            btn.title = item.unreadableFormat
+                ? this._t(
                     'cb.builder.template.unreadable_format',
                     'Unavailable — saved by an incompatible version of the section library',
-                );
-            } else {
-                const missing = Array.isArray(item.missingTypes) ? item.missingTypes.join(', ') : '';
-                const tpl = this._t('cb.builder.template.incompatible', 'Unavailable — missing block type(s): %types%');
-                btn.title = tpl.replace('%types%', missing);
-            }
+                )
+                : this._t(
+                    'cb.builder.template.incompatible',
+                    'Unavailable — none of its block types exist here: %types%',
+                ).replace('%types%', skipped.join(', '));
             li.classList.add('cb-template-picker__item--disabled');
         } else {
+            // Partially usable templates stay clickable — the editor is warned
+            // before the click rather than blocked from a useful insert.
+            if (skipped.length > 0) {
+                btn.title = this._t(
+                    'cb.builder.template.partial',
+                    '%count% block(s) will be skipped — missing type(s): %types%',
+                ).replace('%count%', String(skipped.length)).replace('%types%', skipped.join(', '));
+                li.classList.add('cb-template-picker__item--partial');
+            }
             btn.addEventListener('click', () => this._confirmInsert(item));
         }
         li.appendChild(btn);
@@ -1527,18 +1537,15 @@ export default class extends Controller {
         );
         if (result === null) return;
 
-        // Surface non-blocking warnings (fields no block type nor form
-        // extension declares any more). The insert still succeeded, so the
-        // picker stays open on its status line instead of closing: closing it
-        // would blank the only element carrying the message.
-        const warnings = Array.isArray(result.warnings) ? result.warnings : [];
-        if (warnings.length > 0) {
-            const types = warnings.map((w) => w.blockType).join(', ');
-            const tpl = this._t(
-                'cb.builder.template.warnings',
-                'Inserted, but some stored fields no longer exist on: %types%',
-            );
-            this._setTemplatePickerStatus(tpl.replace('%types%', types));
+        // The insert succeeded, possibly minus a few blocks. When there is
+        // something to report the picker stays open on its status line —
+        // closing it would blank the only element carrying the message.
+        const warning = this._restoreWarning(result, {
+            skipped: ['cb.builder.template.skipped_blocks', 'Inserted — %count% block(s) skipped, missing type(s): %types%'],
+            unknown: ['cb.builder.template.warnings', 'Inserted, but some stored fields no longer exist on: %types%'],
+        });
+        if (warning !== null) {
+            this._setTemplatePickerStatus(warning);
         } else {
             this.closeTemplatePicker();
         }
@@ -1702,7 +1709,10 @@ export default class extends Controller {
         // has no block type here, or carries fields nothing can hold. Same rule
         // as the template picker — keep the panel open on its status line,
         // since closing it would blank the only element carrying the message.
-        const warning = this._importWarning(payload);
+        const warning = this._restoreWarning(payload, {
+            skipped: ['cb.builder.import_export.skipped_blocks', 'Imported — %count% block(s) skipped, missing type(s): %types%'],
+            unknown: ['cb.builder.import_export.unknown_fields', 'Imported, but some stored fields are unknown on: %types%'],
+        });
         this.importFileTarget.value = '';
         if (warning !== null) {
             this._setImportExportStatus(warning);
@@ -1719,27 +1729,27 @@ export default class extends Controller {
     }
 
     /**
-     * Message for an import that succeeded with reservations, or null when
-     * there is nothing to report. Missing block types come first: a block this
-     * app cannot render is worse news than a stray stored field.
+     * Message for a restore (import or template insert) that succeeded with
+     * reservations, or null when there is nothing to report. Both flows report
+     * the same two facts under the same names, hence one helper; only the
+     * wording differs, so callers pass their own [key, fallback] pairs.
+     *
+     * Skipped blocks come first: content that did not come in at all is worse
+     * news than a stray stored field on content that did.
      */
-    _importWarning(payload) {
-        const missing = Array.isArray(payload?.missingBlockTypes) ? payload.missingBlockTypes : [];
-        if (missing.length > 0) {
-            return this._t(
-                'cb.builder.import_export.missing_types',
-                'Imported, but this app has no block type(s): %types%',
-            ).replace('%types%', missing.join(', '));
+    _restoreWarning(payload, messages) {
+        const skipped = Array.isArray(payload?.skippedBlockTypes) ? payload.skippedBlockTypes : [];
+        if (skipped.length > 0) {
+            return this._t(...messages.skipped)
+                .replace('%count%', String(payload.skippedBlockCount ?? skipped.length))
+                .replace('%types%', skipped.join(', '));
         }
 
         const fields = Array.isArray(payload?.unknownFields) ? payload.unknownFields : [];
         if (fields.length > 0) {
             const types = [...new Set(fields.map((f) => f.blockType))].join(', ');
 
-            return this._t(
-                'cb.builder.import_export.unknown_fields',
-                'Imported, but some stored fields are unknown on: %types%',
-            ).replace('%types%', types);
+            return this._t(...messages.unknown).replace('%types%', types);
         }
 
         return null;

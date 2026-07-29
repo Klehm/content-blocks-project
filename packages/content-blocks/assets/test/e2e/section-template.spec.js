@@ -166,6 +166,110 @@ test.describe('section-template library — round trip', () => {
     });
 });
 
+/**
+ * Stages a library entry directly, bypassing the save endpoint — the only way to
+ * get a payload this build cannot fully use, since saving snapshots real,
+ * registered blocks. Backed by the sandbox's debug-only fixture route.
+ */
+async function stageTemplate(page, { name, blocks, blockTypes, format = 'content-blocks/section-v1' }) {
+    const response = await page.request.post('/test-fixtures/section-template', {
+        data: {
+            name,
+            blockTypes,
+            payload: {
+                format,
+                layout: 'full',
+                settings: null,
+                columns: [{ preset: 'col-12', blocks }],
+            },
+        },
+    });
+    if (!response.ok()) throw new Error(`Fixture route failed: ${response.status()}`);
+}
+
+async function openLibraryOn(page, url) {
+    const frame = await openBuilder(page, url);
+    await page.locator('.cb-sidebar-empty__library').click();
+    const picker = page.locator('.cb-template-picker');
+    await expect(picker).toBeVisible();
+
+    return { frame, picker };
+}
+
+test.describe('section-template library — partially usable templates', () => {
+    test('a template with a gone block type stays insertable, minus that block', async ({ page }) => {
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            blockTypes: ['title', 'countdown'],
+            blocks: [
+                { type: 'title', data: { text: 'Kept heading', level: 2 } },
+                { type: 'countdown', data: { ends: 'never' } },
+            ],
+        });
+
+        const { frame, picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        // Warned before the click, not blocked: one type is gone, one remains.
+        const row = picker.locator('.cb-template-picker__item').first();
+        const btn = row.locator('.cb-template-picker__item-btn');
+        await expect(btn).toBeEnabled();
+        await expect(row).toHaveClass(/cb-template-picker__item--partial/);
+        await expect(btn).toHaveAttribute('title', /countdown/);
+
+        await btn.click();
+
+        // The section came in with only the usable block, and the picker stayed
+        // open to report what was skipped.
+        await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);
+        await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
+        await expect(frame.locator('[data-cb-block-type="title"]')).toHaveCount(1);
+        await expect(picker).toBeVisible();
+        await expect(page.locator('.cb-template-picker__status')).toContainText('countdown');
+    });
+
+    test('a template whose block types are all gone cannot be inserted', async ({ page }) => {
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            blockTypes: ['countdown'],
+            blocks: [{ type: 'countdown', data: {} }],
+        });
+
+        const { picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        const row = picker.locator('.cb-template-picker__item').first();
+        await expect(row.locator('.cb-template-picker__item-btn')).toBeDisabled();
+        await expect(row).toHaveClass(/cb-template-picker__item--disabled/);
+        await expect(row.locator('.cb-template-picker__item-btn')).toHaveAttribute('title', /countdown/);
+    });
+
+    test('a template saved under an unreadable envelope cannot be inserted', async ({ page }) => {
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            blockTypes: ['title'],
+            blocks: [{ type: 'title', data: { text: 'Fine block', level: 2 } }],
+            format: 'content-blocks/section-v99',
+        });
+
+        const { picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        // Its block type is perfectly fine — it's the payload structure that
+        // this build cannot read, and the tooltip must say so rather than
+        // blaming a block type.
+        const btn = picker.locator('.cb-template-picker__item-btn').first();
+        await expect(btn).toBeDisabled();
+        await expect(btn).not.toHaveAttribute('title', /title/);
+    });
+});
+
 test.describe('section-template library — management', () => {
     test('delete removes the template from the library', async ({ page }) => {
         const templateName = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;

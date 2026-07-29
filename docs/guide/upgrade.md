@@ -222,12 +222,27 @@ already worked that way.
 + $blockTypes = $snapshot->blockTypes;
 ```
 
-`ImportResult` also carries `missingBlockTypes` and `unknownFields` — what the
-payload referenced that this installation cannot render or edit. They are
-**warnings, never a refusal**: an import comes from another installation, so not
-having identical blocks on both sides is expected. (The section-template flow
-does the opposite and *refuses* an unknown block type, because a template comes
-from the same app — a missing type there means it was deleted.)
+`ImportResult` also carries `skippedBlockCount`, `skippedBlockTypes` and
+`unknownFields` — what the payload referenced that this installation could not
+take in. `InstantiationResult` (section-template insert) now reports the same
+three, under the same names.
+
+Both restores are **optimistic**: everything usable comes in, the rest is
+reported. "Compatible" is judged per **block**:
+
+- a block whose **type is not registered here** is **skipped**. Importing it
+  would leave an inert placeholder — no view template, no edit form — and
+  nothing is lost, since the JSON file (or the stored template payload) remains
+  the archive: install the block type and re-import.
+- a **stored key** no registered type declares is **kept** and merely reported.
+  The block itself is fine, and the key may be a field you are about to add.
+
+The only content-level refusal left is a section template that had blocks and
+kept none — there would be nothing to insert.
+
+In the library picker, a template that is only *partly* usable stays clickable
+and its tooltip says how many blocks will be skipped; a row is disabled only when
+nothing would come in.
 
 ::: warning Section templates saved by an older payload structure
 The section-template payload declares an envelope format, and it is now actually
