@@ -444,6 +444,34 @@ final class ZIndexExtension extends AbstractTypeExtension
 
 Pair it with a `SectionDecoratorInterface` reading `$settings['styling']['zIndex']` to emit the style. (For curated background colors, prefer the built-in `palette` config above.)
 
+### Adding a field to a block's edit form
+
+Every block is edited through one shared form type (`BlockFormType`), so a stock Symfony `FormTypeExtension` can't be scoped to a single block — it fires for all of them. Use the **block form extension** seam instead: declare which block type ids it targets (or `'*'` global) and add fields to their edit form.
+
+```php
+use ContentBlocks\Form\Extension\AsBlockFormExtension;
+use ContentBlocks\Form\Extension\BlockFormExtensionInterface;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\FormBuilderInterface;
+
+#[AsBlockFormExtension('button')]          // one type
+// #[AsBlockFormExtension(['button', 'card'])]  // several
+// #[AsBlockFormExtension]                       // every block (global)
+final class ButtonRelExtension implements BlockFormExtensionInterface
+{
+    public function buildForm(FormBuilderInterface $builder, array $data, string $blockType): void
+    {
+        $builder->add('rel', TextType::class, ['required' => false, 'data' => $data['rel'] ?? '']);
+    }
+}
+```
+
+Auto-tagged with `content_blocks.block_form_extension` (autoconfigured); `BlockFormType` calls every matching extension after the block's own `buildForm()`, in `priority` order (`#[AsBlockFormExtension('button', priority: 10)]` — higher first). Keyed by block type **id**, so it survives block subclassing. The added field round-trips into `Block.data` like any other (block data is not pruned); render it via a host block-template override. Add `'attr' => ['data-cb-group' => 'SEO']` to the field to give it its own tab in the block sidebar.
+
+For a **global** extension, pair it with a block decorator (next section) rather than overriding every template: the decorator turns the stored key into a class / attribute / inline style for every block at once.
+
+The builder is the block's own, so the seam is not add-only: `$builder->remove('fullWidth')` drops a field (its stored value is frozen rather than deleted, and a POST still carrying it is ignored), and re-adding child builders (`$b->add($b->get('url'))`) reorders the form — children render in insertion order, and the "Style" tab is always appended last. All four patterns are wired in the sandboxes — see `apps/content-blocks-sandbox/src/ContentBlocks/` — and detailed in the *Add a field to a block* recipe in the docs.
+
 ### Adding your own block decorator
 
 Implement `ContentBlocks\Block\BlockDecoratorInterface` (mirror of `SectionDecoratorInterface`). It is auto-tagged with `content_blocks.block_decorator` when `autoconfigure: true` is on, and called for every block being rendered. Return a `BlockDecoration` (classes / inline styles / attributes) — the bundle merges all decorators' output into the block's outer `<div>`.

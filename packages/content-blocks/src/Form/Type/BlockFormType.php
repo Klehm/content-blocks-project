@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Form\Type;
 
 use ContentBlocks\BlockType\BlockTypeInterface;
+use ContentBlocks\Form\Extension\BlockFormExtensionCollection;
 use ContentBlocks\Form\Type\Styling\StylingType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -18,12 +19,22 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 final class BlockFormType extends AbstractType
 {
+    public function __construct(
+        private readonly BlockFormExtensionCollection $extensions,
+    ) {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $blockType = $options['block_type'];
         \assert($blockType instanceof BlockTypeInterface);
 
         $blockType->buildForm($builder, $options['block_data']);
+
+        // Host per-block form extensions run after the block's own fields (so
+        // they can reference/override them) and before the styling tab. Keyed
+        // by block type id — see BlockFormExtensionInterface / AsBlockFormExtension.
+        $this->extensions->applyTo($builder, $options['block_data'], $blockType::getType());
 
         // Styling sub-form: rendered under a "Styling" tab in the block
         // sidebar (mirror of SectionSettingsType). Data lands under the

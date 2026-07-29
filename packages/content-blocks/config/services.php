@@ -217,7 +217,15 @@ return static function (ContainerConfigurator $container): void {
         ->args([tagged_iterator('content_blocks.block_data_defaults')])
         ->public();
 
-    $services->load('ContentBlocks\\Form\\', '../src/Form/');
+    // Form types + the per-block form-extension collection. The collection's
+    // `$extensions` argument (the [extension, target block type ids] pairs) is
+    // populated by BlockFormExtensionPass; empty until a host tags an extension.
+    // The attribute is a marker class read by reflection, never instantiated by
+    // the container, so it is excluded from the glob — registering it would put
+    // a meaningless service in every host's container (and would hard-fail the
+    // day its constructor arguments stop having defaults).
+    $services->load('ContentBlocks\\Form\\', '../src/Form/')
+        ->exclude('../src/Form/Extension/AsBlockFormExtension.php');
 
     $services->load('ContentBlocks\\Controller\\', '../src/Controller/')
         ->tag('controller.service_arguments');

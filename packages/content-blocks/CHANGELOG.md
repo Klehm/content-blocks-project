@@ -27,6 +27,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Per-block form extension API.** Hosts can now add fields to the edit form of
+  one (or several) block types without subclassing. Implement
+  `ContentBlocks\Form\Extension\BlockFormExtensionInterface` (`buildForm($builder, $data, $blockType)`)
+  and tag it with `#[AsBlockFormExtension('button')]` (one type),
+  `#[AsBlockFormExtension(['button', 'card'])]` (several) or `#[AsBlockFormExtension]`
+  (global, every block). `BlockFormType` invokes every matching extension after the
+  block's own `buildForm()`, in `priority` order. Keyed by block type **id** (string,
+  not class) so it survives subclassing and matches the config keys. This replaces the
+  `FormTypeExtension` + `instanceof`-guard workaround, which could not be scoped to one
+  block. The added field's value round-trips into `Block.data` like any other (block
+  data is not pruned); render it via a host block-template override. Autoconfigured, no
+  wiring. The seam is not add-only: the builder is the block's own, so an extension may
+  also `remove()` a field (its stored value is frozen, not deleted, and a POST still
+  carrying it is dropped) or reorder fields by re-adding their child builders. See the
+  [Add a field to a block](https://klehm.github.io/content-blocks-project/guide/recipes/add-block-field) recipe.
 - **`BlockRendererInterface` — rendering override seam (road to v1.0).** The
   central `BlockRenderer` now implements a `BlockRendererInterface` (`render`,
   `resolveMode`, `renderBlock`, `renderSection`, and the `QUERY_PARAM` constant),

@@ -7,7 +7,9 @@ namespace ContentBlocks;
 use ContentBlocks\Block\BlockDataDefaultsProviderInterface;
 use ContentBlocks\Block\BlockDecoratorInterface;
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\DependencyInjection\BlockFormExtensionPass;
 use ContentBlocks\DependencyInjection\BlockTypeCompilerPass;
+use ContentBlocks\Form\Extension\AsBlockFormExtension;
 use ContentBlocks\Palette\ColorPaletteProviderInterface;
 use ContentBlocks\Section\SectionDecoratorInterface;
 use ContentBlocks\Section\SectionSettingsDefaultsProviderInterface;
@@ -263,11 +265,25 @@ final class ContentBlocksBundle extends AbstractBundle
         parent::build($container);
 
         $container->addCompilerPass(new BlockTypeCompilerPass());
+        $container->addCompilerPass(new BlockFormExtensionPass());
 
         $container->registerAttributeForAutoconfiguration(
             AsContentBlock::class,
             static function (ChildDefinition $definition, AsContentBlock $attribute, \Reflector $reflector): void {
                 $definition->addTag('content_blocks.block_type', ['priority' => $attribute->priority]);
+            },
+        );
+
+        // Per-block form extensions: the attribute carries the targeted block
+        // type ids + priority; BlockFormExtensionPass pairs each service with
+        // its ids and feeds the collection (see BlockFormType).
+        $container->registerAttributeForAutoconfiguration(
+            AsBlockFormExtension::class,
+            static function (ChildDefinition $definition, AsBlockFormExtension $attribute, \Reflector $reflector): void {
+                $definition->addTag('content_blocks.block_form_extension', [
+                    'priority' => $attribute->priority,
+                    'block_types' => $attribute->blockTypes,
+                ]);
             },
         );
 

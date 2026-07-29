@@ -1,0 +1,30 @@
+{# Sandbox override of @ContentBlocksKit/block/button/view.html.twig.
+
+   Renders the `rel` key added by App\ContentBlocks\Form\ButtonRelExtension —
+   the render half of the "targeted block form extension" example. Everything
+   else is the kit's original markup: a host overrides one template file, it
+   does not fork the block. #}
+{% set text = data.text|default('')|trim %}
+{% if text is not empty %}
+    {% set align = data.align|default('start') %}
+    {% set align = align in ['start', 'center', 'end'] ? align : 'start' %}
+    {% set variant = data.variant|default('primary') %}
+    {% set variant = variant in ['primary', 'secondary', 'outline', 'link'] ? variant : 'primary' %}
+    {% set size = data.size|default('md') %}
+    {% set size = size in ['sm', 'md', 'lg'] ? size : 'md' %}
+
+    {# Extension field. Allow-list mirrors ButtonRelExtension::REL_VALUES, and
+       merges with the noopener pair the kit emits for new-tab links. #}
+    {% set rel = data.rel|default('') %}
+    {% set rel = rel in ['nofollow', 'sponsored', 'ugc'] ? [rel] : [] %}
+    {% if data.newTab|default(false) %}
+        {% set rel = rel|merge(['noopener', 'noreferrer']) %}
+    {% endif %}
+
+    <div class="cb-kit-btn-wrap cb-kit-btn-wrap--{{ align }}">
+        <a class="cb-kit-btn cb-kit-btn--{{ variant }} cb-kit-btn--{{ size }}{{ data.fullWidth|default(false) ? ' cb-kit-btn--block' : '' }}"
+           href="{{ data.url|default('#') }}"
+           {%- if data.newTab|default(false) %} target="_blank"{% endif %}
+           {%- if rel is not empty %} rel="{{ rel|join(' ') }}"{% endif %}>{{ text }}</a>
+    </div>
+{% endif %}
