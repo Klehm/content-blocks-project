@@ -11,19 +11,12 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 
 /**
- * Serializes a ContentArea (sections, columns, blocks, settings, data) into
- * a self-contained array suitable for JSON encoding. Asset references inside
- * block data are detected via AssetResolverInterface, read from storage, and
- * embedded as base64; the original path is replaced with an `asset://{hash}`
- * token. Identical binaries are deduplicated by sha256 hash.
- *
- * Draft state takes precedence over published state (mirrors SectionCloner
- * and the rest of the builder's lifecycle).
+ * Default {@see ContentAreaExporterInterface} — see it for the contract and the
+ * payload shape. Asset references are detected through
+ * {@see AssetResolverInterface} and deduplicated by sha256 hash.
  */
-final class ContentAreaExporter
+final class ContentAreaExporter implements ContentAreaExporterInterface
 {
-    public const FORMAT = 'content-blocks/v1';
-
     public function __construct(
         private readonly AssetResolverInterface $assetResolver,
     ) {

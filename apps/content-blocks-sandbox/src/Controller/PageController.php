@@ -7,7 +7,7 @@ namespace App\Controller;
 use App\Entity\Page;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
-use ContentBlocks\Service\SectionCloner;
+use ContentBlocks\Service\SectionClonerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,7 +20,7 @@ final class PageController
     public function __construct(
         private readonly Environment $twig,
         private readonly EntityManagerInterface $em,
-        private readonly SectionCloner $sectionCloner,
+        private readonly SectionClonerInterface $sectionCloner,
     ) {
     }
 

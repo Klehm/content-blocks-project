@@ -183,6 +183,12 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
 - **`BlockRendererInterface`** — the central renderer is now an interface + alias,
   so you can decorate/replace it. The concrete `BlockRenderer` service id still
   resolves.
+- **Interfaces for the six other core services** — publisher, section cloner,
+  exporter, importer, section-template serializer and instantiator each gained an
+  interface aliased to the shipped class, so they can be decorated or replaced.
+  Concrete service ids still resolve; the payload-format constants moved onto the
+  interfaces but stay readable from the classes through inheritance. See
+  *Replacing or decorating a core service* in the package README.
 - **Transparent background default** — already shipped earlier in the beta line, but
   worth re-checking on upgrade: `backgroundColor` defaults to `''` (transparent),
   not `#ffffff`. A section/block that persisted a literal `#ffffff` will render a

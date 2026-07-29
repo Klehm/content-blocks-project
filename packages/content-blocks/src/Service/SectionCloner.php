@@ -9,20 +9,12 @@ use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
 
 /**
- * Deep-clones a Section (with its columns and non-deleted blocks) into a
- * detached copy. Used by both the section "duplicate" flow and the
- * area-level "replace with" flow.
+ * Default {@see SectionClonerInterface} — see it for the contract.
  *
- * The returned section is unattached (no ContentArea, no positions assigned)
- * — the caller decides where to insert it and at which previewPosition. All
- * mutable state lands in the *draft* slots so the copy is born as an
- * unpublished change, mirroring the rest of the builder's lifecycle.
- *
- * Settings hierarchy: if the source has a draft, the copy carries that
- * draft (the user's in-flight edit is more representative of intent than
- * the last published value).
+ * Rationale for the draft-wins rule: the user's in-flight edit is more
+ * representative of intent than the last published value.
  */
-final class SectionCloner
+final class SectionCloner implements SectionClonerInterface
 {
     public function cloneSection(Section $source): Section
     {

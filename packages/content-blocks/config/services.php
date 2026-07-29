@@ -21,10 +21,16 @@ use ContentBlocks\Security\DenyAllAccessChecker;
 use ContentBlocks\SectionTemplate\DenyAllSectionTemplateManager;
 use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\Service\ContentAreaExporter;
+use ContentBlocks\Service\ContentAreaExporterInterface;
 use ContentBlocks\Service\ContentAreaImporter;
+use ContentBlocks\Service\ContentAreaImporterInterface;
+use ContentBlocks\Service\ContentAreaPublisherInterface;
 use ContentBlocks\Service\SectionCloner;
+use ContentBlocks\Service\SectionClonerInterface;
 use ContentBlocks\Service\SectionTemplateInstantiator;
+use ContentBlocks\Service\SectionTemplateInstantiatorInterface;
 use ContentBlocks\Service\SectionTemplateSerializer;
+use ContentBlocks\Service\SectionTemplateSerializerInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -111,20 +117,29 @@ return static function (ContainerConfigurator $container): void {
     // Rendering override seam: host decorates/replaces via the interface.
     $services->alias(\ContentBlocks\Rendering\BlockRendererInterface::class, \ContentBlocks\Rendering\BlockRenderer::class);
 
+    // Draft lifecycle, clone, transfer and section-template services. Each is
+    // registered as its concrete class and aliased to its interface: consumers
+    // type-hint the interface, so a host overrides or decorates any of them
+    // without touching the package.
     $services->set(\ContentBlocks\Service\ContentAreaPublisher::class);
+    $services->alias(ContentAreaPublisherInterface::class, \ContentBlocks\Service\ContentAreaPublisher::class);
 
     $services->set(SectionCloner::class);
+    $services->alias(SectionClonerInterface::class, SectionCloner::class);
 
     $services->set(ContentAreaExporter::class);
+    $services->alias(ContentAreaExporterInterface::class, ContentAreaExporter::class);
     $services->set(ContentAreaImporter::class);
+    $services->alias(ContentAreaImporterInterface::class, ContentAreaImporter::class);
 
     // Section-template library: snapshot a section, re-insert it anywhere.
-    // Serializer + instantiator are plain services. Saving/inserting is gated
-    // by AccessCheckerInterface on the area at hand; managing the shared
-    // library (rename/delete) has no area to key off, so it gets its own
-    // capability — deny by default, hosts alias their own implementation.
+    // Saving/inserting is gated by AccessCheckerInterface on the area at hand;
+    // managing the shared library (rename/delete) has no area to key off, so it
+    // gets its own capability — deny by default, hosts alias their own.
     $services->set(SectionTemplateSerializer::class);
+    $services->alias(SectionTemplateSerializerInterface::class, SectionTemplateSerializer::class);
     $services->set(SectionTemplateInstantiator::class);
+    $services->alias(SectionTemplateInstantiatorInterface::class, SectionTemplateInstantiator::class);
     $services->set(DenyAllSectionTemplateManager::class);
     $services->alias(SectionTemplateManagerInterface::class, DenyAllSectionTemplateManager::class);
 

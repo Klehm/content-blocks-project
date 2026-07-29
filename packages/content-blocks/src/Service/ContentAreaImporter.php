@@ -11,19 +11,10 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 
 /**
- * Hydrates a JSON payload (as produced by ContentAreaExporter) into draft
- * sections on the target ContentArea.
- *
- * Replace semantics, mirroring the "Insert content" / replace-with flow:
- * existing sections are soft-deleted (committed at next Publish) and the
- * imported sections are added as never-published drafts. The caller is
- * responsible for flushing the EntityManager.
- *
- * Asset binaries are re-uploaded through AssetResolverInterface and the
- * `asset://{hash}` tokens inside block data / section settings are
- * rewritten in place to point at the new public paths.
+ * Default {@see ContentAreaImporterInterface} — see it for the contract.
+ * Asset binaries are re-stored through {@see AssetResolverInterface}.
  */
-final class ContentAreaImporter
+final class ContentAreaImporter implements ContentAreaImporterInterface
 {
     /** Token prefix produced by the exporter for embedded assets. */
     private const ASSET_TOKEN_PREFIX = 'asset://';
@@ -74,12 +65,14 @@ final class ContentAreaImporter
      */
     private function assertFormat(array $payload): void
     {
+        // Validated against the *interface* constant: a host that swaps the
+        // exporter must not leave the importer checking the shipped class.
         $format = $payload['format'] ?? null;
-        if ($format !== ContentAreaExporter::FORMAT) {
+        if ($format !== ContentAreaExporterInterface::FORMAT) {
             throw new \InvalidArgumentException(sprintf(
                 'Unsupported format: %s (expected %s).',
                 is_scalar($format) ? (string) $format : '(invalid)',
-                ContentAreaExporter::FORMAT,
+                ContentAreaExporterInterface::FORMAT,
             ));
         }
     }

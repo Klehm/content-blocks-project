@@ -7,8 +7,8 @@ namespace ContentBlocks\Controller;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
-use ContentBlocks\Service\ContentAreaExporter;
-use ContentBlocks\Service\ContentAreaImporter;
+use ContentBlocks\Service\ContentAreaExporterInterface;
+use ContentBlocks\Service\ContentAreaImporterInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -39,8 +39,8 @@ final class ImportExportController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly AccessCheckerInterface $accessChecker,
-        private readonly ContentAreaExporter $exporter,
-        private readonly ContentAreaImporter $importer,
+        private readonly ContentAreaExporterInterface $exporter,
+        private readonly ContentAreaImporterInterface $importer,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
     ) {
     }

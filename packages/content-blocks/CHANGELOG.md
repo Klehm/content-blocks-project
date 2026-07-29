@@ -50,6 +50,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rendering — wrap output, add caching, swap the preview-mode heuristic — by
   decorating it (`#[AsDecorator(BlockRendererInterface::class)]`) or re-aliasing.
   Backward-compatible: the concrete `BlockRenderer` service id still resolves.
+- **Interfaces for the six remaining core services (road to v1.0).** Following
+  `BlockRendererInterface`, the services that carry the rest of the builder's core
+  behaviour are now each an interface aliased to the shipped implementation, with
+  every consumer type-hinting the interface: `ContentAreaPublisherInterface`,
+  `SectionClonerInterface`, `ContentAreaExporterInterface`,
+  `ContentAreaImporterInterface`, `SectionTemplateSerializerInterface` and
+  `SectionTemplateInstantiatorInterface`. Hosts can now replace or decorate any of
+  them (`#[AsDecorator(...)]`) instead of being stuck with a `final` class injected
+  by concrete type. The payload-format constants moved onto the interfaces
+  (`ContentAreaExporterInterface::FORMAT`, `SectionTemplateSerializerInterface::FORMAT`)
+  and the importer now validates against the interface, so swapping the exporter no
+  longer leaves the importer checking the shipped class. Backward-compatible: the
+  concrete service ids still resolve, and `ContentAreaExporter::FORMAT` still reads
+  the same value through inheritance.
+
+### Fixed
+
+- **Section-template insert warned about fields that were perfectly valid.**
+  `SectionTemplateInstantiator` decided which stored keys a block could hold from
+  `getDefaultData()` alone, so it flagged `styling` (added to every block form by
+  `BlockFormType`, deliberately absent from `getDefaultData()`) and every field
+  contributed by a host `BlockFormExtension`. Known keys are now the union of
+  `getDefaultData()` and the children of the block's built edit form.
+- **…and the warning never reached anyone anyway.** The builder wrote the message
+  into the template picker's status line and then closed the picker, blanking the
+  only element carrying it. The picker now stays open when there is something to
+  report.
 
 ## [0.1.0-beta.7] - 2026-07-10
 

@@ -9,21 +9,10 @@ use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
 
 /**
- * Snapshots a single Section (layout + settings + columns + blocks + data)
- * into a self-contained array suitable for JSON storage in a SectionTemplate.
- *
- * Unlike ContentAreaExporter, asset references are left as plain storage paths:
- * the section-template library lives inside one app, so embedding binaries
- * would needlessly bloat every template. Draft state takes precedence over
- * published state (same convention as SectionCloner / the rest of the builder).
- *
- * Alongside the payload it collects the distinct block-type identifiers used,
- * so the library can flag incompatible templates cheaply.
+ * Default {@see SectionTemplateSerializerInterface} — see it for the contract.
  */
-final class SectionTemplateSerializer
+final class SectionTemplateSerializer implements SectionTemplateSerializerInterface
 {
-    public const FORMAT = 'content-blocks/section-v1';
-
     /**
      * @return array{payload: array<string, mixed>, blockTypes: list<string>}
      */

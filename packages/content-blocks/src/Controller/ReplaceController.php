@@ -8,7 +8,7 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Replace\ContentAreaProviderInterface;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
-use ContentBlocks\Service\SectionCloner;
+use ContentBlocks\Service\SectionClonerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -41,7 +41,7 @@ final class ReplaceController
         private readonly EntityManagerInterface $em,
         private readonly AccessCheckerInterface $accessChecker,
         private readonly ContentAreaProviderInterface $provider,
-        private readonly SectionCloner $sectionCloner,
+        private readonly SectionClonerInterface $sectionCloner,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
     ) {
     }

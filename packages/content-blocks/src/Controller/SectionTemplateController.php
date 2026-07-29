@@ -12,8 +12,8 @@ use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
 use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
-use ContentBlocks\Service\SectionTemplateInstantiator;
-use ContentBlocks\Service\SectionTemplateSerializer;
+use ContentBlocks\Service\SectionTemplateInstantiatorInterface;
+use ContentBlocks\Service\SectionTemplateSerializerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -54,8 +54,8 @@ final class SectionTemplateController
         private readonly EntityManagerInterface $em,
         private readonly AccessCheckerInterface $accessChecker,
         private readonly SectionTemplateManagerInterface $templateManager,
-        private readonly SectionTemplateSerializer $serializer,
-        private readonly SectionTemplateInstantiator $instantiator,
+        private readonly SectionTemplateSerializerInterface $serializer,
+        private readonly SectionTemplateInstantiatorInterface $instantiator,
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
     ) {

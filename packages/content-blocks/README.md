@@ -476,6 +476,41 @@ The builder is the block's own, so the seam is not add-only: `$builder->remove('
 
 Implement `ContentBlocks\Block\BlockDecoratorInterface` (mirror of `SectionDecoratorInterface`). It is auto-tagged with `content_blocks.block_decorator` when `autoconfigure: true` is on, and called for every block being rendered. Return a `BlockDecoration` (classes / inline styles / attributes) — the bundle merges all decorators' output into the block's outer `<div>`.
 
+### Replacing or decorating a core service
+
+The services that carry the builder's core behaviour are each registered as a concrete class **aliased to an interface**, and every consumer type-hints the interface. To change one, alias it to your own implementation — or, more often, decorate the shipped one:
+
+| Interface | Default | Responsibility |
+|---|---|---|
+| `Rendering\BlockRendererInterface` | `BlockRenderer` | renders an area / section / block to HTML |
+| `Service\ContentAreaPublisherInterface` | `ContentAreaPublisher` | publishes or discards the draft state |
+| `Service\SectionClonerInterface` | `SectionCloner` | deep-clones a section (duplicate + replace flows) |
+| `Service\ContentAreaExporterInterface` | `ContentAreaExporter` | area → self-contained JSON payload |
+| `Service\ContentAreaImporterInterface` | `ContentAreaImporter` | JSON payload → draft sections |
+| `Service\SectionTemplateSerializerInterface` | `SectionTemplateSerializer` | section → reusable library snapshot |
+| `Service\SectionTemplateInstantiatorInterface` | `SectionTemplateInstantiator` | snapshot → detached draft section |
+
+```php
+use ContentBlocks\Service\ContentAreaPublisherInterface;
+use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
+
+#[AsDecorator(ContentAreaPublisherInterface::class)]
+final class AuditedPublisher implements ContentAreaPublisherInterface
+{
+    public function __construct(private readonly ContentAreaPublisherInterface $inner) {}
+
+    public function publish(ContentArea $area): void
+    {
+        $this->inner->publish($area);
+        // … your audit trail, cache invalidation, webhook …
+    }
+
+    public function discardDraft(ContentArea $area): void { $this->inner->discardDraft($area); }
+}
+```
+
+One contract to keep in mind when replacing rather than decorating: `publish()` / `discardDraft()` **flush** the EntityManager — they are the terminal operations of the draft lifecycle. The services that *build* rather than commit (cloner, importer, instantiator) leave the flush to their caller.
+
 ## Customizing default values
 
 A few section and block fields ship with a baked-in default so the form always presents a usable value and the renderer can fall back when the user leaves a field empty. The two surfaces (form pre-fill + renderer fallback) read the **same source**, so changing the default in one place keeps them in sync.

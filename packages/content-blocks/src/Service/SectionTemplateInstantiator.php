@@ -14,19 +14,7 @@ use ContentBlocks\SectionTemplate\InstantiationResult;
 use Symfony\Component\Form\FormFactoryInterface;
 
 /**
- * Rebuilds a detached draft Section from a SectionTemplate payload (as produced
- * by SectionTemplateSerializer), ready for the caller to attach to a
- * ContentArea and assign a previewPosition — mirroring SectionCloner's output.
- *
- * Two compatibility checks run against the *current* block-type registry, since
- * a snapshot may be inserted long after it was saved:
- *
- *  - Unknown block type  -> hard stop: IncompatibleTemplateException. A block
- *    with no registered type has no form/renderer, so the whole insert is
- *    refused rather than dropping content silently.
- *  - Unknown data field  -> soft warning: nothing in the block's current shape
- *    can hold a key present in the stored data. The value is kept as-is (never
- *    dropped) and reported so the editor can review it.
+ * Default {@see SectionTemplateInstantiatorInterface} — see it for the contract.
  *
  * "Known" keys are the union of two sources, because neither alone describes
  * what a block legitimately stores:
@@ -40,7 +28,7 @@ use Symfony\Component\Form\FormFactoryInterface;
  * Using getDefaultData() alone made the insert warn about `styling` on any
  * styled block, and about every host-added field.
  */
-final class SectionTemplateInstantiator
+final class SectionTemplateInstantiator implements SectionTemplateInstantiatorInterface
 {
     public function __construct(
         private readonly BlockTypeRegistry $registry,

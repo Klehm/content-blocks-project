@@ -8,7 +8,7 @@ use ContentBlocks\Entity\ContentArea;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Promotes a ContentArea's draft state to published, or discards drafts.
+ * Default {@see ContentAreaPublisherInterface} — see it for the contract.
  *
  * Cascade semantics:
  *  - A soft-deleted Section/Column triggers em->remove() on itself; Doctrine's
@@ -23,13 +23,8 @@ use Doctrine\ORM\EntityManagerInterface;
  *    removed; Doctrine's cascade wipes its descendants.
  *  - Block with publishedData === null is removed.
  *  - Other entities have their draft flags cleared.
- *
- * Both methods flush the EntityManager: they are the two terminal operations of
- * the draft lifecycle, so committing is part of what they mean. The services
- * that *build* rather than commit (SectionCloner, ContentAreaImporter,
- * SectionTemplateInstantiator) leave the flush to their caller.
  */
-final class ContentAreaPublisher
+final class ContentAreaPublisher implements ContentAreaPublisherInterface
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
