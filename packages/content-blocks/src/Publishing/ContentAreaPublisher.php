@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ContentBlocks\Service;
+namespace ContentBlocks\Publishing;
 
 use ContentBlocks\Entity\ContentArea;
 use Doctrine\ORM\EntityManagerInterface;

@@ -2,10 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ContentBlocks\Service;
-
-use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
-use ContentBlocks\SectionTemplate\InstantiationResult;
+namespace ContentBlocks\SectionTemplate;
 
 /**
  * Rebuilds a detached draft Section from a payload produced by

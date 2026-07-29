@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING — config key `styles` → `section_styles`.** The section-style-presets
   config key now matches the emitted parameter (`content_blocks.section_styles`);
   host YAML under `content_blocks.styles:` must be renamed to `section_styles:`.
+- **BREAKING — `ContentBlocks\Service\` is gone.** The six services that lived in
+  that catch-all namespace moved next to the rest of their domain, where every
+  other extension point already sat: `ContentAreaPublisher` → `ContentBlocks\Publishing\`,
+  `SectionCloner` → `ContentBlocks\Section\`, `ContentAreaExporter`/`ContentAreaImporter`
+  → `ContentBlocks\Transfer\`, `SectionTemplateSerializer`/`SectionTemplateInstantiator`
+  → `ContentBlocks\SectionTemplate\` (joining `InstantiationResult`,
+  `IncompatibleTemplateException` and `SectionTemplateManagerInterface`, which were
+  already there). Class names, methods and behaviour are unchanged — a
+  find-and-replace of `ContentBlocks\Service\` suffices, and a missed one fails
+  loudly at container build. The matching `…Interface` classes follow the same
+  mapping.
 - **`section_styles[].settings` is now a typed config node** (was a free-form
   `variableNode`). Preset YAML is validated and self-documenting; the shape mirrors
   `SectionSettingsType`/`StylingType`. Unknown keys and bad viewport/align/unit

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ContentBlocks\Tests\Service;
+namespace ContentBlocks\Tests\SectionTemplate;
 
 use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\BlockTypeRegistry;
@@ -11,8 +11,8 @@ use ContentBlocks\Form\Extension\BlockFormExtensionCollection;
 use ContentBlocks\Form\Extension\BlockFormExtensionInterface;
 use ContentBlocks\Form\Type\BlockFormType;
 use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
-use ContentBlocks\Service\SectionTemplateInstantiator;
-use ContentBlocks\Service\SectionTemplateSerializer;
+use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
+use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;

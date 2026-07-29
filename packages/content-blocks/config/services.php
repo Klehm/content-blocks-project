@@ -20,17 +20,17 @@ use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\DenyAllAccessChecker;
 use ContentBlocks\SectionTemplate\DenyAllSectionTemplateManager;
 use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
-use ContentBlocks\Service\ContentAreaExporter;
-use ContentBlocks\Service\ContentAreaExporterInterface;
-use ContentBlocks\Service\ContentAreaImporter;
-use ContentBlocks\Service\ContentAreaImporterInterface;
-use ContentBlocks\Service\ContentAreaPublisherInterface;
-use ContentBlocks\Service\SectionCloner;
-use ContentBlocks\Service\SectionClonerInterface;
-use ContentBlocks\Service\SectionTemplateInstantiator;
-use ContentBlocks\Service\SectionTemplateInstantiatorInterface;
-use ContentBlocks\Service\SectionTemplateSerializer;
-use ContentBlocks\Service\SectionTemplateSerializerInterface;
+use ContentBlocks\Transfer\ContentAreaExporter;
+use ContentBlocks\Transfer\ContentAreaExporterInterface;
+use ContentBlocks\Transfer\ContentAreaImporter;
+use ContentBlocks\Transfer\ContentAreaImporterInterface;
+use ContentBlocks\Publishing\ContentAreaPublisherInterface;
+use ContentBlocks\Section\SectionCloner;
+use ContentBlocks\Section\SectionClonerInterface;
+use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
+use ContentBlocks\SectionTemplate\SectionTemplateInstantiatorInterface;
+use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
+use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -121,8 +121,8 @@ return static function (ContainerConfigurator $container): void {
     // registered as its concrete class and aliased to its interface: consumers
     // type-hint the interface, so a host overrides or decorates any of them
     // without touching the package.
-    $services->set(\ContentBlocks\Service\ContentAreaPublisher::class);
-    $services->alias(ContentAreaPublisherInterface::class, \ContentBlocks\Service\ContentAreaPublisher::class);
+    $services->set(\ContentBlocks\Publishing\ContentAreaPublisher::class);
+    $services->alias(ContentAreaPublisherInterface::class, \ContentBlocks\Publishing\ContentAreaPublisher::class);
 
     $services->set(SectionCloner::class);
     $services->alias(SectionClonerInterface::class, SectionCloner::class);

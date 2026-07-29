@@ -8,7 +8,7 @@ use App\Entity\Model;
 use App\Entity\Page;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
-use ContentBlocks\Service\SectionClonerInterface;
+use ContentBlocks\Section\SectionClonerInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;

@@ -483,15 +483,15 @@ The services that carry the builder's core behaviour are each registered as a co
 | Interface | Default | Responsibility |
 |---|---|---|
 | `Rendering\BlockRendererInterface` | `BlockRenderer` | renders an area / section / block to HTML |
-| `Service\ContentAreaPublisherInterface` | `ContentAreaPublisher` | publishes or discards the draft state |
-| `Service\SectionClonerInterface` | `SectionCloner` | deep-clones a section (duplicate + replace flows) |
-| `Service\ContentAreaExporterInterface` | `ContentAreaExporter` | area → self-contained JSON payload |
-| `Service\ContentAreaImporterInterface` | `ContentAreaImporter` | JSON payload → draft sections |
-| `Service\SectionTemplateSerializerInterface` | `SectionTemplateSerializer` | section → reusable library snapshot |
-| `Service\SectionTemplateInstantiatorInterface` | `SectionTemplateInstantiator` | snapshot → detached draft section |
+| `Publishing\ContentAreaPublisherInterface` | `ContentAreaPublisher` | publishes or discards the draft state |
+| `Section\SectionClonerInterface` | `SectionCloner` | deep-clones a section (duplicate + replace flows) |
+| `Transfer\ContentAreaExporterInterface` | `ContentAreaExporter` | area → self-contained JSON payload |
+| `Transfer\ContentAreaImporterInterface` | `ContentAreaImporter` | JSON payload → draft sections |
+| `SectionTemplate\SectionTemplateSerializerInterface` | `SectionTemplateSerializer` | section → reusable library snapshot |
+| `SectionTemplate\SectionTemplateInstantiatorInterface` | `SectionTemplateInstantiator` | snapshot → detached draft section |
 
 ```php
-use ContentBlocks\Service\ContentAreaPublisherInterface;
+use ContentBlocks\Publishing\ContentAreaPublisherInterface;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 
 #[AsDecorator(ContentAreaPublisherInterface::class)]

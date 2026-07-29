@@ -2,15 +2,13 @@
 
 declare(strict_types=1);
 
-namespace ContentBlocks\Service;
+namespace ContentBlocks\SectionTemplate;
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Form\Type\BlockFormType;
-use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
-use ContentBlocks\SectionTemplate\InstantiationResult;
 use Symfony\Component\Form\FormFactoryInterface;
 
 /**

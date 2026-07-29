@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ContentBlocks\Service;
+namespace ContentBlocks\Section;
 
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;

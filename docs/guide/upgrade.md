@@ -172,6 +172,39 @@ forked one. (Translation *label* keys such as `…field.link` were intentionally
 
 ---
 
+## 4. `ContentBlocks\Service\` is gone (update your `use` statements)
+
+The six services that lived in the catch-all `ContentBlocks\Service\` namespace
+moved next to the rest of their domain — every other extension point already sat
+in one (`Rendering\`, `Security\`, `Storage\`, `Replace\`…). Nothing else changed
+about them: same class names, same methods, same behaviour.
+
+| Before | After |
+|---|---|
+| `ContentBlocks\Service\ContentAreaPublisher` | `ContentBlocks\Publishing\ContentAreaPublisher` |
+| `ContentBlocks\Service\SectionCloner` | `ContentBlocks\Section\SectionCloner` |
+| `ContentBlocks\Service\ContentAreaExporter` | `ContentBlocks\Transfer\ContentAreaExporter` |
+| `ContentBlocks\Service\ContentAreaImporter` | `ContentBlocks\Transfer\ContentAreaImporter` |
+| `ContentBlocks\Service\SectionTemplateSerializer` | `ContentBlocks\SectionTemplate\SectionTemplateSerializer` |
+| `ContentBlocks\Service\SectionTemplateInstantiator` | `ContentBlocks\SectionTemplate\SectionTemplateInstantiator` |
+
+The matching `…Interface` classes follow the same mapping. A find-and-replace of
+`ContentBlocks\Service\` is enough — and if you only ever injected these by
+type-hint, prefer switching to the interface while you are there:
+
+```php
+- use ContentBlocks\Service\SectionCloner;
++ use ContentBlocks\Section\SectionClonerInterface;
+
+- public function __construct(private readonly SectionCloner $cloner) {}
++ public function __construct(private readonly SectionClonerInterface $cloner) {}
+```
+
+You will get a clear `Class "ContentBlocks\Service\…" not found` at container
+build if you miss one — there is no silent-failure mode here.
+
+---
+
 ## Additive (no action needed)
 
 These landed in `1.0.0` but are backward-compatible — nothing to change:
@@ -205,4 +238,5 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
 - [ ] Spell out `d`/`t`/`m` → `desktop`/`tablet`/`mobile` in any preset `settings`.
 - [ ] Rename kit `defaults`/`choices` config keyed by a renamed field.
 - [ ] Update any forked kit block templates to the new data keys.
+- [ ] Find-and-replace `ContentBlocks\Service\` with the new namespaces (§4).
 - [ ] Rebuild the container and clear the cache; verify pages render.

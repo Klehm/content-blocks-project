@@ -7,7 +7,7 @@ namespace ContentBlocks\Tests\Controller;
 use ContentBlocks\Controller\AreaController;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
-use ContentBlocks\Service\ContentAreaPublisher;
+use ContentBlocks\Publishing\ContentAreaPublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 

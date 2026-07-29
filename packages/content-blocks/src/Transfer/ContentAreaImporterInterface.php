@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ContentBlocks\Service;
+namespace ContentBlocks\Transfer;
 
 use ContentBlocks\Entity\ContentArea;
 

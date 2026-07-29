@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ContentBlocks\Tests\Service;
+namespace ContentBlocks\Tests\Transfer;
 
 use ContentBlocks\Asset\AssetResolverInterface;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
-use ContentBlocks\Service\ContentAreaExporter;
+use ContentBlocks\Transfer\ContentAreaExporter;
 use PHPUnit\Framework\TestCase;
 
 final class ContentAreaExporterTest extends TestCase

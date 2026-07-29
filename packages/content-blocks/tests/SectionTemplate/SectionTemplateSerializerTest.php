@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace ContentBlocks\Tests\Service;
+namespace ContentBlocks\Tests\SectionTemplate;
 
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
-use ContentBlocks\Service\SectionTemplateSerializer;
+use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
 use PHPUnit\Framework\TestCase;
 
 final class SectionTemplateSerializerTest extends TestCase
