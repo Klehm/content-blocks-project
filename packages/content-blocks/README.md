@@ -422,6 +422,14 @@ The shipped default, `DenyOnMismatchUpgrader`, refuses a **known** mismatch and 
 
 Import does not consult this seam — a payload's version belongs to the app that exported it. If you control both ends of a transfer and want to gate it, decorate `ContentAreaImporterInterface`.
 
+### The other half: the envelope
+
+There are two schemas in a stored payload, with two owners. The **content** inside it is shaped by the block types, so migrating it is yours (above). The **envelope** around it — `{format, contentArea: {sections: […]}, assets}` for a transfer, `{format, layout, settings, columns}` for a section template — belongs to this package, so migrating it is ours.
+
+When a release changes that structure, it ships an `EnvelopeUpgraderInterface` step alongside; `EnvelopeUpgradeChain` walks a stored payload from the format it declares to the one the code reads, and your old templates and export files keep working. Nothing to do on your side.
+
+You can add your own step (it is autoconfigured — just implement the interface) if you invented a format of your own, but the normal case is that this is invisible to you.
+
 ## Styling sections and blocks
 
 Each section's settings sidebar carries a **Styling** group with padding, margin (per viewport), background color, min-height and alignment. Block edit forms carry the same group with padding, margin, background color and max-width.

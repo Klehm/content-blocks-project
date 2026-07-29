@@ -10,6 +10,7 @@ use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 
 /**
  * Default {@see SectionTemplateInstantiatorInterface} — see it for the contract.
@@ -21,6 +22,7 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
     public function __construct(
         private readonly BlockTypeRegistry $registry,
         private readonly BlockDataKeys $dataKeys,
+        private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
     ) {
     }
 
@@ -32,7 +34,7 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
      */
     public function instantiate(array $payload): InstantiationResult
     {
-        $this->assertFormat($payload);
+        $payload = $this->normalizeEnvelope($payload);
 
         $section = new Section();
         $section->setLayout(
@@ -138,21 +140,28 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
     }
 
     /**
-     * The envelope format is written by the serializer and versions the payload
-     * *structure* (not the shape of the block data inside it, which belongs to
-     * the block types). A payload written under an older structure is refused
-     * rather than replayed blind.
+     * The envelope format versions the payload *structure* — which this package
+     * owns, unlike the block data inside it. An older structure is migrated
+     * forward by {@see EnvelopeUpgradeChain} when a step exists for it, and
+     * refused otherwise: replaying a structure we cannot read would quietly
+     * produce half-empty sections.
      *
      * @param array<string, mixed> $payload
+     *
+     * @return array<string, mixed>
      */
-    private function assertFormat(array $payload): void
+    private function normalizeEnvelope(array $payload): array
     {
+        $target = SectionTemplateSerializerInterface::FORMAT;
         $format = $payload['format'] ?? null;
-        if ($format !== SectionTemplateSerializerInterface::FORMAT) {
+
+        if (!is_string($format) || !$this->envelopes->supports($format, $target)) {
             throw new UnsupportedTemplateFormatException(
                 is_string($format) ? $format : null,
-                SectionTemplateSerializerInterface::FORMAT,
+                $target,
             );
         }
+
+        return $this->envelopes->upgrade($payload, $format, $target);
     }
 }

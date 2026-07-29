@@ -16,6 +16,7 @@ use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
 use ContentBlocks\SectionTemplate\UnsupportedTemplateFormatException;
 use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
+use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 use ContentBlocks\Versioning\IncompatibleContentVersionException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -62,6 +63,7 @@ final class SectionTemplateController
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ContentVersionUpgraderInterface $versionUpgrader,
+        private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
         private readonly int $contentVersion = 1,
     ) {
     }
@@ -347,7 +349,13 @@ final class SectionTemplateController
      */
     private function hasReadableFormat(SectionTemplate $template): bool
     {
-        return ($template->getPayload()['format'] ?? null) === SectionTemplateSerializerInterface::FORMAT;
+        $format = $template->getPayload()['format'] ?? null;
+
+        // "Readable" includes formats the envelope chain can migrate forward,
+        // not just today's — otherwise a format bump would grey out the whole
+        // library even where a step exists to bridge it.
+        return is_string($format)
+            && $this->envelopes->supports($format, SectionTemplateSerializerInterface::FORMAT);
     }
 
     private function readName(Request $request): ?string

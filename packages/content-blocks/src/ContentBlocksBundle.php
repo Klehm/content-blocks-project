@@ -306,6 +306,9 @@ final class ContentBlocksBundle extends AbstractBundle
             ->addTag('content_blocks.section_settings_defaults');
         $container->registerForAutoconfiguration(BlockDecoratorInterface::class)
             ->addTag('content_blocks.block_decorator');
+        $container->registerForAutoconfiguration(\ContentBlocks\Versioning\EnvelopeUpgraderInterface::class)
+            ->addTag('content_blocks.envelope_upgrader');
+
         $container->registerForAutoconfiguration(BlockDataDefaultsProviderInterface::class)
             ->addTag('content_blocks.block_data_defaults');
     }

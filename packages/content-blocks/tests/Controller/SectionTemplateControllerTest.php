@@ -15,6 +15,7 @@ use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
 use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
 use ContentBlocks\Versioning\DenyOnMismatchUpgrader;
+use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -42,6 +43,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
             $this->makeRegistry(),
             $this->makeCsrfManager($csrfValid),
             $upgrader ?? new DenyOnMismatchUpgrader(),
+            new EnvelopeUpgradeChain(),
             5,
         );
     }

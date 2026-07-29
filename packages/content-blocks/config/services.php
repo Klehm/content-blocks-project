@@ -33,6 +33,7 @@ use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
 use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
 use ContentBlocks\Versioning\DenyOnMismatchUpgrader;
+use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -161,6 +162,14 @@ return static function (ContainerConfigurator $container): void {
     // Hosts alias this to migrate on read, or to be stricter.
     $services->set(DenyOnMismatchUpgrader::class);
     $services->alias(ContentVersionUpgraderInterface::class, DenyOnMismatchUpgrader::class);
+
+    // Envelope upgrade chain: the *package's* side of versioning, migrating a
+    // stored payload's structure forward when this package changes it. Ships
+    // empty — only one format of each kind exists so far — but must exist
+    // before the first bump, since the alternative is condemning every stored
+    // payload. Steps are autoconfigured via EnvelopeUpgraderInterface.
+    $services->set(EnvelopeUpgradeChain::class)
+        ->args([tagged_iterator('content_blocks.envelope_upgrader')]);
 
     // Replace flow: default provider is usable out of the box; hosts
     // override by aliasing ContentAreaProviderInterface to their own

@@ -104,6 +104,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not consult the seam — an imported payload's version belongs to the app that
   exported it; hosts controlling both ends can decorate
   `ContentAreaImporterInterface` instead.
+- **`EnvelopeUpgraderInterface` + `EnvelopeUpgradeChain` — the package's own side
+  of versioning.** A stored payload has two schemas with two owners: the content
+  inside it is shaped by the block types (host territory, see above), the envelope
+  around it belongs to this package. When a release changes that structure it can
+  now ship an upgrade step alongside, and the chain walks a payload from the
+  format it declares to the one the code reads — so old section templates and old
+  export files keep working across a format bump. Both restore flows go through
+  it, and the section-template picker treats "readable" as "reachable through the
+  chain" rather than "exactly today's format".
+  **The chain ships empty**: only one format of each kind exists so far, so every
+  call is a no-op today. It exists now because the alternative — a bump condemning
+  every stored payload — is what makes a bump unthinkable in the first place.
+  Steps are autoconfigured (`content_blocks.envelope_upgrader`), so adding one is
+  a class and nothing else; a test asserts exactly that.
 - **`ContentVersionUpgraderInterface` — what to do with content from an older
   schema generation.** Section templates are the one place where a stored version
   is comparable (the number came from this same installation), so that is where

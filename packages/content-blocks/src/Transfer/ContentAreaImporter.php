@@ -12,6 +12,7 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 
 /**
  * Default {@see ContentAreaImporterInterface} — see it for the contract.
@@ -26,6 +27,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         private readonly AssetResolverInterface $assetResolver,
         private readonly BlockTypeRegistry $registry,
         private readonly BlockDataKeys $dataKeys,
+        private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
     ) {
     }
 
@@ -34,7 +36,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
      */
     public function import(ContentArea $target, array $payload): ImportResult
     {
-        $this->assertFormat($payload);
+        $payload = $this->normalizeEnvelope($payload);
 
         $assetMap = $this->materializeAssets($payload['assets'] ?? []);
 
@@ -70,20 +72,29 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
+     * An envelope from an older structure is migrated forward when this package
+     * ships a step for it, and refused otherwise. The target is read from the
+     * *interface* constant: a host that swaps the exporter must not leave the
+     * importer checking the shipped class.
+     *
      * @param array<string, mixed> $payload
+     *
+     * @return array<string, mixed>
      */
-    private function assertFormat(array $payload): void
+    private function normalizeEnvelope(array $payload): array
     {
-        // Validated against the *interface* constant: a host that swaps the
-        // exporter must not leave the importer checking the shipped class.
+        $target = ContentAreaExporterInterface::FORMAT;
         $format = $payload['format'] ?? null;
-        if ($format !== ContentAreaExporterInterface::FORMAT) {
+
+        if (!is_string($format) || !$this->envelopes->supports($format, $target)) {
             throw new \InvalidArgumentException(sprintf(
                 'Unsupported format: %s (expected %s).',
                 is_scalar($format) ? (string) $format : '(invalid)',
-                ContentAreaExporterInterface::FORMAT,
+                $target,
             ));
         }
+
+        return $this->envelopes->upgrade($payload, $format, $target);
     }
 
     /**
