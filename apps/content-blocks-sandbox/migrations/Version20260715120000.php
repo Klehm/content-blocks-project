@@ -27,11 +27,19 @@ use Doctrine\Migrations\AbstractMigration;
  *           items[].buttonLabel -> items[].buttonText
  *   table   columns[].align     value 'left'->'start', 'right'->'end'
  *
+ * Both JSON columns are rewritten: a block carries its published payload in
+ * `published_data` and any in-flight edit in `draft_data`, so migrating only one
+ * would leave the other on the old keys — visible the moment an editor discards
+ * or publishes.
+ *
  * Hosts on the beta line should copy this migration (adjust the namespace) to
  * upgrade their own cb_block rows.
  */
 final class Version20260715120000 extends AbstractMigration
 {
+    /** Block payloads live in two JSON columns; both carry the same shape. */
+    private const COLUMNS = ['draft_data', 'published_data'];
+
     public function getDescription(): string
     {
         return 'Unify kit Block.data keys for the stable release (link/href->url, message->content, tabs->items, card CTA, table align vocab).';
@@ -52,36 +60,60 @@ final class Version20260715120000 extends AbstractMigration
      */
     private function rewrite(bool $reverse): void
     {
+        $cols = implode(', ', self::COLUMNS);
         $rows = $this->connection->fetchAllAssociative(
-            "SELECT id, type, data FROM cb_block WHERE type IN ('image', 'button', 'alert', 'tabs', 'gallery', 'card', 'table')"
+            "SELECT id, type, $cols FROM cb_block WHERE type IN ('image', 'button', 'alert', 'tabs', 'gallery', 'card', 'table')"
         );
 
         foreach ($rows as $row) {
-            $data = json_decode((string) $row['data'], true);
-            if (!\is_array($data)) {
+            $set = [];
+            $params = ['id' => $row['id']];
+
+            foreach (self::COLUMNS as $col) {
+                if ($row[$col] === null) {
+                    continue;
+                }
+                $data = json_decode((string) $row[$col], true);
+                if (!\is_array($data)) {
+                    continue;
+                }
+
+                $set[] = "$col = :$col";
+                $params[$col] = json_encode($this->transform($data, (string) $row['type'], $reverse));
+            }
+
+            if ($set === []) {
                 continue;
             }
 
-            $data = match ($row['type']) {
-                'image' => $this->renameKey($data, $reverse ? 'url' : 'link', $reverse ? 'link' : 'url'),
-                'button' => $this->renameKey($data, $reverse ? 'url' : 'href', $reverse ? 'href' : 'url'),
-                'alert' => $this->renameKey($data, $reverse ? 'content' : 'message', $reverse ? 'message' : 'content'),
-                'tabs' => $this->renameKey($data, $reverse ? 'items' : 'tabs', $reverse ? 'tabs' : 'items'),
-                'gallery' => $this->mapItems($data, 'items', fn (array $i) => $this->renameKey($i, $reverse ? 'url' : 'link', $reverse ? 'link' : 'url')),
-                'card' => $this->mapItems($data, 'items', function (array $i) use ($reverse) {
-                    $i = $this->renameKey($i, $reverse ? 'url' : 'buttonUrl', $reverse ? 'buttonUrl' : 'url');
-
-                    return $this->renameKey($i, $reverse ? 'buttonText' : 'buttonLabel', $reverse ? 'buttonLabel' : 'buttonText');
-                }),
-                'table' => $this->mapItems($data, 'columns', fn (array $c) => $this->remapAlign($c, $reverse)),
-                default => $data,
-            };
-
             $this->connection->executeStatement(
-                'UPDATE cb_block SET data = :data WHERE id = :id',
-                ['data' => json_encode($data), 'id' => $row['id']]
+                'UPDATE cb_block SET ' . implode(', ', $set) . ' WHERE id = :id',
+                $params
             );
         }
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    private function transform(array $data, string $type, bool $reverse): array
+    {
+        return match ($type) {
+            'image' => $this->renameKey($data, $reverse ? 'url' : 'link', $reverse ? 'link' : 'url'),
+            'button' => $this->renameKey($data, $reverse ? 'url' : 'href', $reverse ? 'href' : 'url'),
+            'alert' => $this->renameKey($data, $reverse ? 'content' : 'message', $reverse ? 'message' : 'content'),
+            'tabs' => $this->renameKey($data, $reverse ? 'items' : 'tabs', $reverse ? 'tabs' : 'items'),
+            'gallery' => $this->mapItems($data, 'items', fn (array $i) => $this->renameKey($i, $reverse ? 'url' : 'link', $reverse ? 'link' : 'url')),
+            'card' => $this->mapItems($data, 'items', function (array $i) use ($reverse) {
+                $i = $this->renameKey($i, $reverse ? 'url' : 'buttonUrl', $reverse ? 'buttonUrl' : 'url');
+
+                return $this->renameKey($i, $reverse ? 'buttonText' : 'buttonLabel', $reverse ? 'buttonLabel' : 'buttonText');
+            }),
+            'table' => $this->mapItems($data, 'columns', fn (array $c) => $this->remapAlign($c, $reverse)),
+            default => $data,
+        };
     }
 
     /**
