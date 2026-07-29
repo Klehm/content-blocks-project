@@ -1,0 +1,5 @@
+webpack_encore:
+    output_path: '%kernel.project_dir%/public/build'
+    # Fail loudly in dev if a template asks for an entry the build did not
+    # produce, rather than silently emitting no <script> tag.
+    strict_mode: true

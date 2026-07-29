@@ -1,0 +1,17 @@
+# Kept close to the AssetMapper sandbox so a difference in behaviour between the
+# two apps points at the build pipeline, not at diverging configuration.
+content_blocks:
+    section:
+        default_width_mode: full
+        default_max_width: 1320
+
+    palette:
+        - { label: 'Indigo', color: '#4f46e5' }
+        - { label: 'Sky', color: '#e0f2fe' }
+        - { label: 'Slate', color: '#f1f5f9' }
+        - { label: 'White', color: '#ffffff' }
+        - { label: 'Ink', color: '#111827' }
+
+    upload:
+        directory: '%kernel.project_dir%/public/uploads/content-blocks'
+        public_prefix: '/uploads/content-blocks'

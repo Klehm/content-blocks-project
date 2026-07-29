@@ -1,0 +1,67 @@
+{
+    "name": "klehm/content-blocks-encore-sandbox",
+    "description": "Webpack Encore dev/test app for the ContentBlocks bundles — deliberately mirrors a Sylius 1.x-era stack (Symfony 6.4, Doctrine ORM 2, no AssetMapper).",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.2",
+        "klehm/content-blocks": "@dev",
+        "klehm/content-blocks-kit": "@dev",
+        "doctrine/doctrine-bundle": "^2.11",
+        "doctrine/orm": "^2.15",
+        "symfony/console": "^6.4",
+        "symfony/dotenv": "^6.4",
+        "symfony/flex": "^2.4",
+        "symfony/form": "^6.4",
+        "symfony/framework-bundle": "^6.4",
+        "symfony/runtime": "^6.4",
+        "symfony/stimulus-bundle": "^2.0",
+        "symfony/translation": "^6.4",
+        "symfony/twig-bundle": "^6.4",
+        "symfony/ux-live-component": "^2.0",
+        "symfony/ux-twig-component": "^2.0",
+        "symfony/webpack-encore-bundle": "^2.0",
+        "symfony/yaml": "^6.4",
+        "twig/twig": "^3.10"
+    },
+    "conflict": {
+        "symfony/asset-mapper": "*"
+    },
+    "extra": {
+        "symfony": {
+            "allow-contrib": true,
+            "require": "6.4.*"
+        }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../../packages/content-blocks",
+            "options": { "symlink": true }
+        },
+        {
+            "type": "path",
+            "url": "../../packages/content-blocks-kit",
+            "options": { "symlink": true }
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "symfony/flex": true,
+            "symfony/runtime": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "scripts": {
+        "auto-scripts": {
+            "cache:clear": "symfony-cmd",
+            "assets:install %PUBLIC_DIR%": "symfony-cmd"
+        }
+    }
+}

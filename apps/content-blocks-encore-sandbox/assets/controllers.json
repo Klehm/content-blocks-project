@@ -1,0 +1,77 @@
+{
+    "controllers": {
+        "@klehm/content-blocks": {
+            "cb-builder-launcher": {
+                "enabled": true,
+                "fetch": "eager",
+                "autoimport": {
+                    "@klehm/content-blocks/styles/admin.css": true
+                }
+            },
+            "cb-builder": {
+                "enabled": true,
+                "fetch": "eager"
+            },
+            "cb-autosave": {
+                "enabled": true,
+                "fetch": "eager"
+            },
+            "cb-section-settings-form": {
+                "enabled": true,
+                "fetch": "eager"
+            },
+            "cb-block-styling-form": {
+                "enabled": true,
+                "fetch": "eager"
+            },
+            "cb-spacing-link": {
+                "enabled": true,
+                "fetch": "eager"
+            },
+            "cb-viewport-tabs": {
+                "enabled": true,
+                "fetch": "eager"
+            },
+            "cb-range": {
+                "enabled": true,
+                "fetch": "eager"
+            },
+            "cb-tabs": {
+                "enabled": true,
+                "fetch": "eager"
+            },
+            "cb-collection-sort": {
+                "enabled": true,
+                "fetch": "eager"
+            },
+            "cb-condition": {
+                "enabled": true,
+                "fetch": "eager"
+            },
+            "cb-file-upload": {
+                "enabled": true,
+                "fetch": "eager"
+            }
+        },
+        "@klehm/content-blocks-kit": {
+            "cb-tinymce": {
+                "enabled": true,
+                "fetch": "lazy"
+            },
+            "cb-gallery": {
+                "enabled": true,
+                "fetch": "eager"
+            }
+        },
+        "@symfony/ux-live-component": {
+            "live": {
+                "enabled": true,
+                "fetch": "eager",
+                "autoimport": {
+                    "@symfony/ux-live-component/dist/live.min.css": true
+                }
+            }
+        }
+    },
+    "entrypoints": []
+}

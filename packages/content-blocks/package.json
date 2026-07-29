@@ -11,7 +11,9 @@
         "test:unit:watch": "vitest",
         "pretest:e2e": "cd ../../apps/content-blocks-sandbox && rm -rf public/assets && php bin/console cache:clear -q && php bin/console asset-map:compile -q",
         "test:e2e": "npm run pretest:e2e && playwright test",
-        "test:e2e:ui": "npm run pretest:e2e && playwright test --ui"
+        "test:e2e:ui": "npm run pretest:e2e && playwright test --ui",
+        "pretest:e2e:encore": "cd ../../apps/content-blocks-encore-sandbox && php bin/console cache:clear -q && npm run build",
+        "test:e2e:encore": "npm run pretest:e2e:encore && playwright test --config=playwright.encore.config.js"
     },
     "symfony": {
         "controllers": {

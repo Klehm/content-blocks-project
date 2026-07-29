@@ -1,0 +1,70 @@
+/* Sandbox chrome only — the builder carries its own scoped styles, pulled in by
+   the `autoimport` on cb-builder-launcher in controllers.json. */
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.95rem;
+    color: #1f2330;
+    background: #f5f6f8;
+}
+
+a { color: #4f8df9; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.sandbox-nav {
+    background: #1f2330;
+    color: #fff;
+    padding: 0.85rem 1.5rem;
+    margin-bottom: 2rem;
+}
+.sandbox-nav a { color: #fff; font-weight: 600; }
+
+.sandbox-container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 1.5rem 3rem;
+}
+
+.sandbox-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.8rem;
+    background: #4f8df9;
+    color: #fff;
+    border: 1px solid #4f8df9;
+    border-radius: 0.375rem;
+    font: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: none;
+}
+.sandbox-btn:hover { background: #3d7be7; border-color: #3d7be7; text-decoration: none; }
+.sandbox-btn--ghost { background: transparent; color: #4f8df9; }
+.sandbox-btn--success { background: #2e7d4f; border-color: #2e7d4f; }
+.sandbox-btn--sm { padding: 0.25rem 0.55rem; font-size: 0.85rem; }
+
+.sandbox-input {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #d3d7e0;
+    border-radius: 0.375rem;
+    font: inherit;
+    font-size: 0.9rem;
+    min-width: 200px;
+}
+
+.sandbox-form-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+
+.sandbox-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(20, 22, 30, 0.06);
+}
+.sandbox-table th,
+.sandbox-table td { text-align: left; padding: 0.6rem 0.85rem; border-bottom: 1px solid #eef0f3; }
+.sandbox-table thead { background: #fafbfc; }
+
+.sandbox-muted { color: #5b6478; }

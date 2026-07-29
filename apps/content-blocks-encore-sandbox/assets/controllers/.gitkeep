@@ -1,0 +1,2 @@
+# require.context() in bootstrap.js needs this directory to exist even when the
+# host defines no controllers of its own.

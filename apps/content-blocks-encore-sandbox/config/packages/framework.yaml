@@ -1,0 +1,14 @@
+framework:
+    secret: '%env(APP_SECRET)%'
+    http_method_override: false
+    handle_all_throwables: true
+    session: true
+    csrf_protection:
+        enabled: true
+    php_errors:
+        log: true
+
+# Deliberately NO `asset_mapper` key: this app builds with Webpack Encore, and
+# `symfony/asset-mapper` is in composer.json's `conflict` so it can never be
+# installed here. That is the whole point of the sandbox — the bundles must
+# register their Twig namespaces, form theme and services without it.

@@ -1,0 +1,22 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+
+    # Explicit on 6.4: the controller is a plain class (not an AbstractController),
+    # so nothing auto-tags it and the router cannot pull it from the container.
+    App\Controller\:
+        resource: '../src/Controller/'
+        tags: ['controller.service_arguments']
+
+    # Sandbox overrides of the two interfaces that have no useful default.
+    ContentBlocks\Security\AccessCheckerInterface:
+        class: ContentBlocks\Security\AllowAllAccessChecker
+
+    ContentBlocks\Preview\ContentAreaUrlResolverInterface:
+        class: App\Preview\PageContentAreaUrlResolver

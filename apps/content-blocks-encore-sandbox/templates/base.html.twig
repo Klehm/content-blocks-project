@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ContentBlocks — Encore Sandbox{% endblock %}</title>
+
+    {# The Encore counterpart of the other sandbox's `importmap('app')`. #}
+    {{ encore_entry_link_tags('app') }}
+    {{ encore_entry_script_tags('app') }}
+
+    {# Kit blocks ship their own stylesheet, served by a route — no bundler involved. #}
+    <link rel="stylesheet" href="{{ path('content_blocks_kit_asset_css') }}">
+</head>
+<body>
+    <nav class="sandbox-nav">
+        <a href="/">ContentBlocks — Encore Sandbox</a>
+    </nav>
+
+    <div class="sandbox-container">
+        {% block body %}{% endblock %}
+    </div>
+</body>
+</html>

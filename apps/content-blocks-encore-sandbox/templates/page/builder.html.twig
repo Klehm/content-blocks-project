@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Builder — {{ page.title }}{% endblock %}
+
+{% block body %}
+    <a href="/" class="sandbox-btn sandbox-btn--ghost sandbox-btn--sm" style="margin-bottom: 1rem;">&larr; Back</a>
+    <h1 style="margin: 0 0 1rem;">{{ page.title }}</h1>
+
+    {% if page.contentArea %}
+        {% include '@ContentBlocks/builder/launcher.html.twig' with {
+            area: page.contentArea,
+            iframeUrl: cb_preview_url(page.contentArea),
+        } only %}
+    {% else %}
+        <p class="sandbox-muted">ContentArea not available.</p>
+    {% endif %}
+{% endblock %}

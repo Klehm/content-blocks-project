@@ -237,12 +237,89 @@ jobs:
             packages/content-blocks/test-results/
           retention-days: 7
 
+  encore-e2e-tests:
+    name: Playwright Encore (PHP 8.3 · Symfony 6.4 · Webpack)
+    runs-on: ubuntu-latest
+
+    # The install path the other e2e job cannot see. That sandbox builds with
+    # AssetMapper on Symfony 7/8; this one is Webpack Encore on Symfony 6.4 with
+    # Doctrine ORM 2, and `symfony/asset-mapper` sits in its composer `conflict`
+    # so the leg can never silently drift back onto the covered path.
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      # fetch-depth: 0 for the path-repo'd klehm packages — same reason as the
+      # kit and e2e jobs above.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, intl, mbstring
+          coverage: none
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install sandbox dependencies
+        working-directory: apps/content-blocks-encore-sandbox
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Configure the sandbox database
+        working-directory: apps/content-blocks-encore-sandbox
+        run: |
+          echo 'DATABASE_URL="mysql://root:root@127.0.0.1:3306/content_blocks_encore_sandbox?serverVersion=8.0&charset=utf8mb4"' > .env.local
+          php bin/console doctrine:database:create --if-not-exists
+          php bin/console doctrine:schema:create
+
+      # The npm links resolve through vendor/, so this must follow composer.
+      - name: Build the assets with Encore
+        working-directory: apps/content-blocks-encore-sandbox
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+      - name: Install JS dependencies
+        working-directory: packages/content-blocks
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: packages/content-blocks
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright (Encore suite)
+        working-directory: packages/content-blocks
+        run: npx playwright test --config=playwright.encore.config.js
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-encore
+          path: |
+            packages/content-blocks/test-results/
+          retention-days: 7
+
   # ---- Monorepo split (only after every test job is green) ----
 
   packages_split:
     name: Split ${{ matrix.package.split_repository }}
     runs-on: ubuntu-latest
-    needs: [php-tests, kit-php-tests, js-tests, kit-js-tests, e2e-tests]
+    needs: [php-tests, kit-php-tests, js-tests, kit-js-tests, e2e-tests, encore-e2e-tests]
     # PRs never split; only pushes to master and v* tags do.
     if: github.event_name == 'push'
 

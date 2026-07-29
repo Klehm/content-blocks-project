@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Pages — Encore Sandbox{% endblock %}
+
+{% block body %}
+    <h1>Pages</h1>
+
+    <table class="sandbox-table">
+        <thead>
+            <tr><th>ID</th><th>Title</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+            {% for page in pages %}
+                <tr>
+                    <td>{{ page.id }}</td>
+                    <td>{{ page.title }}</td>
+                    <td><a href="/admin/page/{{ page.id }}" class="sandbox-btn sandbox-btn--sm">Builder</a></td>
+                </tr>
+            {% else %}
+                <tr><td colspan="3" class="sandbox-muted">No pages.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h3 style="margin-top: 2rem;">Create a page</h3>
+    <form action="/page/create" method="post" class="sandbox-form-row">
+        <input type="text" name="title" class="sandbox-input" placeholder="Title" required>
+        <button type="submit" class="sandbox-btn sandbox-btn--success">Create</button>
+    </form>
+{% endblock %}

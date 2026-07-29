@@ -1,0 +1,2 @@
+content_blocks:
+    resource: '@ContentBlocksBundle/config/routes.php'

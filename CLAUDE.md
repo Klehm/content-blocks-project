@@ -27,6 +27,7 @@ content-blocks/
 │
 ├── apps/
 │   ├── content-blocks-sandbox/          # App Symfony de dev/test (fixture Playwright)
+│   ├── content-blocks-encore-sandbox/   # App Symfony 6.4 + Webpack Encore (fixture Playwright, install path)
 │   └── content-blocks-sylius-sandbox/   # App Sylius de dev/test
 │
 ├── composer.json                # Composer racine avec repositories path
@@ -370,6 +371,31 @@ php -S 127.0.0.1:8001 -t public
 # Accéder à http://127.0.0.1:8001
 ```
 
+### 3. Sandbox Encore
+
+App volontairement minimale : **Symfony 6.4 + Doctrine ORM 2 + Webpack Encore**, sans AssetMapper (il est dans le `conflict` de son `composer.json`). Elle reproduit la forme d'un hôte Sylius 1.x et sert de fixture à `playwright.encore.config.js`.
+
+```bash
+cd apps/content-blocks-encore-sandbox
+
+# L'ordre compte : les liens npm `file:` pointent dans vendor/
+composer install
+npm install
+
+# Configurer la base dans .env.local, puis créer le schéma
+php bin/console doctrine:database:create --if-not-exists
+php bin/console doctrine:schema:create
+
+npm run build
+php -S 127.0.0.1:8002 -t public
+
+# Accéder à http://127.0.0.1:8002
+```
+
+Deux réglages dans son `webpack.config.js` méritent d'être connus, tous deux commentés sur place :
+- `resolve.modules` += son propre `node_modules` — les repositories `path` de Composer symlinkent `vendor/klehm/*` vers `packages/*`, et webpack résout les imports depuis le *realpath* ; sans ça `sortablejs` est cherché depuis `packages/content-blocks/`. **Artefact monorepo uniquement** : une vraie install `composer require` écrit un répertoire réel et n'en a pas besoin.
+- `resolve.tsconfig = false` — webpack 5.109 active la résolution tsconfig par auto-détection, et `@symfony/ux-live-component` livre un `tsconfig.json` qui étend un chemin n'existant que dans le monorepo symfony/ux. **Celui-là concerne tout hôte Encore**, pas seulement nous.
+
 ## Intégration dans un projet
 
 Chaque application crée sa propre entité (ex: `Page`, `Product`) avec une relation `OneToOne` vers `ContentArea` :
@@ -409,13 +435,25 @@ npm run test:unit
 # Tests E2E (Playwright — démarre la sandbox automatiquement)
 npm run test:e2e
 
-# Les deux
+# Tests E2E du chemin d'install Webpack Encore (sandbox dédiée, port 8002)
+npm run test:e2e:encore
+
+# Les deux premiers
 npm test
 ```
 
 - **Vitest** : teste la logique des controllers Stimulus en isolation (DOM mock, fetch mock)
 - **Playwright** : teste les flux complets dans un vrai navigateur contre la sandbox
-- La sandbox (`apps/content-blocks-sandbox/`) sert de **fixture** pour Playwright (`webServer` dans `playwright.config.js`)
+- La sandbox (`apps/content-blocks-sandbox/`) sert de **fixture** pour Playwright (`webServer` dans `playwright.config.js`), sur le port 8001
+
+**Deux suites Playwright, deux rôles distincts** :
+
+| Config | Fixture | Couvre |
+|---|---|---|
+| `playwright.config.js` | `content-blocks-sandbox` — Symfony 7/8, AssetMapper | le **comportement** du builder (88 specs) |
+| `playwright.encore.config.js` | `content-blocks-encore-sandbox` — Symfony 6.4, ORM 2, Webpack Encore | le **chemin d'installation** sous un bundler qu'on ne développe pas au quotidien (4 specs) |
+
+La suite Encore reste volontairement petite : tout ce qui passerait à l'identique sous les deux bundlers appartient à la suite principale. Elle existe parce qu'un bug de boot (le prepend `asset_mapper` inconditionnel) a pu vivre longtemps sans qu'aucun test ne le voie — la sandbox met `symfony/asset-mapper` dans son `conflict` Composer pour que la jambe ne puisse jamais redériver vers le chemin déjà couvert.
 
 ### Tests PHP
 
@@ -426,29 +464,34 @@ cd packages/content-blocks
 
 ## Workflow Claude — recompiler les assets après chaque tâche
 
-Les deux sandboxes utilisent **AssetMapper** : tout changement dans `packages/content-blocks/assets/` (Stimulus controllers, CSS, JS) ou `packages/content-blocks-kit/assets/` n'est servi qu'après une recompilation du `public/assets/` de chaque sandbox.
+Tout changement dans `packages/content-blocks/assets/` (Stimulus controllers, CSS, JS) ou `packages/content-blocks-kit/assets/` n'est servi qu'après recompilation dans **chacune des trois** sandboxes. Deux d'entre elles utilisent AssetMapper, la troisième Webpack Encore — la commande n'est donc pas la même.
 
-**À chaque tâche** qui touche un fichier sous `packages/*/assets/`, Claude doit relancer la compilation dans **les deux** sandboxes avant de conclure :
+**À chaque tâche** qui touche un fichier sous `packages/*/assets/`, Claude doit relancer les trois avant de conclure :
 
 ```bash
-# Symfony sandbox
+# Symfony sandbox (AssetMapper)
 cd apps/content-blocks-sandbox \
   && rm -rf public/assets \
   && php bin/console cache:clear -q \
   && php bin/console asset-map:compile
 
-# Sylius sandbox
+# Sylius sandbox (AssetMapper)
 cd apps/content-blocks-sylius-sandbox \
   && rm -rf public/assets \
   && php bin/console cache:clear -q \
   && php bin/console asset-map:compile
+
+# Encore sandbox (Webpack)
+cd apps/content-blocks-encore-sandbox \
+  && php bin/console cache:clear -q \
+  && npm run build
 ```
 
 Si on ajoute un nouveau Stimulus controller, il faut aussi :
-- Le déclarer dans **`packages/content-blocks/assets/package.json`** (et **non** dans le `package.json` racine du package — celui-ci ne sert qu'à vitest/playwright). C'est `assets/package.json` qui est lu par `Symfony\UX\StimulusBundle\Ux\UxPackageReader`.
-- L'activer dans `apps/content-blocks-sandbox/assets/controllers.json` **et** `apps/content-blocks-sylius-sandbox/assets/controllers.json`.
+- Le déclarer dans **`packages/content-blocks/assets/package.json`** (et **non** dans le `package.json` racine du package — celui-ci ne sert qu'à vitest/playwright). C'est `assets/package.json` qui est lu par `Symfony\UX\StimulusBundle\Ux\UxPackageReader` **et** par `@symfony/stimulus-bridge` côté Encore : la clé `name` de chaque controller y décide de l'identifiant Stimulus, sans quoi le bridge le nomme `klehm--content-blocks--<name>` et le `data-controller` des templates ne matche plus.
+- L'activer dans les `assets/controllers.json` des **trois** sandboxes.
 
-Sans ces étapes, `asset-map:compile` échoue avec `Controller "@klehm/content-blocks/<name>" does not exist in the "klehm/content-blocks" package.`
+Sans ces étapes, `asset-map:compile` échoue avec `Controller "@klehm/content-blocks/<name>" does not exist in the "klehm/content-blocks" package.`, et le build Encore avec `Controller "..." does not exist in the package and cannot be compiled.`
 
 ## Troubleshooting
 
