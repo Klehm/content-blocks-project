@@ -78,9 +78,12 @@ Add the following to `assets/controllers.json`:
 }
 ```
 
-The `cb-collection-sort` controller (drag-and-drop reordering of collection
-fields) depends on [SortableJS](https://github.com/SortableJS/Sortable). Pin it
-in your importmap once:
+That file is the same under either bundler — `assets/controllers.json` is Symfony
+UX's format, not AssetMapper's.
+
+**With AssetMapper**, nothing else to declare. `cb-collection-sort` (drag-and-drop
+reordering of collection fields) depends on
+[SortableJS](https://github.com/SortableJS/Sortable) — pin it in your importmap once:
 
 ```bash
 php bin/console importmap:require sortablejs
@@ -88,7 +91,27 @@ php bin/console importmap:require sortablejs
 
 Then re-run `php bin/console asset-map:compile` (or your normal asset build).
 
-The `autoimport` block on `cb-builder-launcher` pulls in `admin.css` (styles for the launcher button, builder dialog and sidebars). You do **not** need to add `import '@klehm/content-blocks/styles/admin.css'` in `app.js` — Stimulus Bundle handles it once the entry above is in place.
+**With Webpack Encore**, link each package's `assets/` directory as a local npm
+package (the pattern Symfony UX uses for `@symfony/ux-live-component`), then
+enable the Stimulus bridge on the build that serves your admin:
+
+```bash
+npm install --save "@klehm/content-blocks@file:vendor/klehm/content-blocks/assets"
+npm install --save "@klehm/content-blocks-kit@file:vendor/klehm/content-blocks-kit/assets"
+npm install --save sortablejs
+```
+
+```js
+// webpack.config.js
+Encore.enableStimulusBridge('./assets/controllers.json');
+```
+
+The admin entry must start a Stimulus application (`startStimulusApp` in a
+`bootstrap.js`) — worth checking if you are bolting the builder onto an older,
+jQuery-based back office. Full walkthrough:
+[Installation → With Webpack Encore](https://klehm.github.io/content-blocks-project/guide/installation#with-webpack-encore).
+
+The `autoimport` block on `cb-builder-launcher` pulls in `admin.css` (styles for the launcher button, builder dialog and sidebars). You do **not** need to add `import '@klehm/content-blocks/styles/admin.css'` in `app.js` — the entry above handles it, under either bundler.
 
 > A Symfony Flex recipe that injects this whole block automatically is on the roadmap — once published, this manual step goes away.
 

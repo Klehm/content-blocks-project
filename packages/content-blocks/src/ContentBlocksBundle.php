@@ -14,6 +14,7 @@ use ContentBlocks\Palette\ColorPaletteProviderInterface;
 use ContentBlocks\Section\SectionDecoratorInterface;
 use ContentBlocks\Section\SectionSettingsDefaultsProviderInterface;
 use ContentBlocks\Section\SectionStyleProviderInterface;
+use Symfony\Component\AssetMapper\AssetMapper;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ChildDefinition;
@@ -238,14 +239,23 @@ final class ContentBlocksBundle extends AbstractBundle
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        // Register assets path so AssetMapper + StimulusBundle can discover controllers
-        $builder->prependExtensionConfig('framework', [
-            'asset_mapper' => [
-                'paths' => [
-                    $this->getPath() . '/assets' => '@klehm/content-blocks',
+        // Register the assets path so AssetMapper + StimulusBundle can discover the
+        // controllers. Guarded: `framework.asset_mapper` is declared with
+        // canBeEnabled(), whose normalization turns any non-empty array into
+        // `enabled: true` — so prepending `paths` on a host that builds with Webpack
+        // Encore (no symfony/asset-mapper installed, and we do not require it) would
+        // *enable* the component and make FrameworkExtension throw at boot. Encore
+        // hosts read the same controllers out of assets/package.json through
+        // @symfony/stimulus-bridge instead; see docs/guide/installation.md.
+        if (class_exists(AssetMapper::class)) {
+            $builder->prependExtensionConfig('framework', [
+                'asset_mapper' => [
+                    'paths' => [
+                        $this->getPath() . '/assets' => '@klehm/content-blocks',
+                    ],
                 ],
-            ],
-        ]);
+            ]);
+        }
 
         // Auto-register the form theme so `form_row(form.contentArea)` renders the builder out of the box.
         // The @ContentBlocks namespace itself is auto-detected by AbstractBundle from <BundleRoot>/templates/,

@@ -22,6 +22,7 @@ use ContentBlocks\Kit\Block\RichTextBlock;
 use ContentBlocks\Kit\Block\TabsBlock;
 use ContentBlocks\Kit\Block\TextBlock;
 use ContentBlocks\Kit\Block\TitleBlock;
+use Symfony\Component\AssetMapper\AssetMapper;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -168,16 +169,20 @@ final class ContentBlocksKitBundle extends AbstractBundle
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        // Register assets path so AssetMapper + StimulusBundle can discover controllers.
+        // Register the assets path so AssetMapper + StimulusBundle can discover the
+        // controllers. Guarded for Webpack Encore hosts — same reason as the core
+        // bundle: prepending `paths` would enable a component that is not installed.
         // The @ContentBlocksKit Twig namespace is auto-detected by AbstractBundle from <BundleRoot>/templates/,
         // which also gives `templates/bundles/ContentBlocksKitBundle/` priority for host overrides.
-        $builder->prependExtensionConfig('framework', [
-            'asset_mapper' => [
-                'paths' => [
-                    $this->getPath() . '/assets' => '@klehm/content-blocks-kit',
+        if (class_exists(AssetMapper::class)) {
+            $builder->prependExtensionConfig('framework', [
+                'asset_mapper' => [
+                    'paths' => [
+                        $this->getPath() . '/assets' => '@klehm/content-blocks-kit',
+                    ],
                 ],
-            ],
-        ]);
+            ]);
+        }
     }
 
     public function getPath(): string

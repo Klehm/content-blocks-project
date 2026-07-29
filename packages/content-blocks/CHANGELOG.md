@@ -178,6 +178,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The bundle could not boot on a Webpack Encore host.** `prependExtension()`
+  registered the package's `assets/` directory under `framework.asset_mapper.paths`
+  unconditionally. That node is declared with `canBeEnabled()`, whose normalization
+  turns any non-empty array into `enabled: true` — so the prepend did not merely
+  describe a path, it *enabled* a component this package has never required.
+  Without `symfony/asset-mapper` installed, `FrameworkExtension` then threw
+  `AssetMapper support cannot be enabled as the AssetMapper component is not
+  installed`, at container build, before anything else could report a cause. The
+  prepend is now guarded by `class_exists()`. Encore hosts read the same
+  controllers out of `assets/package.json` through `@symfony/stimulus-bridge`; see
+  [Installation → With Webpack Encore](https://klehm.github.io/content-blocks-project/guide/installation#with-webpack-encore).
 - **Section-template insert warned about fields that were perfectly valid.**
   `SectionTemplateInstantiator` decided which stored keys a block could hold from
   `getDefaultData()` alone, so it flagged `styling` (added to every block form by

@@ -11,6 +11,7 @@ ContentBlocks is the core package for the Symfony page builder: entities, admin 
 - PHP >= 8.2 (>= 8.4 for Symfony 8.0)
 - Symfony 6.4 LTS, 7.x or 8.x
 - Doctrine ORM ^2.12 or ^3.0
+- An asset build: **AssetMapper** or **Webpack Encore** — both are supported, see [Stimulus controllers & admin CSS](#stimulus-controllers-admin-css)
 
 ## Pre-release stability
 
@@ -95,7 +96,15 @@ Add the following to `assets/controllers.json`:
 }
 ```
 
-The `cb-collection-sort` controller (drag-and-drop reordering of collection fields) depends on [SortableJS](https://github.com/SortableJS/Sortable). Pin it in your importmap once:
+That file is the same in both build setups — `assets/controllers.json` is Symfony UX's format, not AssetMapper's. What differs is only how the packages' JS reaches your bundler, below.
+
+The `autoimport` block on `cb-builder-launcher` pulls in `admin.css` (styles for the launcher button, builder dialog and sidebars). You do **not** need to add `import '@klehm/content-blocks/styles/admin.css'` in `app.js` — the entry above handles it, under either bundler.
+
+### With AssetMapper
+
+Nothing to declare: the bundles register their `assets/` directory under the `@klehm/content-blocks` and `@klehm/content-blocks-kit` namespaces, so Stimulus Bundle finds the controllers referenced above.
+
+`cb-collection-sort` (drag-and-drop reordering of collection fields) depends on [SortableJS](https://github.com/SortableJS/Sortable). Pin it in your importmap once:
 
 ```bash
 php bin/console importmap:require sortablejs
@@ -103,10 +112,62 @@ php bin/console importmap:require sortablejs
 
 Then re-run `php bin/console asset-map:compile` (or your normal asset build).
 
-The `autoimport` block on `cb-builder-launcher` pulls in `admin.css` (styles for the launcher button, builder dialog and sidebars). You do **not** need to add `import '@klehm/content-blocks/styles/admin.css'` in `app.js` — Stimulus Bundle handles it once the entry above is in place.
+### With Webpack Encore
+
+Encore resolves the controllers from `node_modules`, so link each package's `assets/` directory as a local npm package. This is the same `file:` pattern Symfony UX itself uses for `@symfony/ux-live-component`:
+
+```bash
+npm install --save "@klehm/content-blocks@file:vendor/klehm/content-blocks/assets"
+npm install --save "@klehm/content-blocks-kit@file:vendor/klehm/content-blocks-kit/assets"
+npm install --save sortablejs
+```
+
+Enable the Stimulus bridge on the build that serves your admin, pointing at the `controllers.json` above:
+
+```js
+// webpack.config.js
+Encore
+    .addEntry('admin', './assets/admin/entry.js')
+    .enableStimulusBridge('./assets/controllers.json');
+```
+
+And make sure that entry starts a Stimulus application:
+
+```js
+// assets/bootstrap.js
+import { startStimulusApp } from '@symfony/stimulus-bridge';
+
+export const app = startStimulusApp(require.context(
+    '@symfony/stimulus-bridge/lazy-controller-loader!./controllers',
+    true,
+    /\.[jt]sx?$/,
+));
+```
+
+```js
+// assets/admin/entry.js
+import '../bootstrap.js';
+```
+
+::: warning If your admin has no Stimulus application yet
+This is the common case when bolting the builder onto an older admin (a Sylius 1.x back office, for instance) whose entry is jQuery-based. The three snippets above are the whole of it, but they are *new* wiring — the builder's Live Components need a running Stimulus app, and without one the "Edit content" button does nothing while the console stays silent.
+:::
+
+::: tip If the build fails on a `tsconfig.package.json` it never heard of
+webpack 5.109+ auto-enables `resolve.tsconfig` when it believes the project uses TypeScript, and the resolver then reads the nearest `tsconfig.json` to every module it touches. `@symfony/ux-live-component` ships one that extends a path existing only inside the symfony/ux monorepo, so the build dies on a bare `ENOENT` naming a file you never wrote. If your project is plain JavaScript, say so:
+
+```js
+const config = Encore.getWebpackConfig();
+config.resolve.tsconfig = false;
+
+module.exports = config;
+```
+:::
+
+Nothing else is Encore-specific. The bundles skip their AssetMapper registration when the component is not installed, and the front-end and preview assets never touch your bundler at all — they are served by the routes described below.
 
 ::: tip
-A Symfony Flex recipe that injects this whole block automatically is on the roadmap — once published, this manual step goes away.
+A Symfony Flex recipe that injects the `controllers.json` block automatically is on the roadmap — once published, that step goes away (the npm links stay).
 :::
 
 ### Public assets loaded inside the preview iframe

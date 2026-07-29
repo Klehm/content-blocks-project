@@ -70,6 +70,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Kit now has its own PHPUnit + Vitest setup (path repository to the sibling
   core so it tests against the monorepo's current core), gating the split.
 
+### Fixed
+
+- **The bundle could not boot on a Webpack Encore host.** `prependExtension()`
+  registered `assets/` under `framework.asset_mapper.paths` unconditionally, which
+  *enables* a component the kit never required — `FrameworkExtension` then threw at
+  container build. Now guarded by `class_exists()`, same as the core bundle. Encore
+  hosts link the kit's assets as a local npm package
+  (`@klehm/content-blocks-kit@file:vendor/klehm/content-blocks-kit/assets`) and read
+  `cb-tinymce` / `cb-gallery` from `assets/package.json` through
+  `@symfony/stimulus-bridge`.
+
 ### Changed
 
 - **TinyMCE bridge hardened** (`cb-tinymce`): re-parents the aux popup/modal
