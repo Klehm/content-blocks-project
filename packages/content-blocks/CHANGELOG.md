@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stay terse (`--cb-s-pad-d-t`, `--cb-gap-d`) — the decorators map long→short — so
   `styling.css` and any host CSS override are unaffected. Migrate existing rows with
   the reference migration `Version20260715130000` (both sandboxes; reversible).
+- **BREAKING — config key `upload.dir` → `upload.directory`.** The last
+  abbreviation in the config tree, next to `public_prefix`, `max_size` and
+  `allowed_mime_types` spelled out in the same block. Renamed now because YAML
+  keys freeze at 1.0. A stale `dir:` fails at container build with
+  `Unrecognized option "dir" under "content_blocks.upload"` — there is no silent
+  fallback.
 - **BREAKING — config key `styles` → `section_styles`.** The section-style-presets
   config key now matches the emitted parameter (`content_blocks.section_styles`);
   host YAML under `content_blocks.styles:` must be renamed to `section_styles:`.

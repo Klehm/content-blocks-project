@@ -148,7 +148,7 @@ The quickest opt-in is the bundle config — it registers a `LocalFileStorage` a
 # config/packages/content_blocks.yaml
 content_blocks:
     upload:
-        dir: '%kernel.project_dir%/public/uploads/content-blocks'
+        directory: '%kernel.project_dir%/public/uploads/content-blocks'
         public_prefix: '/uploads/content-blocks'
         # max_size: 10485760                       # bytes, default 10 MB
         # allowed_mime_types: ['image/jpeg', ...]  # default: common images + PDF

@@ -187,7 +187,7 @@ content_blocks:
           css_class: 'my-section--boxed'
           settings: { styling: { padding: { desktop: { top: 40, bottom: 40 } } } }
     upload:
-        dir: null                       # non-null → active LocalFileStorage
+        directory: null                 # non-null → active LocalFileStorage
         public_prefix: '/uploads/content-blocks'
         max_size: 10485760
         allowed_mime_types: [...]
@@ -311,7 +311,7 @@ Upload endpoint `/_content-blocks/upload` (core, `ContentBlocks\Controller\Uploa
 # config/packages/content_blocks.yaml
 content_blocks:
     upload:
-        dir: '%kernel.project_dir%/public/uploads/content-blocks'
+        directory: '%kernel.project_dir%/public/uploads/content-blocks'
         public_prefix: '/uploads/content-blocks'
 ```
 

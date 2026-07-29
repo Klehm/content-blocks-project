@@ -106,7 +106,7 @@ return static function (ContainerConfigurator $container): void {
     // ---------- File storage / uploads ----------
 
     // Default: null storage (throws on upload). Hosts opt in via the
-    // `content_blocks.upload.dir` config (→ LocalFileStorage) or alias
+    // `content_blocks.upload.directory` config (→ LocalFileStorage) or alias
     // FileStorageInterface to their own implementation (S3, Flysystem…).
     $services->set(\ContentBlocks\Storage\NullFileStorage::class);
     $services->alias(\ContentBlocks\Storage\FileStorageInterface::class, \ContentBlocks\Storage\NullFileStorage::class);

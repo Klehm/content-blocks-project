@@ -107,6 +107,23 @@ content_blocks:
           css_class: 'my-section--boxed'
 ```
 
+### 2a-bis. `content_blocks.upload.dir` → `.directory`
+
+The one abbreviated key in the tree, next to three spelled-out neighbours.
+
+```yaml
+content_blocks:
+    upload:
+-       dir: '%kernel.project_dir%/public/uploads/content-blocks'
++       directory: '%kernel.project_dir%/public/uploads/content-blocks'
+        public_prefix: '/uploads/content-blocks'
+```
+
+A stale `dir:` stops the container build with `Unrecognized option "dir" under
+"content_blocks.upload"`, so you cannot miss it — but note the failure mode if
+you *removed* the key instead of renaming it: uploads silently fall back to
+`NullFileStorage`, which throws only when an editor actually uploads.
+
 ### 2b. Preset `settings` is now a **typed** node
 
 `section_styles[].settings` was a free-form `variableNode`; it is now a typed,
@@ -298,7 +315,7 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
       `Version20260715130000` (styling viewports) and `Version20260729120000`
       (content-version columns); run `doctrine:migrations:migrate`.
 - [ ] (Pre-beta.6 only) add `cb_content_area.updated_at` via `Version20260518120000`.
-- [ ] Rename `content_blocks.styles` → `section_styles`.
+- [ ] Rename `content_blocks.styles` → `section_styles` and `upload.dir` → `upload.directory`.
 - [ ] Spell out `d`/`t`/`m` → `desktop`/`tablet`/`mobile` in any preset `settings`.
 - [ ] Rename kit `defaults`/`choices` config keyed by a renamed field.
 - [ ] Update any forked kit block templates to the new data keys.

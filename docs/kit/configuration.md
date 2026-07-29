@@ -73,7 +73,7 @@ The [`image`](./blocks/image.md) block uses the core upload brick (`ImageUploadT
 # config/packages/content_blocks.yaml
 content_blocks:
     upload:
-        dir: '%kernel.project_dir%/public/uploads/content-blocks'
+        directory: '%kernel.project_dir%/public/uploads/content-blocks'
         public_prefix: '/uploads/content-blocks'
 ```
 

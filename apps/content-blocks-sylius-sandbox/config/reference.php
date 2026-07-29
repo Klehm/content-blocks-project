@@ -1079,7 +1079,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         },
  *     }>,
  *     upload?: array{
- *         dir?: scalar|Param|null, // Filesystem dir for LocalFileStorage; leave null to keep uploads disabled (NullFileStorage) or wire your own FileStorageInterface. // Default: null
+ *         directory?: scalar|Param|null, // Filesystem directory for LocalFileStorage; leave null to keep uploads disabled (NullFileStorage) or wire your own FileStorageInterface. // Default: null
  *         public_prefix?: scalar|Param|null, // Default: "/uploads/content-blocks"
  *         max_size?: int|Param, // Default: 10485760
  *         allowed_mime_types?: list<scalar|Param|null>,

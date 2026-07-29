@@ -39,7 +39,7 @@ final class ContentBlocksBundle extends AbstractBundle
      *               css_class: 'my-section--boxed'
      *               settings: { styling: { padding: { d: { top: 40, bottom: 40 } } } }
      *         upload:
-     *             dir: '%kernel.project_dir%/public/uploads/content-blocks'
+     *             directory: '%kernel.project_dir%/public/uploads/content-blocks'
      *             public_prefix: '/uploads/content-blocks'
      *             max_size: 10485760             # bytes
      *             allowed_mime_types: ['image/jpeg', 'image/png']
@@ -94,8 +94,8 @@ final class ContentBlocksBundle extends AbstractBundle
                 ->arrayNode('upload')
                     ->addDefaultsIfNotSet()
                     ->children()
-                        ->scalarNode('dir')
-                            ->info('Filesystem dir for LocalFileStorage; leave null to keep uploads disabled (NullFileStorage) or wire your own FileStorageInterface.')
+                        ->scalarNode('directory')
+                            ->info('Filesystem directory for LocalFileStorage; leave null to keep uploads disabled (NullFileStorage) or wire your own FileStorageInterface.')
                             ->defaultNull()
                         ->end()
                         ->scalarNode('public_prefix')->defaultValue('/uploads/content-blocks')->end()
@@ -227,10 +227,10 @@ final class ContentBlocksBundle extends AbstractBundle
 
         // Opting into an upload dir switches the storage alias from the
         // default NullFileStorage to a LocalFileStorage rooted there.
-        if ($config['upload']['dir'] !== null) {
+        if ($config['upload']['directory'] !== null) {
             $container->services()
                 ->set(\ContentBlocks\Storage\LocalFileStorage::class)
-                ->args([$config['upload']['dir'], $config['upload']['public_prefix']]);
+                ->args([$config['upload']['directory'], $config['upload']['public_prefix']]);
             $container->services()
                 ->alias(\ContentBlocks\Storage\FileStorageInterface::class, \ContentBlocks\Storage\LocalFileStorage::class);
         }

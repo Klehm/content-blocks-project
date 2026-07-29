@@ -37,5 +37,5 @@ content_blocks:
 
     # Enables the upload endpoint with a LocalFileStorage.
     upload:
-        dir: '%kernel.project_dir%/public/uploads/content-blocks'
+        directory: '%kernel.project_dir%/public/uploads/content-blocks'
         public_prefix: '/uploads/content-blocks'

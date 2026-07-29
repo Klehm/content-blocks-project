@@ -19,7 +19,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  * Size cap and MIME allow-list come from the bundle config
  * (`content_blocks.upload.max_size` / `.allowed_mime_types`); the storage
  * backend is whatever FileStorageInterface resolves to — NullFileStorage
- * (throws) until the host opts in via `content_blocks.upload.dir` or its
+ * (throws) until the host opts in via `content_blocks.upload.directory` or its
  * own alias.
  */
 #[Route('/_content-blocks')]
