@@ -161,6 +161,25 @@ describe('cb-builder template picker: list rendering', () => {
         expect(btn.title).not.toMatch(/block type/i);
     });
 
+    it('disables a template from an older content generation, saying so', async () => {
+        // Not the same problem as a missing block type or an unreadable
+        // envelope: this one is on the host to migrate, so the message must
+        // not blame a block.
+        global.fetch = vi.fn(() => okJson({
+            items: [
+                { id: 9, name: 'Legacy gen', insertable: false, skippedTypes: [], staleVersion: true, canManage: false },
+            ],
+            hasMore: false,
+        }));
+
+        await controller.openTemplatePicker();
+
+        const btn = list.querySelector('.cb-template-picker__item-btn');
+        expect(btn.disabled).toBe(true);
+        expect(btn.title).toMatch(/content schema/i);
+        expect(btn.title).not.toMatch(/block type/i);
+    });
+
     it('shows a delete button only when the template is manageable', async () => {
         global.fetch = vi.fn(() => okJson({
             items: [

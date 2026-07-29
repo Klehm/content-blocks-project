@@ -90,6 +90,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   import ignores it and stamps the target with the local version, since a version
   number means something only inside the installation that issued it. Reference
   migration `Version20260729120000` in both sandboxes.
+- **`ContentVersionUpgraderInterface` — what to do with content from an older
+  schema generation.** Section templates are the one place where a stored version
+  is comparable (the number came from this same installation), so that is where
+  the seam applies: `supports(?int $stored, int $current)` is called once per row
+  when listing the library, so the picker greys out what the host refuses instead
+  of letting an editor click into an error, and `upgrade(array $payload, …)` runs
+  on the way in. Upgrading is **transient** — what the host returns is
+  instantiated, the stored row is untouched; a permanent rewrite is a migration.
+  The shipped `DenyOnMismatchUpgrader` refuses a *known* mismatch and accepts
+  `null`: every row written before versioning carries null, and refusing those
+  would make a host's whole library unusable the day they upgrade. Import does
+  not consult the seam — an imported payload's version belongs to the app that
+  exported it; hosts controlling both ends can decorate
+  `ContentAreaImporterInterface` instead.
+- **`ContentVersionUpgraderInterface` — what to do with content from an older
+  schema generation.** Section templates are the one place where a stored version
+  is comparable (the number came from this same installation), so that is where
+  the seam applies: `supports(?int $stored, int $current)` is called once per row
+  when listing the library, so the picker greys out what the host refuses instead
+  of letting an editor click into an error, and `upgrade(array $payload, …)` runs
+  on the way in. Upgrading is **transient** — what the host returns is
+  instantiated, the stored row is untouched; a permanent rewrite is a migration.
+  The shipped `DenyOnMismatchUpgrader` refuses a *known* mismatch and accepts
+  `null`: every row written before versioning carries null, and refusing those
+  would make a host's whole library unusable the day they upgrade. Import does
+  not consult the seam — an imported payload's version belongs to the app that
+  exported it; hosts controlling both ends can decorate
+  `ContentAreaImporterInterface` instead.
 - **Per-block form extension API.** Hosts can now add fields to the edit form of
   one (or several) block types without subclassing. Implement
   `ContentBlocks\Form\Extension\BlockFormExtensionInterface` (`buildForm($builder, $data, $blockType)`)

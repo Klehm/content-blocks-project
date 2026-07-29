@@ -15,6 +15,8 @@ use ContentBlocks\SectionTemplate\SectionTemplateInstantiatorInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
 use ContentBlocks\SectionTemplate\UnsupportedTemplateFormatException;
+use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
+use ContentBlocks\Versioning\IncompatibleContentVersionException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -59,6 +61,7 @@ final class SectionTemplateController
         private readonly SectionTemplateInstantiatorInterface $instantiator,
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly ContentVersionUpgraderInterface $versionUpgrader,
         private readonly int $contentVersion = 1,
     ) {
     }
@@ -122,7 +125,8 @@ final class SectionTemplateController
      *  - `skippedTypes` — block types this build no longer has. The template is
      *    still insertable, minus those blocks; the UI says so before the click.
      *  - `insertable` — false only when nothing would come in: an unreadable
-     *    payload envelope, or every one of its block types gone.
+     *    payload envelope, every one of its block types gone, or a schema
+     *    generation the ContentVersionUpgrader will not accept.
      */
     #[Route(
         '/area/{id}/section-templates',
@@ -168,12 +172,14 @@ final class SectionTemplateController
             $readable = $this->hasReadableFormat($template);
             $declared = $template->getBlockTypes();
             $allGone = $declared !== [] && \count($missing) === \count($declared);
+            $versionOk = $this->versionUpgrader->supports($template->getContentVersion(), $this->contentVersion);
             $items[] = [
                 'id' => $template->getId(),
                 'name' => $template->getName(),
-                'insertable' => $readable && !$allGone,
+                'insertable' => $readable && !$allGone && $versionOk,
                 'skippedTypes' => $missing,
                 'unreadableFormat' => !$readable,
+                'staleVersion' => !$versionOk,
                 'canManage' => $this->templateManager->canManage(),
                 'createdAt' => $template->getCreatedAt()->format(\DateTimeInterface::ATOM),
             ];
@@ -218,7 +224,22 @@ final class SectionTemplateController
         }
 
         try {
-            $result = $this->instantiator->instantiate($template->getPayload());
+            // Upgrading is transient: what comes back is instantiated, never
+            // written back to the row. A permanent rewrite is a migration.
+            $payload = $this->versionUpgrader->upgrade(
+                $template->getPayload(),
+                $template->getContentVersion(),
+                $this->contentVersion,
+            );
+            $result = $this->instantiator->instantiate($payload);
+        } catch (IncompatibleContentVersionException $e) {
+            // Backstop: list() already rules these out, so reaching here means
+            // a stale picker or a hand-crafted request.
+            return new JsonResponse([
+                'error' => 'incompatible_content_version',
+                'storedVersion' => $e->getStoredVersion(),
+                'currentVersion' => $e->getCurrentVersion(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (IncompatibleTemplateException $e) {
             return new JsonResponse([
                 'error' => 'incompatible_template',

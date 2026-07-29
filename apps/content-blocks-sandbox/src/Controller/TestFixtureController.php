@@ -53,7 +53,10 @@ final class TestFixtureController
             ->setBlockTypes(array_values(array_filter(
                 (array) ($body['blockTypes'] ?? []),
                 is_string(...),
-            )));
+            )))
+            // Explicit so a spec can stage a snapshot from an older schema
+            // generation; omit it for "predates versioning".
+            ->setContentVersion(is_int($body['contentVersion'] ?? null) ? $body['contentVersion'] : null);
 
         $this->em->persist($template);
         $this->em->flush();

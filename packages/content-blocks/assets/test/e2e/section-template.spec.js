@@ -171,11 +171,12 @@ test.describe('section-template library — round trip', () => {
  * get a payload this build cannot fully use, since saving snapshots real,
  * registered blocks. Backed by the sandbox's debug-only fixture route.
  */
-async function stageTemplate(page, { name, blocks, blockTypes, format = 'content-blocks/section-v1' }) {
+async function stageTemplate(page, { name, blocks, blockTypes, format = 'content-blocks/section-v1', contentVersion = null }) {
     const response = await page.request.post('/test-fixtures/section-template', {
         data: {
             name,
             blockTypes,
+            contentVersion,
             payload: {
                 format,
                 layout: 'full',
@@ -246,6 +247,48 @@ test.describe('section-template library — partially usable templates', () => {
         await expect(row.locator('.cb-template-picker__item-btn')).toBeDisabled();
         await expect(row).toHaveClass(/cb-template-picker__item--disabled/);
         await expect(row.locator('.cb-template-picker__item-btn')).toHaveAttribute('title', /countdown/);
+    });
+
+    test('a template from an older content generation cannot be inserted', async ({ page }) => {
+        // The sandbox runs content_version 1 (the default), so a snapshot
+        // stamped 0… is impossible (min is 1) — stage one at 2, i.e. content
+        // written by a deploy that has since been rolled back. Either way the
+        // generations differ and DenyOnMismatchUpgrader refuses.
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            blockTypes: ['title'],
+            blocks: [{ type: 'title', data: { text: 'From another generation', size: 'h2', tag: 'h2', color: '' } }],
+            contentVersion: 2,
+        });
+
+        const { picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        const btn = picker.locator('.cb-template-picker__item-btn').first();
+        await expect(btn).toBeDisabled();
+        await expect(btn).toHaveAttribute('title', /schéma de contenu|content schema/i);
+    });
+
+    test('a template that predates versioning is still insertable', async ({ page }) => {
+        // Every row written before versioning existed carries null. Refusing
+        // those would make an upgrading host's whole library unusable.
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            blockTypes: ['title'],
+            blocks: [{ type: 'title', data: { text: 'Legacy but fine', size: 'h2', tag: 'h2', color: '' } }],
+            contentVersion: null,
+        });
+
+        const { frame, picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+        await picker.locator('.cb-template-picker__item-btn').first().click();
+
+        await expect(picker).toBeHidden();
+        await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
     });
 
     test('a template saved under an unreadable envelope cannot be inserted', async ({ page }) => {

@@ -386,6 +386,42 @@ A section template has no such caveat: a snapshot is frozen, so its stamp keeps 
 
 An export payload carries the emitting app's `contentVersion` too, but purely for information: a version number means something only inside the installation that issued it, so importing stamps the target with your **local** version instead.
 
+### Deciding what happens to older content
+
+Section templates are the one place where a stored version is comparable — the number came from this same installation. What to do about a mismatch is yours to decide, through `ContentVersionUpgraderInterface`:
+
+```php
+use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
+
+final class MyUpgrader implements ContentVersionUpgraderInterface
+{
+    public function supports(?int $stored, int $current): bool
+    {
+        return $stored === null || $stored >= 2;   // cheap: drives the picker
+    }
+
+    public function upgrade(array $payload, ?int $stored, int $current): array
+    {
+        if ($stored === 2) {
+            $payload = $this->renameSubtitleToKicker($payload);
+        }
+
+        return $payload;   // transient — the stored row is never rewritten
+    }
+}
+```
+
+```yaml
+# config/services.yaml
+ContentBlocks\Versioning\ContentVersionUpgraderInterface: '@App\ContentBlocks\MyUpgrader'
+```
+
+`supports()` is called once per row when listing the library, so the picker greys out what you refuse instead of letting an editor click into an error; `upgrade()` runs only on the way in. Upgrading is **transient**: what you return is instantiated, the template row is untouched. Rewriting it for good is a migration, and stays your call.
+
+The shipped default, `DenyOnMismatchUpgrader`, refuses a **known** mismatch and accepts `null`. That asymmetry is deliberate: every row written before versioning existed carries `null`, and refusing those would make your whole library unusable the day you upgrade.
+
+Import does not consult this seam — a payload's version belongs to the app that exported it. If you control both ends of a transfer and want to gate it, decorate `ContentAreaImporterInterface`.
+
 ## Styling sections and blocks
 
 Each section's settings sidebar carries a **Styling** group with padding, margin (per viewport), background color, min-height and alignment. Block edit forms carry the same group with padding, margin, background color and max-width.

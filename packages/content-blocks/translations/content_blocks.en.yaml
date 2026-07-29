@@ -115,6 +115,7 @@ cb:
             incompatible: "Unavailable — none of its block types exist here: %types%"
             partial: "%count% block(s) will be skipped — missing type(s): %types%"
             unreadable_format: "Unavailable — saved by an incompatible version of the section library"
+            stale_version: "Unavailable — saved under an older version of your content schema"
             skipped_blocks: "Inserted — %count% block(s) skipped, missing type(s): %types%"
             warnings: "Inserted, but some stored fields no longer exist on: %types%"
             delete: "Delete template"

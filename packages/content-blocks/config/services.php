@@ -31,6 +31,8 @@ use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiatorInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
+use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
+use ContentBlocks\Versioning\DenyOnMismatchUpgrader;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
@@ -151,6 +153,14 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(SectionTemplateInstantiatorInterface::class, SectionTemplateInstantiator::class);
     $services->set(DenyAllSectionTemplateManager::class);
     $services->alias(SectionTemplateManagerInterface::class, DenyAllSectionTemplateManager::class);
+
+    // Content-version seam: what to do with stored content from another schema
+    // generation of the *host's* own making. The package cannot know what
+    // changed between two host versions, so the default refuses a known
+    // mismatch (and accepts null, which only means "predates versioning").
+    // Hosts alias this to migrate on read, or to be stricter.
+    $services->set(DenyOnMismatchUpgrader::class);
+    $services->alias(ContentVersionUpgraderInterface::class, DenyOnMismatchUpgrader::class);
 
     // Replace flow: default provider is usable out of the box; hosts
     // override by aliasing ContentAreaProviderInterface to their own

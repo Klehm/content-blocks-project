@@ -115,6 +115,7 @@ cb:
             incompatible: "Indisponible — aucun de ses types de bloc n'existe ici : %types%"
             partial: "%count% bloc(s) seront ignorés — type(s) manquant(s) : %types%"
             unreadable_format: "Indisponible — enregistré par une version incompatible de la bibliothèque de sections"
+            stale_version: "Indisponible — enregistré sous une version antérieure de votre schéma de contenu"
             skipped_blocks: "Inséré — %count% bloc(s) ignorés, type(s) manquant(s) : %types%"
             warnings: "Inséré, mais certains champs enregistrés n'existent plus sur : %types%"
             delete: "Supprimer le modèle"

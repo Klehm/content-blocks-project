@@ -18,6 +18,8 @@ use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiatorInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
+use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
+use ContentBlocks\Versioning\DenyOnMismatchUpgrader;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -46,6 +48,7 @@ final class ServiceSeamAliasesTest extends TestCase
         yield 'importer' => [ContentAreaImporterInterface::class, ContentAreaImporter::class];
         yield 'template serializer' => [SectionTemplateSerializerInterface::class, SectionTemplateSerializer::class];
         yield 'template instantiator' => [SectionTemplateInstantiatorInterface::class, SectionTemplateInstantiator::class];
+        yield 'content version upgrader' => [ContentVersionUpgraderInterface::class, DenyOnMismatchUpgrader::class];
     }
 
     /**

@@ -1485,19 +1485,28 @@ export default class extends Controller {
         const skipped = Array.isArray(item.skippedTypes) ? item.skippedTypes : [];
 
         if (item.insertable === false) {
-            // Nothing would come in: either the payload envelope predates this
-            // build, or every one of its block types is gone. Disable, and say
-            // which of the two it is.
+            // Nothing would come in. Three distinct reasons, and they are not
+            // interchangeable to whoever has to act on them: the payload
+            // envelope predates this build (our problem), its block types are
+            // gone (a blocks problem), or its schema generation is one the host
+            // has not taught us to read (a migration problem).
             btn.disabled = true;
-            btn.title = item.unreadableFormat
-                ? this._t(
+            if (item.unreadableFormat) {
+                btn.title = this._t(
                     'cb.builder.template.unreadable_format',
                     'Unavailable — saved by an incompatible version of the section library',
-                )
-                : this._t(
+                );
+            } else if (item.staleVersion) {
+                btn.title = this._t(
+                    'cb.builder.template.stale_version',
+                    'Unavailable — saved under an older version of your content schema',
+                );
+            } else {
+                btn.title = this._t(
                     'cb.builder.template.incompatible',
                     'Unavailable — none of its block types exist here: %types%',
                 ).replace('%types%', skipped.join(', '));
+            }
             li.classList.add('cb-template-picker__item--disabled');
         } else {
             // Partially usable templates stay clickable — the editor is warned

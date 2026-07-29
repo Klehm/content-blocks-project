@@ -13,6 +13,8 @@ use ContentBlocks\SectionTemplate\DenyAllSectionTemplateManager;
 use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
+use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
+use ContentBlocks\Versioning\DenyOnMismatchUpgrader;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -29,6 +31,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
         bool $csrfValid = true,
         ?AccessCheckerInterface $accessChecker = null,
         ?SectionTemplateManagerInterface $manager = null,
+        ?ContentVersionUpgraderInterface $upgrader = null,
     ): SectionTemplateController {
         return new SectionTemplateController(
             $em,
@@ -38,6 +41,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
             new SectionTemplateInstantiator($this->makeRegistry(), $this->makeDataKeys()),
             $this->makeRegistry(),
             $this->makeCsrfManager($csrfValid),
+            $upgrader ?? new DenyOnMismatchUpgrader(),
             5,
         );
     }
@@ -172,6 +176,75 @@ final class SectionTemplateControllerTest extends ControllerTestCase
         $this->assertSame(1, $payload['skippedBlockCount']);
         $this->assertSame(['ghost'], $payload['skippedBlockTypes']);
         $this->assertCount(1, $this->persisted);
+    }
+
+    public function testInsertRejectsAStaleContentVersionWith422(): void
+    {
+        $area = $this->makeArea(1);
+        $template = $this->makeTemplate(7, $this->payloadWith([
+            ['type' => 'fake', 'data' => ['content' => 'x']],
+        ]), ['fake']);
+        // Controller runs generation 5; this snapshot was taken under 3.
+        $template->setContentVersion(3);
+
+        $controller = $this->makeController($this->makeEm([$area, $template]));
+
+        $response = $controller->insert(1, 7, $this->makeJsonRequest());
+
+        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        $payload = json_decode((string) $response->getContent(), true);
+        $this->assertSame('incompatible_content_version', $payload['error']);
+        $this->assertSame(3, $payload['storedVersion']);
+        $this->assertSame(5, $payload['currentVersion']);
+        $this->assertCount(0, $this->persisted);
+    }
+
+    public function testAHostUpgraderCanMigrateThePayloadOnRead(): void
+    {
+        // The whole point of the seam: the host knows what changed between its
+        // own generations, so it can rewrite the payload on the way in. The
+        // rewrite is transient — the stored row is untouched.
+        $area = $this->makeArea(1);
+        $stored = $this->payloadWith([['type' => 'fake', 'data' => ['legacyContent' => 'hello']]]);
+        $template = $this->makeTemplate(7, $stored, ['fake']);
+        $template->setContentVersion(3);
+
+        $upgrader = new class implements ContentVersionUpgraderInterface {
+            public function supports(?int $stored, int $current): bool
+            {
+                return true;
+            }
+
+            public function upgrade(array $payload, ?int $stored, int $current): array
+            {
+                foreach ($payload['columns'] as $c => $column) {
+                    foreach ($column['blocks'] as $b => $block) {
+                        $data = $block['data'];
+                        if (isset($data['legacyContent'])) {
+                            $data['content'] = $data['legacyContent'];
+                            unset($data['legacyContent']);
+                        }
+                        $payload['columns'][$c]['blocks'][$b]['data'] = $data;
+                    }
+                }
+
+                return $payload;
+            }
+        };
+
+        $controller = $this->makeController($this->makeEm([$area, $template]), upgrader: $upgrader);
+
+        $response = $controller->insert(1, 7, $this->makeJsonRequest());
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $inserted = $this->persisted[0];
+        $block = $inserted->getColumns()->first()->getBlocks()->first();
+        $this->assertSame(['content' => 'hello'], $block->getDraftData(), 'the upgraded payload was instantiated');
+        $this->assertSame(
+            ['legacyContent' => 'hello'],
+            $template->getPayload()['columns'][0]['blocks'][0]['data'],
+            'the stored row is untouched — a permanent rewrite is a migration',
+        );
     }
 
     public function testInsertRejectsATemplateWhoseBlocksAreAllGoneWith422(): void
