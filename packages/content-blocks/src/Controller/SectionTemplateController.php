@@ -59,6 +59,7 @@ final class SectionTemplateController
         private readonly SectionTemplateInstantiatorInterface $instantiator,
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly int $contentVersion = 1,
     ) {
     }
 
@@ -103,7 +104,10 @@ final class SectionTemplateController
         $template = (new SectionTemplate())
             ->setName($name)
             ->setPayload($snapshot->payload)
-            ->setBlockTypes($snapshot->blockTypes);
+            ->setBlockTypes($snapshot->blockTypes)
+            // A snapshot is frozen, so unlike an area's, this stamp keeps
+            // describing its payload for as long as the row lives.
+            ->setContentVersion($this->contentVersion);
 
         $this->em->persist($template);
         $this->em->flush();

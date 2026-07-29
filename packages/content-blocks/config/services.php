@@ -44,6 +44,11 @@ return static function (ContainerConfigurator $container): void {
     // ('full' or 'centered'); `default_max_width` is the cap applied once
     // a section is centered.
     $container->parameters()
+        // Schema generation of the host's block data; normally fed by the
+        // bundle's semantic config (`content_blocks.content_version`). Stamped
+        // onto content as it is written so hosts can target what predates a
+        // change of their own making.
+        ->set('content_blocks.content_version', 1)
         ->set('content_blocks.section.default_width_mode', 'full')
         ->set('content_blocks.section.default_max_width', 1320)
         // List of {label, color} entries; normally fed by the bundle's
@@ -76,6 +81,10 @@ return static function (ContainerConfigurator $container): void {
         // and SectionSettingsType.
         ->bind('int $defaultMaxWidth', '%content_blocks.section.default_max_width%')
         ->bind('string $defaultWidthMode', '%content_blocks.section.default_width_mode%')
+        // Host-owned schema generation of block data: consumed by the exporter
+        // (stamps the payload) and by SectionTemplateController (stamps a
+        // snapshot). ContentAreaTouchListener takes it positionally.
+        ->bind('int $contentVersion', '%content_blocks.content_version%')
         // Upload limits: consumed by UploadController.
         ->bind('int $uploadMaxSize', '%content_blocks.upload.max_size%')
         ->bind('array $uploadAllowedMimeTypes', '%content_blocks.upload.allowed_mime_types%');
@@ -154,6 +163,7 @@ return static function (ContainerConfigurator $container): void {
     // depend on DoctrineBundle's #[AsDoctrineListener] attribute at the
     // composer level (DoctrineBundle is a host concern).
     $services->set(ContentAreaTouchListener::class)
+        ->args(['%content_blocks.content_version%'])
         ->tag('doctrine.event_listener', ['event' => 'onFlush']);
 
     // ---------- Section settings extension hooks ----------

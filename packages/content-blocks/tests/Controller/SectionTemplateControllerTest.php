@@ -38,6 +38,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
             new SectionTemplateInstantiator($this->makeRegistry(), $this->makeDataKeys()),
             $this->makeRegistry(),
             $this->makeCsrfManager($csrfValid),
+            5,
         );
     }
 
@@ -83,6 +84,8 @@ final class SectionTemplateControllerTest extends ControllerTestCase
         $this->assertSame('My hero', $template->getName(), 'name is trimmed');
         $this->assertSame(['fake'], $template->getBlockTypes());
         $this->assertSame('two_cols', $template->getPayload()['layout']);
+        // A snapshot is frozen, so its stamp keeps describing its payload.
+        $this->assertSame(5, $template->getContentVersion());
         $this->assertSame(1, $this->flushCount);
     }
 

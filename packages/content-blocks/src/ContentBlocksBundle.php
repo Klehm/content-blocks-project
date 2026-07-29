@@ -53,6 +53,11 @@ final class ContentBlocksBundle extends AbstractBundle
         // @phpstan-ignore-next-line method.notFound (ArrayNodeDefinition is the concrete root)
         $definition->rootNode()
             ->children()
+                ->integerNode('content_version')
+                    ->info('Schema generation of YOUR block data. Bump it whenever anything that shapes stored block data changes — your own blocks, a kit upgrade, or a core upgrade note saying so. Stamped onto content as it is written, so you can target what predates a change: WHERE content_version < N.')
+                    ->min(1)
+                    ->defaultValue(1)
+                ->end()
                 ->arrayNode('section')
                     ->addDefaultsIfNotSet()
                     ->children()
@@ -211,6 +216,7 @@ final class ContentBlocksBundle extends AbstractBundle
         // still win: MergeExtensionConfigurationPass re-applies the app's
         // parameters on top of extension-set ones.
         $container->parameters()
+            ->set('content_blocks.content_version', $config['content_version'])
             ->set('content_blocks.section.default_width_mode', $config['section']['default_width_mode'])
             ->set('content_blocks.section.default_max_width', $config['section']['default_max_width'])
             ->set('content_blocks.palette', $config['palette'])

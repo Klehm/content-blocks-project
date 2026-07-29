@@ -997,6 +997,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     },
  * }
  * @psalm-type ContentBlocksConfig = array{
+ *     content_version?: int|Param, // Schema generation of YOUR block data. Bump it whenever anything that shapes stored block data changes — your own blocks, a kit upgrade, or a core upgrade note saying so. Stamped onto content as it is written, so you can target what predates a change: WHERE content_version < N. // Default: 1
  *     section?: array{
  *         default_width_mode?: "full"|"centered"|Param, // Default: "full"
  *         default_max_width?: int|Param, // Default: 1320

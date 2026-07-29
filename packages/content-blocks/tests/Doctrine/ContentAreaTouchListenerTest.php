@@ -22,6 +22,42 @@ final class ContentAreaTouchListenerTest extends TestCase
     /** @var list<int> */
     private array $deletedIds = [];
 
+    public function testStampsTheConfiguredContentVersionAlongsideUpdatedAt(): void
+    {
+        $area = new ContentArea();
+        $section = (new Section())->setLayout(Section::LAYOUT_FULL);
+        $area->addSection($section);
+
+        $this->assertNull($area->getContentVersion(), 'unwritten content has no version');
+
+        (new ContentAreaTouchListener(7))->onFlush(
+            $this->makeArgs(inserts: [$section], updates: [], deletes: []),
+        );
+
+        $this->assertSame(7, $area->getContentVersion());
+    }
+
+    public function testTheStampMovesToTheCurrentVersionOnAnyWrite(): void
+    {
+        // The documented caveat of the "last written under" semantics: editing
+        // one block re-stamps the whole area, even though its other blocks keep
+        // whatever shape they had. Migrate before editors resume.
+        $area = new ContentArea();
+        $section = (new Section())->setLayout(Section::LAYOUT_FULL);
+        $area->addSection($section);
+        $column = new Column();
+        $section->addColumn($column);
+        $block = (new Block())->setType('text');
+        $column->addBlock($block);
+        $area->setContentVersion(3);
+
+        (new ContentAreaTouchListener(8))->onFlush(
+            $this->makeArgs(inserts: [], updates: [$block], deletes: []),
+        );
+
+        $this->assertSame(8, $area->getContentVersion());
+    }
+
     public function testTouchesAreaWhenChildBlockIsUpdated(): void
     {
         $area = new ContentArea();

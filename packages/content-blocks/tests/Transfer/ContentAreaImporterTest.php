@@ -273,6 +273,23 @@ final class ContentAreaImporterTest extends TestCase
         $this->assertCount(0, $target->getSections()[0]->getColumns()[0]->getBlocks());
     }
 
+    public function testTheIncomingContentVersionIsIgnored(): void
+    {
+        // A version number means something only inside the app that issued it:
+        // "12" there and "12" here have no relation. The target gets stamped
+        // with the LOCAL version by ContentAreaTouchListener on flush, so the
+        // importer must not carry the foreign one over.
+        $target = new ContentArea();
+        $target->setContentVersion(4);
+
+        $payload = $this->makePayload([['layout' => Section::LAYOUT_FULL, 'columns' => []]]);
+        $payload['contentVersion'] = 99;
+
+        $this->importer()->import($target, $payload);
+
+        $this->assertSame(4, $target->getContentVersion(), 'untouched by the payload');
+    }
+
     public function testExportImportRoundTripPreservesTheTree(): void
     {
         // Build a source area, export it, import into a fresh target, and

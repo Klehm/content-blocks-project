@@ -71,6 +71,16 @@ on `cb_content_area.updated_at` (auto-touched by `ContentAreaTouchListener`). Ad
 that column too if your schema predates it — reference migration
 `Version20260518120000` in the sandboxes.
 
+### 1d. Content-version columns — `Version20260729120000`
+
+Adds `cb_content_area.content_version` and `cb_section_template.content_version`,
+both nullable and left `NULL`. They carry the host-owned
+`content_blocks.content_version` (default `1`), stamped as content is written so
+that *your* later migrations can target what predates a change of your own
+making. See *Content versioning* in the package README for what the number does
+and does not guarantee — in particular, `NULL` means "predates versioning" and is
+not the same as `0`.
+
 ```bash
 # after copying the migration(s) into your app and fixing the namespace
 php bin/console doctrine:migrations:migrate
@@ -283,8 +293,9 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
 
 ## Checklist
 
-- [ ] Copy + re-namespace `Version20260715120000` (kit data keys) and
-      `Version20260715130000` (styling viewports); run `doctrine:migrations:migrate`.
+- [ ] Copy + re-namespace `Version20260715120000` (kit data keys),
+      `Version20260715130000` (styling viewports) and `Version20260729120000`
+      (content-version columns); run `doctrine:migrations:migrate`.
 - [ ] (Pre-beta.6 only) add `cb_content_area.updated_at` via `Version20260518120000`.
 - [ ] Rename `content_blocks.styles` → `section_styles`.
 - [ ] Spell out `d`/`t`/`m` → `desktop`/`tablet`/`mobile` in any preset `settings`.

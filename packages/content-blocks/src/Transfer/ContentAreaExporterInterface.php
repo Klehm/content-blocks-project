@@ -37,8 +37,15 @@ interface ContentAreaExporterInterface
      * reference that cannot be read keeps its original path, so the import side
      * sees a broken reference rather than a silently dropped field.
      *
+     * The payload also carries the emitting app's `contentVersion` (the
+     * host-owned `content_blocks.content_version`). It is **informative**: a
+     * version number means something only inside the installation that issued
+     * it, so {@see ContentAreaImporterInterface} ignores it and stamps the
+     * target with the *local* version instead.
+     *
      * @return array{
      *     format: string,
+     *     contentVersion: int,
      *     exportedAt: string,
      *     contentArea: array{sections: list<array<string, mixed>>},
      *     assets: array<string, array{mimeType: string, extension: string, data: string}>

@@ -360,6 +360,32 @@ use ContentBlocks\Form\Type\ImageUploadType;
 $builder->add('src', ImageUploadType::class);
 ```
 
+## Content versioning (`content_blocks.content_version`)
+
+The shape of what a block stores is decided by its **block type** — yours, or the kit's — not by this package. So the schema generation of your content is yours to declare:
+
+```yaml
+# config/packages/content_blocks.yaml
+content_blocks:
+    content_version: 1   # bump when anything that shapes your block data changes
+```
+
+Bump it whenever your own blocks change their stored keys, when a kit upgrade renames some, or when a core upgrade note says so. As content is written, the current value is stamped onto `cb_content_area.content_version` (and onto `cb_section_template.content_version` when a snapshot is saved), so a later migration can find what predates the change:
+
+```sql
+SELECT id FROM cb_content_area WHERE content_version < 2 OR content_version IS NULL;
+```
+
+::: warning What the number means — and does not
+It records the version the area was last **written** under, not that every block in it conforms. Editing a single block re-stamps the whole area while its other blocks keep whatever shape they had — so **run your migration before letting editors work on the new version**, otherwise they quietly remove areas from your own `WHERE content_version < N`.
+
+A section template has no such caveat: a snapshot is frozen, so its stamp keeps describing its payload.
+
+`NULL` means "predates versioning" — decide explicitly what to do with those rows; it is not the same as `0`.
+:::
+
+An export payload carries the emitting app's `contentVersion` too, but purely for information: a version number means something only inside the installation that issued it, so importing stamps the target with your **local** version instead.
+
 ## Styling sections and blocks
 
 Each section's settings sidebar carries a **Styling** group with padding, margin (per viewport), background color, min-height and alignment. Block edit forms carry the same group with padding, margin, background color and max-width.

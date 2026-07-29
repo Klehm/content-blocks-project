@@ -73,6 +73,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Host-owned content versioning (`content_blocks.content_version`).** The shape
+  of stored block data is decided by the block types — the host's and the kit's —
+  not by this package, so the schema generation of that content is now a host
+  config value (int, default `1`). It is stamped onto `cb_content_area.content_version`
+  as content is written (by the same onFlush listener that touches `updatedAt`),
+  and onto `cb_section_template.content_version` when a snapshot is saved, so a
+  host migration can target what predates a change of its own making:
+  `WHERE content_version < N OR content_version IS NULL`.
+  Read the area column as *"last written under version N"*, not *"conforms to
+  version N"*: editing one block re-stamps the whole area while its other blocks
+  keep whatever shape they had, so migrate before letting editors work on a new
+  version. A section template carries no such caveat — a snapshot is frozen.
+  `NULL` means "predates versioning" and is deliberately distinct from `0`.
+  Export payloads carry the emitting app's `contentVersion` for information only;
+  import ignores it and stamps the target with the local version, since a version
+  number means something only inside the installation that issued it. Reference
+  migration `Version20260729120000` in both sandboxes.
 - **Per-block form extension API.** Hosts can now add fields to the edit form of
   one (or several) block types without subclassing. Implement
   `ContentBlocks\Form\Extension\BlockFormExtensionInterface` (`buildForm($builder, $data, $blockType)`)

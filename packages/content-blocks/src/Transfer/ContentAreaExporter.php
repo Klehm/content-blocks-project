@@ -19,6 +19,7 @@ final class ContentAreaExporter implements ContentAreaExporterInterface
 {
     public function __construct(
         private readonly AssetResolverInterface $assetResolver,
+        private readonly int $contentVersion = 1,
     ) {
     }
 
@@ -39,6 +40,10 @@ final class ContentAreaExporter implements ContentAreaExporterInterface
 
         return [
             'format' => self::FORMAT,
+            // Informative only: a content version belongs to the app that
+            // issued it, so the importer on the other side ignores it. See
+            // ContentAreaExporterInterface.
+            'contentVersion' => $this->contentVersion,
             'exportedAt' => (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),
             'contentArea' => [
                 'sections' => $exportedSections,

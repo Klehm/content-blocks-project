@@ -87,6 +87,7 @@ final class ContentAreaExporterTest extends TestCase
         $payload = (new ContentAreaExporter($this->makeResolver()))->export($area);
 
         $this->assertSame(ContentAreaExporter::FORMAT, $payload['format']);
+        $this->assertSame(1, $payload['contentVersion'], 'default when the host configures none');
         $this->assertArrayHasKey('exportedAt', $payload);
         $sections = $payload['contentArea']['sections'];
         $this->assertCount(1, $sections);

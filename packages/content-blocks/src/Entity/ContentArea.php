@@ -26,6 +26,23 @@ class ContentArea
     #[ORM\Column(name: 'updated_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
+    /**
+     * Schema generation this area's content was last **written** under — the
+     * host-owned `content_blocks.content_version`, stamped by the same onFlush
+     * listener as `updatedAt`.
+     *
+     * Read it as "last written under version N", not "conforms to version N".
+     * Editing one block re-stamps the whole area while its other blocks keep
+     * whatever shape they had, so the value is a targeting index for migrations
+     * (`WHERE content_version < N` finds what certainly predates a change), not
+     * a guarantee. Migrate before letting editors work on a new version.
+     *
+     * `null` means the row predates versioning — treat it as "unknown", never
+     * as 0.
+     */
+    #[ORM\Column(name: 'content_version', type: 'integer', nullable: true)]
+    private ?int $contentVersion = null;
+
     /** @var Collection<int, Section> */
     #[ORM\OneToMany(mappedBy: 'contentArea', targetEntity: Section::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['position' => 'ASC'])]
@@ -49,6 +66,18 @@ class ContentArea
     public function setUpdatedAt(?\DateTimeImmutable $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
+
+    public function getContentVersion(): ?int
+    {
+        return $this->contentVersion;
+    }
+
+    public function setContentVersion(?int $contentVersion): self
+    {
+        $this->contentVersion = $contentVersion;
 
         return $this;
     }

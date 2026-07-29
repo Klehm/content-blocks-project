@@ -44,6 +44,17 @@ class SectionTemplate
     #[ORM\Column(name: 'block_types', type: 'json')]
     private array $blockTypes = [];
 
+    /**
+     * Schema generation of the block data inside `payload` — the host-owned
+     * `content_blocks.content_version` at the moment the snapshot was taken.
+     *
+     * Unlike a ContentArea's, this one never moves: a snapshot is frozen by
+     * definition, so the value really does describe its payload. `null` means
+     * the row predates versioning — "unknown", never 0.
+     */
+    #[ORM\Column(name: 'content_version', type: 'integer', nullable: true)]
+    private ?int $contentVersion = null;
+
     #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
@@ -55,6 +66,18 @@ class SectionTemplate
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getContentVersion(): ?int
+    {
+        return $this->contentVersion;
+    }
+
+    public function setContentVersion(?int $contentVersion): self
+    {
+        $this->contentVersion = $contentVersion;
+
+        return $this;
     }
 
     public function getName(): string
