@@ -28,6 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on the canvas gutters. **Content rendering is untouched** — the preview iframe
   still draws the host's page from `content_blocks.palette` and the block
   styling settings, as it always did.
+
+  Captions — field labels, sidebar group titles, the block-picker header, the
+  box-spacing side names — now render small, uppercase and in `--cb-font-mono`.
+  A label names a control; setting it apart in *case and family*, not only in
+  size, is what lets the eye skip the labels when scanning a settings column for
+  a value. Checkbox and radio labels are deliberately excluded: those are the
+  sentence the user reads to decide, so they keep the host's body font. Labels
+  go back to sentence case with `--cb-form-label-transform: none` (see the
+  theming guide) — no fork needed.
 - **BREAKING — styling viewport keys `d`/`t`/`m` → `desktop`/`tablet`/`mobile`.**
   The responsive styling sub-tree (`styling.padding`/`margin`/`gap`) now spells out
   the viewport keys in stored data (section `draft_settings`/`published_settings`
@@ -144,6 +153,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   [Theming the builder chrome](https://klehm.github.io/content-blocks-project/guide/styling#theming-the-builder-chrome).
   `AssetController::builderCss()` now prepends the token file to the response,
   because the preview iframe is served raw and cannot resolve an `@import`.
+  Alongside the colors, the file carries the type tokens `--cb-font-mono`,
+  `--cb-caption-size`, `--cb-caption-size-sm` and `--cb-caption-tracking`.
 - **Host-owned content versioning (`content_blocks.content_version`).** The shape
   of stored block data is decided by the block types — the host's and the kit's —
   not by this package, so the schema generation of that content is now a host

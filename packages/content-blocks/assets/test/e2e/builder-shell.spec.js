@@ -254,6 +254,34 @@ test.describe('builder shell — sections', () => {
         await expect(sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]')).toBeHidden();
     });
 
+    test('sidebar captions render in the mono uppercase style, and check labels do not', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await openSectionSettings(page, frame);
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+
+        // A field label names its control: mono + uppercase, so the eye can
+        // skip it when scanning the column for a value.
+        const fieldLabel = sidebar.locator('.cb-form-label').first();
+        await expect(fieldLabel).toHaveCSS('text-transform', 'uppercase');
+        expect(await fieldLabel.evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(/mono/i);
+
+        // A checkbox label is the sentence the user reads to decide, so it
+        // stays in the host's body font. This exclusion is easy to undo by
+        // accident — a rule on `.cb-shell label` would swallow it.
+        const checkLabel = sidebar.locator('.cb-form-check__label').first();
+        await expect(checkLabel).toHaveCSS('text-transform', 'none');
+        expect(await checkLabel.evaluate((el) => getComputedStyle(el).fontFamily)).not.toMatch(/mono/i);
+
+        // The token is the documented override point: flipping it puts every
+        // label back to sentence case without touching the rule.
+        await page.locator('.cb-shell').evaluate((el) => {
+            el.style.setProperty('--cb-form-label-transform', 'none');
+        });
+        await expect(fieldLabel).toHaveCSS('text-transform', 'none');
+    });
+
     test('section settings save applies custom classes + width and the palette background', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);

@@ -52,6 +52,13 @@
     --cb-form-font-size: 0.875rem;
     --cb-form-font-size-sm: 0.8125rem;
     --cb-form-font-size-xs: 0.75rem;
+    /* Label typography, broken out so a host can opt back into sentence
+       case (`--cb-form-label-transform: none`) without forking the rule. */
+    --cb-form-label-font: var(--cb-font-mono);
+    --cb-form-label-size: var(--cb-caption-size);
+    --cb-form-label-color: var(--cb-muted);
+    --cb-form-label-transform: uppercase;
+    --cb-form-label-tracking: var(--cb-caption-tracking);
     --cb-form-line-height: 1.4;
     --cb-form-control-height: 30px;
     --cb-form-gap: 0.75rem;
@@ -90,14 +97,26 @@
     display: none;
 }
 
-/* ---- Label ---- */
+/* ---- Label ----
+ *
+ * Small uppercase mono: a label names its control, it is not content. The
+ * contrast in *case and family* — not just in size — is what lets the eye
+ * skip the labels when scanning a settings column for a value.
+ *
+ * Only labels that head a field get this. Checkbox and radio labels
+ * (`.cb-form-check__label`) are the sentence the user reads to decide, so
+ * they stay in the body font.
+ */
 .cb-shell .cb-form-label {
     display: inline-block;
-    margin: 0 0 0.25rem;
-    color: var(--cb-form-text);
-    font-size: var(--cb-form-font-size-sm);
+    margin: 0 0 0.3125rem;
+    color: var(--cb-form-label-color);
+    font-family: var(--cb-form-label-font);
+    font-size: var(--cb-form-label-size);
     font-weight: 500;
     line-height: var(--cb-form-line-height);
+    letter-spacing: var(--cb-form-label-tracking);
+    text-transform: var(--cb-form-label-transform);
 }
 .cb-shell .cb-form-label.required::after {
     content: "*";

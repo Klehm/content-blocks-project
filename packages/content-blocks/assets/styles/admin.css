@@ -518,11 +518,12 @@
 }
 .cb-import-export-picker__heading {
   margin: 0;
-  font-size: 0.85rem;
+  font-family: var(--cb-font-mono);
+  font-size: var(--cb-caption-size-sm);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--cb-muted);
+  letter-spacing: 0.14em;
+  color: var(--cb-faint);
 }
 .cb-import-export-picker__hint {
   margin: 0;
@@ -1094,11 +1095,14 @@
 
 .cb-sidebar__group-title {
   margin: 0 0 0.75rem;
-  color: var(--cb-muted);
-  font-size: 0.72rem;
+  color: var(--cb-faint);
+  font-family: var(--cb-font-mono);
+  font-size: var(--cb-caption-size-sm);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  /* Wider than a field label's: a group title sits one level above them,
+     and the extra tracking is what carries that rank at the same size. */
+  letter-spacing: 0.14em;
 }
 
 .cb-sidebar__group-body > :last-child {
@@ -1271,8 +1275,9 @@
 }
 
 .cb-box-spacing__label {
+  font-family: var(--cb-font-mono);
   font-size: 9px;
-  color: var(--cb-muted);
+  color: var(--cb-faint);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   text-align: center;

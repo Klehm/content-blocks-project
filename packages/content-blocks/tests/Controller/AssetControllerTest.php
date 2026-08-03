@@ -25,6 +25,10 @@ final class AssetControllerTest extends TestCase
 
         $this->assertIsString($css);
         $this->assertStringContainsString('--cb-accent-rgb:', $css, 'token definitions must be present');
+        // The in-preview popover header is a caption and reads --cb-font-mono.
+        // Nothing else defines that token inside the iframe, so if the type
+        // tokens ever move out of tokens.css the header silently loses it.
+        $this->assertStringContainsString('--cb-font-mono:', $css, 'type tokens must reach the iframe too');
         $this->assertStringContainsString('.cb-overlay-toolbar', $css, 'builder rules must be present');
         $this->assertLessThan(
             strpos($css, '.cb-overlay-toolbar'),
