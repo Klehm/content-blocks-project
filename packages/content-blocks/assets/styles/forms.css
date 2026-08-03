@@ -28,25 +28,27 @@
 }
 
 .cb-shell {
-    /* Design tokens — kept local so the rest of admin.css can opt-in
-       to the same variables without redefining them. Colors match the
-       neutral / blue palette already used by the shell chrome. */
-    --cb-form-text: #1f2330;
-    --cb-form-text-muted: #5b6478;
-    --cb-form-placeholder: #95a0b3;
-    --cb-form-bg: #fff;
-    --cb-form-bg-soft: #f5f6f8;
-    --cb-form-bg-disabled: #f3f4f7;
-    --cb-form-border: #d3d7e0;
-    --cb-form-border-hover: #b9bfc9;
-    --cb-form-border-focus: #4f8df9;
-    --cb-form-focus-ring: rgba(79, 141, 249, 0.18);
-    --cb-form-danger: #d83a3a;
-    --cb-form-danger-ring: rgba(216, 58, 58, 0.18);
-    --cb-form-success: #2e7d4f;
-    --cb-form-accent: #4f8df9;
-    --cb-form-radius: 6px;
-    --cb-form-radius-sm: 4px;
+    /* Form-widget aliases over the chrome tokens (tokens.css).
+       They stay as their own layer for two reasons: the ~900 rules below
+       already read them, and a host that wants inputs to differ from the
+       rest of the chrome can redeclare just these without touching the
+       shared palette. */
+    --cb-form-text: var(--cb-text);
+    --cb-form-text-muted: var(--cb-muted);
+    --cb-form-placeholder: var(--cb-faint);
+    --cb-form-bg: var(--cb-field-bg);
+    --cb-form-bg-soft: var(--cb-surface);
+    --cb-form-bg-disabled: var(--cb-panel-2);
+    --cb-form-border: var(--cb-line-strong);
+    --cb-form-border-hover: var(--cb-line-hover);
+    --cb-form-border-focus: var(--cb-accent);
+    --cb-form-focus-ring: rgba(var(--cb-accent-rgb), 0.18);
+    --cb-form-danger: var(--cb-danger);
+    --cb-form-danger-ring: rgba(var(--cb-danger-rgb), 0.18);
+    --cb-form-success: var(--cb-success);
+    --cb-form-accent: var(--cb-accent);
+    --cb-form-radius: var(--cb-radius-sm);
+    --cb-form-radius-sm: var(--cb-radius-xs);
     --cb-form-font-size: 0.875rem;
     --cb-form-font-size-sm: 0.8125rem;
     --cb-form-font-size-xs: 0.75rem;
@@ -172,7 +174,9 @@
     padding: 0.3125rem 1.75rem 0.3125rem 0.5rem;
     color: var(--cb-form-text);
     background-color: var(--cb-form-bg);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%235b6478' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    /* The chevron color is baked into the data URI — custom properties
+       cannot reach inside one. Keep %235d6a78 in step with --cb-muted. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%235d6a78' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.5rem center;
     background-size: 14px 14px;
@@ -225,12 +229,12 @@
     padding: 0;
 }
 .cb-shell .cb-form-control--color::-webkit-color-swatch {
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
+    border: 1px solid rgba(var(--cb-shadow-rgb), 0.1);
+    border-radius: var(--cb-radius-xs);
 }
 .cb-shell .cb-form-control--color::-moz-color-swatch {
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
+    border: 1px solid rgba(var(--cb-shadow-rgb), 0.1);
+    border-radius: var(--cb-radius-xs);
 }
 
 /* ---- Range slider ---- */
@@ -266,7 +270,7 @@
     height: 16px;
     border-radius: 50%;
     background: var(--cb-form-accent);
-    border: 2px solid #fff;
+    border: 2px solid var(--cb-panel);
     box-shadow: 0 0 0 1px var(--cb-form-border);
     cursor: pointer;
 }
@@ -275,7 +279,7 @@
     height: 16px;
     border-radius: 50%;
     background: var(--cb-form-accent);
-    border: 2px solid #fff;
+    border: 2px solid var(--cb-panel);
     box-shadow: 0 0 0 1px var(--cb-form-border);
     cursor: pointer;
 }
@@ -345,7 +349,7 @@
     display: flex;
     justify-content: space-between;
     margin-top: 2px;
-    color: #5b6478;
+    color: var(--cb-muted);
     font-size: 0.75rem;
     font-variant-numeric: tabular-nums;
 }
@@ -394,7 +398,7 @@
     transition: background-color 0.12s ease;
 }
 .cb-shell .cb-form-file:hover::file-selector-button {
-    background: #e9ecf2;
+    background: var(--cb-line);
 }
 
 /* ---- Checkbox / Radio ----
@@ -450,7 +454,7 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='m3 8 3.5 3.5L13 5'/%3E%3C/svg%3E");
 }
 .cb-shell .cb-form-check__input[type="radio"]:checked {
-    background-image: radial-gradient(circle, #fff 35%, transparent 38%);
+    background-image: radial-gradient(circle, var(--cb-on-solid) 35%, transparent 38%);
 }
 .cb-shell .cb-form-check__input[type="checkbox"]:indeterminate {
     background-color: var(--cb-form-accent);
@@ -630,29 +634,29 @@
 .cb-shell .cb-form-btn--primary {
     background: var(--cb-form-accent);
     border-color: var(--cb-form-accent);
-    color: #fff;
+    color: var(--cb-on-solid);
 }
 .cb-shell .cb-form-btn--primary:hover:not(:disabled) {
-    background: #3d7be7;
-    border-color: #3d7be7;
+    background: var(--cb-accent-strong);
+    border-color: var(--cb-accent-strong);
 }
 .cb-shell .cb-form-btn--success {
     background: var(--cb-form-success);
     border-color: var(--cb-form-success);
-    color: #fff;
+    color: var(--cb-on-solid);
 }
 .cb-shell .cb-form-btn--success:hover:not(:disabled) {
-    background: #266a42;
-    border-color: #266a42;
+    background: var(--cb-success-strong);
+    border-color: var(--cb-success-strong);
 }
 .cb-shell .cb-form-btn--danger {
     background: var(--cb-form-danger);
     border-color: var(--cb-form-danger);
-    color: #fff;
+    color: var(--cb-on-solid);
 }
 .cb-shell .cb-form-btn--danger:hover:not(:disabled) {
-    background: #b32f2f;
-    border-color: #b32f2f;
+    background: var(--cb-danger-strong);
+    border-color: var(--cb-danger-strong);
 }
 .cb-shell .cb-form-btn--sm {
     padding: 0.25rem 0.55rem;
@@ -678,7 +682,7 @@
 .cb-shell .cb-form-collection__item {
     position: relative;
     padding: 0.5rem;
-    background: var(--cb-form-bg-soft, #f6f7f9);
+    background: var(--cb-form-bg-soft, var(--cb-surface));
     border: 1px solid var(--cb-form-border);
     border-radius: var(--cb-form-radius);
 }
@@ -701,7 +705,7 @@
     height: 22px;
     padding: 0;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(var(--cb-on-solid-rgb), 0.9);
     border-color: var(--cb-form-border);
     color: var(--cb-form-danger);
     font-size: 16px;
@@ -711,7 +715,7 @@
 .cb-shell .cb-form-collection__delete:hover:not(:disabled) {
     background: var(--cb-form-danger);
     border-color: var(--cb-form-danger);
-    color: #fff;
+    color: var(--cb-on-solid);
 }
 .cb-shell .cb-form-collection__add-row {
     margin-top: 0.25rem;
@@ -734,7 +738,7 @@
     gap: 0.125rem;
     margin-bottom: 0.375rem;
     padding-right: 1.75rem;
-    color: var(--cb-form-muted, #8a91a0);
+    color: var(--cb-form-muted, var(--cb-faint));
 }
 .cb-shell .cb-form-collection__drag-handle {
     display: inline-flex;
@@ -770,7 +774,7 @@
     cursor: pointer;
 }
 .cb-shell .cb-form-collection__move:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(var(--cb-on-solid-rgb), 0.9);
     border-color: var(--cb-form-border);
     color: var(--cb-form-accent);
 }
@@ -785,7 +789,7 @@
 /* SortableJS drag affordances. */
 .cb-shell .cb-form-collection__item.sortable-ghost {
     opacity: 0.5;
-    background: var(--cb-form-bg-soft, #eef1f6);
+    background: var(--cb-form-bg-soft, var(--cb-line));
     border-style: dashed;
 }
 .cb-shell .cb-form-collection__item.sortable-chosen {
@@ -821,11 +825,11 @@
     display: none;
 }
 .cb-shell .cb-upload-status--uploading {
-    background: rgba(79, 141, 249, 0.12);
-    color: #2358b3;
+    background: rgba(var(--cb-accent-rgb), 0.12);
+    color: var(--cb-accent-darker);
 }
 .cb-shell .cb-upload-status--success {
-    background: rgba(46, 125, 79, 0.12);
+    background: rgba(var(--cb-success-rgb), 0.12);
     color: var(--cb-form-success);
 }
 .cb-shell .cb-upload-status--error {
@@ -856,10 +860,10 @@
 .cb-shell .cb-col-widths__preset {
     appearance: none;
     padding: 3px 8px;
-    background: #fff;
+    background: var(--cb-panel);
     border: 1px solid var(--cb-form-border);
     border-radius: var(--cb-form-radius-sm);
-    color: var(--cb-form-text, #3a4150);
+    color: var(--cb-form-text, var(--cb-text-2));
     font: inherit;
     font-size: 0.78rem;
     line-height: 1.3;
@@ -875,7 +879,7 @@
 .cb-shell .cb-col-widths__preset--active {
     border-color: var(--cb-form-accent);
     color: var(--cb-form-accent);
-    background: rgba(79, 141, 249, 0.08);
+    background: rgba(var(--cb-accent-rgb), 0.08);
 }
 .cb-shell .cb-col-widths__custom {
     display: flex;
@@ -905,20 +909,20 @@
     outline: none;
 }
 .cb-shell .cb-col-widths__pct {
-    color: var(--cb-form-muted, #8a91a0);
+    color: var(--cb-form-muted, var(--cb-faint));
     font-size: 0.8rem;
 }
 .cb-shell .cb-col-widths__sep {
-    color: var(--cb-form-muted, #8a91a0);
+    color: var(--cb-form-muted, var(--cb-faint));
 }
 .cb-shell .cb-col-widths__total {
     margin-left: auto;
     font-size: 0.78rem;
     font-weight: 600;
-    color: #2e7d46;
+    color: var(--cb-success);
 }
 .cb-shell .cb-col-widths__total--invalid {
-    color: #d83a3a;
+    color: var(--cb-danger);
 }
 
 /* ---- Visually-hidden helper ---- */

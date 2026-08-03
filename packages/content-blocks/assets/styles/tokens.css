@@ -1,0 +1,93 @@
+/* ContentBlocks — builder chrome design tokens
+ *
+ * The single source of truth for the admin UI's colors and geometry. Every
+ * rule in admin.css / forms.css / builder.css reads these variables rather
+ * than a literal, which is what makes the chrome reskinnable: change a value
+ * here and the whole builder follows.
+ *
+ * ---- Scope ----
+ *
+ * The selector list covers two documents, because the builder's CSS lives in
+ * both:
+ *
+ *  - `.cb-shell` / `.cb-launcher` / `.cb-builder-dialog` — the admin page.
+ *    `.cb-launcher` and the dialog sit *outside* the shell, so they need the
+ *    tokens in their own right.
+ *  - `:root` — the preview iframe. builder.css is served straight to the
+ *    host's public page by AssetController (no wrapper element exists there),
+ *    so the tokens have to land on the document root. Every name is
+ *    `--cb-`-prefixed for exactly that reason: they are custom properties in
+ *    someone else's page and must not collide.
+ *
+ * ---- Overriding ----
+ *
+ * These names are public surface: a host restyles the builder by redeclaring
+ * any of them at a more specific scope, without forking the stylesheets.
+ *
+ *     .cb-shell, .cb-launcher { --cb-accent: #7c3aed; }
+ *
+ * ---- What is NOT here ----
+ *
+ * Content styling. The rendered page inside the preview iframe is the host's
+ * own markup with the kit's stylesheet; it takes its colors from
+ * `content_blocks.palette` and the block styling settings. Reskinning the
+ * admin chrome never restyles content — that separation is deliberate.
+ */
+
+:root,
+.cb-shell,
+.cb-launcher,
+.cb-builder-dialog {
+  /* ---- Surfaces ---- */
+  --cb-surface: #f6f8fa; /* window / canvas background */
+  --cb-panel: #fff; /* panels, cards, inputs */
+  --cb-panel-2: #eef2f6; /* subtle raised fill: pills, segmented controls */
+  --cb-panel-3: #f4f7fa; /* faintest fill: zebra rows, placeholders */
+  --cb-field-bg: #eff4f8; /* input fill — tinted, so fields read against panels */
+
+  /* ---- Lines ---- */
+  --cb-line: #dde4ea; /* default border */
+  --cb-line-strong: #d8e1e9; /* input borders, dividers that must read */
+  --cb-line-hover: #aab7c4; /* border on hover */
+
+  /* ---- Text ---- */
+  --cb-text: #1b2531; /* primary */
+  --cb-text-2: #35414f; /* secondary headings */
+  --cb-muted: #5d6a78; /* labels, help text */
+  --cb-faint: #9aa7b4; /* placeholders, disabled, captions */
+  --cb-on-solid: #fff; /* text on any solid fill (accent, danger, success) */
+  --cb-on-solid-rgb: 255, 255, 255;
+  --cb-inverse-surface: #1b2531; /* the one dark surface: the in-preview block toolbar */
+
+  /* ---- Chrome accent ----
+   * The tool's own accent. Kept separate from the *content* brand color on
+   * purpose: the Publish button and the previewed page's CTA must not move
+   * together. Exposed as RGB components so alpha variants stay in sync. */
+  --cb-accent-rgb: 14, 116, 144;
+  --cb-accent: rgb(var(--cb-accent-rgb));
+  --cb-accent-strong: #0b5f75; /* hover / pressed */
+  --cb-accent-darker: #094c5e; /* text on a light accent fill */
+  --cb-accent-soft: #67b3c6; /* accent on a dark fill, soft rings */
+  --cb-accent-soft-rgb: 103, 179, 198;
+  --cb-accent-bg: #e6f2f6; /* light accent fill */
+
+  /* ---- Status ---- */
+  --cb-danger-rgb: 216, 58, 58;
+  --cb-danger: rgb(var(--cb-danger-rgb));
+  --cb-danger-strong: #b32f2f;
+  --cb-success-rgb: 46, 125, 79;
+  --cb-success: rgb(var(--cb-success-rgb));
+  --cb-success-strong: #266a42;
+  --cb-warning: #f0ad4e;
+  --cb-badge-bg: #f5d27a;
+  --cb-badge-fg: #5a4308;
+
+  /* ---- Shadows / overlays ----
+   * One cool near-black drives every shadow and the dialog backdrop. */
+  --cb-shadow-rgb: 30, 55, 80;
+
+  /* ---- Geometry ---- */
+  --cb-radius: 8px; /* panels, dialogs */
+  --cb-radius-sm: 6px; /* buttons, inputs */
+  --cb-radius-xs: 4px; /* chips, small toggles */
+}

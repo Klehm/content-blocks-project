@@ -131,7 +131,12 @@
             <div class="cb-responsive-length__viewport" data-viewport="{{ vp }}">
                 <span class="cb-length cb-form-input-group">
                     {{ form_widget(form[vp], { attr: { class: 'cb-responsive-length__input' } }) }}
-                    <span class="cb-length__unit cb-responsive-length__unit">px</span>
+                    {# The sibling cb_length widget puts a <select> here, so
+                       .cb-length__unit only carries a width cap. A bare span
+                       needs the input-group addon treatment of its own —
+                       otherwise it has no box and its text is not centred
+                       against the input it belongs to. #}
+                    <span class="cb-length__unit cb-responsive-length__unit cb-form-input-group__addon">px</span>
                 </span>
             </div>
         {% endfor %}
