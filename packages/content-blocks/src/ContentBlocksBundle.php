@@ -321,6 +321,13 @@ final class ContentBlocksBundle extends AbstractBundle
 
         $container->registerForAutoconfiguration(BlockDataDefaultsProviderInterface::class)
             ->addTag('content_blocks.block_data_defaults');
+
+        // What a block renders, as opposed to how its wrapper looks. Priority
+        // matters here — the chain threads one payload through every resolver —
+        // so an implementation that must run before the shipped seeding step
+        // declares `priority` on the tag explicitly.
+        $container->registerForAutoconfiguration(\ContentBlocks\Rendering\BlockDataResolverInterface::class)
+            ->addTag('content_blocks.block_data_resolver');
     }
 
     public function getPath(): string

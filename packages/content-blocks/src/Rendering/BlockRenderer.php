@@ -47,13 +47,15 @@ final class BlockRenderer implements BlockRendererInterface
         private readonly TranslatorInterface $translator,
         private readonly \ContentBlocks\Block\BlockDecoratorCollection $blockDecorators,
         private readonly \ContentBlocks\Block\BlockDataDefaults $blockDataDefaults,
+        private readonly BlockDataResolverCollection $blockDataResolvers,
     ) {
     }
 
-    public function render(ContentArea $area, ?RenderMode $forceMode = null): string
+    public function render(ContentArea $area, ?RenderContext $context = null): string
     {
-        $mode = $forceMode ?? $this->resolveMode($area);
-        $sections = $this->buildSectionTree($area, $mode);
+        $context = $this->materialize($context, fn () => $this->resolveMode($area));
+        $mode = $context->mode;
+        $sections = $this->buildSectionTree($area, $context);
 
         $blockTypes = [];
         if ($mode === RenderMode::PREVIEW) {
@@ -98,17 +100,33 @@ final class BlockRenderer implements BlockRendererInterface
     }
 
     /**
+     * Pins the context's mode so everything downstream — the private walk and
+     * every {@see BlockDataResolverInterface} — sees a concrete value rather
+     * than "decide for me". $fallback is only invoked when the caller left the
+     * mode open, which keeps the request-inspecting heuristic off the hot path
+     * of the single-block and single-section entry points.
+     */
+    private function materialize(?RenderContext $context, callable $fallback): RenderContext
+    {
+        $context ??= new RenderContext();
+
+        return $context->mode !== null ? $context : $context->withMode($fallback());
+    }
+
+    /**
      * Renders a single block's markup in isolation — the same
      * `block.html.twig` wrapper used inside a full area render, so the
      * fragment keeps its data-cb-block-id marker, decorators and view
      * template. Used by the builder to hot-swap one block in the preview
      * iframe without reloading the whole page.
      */
-    public function renderBlock(Block $block, RenderMode $mode = RenderMode::PREVIEW): string
+    public function renderBlock(Block $block, ?RenderContext $context = null): string
     {
+        $context = $this->materialize($context, fn () => RenderMode::PREVIEW);
+
         return $this->twig->render(self::BLOCK_TEMPLATE, [
-            'block' => $this->buildBlockViewModel($block, $mode, false),
-            'isPreview' => $mode === RenderMode::PREVIEW,
+            'block' => $this->buildBlockViewModel($block, $context, false),
+            'isPreview' => $context->mode === RenderMode::PREVIEW,
         ]);
     }
 
@@ -120,22 +138,24 @@ final class BlockRenderer implements BlockRendererInterface
      * only copies the wrapper attributes from this output, leaving the inner
      * blocks (and their JS state) untouched.
      */
-    public function renderSection(Section $section, RenderMode $mode = RenderMode::PREVIEW): string
+    public function renderSection(Section $section, ?RenderContext $context = null): string
     {
+        $context = $this->materialize($context, fn () => RenderMode::PREVIEW);
+
         return $this->twig->render(self::SECTION_TEMPLATE, [
-            'section' => $this->buildSectionViewModel($section, $mode),
-            'isPreview' => $mode === RenderMode::PREVIEW,
+            'section' => $this->buildSectionViewModel($section, $context),
+            'isPreview' => $context->mode === RenderMode::PREVIEW,
         ]);
     }
 
     /**
      * @return list<array{id: ?int, layout: string, deleted: bool, columns: list<array<string, mixed>>}>
      */
-    private function buildSectionTree(ContentArea $area, RenderMode $mode): array
+    private function buildSectionTree(ContentArea $area, RenderContext $context): array
     {
         $sections = $area->getSections()->toArray();
 
-        if ($mode === RenderMode::PUBLIC) {
+        if ($context->mode === RenderMode::PUBLIC) {
             $sections = array_values(array_filter($sections, fn (Section $s) => !$s->isDeleted()));
             usort($sections, fn (Section $a, Section $b) => $a->getPosition() <=> $b->getPosition());
         } else {
@@ -144,7 +164,7 @@ final class BlockRenderer implements BlockRendererInterface
 
         $out = [];
         foreach ($sections as $section) {
-            $out[] = $this->buildSectionViewModel($section, $mode);
+            $out[] = $this->buildSectionViewModel($section, $context);
         }
 
         return $out;
@@ -158,10 +178,10 @@ final class BlockRenderer implements BlockRendererInterface
      *
      * @return array{id: ?int, layout: string, deleted: bool, extraClasses: string, inlineStyle: string, extraAttributes: array<string, string>, columns: list<array<string, mixed>>}
      */
-    private function buildSectionViewModel(Section $section, RenderMode $mode): array
+    private function buildSectionViewModel(Section $section, RenderContext $context): array
     {
         $sectionDeleted = $section->isDeleted();
-        $settings = $section->getEffectiveSettings(preferDraft: $mode === RenderMode::PREVIEW);
+        $settings = $section->getEffectiveSettings(preferDraft: $context->mode === RenderMode::PREVIEW);
         // Style presets can carry settings values (padding, background…):
         // they apply as the base layer, the section's own saved settings win
         // key-by-key. With "Customize styling" off the saved settings hold
@@ -180,7 +200,7 @@ final class BlockRenderer implements BlockRendererInterface
             'extraClasses' => $decoration->classString(),
             'inlineStyle' => $decoration->styleString(),
             'extraAttributes' => $decoration->attributes,
-            'columns' => $this->buildColumnTree($section, $mode, $sectionDeleted, $settings['columnWidths'] ?? null),
+            'columns' => $this->buildColumnTree($section, $context, $sectionDeleted, $settings['columnWidths'] ?? null),
         ];
     }
 
@@ -215,11 +235,11 @@ final class BlockRenderer implements BlockRendererInterface
      *
      * @return list<array{id: ?int, preset: string, deleted: bool, width: ?int, blocks: list<array<string, mixed>>}>
      */
-    private function buildColumnTree(Section $section, RenderMode $mode, bool $parentDeleted, mixed $columnWidths = null): array
+    private function buildColumnTree(Section $section, RenderContext $context, bool $parentDeleted, mixed $columnWidths = null): array
     {
         $columns = $section->getColumns()->toArray();
 
-        if ($mode === RenderMode::PUBLIC) {
+        if ($context->mode === RenderMode::PUBLIC) {
             $columns = array_values(array_filter($columns, fn (Column $c) => !$c->isDeleted()));
             usort($columns, fn (Column $a, Column $b) => $a->getPosition() <=> $b->getPosition());
         } else {
@@ -236,7 +256,7 @@ final class BlockRenderer implements BlockRendererInterface
                 'preset' => $column->getPreset(),
                 'deleted' => $columnDeleted,
                 'width' => $widths[$i] ?? null,
-                'blocks' => $this->buildBlockList($column, $mode, $columnDeleted),
+                'blocks' => $this->buildBlockList($column, $context, $columnDeleted),
             ];
         }
 
@@ -281,11 +301,11 @@ final class BlockRenderer implements BlockRendererInterface
     /**
      * @return list<array{id: ?int, type: string, data: array<string, mixed>, viewTemplate: ?string, deleted: bool}>
      */
-    private function buildBlockList(Column $column, RenderMode $mode, bool $parentDeleted): array
+    private function buildBlockList(Column $column, RenderContext $context, bool $parentDeleted): array
     {
         $blocks = $column->getBlocks()->toArray();
 
-        if ($mode === RenderMode::PUBLIC) {
+        if ($context->mode === RenderMode::PUBLIC) {
             $blocks = array_values(array_filter(
                 $blocks,
                 fn (Block $b) => !$b->isDeleted() && $b->getPublishedData() !== null,
@@ -297,7 +317,7 @@ final class BlockRenderer implements BlockRendererInterface
 
         $out = [];
         foreach ($blocks as $block) {
-            $out[] = $this->buildBlockViewModel($block, $mode, $parentDeleted);
+            $out[] = $this->buildBlockViewModel($block, $context, $parentDeleted);
         }
 
         return $out;
@@ -310,15 +330,18 @@ final class BlockRenderer implements BlockRendererInterface
      *
      * @return array{id: ?int, type: string, data: array<string, mixed>, viewTemplate: ?string, deleted: bool, extraClasses: string, inlineStyle: string, extraAttributes: array<string, string>}
      */
-    private function buildBlockViewModel(Block $block, RenderMode $mode, bool $parentDeleted): array
+    private function buildBlockViewModel(Block $block, RenderContext $context, bool $parentDeleted): array
     {
         $blockType = $this->blockTypeRegistry->has($block->getType())
             ? $this->blockTypeRegistry->get($block->getType())
             : null;
 
-        $data = $mode === RenderMode::PREVIEW
-            ? ($block->getDraftData() ?? $block->getPublishedData() ?? [])
-            : ($block->getPublishedData() ?? []);
+        // The draft-or-published rule lives in CoreBlockDataResolver, first in
+        // the pipeline; anything a host registers afterwards refines what it
+        // produced (translation being the motivating case). With no host
+        // resolver the payload is exactly what this method used to compute
+        // inline.
+        $data = $this->blockDataResolvers->resolve($block, $context);
 
         // Strip default-equal entries so the rendered markup stays
         // clean: a block saved with the framework-provided default

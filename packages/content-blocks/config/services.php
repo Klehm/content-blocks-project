@@ -261,6 +261,20 @@ return static function (ContainerConfigurator $container): void {
         ->args([tagged_iterator('content_blocks.block_data_defaults')])
         ->public();
 
+    // ---------- Block data resolution (render payload) ----------
+
+    // Seeds the payload from the entity's draft/published slots. Tagged by
+    // hand — with a priority, so it runs ahead of anything a host registers —
+    // hence autoconfigure(false): autoconfiguration would add the same tag a
+    // second time and the resolver would run twice.
+    $services->set(\ContentBlocks\Rendering\CoreBlockDataResolver::class)
+        ->autoconfigure(false)
+        ->tag('content_blocks.block_data_resolver', ['priority' => 256]);
+
+    $services->set(\ContentBlocks\Rendering\BlockDataResolverCollection::class)
+        ->args([tagged_iterator('content_blocks.block_data_resolver')])
+        ->public();
+
     // "Which keys can this block type hold?" — shared by the two restore paths
     // (section-template insert, area import) so the union rule it encodes lives
     // in exactly one place.

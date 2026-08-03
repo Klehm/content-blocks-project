@@ -6,7 +6,7 @@ namespace ContentBlocks\Controller;
 
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Rendering\BlockRendererInterface;
-use ContentBlocks\Rendering\RenderMode;
+use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -54,7 +54,7 @@ final class SectionRenderController
 
         return new JsonResponse([
             'hotReload' => true,
-            'html' => $this->blockRenderer->renderSection($section, RenderMode::PREVIEW),
+            'html' => $this->blockRenderer->renderSection($section, RenderContext::forPreview()),
         ]);
     }
 }

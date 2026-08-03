@@ -10,7 +10,10 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Rendering\BlockDataResolverCollection;
 use ContentBlocks\Rendering\BlockRenderer;
+use ContentBlocks\Rendering\CoreBlockDataResolver;
+use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Rendering\RenderMode;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\AllowAllAccessChecker;
@@ -48,7 +51,7 @@ final class BlockRendererTest extends TestCase
         $neverPublished = $this->makeBlock($column, type: 'text', publishedData: null, draftData: ['title' => 'Pending'], position: 2, previewPosition: 2);
 
         $renderer = $this->makeRenderer(mode: RenderMode::PUBLIC);
-        $html = $renderer->render($area, RenderMode::PUBLIC);
+        $html = $renderer->render($area, new RenderContext(RenderMode::PUBLIC));
 
         $this->assertStringContainsString('Visible', $html);
         $this->assertStringNotContainsString('Old', $html);
@@ -77,7 +80,7 @@ final class BlockRendererTest extends TestCase
         $deleted->setDeleted(true);
 
         $renderer = $this->makeRenderer(mode: RenderMode::PREVIEW);
-        $html = $renderer->render($area, RenderMode::PREVIEW);
+        $html = $renderer->render($area, new RenderContext(RenderMode::PREVIEW));
 
         $this->assertStringContainsString('New', $html);
         $this->assertStringNotContainsString('Old', $html);
@@ -103,11 +106,11 @@ final class BlockRendererTest extends TestCase
         $b = $this->makeBlock($column, type: 'text', publishedData: ['title' => 'B'], position: 1, previewPosition: 0);
 
         $renderer = $this->makeRenderer(mode: RenderMode::PREVIEW);
-        $html = $renderer->render($area, RenderMode::PREVIEW);
+        $html = $renderer->render($area, new RenderContext(RenderMode::PREVIEW));
 
         $this->assertLessThan(strpos($html, 'A'), strpos($html, 'B'), 'B should appear before A in preview (previewPosition 0 vs 1)');
 
-        $publicHtml = $renderer->render($area, RenderMode::PUBLIC);
+        $publicHtml = $renderer->render($area, new RenderContext(RenderMode::PUBLIC));
         $this->assertLessThan(strpos($publicHtml, 'B'), strpos($publicHtml, 'A'), 'A should appear before B in public (position 0 vs 1)');
     }
 
@@ -126,7 +129,7 @@ final class BlockRendererTest extends TestCase
         // Note: block itself is NOT deleted.
 
         $renderer = $this->makeRenderer(mode: RenderMode::PREVIEW);
-        $html = $renderer->render($area, RenderMode::PREVIEW);
+        $html = $renderer->render($area, new RenderContext(RenderMode::PREVIEW));
 
         // Three deleted markers: section, column (cascaded), block (cascaded).
         $this->assertSame(3, substr_count($html, 'data-cb-deleted="1"'));
@@ -222,9 +225,10 @@ final class BlockRendererTest extends TestCase
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
             new \ContentBlocks\Block\BlockDataDefaults(),
+            new BlockDataResolverCollection([new CoreBlockDataResolver()]),
         );
 
-        $html = $renderer->render($area, RenderMode::PUBLIC);
+        $html = $renderer->render($area, new RenderContext(RenderMode::PUBLIC));
 
         $this->assertStringNotContainsString('background-color', $html);
         $this->assertStringContainsString('kept', $html);
@@ -265,9 +269,10 @@ final class BlockRendererTest extends TestCase
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
             new \ContentBlocks\Block\BlockDataDefaults(),
+            new BlockDataResolverCollection([new CoreBlockDataResolver()]),
         );
 
-        $html = $renderer->render($area, RenderMode::PUBLIC);
+        $html = $renderer->render($area, new RenderContext(RenderMode::PUBLIC));
 
         $this->assertStringContainsString('background-color:#ff00ff', $html);
     }
@@ -321,6 +326,7 @@ final class BlockRendererTest extends TestCase
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
             new \ContentBlocks\Block\BlockDataDefaults(),
+            new BlockDataResolverCollection([new CoreBlockDataResolver()]),
         );
 
         // Preset alone: its class AND its settings values render.
@@ -328,7 +334,7 @@ final class BlockRendererTest extends TestCase
         $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
         $section->setPublishedSettings(['styleName' => 'boxed']);
 
-        $html = $makeRenderer()->render($area, RenderMode::PUBLIC);
+        $html = $makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
         $this->assertStringContainsString('sec--boxed', $html);
         $this->assertStringContainsString('background-color:#111111', $html);
 
@@ -337,7 +343,7 @@ final class BlockRendererTest extends TestCase
         $section2 = $this->makeSection($area2, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
         $section2->setPublishedSettings(['styleName' => 'boxed', 'backgroundColor' => '#222222']);
 
-        $html2 = $makeRenderer()->render($area2, RenderMode::PUBLIC);
+        $html2 = $makeRenderer()->render($area2, new RenderContext(RenderMode::PUBLIC));
         $this->assertStringContainsString('sec--boxed', $html2);
         $this->assertStringContainsString('background-color:#222222', $html2);
         $this->assertStringNotContainsString('#111111', $html2);
@@ -347,7 +353,7 @@ final class BlockRendererTest extends TestCase
         $section3 = $this->makeSection($area3, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
         $section3->setPublishedSettings(['styleName' => 'gone']);
 
-        $html3 = $makeRenderer()->render($area3, RenderMode::PUBLIC);
+        $html3 = $makeRenderer()->render($area3, new RenderContext(RenderMode::PUBLIC));
         $this->assertStringNotContainsString('background-color', $html3);
     }
 
@@ -359,7 +365,7 @@ final class BlockRendererTest extends TestCase
         $this->makeColumn($section, position: 1, previewPosition: 1);
         $section->setPublishedSettings(['columnWidths' => '40,60']);
 
-        $html = $this->makeRenderer()->render($area, RenderMode::PUBLIC);
+        $html = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
 
         $this->assertStringContainsString('cb-col--weighted', $html);
         $this->assertStringContainsString('--cb-col-grow: 40', $html);
@@ -374,7 +380,7 @@ final class BlockRendererTest extends TestCase
         $this->makeColumn($section, position: 1, previewPosition: 1);
         $section->setDraftSettings(['columnWidths' => '40,60']);
 
-        $html = $this->makeRenderer(mode: RenderMode::PREVIEW)->renderSection($section, RenderMode::PREVIEW);
+        $html = $this->makeRenderer(mode: RenderMode::PREVIEW)->renderSection($section, new RenderContext(RenderMode::PREVIEW));
 
         // A single <section> wrapper carrying its preview marker + the weighted
         // columns — i.e. exactly what the builder copies onto the live nodes.
@@ -394,7 +400,7 @@ final class BlockRendererTest extends TestCase
         // Wrong count for a 2-column section → ignored, no weighted markup.
         $section->setPublishedSettings(['columnWidths' => '33,33,34']);
 
-        $html = $this->makeRenderer()->render($area, RenderMode::PUBLIC);
+        $html = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
 
         $this->assertStringNotContainsString('cb-col--weighted', $html);
         $this->assertStringNotContainsString('--cb-col-grow', $html);
@@ -430,9 +436,10 @@ final class BlockRendererTest extends TestCase
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
             new \ContentBlocks\Block\BlockDataDefaults(),
+            new BlockDataResolverCollection([new CoreBlockDataResolver()]),
         );
 
-        $html = $renderer->render($area, RenderMode::PUBLIC);
+        $html = $renderer->render($area, new RenderContext(RenderMode::PUBLIC));
 
         $this->assertStringContainsString('<p class="cb-custom">Custom: Hello</p>', $html);
     }
@@ -451,7 +458,7 @@ final class BlockRendererTest extends TestCase
         $block = $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Old'], draftData: ['title' => 'Fresh'], position: 0, previewPosition: 0, id: 4242);
 
         $renderer = $this->makeRenderer(mode: RenderMode::PREVIEW);
-        $html = $renderer->renderBlock($block, RenderMode::PREVIEW);
+        $html = $renderer->renderBlock($block, new RenderContext(RenderMode::PREVIEW));
 
         // Draft data wins in preview, and the block keeps its marker so the
         // overlay can pin focus on the swapped element.
@@ -476,15 +483,126 @@ final class BlockRendererTest extends TestCase
         $block = $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Pub'], position: 0, previewPosition: 0, id: 7);
 
         $renderer = $this->makeRenderer(mode: RenderMode::PUBLIC);
-        $html = $renderer->renderBlock($block, RenderMode::PUBLIC);
+        $html = $renderer->renderBlock($block, new RenderContext(RenderMode::PUBLIC));
 
         $this->assertStringContainsString('Pub', $html);
         $this->assertStringNotContainsString('data-cb-block-id', $html);
     }
 
+    // -------- Block data resolution seam --------
+
+    /**
+     * The point of the seam, end to end: a resolver registered after the core
+     * one rewrites a field, and the rendered HTML shows the rewritten value.
+     * This is what a translation package will do with $context->locale — proven
+     * here without any such package existing.
+     */
+    public function testAHostResolverCanRewriteWhatABlockRenders(): void
+    {
+        $area = $this->makeArea();
+        $column = $this->makeColumn(
+            $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0),
+            position: 0,
+            previewPosition: 0,
+        );
+        $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Hello']);
+
+        $localeAware = new class implements \ContentBlocks\Rendering\BlockDataResolverInterface {
+            public function resolve(Block $block, RenderContext $context, array $data): array
+            {
+                if ($context->locale === 'fr') {
+                    $data['title'] = 'Bonjour';
+                }
+
+                return $data;
+            }
+        };
+
+        $renderer = $this->makeRenderer(extraResolvers: [$localeAware]);
+
+        $this->assertStringContainsString(
+            'Bonjour',
+            $renderer->render($area, new RenderContext(RenderMode::PUBLIC, 'fr')),
+        );
+        $this->assertStringContainsString(
+            'Hello',
+            $renderer->render($area, new RenderContext(RenderMode::PUBLIC)),
+        );
+    }
+
+    /**
+     * The chain threads one payload: each resolver sees what the previous
+     * produced, so the core seeding step is genuinely first and the rest
+     * refine rather than compete.
+     */
+    public function testResolversRunInOrderEachSeeingThePreviousPayload(): void
+    {
+        $area = $this->makeArea();
+        $column = $this->makeColumn(
+            $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0),
+            position: 0,
+            previewPosition: 0,
+        );
+        $this->makeBlock($column, type: 'text', publishedData: ['title' => 'a']);
+
+        $append = fn (string $suffix) => new class($suffix) implements \ContentBlocks\Rendering\BlockDataResolverInterface {
+            public function __construct(private readonly string $suffix)
+            {
+            }
+
+            public function resolve(Block $block, RenderContext $context, array $data): array
+            {
+                $data['title'] = ($data['title'] ?? '') . $this->suffix;
+
+                return $data;
+            }
+        };
+
+        $html = $this->makeRenderer(extraResolvers: [$append('b'), $append('c')])
+            ->render($area, new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertStringContainsString('abc', $html);
+    }
+
+    /**
+     * The mode is pinned before the pipeline runs, so a resolver can branch on
+     * PREVIEW vs PUBLIC without ever handling a null.
+     */
+    public function testResolversAlwaysSeeAResolvedMode(): void
+    {
+        $area = $this->makeArea();
+        $column = $this->makeColumn(
+            $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0),
+            position: 0,
+            previewPosition: 0,
+        );
+        $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Pub']);
+
+        $spy = new class implements \ContentBlocks\Rendering\BlockDataResolverInterface {
+            /** @var list<?RenderMode> */
+            public array $seen = [];
+
+            public function resolve(Block $block, RenderContext $context, array $data): array
+            {
+                $this->seen[] = $context->mode;
+
+                return $data;
+            }
+        };
+
+        // No context at all — the renderer falls back to the request heuristic.
+        $this->makeRenderer(extraResolvers: [$spy])->render($area);
+
+        $this->assertSame([RenderMode::PUBLIC], $spy->seen);
+    }
+
     // -------- Test factories below --------
 
-    private function makeRenderer(RenderMode $mode = RenderMode::PUBLIC): BlockRenderer
+    /**
+     * @param list<\ContentBlocks\Rendering\BlockDataResolverInterface> $extraResolvers
+     *        appended after CoreBlockDataResolver, as a host's would be
+     */
+    private function makeRenderer(RenderMode $mode = RenderMode::PUBLIC, array $extraResolvers = []): BlockRenderer
     {
         $request = new Request($mode === RenderMode::PREVIEW ? ['cb_preview' => '1'] : []);
         $stack = new RequestStack();
@@ -504,6 +622,7 @@ final class BlockRendererTest extends TestCase
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
             new \ContentBlocks\Block\BlockDataDefaults(),
+            new BlockDataResolverCollection([new CoreBlockDataResolver(), ...$extraResolvers]),
         );
     }
 
@@ -534,6 +653,7 @@ final class BlockRendererTest extends TestCase
             $this->makeTranslator(),
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
             new \ContentBlocks\Block\BlockDataDefaults(),
+            new BlockDataResolverCollection([new CoreBlockDataResolver()]),
         );
     }
 

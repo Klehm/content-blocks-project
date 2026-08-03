@@ -8,6 +8,7 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Palette\ColorPaletteRegistry;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Rendering\BlockRendererInterface;
+use ContentBlocks\Rendering\RenderContext;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
@@ -59,13 +60,24 @@ final class ContentBlocksExtension extends AbstractExtension
         return $out;
     }
 
-    public function renderContentArea(?ContentArea $area): string
+    /**
+     * `{{ cb_render_content_area(page.contentArea) }}` — mode is auto-detected
+     * from the request (preview for an editor with access, public otherwise).
+     *
+     * Pass `locale` to pin the language a locale-aware
+     * {@see \ContentBlocks\Rendering\BlockDataResolverInterface} should serve —
+     * `{{ cb_render_content_area(page.contentArea, 'fr') }}`. It only sets the
+     * language; mode detection is unaffected, so an editor previewing a
+     * pinned-locale page still sees their draft. With no translation package
+     * installed the argument is inert.
+     */
+    public function renderContentArea(?ContentArea $area, ?string $locale = null): string
     {
         if ($area === null) {
             return '';
         }
 
-        return $this->renderer->render($area);
+        return $this->renderer->render($area, RenderContext::forLocale($locale));
     }
 
     /**
