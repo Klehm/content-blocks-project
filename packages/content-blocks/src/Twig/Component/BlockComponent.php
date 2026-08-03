@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Twig\Component;
 
+use ContentBlocks\Block\CollectionItemIds;
 use ContentBlocks\BlockType\BlockTypeInterface;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
@@ -46,6 +47,7 @@ final class BlockComponent
         private readonly FormFactoryInterface $formFactory,
         private readonly AccessCheckerInterface $accessChecker,
         private readonly \ContentBlocks\Block\BlockDataDefaults $blockDataDefaults,
+        private readonly CollectionItemIds $collectionItemIds,
     ) {
     }
 
@@ -198,7 +200,11 @@ final class BlockComponent
         }
 
         $block = $this->getBlock();
-        $block->setDraftData($this->getForm()->getData());
+        // Every write of a block's draft passes through here, which makes it
+        // the one place that has to guarantee collection entries carry their
+        // stable id — including entries the editor just added or duplicated.
+        $form = $this->getForm();
+        $block->setDraftData($this->collectionItemIds->backfill($form, $form->getData()));
         $this->em->flush();
 
         $this->dispatchBrowserEvent('cb:block:saved', ['blockId' => $this->blockId]);
@@ -247,7 +253,16 @@ final class BlockComponent
             return null;
         }
 
-        array_splice($values, $index + 1, 0, [$values[$index]]);
+        $copy = $values[$index];
+        // Strip the source entry's stable id: the copy is a new entry and must
+        // not share an identity with the original, or anything keyed per entry
+        // (translations first) would address both at once. persistDraft() mints
+        // a fresh one through CollectionItemIds.
+        if (\is_array($copy)) {
+            unset($copy[CollectionItemIds::KEY]);
+        }
+
+        array_splice($values, $index + 1, 0, [$copy]);
 
         return $values;
     }

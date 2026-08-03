@@ -76,6 +76,30 @@ final class BlockDataKeysTest extends TestCase
         $this->assertSame([], $unknown);
     }
 
+    public function testUnderscorePrefixedKeysAreReservedAndNeverReported(): void
+    {
+        // Written by machinery rather than by the block's form (`_id` today),
+        // so no form child and no getDefaultData() claims them. Without the
+        // reservation, every block carrying one would be reported as holding an
+        // unknown key on import and on section-template insert.
+        $unknown = $this->dataKeys()->unknownIn('fixture', [
+            'title' => 'Hello',
+            '_id' => 'k3f9',
+            '_whatever_comes_next' => ['x' => 1],
+        ]);
+
+        $this->assertSame([], $unknown);
+    }
+
+    public function testAKeyThatMerelyContainsAnUnderscoreIsStillReported(): void
+    {
+        // The rule is a prefix, not a substring: a host field named
+        // `legacy_ref` is an ordinary unknown key and must still be flagged.
+        $unknown = $this->dataKeys()->unknownIn('fixture', ['legacy_ref' => 'v']);
+
+        $this->assertSame(['legacy_ref'], $unknown);
+    }
+
     public function testAnUnregisteredTypeReportsNothing(): void
     {
         // No shape to compare against. The caller decides what an unknown type

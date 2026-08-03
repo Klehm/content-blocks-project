@@ -280,6 +280,15 @@ return static function (ContainerConfigurator $container): void {
     // in exactly one place.
     $services->set(\ContentBlocks\Block\BlockDataKeys::class);
 
+    // Stable `_id` on every collection entry. Minted on the draft-write path
+    // (BlockComponent::persistDraft) so a reorder, duplicate or delete never
+    // shifts what per-entry information points at.
+    $services->set(\ContentBlocks\Block\CollectionItemIds::class);
+
+    // One-off normalization of content stored before `_id` existed. The
+    // #[AsCommand] attribute is picked up by console.command autoconfiguration.
+    $services->set(\ContentBlocks\Command\BackfillCollectionIdsCommand::class);
+
     // ---------- Content translation (convention only) ----------
 
     // Declares the `cb_translatable` form option, and reads the tags back.

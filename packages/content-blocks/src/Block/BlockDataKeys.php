@@ -29,6 +29,25 @@ use Symfony\Component\Form\FormFactoryInterface;
  */
 final class BlockDataKeys
 {
+    /**
+     * Prefix this package reserves inside `Block.data` — at every level,
+     * including collection entries. A key starting with `_` belongs to
+     * ContentBlocks; **a block type must not declare one.**
+     *
+     * It exists because some stored values are written by machinery rather than
+     * by the block's own form, and would otherwise be reported as unknown keys
+     * by both restore paths (area import, section-template insert). Today that
+     * is `_id` — the stable identity of a collection entry, see
+     * {@see CollectionItemIds}. Reserving the *prefix* rather than a list of
+     * names means the next such need does not reopen a frozen data contract.
+     *
+     * Note the flip side, verified rather than assumed: a POST carrying an
+     * underscore-prefixed key is *ignored* by the block form (only declared
+     * children map), so reserving the namespace opens no write path through the
+     * editor.
+     */
+    public const RESERVED_PREFIX = '_';
+
     public function __construct(
         private readonly BlockTypeRegistry $registry,
         private readonly FormFactoryInterface $formFactory,
@@ -67,6 +86,13 @@ final class BlockDataKeys
             ...array_keys($builder->all()),
         ];
 
-        return array_values(array_diff(array_keys($data), $known));
+        $unknown = array_diff(array_keys($data), $known);
+
+        // Cast: a hand-written or legacy payload can carry numeric keys, and
+        // this runs on data that predates the current code by definition.
+        return array_values(array_filter(
+            $unknown,
+            static fn (int|string $key) => !str_starts_with((string) $key, self::RESERVED_PREFIX),
+        ));
     }
 }
