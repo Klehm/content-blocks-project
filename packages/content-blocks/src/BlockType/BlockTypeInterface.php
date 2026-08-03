@@ -54,10 +54,22 @@ interface BlockTypeInterface
     public function getFormTheme(): ?string;
 
     /**
-     * Custom Twig template for the block preview in admin.
-     * Return null to use the default generic preview (key: value list).
+     * Twig template rendering this block's markup — the block's *view*, used
+     * for the public page and for the builder's preview alike (the wrapper
+     * around it differs, the view does not).
      *
-     * Template receives: { data, block, blockType }
+     * Returning null renders **nothing**: the block's wrapper `<div>` comes out
+     * empty. There is no generic fallback rendering, so a block meant to be
+     * seen has to name a template.
+     *
+     * The template is included with `with_context = false` and receives exactly
+     * one variable, `data` — the block's payload, after every registered
+     * {@see \ContentBlocks\Rendering\BlockDataResolverInterface} has had its
+     * say. The block entity and the block type are deliberately out of reach:
+     * a view renders stored values, it does not query the model.
+     *
+     * Return a plain-namespace path (`@ContentBlocksKit/block/alert/view.html.twig`)
+     * so a host can override it from `templates/bundles/`.
      */
     public function getViewTemplate(): ?string;
 
