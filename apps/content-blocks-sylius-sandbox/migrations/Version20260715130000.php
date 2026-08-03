@@ -12,7 +12,7 @@ use Doctrine\Migrations\AbstractMigration;
  *
  * The responsive styling sub-tree stored padding/margin/gap under terse
  * viewport keys (`d`, `t`, `m`). The stable release spells them out
- * (`desktop`, `tablet`, `mobile`) — see FREEZE-AUDIT.md §B2. The emitted CSS
+ * (`desktop`, `tablet`, `mobile`). The emitted CSS
  * var names stay terse (the decorators map long->short), so only stored JSON
  * changes here.
  *

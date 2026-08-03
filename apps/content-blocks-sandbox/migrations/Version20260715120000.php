@@ -11,7 +11,8 @@ use Doctrine\Migrations\AbstractMigration;
  * v1.0 Block.data key unification for the kit blocks.
  *
  * The kit shipped the same concept under different keys across blocks; the
- * stable release reconciles them (see FREEZE-AUDIT.md §B1). Because Block.data
+ * stable release reconciles them (see the 1.0.0 entry in the kit CHANGELOG for
+ * the full rename table). Because Block.data
  * is stored JSON, existing rows must be rewritten. This runs the rename in PHP
  * (decode → transform → encode) rather than SQL JSON functions, so nested
  * collection items (gallery/card items, table columns) are handled the same way

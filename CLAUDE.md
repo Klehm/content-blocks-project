@@ -329,6 +329,12 @@ Pour S3/Flysystem : aliaser `FileStorageInterface` vers sa propre implémentatio
 
 ## Installation & Lancement
 
+> **Ports réservés** : `8001` et `8002` appartiennent aux fixtures Playwright
+> (`playwright.config.js` démarre `content-blocks-sandbox` sur 8001,
+> `playwright.encore.config.js` démarre `content-blocks-encore-sandbox` sur 8002).
+> Les lancements manuels ci-dessous les évitent, sans quoi une suite de tests et
+> un serveur de dev se disputent le port.
+
 ### 1. Sandbox Symfony
 
 ```bash
@@ -366,9 +372,9 @@ php bin/console doctrine:database:create --if-not-exists
 php bin/console doctrine:schema:create
 
 # Lancer le serveur
-php -S 127.0.0.1:8001 -t public
+php -S 127.0.0.1:8003 -t public
 
-# Accéder à http://127.0.0.1:8001
+# Accéder à http://127.0.0.1:8003
 ```
 
 ### 3. Sandbox Encore
@@ -387,9 +393,9 @@ php bin/console doctrine:database:create --if-not-exists
 php bin/console doctrine:schema:create
 
 npm run build
-php -S 127.0.0.1:8002 -t public
+php -S 127.0.0.1:8004 -t public
 
-# Accéder à http://127.0.0.1:8002
+# Accéder à http://127.0.0.1:8004
 ```
 
 Deux réglages dans son `webpack.config.js` méritent d'être connus, tous deux commentés sur place :

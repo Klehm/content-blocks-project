@@ -1,8 +1,7 @@
 # Translation schema spike — what the core must expose before v1.0.0
 
-Working document, same role as [FREEZE-AUDIT.md](FREEZE-AUDIT.md): it drives a decision that
-has to be made *before* the tag, and it is deleted (or folded into the package docs) once the
-translation package ships.
+Working document: it drives a decision that has to be made *before* the tag, and it is deleted
+(or folded into the package docs) once the translation package ships.
 
 The [roadmap entry](ROADMAP.md) left the data schema as an open question — "needs a schema
 spike before implementation". This is that spike. Its job is **not** to design the translation
