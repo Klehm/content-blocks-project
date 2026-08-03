@@ -36,6 +36,7 @@ class TextBlock extends AbstractKitBlock
     {
         $builder
             ->add('content', TextareaType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.text.field.content',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,

@@ -285,9 +285,101 @@ nothing about the shape of your block data, which follows your block types.
 
 ---
 
+## 6. `BlockRendererInterface` takes a `RenderContext`
+
+Only relevant if you **call the renderer directly** or **implement / decorate**
+`BlockRendererInterface`. The three render methods took a bare `RenderMode`;
+they now take a `RenderContext`, which carries the mode *and* an optional locale.
+
+```php
+- $renderer->render($area, RenderMode::PUBLIC);
++ $renderer->render($area, RenderContext::forPublic());
+
+- $renderer->renderBlock($block, RenderMode::PREVIEW);
++ $renderer->renderBlock($block, RenderContext::forPreview());
+```
+
+`render($area)` with no second argument is unchanged — mode is still
+auto-detected from the request. `resolveMode()` is untouched. A `RenderContext`
+whose `mode` is `null` means "decide for me", so
+`RenderContext::forLocale('fr')` pins the language while leaving preview
+detection alone.
+
+Implementors must update their signatures; the container will not boot otherwise,
+so there is no silent failure mode here.
+
+**Why now:** adding a parameter to a published interface method breaks every
+implementor, so the render pipeline had to get room to grow inputs *before* the
+1.0 freeze. Locale is the first passenger — see `TRANSLATION-SPIKE.md` in the
+repository for the reasoning.
+
+::: tip Changing rendered data no longer needs a renderer replacement
+If you replaced `BlockRendererInterface` only to alter a block's data on the way
+to its template, `BlockDataResolverInterface` is a much smaller surface to own.
+See [Changing what a block renders](./rendering#changing-what-a-block-renders).
+:::
+
+---
+
+## 7. Builder chrome restyled
+
+The admin UI ships a new skin — cool blue-grey surfaces, a teal accent, 8px
+corners, tinted fields. **No action needed**, and **content rendering is
+untouched**: the preview iframe still draws your page from
+`content_blocks.palette` and the block styling settings.
+
+If you had overridden the builder's CSS by targeting its colors, the literals
+are gone: every rule now reads `var(--cb-*)` from a token layer. Redeclare the
+tokens instead — fewer rules, and it survives upgrades. See
+[Theming the builder chrome](./styling#theming-the-builder-chrome).
+
+---
+
+## 8. Collection entries gained a stable `_id` — run the backfill
+
+Entries of a collection field (the kit's `card`, `list`, `accordion`, `tabs`,
+`gallery`, `breadcrumb`, `table`) now carry a `_id`. Until now an entry was
+only a position in a list, so anything keyed per entry pointed at the wrong one
+after a reorder, a duplicate or a delete.
+
+New and re-saved content gets ids automatically. Content written before the
+upgrade needs one pass:
+
+```bash
+php bin/console content-blocks:backfill-collection-ids --dry-run   # report only
+php bin/console content-blocks:backfill-collection-ids
+```
+
+It is idempotent, so a partial or repeated run is harmless. Blocks whose type is
+no longer registered are skipped and reported — install the block type and re-run
+if you still need them.
+
+::: warning If your own block types declare a field starting with `_`
+The `_` prefix is now reserved by the package at every level of `Block.data`.
+Rename such a field before upgrading.
+:::
+
+It is a command rather than a Doctrine migration on purpose: which JSON keys
+hold a *collection* is knowledge that lives in the block types' forms, and SQL
+cannot ask them. A migration would have to hard-code a list of block-type/field
+pairs, which would be wrong the moment you ship your own collection block.
+
+---
+
 ## Additive (no action needed)
 
 These landed in `1.0.0` but are backward-compatible — nothing to change:
+
+- **`BlockDataResolverInterface`** — an autoconfigured pipeline for changing what
+  a block renders (translation, token expansion, computed values) without
+  touching the renderer. With none registered, output is unchanged.
+- **`cb_translatable` form option** — blocks declare which fields hold
+  language-dependent values, read back through `TranslatableFieldsInterface`. It
+  carries no behaviour: content translation lives in a satellite package, and
+  this is the convention it will read. The kit already tags 29 fields.
+- **The `_` prefix is reserved in `Block.data`** — at every level, including
+  collection entries. Only an issue if one of your own block types already
+  declares a field whose name starts with `_`; rename it if so.
 
 - **Per-block form extension API** (`BlockFormExtensionInterface` +
   `#[AsBlockFormExtension]`) — a new, cleaner way to add fields to a block's edit
@@ -321,4 +413,6 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
 - [ ] Update any forked kit block templates to the new data keys.
 - [ ] Find-and-replace `ContentBlocks\Service\` with the new namespaces (§4).
 - [ ] Adjust any direct call to `import()` / `serialize()` to their value objects (§5).
+- [ ] Swap `RenderMode` for `RenderContext` if you call or implement the renderer (§6).
+- [ ] Run `content-blocks:backfill-collection-ids`; rename any own field starting with `_` (§8).
 - [ ] Rebuild the container and clear the cache; verify pages render.

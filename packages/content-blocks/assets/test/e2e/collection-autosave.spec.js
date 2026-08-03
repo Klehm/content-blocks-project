@@ -73,7 +73,7 @@ test.describe('builder shell — collection autosave', () => {
         // build a second VALID tab before deleting — otherwise the empty new
         // tab would fail validation and abort the save (correct behavior).
         await expect(items).toHaveCount(1);
-        await sidebar.locator('.cb-form-btn--success').click(); // "+ Add tab"
+        await sidebar.locator('.cb-form-btn--primary').click(); // "+ Add tab"
         await expect(items).toHaveCount(2);
         const secondTitle = items.nth(1).locator('input[type="text"]').first();
         await secondTitle.fill('Second');

@@ -48,12 +48,14 @@ class AlertBlock extends AbstractKitBlock
                 'constraints' => [$this->choiceConstraint('type')],
             ])
             ->add('title', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.alert.field.title',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
                 'constraints' => [new Assert\Length(max: 255)],
             ])
             ->add('content', TextareaType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.alert.field.message',
                 'translation_domain' => 'content_blocks_kit',
                 'attr' => ['rows' => 3],

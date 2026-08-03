@@ -18,6 +18,8 @@ use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiatorInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
+use ContentBlocks\Translation\TranslatableFields;
+use ContentBlocks\Translation\TranslatableFieldsInterface;
 use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
 use ContentBlocks\Versioning\DenyOnMismatchUpgrader;
 use PHPUnit\Framework\TestCase;
@@ -49,6 +51,7 @@ final class ServiceSeamAliasesTest extends TestCase
         yield 'template serializer' => [SectionTemplateSerializerInterface::class, SectionTemplateSerializer::class];
         yield 'template instantiator' => [SectionTemplateInstantiatorInterface::class, SectionTemplateInstantiator::class];
         yield 'content version upgrader' => [ContentVersionUpgraderInterface::class, DenyOnMismatchUpgrader::class];
+        yield 'translatable fields' => [TranslatableFieldsInterface::class, TranslatableFields::class];
     }
 
     /**

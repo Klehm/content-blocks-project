@@ -5,7 +5,7 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-08-03
 
 ### Changed
 
@@ -30,6 +30,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   heading content (composite blocks use `title` for a sub-heading — different role);
   `icon.size` stays an integer (px) while `size` elsewhere is an enum; `src`/`fit`
   keep their conventional HTML/CSS spellings.
+
+### Added
+
+- **Translatable fields declared across the block set.** 29 fields are tagged
+  `cb_translatable` (the core's convention): prose — headings, body copy, item
+  labels, alt text, captions — and link targets, since a localized site
+  routinely points at `/fr/contact`. Enums, colors, sizes and uploaded assets
+  are deliberately left untagged: they are the same in every language, and
+  swapping an image per locale is an asset decision rather than a translation.
+
+  Purely declarative. The kit gains no behaviour from it and no rendered output
+  changes; it means a satellite translation package finds an annotated field set
+  on day one instead of 17 blocks nobody marked up.
 
 ## [0.1.0-beta.7] - 2026-07-10
 

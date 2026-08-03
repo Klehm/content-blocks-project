@@ -54,7 +54,7 @@ class ListBlock extends AbstractKitBlock
                 'button_add_options' => [
                     'label' => 'cb_kit.block.action.add_item',
                     'translation_domain' => 'content_blocks_kit',
-                    'attr' => ['class' => 'cb-form-btn--success'],
+                    'attr' => ['class' => 'cb-form-btn--primary'],
                 ],
                 'button_delete_options' => [
                     'label' => 'cb_kit.block.action.remove_item',

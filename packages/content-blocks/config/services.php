@@ -261,10 +261,48 @@ return static function (ContainerConfigurator $container): void {
         ->args([tagged_iterator('content_blocks.block_data_defaults')])
         ->public();
 
+    // ---------- Block data resolution (render payload) ----------
+
+    // Seeds the payload from the entity's draft/published slots. Tagged by
+    // hand — with a priority, so it runs ahead of anything a host registers —
+    // hence autoconfigure(false): autoconfiguration would add the same tag a
+    // second time and the resolver would run twice.
+    $services->set(\ContentBlocks\Rendering\CoreBlockDataResolver::class)
+        ->autoconfigure(false)
+        ->tag('content_blocks.block_data_resolver', ['priority' => 256]);
+
+    $services->set(\ContentBlocks\Rendering\BlockDataResolverCollection::class)
+        ->args([tagged_iterator('content_blocks.block_data_resolver')])
+        ->public();
+
     // "Which keys can this block type hold?" — shared by the two restore paths
     // (section-template insert, area import) so the union rule it encodes lives
     // in exactly one place.
     $services->set(\ContentBlocks\Block\BlockDataKeys::class);
+
+    // Stable `_id` on every collection entry. Minted on the draft-write path
+    // (BlockComponent::persistDraft) so a reorder, duplicate or delete never
+    // shifts what per-entry information points at.
+    $services->set(\ContentBlocks\Block\CollectionItemIds::class);
+
+    // One-off normalization of content stored before `_id` existed. The
+    // #[AsCommand] attribute is picked up by console.command autoconfiguration.
+    $services->set(\ContentBlocks\Command\BackfillCollectionIdsCommand::class);
+
+    // ---------- Content translation (convention only) ----------
+
+    // Declares the `cb_translatable` form option, and reads the tags back.
+    // Neither has a consumer in this package: the core ships the convention so
+    // it freezes with the 1.0 contract, a satellite package ships the storage,
+    // the UI and the locale-aware resolver. See TRANSLATION-SPIKE.md.
+    $services->set(\ContentBlocks\Form\Extension\TranslatableFieldTypeExtension::class)
+        ->tag('form.type_extension');
+
+    $services->set(\ContentBlocks\Translation\TranslatableFields::class);
+    $services->alias(
+        \ContentBlocks\Translation\TranslatableFieldsInterface::class,
+        \ContentBlocks\Translation\TranslatableFields::class,
+    );
 
     // Form types + the per-block form-extension collection. The collection's
     // `$extensions` argument (the [extension, target block type ids] pairs) is

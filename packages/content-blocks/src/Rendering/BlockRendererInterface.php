@@ -16,6 +16,15 @@ use ContentBlocks\Entity\Section;
  * swap the mode heuristic, add caching…) re-aliases the interface to its own
  * implementation — typically decorating the default via
  * `#[AsDecorator(BlockRendererInterface::class)]`.
+ *
+ * Every entry point takes a {@see RenderContext} rather than a bare
+ * {@see RenderMode}, so the pipeline can gain inputs (locale today, whatever
+ * comes next) without another breaking signature change. Pass null to keep the
+ * historical behaviour.
+ *
+ * To change *what* a block renders rather than how the tree is walked, prefer
+ * {@see BlockDataResolverInterface} — a far smaller surface to own than a
+ * renderer replacement.
  */
 interface BlockRendererInterface
 {
@@ -26,10 +35,10 @@ interface BlockRendererInterface
     public const QUERY_PARAM = 'cb_preview';
 
     /**
-     * Render a full content area. Mode is auto-detected from the current
-     * request unless $forceMode is given.
+     * Render a full content area. With no context — or a context whose mode is
+     * null — the mode is auto-detected from the current request.
      */
-    public function render(ContentArea $area, ?RenderMode $forceMode = null): string;
+    public function render(ContentArea $area, ?RenderContext $context = null): string;
 
     /**
      * Resolve the render mode (PUBLIC vs PREVIEW) for an area from the current
@@ -39,11 +48,13 @@ interface BlockRendererInterface
 
     /**
      * Render a single block (used by the builder's live preview endpoints).
+     * Defaults to PREVIEW when the context carries no mode.
      */
-    public function renderBlock(Block $block, RenderMode $mode = RenderMode::PREVIEW): string;
+    public function renderBlock(Block $block, ?RenderContext $context = null): string;
 
     /**
      * Render a single section with its columns and blocks.
+     * Defaults to PREVIEW when the context carries no mode.
      */
-    public function renderSection(Section $section, RenderMode $mode = RenderMode::PREVIEW): string;
+    public function renderSection(Section $section, ?RenderContext $context = null): string;
 }

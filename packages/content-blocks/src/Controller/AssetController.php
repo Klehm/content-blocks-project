@@ -59,7 +59,16 @@ final class AssetController
     )]
     public function builderCss(): Response
     {
-        return $this->asset('/styles/builder.css', 'text/css; charset=UTF-8');
+        // Prepended rather than @import-ed: this file is served raw (no
+        // bundler), and an @import would resolve against
+        // /_content-blocks/public/, where no route serves the tokens.
+        // Concatenating keeps one source of truth for the palette across the
+        // admin document and this one.
+        return $this->asset(
+            '/styles/builder.css',
+            'text/css; charset=UTF-8',
+            prepend: '/styles/tokens.css',
+        );
     }
 
     #[Route(
@@ -72,10 +81,9 @@ final class AssetController
         return $this->asset('/preview-overlay.js', 'application/javascript; charset=UTF-8');
     }
 
-    private function asset(string $relativePath, string $contentType): Response
+    private function asset(string $relativePath, string $contentType, ?string $prepend = null): Response
     {
-        $path = __DIR__ . self::ASSETS_DIR . $relativePath;
-        $content = @file_get_contents($path);
+        $content = $this->read($relativePath);
 
         if ($content === false) {
             return new Response('// asset missing: ' . $relativePath, 500, [
@@ -83,10 +91,25 @@ final class AssetController
             ]);
         }
 
+        if ($prepend !== null) {
+            $head = $this->read($prepend);
+            if ($head === false) {
+                return new Response('// asset missing: ' . $prepend, 500, [
+                    'Content-Type' => $contentType,
+                ]);
+            }
+            $content = $head . "\n" . $content;
+        }
+
         return new Response($content, 200, [
             'Content-Type' => $contentType,
             'Cache-Control' => 'public, max-age=300',
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    private function read(string $relativePath): string|false
+    {
+        return @file_get_contents(__DIR__ . self::ASSETS_DIR . $relativePath);
     }
 }

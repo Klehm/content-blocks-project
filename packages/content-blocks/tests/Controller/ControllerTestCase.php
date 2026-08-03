@@ -105,6 +105,9 @@ abstract class ControllerTestCase extends TestCase
             $this->createMock(TranslatorInterface::class),
             new BlockDecoratorCollection([]),
             new BlockDataDefaults([]),
+            new \ContentBlocks\Rendering\BlockDataResolverCollection([
+                new \ContentBlocks\Rendering\CoreBlockDataResolver(),
+            ]),
         );
     }
 

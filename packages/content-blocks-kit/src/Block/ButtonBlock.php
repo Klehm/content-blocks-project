@@ -42,11 +42,13 @@ class ButtonBlock extends AbstractKitBlock
     {
         $builder
             ->add('text', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.button.field.text',
                 'translation_domain' => 'content_blocks_kit',
                 'constraints' => [new Assert\NotBlank(), new Assert\Length(max: 100)],
             ])
             ->add('url', UrlType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.button.field.href',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,

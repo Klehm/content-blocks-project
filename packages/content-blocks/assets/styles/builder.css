@@ -14,10 +14,10 @@
   position: absolute;
   display: inline-flex;
   gap: 2px;
-  background: #1f2330;
-  border-radius: 6px;
+  background: var(--cb-inverse-surface);
+  border-radius: var(--cb-radius-sm);
   padding: 2px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 8px rgba(var(--cb-shadow-rgb), 0.25);
   z-index: 2147483000;
   /* Wrapper is transparent to pointer events so a toolbar floating on
        top of the hovered element doesn't steal mousemove/click from the
@@ -34,21 +34,21 @@
 .cb-overlay-toolbar__btn {
   background: transparent;
   border: 0;
-  color: #fff;
+  color: var(--cb-on-solid);
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--cb-radius-xs);
   line-height: 1;
   font: inherit;
   pointer-events: auto;
 }
 .cb-overlay-toolbar__btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(var(--cb-on-solid-rgb), 0.15);
 }
 .cb-overlay-toolbar__btn--drag {
   cursor: grab;
   /* Visual hint that this button is draggable rather than clickable. */
-  color: #b5bccd;
+  color: rgba(var(--cb-on-solid-rgb), 0.6);
   padding-left: 6px;
   padding-right: 6px;
 }
@@ -63,11 +63,11 @@
 .cb-drop-indicator {
   position: absolute;
   height: 3px;
-  background: #4f8df9;
+  background: var(--cb-accent);
   border-radius: 2px;
   pointer-events: none;
   z-index: 2147483002;
-  box-shadow: 0 0 0 1px rgba(79, 141, 249, 0.25);
+  box-shadow: 0 0 0 1px rgba(var(--cb-accent-rgb), 0.25);
 }
 .cb-drop-indicator[hidden] {
   display: none;
@@ -101,10 +101,10 @@ body.cb-dragging--block [data-cb-section-id] {
 .cb-overlay-popover {
   box-sizing: border-box;
   position: absolute;
-  background: #fff;
-  border: 1px solid #e3e5e9;
+  background: var(--cb-panel);
+  border: 1px solid var(--cb-line);
   border-radius: 10px;
-  box-shadow: 0 8px 28px rgba(17, 20, 28, 0.18);
+  box-shadow: 0 8px 28px rgba(var(--cb-shadow-rgb), 0.18);
   z-index: 2147483001;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 13px;
@@ -121,7 +121,7 @@ body.cb-dragging--block [data-cb-section-id] {
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #8a90a0;
+  color: var(--cb-faint);
   padding: 4px 6px 8px;
 }
 .cb-overlay-popover__grid {
@@ -138,37 +138,37 @@ body.cb-dragging--block [data-cb-section-id] {
   margin: 0;
   min-width: 0;
   aspect-ratio: 1 / 1;
-  background: #f6f7f9;
+  background: var(--cb-surface);
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--cb-radius);
   padding: 8px 4px;
   cursor: pointer;
-  color: #4a5163;
+  color: var(--cb-text-2);
   font: inherit;
   text-align: center;
   transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease,
     transform 0.06s ease;
 }
 .cb-overlay-popover__tile:hover {
-  background: #eef4ff;
-  border-color: #2f6bff;
-  color: #1b46c2;
+  background: var(--cb-accent-bg);
+  border-color: var(--cb-accent);
+  color: var(--cb-accent-darker);
 }
 .cb-overlay-popover__tile:active {
   transform: translateY(1px);
 }
 .cb-overlay-popover__tile:focus-visible {
-  outline: 2px solid #2f6bff;
+  outline: 2px solid var(--cb-accent);
   outline-offset: 1px;
 }
 .cb-overlay-popover__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #5b6477;
+  color: var(--cb-muted);
 }
 .cb-overlay-popover__tile:hover .cb-overlay-popover__icon {
-  color: #2f6bff;
+  color: var(--cb-accent);
 }
 .cb-overlay-popover__icon svg {
   display: block;
@@ -178,7 +178,7 @@ body.cb-dragging--block [data-cb-section-id] {
 .cb-overlay-popover__label {
   font-size: 11.5px;
   line-height: 1.2;
-  color: #2b2f3a;
+  color: var(--cb-text-2);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -207,7 +207,7 @@ body.cb-dragging--block [data-cb-section-id] {
   min-height: var(--cb-min-h, 60px);
   box-sizing: border-box;
   position: relative;
-  outline: 1px dashed #d8dbe2;
+  outline: 1px dashed var(--cb-line-strong);
   outline-offset: -1px;
 }
 /* Columns have no outline — the permanent "+ Bloc" pill at the bottom
@@ -228,7 +228,7 @@ body.cb-dragging--block [data-cb-section-id] {
    above. Blue is reserved for THIS feedback so the user always knows
    what's "selected" at a glance. */
 .cb-overlay-outline {
-  outline: 2px solid #4f8df9 !important;
+  outline: 2px solid var(--cb-accent) !important;
   outline-offset: -2px !important;
 }
 
@@ -249,12 +249,12 @@ body.cb-dragging--block [data-cb-section-id] {
   gap: 4px;
   margin: 0;
   padding: 2px 8px;
-  background: #fff;
-  border: 1px solid #d8dbe2;
+  background: var(--cb-panel);
+  border: 1px solid var(--cb-line-strong);
   /* Square against the top-left corner, rounded on the inner side — reads
      as a tab hanging off the section frame. */
   border-radius: 0 0 6px 0;
-  color: #6b7280;
+  color: var(--cb-muted);
   font: inherit;
   font-size: 11px;
   font-weight: 600;
@@ -273,8 +273,8 @@ body.cb-dragging--block [data-cb-section-id] {
 }
 .cb-section-handle:hover,
 .cb-section-handle:focus-visible {
-  border-color: #4f8df9;
-  color: #4f8df9;
+  border-color: var(--cb-accent);
+  color: var(--cb-accent);
   outline: none;
 }
 .cb-section-handle__grip {
@@ -318,10 +318,10 @@ body {
   max-width: 80px;
   margin: 0;
   padding: 4px 8px;
-  background: #fff;
-  border: 1px solid #c8ccd5;
-  border-radius: 4px;
-  color: #6b7280;
+  background: var(--cb-panel);
+  border: 1px solid var(--cb-line-strong);
+  border-radius: var(--cb-radius-xs);
+  color: var(--cb-muted);
   font: inherit;
   font-size: 12px;
   line-height: 1.2;
@@ -344,9 +344,9 @@ body {
 }
 .cb-add-block-inline:hover,
 .cb-add-block-inline:focus-visible {
-  background: #fff;
-  border-color: #4f8df9;
-  color: #4f8df9;
+  background: var(--cb-panel);
+  border-color: var(--cb-accent);
+  color: var(--cb-accent);
   outline: none;
 }
 
@@ -357,9 +357,9 @@ body {
 [data-cb-preview="1"] [data-cb-block-id]:not(:has(*)) {
   display: block;
   min-height: 60px;
-  background: repeating-linear-gradient(45deg, #f8f9fa, #f8f9fa 8px, #ffffff 8px, #ffffff 16px);
-  border: 1px dashed #c8ccd5;
-  border-radius: 4px;
+  background: repeating-linear-gradient(45deg, var(--cb-panel-3), var(--cb-panel-3) 8px, var(--cb-panel) 8px, var(--cb-panel) 16px);
+  border: 1px dashed var(--cb-line-strong);
+  border-radius: var(--cb-radius-xs);
 }
 
 /* ---------- Permanent "Add a section" tray ---------- */
@@ -370,14 +370,14 @@ body {
   margin: 16px auto 24px;
   padding: 16px;
   text-align: center;
-  color: #1f2330;
+  color: var(--cb-text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 .cb-add-section-tray__label {
   margin: 0 0 10px;
   font-size: 13px;
   font-weight: 500;
-  color: #5b6172;
+  color: var(--cb-muted);
 }
 
 /* Empty-state polish: when the area has zero visible sections, anchor the
@@ -397,7 +397,7 @@ body {
   margin-bottom: 16px;
   font-size: 18px;
   font-weight: 500;
-  color: #1f2330;
+  color: var(--cb-text);
 }
 .cb-content-area--empty .cb-add-section-tray__buttons {
   gap: 12px;
@@ -417,10 +417,10 @@ body {
   justify-content: center;
   width: 56px;
   height: 44px;
-  background: #fff;
-  border: 1px solid #d8dbe2;
-  border-radius: 6px;
-  color: #5b6172;
+  background: var(--cb-panel);
+  border: 1px solid var(--cb-line-strong);
+  border-radius: var(--cb-radius-sm);
+  color: var(--cb-muted);
   cursor: pointer;
   transition:
     border-color 0.12s ease,
@@ -429,9 +429,9 @@ body {
 }
 .cb-add-section-tray__btn:hover,
 .cb-add-section-tray__btn:focus-visible {
-  border-color: #4f8df9;
-  color: #4f8df9;
-  background: rgba(79, 141, 249, 0.06);
+  border-color: var(--cb-accent);
+  color: var(--cb-accent);
+  background: rgba(var(--cb-accent-rgb), 0.06);
   outline: none;
 }
 .cb-add-section-tray__library {
@@ -441,13 +441,13 @@ body {
   height: 44px;
   margin-left: 8px;
   gap: 6px;
-  background: #fff;
-  border: 1px solid #d8dbe2;
-  border-radius: 6px;
+  background: var(--cb-panel);
+  border: 1px solid var(--cb-line-strong);
+  border-radius: var(--cb-radius-sm);
   padding: 0 14px;
   font: inherit;
   font-size: 13px;
-  color: #5b6172;
+  color: var(--cb-muted);
   cursor: pointer;
   transition:
     border-color 0.12s ease,
@@ -456,8 +456,8 @@ body {
 }
 .cb-add-section-tray__library:hover,
 .cb-add-section-tray__library:focus-visible {
-  border-color: #4f8df9;
-  color: #4f8df9;
-  background: rgba(79, 141, 249, 0.06);
+  border-color: var(--cb-accent);
+  color: var(--cb-accent);
+  background: rgba(var(--cb-accent-rgb), 0.06);
   outline: none;
 }

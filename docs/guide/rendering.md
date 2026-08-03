@@ -31,6 +31,78 @@ Render-mode is auto-detected from the request:
 
 See [host services](./host-services.md#accesscheckerinterface-authorization) for `AccessCheckerInterface`, and [Security](./security.md#cross-firewall-auth-detection) for the cross-firewall gotcha that can silently keep the iframe in public mode.
 
+## Changing what a block renders
+
+Overriding a template changes *how* a block's data is presented. To change the **data itself** on the way to the template — without forking the renderer — register a `BlockDataResolverInterface`:
+
+```php
+use ContentBlocks\Entity\Block;
+use ContentBlocks\Rendering\BlockDataResolverInterface;
+use ContentBlocks\Rendering\RenderContext;
+
+final class UppercaseTitles implements BlockDataResolverInterface
+{
+    public function resolve(Block $block, RenderContext $context, array $data): array
+    {
+        if (isset($data['title'])) {
+            $data['title'] = strtoupper($data['title']);
+        }
+
+        return $data;
+    }
+}
+```
+
+No wiring beyond `autoconfigure: true`. Resolvers form a **pipeline**: each receives what the previous produced. The package's own `CoreBlockDataResolver` runs first (priority `256`) and seeds the payload from the block's draft-or-published slots, so yours transforms a populated array. To seed differently, register at a higher priority and ignore the incoming `$data`.
+
+Keep resolvers side-effect free — one runs per block on every public page render.
+
+::: info Contrast with block decorators
+`BlockDecoratorInterface` contributes CSS classes, inline styles and attributes on the block's **wrapper**; it cannot touch `data`. Use a decorator for presentation, a resolver for content.
+:::
+
+### Render context and locale
+
+Every entry point on `BlockRendererInterface` takes a `RenderContext` carrying the render mode and an optional locale. Both are optional and `null` means "decide for me":
+
+```php
+$renderer->render($area);                                  // mode from the request
+$renderer->render($area, RenderContext::forPublic());      // force public
+$renderer->render($area, RenderContext::forLocale('fr'));  // pin locale, keep mode detection
+```
+
+From Twig, pass the locale as a second argument:
+
+```twig
+{{ cb_render_content_area(page.contentArea, 'fr') }}
+```
+
+The core does nothing with the locale on its own — it is the input a locale-aware resolver reads. See below.
+
+## Translatable fields
+
+ContentBlocks is single-language by default: content translation is designed to live in a satellite package. What ships in the core is the **convention** that package reads, frozen with the 1.0 contract so blocks written today are already annotated.
+
+A block declares which of its fields hold language-dependent values:
+
+```php
+$builder->add('heading', TextType::class, [
+    'label' => 'Heading',
+    'cb_translatable' => true,
+]);
+```
+
+Tag prose (headings, body copy, labels, alt text, captions) and link targets — a localized site routinely points at `/fr/contact`. Leave out enums, colors, sizes and IDs: they are identical in every language. The kit tags 29 fields across its blocks on exactly this rule.
+
+The option carries **no behaviour on its own**. With no translation package installed, tagging a field changes nothing at all — it is a declaration, read back through `TranslatableFieldsInterface`:
+
+```php
+$fields = $translatableFields->forBlockType('card');
+// ['items[].title', 'items[].content', 'items[].url', 'items[].buttonText']
+```
+
+Nesting is dotted and collection entries are marked `[]`. Because it reads the **built form**, a field a host adds through a [block form extension](./custom-blocks.md) is picked up for free.
+
 ## Overriding render templates
 
 The render pipeline is split into four templates so you can override the markup of an individual level (section, column, block) without forking the whole entry-point. Drop a file at the same relative path under `templates/bundles/ContentBlocksBundle/` in your host app to override one.

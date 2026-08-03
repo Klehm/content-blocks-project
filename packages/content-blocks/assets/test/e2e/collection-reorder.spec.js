@@ -73,7 +73,7 @@ async function openBlockEditor(page, frame) {
 async function seedThreeTabs(page, sidebar) {
     const items = sidebar.locator('.cb-form-collection__item');
     const titleOf = (i) => items.nth(i).locator('input[type="text"]').first();
-    const addBtn = sidebar.locator('.cb-form-btn--success'); // "+ Add tab"
+    const addBtn = sidebar.locator('.cb-form-btn--primary'); // "+ Add tab"
 
     const nameTab = async (i, label) => {
         await titleOf(i).fill(label);

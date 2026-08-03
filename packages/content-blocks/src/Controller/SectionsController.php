@@ -9,7 +9,7 @@ use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Rendering\BlockRendererInterface;
-use ContentBlocks\Rendering\RenderMode;
+use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Section\SectionClonerInterface;
@@ -211,7 +211,7 @@ final class SectionsController
 
         if ($this->sectionSupportsHotReload($copy)) {
             $response['hotReload'] = true;
-            $response['html'] = $this->blockRenderer->renderSection($copy, RenderMode::PREVIEW);
+            $response['html'] = $this->blockRenderer->renderSection($copy, RenderContext::forPreview());
         } else {
             $response['hotReload'] = false;
         }

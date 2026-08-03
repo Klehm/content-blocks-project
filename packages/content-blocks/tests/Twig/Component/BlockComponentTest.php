@@ -113,6 +113,7 @@ final class BlockComponentTest extends TestCase
             $factory,
             new AllowAllAccessChecker(),
             $defaults,
+            new \ContentBlocks\Block\CollectionItemIds(),
         );
         $component->blockId = 1;
 
@@ -161,6 +162,7 @@ final class BlockComponentTest extends TestCase
             $factory,
             new AllowAllAccessChecker(),
             $defaults,
+            new \ContentBlocks\Block\CollectionItemIds(),
         );
         $component->blockId = 1;
 
@@ -227,6 +229,7 @@ final class BlockComponentTest extends TestCase
             $factory,
             new AllowAllAccessChecker(),
             new \ContentBlocks\Block\BlockDataDefaults(),
+            new \ContentBlocks\Block\CollectionItemIds(),
         );
         $component->blockId = 1;
 
@@ -310,6 +313,26 @@ final class BlockComponentTest extends TestCase
         yield 'single item' => [['a'], 0, ['a', 'a']];
         yield 'index out of range' => [['a', 'b'], 5, null];
         yield 'negative index' => [['a', 'b'], -1, null];
+    }
+
+    public function testDuplicateInCollectionStripsTheSourceEntrysStableId(): void
+    {
+        // The copy is a new entry and must not share the original's identity:
+        // anything keyed per entry (translations first) would otherwise address
+        // both at once, and editing one would appear to edit the other.
+        // persistDraft() mints a fresh id for the stripped copy.
+        $data = [
+            ['_id' => 'aaa', 'label' => 'One'],
+            ['_id' => 'bbb', 'label' => 'Two'],
+        ];
+
+        $out = $this->invokeDuplicateInCollection($data, 0);
+
+        self::assertNotNull($out);
+        self::assertSame('aaa', $out[0]['_id'], 'the original keeps its id');
+        self::assertArrayNotHasKey('_id', $out[1], 'the copy carries none, awaiting a fresh one');
+        self::assertSame('One', $out[1]['label'], 'everything else is copied');
+        self::assertSame('bbb', $out[2]['_id'], 'later entries are undisturbed');
     }
 
     public function testDuplicateInCollectionNormalizesSparseKeysFromPriorDeletion(): void

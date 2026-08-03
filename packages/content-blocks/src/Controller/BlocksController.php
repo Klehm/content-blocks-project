@@ -8,7 +8,7 @@ use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Rendering\BlockRendererInterface;
-use ContentBlocks\Rendering\RenderMode;
+use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -104,7 +104,7 @@ final class BlocksController
             return new JsonResponse([
                 'id' => $block->getId(),
                 'hotReload' => true,
-                'html' => $this->blockRenderer->renderBlock($block, RenderMode::PREVIEW),
+                'html' => $this->blockRenderer->renderBlock($block, RenderContext::forPreview()),
             ]);
         }
 
@@ -240,7 +240,7 @@ final class BlocksController
 
         if ($blockType !== null && $blockType->supportsPreviewHotReload()) {
             $response['hotReload'] = true;
-            $response['html'] = $this->blockRenderer->renderBlock($copy, RenderMode::PREVIEW);
+            $response['html'] = $this->blockRenderer->renderBlock($copy, RenderContext::forPreview());
         } else {
             $response['hotReload'] = false;
         }

@@ -21,11 +21,13 @@ final class AccordionItemType extends AbstractType
     {
         $builder
             ->add('title', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.accordion.field.item_title',
                 'translation_domain' => 'content_blocks_kit',
                 'constraints' => [new Assert\NotBlank(), new Assert\Length(max: 255)],
             ])
             ->add('content', TextareaType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.accordion.field.item_content',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,

@@ -185,6 +185,11 @@ A block's `data` is never written raw — the block's Symfony form **is** its wh
 
 There is no `sanitizeData()` / `getAllowedDataKeys()` hook to implement — you secure a block's data purely through the fields and constraints declared in `buildForm()`. For a field with a fixed set of allowed values, add an `Assert\Choice` constraint derived from the full coded choice set. See [Security → Block data sanitization](./security.md#block-data-sanitization) for the full rationale.
 
+### Two names the package owns
+
+- **Never declare a field whose name starts with `_`.** The prefix is reserved by ContentBlocks at every level of `Block.data`, including collection entries.
+- **`_id`** is what it uses today: every entry of a `CollectionType` / `LiveCollectionType` field gets one automatically, so a reorder, duplicate or delete never shifts what per-entry information points at. You do not declare it, render it, or maintain it — but do not strip it either if you post-process `data` yourself.
+
 ## Opting into preview hot reload
 
 By default an inline edit triggers a full iframe reload. If your block's rendered **view** is self-contained (static HTML or CSS-only, no JS init needed once the markup lands in the DOM), opt into in-place swapping:

@@ -7,7 +7,7 @@ namespace ContentBlocks\Controller;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Rendering\BlockRendererInterface;
-use ContentBlocks\Rendering\RenderMode;
+use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -68,7 +68,7 @@ final class BlockRenderController
         return new JsonResponse([
             'hotReload' => true,
             'type' => $type,
-            'html' => $this->blockRenderer->renderBlock($block, RenderMode::PREVIEW),
+            'html' => $this->blockRenderer->renderBlock($block, RenderContext::forPreview()),
         ]);
     }
 }

@@ -93,3 +93,41 @@ Pair it with a `SectionDecoratorInterface` reading `$settings['styling']['zIndex
 ## Adding your own block decorator
 
 Implement `ContentBlocks\Block\BlockDecoratorInterface` (mirror of `SectionDecoratorInterface`). It is auto-tagged with `content_blocks.block_decorator` when `autoconfigure: true` is on, and called for every block being rendered. Return a `BlockDecoration` (classes / inline styles / attributes) — the bundle merges all decorators' output into the block's outer `<div>`.
+
+## Theming the builder chrome
+
+Everything above styles **content**. The builder's own UI — topbar, sidebars, form widgets, preview overlay — is styled separately, from a single set of design tokens in `assets/styles/tokens.css`. Every rule in `admin.css`, `forms.css` and `builder.css` reads `var(--cb-*)` rather than a color literal, so restyling the tool is a matter of redeclaring tokens:
+
+```css
+/* your admin stylesheet, loaded after the package's */
+.cb-shell,
+.cb-launcher,
+.cb-builder-dialog {
+    --cb-accent-rgb: 124, 58, 237;   /* drives the accent and all its alpha variants */
+    --cb-accent-strong: #6d28d9;
+    --cb-radius: 10px;
+}
+```
+
+The token names are public surface — they are covered by the package's semver guarantee like any other API.
+
+| Group | Tokens |
+|---|---|
+| Surfaces | `--cb-surface`, `--cb-panel`, `--cb-panel-2`, `--cb-panel-3`, `--cb-field-bg` |
+| Lines | `--cb-line`, `--cb-line-strong`, `--cb-line-hover` |
+| Text | `--cb-text`, `--cb-text-2`, `--cb-muted`, `--cb-faint`, `--cb-on-solid`, `--cb-inverse-surface` |
+| Accent | `--cb-accent-rgb`, `--cb-accent`, `--cb-accent-strong`, `--cb-accent-darker`, `--cb-accent-soft`, `--cb-accent-bg` |
+| Status | `--cb-danger`, `--cb-danger-strong`, `--cb-success`, `--cb-success-strong`, `--cb-warning`, `--cb-badge-bg`, `--cb-badge-fg` |
+| Shadow | `--cb-shadow-rgb` |
+| Geometry | `--cb-radius`, `--cb-radius-sm`, `--cb-radius-xs` |
+
+Two details worth knowing:
+
+- **Alpha variants come from the `*-rgb` tokens.** Rules build translucency with `rgba(var(--cb-accent-rgb), 0.25)`, so overriding `--cb-accent-rgb` moves the solid color *and* every focus ring, hover tint and shadow that derives from it. Override `--cb-accent` alone and the alphas stay behind.
+- **Form widgets have their own alias layer.** `--cb-form-*` (in `forms.css`) points at the tokens above. Redeclare just those to make inputs differ from the rest of the chrome without touching the shared palette.
+
+::: info Reskinning the admin never restyles content
+The preview iframe renders the host's public page with the kit's stylesheet. Its colors come from `content_blocks.palette` and the block styling settings documented above — a separate system on purpose, so changing the tool's accent never moves a button on the published page.
+:::
+
+A handful of colors live inside `data:` URIs (the select chevron, the checkbox tick) because custom properties cannot reach inside one. They are commented in place; adjust them by hand if a reskin moves far from the shipped palette.

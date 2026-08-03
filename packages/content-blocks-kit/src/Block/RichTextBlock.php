@@ -38,6 +38,7 @@ class RichTextBlock extends AbstractKitBlock
         // Stimulus controller (declared in the form theme). When JS is
         // disabled, the user still gets a plain textarea fallback.
         $builder->add('content', TextareaType::class, [
+            'cb_translatable' => true,
             'label' => 'cb_kit.block.rich_text.field.content',
             'translation_domain' => 'content_blocks_kit',
             'required' => false,
