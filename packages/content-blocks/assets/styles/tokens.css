@@ -65,10 +65,15 @@
    * it sets the *captions* (field labels, group titles, unit hints), the
    * small uppercase text that names a control. Keeping labels visually
    * distinct from the values they label is what stops a dense settings
-   * sidebar from reading as one undifferentiated column of text. */
+   * sidebar from reading as one undifferentiated column of text.
+   *
+   * The scale is deliberately two sizes, not three: a group heading is the
+   * same size as the field labels under it and earns its rank from weight and
+   * color instead. Stacking a third size on top of uppercase + mono + tracking
+   * makes every caption shout at a slightly different volume. */
   --cb-font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-  --cb-caption-size: 0.66rem; /* labels naming a field */
-  --cb-caption-size-sm: 0.62rem; /* captions above a group of fields */
+  --cb-caption-size: 0.66rem; /* group headings and the labels naming a field */
+  --cb-caption-size-sm: 0.58rem; /* sub-captions inside a control (box-spacing sides) */
   --cb-caption-tracking: 0.1em;
 
   /* ---- Chrome accent ----

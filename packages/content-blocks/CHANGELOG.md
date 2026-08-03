@@ -33,10 +33,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   box-spacing side names — now render small, uppercase and in `--cb-font-mono`.
   A label names a control; setting it apart in *case and family*, not only in
   size, is what lets the eye skip the labels when scanning a settings column for
-  a value. Checkbox and radio labels are deliberately excluded: those are the
-  sentence the user reads to decide, so they keep the host's body font. Labels
-  go back to sentence case with `--cb-form-label-transform: none` (see the
-  theming guide) — no fork needed.
+  a value. The scale is two sizes: a group heading matches the labels under it
+  and outranks them by weight and color, not by a third size. Checkbox and radio
+  labels are deliberately excluded — those are the sentence the user reads to
+  decide, so they keep the host's body font. Labels go back to sentence case
+  with `--cb-form-label-transform: none` (see the theming guide) — no fork needed.
+- **A standalone checkbox no longer renders its label twice.** The form theme
+  gained a `checkbox_row` block that drops the row-level label: a checkbox
+  already labels itself next to the box, so the generic row printed the same
+  words as both a caption and a sentence (visible on the section sidebar's
+  "Customize styling" switch, and on any host block using `CheckboxType`).
+  Radio groups and expanded choices are unaffected — there the row label names
+  the group, not an option.
 - **BREAKING — styling viewport keys `d`/`t`/`m` → `desktop`/`tablet`/`mobile`.**
   The responsive styling sub-tree (`styling.padding`/`margin`/`gap`) now spells out
   the viewport keys in stored data (section `draft_settings`/`published_settings`

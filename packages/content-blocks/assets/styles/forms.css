@@ -120,7 +120,8 @@
 }
 .cb-shell .cb-form-label.required::after {
     content: "*";
-    margin-left: 0.15rem;
+    /* No margin: the label's letter-spacing already leaves a gap after the
+       last character, and adding to it left the asterisk visibly adrift. */
     color: var(--cb-form-danger);
 }
 

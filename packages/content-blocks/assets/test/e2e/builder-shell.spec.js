@@ -282,6 +282,31 @@ test.describe('builder shell — sections', () => {
         await expect(fieldLabel).toHaveCSS('text-transform', 'none');
     });
 
+    test('a standalone checkbox has one label, a radio group keeps its group label', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await openSectionSettings(page, frame);
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+
+        // The "Customize styling" checkbox labels itself next to the box, so
+        // the row-level label would print the same words twice — once as a
+        // caption, once as the sentence. `checkbox_row` drops the caption.
+        const checkRow = sidebar.locator(
+            '.cb-form-row:has(input[name="section_settings[stylingCustom]"])',
+        );
+        await expect(checkRow.locator('> .cb-form-label')).toHaveCount(0);
+        await expect(checkRow.locator('.cb-form-check__label')).toHaveCount(1);
+
+        // A radio group is the opposite case: the row label names the group
+        // ("Width"), the per-option labels name the options. Both are needed.
+        const radioRow = sidebar.locator(
+            '.cb-form-row:has(input[name="section_settings[widthMode]"])',
+        );
+        await expect(radioRow.locator('> .cb-form-label, > legend.cb-form-label')).toHaveCount(1);
+        await expect(radioRow.locator('.cb-form-check__label')).toHaveCount(2);
+    });
+
     test('section settings save applies custom classes + width and the palette background', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);

@@ -118,11 +118,11 @@ body.cb-dragging--block [data-cb-section-id] {
 }
 .cb-overlay-popover__header {
   font-family: var(--cb-font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-size: var(--cb-caption-size);
+  font-weight: 700;
+  letter-spacing: var(--cb-caption-tracking);
   text-transform: uppercase;
-  color: var(--cb-faint);
+  color: var(--cb-text-2);
   padding: 4px 6px 8px;
 }
 .cb-overlay-popover__grid {
