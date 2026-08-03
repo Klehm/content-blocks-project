@@ -5,10 +5,29 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-08-03
 
 ### Changed
 
+- **BREAKING — `BlockRendererInterface` takes a `RenderContext` instead of a
+  bare `RenderMode`.** `render(ContentArea, ?RenderMode)` becomes
+  `render(ContentArea, ?RenderContext)`, and `renderBlock()` / `renderSection()`
+  follow; `resolveMode()` is unchanged. `RenderContext` carries the render mode
+  **and** an optional locale, both nullable with the same "null means decide for
+  me" semantics the mode parameter already had — so `render($area)` behaves
+  exactly as before, and `RenderContext::forPublic()` / `::forPreview()` replace
+  a passed `RenderMode::PUBLIC` / `::PREVIEW`. Only relevant if you call the
+  renderer directly or implement/decorate the interface.
+
+  The reason it lands now rather than in 1.x: adding a parameter to a published
+  interface method breaks every implementor, and the render pipeline needs room
+  to grow inputs (locale first) past the 1.0 freeze. See `TRANSLATION-SPIKE.md`.
+- **The builder's chrome is restyled — "Paper · Marine".** Cool blue-grey
+  surfaces, a teal accent (`#0e7490`) replacing the previous blue, 8px corners,
+  tinted form fields, an accent rule along the sidebar's top edge and a dot grid
+  on the canvas gutters. **Content rendering is untouched** — the preview iframe
+  still draws the host's page from `content_blocks.palette` and the block
+  styling settings, as it always did.
 - **BREAKING — styling viewport keys `d`/`t`/`m` → `desktop`/`tablet`/`mobile`.**
   The responsive styling sub-tree (`styling.padding`/`margin`/`gap`) now spells out
   the viewport keys in stored data (section `draft_settings`/`published_settings`
@@ -79,6 +98,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`BlockDataResolverInterface` — the seam for changing *what* a block
+  renders.** An autoconfigured pipeline (`content_blocks.block_data_resolver`)
+  where each resolver receives what the previous produced. The shipped
+  `CoreBlockDataResolver` runs first (priority `256`) and seeds the payload from
+  the block's draft-or-published slots — the rule that used to be inlined in
+  `BlockRenderer` — so with no host resolver registered the output is unchanged.
+  Complements `BlockDecoratorInterface`, which contributes classes/styles/
+  attributes to the wrapper and by contract cannot touch `data`.
+- **`cb_translatable` form option + `TranslatableFieldsInterface`.** A block
+  declares which of its fields hold language-dependent values; the interface
+  reads the tags back off the built form, returning dotted paths with `[]` for
+  collection entries (`items[].label`). Fields a host adds through
+  `BlockFormExtensionInterface` are picked up for free.
+
+  Neither has a consumer in this package, and **nothing about the rendered
+  output changes**: content translation is designed to live in a satellite
+  package, and what ships here is the convention it reads — published now so it
+  freezes with the 1.0 contract and blocks written today are already annotated.
+- **Stable `_id` on every collection entry.** A collection entry had no identity
+  of its own — it was a position in a list — so anything keyed per entry pointed
+  at the wrong one after a reorder, a duplicate or a delete. Entries now carry a
+  `_id`, minted on the draft-write path by `CollectionItemIds` and driven by the
+  block's form (only a form knows which array value is a collection). No item
+  type needs an `_id` field: a key no form child declares round-trips untouched.
+  Ids are unique within one collection of one block, so clone / import /
+  template-insert copy them verbatim and per-entry data maps straight onto the
+  copy.
+
+  Ships in 1.0 rather than later because adding it afterwards would mean a data
+  migration across every collection block. Normalize content written before it
+  with **`php bin/console content-blocks:backfill-collection-ids`** (idempotent,
+  `--dry-run` available) — a command rather than a Doctrine migration, because
+  which JSON keys hold a collection is knowledge that lives in the block types'
+  forms and SQL cannot ask them.
+- **The `_` prefix is reserved in `Block.data`.** At every level, including
+  collection entries: a key starting with `_` belongs to the package, and
+  `BlockDataKeys` never reports one as unknown. **Host block types must not
+  declare one.** Reserving the namespace rather than a list of names means the
+  next such need does not reopen a frozen data contract.
+- **Builder chrome design tokens (`assets/styles/tokens.css`).** The admin CSS
+  reads `var(--cb-*)` throughout instead of color literals; a host restyles the
+  builder by redeclaring tokens on `.cb-shell` / `.cb-launcher` /
+  `.cb-builder-dialog`, with no fork. Token names are public surface — see
+  [Theming the builder chrome](https://klehm.github.io/content-blocks-project/guide/styling#theming-the-builder-chrome).
+  `AssetController::builderCss()` now prepends the token file to the response,
+  because the preview iframe is served raw and cannot resolve an `@import`.
 - **Host-owned content versioning (`content_blocks.content_version`).** The shape
   of stored block data is decided by the block types — the host's and the kit's —
   not by this package, so the schema generation of that content is now a host
