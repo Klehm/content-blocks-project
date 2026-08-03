@@ -74,8 +74,9 @@ test.describe('section-template library — round trip', () => {
         const targetFrame = await openBuilder(page, targetUrl);
         await expect.poll(() => targetFrame.locator('[data-cb-section-id]').count()).toBe(0);
 
-        await page.locator('.cb-sidebar-empty__library').click();
-        const picker = page.locator('.cb-template-picker');
+        // No click to get here: with nothing selected the sidebar *is* the
+        // library.
+        const picker = page.locator('.cb-sidebar-library');
         await expect(picker).toBeVisible();
 
         await picker.locator('.cb-template-picker__search').fill(templateName);
@@ -83,6 +84,8 @@ test.describe('section-template library — round trip', () => {
         await picker.locator('.cb-template-picker__item-btn').first().click();
 
         // Inserted as one draft section carrying its block; publish is enabled.
+        // The sidebar swaps to the new section's settings, which is what
+        // replaces the library rather than any close gesture.
         await expect(picker).toBeHidden();
         await expect.poll(() => targetFrame.locator('[data-cb-section-id]').count()).toBe(1);
         await expect.poll(() => targetFrame.locator('[data-cb-block-id]').count()).toBe(1);
@@ -104,8 +107,10 @@ test.describe('section-template library — round trip', () => {
         const targetFrame = await openBuilder(page, targetUrl);
         await addFullSection(page, targetFrame);
 
+        // From the preview the button no longer opens a modal — it clears the
+        // selection, which is what puts the library back on screen.
         await targetFrame.locator('.cb-add-section-tray__library').click();
-        const picker = page.locator('.cb-template-picker');
+        const picker = page.locator('.cb-sidebar-library');
         await expect(picker).toBeVisible();
         await picker.locator('.cb-template-picker__search').fill(templateName);
         await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
@@ -122,8 +127,9 @@ test.describe('section-template library — round trip', () => {
         // from getDefaultData) and every field a host BlockFormExtension
         // contributes — here the sandbox's global `anchorId`.
         //
-        // Since a warning now keeps the picker open on its status line, "the
-        // picker closed" *is* the assertion "no field was wrongly flagged".
+        // A warning keeps the library on screen with its status line; a clean
+        // insert lets the sidebar move on to the new section's settings. So
+        // "the settings form is up" *is* the assertion "nothing was flagged".
         const templateName = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
         const sourceUrl = await createFreshPage(page);
@@ -151,15 +157,15 @@ test.describe('section-template library — round trip', () => {
 
         const targetUrl = await createFreshPage(page);
         const targetFrame = await openBuilder(page, targetUrl);
-        await page.locator('.cb-sidebar-empty__library').click();
-        const picker = page.locator('.cb-template-picker');
+        const picker = page.locator('.cb-sidebar-library');
         await expect(picker).toBeVisible();
         await picker.locator('.cb-template-picker__search').fill(templateName);
         await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
         await picker.locator('.cb-template-picker__item-btn').first().click();
 
-        await expect(picker).toBeHidden();
-        await expect(page.locator('.cb-template-picker__status')).toHaveText('');
+        const targetSidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(targetSidebar.locator('input[name="section_settings[classes]"]')).toBeVisible();
+        await expect(page.locator('.cb-template-picker__status')).toHaveCount(0);
         await expect.poll(() => targetFrame.locator('[data-cb-section-id]').count()).toBe(1);
         // The extension field survived the snapshot round-trip.
         await expect(targetFrame.locator('#tpl-anchor')).toHaveCount(1);
@@ -190,8 +196,7 @@ async function stageTemplate(page, { name, blocks, blockTypes, format = 'content
 
 async function openLibraryOn(page, url) {
     const frame = await openBuilder(page, url);
-    await page.locator('.cb-sidebar-empty__library').click();
-    const picker = page.locator('.cb-template-picker');
+    const picker = page.locator('.cb-sidebar-library');
     await expect(picker).toBeVisible();
 
     return { frame, picker };
@@ -327,7 +332,7 @@ test.describe('section-template library — management', () => {
         // the section settings, not the empty state). Confirm the row is
         // present with a delete affordance (management is allowed in sandbox).
         await sourceFrame.locator('.cb-add-section-tray__library').click();
-        const picker = page.locator('.cb-template-picker');
+        const picker = page.locator('.cb-sidebar-library');
         await expect(picker).toBeVisible();
         await picker.locator('.cb-template-picker__search').fill(templateName);
         await expect.poll(() => picker.locator('.cb-template-picker__item').count()).toBe(1);

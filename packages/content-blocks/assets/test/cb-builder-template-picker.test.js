@@ -2,24 +2,28 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Controller from '../controllers/cb-builder_controller.js';
 
 /**
- * Unit tests for the section-template library picker methods on cb-builder.
- * The Stimulus runtime isn't booted — we instantiate the class directly and
- * stub the framework-supplied targets/values, mirroring the replace-picker
- * suite.
+ * Unit tests for the section-template library on cb-builder. The Stimulus
+ * runtime isn't booted — we instantiate the class directly and stub the
+ * framework-supplied targets/values, mirroring the replace-picker suite.
+ *
+ * The library is no longer a modal: it renders inside the empty sidebar, so
+ * "open" means "clear the selection and paint the list", and there is nothing
+ * to close. The row-building and pagination logic is unchanged, which is why
+ * those tests read the same as before.
  */
 
 function setupController(options = {}) {
     document.body.innerHTML = `
         <div data-controller="cb-builder">
             <iframe></iframe>
-            <div class="cb-template-picker" hidden></div>
+            <div class="cb-sidebar-library"></div>
             <input data-cb-builder-target="templatePickerSearch" />
             <ul class="cb-template-picker__list"></ul>
             <p class="cb-template-picker__status"></p>
         </div>
     `;
     const element = document.querySelector('[data-controller="cb-builder"]');
-    const picker = element.querySelector('.cb-template-picker');
+    const picker = element.querySelector('.cb-sidebar-library');
     const search = element.querySelector('[data-cb-builder-target="templatePickerSearch"]');
     const list = element.querySelector('.cb-template-picker__list');
     const status = element.querySelector('.cb-template-picker__status');
@@ -37,6 +41,9 @@ function setupController(options = {}) {
     Object.defineProperty(controller, 'areaIdValue', { value: options.areaId ?? 42 });
 
     element.dataset.cbCsrfToken = 'tok-123';
+    // jsdom has no matchMedia; the library opener asks whether we're on mobile
+    // so it can un-collapse the bottom sheet. Answer "desktop".
+    window.matchMedia = vi.fn(() => ({ matches: false, addEventListener() {} }));
 
     return { controller, element, picker, search, list, status };
 }
@@ -45,20 +52,19 @@ function okJson(body) {
     return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
 }
 
-describe('cb-builder template picker: open / close', () => {
-    let controller, picker, search;
+describe('cb-builder template library: opening', () => {
+    let controller, search, list;
 
     beforeEach(() => {
-        ({ controller, picker, search } = setupController());
+        ({ controller, search, list } = setupController());
         vi.spyOn(console, 'log').mockImplementation(() => {});
     });
 
-    it('openTemplatePicker unhides the panel and focuses the search field', async () => {
+    it('openTemplatePicker focuses the search field', async () => {
         global.fetch = vi.fn(() => okJson({ items: [], hasMore: false }));
 
         await controller.openTemplatePicker({ preventDefault: () => {} });
 
-        expect(picker.hidden).toBe(false);
         expect(document.activeElement).toBe(search);
     });
 
@@ -66,16 +72,30 @@ describe('cb-builder template picker: open / close', () => {
         global.fetch = vi.fn(() => okJson({ items: [], hasMore: false }));
 
         await controller.openTemplatePicker();
-        controller.closeTemplatePicker();
         await controller.openTemplatePicker();
 
         expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
-    it('closeTemplatePicker hides the panel', () => {
-        picker.hidden = false;
-        controller.closeTemplatePicker({ preventDefault: () => {} });
-        expect(picker.hidden).toBe(true);
+    /**
+     * The sidebar is rebuilt from an HTML snapshot every time the selection is
+     * cleared, so the painted rows are thrown away — but a click on empty
+     * preview space must not cost a round trip.
+     */
+    it('repaints from cache when the sidebar is rebuilt, without refetching', async () => {
+        global.fetch = vi.fn(() => okJson({
+            items: [{ id: 1, name: 'Hero', insertable: true, canManage: false }],
+            hasMore: false,
+        }));
+
+        await controller.openTemplatePicker();
+        expect(list.querySelectorAll('.cb-template-picker__item-btn')).toHaveLength(1);
+
+        list.innerHTML = '';
+        await controller._showTemplates();
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(list.querySelectorAll('.cb-template-picker__item-btn')).toHaveLength(1);
     });
 });
 
@@ -285,7 +305,7 @@ describe('cb-builder template picker: insert', () => {
         vi.spyOn(console, 'log').mockImplementation(() => {});
     });
 
-    it('posts to insert-template, closes, applies draft, opens the new section', async () => {
+    it('posts to insert-template, applies draft, scrolls to and opens the new section', async () => {
         const reqSpy = vi.spyOn(controller, '_jsonRequest').mockResolvedValue({ sectionId: 55, unknownFields: [] });
         const afterSpy = vi.spyOn(controller, '_afterStructuralOp').mockImplementation(() => {});
         const mountSpy = vi.spyOn(controller, '_mountSectionSettings').mockImplementation(() => {});
@@ -295,7 +315,10 @@ describe('cb-builder template picker: insert', () => {
         expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/insert-template/7');
         expect(afterSpy).toHaveBeenCalled();
         expect(mountSpy).toHaveBeenCalledWith(55);
-        expect(controller.templatePickerTarget.hidden).toBe(true);
+        // An inserted section lands at the end of the area, off screen on any
+        // page longer than the viewport — the reload has to go find it rather
+        // than restore where the editor happened to be.
+        expect(controller._pendingScrollSectionId).toBe(55);
     });
 
     it('surfaces non-blocking field warnings but still inserts', async () => {
@@ -390,7 +413,7 @@ describe('cb-builder template picker: save section as template', () => {
         vi.spyOn(window, 'prompt').mockReturnValue('  My hero  ');
         const reqSpy = vi.spyOn(controller, '_jsonRequest').mockResolvedValue({ id: 1, name: 'My hero' });
         const flashSpy = vi.spyOn(controller, '_flashSaved').mockImplementation(() => {});
-        controller._templatePickerLoaded = true;
+        controller._templateItems = [{ id: 1, name: 'stale' }];
 
         await controller._saveSectionAsTemplate(12);
 
@@ -399,7 +422,8 @@ describe('cb-builder template picker: save section as template', () => {
             '/_content-blocks/section/12/save-as-template',
             { name: 'My hero' },
         );
-        expect(controller._templatePickerLoaded).toBe(false);
+        // Cache dropped, so the next paint re-fetches and shows the new entry.
+        expect(controller._templateItems).toBeNull();
         expect(flashSpy).toHaveBeenCalled();
     });
 

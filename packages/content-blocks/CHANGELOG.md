@@ -38,6 +38,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   labels are deliberately excluded — those are the sentence the user reads to
   decide, so they keep the host's body font. Labels go back to sentence case
   with `--cb-form-label-transform: none` (see the theming guide) — no fork needed.
+- **The topbar collapsed into a single "Actions" menu.** Insert content,
+  Import / Export and every host-contributed action now live behind one button;
+  the topbar keeps only what an editor reaches for constantly (close, viewport,
+  discard, publish). A row of ghost buttons made the rare and the constant look
+  equally important, and each action a host added made it worse. `enable_replace`
+  / `enable_import_export` still hide their entries, and with both off and no
+  contributed action the button is not rendered at all.
+
+  **Note for hosts styling or scripting the topbar:** `.cb-shell__replace`,
+  `.cb-shell__import-export` and `.cb-shell__action--*` are now menu items
+  inside `.cb-shell__actions-list` rather than top-level topbar buttons. The
+  `cb:builder:action` event and its `detail.key` are unchanged.
+- **The three pickers are centered modals over a backdrop.** Replace, Import /
+  Export and the section library were panels pinned under the button that opened
+  them, which put a 360px column in a screen corner and left the rest of the
+  builder looking live while it was not. They now center over a shared,
+  accent-tinted backdrop, and dismiss on Escape or a backdrop click.
+- **The section library moved out of a modal and into the empty sidebar.** With
+  nothing selected, the list of saved sections *is* what the panel is for —
+  hiding it behind "Insert from library" cost a click for no gain. The in-preview
+  library button now clears the selection (which is what puts the library back on
+  screen) instead of opening a dialog. Search, pagination and delete are
+  unchanged. Also fixes rows for incompatible and partially-usable templates,
+  whose disabled styling matched a class the library's rows never carry.
+- **Inserting a section scrolls the preview to it.** A new section lands at the
+  end of the area — off screen on any page taller than the viewport — and the
+  reload restored the editor's previous scroll position, hiding the one thing
+  they were waiting to see. Applies to an empty section and to a library insert.
 - **The block edit form's tabs are folder tabs, not underlined words.** General
   / SEO / Style switch the whole panel, so they now read as a control: the open
   tab is filled with the panel color, carries the accent along its top edge and
@@ -122,6 +150,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`BuilderActionProviderInterface` — the seam for a *bundle* to add a topbar
+  action.** Autoconfigured (`content_blocks.builder_action_provider`); each
+  provider yields `BuilderAction` value objects for a given area, so an action
+  can hide itself by yielding nothing. Complements the existing `topbar_actions`
+  form option, which stays the way a *single form* declares a one-off: the two
+  merge into one list ordered by descending `priority`, providers first, with a
+  duplicate `key` collapsing to its first occurrence. The `topbar_actions` array
+  shape is unchanged, but `form.vars['topbar_actions']` now exposes
+  `BuilderAction` objects rather than raw arrays — relevant only if you render
+  the topbar from your own template.
 - **`BlockDataResolverInterface` — the seam for changing *what* a block
   renders.** An autoconfigured pipeline (`content_blocks.block_data_resolver`)
   where each resolver receives what the previous produced. The shipped

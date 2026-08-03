@@ -89,6 +89,7 @@ cb:
             section_deleted: "Section supprimée"
             action: "Annuler"
         pending: "Enregistrez d'abord cette entité pour commencer à ajouter du contenu."
+        actions: "Actions"
         toggle_sidebar: "Afficher / masquer la sidebar"
         sidebar:
             empty: "Cliquez sur un élément de l'aperçu pour le modifier."

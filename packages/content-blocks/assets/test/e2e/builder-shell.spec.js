@@ -1016,3 +1016,51 @@ test.describe('builder shell — column widths', () => {
             .toContain('--cb-col-grow: 40');
     });
 });
+
+test.describe('builder shell — the preview follows a new section', () => {
+    /**
+     * A section is appended at the end of the area. On any page taller than the
+     * viewport that is off screen, and the reload used to restore the editor's
+     * previous scroll position — so the one thing they were waiting to see was
+     * the one thing they could not see.
+     */
+    test('inserting a section scrolls the preview to it instead of staying put', async ({ page }) => {
+        const frame = await openBuilder(page);
+        const iframe = page.locator('.cb-shell__iframe');
+
+        // Grow the page until it actually scrolls; nothing to prove otherwise.
+        for (let i = 0; i < 12; i++) {
+            const overflows = await iframe.evaluate(
+                (el) => el.contentDocument.documentElement.scrollHeight > el.contentWindow.innerHeight + 200,
+            );
+            if (overflows) break;
+            await addFullSection(page, frame);
+        }
+        expect(await iframe.evaluate(
+            (el) => el.contentDocument.documentElement.scrollHeight > el.contentWindow.innerHeight,
+        )).toBe(true);
+
+        // Send the editor back to the top, so "stayed put" and "followed the
+        // new section" are unambiguously different outcomes.
+        await iframe.evaluate((el) => el.contentWindow.scrollTo(0, 0));
+        const countBefore = await frame.locator('[data-cb-section-id]').count();
+
+        await addFullSection(page, frame);
+        await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(countBefore + 1);
+
+        // The scroll is animated, hence the poll rather than a single read.
+        await expect.poll(
+            () => iframe.evaluate((el) => el.contentWindow.scrollY),
+            { timeout: 5000 },
+        ).toBeGreaterThan(0);
+
+        // And it landed on the *new* section, not merely somewhere below.
+        await expect.poll(() => iframe.evaluate((el) => {
+            const sections = el.contentDocument.querySelectorAll('[data-cb-section-id]');
+            const last = sections[sections.length - 1];
+            if (!last) return false;
+            const rect = last.getBoundingClientRect();
+            return rect.top < el.contentWindow.innerHeight && rect.bottom > 0;
+        }), { timeout: 5000 }).toBe(true);
+    });
+});

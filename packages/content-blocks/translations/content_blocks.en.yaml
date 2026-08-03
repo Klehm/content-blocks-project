@@ -89,6 +89,7 @@ cb:
             section_deleted: "Section deleted"
             action: "Undo"
         pending: "Save this entity first to start adding content."
+        actions: "Actions"
         toggle_sidebar: "Toggle sidebar"
         sidebar:
             empty: "Click an element in the preview to edit it."

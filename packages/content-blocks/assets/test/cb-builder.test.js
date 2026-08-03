@@ -1469,3 +1469,82 @@ describe('cb-builder: undo delete snackbar', () => {
         expect(controller._pendingUndo).toBeNull();
     });
 });
+
+describe('cb-builder: scrolling the preview to a new section', () => {
+    let controller, iframe;
+
+    beforeEach(() => {
+        ({ controller, iframe } = setupController());
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    const okJson = (payload = {}) => ({ ok: true, json: () => Promise.resolve(payload) });
+
+    it('adding a section asks the next reload to go find it', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okJson({ id: 77 })));
+        vi.spyOn(controller, '_afterStructuralOp').mockImplementation(() => {});
+        vi.spyOn(controller, '_mountSectionSettings').mockImplementation(() => {});
+
+        await controller._addSection('full');
+
+        expect(controller._pendingScrollSectionId).toBe(77);
+    });
+
+    it('a failed create leaves nothing pending', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }));
+        vi.spyOn(controller, '_afterStructuralOp').mockImplementation(() => {});
+
+        await controller._addSection('full');
+
+        expect(controller._pendingScrollSectionId ?? null).toBeNull();
+    });
+
+    /**
+     * The whole point: a new section lands at the end of the area, so restoring
+     * the previous scroll position is exactly the wrong thing — it hides the
+     * one element the editor is waiting to see.
+     */
+    it('reload posts the scroll request instead of restoring the old position', () => {
+        const scrollTo = vi.fn();
+        const postMessageSpy = vi.fn();
+        Object.defineProperty(iframe, 'contentWindow', {
+            value: { scrollY: 900, scrollTo, postMessage: postMessageSpy, location: { reload() {} } },
+            configurable: true,
+        });
+
+        controller._scrollPreviewTo(77);
+        controller.reload();
+        iframe.dispatchEvent(new Event('load'));
+
+        expect(scrollTo).not.toHaveBeenCalled();
+        expect(postMessageSpy).toHaveBeenCalledWith(
+            { type: 'cb:section:scroll-into-view', sectionId: 77 },
+            window.location.origin,
+        );
+        // One-shot: the next reload is an ordinary one again.
+        expect(controller._pendingScrollSectionId).toBeNull();
+    });
+
+    it('an ordinary reload still restores the scroll position', () => {
+        const scrollTo = vi.fn();
+        const postMessageSpy = vi.fn();
+        Object.defineProperty(iframe, 'contentWindow', {
+            value: { scrollY: 900, scrollTo, postMessage: postMessageSpy, location: { reload() {} } },
+            configurable: true,
+        });
+
+        controller.reload();
+        iframe.dispatchEvent(new Event('load'));
+
+        expect(scrollTo).toHaveBeenCalledWith(0, 900);
+        expect(postMessageSpy).not.toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'cb:section:scroll-into-view' }),
+            expect.anything(),
+        );
+    });
+
+    it('ignores a create that came back without an id', () => {
+        controller._scrollPreviewTo(undefined);
+        expect(controller._pendingScrollSectionId ?? null).toBeNull();
+    });
+});

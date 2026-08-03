@@ -39,6 +39,9 @@ export default class extends Controller {
         'importExportPicker',
         'importFile',
         'importExportStatus',
+        'actionsMenu',
+        'actionsToggle',
+        'actionsList',
     ];
 
     static values = {
@@ -96,9 +99,16 @@ export default class extends Controller {
         this._onWindowResize = this._onWindowResize.bind(this);
         this._onLiveConnect = this._onLiveConnect.bind(this);
         this._onSaveError = this._onSaveError.bind(this);
+        this._onDocumentPointerDown = this._onDocumentPointerDown.bind(this);
+        this._onDocumentKeydown = this._onDocumentKeydown.bind(this);
 
         window.addEventListener('message', this._onMessage);
         window.addEventListener('resize', this._onWindowResize);
+        // The Actions menu and the modal pickers both close on an outside
+        // click / Escape, and both live outside this controller's own click
+        // handlers — hence document-level listeners rather than per-element.
+        document.addEventListener('pointerdown', this._onDocumentPointerDown);
+        document.addEventListener('keydown', this._onDocumentKeydown);
         // BlockComponent.save() and the section-settings form both
         // dispatchBrowserEvent on save; the events bubble up to here.
         this.element.addEventListener('cb:block:saved', this._onBlockSaved);
@@ -119,6 +129,9 @@ export default class extends Controller {
         if (this.hasSidebarContentTarget) {
             this._sidebarEmptyHtml = this.sidebarContentTarget.innerHTML;
         }
+        // The library is the empty sidebar's whole content when nothing is
+        // selected, so it loads with the builder rather than on demand.
+        this._showTemplates();
         // Mobile boots with no focused entity — collapse the bottom
         // sheet so it reads as a strip at the bottom rather than a
         // half-screen pane covering the preview.
@@ -134,8 +147,100 @@ export default class extends Controller {
         this.element.removeEventListener('cb:save:error', this._onSaveError);
         document.removeEventListener('mousemove', this._onResizeMove);
         document.removeEventListener('mouseup', this._onResizeEnd);
+        document.removeEventListener('pointerdown', this._onDocumentPointerDown);
+        document.removeEventListener('keydown', this._onDocumentKeydown);
         clearTimeout(this._reloadTimer);
         clearTimeout(this._undoTimer);
+    }
+
+    // ---------- Topbar Actions menu ----------
+
+    /** Action: the "Actions" button in the topbar. */
+    toggleActions(event) {
+        if (event) event.preventDefault();
+        if (!this.hasActionsListTarget) return;
+        if (this.actionsListTarget.hidden) {
+            this._setActionsOpen(true);
+        } else {
+            this._setActionsOpen(false);
+        }
+    }
+
+    /** Closes the menu; safe to call when there is no menu at all. */
+    closeActions() {
+        if (!this.hasActionsListTarget || this.actionsListTarget.hidden) return;
+        this._setActionsOpen(false);
+    }
+
+    _setActionsOpen(open) {
+        this.actionsListTarget.hidden = !open;
+        if (this.hasActionsToggleTarget) {
+            this.actionsToggleTarget.setAttribute('aria-expanded', open ? 'true' : 'false');
+            this.actionsToggleTarget.classList.toggle('cb-shell__actions-toggle--open', open);
+            // Returning focus to the toggle on close keeps keyboard users where
+            // they were; without it focus falls to <body> and the next Tab
+            // restarts from the top of the shell.
+            if (!open) this.actionsToggleTarget.focus({ preventScroll: true });
+        }
+    }
+
+    /**
+     * Outside click. The menu closes; the modal pickers close only when the
+     * click landed on the backdrop itself, so a click inside a picker (or on
+     * the scrollbar of its list) never dismisses it.
+     */
+    _onDocumentPointerDown(event) {
+        const target = event.target;
+        if (this.hasActionsMenuTarget && !this.actionsMenuTarget.contains(target)) {
+            this.closeActions();
+        }
+        if (target instanceof Element && target.classList?.contains('cb-modal-backdrop')) {
+            this._closeTopModal();
+        }
+    }
+
+    /** Escape closes the topmost thing that is open: a picker, else the menu. */
+    _onDocumentKeydown(event) {
+        if (event.key !== 'Escape') return;
+        if (this._closeTopModal()) {
+            event.preventDefault();
+            return;
+        }
+        if (this.hasActionsListTarget && !this.actionsListTarget.hidden) {
+            this.closeActions();
+            event.preventDefault();
+        }
+    }
+
+    /**
+     * Closes whichever modal is open. Returns true when one was.
+     * Only one is ever open at a time — each opener closes the others. The
+     * section library is not in here: it lives in the sidebar, not over it,
+     * so there is nothing to dismiss.
+     */
+    _closeTopModal() {
+        if (this.hasReplacePickerTarget && !this.replacePickerTarget.hidden) {
+            this.closeReplacePicker();
+            return true;
+        }
+        if (this.hasImportExportPickerTarget && !this.importExportPickerTarget.hidden) {
+            this.closeImportExport();
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Shows / hides the shared backdrop behind the modal pickers. One element
+     * for all three: they are mutually exclusive, and a single node means the
+     * dimming can never stack or be left behind by a picker that forgot to
+     * clean up after itself.
+     */
+    _setBackdrop(visible) {
+        const backdrop = this.element.querySelector('.cb-modal-backdrop');
+        if (backdrop) backdrop.hidden = !visible;
+        this.element.classList.toggle('cb-shell--modal-open', visible);
     }
 
     _onWindowResize() {
@@ -199,13 +304,23 @@ export default class extends Controller {
             // Cross-origin would throw; ignore and restore to 0.
         }
 
+        // A section that was just inserted is the one thing the editor wants to
+        // see, and it can be anywhere — including below the fold. Restoring the
+        // old scroll position would hide it, so the pending scroll wins.
+        const scrollToSectionId = this._pendingScrollSectionId ?? null;
+        this._pendingScrollSectionId = null;
+
         this._beginLoading();
         const onLoad = () => {
             this.iframeTarget.removeEventListener('load', onLoad);
-            try {
-                this.iframeTarget.contentWindow?.scrollTo(0, scrollY);
-            } catch (_) {
-                // Same as above.
+            if (scrollToSectionId !== null) {
+                this._postToPreview({ type: 'cb:section:scroll-into-view', sectionId: scrollToSectionId });
+            } else {
+                try {
+                    this.iframeTarget.contentWindow?.scrollTo(0, scrollY);
+                } catch (_) {
+                    // Same as above.
+                }
             }
             this._restorePinnedFocus();
             // Wait one frame so the iframe overlay has re-pinned the
@@ -338,10 +453,34 @@ export default class extends Controller {
         await this._addSection(layout);
     }
 
+    /**
+     * Asks the next preview reload to bring this section into view instead of
+     * restoring the previous scroll position. A no-op for a missing id, so
+     * callers don't have to guard.
+     */
+    _scrollPreviewTo(sectionId) {
+        const id = parseInt(sectionId, 10);
+        if (Number.isFinite(id)) this._pendingScrollSectionId = id;
+    }
+
+    /** Posts a message to the preview overlay, swallowing a dead iframe. */
+    _postToPreview(message) {
+        if (!this.hasIframeTarget) return;
+        try {
+            this.iframeTarget.contentWindow?.postMessage(message, window.location.origin);
+        } catch (_) {
+            // Iframe gone or cross-origin — nothing to steer.
+        }
+    }
+
     async _addSection(layout) {
         const allowed = ['full', 'two_cols', 'three_cols'];
         const finalLayout = allowed.includes(layout) ? layout : 'full';
         const result = await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/sections`, { layout: finalLayout });
+        // A new section lands at the end of the area — off screen as soon as
+        // the page is longer than the viewport. Scroll to it, or the editor
+        // gets no feedback that anything happened.
+        this._scrollPreviewTo(result?.id);
         this._afterStructuralOp();
         // Open the settings sidebar on the freshly-created section so the user
         // can configure it immediately — mirrors _addBlock. The iframe reload
@@ -781,6 +920,7 @@ export default class extends Controller {
         if (event) event.preventDefault();
         const key = event?.params?.actionKey;
         if (!key) return;
+        this.closeActions();
         this.element.dispatchEvent(new CustomEvent('cb:builder:action', {
             bubbles: true,
             detail: { key, areaId: this.areaIdValue, button: event.currentTarget },
@@ -926,6 +1066,10 @@ export default class extends Controller {
         if (typeof this._sidebarEmptyHtml !== 'string') return;
         this.sidebarContentTarget.innerHTML = this._sidebarEmptyHtml;
         this._clearSidebarDataAttrs();
+        // The snapshot has an empty library list — Stimulus rebinds the
+        // targets on the new nodes, but only this controller knows what was in
+        // it. Repaint from cache (or fetch on the very first pass).
+        this._showTemplates();
         // Mobile: nothing focused → collapse the sheet to its 32px
         // strip so the preview reclaims the screen.
         this._syncEmptySidebar();
@@ -1231,9 +1375,9 @@ export default class extends Controller {
     async openReplacePicker(event) {
         if (event) event.preventDefault();
         if (!this.hasReplacePickerTarget) return;
+        this.closeActions();
         this.replacePickerTarget.hidden = false;
-        const trigger = this.element.querySelector('.cb-shell__replace');
-        if (trigger) trigger.setAttribute('aria-expanded', 'true');
+        this._setBackdrop(true);
 
         if (this.hasReplacePickerSearchTarget) {
             // Don't clobber the user's last query when reopening — preserve
@@ -1254,8 +1398,7 @@ export default class extends Controller {
         if (event) event.preventDefault();
         if (!this.hasReplacePickerTarget) return;
         this.replacePickerTarget.hidden = true;
-        const trigger = this.element.querySelector('.cb-shell__replace');
-        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        this._setBackdrop(false);
     }
 
     /** Action: input event on the picker's search field (debounced). */
@@ -1371,8 +1514,8 @@ export default class extends Controller {
             { name },
         );
         if (result === null) return;
-        // The library changed — force the next picker open to re-fetch.
-        this._templatePickerLoaded = false;
+        // The library changed — drop the cache so the next paint re-fetches.
+        this._templateItems = null;
         this._flashSaved();
     }
 
@@ -1383,22 +1526,41 @@ export default class extends Controller {
      */
     async openTemplatePicker(event) {
         if (event) event.preventDefault();
+        this.closeActions();
+        // The library lives in the empty sidebar, so "open the library" means
+        // "clear the selection". Called from the in-preview add-section tray,
+        // which can fire while a block form is up.
+        this._resetSidebarToEmptyState();
+        // On mobile the empty state collapses the sheet to a strip — which is
+        // right when the user clicked away, and wrong when they just asked for
+        // the library. Asking wins.
+        if (this._isMobile()) {
+            this._setSidebarCollapsed(false, { persist: false });
+        }
         if (!this.hasTemplatePickerTarget) return;
-        this.templatePickerTarget.hidden = false;
         if (this.hasTemplatePickerSearchTarget) {
             this.templatePickerSearchTarget.focus({ preventScroll: true });
         }
-        if (!this._templatePickerLoaded) {
-            await this._loadTemplates(this._templatePickerFilter ?? '', 0, false);
-            this._templatePickerLoaded = true;
-        }
+        await this._showTemplates();
     }
 
-    /** Action: × button on the template picker header. */
-    closeTemplatePicker(event) {
-        if (event) event.preventDefault();
-        if (!this.hasTemplatePickerTarget) return;
-        this.templatePickerTarget.hidden = true;
+    /**
+     * Paints the library into whatever sidebar DOM exists right now. Every
+     * return to the empty state rebuilds that DOM from the snapshot taken at
+     * connect, so the list has to be re-rendered each time — from the cached
+     * items when we have them, since clicking empty preview space is a
+     * navigation gesture and should not cost a round trip.
+     */
+    async _showTemplates() {
+        if (!this.hasTemplatePickerListTarget) return;
+        if (this._templateItems === null || this._templateItems === undefined) {
+            await this._loadTemplates(this._templatePickerFilter ?? '', 0, false);
+            return;
+        }
+        if (this.hasTemplatePickerSearchTarget && this._templatePickerFilter) {
+            this.templatePickerSearchTarget.value = this._templatePickerFilter;
+        }
+        this._paintTemplates();
     }
 
     /** Action: input event on the template picker's search field (debounced). */
@@ -1414,6 +1576,7 @@ export default class extends Controller {
         if (!this.hasTemplatePickerListTarget) return;
         this._templatePickerFilter = filter;
         if (!append) {
+            this._templateItems = [];
             this.templatePickerListTarget.innerHTML = '';
             this._setTemplatePickerStatus(this._t('cb.builder.template.loading', 'Loading…'));
         }
@@ -1441,14 +1604,28 @@ export default class extends Controller {
         this._renderTemplates(payload, filter, append);
     }
 
+    /**
+     * Folds a page of results into the accumulated list, then repaints. The
+     * accumulated form is what makes the library survive a sidebar rebuild:
+     * the DOM is disposable, `_templateItems` is not.
+     */
     _renderTemplates(payload, filter, append) {
         const items = Array.isArray(payload?.items) ? payload.items : [];
+        this._templateItems = append ? [...(this._templateItems ?? []), ...items] : items;
+        this._templateHasMore = payload?.hasMore === true;
+        this._templatePage = payload?.page ?? 0;
+        this._paintTemplates();
+    }
+
+    /** Renders `_templateItems` into the list target. Safe to call repeatedly. */
+    _paintTemplates() {
+        if (!this.hasTemplatePickerListTarget) return;
         const list = this.templatePickerListTarget;
+        const filter = this._templatePickerFilter ?? '';
+        const items = this._templateItems ?? [];
+        list.innerHTML = '';
 
-        // Drop any previous "load more" button before re-rendering the tail.
-        list.querySelector('.cb-template-picker__more')?.remove();
-
-        if (items.length === 0 && !append) {
+        if (items.length === 0) {
             this._setTemplatePickerStatus(filter
                 ? this._t('cb.builder.template.empty_filtered', 'No templates match this search')
                 : this._t('cb.builder.template.empty', 'No saved templates yet'),
@@ -1461,12 +1638,12 @@ export default class extends Controller {
             list.appendChild(this._buildTemplateRow(item, filter));
         }
 
-        if (payload?.hasMore) {
+        if (this._templateHasMore) {
             const more = document.createElement('button');
             more.type = 'button';
             more.className = 'cb-template-picker__more';
             more.textContent = this._t('cb.builder.template.load_more', 'Load more');
-            const nextPage = (payload.page ?? 0) + 1;
+            const nextPage = (this._templatePage ?? 0) + 1;
             more.addEventListener('click', () => this._loadTemplates(filter, nextPage, true));
             list.appendChild(more);
         }
@@ -1546,21 +1723,22 @@ export default class extends Controller {
         );
         if (result === null) return;
 
-        // The insert succeeded, possibly minus a few blocks. When there is
-        // something to report the picker stays open on its status line —
-        // closing it would blank the only element carrying the message.
+        // The insert succeeded, possibly minus a few blocks.
         const warning = this._restoreWarning(result, {
             skipped: ['cb.builder.template.skipped_blocks', 'Inserted — %count% block(s) skipped, missing type(s): %types%'],
             unknown: ['cb.builder.template.warnings', 'Inserted, but some stored fields no longer exist on: %types%'],
         });
-        if (warning !== null) {
-            this._setTemplatePickerStatus(warning);
-        } else {
-            this.closeTemplatePicker();
-        }
 
+        this._scrollPreviewTo(result.sectionId);
         this._afterStructuralOp();
-        if (result.sectionId) {
+
+        if (warning !== null) {
+            // The library and the section form occupy the same panel, so
+            // mounting the form here would blank the only element carrying the
+            // warning. Leave the library up with its message; the section is in
+            // the preview and one click away.
+            this._setTemplatePickerStatus(warning);
+        } else if (result.sectionId) {
             this._mountSectionSettings(result.sectionId);
         }
     }
@@ -1617,9 +1795,9 @@ export default class extends Controller {
     openImportExport(event) {
         if (event) event.preventDefault();
         if (!this.hasImportExportPickerTarget) return;
+        this.closeActions();
         this.importExportPickerTarget.hidden = false;
-        const trigger = this.element.querySelector('.cb-shell__import-export');
-        if (trigger) trigger.setAttribute('aria-expanded', 'true');
+        this._setBackdrop(true);
         this._setImportExportStatus('');
     }
 
@@ -1628,8 +1806,7 @@ export default class extends Controller {
         if (event) event.preventDefault();
         if (!this.hasImportExportPickerTarget) return;
         this.importExportPickerTarget.hidden = true;
-        const trigger = this.element.querySelector('.cb-shell__import-export');
-        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        this._setBackdrop(false);
     }
 
     /**

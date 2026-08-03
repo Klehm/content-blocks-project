@@ -58,6 +58,17 @@ async function readAreaId(page) {
     return Number(id);
 }
 
+
+/**
+ * Opens the replace picker. The topbar collapsed its area-wide buttons into an
+ * Actions menu, so reaching it is two clicks now — the helper keeps that detail
+ * in one place.
+ */
+async function openReplacePicker(page) {
+    await page.locator('.cb-shell__actions-toggle').click();
+    await page.locator('.cb-shell__replace').click();
+}
+
 test.describe('replace-content picker — UI affordance', () => {
     test('Insert content button opens the picker overlay and closes it again', async ({ page }) => {
         const url = await createFreshPage(page);
@@ -66,13 +77,38 @@ test.describe('replace-content picker — UI affordance', () => {
         const picker = page.locator('.cb-replace-picker');
         await expect(picker).toBeHidden();
 
-        await page.locator('.cb-shell__replace').click();
+        const backdrop = page.locator('.cb-modal-backdrop');
+        await expect(backdrop).toBeHidden();
+
+        await openReplacePicker(page);
         await expect(picker).toBeVisible();
-        await expect(page.locator('.cb-shell__replace')).toHaveAttribute('aria-expanded', 'true');
+        // Modal now: the backdrop is what makes "the rest is not clickable"
+        // true rather than merely implied.
+        await expect(backdrop).toBeVisible();
+        // Opening a picker closes the menu that led to it.
+        await expect(page.locator('.cb-shell__actions-list')).toBeHidden();
 
         await picker.locator('.cb-replace-picker__close').click();
         await expect(picker).toBeHidden();
-        await expect(page.locator('.cb-shell__replace')).toHaveAttribute('aria-expanded', 'false');
+        await expect(backdrop).toBeHidden();
+    });
+
+    test('Escape and a backdrop click both dismiss the picker', async ({ page }) => {
+        const url = await createFreshPage(page);
+        await openBuilder(page, url);
+        const picker = page.locator('.cb-replace-picker');
+
+        await openReplacePicker(page);
+        await expect(picker).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(picker).toBeHidden();
+
+        await openReplacePicker(page);
+        await expect(picker).toBeVisible();
+        // Click the far corner of the backdrop, well clear of the centered
+        // dialog sitting on top of it.
+        await page.locator('.cb-modal-backdrop').click({ position: { x: 5, y: 5 } });
+        await expect(picker).toBeHidden();
     });
 
     test('default unfiltered candidate list is populated by the default provider', async ({ page }) => {
@@ -84,7 +120,7 @@ test.describe('replace-content picker — UI affordance', () => {
         const targetUrl = await createFreshPage(page);
         await openBuilder(page, targetUrl);
 
-        await page.locator('.cb-shell__replace').click();
+        await openReplacePicker(page);
         const picker = page.locator('.cb-replace-picker');
         await expect(picker).toBeVisible();
 
@@ -109,7 +145,7 @@ test.describe('replace-content picker — UI affordance', () => {
         // Now operate from a different target page.
         const targetUrl = await createFreshPage(page);
         await openBuilder(page, targetUrl);
-        await page.locator('.cb-shell__replace').click();
+        await openReplacePicker(page);
 
         const picker = page.locator('.cb-replace-picker');
         await picker.locator('.cb-replace-picker__search').fill(String(sourceAreaId));
@@ -144,7 +180,7 @@ test.describe('replace-content picker — happy path', () => {
         await expect.poll(() => targetFrame.locator('[data-cb-section-id]').count()).toBe(0);
 
         // Open picker, search the source's id, click the row, accept confirm.
-        await page.locator('.cb-shell__replace').click();
+        await openReplacePicker(page);
         const picker = page.locator('.cb-replace-picker');
         await picker.locator('.cb-replace-picker__search').fill(String(sourceAreaId));
         await expect.poll(() => picker.locator('.cb-replace-picker__item-btn').count()).toBe(1);
@@ -172,7 +208,7 @@ test.describe('replace-content picker — happy path', () => {
         const targetUrl = await createFreshPage(page);
         const targetFrame = await openBuilder(page, targetUrl);
 
-        await page.locator('.cb-shell__replace').click();
+        await openReplacePicker(page);
         const picker = page.locator('.cb-replace-picker');
         await picker.locator('.cb-replace-picker__search').fill(String(sourceAreaId));
         await expect.poll(() => picker.locator('.cb-replace-picker__item-btn').count()).toBe(1);
@@ -197,7 +233,7 @@ test.describe('replace-content picker — happy path', () => {
         const targetUrl = await createFreshPage(page);
         const targetFrame = await openBuilder(page, targetUrl);
 
-        await page.locator('.cb-shell__replace').click();
+        await openReplacePicker(page);
         const picker = page.locator('.cb-replace-picker');
         await picker.locator('.cb-replace-picker__search').fill(String(sourceAreaId));
         await expect.poll(() => picker.locator('.cb-replace-picker__item-btn').count()).toBe(1);

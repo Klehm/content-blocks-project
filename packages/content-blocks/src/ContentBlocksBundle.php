@@ -328,6 +328,11 @@ final class ContentBlocksBundle extends AbstractBundle
         // declares `priority` on the tag explicitly.
         $container->registerForAutoconfiguration(\ContentBlocks\Rendering\BlockDataResolverInterface::class)
             ->addTag('content_blocks.block_data_resolver');
+
+        // Entries in the topbar's Actions menu, contributed by a bundle rather
+        // than declared form by form.
+        $container->registerForAutoconfiguration(\ContentBlocks\Builder\BuilderActionProviderInterface::class)
+            ->addTag('content_blocks.builder_action_provider');
     }
 
     public function getPath(): string

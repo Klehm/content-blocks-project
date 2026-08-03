@@ -289,6 +289,16 @@ return static function (ContainerConfigurator $container): void {
     // #[AsCommand] attribute is picked up by console.command autoconfiguration.
     $services->set(\ContentBlocks\Command\BackfillCollectionIdsCommand::class);
 
+    // ---------- Builder topbar actions ----------
+
+    // The Actions menu. A bundle contributes through
+    // BuilderActionProviderInterface (autoconfigured); a single form still
+    // declares one-offs through the `topbar_actions` option, and the collection
+    // merges both into one ordered list.
+    $services->set(\ContentBlocks\Builder\BuilderActionCollection::class)
+        ->args([tagged_iterator('content_blocks.builder_action_provider')])
+        ->public();
+
     // ---------- Content translation (convention only) ----------
 
     // Declares the `cb_translatable` form option, and reads the tags back.

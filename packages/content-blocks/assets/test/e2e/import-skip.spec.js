@@ -50,6 +50,7 @@ function exportPayload(blocks) {
 
 /** Uploads the payload through the topbar panel and accepts the overwrite confirm. */
 async function importPayload(page, payload) {
+    await page.locator('.cb-shell__actions-toggle').click();
     await page.locator('.cb-shell__import-export').click();
     const panel = page.locator('.cb-import-export-picker');
     await expect(panel).toBeVisible();

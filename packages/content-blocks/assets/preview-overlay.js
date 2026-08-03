@@ -1026,6 +1026,20 @@
             return;
         }
 
+        // Bring a freshly-inserted section into view. Sent instead of the
+        // usual scroll-position restore, so the editor sees what they just
+        // added rather than wherever they happened to be.
+        if (data.type === 'cb:section:scroll-into-view' && Number.isFinite(data.sectionId)) {
+            const el = document.querySelector(`[data-cb-section-id="${data.sectionId}"]`);
+            if (el) {
+                // `center` rather than `start`: a short section pinned to the
+                // top edge reads as clipped, and the section above it is the
+                // context that tells the editor where the new one landed.
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+
         if (!data.type.startsWith('cb:focus:')) return;
 
         if (data.type === 'cb:focus:block' && Number.isFinite(data.blockId)) {
