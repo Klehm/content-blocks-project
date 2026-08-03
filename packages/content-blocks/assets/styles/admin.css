@@ -1176,29 +1176,48 @@
   margin-bottom: 1rem;
   padding-top: 1rem;
   background: var(--cb-panel);
-  border-bottom: 1px solid var(--cb-panel-2);
+  border-bottom: 1px solid var(--cb-line);
 }
 
+/* Folder tabs rather than an underlined word.
+ *
+ * These switch the whole panel, so they have to read as a control at a glance
+ * — an underline on body text does not, least of all above a column of mono
+ * captions that outshouts it. Giving them a shape also keeps the segmented
+ * pill (.cb-viewport-tabs, .cb-align-group) meaning one thing only: pick a
+ * value inside a field, never navigate away from one.
+ *
+ * The active tab is the only one filled with the panel color and it paints
+ * over the strip's bottom line, so it reads as continuous with the fields
+ * below it. Its top edge carries the accent — the same gesture that marks the
+ * top of the sidebar. */
 .cb-block__tab {
   appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--cb-muted);
-  padding: 6px 10px;
+  padding: 6px 12px;
+  /* Sit on the strip's bottom line so the active tab can cover it. */
   margin-bottom: -1px;
-  border-bottom: 2px solid transparent;
+  border: 1px solid var(--cb-line);
+  border-top-width: 2px;
+  border-radius: var(--cb-radius-sm) var(--cb-radius-sm) 0 0;
+  background: var(--cb-field-bg);
+  color: var(--cb-muted);
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
 }
-.cb-block__tab:hover {
+
+.cb-block__tab:hover:not(.cb-block__tab--active) {
+  background: var(--cb-panel-2);
   color: var(--cb-text);
 }
 
 .cb-block__tab--active {
+  background: var(--cb-panel);
+  border-top-color: var(--cb-accent);
+  border-bottom-color: var(--cb-panel);
   color: var(--cb-text);
-  border-bottom-color: var(--cb-accent);
+  font-weight: 700;
 }
 
 /* Red dot appended to a tab whose panel holds an invalid field, so a

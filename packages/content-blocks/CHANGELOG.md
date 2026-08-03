@@ -38,6 +38,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   labels are deliberately excluded — those are the sentence the user reads to
   decide, so they keep the host's body font. Labels go back to sentence case
   with `--cb-form-label-transform: none` (see the theming guide) — no fork needed.
+- **The block edit form's tabs are folder tabs, not underlined words.** General
+  / SEO / Style switch the whole panel, so they now read as a control: the open
+  tab is filled with the panel color, carries the accent along its top edge and
+  paints over the tab strip's line so it reads as continuous with the fields
+  below; the closed ones are tinted. This also keeps the segmented pill
+  (`.cb-viewport-tabs`, `.cb-align-group`) meaning one thing only — pick a value
+  inside a field, never navigate away from one.
 - **A standalone checkbox no longer renders its label twice.** The form theme
   gained a `checkbox_row` block that drops the row-level label: a checkbox
   already labels itself next to the box, so the generic row printed the same
