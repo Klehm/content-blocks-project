@@ -18,6 +18,7 @@ final class TableColumnType extends AbstractType
     {
         $builder
             ->add('label', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.table.field.column_label',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,

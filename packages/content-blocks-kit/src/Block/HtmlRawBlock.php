@@ -37,6 +37,7 @@ class HtmlRawBlock extends AbstractKitBlock
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
         $builder->add('html', TextareaType::class, [
+            'cb_translatable' => true,
             'label' => 'cb_kit.block.html_raw.field.html',
             'translation_domain' => 'content_blocks_kit',
             'required' => false,

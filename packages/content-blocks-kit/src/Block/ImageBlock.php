@@ -61,6 +61,7 @@ class ImageBlock extends AbstractKitBlock
                 'translation_domain' => 'content_blocks_kit',
             ])
             ->add('alt', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.image.field.alt',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
@@ -109,6 +110,7 @@ class ImageBlock extends AbstractKitBlock
                 'constraints' => [$this->choiceConstraint('align')],
             ])
             ->add('url', UrlType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.image.field.link',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
@@ -116,6 +118,7 @@ class ImageBlock extends AbstractKitBlock
                 'constraints' => [new Assert\Length(max: 1024)],
             ])
             ->add('caption', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.image.field.caption',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,

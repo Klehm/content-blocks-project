@@ -41,6 +41,7 @@ class EmbedBlock extends AbstractKitBlock
     {
         $builder
             ->add('url', UrlType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.embed.field.url',
                 'translation_domain' => 'content_blocks_kit',
                 'help' => 'cb_kit.block.embed.url_help',
@@ -48,6 +49,7 @@ class EmbedBlock extends AbstractKitBlock
                 'constraints' => [new Assert\NotBlank(), new Assert\Length(max: 1024)],
             ])
             ->add('title', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.embed.field.title',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,

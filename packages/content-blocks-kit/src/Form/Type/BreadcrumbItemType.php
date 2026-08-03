@@ -21,11 +21,13 @@ final class BreadcrumbItemType extends AbstractType
     {
         $builder
             ->add('label', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.breadcrumb.field.item_label',
                 'translation_domain' => 'content_blocks_kit',
                 'constraints' => [new Assert\NotBlank(), new Assert\Length(max: 255)],
             ])
             ->add('url', UrlType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.breadcrumb.field.item_url',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,

@@ -27,18 +27,21 @@ final class CardItemType extends AbstractType
                 'translation_domain' => 'content_blocks_kit',
             ])
             ->add('title', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.card.field.item_title',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
                 'constraints' => [new Assert\Length(max: 255)],
             ])
             ->add('content', TextareaType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.card.field.item_content',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
                 'attr' => ['rows' => 3],
             ])
             ->add('url', UrlType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.card.field.item_button_url',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
@@ -46,6 +49,7 @@ final class CardItemType extends AbstractType
                 'constraints' => [new Assert\Length(max: 1024)],
             ])
             ->add('buttonText', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.card.field.item_button_label',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,

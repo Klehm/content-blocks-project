@@ -16,6 +16,7 @@ final class TableCellType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->add('content', TextareaType::class, [
+            'cb_translatable' => true,
             'label' => 'cb_kit.block.table.field.cell_content',
             'translation_domain' => 'content_blocks_kit',
             'required' => false,

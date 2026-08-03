@@ -38,6 +38,7 @@ class TitleBlock extends AbstractKitBlock
     {
         $builder
             ->add('text', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.title.field.text',
                 'translation_domain' => 'content_blocks_kit',
                 'constraints' => [new Assert\Length(max: 255)],

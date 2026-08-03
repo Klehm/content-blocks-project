@@ -18,6 +18,7 @@ final class ListItemType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->add('text', TextType::class, [
+            'cb_translatable' => true,
             'label' => 'cb_kit.block.list.field.item_text',
             'translation_domain' => 'content_blocks_kit',
             'constraints' => [new Assert\NotBlank(), new Assert\Length(max: 500)],

@@ -20,6 +20,7 @@ final class TabEntryType extends AbstractType
     {
         $builder
             ->add('title', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.tabs.field.title',
                 'translation_domain' => 'content_blocks_kit',
                 'constraints' => [
@@ -28,6 +29,7 @@ final class TabEntryType extends AbstractType
                 ],
             ])
             ->add('content', TextareaType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.tabs.field.content',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,

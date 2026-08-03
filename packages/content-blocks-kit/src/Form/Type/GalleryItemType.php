@@ -26,18 +26,21 @@ final class GalleryItemType extends AbstractType
                 'translation_domain' => 'content_blocks_kit',
             ])
             ->add('alt', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.image.field.alt',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
                 'constraints' => [new Assert\Length(max: 255)],
             ])
             ->add('caption', TextType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.gallery.field.item_caption',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
                 'constraints' => [new Assert\Length(max: 255)],
             ])
             ->add('url', UrlType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.image.field.link',
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,

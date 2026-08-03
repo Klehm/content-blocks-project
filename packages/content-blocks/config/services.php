@@ -280,6 +280,21 @@ return static function (ContainerConfigurator $container): void {
     // in exactly one place.
     $services->set(\ContentBlocks\Block\BlockDataKeys::class);
 
+    // ---------- Content translation (convention only) ----------
+
+    // Declares the `cb_translatable` form option, and reads the tags back.
+    // Neither has a consumer in this package: the core ships the convention so
+    // it freezes with the 1.0 contract, a satellite package ships the storage,
+    // the UI and the locale-aware resolver. See TRANSLATION-SPIKE.md.
+    $services->set(\ContentBlocks\Form\Extension\TranslatableFieldTypeExtension::class)
+        ->tag('form.type_extension');
+
+    $services->set(\ContentBlocks\Translation\TranslatableFields::class);
+    $services->alias(
+        \ContentBlocks\Translation\TranslatableFieldsInterface::class,
+        \ContentBlocks\Translation\TranslatableFields::class,
+    );
+
     // Form types + the per-block form-extension collection. The collection's
     // `$extensions` argument (the [extension, target block type ids] pairs) is
     // populated by BlockFormExtensionPass; empty until a host tags an extension.
