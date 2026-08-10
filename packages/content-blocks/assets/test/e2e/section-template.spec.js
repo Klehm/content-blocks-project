@@ -92,6 +92,34 @@ test.describe('section-template library — round trip', () => {
         await expect(page.locator('.cb-shell__publish')).toBeEnabled();
     });
 
+    test('saving a section drops the sidebar back on the library, showing the new entry', async ({ page }) => {
+        // Saving is triggered from the section's own toolbar, so the sidebar is
+        // sitting on that section's settings when it completes — leaving the
+        // editor with no sight of what they just created, nor of whether it
+        // saved at all. The panel goes back to its default state instead.
+        const templateName = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+        const frame = await openBuilder(page, await createFreshPage(page));
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+
+        // Clicking the section to reach its toolbar mounts its settings form.
+        await frame.locator('[data-cb-section-id]').first().click({ position: { x: 5, y: 5 } });
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar.locator('.cb-sidebar__section-settings')).toBeVisible();
+
+        await saveFirstSectionAsTemplate(page, frame, templateName);
+
+        const picker = page.locator('.cb-sidebar-library');
+        await expect(picker).toBeVisible();
+        await expect(sidebar.locator('.cb-sidebar__section-settings')).toHaveCount(0);
+        // The list re-fetched rather than repainting a stale cache, so the
+        // entry that was just created is on screen.
+        await expect(
+            picker.locator('.cb-template-picker__item-name', { hasText: templateName }),
+        ).toHaveCount(1);
+    });
+
     test('opening the library from the in-iframe add-section tray works too', async ({ page }) => {
         const templateName = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 

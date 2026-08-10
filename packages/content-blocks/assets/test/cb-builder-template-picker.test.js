@@ -409,10 +409,14 @@ describe('cb-builder template picker: save section as template', () => {
         vi.spyOn(console, 'log').mockImplementation(() => {});
     });
 
-    it('prompts for a name and posts the snapshot, invalidating the cache', async () => {
+    it('prompts for a name and posts the snapshot, then lands on a re-fetched library', async () => {
         vi.spyOn(window, 'prompt').mockReturnValue('  My hero  ');
         const reqSpy = vi.spyOn(controller, '_jsonRequest').mockResolvedValue({ id: 1, name: 'My hero' });
         const flashSpy = vi.spyOn(controller, '_flashSaved').mockImplementation(() => {});
+        global.fetch = vi.fn(() => okJson({
+            items: [{ id: 1, name: 'My hero', insertable: true, canManage: false }],
+            hasMore: false,
+        }));
         controller._templateItems = [{ id: 1, name: 'stale' }];
 
         await controller._saveSectionAsTemplate(12);
@@ -422,9 +426,41 @@ describe('cb-builder template picker: save section as template', () => {
             '/_content-blocks/section/12/save-as-template',
             { name: 'My hero' },
         );
-        // Cache dropped, so the next paint re-fetches and shows the new entry.
-        expect(controller._templateItems).toBeNull();
         expect(flashSpy).toHaveBeenCalled();
+        // The stale cache was dropped and the list re-fetched: the editor lands
+        // on the library seeing the entry they just created, not the old one.
+        expect(global.fetch).toHaveBeenCalled();
+        expect(controller._templateItems).toEqual([
+            { id: 1, name: 'My hero', insertable: true, canManage: false },
+        ]);
+    });
+
+    it('leaves the sidebar on its default state, not the section it saved', async () => {
+        vi.spyOn(window, 'prompt').mockReturnValue('My hero');
+        vi.spyOn(controller, '_jsonRequest').mockResolvedValue({ id: 1, name: 'My hero' });
+        vi.spyOn(controller, '_flashSaved').mockImplementation(() => {});
+        const resetSpy = vi.spyOn(controller, '_resetSidebarToEmptyState').mockImplementation(() => {});
+        global.fetch = vi.fn(() => okJson({ items: [], hasMore: false }));
+
+        await controller._saveSectionAsTemplate(12);
+
+        // Saving runs from the section toolbar, so without this the panel stays
+        // on that section's settings and hides the thing just created.
+        expect(resetSpy).toHaveBeenCalled();
+    });
+
+    it('does not touch the sidebar when the save failed', async () => {
+        vi.spyOn(window, 'prompt').mockReturnValue('My hero');
+        vi.spyOn(controller, '_jsonRequest').mockResolvedValue(null);
+        const resetSpy = vi.spyOn(controller, '_resetSidebarToEmptyState').mockImplementation(() => {});
+        controller._templateItems = [{ id: 1, name: 'stale' }];
+
+        await controller._saveSectionAsTemplate(12);
+
+        // Yanking the editor out of the form they were on would lose the
+        // context they need to retry.
+        expect(resetSpy).not.toHaveBeenCalled();
+        expect(controller._templateItems).toEqual([{ id: 1, name: 'stale' }]);
     });
 
     it('aborts on cancelled or blank name without any request', async () => {

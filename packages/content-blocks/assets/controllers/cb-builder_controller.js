@@ -1517,6 +1517,12 @@ export default class extends Controller {
         // The library changed — drop the cache so the next paint re-fetches.
         this._templateItems = null;
         this._flashSaved();
+        // Saving ran from the section's toolbar, so the sidebar is showing that
+        // section's settings and the editor has no sight of what they just
+        // created. Land them in the library instead: it is the one place that
+        // answers "did it save, and under what name?", and it is where the next
+        // move (insert it somewhere) starts.
+        await this.openTemplatePicker();
     }
 
     /**
