@@ -159,7 +159,7 @@ Le core ignore la forme de `block.data` : un type de bloc déclare ce qu'il vaut
 - `cb-condition` : affichage conditionnel générique de champs (`data-cb-condition="field:value1|value2"` sur une row ; checkbox → `true`/`false` ; `field` seul → non-vide). Plusieurs clauses se combinent en **ET** via `;` (ex. `size:custom;customHeightAuto:false`), chaque clause gardant son **OU** via `|`. Les instances s'imbriquent (scope = plus proche ancêtre) ; le controller est aussi posé sur la **racine du form d'édition de bloc** ([Block.html.twig]) pour qu'un `<select>` puisse gater des rows sœurs (resize image). Utilisé par le switch « Personnaliser le style » et `PaletteColorType` ; réutilisable dans les forms de blocs custom
 - `cb-file-upload` : upload AJAX vers `/_content-blocks/upload` (preview + status), utilisé par `ImageUploadType`
 
-Ces controllers doivent être déclarés dans `assets/controllers.json` côté host (jusqu'à publication d'une recette Flex officielle). Voir `packages/content-blocks/README.md`.
+Ces controllers doivent être déclarés dans `assets/controllers.json` côté host — Flex l'écrit tout seul à l'install (mot-clé `symfony-ux` + `assets/package.json`), à la main sinon. Voir `packages/content-blocks/README.md`.
 
 ### ContentAreaType (FormType)
 Un FormType Symfony prêt à l'emploi pour intégrer un ContentArea dans n'importe quel formulaire :

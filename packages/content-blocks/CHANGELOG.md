@@ -5,7 +5,12 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-08-03
+## [Unreleased]
+
+Headed for `1.0.0`, but not tagged: the release waits on the translation package,
+the kit's rich-text blocks and its image-optimization seam, then a `1.0.0-RC1`.
+Everything below is on `master` only. See the
+[roadmap](https://github.com/klehm/content-blocks-project/blob/master/ROADMAP.md).
 
 ### Changed
 

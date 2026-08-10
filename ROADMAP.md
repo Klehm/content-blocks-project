@@ -6,7 +6,7 @@ Legend: 🅿️ planned · 🤔 under consideration · 💡 idea
 
 ---
 
-## Kit — image optimization seam 🤔
+## Kit — image optimization seam 🅿️
 
 **Context.** The kit is deliberately dependency-free: the `image` block serves the uploaded file **as-is** and only controls the *display* box via CSS (`width`/`height`, `object-fit`, `border-radius`, `loading="lazy"`). It already does the free wins (no CLS, lazy loading), but it does **not** reduce byte size — there is no responsive `srcset`, no WebP/AVIF, no server-side thumbnails. That inherently requires either an image-processing library (LiipImagine/Glide/GD/Imagick) or a transforming CDN, neither of which the kit should hard-depend on.
 
@@ -70,27 +70,22 @@ Legend: 🅿️ planned · 🤔 under consideration · 💡 idea
 
 ---
 
-## Core — Flex recipe for asset wiring 🅿️
+## Release — an RC once the feature set is whole, then 1.0 🅿️
 
-The Stimulus controllers + admin CSS (`assets/controllers.json`) and the `sortablejs` importmap entry are currently a manual install step (documented in [Installation](https://klehm.github.io/content-blocks-project/guide/installation)). A Symfony Flex recipe that injects this automatically is planned — once published, the manual step goes away.
+**Context.** The last tag is `v0.1.0-beta.7`. The block set, core styling, security model, config surface and docs are in place, and the work that had to land *before* a freeze already has: the 1.0 seams (`RenderContext`, `BlockDataResolverInterface`, collection `_id`, the `_` reserved prefix), the `Block.data` key unification and the upgrade guide are on `master`, unreleased, accumulating under `[Unreleased]` in both CHANGELOGs.
 
----
+**Direction.** Stay on the beta line and finish the feature set first — an RC is only worth testing once hosts can exercise what 1.0 will actually contain. **The three items above ship first** (translation package, kit rich-text blocks, kit image-optimization seam), *then* `1.0.0-RC1`, *then* the stable tag.
 
-## Release — stabilize and ship a first stable version 🅿️
+Why this order: the translation package is the one that would most likely expose a missing core seam, and finding that during an RC — after the freeze promise — is exactly what an RC is meant to prevent. The rich-text blocks and the image seam are additive by construction, so they cost the freeze nothing but round out what a host gets on day one.
 
-**Context.** The project is on `v0.1.0-beta.7`. The block set, core styling, security model, config surface and docs are in place. The goal now is to converge the beta line into a **first stable release** hosts can depend on with a real semver guarantee.
-
-**Direction.** Freeze and harden the public surface rather than add features:
-
-- **API freeze**: audit the public seams (interfaces, config keys, block data shapes, Twig namespaces/templates meant for override) and lock what's stable; mark anything still experimental.
-- **Backward-compat & upgrade**: document breaking changes accumulated over the beta line; ensure migrations exist for schema changes (e.g. `cb_content_area.updated_at`) with a clean upgrade path.
-- **Test & CI confidence**: full green across core + kit (PHPUnit, Vitest, Playwright) on the supported matrix (Symfony 6.4/7.x/8.x, PHP 8.2–8.4).
-- **Docs & CHANGELOG**: finalize the docs site, write the stable release notes, tag `v1.0.0` and let the split CI propagate to the read-only repos.
+Versioning consequence: the unreleased work carries breaking changes (the `Block.data` key renames, the `BlockRendererInterface` signature), and `0.1.0-beta.1` promised those bump to `0.2`. Any tag cut before the RC is therefore `0.2.0-beta.x`, not `0.1.0-beta.8`.
 
 **Rough scope when picked up:**
+- [ ] The three feature items above, shipped and documented
 - [ ] Public-surface audit → freeze list + "experimental" markers
-- [ ] Upgrade guide (beta → stable) + verified migrations
-- [ ] Green CI on the full supported matrix
+- [ ] Upgrade guide (beta → stable) + verified migrations — drafted, revisit once the three items land
+- [ ] Green CI on the full supported matrix (Symfony 6.4/7.x/8.x, PHP 8.2–8.4; PHPUnit + Vitest + Playwright ×2)
+- [ ] Tag `1.0.0-RC1`, let hosts run it
 - [ ] Finalize docs site + stable release notes
 - [ ] Tag `v1.0.0`, verify Packagist split
 

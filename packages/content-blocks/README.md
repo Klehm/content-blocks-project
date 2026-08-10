@@ -47,11 +47,11 @@ content_blocks:
     resource: '@ContentBlocksBundle/config/routes.php'
 ```
 
-### Stimulus controllers & admin CSS (required, manual until a Flex recipe ships)
+### Stimulus controllers & admin CSS (required — written by Flex, manual otherwise)
 
 The host's Symfony Stimulus Bundle reads `assets/controllers.json` from your project — it does **not** auto-discover controllers shipped by third-party packages. Without an entry for each controller, the builder UI loads no JS and the "Edit content" button does nothing.
 
-Add the following to `assets/controllers.json`:
+Flex writes that block for you: both packages carry the `symfony-ux` keyword, so `composer require` runs Flex's `PackageJsonSynchronizer` over their `assets/package.json` — independently of the recipe endpoint above. Install without Flex and it is yours to add:
 
 ```json
 {
@@ -112,8 +112,6 @@ jQuery-based back office. Full walkthrough:
 [Installation → With Webpack Encore](https://klehm.github.io/content-blocks-project/guide/installation#with-webpack-encore).
 
 The `autoimport` block on `cb-builder-launcher` pulls in `admin.css` (styles for the launcher button, builder dialog and sidebars). You do **not** need to add `import '@klehm/content-blocks/styles/admin.css'` in `app.js` — the entry above handles it, under either bundler.
-
-> A Symfony Flex recipe that injects this whole block automatically is on the roadmap — once published, this manual step goes away.
 
 #### Public assets loaded inside the preview iframe
 

@@ -65,11 +65,13 @@ content_blocks:
 
 ## Stimulus controllers & admin CSS
 
-::: warning Required (manual until a Flex recipe ships)
+::: warning Required — written by Flex, manual otherwise
 The host's Symfony Stimulus Bundle reads `assets/controllers.json` from your project — it does **not** auto-discover controllers shipped by third-party packages. Without an entry for each controller, the builder UI loads no JS and the "Edit content" button does nothing.
+
+Flex writes that block for you: both packages carry the `symfony-ux` keyword, so `composer require` runs Flex's `PackageJsonSynchronizer` over their `assets/package.json` — independently of the recipe endpoint above. Install without Flex and it is yours to add.
 :::
 
-Add the following to `assets/controllers.json`:
+The block, for reference (and to add by hand on a Flex-less install):
 
 ```json
 {
@@ -165,10 +167,6 @@ module.exports = config;
 :::
 
 Nothing else is Encore-specific. The bundles skip their AssetMapper registration when the component is not installed, and the front-end and preview assets never touch your bundler at all — they are served by the routes described below.
-
-::: tip
-A Symfony Flex recipe that injects the `controllers.json` block automatically is on the roadmap — once published, that step goes away (the npm links stay).
-:::
 
 ### Public assets loaded inside the preview iframe
 
