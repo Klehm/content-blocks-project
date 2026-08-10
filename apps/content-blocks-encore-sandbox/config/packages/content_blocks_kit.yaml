@@ -1,0 +1,19 @@
+# This sandbox runs the rich-text block on **CKEditor, bundled by the host** —
+# the one combination the other two sandboxes cannot demonstrate.
+#
+# The AssetMapper sandboxes stay on the default (TinyMCE, loaded from its CDN),
+# which is what a fresh install gets. Here the editor comes out of the webpack
+# build instead: `assets/app.js` imports `ckeditor5` and publishes it as
+# `window.CKEDITOR`, so `cdn: false` tells the kit to load nothing and expect
+# the global to be there.
+#
+# That covers two things at once: CKEditor as an editor, and the `cdn: false`
+# path a host takes when a strict CSP or an offline admin rules out a CDN.
+# It is also why the Encore Playwright suite can exercise a real editor with no
+# network at all.
+content_blocks_kit:
+    blocks:
+        rich_text:
+            options:
+                editor: ckeditor
+                cdn: false

@@ -26,6 +26,28 @@ import {
  */
 
 /**
+ * How long after the last keystroke the value is pushed into the Live model.
+ * Deliberately shorter than cb-autosave's own input debounce (250 ms), so the
+ * model is fresh by the time autosave decides to save.
+ */
+const CHANGE_FLUSH_MS = 150;
+
+/**
+ * Trailing debounce with a `cancel()`, so blur can flush immediately without
+ * a queued call firing a second time behind it. Exported for unit tests.
+ */
+export function debounce(fn, wait) {
+    let timer = null;
+    const debounced = (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), wait);
+    };
+    debounced.cancel = () => clearTimeout(timer);
+
+    return debounced;
+}
+
+/**
  * Which factory signature to call.
  *
  * CKEditor 48 replaced `create(element, config)` with
@@ -199,13 +221,31 @@ export default class extends Controller {
 
             // Write back on every change, before the event bubbles, for the
             // same reason TinyMCE does: cb-autosave must never read a stale
-            // textarea. `input` debounces, `blur` flushes.
+            // textarea.
+            //
+            // Both events are needed, and for different consumers. `input`
+            // keeps the textarea and the autosave debounce in step. `change`
+            // is what pushes the value into the Live Component's model — a
+            // save fired without it POSTs the value from *before* the edit,
+            // and the block persists empty. TinyMCE gets this for free
+            // because it emits `change` per undo level; CKEditor reports every
+            // keystroke, so the `change` is trailing-debounced instead —
+            // otherwise each character would trigger its own save.
             const sync = (eventName) => {
                 textarea.value = editor.getData();
                 textarea.dispatchEvent(new Event(eventName, { bubbles: true }));
             };
-            editor.model.document.on('change:data', () => sync('input'));
-            editor.editing.view.document.on('blur', () => sync('change'));
+            const flush = debounce(() => sync('change'), CHANGE_FLUSH_MS);
+
+            editor.model.document.on('change:data', () => {
+                sync('input');
+                flush();
+            });
+            editor.editing.view.document.on('blur', () => {
+                flush.cancel();
+                sync('change');
+            });
+            this._flush = flush;
 
             this._detachedUi.sweep();
             this._editor = editor;
@@ -218,6 +258,9 @@ export default class extends Controller {
     async disconnect() {
         this._detachedUi?.stop();
         this._detachedUi = null;
+        // A queued flush would fire against a torn-down editor.
+        this._flush?.cancel();
+        this._flush = null;
 
         if (this._editor) {
             const editor = this._editor;

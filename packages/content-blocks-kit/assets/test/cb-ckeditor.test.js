@@ -297,16 +297,51 @@ describe('cb-ckeditor connect', () => {
         expect(bubbled).toHaveBeenCalledOnce();
     });
 
-    it('flushes on blur with a change event', async () => {
+    /**
+     * Regression guard, and the reason this controller does not simply mirror
+     * `change:data` onto `input`: the Live model only picks the value up on
+     * `change`, so without this the save POSTs the pre-edit content and the
+     * block persists empty. CKEditor reports every keystroke, hence the
+     * trailing debounce — one `change` per typing pause, not per character.
+     */
+    it('pushes the value into the Live model on a trailing change, once per pause', async () => {
+        vi.useFakeTimers();
         const { editor } = stubCkEditor();
         const { controller, textarea } = mount();
         await controller.connect();
 
-        const bubbled = vi.fn();
-        textarea.addEventListener('change', bubbled);
-        editor.listeners['view:blur']();
+        const changes = vi.fn();
+        textarea.addEventListener('change', changes);
 
-        expect(bubbled).toHaveBeenCalledOnce();
+        editor.listeners['model:change:data']();
+        editor.listeners['model:change:data']();
+        editor.listeners['model:change:data']();
+        expect(changes).not.toHaveBeenCalled(); // still typing
+
+        vi.advanceTimersByTime(200);
+        expect(changes).toHaveBeenCalledOnce();
+
+        vi.useRealTimers();
+    });
+
+    it('flushes on blur with a change event, without a queued one firing behind it', async () => {
+        vi.useFakeTimers();
+        const { editor } = stubCkEditor();
+        const { controller, textarea } = mount();
+        await controller.connect();
+
+        const changes = vi.fn();
+        textarea.addEventListener('change', changes);
+
+        editor.listeners['model:change:data']();
+        editor.listeners['view:blur']();
+        expect(changes).toHaveBeenCalledOnce();
+
+        // The pending debounce was cancelled by the blur, not left to fire.
+        vi.advanceTimersByTime(500);
+        expect(changes).toHaveBeenCalledOnce();
+
+        vi.useRealTimers();
     });
 
     it('leaves the plain textarea in place when the editor cannot load', async () => {
