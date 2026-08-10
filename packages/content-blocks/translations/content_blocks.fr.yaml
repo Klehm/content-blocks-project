@@ -63,6 +63,7 @@ cb:
         cancel: "Annuler"
         remove: "Supprimer"
         duplicate: "Dupliquer"
+        drag: "Glisser pour déplacer"
         tab:
             general: "Général"
             style: "Style"
@@ -105,6 +106,7 @@ cb:
             more: "Charger plus"
         template:
             insert: "Insérer depuis la bibliothèque"
+            save: "Enregistrer comme modèle"
             title: "Bibliothèque de sections"
             search_placeholder: "Rechercher un modèle…"
             empty: "Aucun modèle enregistré"

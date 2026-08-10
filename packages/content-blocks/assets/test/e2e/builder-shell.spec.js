@@ -863,6 +863,53 @@ test.describe('builder shell — focus + permanent affordances', () => {
         await expect(toolbar).toBeVisible();
     });
 
+    test('overlay toolbar buttons are labelled from the translated catalog, not the JS fallbacks', async ({ page }) => {
+        // The overlay runs as a plain module inside the preview iframe, with no
+        // Stimulus element to carry `data-i18n-*`. Its labels come from
+        // `window.__cbOverlayLabels`, translated server-side — and when that
+        // wiring is missing, nothing breaks visibly: the buttons just quietly
+        // render their English fallbacks. Which is how "Duplicate" survived in
+        // a French UI. Asserted against the injected values rather than literal
+        // French so the test says "the channel is used", whatever the locale.
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await frame.locator('[data-cb-section-id]').first().click({ position: { x: 5, y: 5 } });
+        await expect(frame.locator('.cb-overlay-toolbar.is-visible')).toBeVisible();
+
+        const observed = await page.locator('.cb-shell__iframe').evaluate((iframe) => {
+            const doc = iframe.contentDocument;
+            return {
+                labels: doc.defaultView.__cbOverlayLabels,
+                buttons: [...doc.querySelectorAll('.cb-overlay-toolbar__btn')].map((b) => ({
+                    action: b.dataset.cbAction,
+                    title: b.title,
+                    ariaLabel: b.getAttribute('aria-label'),
+                })),
+            };
+        });
+
+        const expected = {
+            drag: observed.labels.section_drag,
+            'move-up': observed.labels.section_move_up,
+            'move-down': observed.labels.section_move_down,
+            duplicate: observed.labels.section_duplicate,
+            'save-template': observed.labels.section_save_template,
+            delete: observed.labels.section_delete,
+        };
+
+        expect(observed.buttons.map((b) => b.action)).toEqual(Object.keys(expected));
+        for (const button of observed.buttons) {
+            expect(button.title).toBe(expected[button.action]);
+            // The accessible name has to move with the tooltip, not lag behind it.
+            expect(button.ariaLabel).toBe(expected[button.action]);
+        }
+
+        // The sandbox runs in French, so any English fallback still on screen
+        // means that button never went through the label channel.
+        const fallbacks = ['Duplicate', 'Remove', 'Move up', 'Move down', 'Save as template', 'Drag to move'];
+        expect(observed.buttons.filter((b) => fallbacks.includes(b.title))).toEqual([]);
+    });
+
     test('section toolbar is rendered as an overlapping chip on the section top border', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);

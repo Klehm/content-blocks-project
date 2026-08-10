@@ -60,7 +60,22 @@
         </button>
     </aside>
     <script>window.__cbBlockTypes = {{ blockTypes|json_encode|raw }};</script>
-    <script>window.__cbAddBlockLabel = {{ 'cb.block.add_title'|trans({}, 'content_blocks')|json_encode|raw }};</script>
+    {# The overlay runs inside the preview iframe as a plain module, with no
+       Stimulus element to hang `data-i18n-*` attributes off — so its labels are
+       translated here and handed over in one object. Every string it renders
+       has to come through this: anything it hardcodes ships untranslated. #}
+    <script>window.__cbOverlayLabels = {{ {
+        add_block: 'cb.block.add_title'|trans({}, 'content_blocks'),
+        block_drag: 'cb.block.drag'|trans({}, 'content_blocks'),
+        block_duplicate: 'cb.block.duplicate'|trans({}, 'content_blocks'),
+        block_delete: 'cb.block.remove'|trans({}, 'content_blocks'),
+        section_drag: 'cb.section.drag'|trans({}, 'content_blocks'),
+        section_move_up: 'cb.section.move_up'|trans({}, 'content_blocks'),
+        section_move_down: 'cb.section.move_down'|trans({}, 'content_blocks'),
+        section_duplicate: 'cb.section.duplicate'|trans({}, 'content_blocks'),
+        section_save_template: 'cb.builder.template.save'|trans({}, 'content_blocks'),
+        section_delete: 'cb.section.remove'|trans({}, 'content_blocks'),
+    }|json_encode|raw }};</script>
     <script type="module" src="{{ path('content_blocks_asset_preview_overlay') }}"></script>
 {% endif %}
 </div>
