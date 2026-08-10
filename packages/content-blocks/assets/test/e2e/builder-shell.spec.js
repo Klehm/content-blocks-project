@@ -180,6 +180,29 @@ test.describe('builder shell — basics', () => {
             page.frameLocator('.cb-shell__iframe').locator('.cb-add-section-tray__btn').first(),
         ).toBeVisible();
     });
+
+    test('the viewport switcher sits in the right cluster, ahead of publish', async ({ page }) => {
+        const url = await createFreshPage(page);
+        await page.goto(url);
+        await page.locator('.cb-launcher__button').click();
+
+        // It belongs to the right cluster, not a centre one: the topbar has no
+        // centre column any more, because a switcher centred on the *window*
+        // never lined up with a preview frame centred on the *canvas* (which
+        // the sidebar offsets).
+        await expect(page.locator('.cb-shell__topbar-right .cb-shell__viewport')).toBeVisible();
+        await expect(page.locator('.cb-shell__topbar-center')).toHaveCount(0);
+
+        const switcher = await page.locator('.cb-shell__viewport').boundingBox();
+        const publish = await page.locator('.cb-shell__publish').boundingBox();
+        const topbar = await page.locator('.cb-shell__topbar').boundingBox();
+
+        // Ordered left-to-right, and hugging the right edge rather than the
+        // topbar's midpoint (which is what "aligned with the preview" meant
+        // before and no longer holds).
+        expect(switcher.x + switcher.width).toBeLessThanOrEqual(publish.x);
+        expect(switcher.x).toBeGreaterThan(topbar.x + topbar.width / 2);
+    });
 });
 
 test.describe('builder shell — sections', () => {

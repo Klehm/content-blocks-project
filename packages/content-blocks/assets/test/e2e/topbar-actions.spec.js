@@ -67,7 +67,10 @@ test.describe('builder topbar — host actions (cb:builder:action)', () => {
 
         await page.locator('.cb-shell__actions-toggle').click();
         await expect(menu).toBeVisible();
-        await page.locator('.cb-shell__topbar-center').click();
+        // Empty stretch of the topbar itself — the viewport switcher used to
+        // sit there and served as the outside-click target; it now lives in
+        // the right cluster, so click the bar's own bare middle.
+        await page.locator('.cb-shell__topbar').click();
         await expect(menu).toBeHidden();
 
         await page.locator('.cb-shell__actions-toggle').click();

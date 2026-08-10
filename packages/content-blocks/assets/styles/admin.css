@@ -103,7 +103,7 @@
 
 .cb-shell__topbar {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 1fr auto;
   align-items: center;
   padding: 0 1rem;
   background: var(--cb-panel);
@@ -159,9 +159,6 @@
   display: flex;
   gap: 0.5rem;
   align-items: center;
-}
-.cb-shell__topbar-center {
-  justify-self: center;
 }
 .cb-shell__topbar-right {
   justify-self: end;
@@ -673,6 +670,25 @@
   color: var(--cb-text);
   box-shadow: 0 1px 2px rgba(var(--cb-shadow-rgb), 0.08);
 }
+/* Hairline in the gutter between the viewport switcher and the
+   discard/publish pair — they share the right cluster but not the same job:
+   one changes what you look at, the others commit what you changed. Drawn as
+   a pseudo-element so the separator needs no node of its own; `right` is half
+   the 1rem gutter (0.5rem flex gap + 0.5rem margin) so it lands centred. */
+.cb-shell__topbar-right .cb-shell__viewport {
+  position: relative;
+  margin-right: 0.5rem;
+}
+.cb-shell__topbar-right .cb-shell__viewport::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -0.5rem;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 1.25rem;
+  background: var(--cb-line);
+}
 
 /* ---- Save-failure banner (topbar) ----
  *
@@ -805,11 +821,10 @@
 
 /* ---- Mobile tightening ---- */
 @media (max-width: 768px) {
-  /* Drop the grid (1fr auto 1fr) on mobile and switch to flex with
-       space-between. The grid was forcing the right column to a fixed
-       1fr share, so when discard+publish were wider than that share the
-       buttons spilled past the topbar. Flex lets each cluster take its
-       natural width with the viewport switcher floating in the middle. */
+  /* Drop the grid on mobile and switch to flex with space-between. The grid
+       was forcing the right column to a fixed 1fr share, so when discard+
+       publish were wider than that share the buttons spilled past the
+       topbar. Flex lets each cluster take its natural width. */
   .cb-shell__topbar {
     display: flex;
     justify-content: space-between;
@@ -817,10 +832,17 @@
     gap: 0.5rem;
   }
   .cb-shell__topbar-left,
-  .cb-shell__topbar-center,
   .cb-shell__topbar-right {
     justify-self: auto;
     flex: 0 0 auto;
+  }
+  /* Right cluster gets crowded here — drop the separator and its gutter and
+     let the plain 0.5rem flex gap do the spacing. */
+  .cb-shell__topbar-right .cb-shell__viewport {
+    margin-right: 0;
+  }
+  .cb-shell__topbar-right .cb-shell__viewport::after {
+    display: none;
   }
   /* Discard collapses to icon-only — the long "Annuler les modifications"
        label was wrapping on narrow screens and pushing Publish out of the

@@ -98,7 +98,13 @@
             {% endif %}
         </div>
 
-        <div class="cb-shell__topbar-center">
+        <div class="cb-shell__topbar-right">
+            {# Viewport switcher. It lives in the right cluster, not in the
+               middle of the topbar: the preview frame is centred over the
+               canvas, which is itself offset by the sidebar, so a
+               topbar-centred switcher never lined up with the frame it
+               controls. Anchoring it right also keeps it still when the
+               sidebar is collapsed or resized. #}
             <div class="cb-shell__viewport" role="group">
                 <button type="button"
                         class="cb-shell__viewport-btn cb-shell__viewport-btn--active"
@@ -116,9 +122,7 @@
                         data-cb-builder-viewport-param="mobile"
                         title="Mobile">▯</button>
             </div>
-        </div>
 
-        <div class="cb-shell__topbar-right">
             {# Persistent save-failure banner. Unlike the transient "Saved"
                flash it stays visible until a later save succeeds — the
                editor must know their latest edits are not stored. #}
