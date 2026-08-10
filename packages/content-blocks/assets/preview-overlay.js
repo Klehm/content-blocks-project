@@ -57,6 +57,20 @@
     let focusedKind = null;
     let hideTimer = null;
 
+    // Labels translated server-side and injected by the render template (see
+    // content_area.html.twig). The English fallbacks keep the overlay usable if
+    // the object is missing — a host rendering the preview through a custom
+    // template, say — but they are a safety net, not the source: a string that
+    // only exists here can never be translated.
+    const LABELS = (window.__cbOverlayLabels && typeof window.__cbOverlayLabels === 'object')
+        ? window.__cbOverlayLabels
+        : {};
+
+    function t(key, fallback) {
+        const value = LABELS[key];
+        return typeof value === 'string' && value !== '' ? value : fallback;
+    }
+
     function makeBtn(label, title, action, onclick) {
         const b = document.createElement('button');
         b.type = 'button';
@@ -98,7 +112,7 @@
 
         const header = document.createElement('div');
         header.className = 'cb-overlay-popover__header';
-        header.textContent = window.__cbAddBlockLabel || 'Ajouter un bloc';
+        header.textContent = t('add_block', 'Add a block');
         popover.appendChild(header);
 
         const grid = document.createElement('div');
@@ -158,22 +172,22 @@
         if (kind === 'block') {
             const blockId = parseInt(el.dataset.cbBlockId, 10);
             toolbar.appendChild(makeDragHandle('block', blockId, el));
-            toolbar.appendChild(makeBtn('⎘', 'Duplicate', 'duplicate', () =>
+            toolbar.appendChild(makeBtn('⎘', t('block_duplicate', 'Duplicate'), 'duplicate', () =>
                 postToParent('cb:block:duplicate-requested', { blockId })));
-            toolbar.appendChild(makeBtn('×', 'Delete', 'delete', () =>
+            toolbar.appendChild(makeBtn('×', t('block_delete', 'Remove'), 'delete', () =>
                 postToParent('cb:block:delete-requested', { blockId })));
         } else if (kind === 'section') {
             const sectionId = parseInt(el.dataset.cbSectionId, 10);
             toolbar.appendChild(makeDragHandle('section', sectionId, el));
-            toolbar.appendChild(makeBtn('▲', 'Move up', 'move-up', () =>
+            toolbar.appendChild(makeBtn('▲', t('section_move_up', 'Move up'), 'move-up', () =>
                 postToParent('cb:section:move-requested', { sectionId, direction: 'up' })));
-            toolbar.appendChild(makeBtn('▼', 'Move down', 'move-down', () =>
+            toolbar.appendChild(makeBtn('▼', t('section_move_down', 'Move down'), 'move-down', () =>
                 postToParent('cb:section:move-requested', { sectionId, direction: 'down' })));
-            toolbar.appendChild(makeBtn('⎘', 'Duplicate', 'duplicate', () =>
+            toolbar.appendChild(makeBtn('⎘', t('section_duplicate', 'Duplicate'), 'duplicate', () =>
                 postToParent('cb:section:duplicate-requested', { sectionId })));
-            toolbar.appendChild(makeBtn('☆', 'Save as template', 'save-template', () =>
+            toolbar.appendChild(makeBtn('☆', t('section_save_template', 'Save as template'), 'save-template', () =>
                 postToParent('cb:section:save-template-requested', { sectionId })));
-            toolbar.appendChild(makeBtn('×', 'Delete', 'delete', () =>
+            toolbar.appendChild(makeBtn('×', t('section_delete', 'Remove'), 'delete', () =>
                 postToParent('cb:section:delete-requested', { sectionId })));
         }
     }
@@ -183,8 +197,9 @@
         b.type = 'button';
         b.className = 'cb-overlay-toolbar__btn cb-overlay-toolbar__btn--drag';
         b.textContent = '⋮⋮';
-        b.title = 'Drag to move';
-        b.setAttribute('aria-label', 'Drag to move');
+        const dragLabel = t(kind === 'block' ? 'block_drag' : 'section_drag', 'Drag to move');
+        b.title = dragLabel;
+        b.setAttribute('aria-label', dragLabel);
         b.dataset.cbAction = 'drag';
         // Not a click action — `pointerdown` enters drag mode. We use
         // pointer events instead of mouse-only so touch + pen + mouse all
@@ -1023,6 +1038,20 @@
             && Number.isFinite(data.sectionId)
             && (data.direction === 'up' || data.direction === 'down')) {
             moveSectionByDirection(data.sectionId, data.direction);
+            return;
+        }
+
+        // Bring a freshly-inserted section into view. Sent instead of the
+        // usual scroll-position restore, so the editor sees what they just
+        // added rather than wherever they happened to be.
+        if (data.type === 'cb:section:scroll-into-view' && Number.isFinite(data.sectionId)) {
+            const el = document.querySelector(`[data-cb-section-id="${data.sectionId}"]`);
+            if (el) {
+                // `center` rather than `start`: a short section pinned to the
+                // top edge reads as clipped, and the section above it is the
+                // context that tells the editor where the new one landed.
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
             return;
         }
 

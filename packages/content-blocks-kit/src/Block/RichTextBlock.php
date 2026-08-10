@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 #[AsContentBlock(priority: 80)]
-class RichTextBlock extends AbstractKitBlock
+class RichTextBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function getType(): string
     {
@@ -54,6 +56,18 @@ class RichTextBlock extends AbstractKitBlock
     public function getFormTheme(): ?string
     {
         return '@ContentBlocksKit/form/rich_text_theme.html.twig';
+    }
+
+    /**
+     * The stored content is HTML. Tags are stripped rather than rendered: a
+     * thumbnail tile shows a line of plain copy, and injecting editor markup
+     * into the admin's DOM is not something a preview should ever do.
+     */
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        $html = self::previewString($data, 'content');
+
+        return BlockPreviewHint::text($html === null ? null : strip_tags($html));
     }
 
     public function getViewTemplate(): ?string

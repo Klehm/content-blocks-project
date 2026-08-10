@@ -222,6 +222,33 @@ document.addEventListener('cb:block:rendered', (e) => {
 });
 ```
 
+### Section-library thumbnails (`BlockPreviewHintInterface`)
+
+Cards in the section library carry a thumbnail — a small diagram of the saved section, drawn from its stored payload: the real column presets, one tile per block. It is **not** a screenshot, so there is nothing to store, nothing to migrate, no headless browser, and sections saved before this existed get one too.
+
+The core knows the structure but not what a block *holds* — that is the block type's business. So a block says what it is worth showing by implementing the optional `BlockPreviewHintInterface`:
+
+```php
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
+
+final class QuoteBlock extends AbstractBlockType implements BlockPreviewHintInterface
+{
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        return BlockPreviewHint::text($data['quote'] ?? null);
+    }
+}
+```
+
+Six shapes are available: `image()` (a real `<img>` pointing at the stored file), `heading()`, `text()`, `button()`, `rule()` and `generic()`. Text is collapsed onto one line and truncated for you.
+
+Background colours need no hint: the `styling` sub-tree is the package's own schema (added to every section and every block), so the thumbnail reads it directly — including the one a section inherits from its style preset, resolved with the same precedence as the renderer. Copy is repainted for dark grounds, section-wide and per tile. Padding, margins and min-heights are deliberately left out: at thumbnail size they add noise, not recognition.
+
+**Implementing it is optional.** A block type that doesn't still appears in the thumbnail — as a tile bearing its label — so nothing breaks and no existing block needs touching. The kit implements it on the fourteen blocks that have something to show; `icon`, `table` and `html_raw` deliberately stay labelled tiles.
+
+Two things to keep in mind when writing one: the `$data` you receive is **raw stored data of unknown age** (an older version of your block may have written a different shape, so null-coalesce and check types rather than assume), and **no `BlockDataResolverInterface` has run on it** — a hint sees stored values, not resolved ones. Returning `null` is always safe and means "nothing to show here".
+
 ### Lifecycle
 
 `ContentAreaType` does **not** write to the database on a `GET` request. If the host entity has no `ContentArea` yet (new entity, or legacy data), the widget renders a "save first" placeholder instead of the builder. Once the form is submitted and the host entity is persisted, the next edit shows the builder normally.

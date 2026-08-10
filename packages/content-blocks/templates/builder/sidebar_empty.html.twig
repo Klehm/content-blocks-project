@@ -1,7 +1,15 @@
 {# Default sidebar content when no element (section / block) is focused.
-   Invites the user to click an element in the iframe or seed the area
-   with one of the three section layouts (mirrors the iframe's empty
-   tray for symmetry). #}
+   Invites the user to click an element in the iframe, seed the area with
+   one of the three section layouts (mirrors the iframe's empty tray), or
+   pick a saved section straight from the library.
+
+   The library is rendered *here* rather than behind a modal: it is the
+   panel's whole reason to exist when nothing is selected, and hiding a list
+   behind a button cost a click for no gain. The Stimulus targets are the same
+   ones the modal used, so the load / search / paginate / delete logic is
+   untouched — only where it paints moved. The `data-i18n-*` attributes ride
+   along on this root for the same reason (the controller reads them off any
+   element carrying them). #}
 <div class="cb-sidebar-empty">
     <p class="cb-sidebar-empty__hint">
         {{ 'cb.builder.sidebar.empty'|trans({}, 'content_blocks') }}
@@ -45,11 +53,39 @@
                 </svg>
             </button>
         </div>
-        <button type="button"
-                class="cb-sidebar-empty__library"
-                data-action="cb-builder#openTemplatePicker">
-            <span aria-hidden="true">▤</span>
-            {{ 'cb.builder.template.insert'|trans({}, 'content_blocks') }}
-        </button>
+    </div>
+
+    <div class="cb-sidebar-library cb-template-picker"
+         data-cb-builder-target="templatePicker"
+         data-i18n-cb-builder-template-loading="{{ 'cb.builder.template.loading'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-empty="{{ 'cb.builder.template.empty'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-empty-filtered="{{ 'cb.builder.template.empty_filtered'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-error="{{ 'cb.builder.template.error'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-load-more="{{ 'cb.builder.template.load_more'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-incompatible="{{ 'cb.builder.template.incompatible'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-unreadable-format="{{ 'cb.builder.template.unreadable_format'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-stale-version="{{ 'cb.builder.template.stale_version'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-partial="{{ 'cb.builder.template.partial'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-skipped-blocks="{{ 'cb.builder.template.skipped_blocks'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-warnings="{{ 'cb.builder.template.warnings'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-name-prompt="{{ 'cb.builder.template.name_prompt'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-delete="{{ 'cb.builder.template.delete'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-template-delete-confirm="{{ 'cb.builder.template.delete_confirm'|trans({}, 'content_blocks') }}">
+        <p class="cb-sidebar-library__label">
+            {{ 'cb.builder.template.title'|trans({}, 'content_blocks') }}
+        </p>
+        <input type="search"
+               class="cb-template-picker__search"
+               data-cb-builder-target="templatePickerSearch"
+               data-action="input->cb-builder#onTemplatePickerSearch"
+               placeholder="{{ 'cb.builder.template.search_placeholder'|trans({}, 'content_blocks') }}"
+               autocomplete="off">
+        <ul class="cb-template-picker__list"
+            data-cb-builder-target="templatePickerList"
+            role="listbox"></ul>
+        <p class="cb-template-picker__status"
+           data-cb-builder-target="templatePickerStatus"
+           role="status"
+           aria-live="polite"></p>
     </div>
 </div>

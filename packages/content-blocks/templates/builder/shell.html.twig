@@ -8,7 +8,12 @@
      data-cb-builder-area-id-value="{{ area.id }}"
      data-cb-builder-iframe-url-value="{{ iframeUrl }}"
      data-cb-csrf-token="{{ csrf_token('content_blocks') }}"
-     data-i18n-cb-builder-discard-confirm="{{ 'cb.builder.discard_confirm'|trans({}, 'content_blocks') }}">
+     data-i18n-cb-builder-discard-confirm="{{ 'cb.builder.discard_confirm'|trans({}, 'content_blocks') }}"
+     {# Save-to-library prompts: this flow starts from the in-preview section
+        toolbar, so it must be readable whatever the sidebar happens to show —
+        hence the shell root rather than the library panel. #}
+     data-i18n-cb-builder-template-name-prompt="{{ 'cb.builder.template.name_prompt'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-template-delete-confirm="{{ 'cb.builder.template.delete_confirm'|trans({}, 'content_blocks') }}">
 
     <div class="cb-shell__progress" data-cb-builder-target="progress" aria-hidden="true"></div>
 
@@ -20,50 +25,86 @@
                     aria-label="{{ 'cb.builder.close'|trans({}, 'content_blocks') }}">
                 ×
             </button>
-            {% if enableReplace ?? true %}
-                <button type="button"
-                        class="cb-shell__replace"
-                        data-action="cb-builder#openReplacePicker"
-                        aria-haspopup="dialog"
-                        aria-expanded="false"
-                        title="{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}"
-                        aria-label="{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}">
-                    <span class="cb-shell__btn-icon" aria-hidden="true">⇆</span>
-                    <span class="cb-shell__btn-label">{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}</span>
-                </button>
+            {# One "Actions" menu rather than a row of buttons. What lands in it
+               is everything that acts on the *area as a whole* — replace,
+               import/export, and whatever the host or a bundle contributed.
+               The topbar keeps only what an editor reaches for constantly:
+               close, the viewport switcher, discard and publish.
+
+               Rendered even when empty is impossible: the whole block is
+               skipped if nothing would go in it (a host can switch both
+               built-ins off and register no action). #}
+            {% set hasReplace = enableReplace ?? true %}
+            {% set hasImportExport = enableImportExport ?? true %}
+            {% set actions = topbarActions|default([]) %}
+            {% if hasReplace or hasImportExport or actions is not empty %}
+                <div class="cb-shell__actions" data-cb-builder-target="actionsMenu">
+                    <button type="button"
+                            class="cb-shell__actions-toggle"
+                            data-cb-builder-target="actionsToggle"
+                            data-action="cb-builder#toggleActions"
+                            aria-haspopup="menu"
+                            aria-expanded="false">
+                        <span class="cb-shell__btn-label">{{ 'cb.builder.actions'|trans({}, 'content_blocks') }}</span>
+                        <span class="cb-shell__actions-caret" aria-hidden="true">▾</span>
+                    </button>
+                    <div class="cb-shell__actions-list"
+                         data-cb-builder-target="actionsList"
+                         role="menu"
+                         hidden>
+                        {% if hasReplace %}
+                            <button type="button"
+                                    class="cb-shell__actions-item cb-shell__replace"
+                                    role="menuitem"
+                                    data-action="cb-builder#openReplacePicker"
+                                    aria-haspopup="dialog">
+                                <span class="cb-shell__btn-icon" aria-hidden="true">⇆</span>
+                                <span class="cb-shell__btn-label">{{ 'cb.builder.replace.open'|trans({}, 'content_blocks') }}</span>
+                            </button>
+                        {% endif %}
+                        {% if hasImportExport %}
+                            <button type="button"
+                                    class="cb-shell__actions-item cb-shell__import-export"
+                                    role="menuitem"
+                                    data-action="cb-builder#openImportExport"
+                                    aria-haspopup="dialog">
+                                <span class="cb-shell__btn-icon" aria-hidden="true">⇅</span>
+                                <span class="cb-shell__btn-label">{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}</span>
+                            </button>
+                        {% endif %}
+                        {# Contributed actions — from the `topbar_actions` form
+                           option or a BuilderActionProviderInterface; by here
+                           both are BuilderAction objects. Clicking dispatches a
+                           single generic `cb:builder:action` event carrying
+                           detail.key, so the host listens once and filters on
+                           the key. icon|raw allows an inline SVG; that markup
+                           comes from trusted code, never from user input. #}
+                        {% for action in actions %}
+                            {% set actionTitle = (action.title ?? action.label)|trans %}
+                            <button type="button"
+                                    class="cb-shell__actions-item cb-shell__action cb-shell__action--{{ action.key }}"
+                                    role="menuitem"
+                                    data-action="cb-builder#runAction"
+                                    data-cb-builder-action-key-param="{{ action.key }}"
+                                    title="{{ actionTitle }}">
+                                {% if action.icon %}
+                                    <span class="cb-shell__btn-icon" aria-hidden="true">{{ action.icon|raw }}</span>
+                                {% endif %}
+                                <span class="cb-shell__btn-label">{{ action.label|trans }}</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
             {% endif %}
-            {% if enableImportExport ?? true %}
-                <button type="button"
-                        class="cb-shell__import-export"
-                        data-action="cb-builder#openImportExport"
-                        aria-haspopup="dialog"
-                        aria-expanded="false"
-                        title="{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}"
-                        aria-label="{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}">
-                    <span class="cb-shell__btn-icon" aria-hidden="true">⇅</span>
-                    <span class="cb-shell__btn-label">{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}</span>
-                </button>
-            {% endif %}
-            {# Host-provided extra actions. Each click dispatches a single
-               generic `cb:builder:action` event carrying detail.key — the host
-               listens once and filters on the key. icon|raw allows an inline
-               SVG; its markup is host-supplied and therefore trusted. #}
-            {% for action in topbarActions|default([]) %}
-                <button type="button"
-                        class="cb-shell__action cb-shell__action--{{ action.key }}"
-                        data-action="cb-builder#runAction"
-                        data-cb-builder-action-key-param="{{ action.key }}"
-                        title="{{ action.title|default(action.label) }}"
-                        aria-label="{{ action.title|default(action.label) }}">
-                    {% if action.icon|default('') is not empty %}
-                        <span class="cb-shell__btn-icon" aria-hidden="true">{{ action.icon|raw }}</span>
-                    {% endif %}
-                    <span class="cb-shell__btn-label">{{ action.label }}</span>
-                </button>
-            {% endfor %}
         </div>
 
-        <div class="cb-shell__topbar-center">
+        <div class="cb-shell__topbar-right">
+            {# Viewport switcher. It lives in the right cluster, not in the
+               middle of the topbar: the preview frame is centred over the
+               canvas, which is itself offset by the sidebar, so a
+               topbar-centred switcher never lined up with the frame it
+               controls. Anchoring it right also keeps it still when the
+               sidebar is collapsed or resized. #}
             <div class="cb-shell__viewport" role="group">
                 <button type="button"
                         class="cb-shell__viewport-btn cb-shell__viewport-btn--active"
@@ -81,9 +122,7 @@
                         data-cb-builder-viewport-param="mobile"
                         title="Mobile">▯</button>
             </div>
-        </div>
 
-        <div class="cb-shell__topbar-right">
             {# Persistent save-failure banner. Unlike the transient "Saved"
                flash it stays visible until a later save succeeds — the
                editor must know their latest edits are not stored. #}
@@ -111,6 +150,11 @@
             </button>
         </div>
     </header>
+
+    {# One backdrop for all three pickers. They are mutually exclusive, so a
+       single node cannot stack its dimming or be orphaned by a picker that
+       forgot to clean up. Clicking it dismisses whichever is open. #}
+    <div class="cb-modal-backdrop" hidden></div>
 
     {# Replace-content picker (overlay panel rendered inside the shell). Stays
        hidden until the user clicks the Insert content button in the topbar.
@@ -152,52 +196,12 @@
     </div>
     {% endif %}
 
-    {# Section-template library picker. Opened from the in-iframe add-section
-       tray and the empty sidebar (not the topbar). Lets the editor insert a
-       previously saved section snapshot, and — when management is allowed —
-       delete templates inline. Shares the replace picker's structure/CSS. #}
-    <div class="cb-template-picker"
-         data-cb-builder-target="templatePicker"
-         role="dialog"
-         aria-label="{{ 'cb.builder.template.title'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-loading="{{ 'cb.builder.template.loading'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-empty="{{ 'cb.builder.template.empty'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-empty-filtered="{{ 'cb.builder.template.empty_filtered'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-error="{{ 'cb.builder.template.error'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-load-more="{{ 'cb.builder.template.load_more'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-incompatible="{{ 'cb.builder.template.incompatible'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-unreadable-format="{{ 'cb.builder.template.unreadable_format'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-stale-version="{{ 'cb.builder.template.stale_version'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-partial="{{ 'cb.builder.template.partial'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-skipped-blocks="{{ 'cb.builder.template.skipped_blocks'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-warnings="{{ 'cb.builder.template.warnings'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-name-prompt="{{ 'cb.builder.template.name_prompt'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-delete="{{ 'cb.builder.template.delete'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-template-delete-confirm="{{ 'cb.builder.template.delete_confirm'|trans({}, 'content_blocks') }}"
-         hidden>
-        <header class="cb-template-picker__header">
-            <h3 class="cb-template-picker__title">{{ 'cb.builder.template.title'|trans({}, 'content_blocks') }}</h3>
-            <button type="button"
-                    class="cb-template-picker__close"
-                    data-action="cb-builder#closeTemplatePicker"
-                    aria-label="{{ 'cb.builder.close'|trans({}, 'content_blocks') }}">×</button>
-        </header>
-        <div class="cb-template-picker__body">
-            <input type="search"
-                   class="cb-template-picker__search"
-                   data-cb-builder-target="templatePickerSearch"
-                   data-action="input->cb-builder#onTemplatePickerSearch"
-                   placeholder="{{ 'cb.builder.template.search_placeholder'|trans({}, 'content_blocks') }}"
-                   autocomplete="off">
-            <ul class="cb-template-picker__list"
-                data-cb-builder-target="templatePickerList"
-                role="listbox"></ul>
-            <p class="cb-template-picker__status"
-               data-cb-builder-target="templatePickerStatus"
-               role="status"
-               aria-live="polite"></p>
-        </div>
-    </div>
+    {# The section-template library used to be a third modal here. It now lives
+       in the empty sidebar (builder/sidebar_empty.html.twig), which is where an
+       editor with nothing selected is already looking. The prompt strings the
+       *save* flow needs are read off the shell root, since that flow starts
+       from the in-preview section toolbar and must work whatever the sidebar
+       is currently showing. #}
 
     {# Import / Export overlay panel — anchored to the topbar Import/Export
        button. Identical positioning rules as the replace picker so both

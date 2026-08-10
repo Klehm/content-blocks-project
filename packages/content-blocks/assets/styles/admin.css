@@ -103,7 +103,7 @@
 
 .cb-shell__topbar {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 1fr auto;
   align-items: center;
   padding: 0 1rem;
   background: var(--cb-panel);
@@ -160,9 +160,6 @@
   gap: 0.5rem;
   align-items: center;
 }
-.cb-shell__topbar-center {
-  justify-self: center;
-}
 .cb-shell__topbar-right {
   justify-self: end;
   display: flex;
@@ -183,10 +180,20 @@
   color: var(--cb-text);
 }
 
-/* ---- Top-left Replace button (matches Discard's ghost style) ---- */
+/* ---- Topbar "Actions" menu ----
+ *
+ * Everything that acts on the area as a whole lives behind one button, so the
+ * topbar carries only what an editor reaches for constantly (close, viewport,
+ * discard, publish). A row of ghost buttons made the rare and the constant
+ * look equally important, and every host action the package grew added another
+ * one.
+ */
 
-.cb-shell__replace,
-.cb-shell__action {
+.cb-shell__actions {
+  position: relative;
+}
+
+.cb-shell__actions-toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -205,43 +212,116 @@
     border-color 0.12s ease,
     color 0.12s ease;
 }
-.cb-shell__replace:hover:not([disabled]),
-.cb-shell__action:hover:not([disabled]) {
+.cb-shell__actions-toggle:hover,
+.cb-shell__actions-toggle--open {
   background: rgba(var(--cb-accent-rgb), 0.08);
   border-color: rgba(var(--cb-accent-rgb), 0.25);
 }
-.cb-shell__replace .cb-shell__btn-icon,
-.cb-shell__action .cb-shell__btn-icon {
-  display: none;
-  font-size: 1.15rem;
+.cb-shell__actions-caret {
+  font-size: 0.7rem;
+  transition: transform 0.12s ease;
+}
+.cb-shell__actions-toggle--open .cb-shell__actions-caret {
+  transform: rotate(180deg);
 }
 
-/* ---- Replace-content picker overlay (anchored to topbar Insert button) ---- */
-
-.cb-replace-picker,
-.cb-template-picker {
+.cb-shell__actions-list {
   position: absolute;
-  top: 56px;
-  left: 12px;
-  width: 360px;
-  max-width: calc(100% - 24px);
-  max-height: calc(100% - 80px);
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  min-width: 240px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--cb-panel);
+  border: 1px solid var(--cb-line);
+  border-radius: var(--cb-radius);
+  box-shadow: 0 8px 24px rgba(var(--cb-shadow-rgb), 0.16);
+}
+.cb-shell__actions-list[hidden] {
+  display: none;
+}
+
+.cb-shell__actions-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  background: transparent;
+  border: 0;
+  border-radius: var(--cb-radius-sm);
+  color: var(--cb-text);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+}
+.cb-shell__actions-item:hover,
+.cb-shell__actions-item:focus-visible {
+  background: var(--cb-accent-bg);
+  color: var(--cb-accent-darker);
+}
+/* In the topbar an icon was noise next to a labelled button; in a menu it is
+   the fastest way to tell two rows apart, so here it shows. */
+.cb-shell__actions-item .cb-shell__btn-icon {
+  width: 1.15rem;
+  flex: none;
+  text-align: center;
+  color: var(--cb-muted);
+}
+.cb-shell__actions-item:hover .cb-shell__btn-icon,
+.cb-shell__actions-item:focus-visible .cb-shell__btn-icon {
+  color: inherit;
+}
+
+/* ---- Modal pickers ----
+ *
+ * Replace / section library / import-export are centered dialogs over a
+ * backdrop rather than panels pinned under the topbar. They were anchored to
+ * the button that opened them, which put a 360px column in the top-left corner
+ * of a 1600px screen and left the rest of the builder looking live while it
+ * was not. Centering them says "this is modal"; the backdrop makes it true.
+ */
+
+.cb-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 29;
+  /* Tinted with the chrome accent rather than neutral black: the dimmed
+     builder should still read as this tool, not as a generic overlay. */
+  background: rgba(var(--cb-accent-rgb), 0.22);
+  backdrop-filter: blur(1.5px);
+}
+.cb-modal-backdrop[hidden] {
+  display: none;
+}
+
+.cb-replace-picker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 420px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 96px);
   display: flex;
   flex-direction: column;
   background: var(--cb-panel);
   border: 1px solid var(--cb-line);
   border-radius: var(--cb-radius);
-  box-shadow: 0 8px 24px rgba(var(--cb-shadow-rgb), 0.15);
+  box-shadow: 0 18px 48px rgba(var(--cb-shadow-rgb), 0.28);
   z-index: 30;
   overflow: hidden;
 }
-.cb-replace-picker[hidden],
-.cb-template-picker[hidden] {
+.cb-replace-picker[hidden] {
   display: none;
 }
 
-.cb-replace-picker__header,
-.cb-template-picker__header {
+.cb-replace-picker__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -249,15 +329,13 @@
   border-bottom: 1px solid var(--cb-panel-2);
   background: var(--cb-panel-3);
 }
-.cb-replace-picker__title,
-.cb-template-picker__title {
+.cb-replace-picker__title {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--cb-text);
 }
-.cb-replace-picker__close,
-.cb-template-picker__close {
+.cb-replace-picker__close {
   background: transparent;
   border: 0;
   font-size: 1.25rem;
@@ -266,13 +344,11 @@
   cursor: pointer;
   color: var(--cb-muted);
 }
-.cb-replace-picker__close:hover,
-.cb-template-picker__close:hover {
+.cb-replace-picker__close:hover {
   color: var(--cb-text);
 }
 
-.cb-replace-picker__body,
-.cb-template-picker__body {
+.cb-replace-picker__body {
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
@@ -280,13 +356,55 @@
   overflow-y: auto;
 }
 
+/* ---- Section library, in the empty sidebar ----
+ *
+ * Not a modal: with nothing selected, the list of saved sections *is* what the
+ * panel is for. It keeps the picker's row classes (`cb-template-picker__*`)
+ * because the rows are identical — only the container moved. */
+.cb-sidebar-library {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--cb-line);
+  /* Long libraries scroll inside the panel rather than pushing the
+     add-section buttons — the primary action — out of reach. */
+  min-height: 0;
+}
+.cb-sidebar-library__label {
+  margin: 0;
+  color: var(--cb-text-2);
+  font-family: var(--cb-font-mono);
+  font-size: var(--cb-caption-size);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--cb-caption-tracking);
+}
+.cb-sidebar-library .cb-template-picker__list {
+  /* Roomier than the flat list it replaced: the rows are thumbnail cards now,
+     and at 40vh barely two of them fitted. */
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
 .cb-replace-picker__search,
 .cb-template-picker__search {
   width: 100%;
   padding: 0.375rem 0.5rem;
+  background: var(--cb-field-bg);
+  color: var(--cb-text);
   border: 1px solid var(--cb-line-strong);
   border-radius: var(--cb-radius-sm);
   font: inherit;
+}
+/* These two sit outside the form theme, so without this they fall back to the
+   browser's default focus ring — a black box in the middle of the chrome. */
+.cb-replace-picker__search:focus,
+.cb-template-picker__search:focus {
+  outline: none;
+  border-color: var(--cb-accent);
+  box-shadow: 0 0 0 3px rgba(var(--cb-accent-rgb), 0.18);
 }
 
 .cb-replace-picker__list,
@@ -338,23 +456,49 @@
 
 /* Section-template library picker: shares the replace picker's shell +
    item classes, adds a per-row delete affordance, a disabled state for
-   incompatible templates, and a "load more" pagination control. */
+   incompatible templates, and a "load more" pagination control.
+   Unlike the replace picker's rows, these are cards: a thumbnail drawn from
+   the stored payload sits above the name (see .cb-template-poster below). */
+/* Declared after the shared list rule above, which sets the replace picker's
+   denser 0.125rem — cards need air between them, dense rows do not. */
+.cb-template-picker__list {
+  gap: 0.5rem;
+}
 .cb-template-picker__item {
   align-items: center;
   gap: 0.25rem;
+  /* Anchors the delete button over the card's top-right corner — beside the
+     name it would eat width the thumbnail needs. */
+  position: relative;
 }
-.cb-template-picker__item--disabled .cb-replace-picker__item-btn {
+.cb-template-picker__item-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.cb-template-picker__item-name {
+  /* One line: names are editor-typed and can run long, and a card that grows
+     with its name breaks the grid rhythm the thumbnails create. */
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* These three matched `.cb-replace-picker__item-btn` until now — a class the
+   library's rows never carry, so an incompatible template looked exactly like
+   an insertable one. */
+.cb-template-picker__item--disabled .cb-template-picker__item-btn {
   color: var(--cb-faint);
   cursor: not-allowed;
 }
-.cb-template-picker__item--disabled .cb-replace-picker__item-btn:hover {
+.cb-template-picker__item--disabled .cb-template-picker__item-btn:hover {
   background: transparent;
   border-color: transparent;
 }
 /* Partially usable: some of its blocks will be skipped. Still clickable — the
    marker warns without taking the useful insert away (the button's title spells
    out which types). */
-.cb-template-picker__item--partial .cb-replace-picker__item-btn::after {
+.cb-template-picker__item--partial .cb-template-picker__item-name::after {
   content: "!";
   display: inline-flex;
   align-items: center;
@@ -370,9 +514,15 @@
   vertical-align: middle;
 }
 .cb-template-picker__delete {
-  flex: 0 0 auto;
-  background: transparent;
-  border: 1px solid transparent;
+  /* Floats over the thumbnail's corner. Kept permanently visible rather than
+     revealed on hover: it is already in the tab order, and a control you can
+     focus but not see is worse than one that is simply there. */
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
+  background: var(--cb-panel);
+  border: 1px solid var(--cb-line);
   border-radius: var(--cb-radius-xs);
   padding: 0.25rem 0.375rem;
   font-size: 0.9rem;
@@ -405,25 +555,186 @@
   outline: none;
 }
 
-/* "Insert from library" affordances (empty sidebar + iframe add tray). */
-.cb-sidebar-empty__library {
-  margin-top: 0.75rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  background: transparent;
-  border: 1px solid rgba(var(--cb-accent-rgb), 0.3);
+/* ---- Section-template thumbnail ("poster") ----
+ *
+ * Not a screenshot: a small diagram of the saved section, built from the
+ * payload by SectionPosterBuilder and drawn as DOM by the builder controller.
+ * Pictures are real <img> elements and headings real text, which is what lets
+ * it work on any host (no rasterizer, no CSS inlining, nothing to store) and
+ * on templates saved long before the feature existed.
+ *
+ * It reads as a *sketch*, deliberately: every tile is a flat neutral shape at
+ * a size where no one could mistake it for the rendered section. */
+.cb-template-poster {
+  display: flex;
+  gap: 3px;
+  /* Height follows the content, within bounds. A fixed frame left a short
+     section floating in dead space, which reads as a thumbnail that failed to
+     load rather than as a short section. */
+  min-height: 3.5rem;
+  max-height: 12rem;
+  padding: 4px;
+  background: var(--cb-surface);
+  border: 1px solid var(--cb-line);
   border-radius: var(--cb-radius-xs);
-  padding: 0.375rem 0.625rem;
-  font: inherit;
-  font-size: 0.85rem;
-  color: var(--cb-accent);
-  cursor: pointer;
+  overflow: hidden;
 }
-.cb-sidebar-empty__library:hover,
-.cb-sidebar-empty__library:focus-visible {
-  background: rgba(var(--cb-accent-rgb), 0.08);
-  outline: none;
+.cb-template-poster__col {
+  /* flex-grow carries the column's real preset (col-4 → 4); basis 0 makes the
+     ratio depend on that alone and not on the tiles inside. */
+  flex: 0 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+.cb-template-poster__tile {
+  display: block;
+  flex: 0 0 auto;
+  min-height: 6px;
+  padding: 2px 3px;
+  border-radius: 2px;
+  background: var(--cb-panel);
+  color: var(--cb-text-2);
+  font-size: 7px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cb-template-poster__tile--heading {
+  font-weight: 700;
+  font-size: 8px;
+  color: var(--cb-text);
+}
+.cb-template-poster__tile--text {
+  color: var(--cb-muted);
+  /* Two lines of real copy, then cut — enough to tell two text blocks apart. */
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.cb-template-poster__tile--image {
+  /* The one tile that claims leftover height: a picture is what the eye uses
+     to recognise a section, so it gets the room the text tiles don't need —
+     and, in a column of nothing but text tiles, sets the poster's height. */
+  flex: 1 1 auto;
+  min-height: 3.25rem;
+  padding: 0;
+  background: var(--cb-field-bg);
+}
+.cb-template-poster__tile--image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 2px;
+}
+.cb-template-poster__tile--button {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--cb-accent);
+  color: var(--cb-on-solid);
+  font-size: 7px;
+}
+.cb-template-poster__tile--rule {
+  min-height: 0;
+  height: 1px;
+  padding: 0;
+  margin: 2px 0;
+  background: var(--cb-line-strong);
+}
+/* A block with nothing to preview says its own name rather than showing an
+   empty shape — "Tableau" is information, a blank rectangle is not. */
+.cb-template-poster__tile--generic {
+  background: transparent;
+  border: 1px dashed var(--cb-line-strong);
+  color: var(--cb-faint);
+}
+/* Genuinely empty content (a title block with no title yet) — a plain bar,
+   because there is nothing to name. */
+.cb-template-poster__tile--blank {
+  min-height: 5px;
+  background: var(--cb-line);
+}
+/* A block type this build no longer registers. The card's tooltip lists them;
+   the poster shows *where* they sit. */
+.cb-template-poster__tile--missing {
+  border: 1px dashed rgba(var(--cb-danger-rgb), 0.5);
+  background: rgba(var(--cb-danger-rgb), 0.06);
+  color: var(--cb-danger);
+}
+.cb-template-poster__more {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  color: var(--cb-faint);
+  font-size: 7px;
+  line-height: 1.4;
+}
+
+/* ---- Poster on a coloured section ----
+ *
+ * The section's own background (or its style preset's) is painted on the
+ * frame, so a saved dark hero reads as a dark hero in the library rather than
+ * as the same grey sketch as everything else.
+ *
+ * The tiles then have to give way: their default panel fill is opaque and
+ * would tile white rectangles over the colour. Translucent white/black lets
+ * the section's colour carry through while keeping each block legible as a
+ * shape — and `--dark` flips the copy so it survives its own ground (the
+ * server decided which, from the colour's luminance). */
+.cb-template-poster--tinted {
+  border-color: rgba(var(--cb-shadow-rgb), 0.18);
+}
+.cb-template-poster--tinted .cb-template-poster__tile {
+  background: rgba(255, 255, 255, 0.55);
+}
+.cb-template-poster--tinted .cb-template-poster__tile--generic,
+.cb-template-poster--tinted .cb-template-poster__tile--rule {
+  background: transparent;
+}
+.cb-template-poster--tinted .cb-template-poster__tile--rule {
+  background: rgba(var(--cb-shadow-rgb), 0.35);
+}
+
+.cb-template-poster--dark .cb-template-poster__tile {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+.cb-template-poster--dark .cb-template-poster__tile--heading {
+  color: #fff;
+}
+.cb-template-poster--dark .cb-template-poster__tile--text,
+.cb-template-poster--dark .cb-template-poster__tile--generic,
+.cb-template-poster--dark .cb-template-poster__more {
+  color: rgba(255, 255, 255, 0.75);
+}
+.cb-template-poster--dark .cb-template-poster__tile--generic {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.cb-template-poster--dark .cb-template-poster__tile--rule {
+  background: rgba(255, 255, 255, 0.4);
+}
+.cb-template-poster--dark .cb-template-poster__tile--blank {
+  background: rgba(255, 255, 255, 0.28);
+}
+/* A tile with its own stored colour keeps it — the inline background beats
+   both rule sets above, which is the intent: the block said so explicitly.
+   Its copy then has to answer for itself, since a red card can be dark ground
+   inside a light section. Declared last so it wins over the --dark block. */
+.cb-template-poster .cb-template-poster__tile--on-dark,
+.cb-template-poster--dark .cb-template-poster__tile--on-dark {
+  color: #fff;
+}
+.cb-template-poster .cb-template-poster__tile--on-light,
+.cb-template-poster--dark .cb-template-poster__tile--on-light {
+  color: var(--cb-text);
 }
 
 /* ---- Import / Export topbar button + picker overlay ----
@@ -431,47 +742,20 @@
    reads as one cohesive toolbar. The picker sits in the same overlay
    stack (z-index 30) and is anchored to the topbar's left edge. */
 
-.cb-shell__import-export {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.375rem 0.75rem;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--cb-radius-sm);
-  color: var(--cb-accent);
-  font: inherit;
-  font-size: 0.9rem;
-  line-height: 1.2;
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    background-color 0.12s ease,
-    border-color 0.12s ease,
-    color 0.12s ease;
-}
-.cb-shell__import-export:hover:not([disabled]) {
-  background: rgba(var(--cb-accent-rgb), 0.08);
-  border-color: rgba(var(--cb-accent-rgb), 0.25);
-}
-.cb-shell__import-export .cb-shell__btn-icon {
-  display: none;
-  font-size: 1.15rem;
-}
-
 .cb-import-export-picker {
   position: absolute;
-  top: 56px;
-  left: 12px;
-  width: 360px;
-  max-width: calc(100% - 24px);
-  max-height: calc(100% - 80px);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 420px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 96px);
   display: flex;
   flex-direction: column;
   background: var(--cb-panel);
   border: 1px solid var(--cb-line);
   border-radius: var(--cb-radius);
-  box-shadow: 0 8px 24px rgba(var(--cb-shadow-rgb), 0.15);
+  box-shadow: 0 18px 48px rgba(var(--cb-shadow-rgb), 0.28);
   z-index: 30;
   overflow: hidden;
 }
@@ -518,11 +802,12 @@
 }
 .cb-import-export-picker__heading {
   margin: 0;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-family: var(--cb-font-mono);
+  font-size: var(--cb-caption-size);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--cb-muted);
+  letter-spacing: var(--cb-caption-tracking);
+  color: var(--cb-text-2);
 }
 .cb-import-export-picker__hint {
   margin: 0;
@@ -597,6 +882,25 @@
   background: var(--cb-panel);
   color: var(--cb-text);
   box-shadow: 0 1px 2px rgba(var(--cb-shadow-rgb), 0.08);
+}
+/* Hairline in the gutter between the viewport switcher and the
+   discard/publish pair — they share the right cluster but not the same job:
+   one changes what you look at, the others commit what you changed. Drawn as
+   a pseudo-element so the separator needs no node of its own; `right` is half
+   the 1rem gutter (0.5rem flex gap + 0.5rem margin) so it lands centred. */
+.cb-shell__topbar-right .cb-shell__viewport {
+  position: relative;
+  margin-right: 0.5rem;
+}
+.cb-shell__topbar-right .cb-shell__viewport::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -0.5rem;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 1.25rem;
+  background: var(--cb-line);
 }
 
 /* ---- Save-failure banner (topbar) ----
@@ -730,11 +1034,10 @@
 
 /* ---- Mobile tightening ---- */
 @media (max-width: 768px) {
-  /* Drop the grid (1fr auto 1fr) on mobile and switch to flex with
-       space-between. The grid was forcing the right column to a fixed
-       1fr share, so when discard+publish were wider than that share the
-       buttons spilled past the topbar. Flex lets each cluster take its
-       natural width with the viewport switcher floating in the middle. */
+  /* Drop the grid on mobile and switch to flex with space-between. The grid
+       was forcing the right column to a fixed 1fr share, so when discard+
+       publish were wider than that share the buttons spilled past the
+       topbar. Flex lets each cluster take its natural width. */
   .cb-shell__topbar {
     display: flex;
     justify-content: space-between;
@@ -742,10 +1045,17 @@
     gap: 0.5rem;
   }
   .cb-shell__topbar-left,
-  .cb-shell__topbar-center,
   .cb-shell__topbar-right {
     justify-self: auto;
     flex: 0 0 auto;
+  }
+  /* Right cluster gets crowded here — drop the separator and its gutter and
+     let the plain 0.5rem flex gap do the spacing. */
+  .cb-shell__topbar-right .cb-shell__viewport {
+    margin-right: 0;
+  }
+  .cb-shell__topbar-right .cb-shell__viewport::after {
+    display: none;
   }
   /* Discard collapses to icon-only — the long "Annuler les modifications"
        label was wrapping on narrow screens and pushing Publish out of the
@@ -760,28 +1070,19 @@
   .cb-shell__discard .cb-shell__btn-label {
     display: none;
   }
-  /* Replace + host actions collapse to icon-only on mobile for the same
-     reason. */
-  .cb-shell__replace,
-  .cb-shell__import-export,
-  .cb-shell__action {
+  /* The Actions toggle keeps its word — it is the only thing naming what is
+     behind it, and the menu rows below it are already labelled. */
+  .cb-shell__actions-toggle {
     padding: 0.375rem 0.5rem;
   }
-  .cb-shell__replace .cb-shell__btn-icon,
-  .cb-shell__import-export .cb-shell__btn-icon,
-  .cb-shell__action .cb-shell__btn-icon {
-    display: inline-flex;
-  }
-  .cb-shell__replace .cb-shell__btn-label,
-  .cb-shell__import-export .cb-shell__btn-label,
-  .cb-shell__action .cb-shell__btn-label {
-    display: none;
+  .cb-shell__actions-list {
+    min-width: 200px;
+    max-width: calc(100vw - 24px);
   }
   .cb-replace-picker,
   .cb-import-export-picker {
-    left: 6px;
-    right: 6px;
-    width: auto;
+    width: calc(100% - 16px);
+    max-height: calc(100% - 32px);
   }
   .cb-shell__publish {
     padding: 0.375rem 0.65rem;
@@ -1094,11 +1395,16 @@
 
 .cb-sidebar__group-title {
   margin: 0 0 0.75rem;
-  color: var(--cb-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
+  /* Same family, case and size as the field labels below it — a group title
+     outranks them by weight and color, not by a third size in the scale.
+     Going lighter (as a "caption" would) inverted the hierarchy: the heading
+     read as the least important text in its own group. */
+  color: var(--cb-text-2);
+  font-family: var(--cb-font-mono);
+  font-size: var(--cb-caption-size);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--cb-caption-tracking);
 }
 
 .cb-sidebar__group-body > :last-child {
@@ -1170,29 +1476,48 @@
   margin-bottom: 1rem;
   padding-top: 1rem;
   background: var(--cb-panel);
-  border-bottom: 1px solid var(--cb-panel-2);
+  border-bottom: 1px solid var(--cb-line);
 }
 
+/* Folder tabs rather than an underlined word.
+ *
+ * These switch the whole panel, so they have to read as a control at a glance
+ * — an underline on body text does not, least of all above a column of mono
+ * captions that outshouts it. Giving them a shape also keeps the segmented
+ * pill (.cb-viewport-tabs, .cb-align-group) meaning one thing only: pick a
+ * value inside a field, never navigate away from one.
+ *
+ * The active tab is the only one filled with the panel color and it paints
+ * over the strip's bottom line, so it reads as continuous with the fields
+ * below it. Its top edge carries the accent — the same gesture that marks the
+ * top of the sidebar. */
 .cb-block__tab {
   appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--cb-muted);
-  padding: 6px 10px;
+  padding: 6px 12px;
+  /* Sit on the strip's bottom line so the active tab can cover it. */
   margin-bottom: -1px;
-  border-bottom: 2px solid transparent;
+  border: 1px solid var(--cb-line);
+  border-top-width: 2px;
+  border-radius: var(--cb-radius-sm) var(--cb-radius-sm) 0 0;
+  background: var(--cb-field-bg);
+  color: var(--cb-muted);
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
 }
-.cb-block__tab:hover {
+
+.cb-block__tab:hover:not(.cb-block__tab--active) {
+  background: var(--cb-panel-2);
   color: var(--cb-text);
 }
 
 .cb-block__tab--active {
+  background: var(--cb-panel);
+  border-top-color: var(--cb-accent);
+  border-bottom-color: var(--cb-panel);
   color: var(--cb-text);
-  border-bottom-color: var(--cb-accent);
+  font-weight: 700;
 }
 
 /* Red dot appended to a tab whose panel holds an invalid field, so a
@@ -1271,8 +1596,9 @@
 }
 
 .cb-box-spacing__label {
-  font-size: 9px;
-  color: var(--cb-muted);
+  font-family: var(--cb-font-mono);
+  font-size: var(--cb-caption-size-sm);
+  color: var(--cb-faint);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   text-align: center;

@@ -63,6 +63,7 @@ cb:
         cancel: "Annuler"
         remove: "Supprimer"
         duplicate: "Dupliquer"
+        drag: "Glisser pour déplacer"
         tab:
             general: "Général"
             style: "Style"
@@ -89,6 +90,7 @@ cb:
             section_deleted: "Section supprimée"
             action: "Annuler"
         pending: "Enregistrez d'abord cette entité pour commencer à ajouter du contenu."
+        actions: "Actions"
         toggle_sidebar: "Afficher / masquer la sidebar"
         sidebar:
             empty: "Cliquez sur un élément de l'aperçu pour le modifier."
@@ -104,6 +106,7 @@ cb:
             more: "Charger plus"
         template:
             insert: "Insérer depuis la bibliothèque"
+            save: "Enregistrer comme modèle"
             title: "Bibliothèque de sections"
             search_placeholder: "Rechercher un modèle…"
             empty: "Aucun modèle enregistré"

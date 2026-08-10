@@ -180,6 +180,29 @@ test.describe('builder shell — basics', () => {
             page.frameLocator('.cb-shell__iframe').locator('.cb-add-section-tray__btn').first(),
         ).toBeVisible();
     });
+
+    test('the viewport switcher sits in the right cluster, ahead of publish', async ({ page }) => {
+        const url = await createFreshPage(page);
+        await page.goto(url);
+        await page.locator('.cb-launcher__button').click();
+
+        // It belongs to the right cluster, not a centre one: the topbar has no
+        // centre column any more, because a switcher centred on the *window*
+        // never lined up with a preview frame centred on the *canvas* (which
+        // the sidebar offsets).
+        await expect(page.locator('.cb-shell__topbar-right .cb-shell__viewport')).toBeVisible();
+        await expect(page.locator('.cb-shell__topbar-center')).toHaveCount(0);
+
+        const switcher = await page.locator('.cb-shell__viewport').boundingBox();
+        const publish = await page.locator('.cb-shell__publish').boundingBox();
+        const topbar = await page.locator('.cb-shell__topbar').boundingBox();
+
+        // Ordered left-to-right, and hugging the right edge rather than the
+        // topbar's midpoint (which is what "aligned with the preview" meant
+        // before and no longer holds).
+        expect(switcher.x + switcher.width).toBeLessThanOrEqual(publish.x);
+        expect(switcher.x).toBeGreaterThan(topbar.x + topbar.width / 2);
+    });
 });
 
 test.describe('builder shell — sections', () => {
@@ -252,6 +275,59 @@ test.describe('builder shell — sections', () => {
         const stylingSwitch = sidebar.locator('input[name="section_settings[stylingCustom]"]');
         await expect(stylingSwitch).not.toBeChecked();
         await expect(sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]')).toBeHidden();
+    });
+
+    test('sidebar captions render in the mono uppercase style, and check labels do not', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await openSectionSettings(page, frame);
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+
+        // A field label names its control: mono + uppercase, so the eye can
+        // skip it when scanning the column for a value.
+        const fieldLabel = sidebar.locator('.cb-form-label').first();
+        await expect(fieldLabel).toHaveCSS('text-transform', 'uppercase');
+        expect(await fieldLabel.evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(/mono/i);
+
+        // A checkbox label is the sentence the user reads to decide, so it
+        // stays in the host's body font. This exclusion is easy to undo by
+        // accident — a rule on `.cb-shell label` would swallow it.
+        const checkLabel = sidebar.locator('.cb-form-check__label').first();
+        await expect(checkLabel).toHaveCSS('text-transform', 'none');
+        expect(await checkLabel.evaluate((el) => getComputedStyle(el).fontFamily)).not.toMatch(/mono/i);
+
+        // The token is the documented override point: flipping it puts every
+        // label back to sentence case without touching the rule.
+        await page.locator('.cb-shell').evaluate((el) => {
+            el.style.setProperty('--cb-form-label-transform', 'none');
+        });
+        await expect(fieldLabel).toHaveCSS('text-transform', 'none');
+    });
+
+    test('a standalone checkbox has one label, a radio group keeps its group label', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await openSectionSettings(page, frame);
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+
+        // The "Customize styling" checkbox labels itself next to the box, so
+        // the row-level label would print the same words twice — once as a
+        // caption, once as the sentence. `checkbox_row` drops the caption.
+        const checkRow = sidebar.locator(
+            '.cb-form-row:has(input[name="section_settings[stylingCustom]"])',
+        );
+        await expect(checkRow.locator('> .cb-form-label')).toHaveCount(0);
+        await expect(checkRow.locator('.cb-form-check__label')).toHaveCount(1);
+
+        // A radio group is the opposite case: the row label names the group
+        // ("Width"), the per-option labels name the options. Both are needed.
+        const radioRow = sidebar.locator(
+            '.cb-form-row:has(input[name="section_settings[widthMode]"])',
+        );
+        await expect(radioRow.locator('> .cb-form-label, > legend.cb-form-label')).toHaveCount(1);
+        await expect(radioRow.locator('.cb-form-check__label')).toHaveCount(2);
     });
 
     test('section settings save applies custom classes + width and the palette background', async ({ page }) => {
@@ -541,6 +617,66 @@ test.describe('builder shell — blocks', () => {
 });
 
 test.describe('builder shell — preview hardening', () => {
+    test('the preview loads the kit stylesheet, so a preset-width image stays inside its column', async ({ page }) => {
+        // Regression guard, and it bites twice over. The preview iframe loads
+        // the host's own public page, so anything that layout forgets to link
+        // is missing from the preview too — here the kit stylesheet, whose
+        // `.cb-kit-image__img { max-width: 100% }` is the only thing keeping a
+        // 1200px preset image inside a col-4. Without it the image renders at
+        // its literal width and bursts out of the section.
+        //
+        // Staged through the template library purely because it is the shortest
+        // route to a section holding a preset-width image (the UI path would
+        // need a real upload).
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await page.request.post('/test-fixtures/section-template', {
+            data: {
+                name,
+                blockTypes: ['image'],
+                contentVersion: null,
+                payload: {
+                    format: 'content-blocks/section-v1',
+                    layout: 'three_cols',
+                    settings: null,
+                    columns: [
+                        {
+                            preset: 'col-4',
+                            blocks: [{
+                                type: 'image',
+                                data: { src: '/test-fixtures/pixel', alt: '', size: 'lg', align: 'center', fit: 'cover' },
+                            }],
+                        },
+                        { preset: 'col-4', blocks: [] },
+                        { preset: 'col-4', blocks: [] },
+                    ],
+                },
+            },
+        });
+
+        const frame = await openBuilder(page);
+        await page.locator('.cb-sidebar-library .cb-template-picker__search').fill(name);
+        await expect.poll(() => page.locator('.cb-template-picker__item-btn').count()).toBe(1);
+        await page.locator('.cb-template-picker__item-btn').first().click();
+        await expect.poll(() => frame.locator('.cb-kit-image__img').count()).toBe(1);
+
+        const measured = await page.locator('.cb-shell__iframe').evaluate((iframe) => {
+            const doc = iframe.contentDocument;
+            const img = doc.querySelector('.cb-kit-image__img');
+            return {
+                kitStylesheetLoaded: [...doc.styleSheets].some((s) => (s.href ?? '').includes('/_content-blocks-kit/')),
+                imgWidth: img.getBoundingClientRect().width,
+                columnWidth: img.closest('.cb-col').getBoundingClientRect().width,
+                scrollWidth: doc.body.scrollWidth,
+                clientWidth: doc.body.clientWidth,
+            };
+        });
+
+        expect(measured.kitStylesheetLoaded).toBe(true);
+        expect(measured.imgWidth).toBeLessThanOrEqual(measured.columnWidth);
+        // And nothing else pushed the page sideways either.
+        expect(measured.scrollWidth).toBeLessThanOrEqual(measured.clientWidth);
+    });
+
     test('three-column section renders columns side by side, not stacked', async ({ page }) => {
         const frame = await openBuilder(page);
         await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="three_cols"]').click();
@@ -725,6 +861,53 @@ test.describe('builder shell — focus + permanent affordances', () => {
         await frame.locator('body').hover({ position: { x: 5, y: 5 }, force: true });
         await page.waitForTimeout(300);
         await expect(toolbar).toBeVisible();
+    });
+
+    test('overlay toolbar buttons are labelled from the translated catalog, not the JS fallbacks', async ({ page }) => {
+        // The overlay runs as a plain module inside the preview iframe, with no
+        // Stimulus element to carry `data-i18n-*`. Its labels come from
+        // `window.__cbOverlayLabels`, translated server-side — and when that
+        // wiring is missing, nothing breaks visibly: the buttons just quietly
+        // render their English fallbacks. Which is how "Duplicate" survived in
+        // a French UI. Asserted against the injected values rather than literal
+        // French so the test says "the channel is used", whatever the locale.
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await frame.locator('[data-cb-section-id]').first().click({ position: { x: 5, y: 5 } });
+        await expect(frame.locator('.cb-overlay-toolbar.is-visible')).toBeVisible();
+
+        const observed = await page.locator('.cb-shell__iframe').evaluate((iframe) => {
+            const doc = iframe.contentDocument;
+            return {
+                labels: doc.defaultView.__cbOverlayLabels,
+                buttons: [...doc.querySelectorAll('.cb-overlay-toolbar__btn')].map((b) => ({
+                    action: b.dataset.cbAction,
+                    title: b.title,
+                    ariaLabel: b.getAttribute('aria-label'),
+                })),
+            };
+        });
+
+        const expected = {
+            drag: observed.labels.section_drag,
+            'move-up': observed.labels.section_move_up,
+            'move-down': observed.labels.section_move_down,
+            duplicate: observed.labels.section_duplicate,
+            'save-template': observed.labels.section_save_template,
+            delete: observed.labels.section_delete,
+        };
+
+        expect(observed.buttons.map((b) => b.action)).toEqual(Object.keys(expected));
+        for (const button of observed.buttons) {
+            expect(button.title).toBe(expected[button.action]);
+            // The accessible name has to move with the tooltip, not lag behind it.
+            expect(button.ariaLabel).toBe(expected[button.action]);
+        }
+
+        // The sandbox runs in French, so any English fallback still on screen
+        // means that button never went through the label channel.
+        const fallbacks = ['Duplicate', 'Remove', 'Move up', 'Move down', 'Save as template', 'Drag to move'];
+        expect(observed.buttons.filter((b) => fallbacks.includes(b.title))).toEqual([]);
     });
 
     test('section toolbar is rendered as an overlapping chip on the section top border', async ({ page }) => {
@@ -961,5 +1144,53 @@ test.describe('builder shell — column widths', () => {
         await expect
             .poll(() => reloaded.locator('[data-cb-column-id]').first().getAttribute('style'))
             .toContain('--cb-col-grow: 40');
+    });
+});
+
+test.describe('builder shell — the preview follows a new section', () => {
+    /**
+     * A section is appended at the end of the area. On any page taller than the
+     * viewport that is off screen, and the reload used to restore the editor's
+     * previous scroll position — so the one thing they were waiting to see was
+     * the one thing they could not see.
+     */
+    test('inserting a section scrolls the preview to it instead of staying put', async ({ page }) => {
+        const frame = await openBuilder(page);
+        const iframe = page.locator('.cb-shell__iframe');
+
+        // Grow the page until it actually scrolls; nothing to prove otherwise.
+        for (let i = 0; i < 12; i++) {
+            const overflows = await iframe.evaluate(
+                (el) => el.contentDocument.documentElement.scrollHeight > el.contentWindow.innerHeight + 200,
+            );
+            if (overflows) break;
+            await addFullSection(page, frame);
+        }
+        expect(await iframe.evaluate(
+            (el) => el.contentDocument.documentElement.scrollHeight > el.contentWindow.innerHeight,
+        )).toBe(true);
+
+        // Send the editor back to the top, so "stayed put" and "followed the
+        // new section" are unambiguously different outcomes.
+        await iframe.evaluate((el) => el.contentWindow.scrollTo(0, 0));
+        const countBefore = await frame.locator('[data-cb-section-id]').count();
+
+        await addFullSection(page, frame);
+        await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(countBefore + 1);
+
+        // The scroll is animated, hence the poll rather than a single read.
+        await expect.poll(
+            () => iframe.evaluate((el) => el.contentWindow.scrollY),
+            { timeout: 5000 },
+        ).toBeGreaterThan(0);
+
+        // And it landed on the *new* section, not merely somewhere below.
+        await expect.poll(() => iframe.evaluate((el) => {
+            const sections = el.contentDocument.querySelectorAll('[data-cb-section-id]');
+            const last = sections[sections.length - 1];
+            if (!last) return false;
+            const rect = last.getBoundingClientRect();
+            return rect.top < el.contentWindow.innerHeight && rect.bottom > 0;
+        }), { timeout: 5000 }).toBe(true);
     });
 });

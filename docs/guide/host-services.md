@@ -250,7 +250,7 @@ ContentBlocks\Versioning\ContentVersionUpgraderInterface: '@App\ContentBlocks\My
 
 ## Toggling topbar features (Insert content, Import / Export)
 
-The builder topbar ships two optional features:
+Everything that acts on the area as a whole lives behind the topbar's single **Actions** menu. It ships two entries:
 
 - **Insert content** (`⇆`) — overwrite the area's content with a clone of another area's content (the replace-content flow).
 - **Import / Export** (`⇅`) — export a `ContentArea` to a self-contained JSON file (sections + blocks + base64-encoded assets) and re-import it elsewhere.
@@ -265,5 +265,69 @@ $builder->add('contentArea', ContentAreaType::class, [
 ```
 
 ::: warning UI-only toggles
-Both options are **UI-only**: they hide the topbar button and its overlay. The underlying endpoints (`…/replace-with`, `…/export`, `…/import`) stay reachable and remain protected by your `AccessCheckerInterface` (and CSRF for writes). If you need to close the endpoints server-side too, gate them with your firewall or `AccessChecker` — the form option does not, by design, since the route has no per-form context.
+Both options are **UI-only**: they hide the menu entry and its overlay. The underlying endpoints (`…/replace-with`, `…/export`, `…/import`) stay reachable and remain protected by your `AccessCheckerInterface` (and CSRF for writes). If you need to close the endpoints server-side too, gate them with your firewall or `AccessChecker` — the form option does not, by design, since the route has no per-form context.
+:::
+
+Turn both off and register no action of your own, and the Actions button is not rendered at all.
+
+## Adding your own actions to the menu
+
+The package renders the entry and nothing more: clicking one dispatches a single `cb:builder:action` DOM event carrying its `key`. What the action *does* is yours — listen once on the shell and switch on the key.
+
+There are two ways in, and which one is right depends on who owns the action.
+
+**A single form** declares its own with the `topbar_actions` option:
+
+```php
+$builder->add('contentArea', ContentAreaType::class, [
+    'topbar_actions' => [
+        ['key' => 'save-as-model', 'label' => 'Save page as model', 'icon' => '💾',
+         'title' => 'Save this content as a reusable model'],
+    ],
+]);
+```
+
+**A bundle** implements `BuilderActionProviderInterface` instead, and its action appears in every builder in the application without the host editing each form. It is autoconfigured — declare the service and you are done:
+
+```php
+use ContentBlocks\Builder\BuilderAction;
+use ContentBlocks\Builder\BuilderActionProviderInterface;
+use ContentBlocks\Entity\ContentArea;
+
+final class TranslationActions implements BuilderActionProviderInterface
+{
+    public function __construct(private readonly Security $security) {}
+
+    public function getActions(ContentArea $area): iterable
+    {
+        // Returning nothing is how an action hides itself.
+        if (!$this->security->isGranted('ROLE_TRANSLATOR')) {
+            return;
+        }
+
+        yield new BuilderAction(
+            key: 'translate',
+            label: new TranslatableMessage('action.translate', [], 'my_bundle'),
+            icon: '🌍',
+            priority: 100,   // higher sorts first
+        );
+    }
+}
+```
+
+Both sources are merged into one ordered list: descending `priority`, then providers before the form's own entries. A duplicate `key` collapses to the first occurrence — the key is what your listener switches on, so two rows sharing one would fire the same handler from two places.
+
+Then, on the host side:
+
+```js
+document.addEventListener('cb:builder:action', (event) => {
+    if (event.detail.key !== 'translate') return;
+    // event.detail.areaId is the ContentArea being edited.
+});
+```
+
+::: tip Labels
+A `label` (or `title`) may be a plain, already-translated string or a `TranslatableInterface`. Both are run through `trans` at render, the same way block-type labels are — so a plain string with no catalogue entry comes out unchanged.
+
+`icon` is rendered raw so it can be inline SVG. It must therefore come from trusted code; never interpolate user input into it.
 :::

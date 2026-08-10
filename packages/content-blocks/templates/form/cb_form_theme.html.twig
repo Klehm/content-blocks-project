@@ -396,6 +396,28 @@
 {%- endblock form_row %}
 
 
+{# A standalone checkbox already carries its own <label> next to the box
+   (`cb-form-check__label` — the sentence the user reads to decide), so the
+   generic form_row would print the same text twice: once as a mono caption
+   above, once beside the box. Render the widget alone.
+
+   Radio groups and expanded choices deliberately keep their row label: there
+   it names the group ("Width"), not the option. Same for a `switch`, whose
+   label is its only text. #}
+{% block checkbox_row -%}
+    {%- set widget_attr = {} -%}
+    {%- if help is not empty -%}
+        {%- set widget_attr = {attr: {'aria-describedby': id ~ "_help"}} -%}
+    {%- endif -%}
+    {%- set row_class = row_class|default(row_attr.class|default('cb-form-row')|trim) -%}
+    <div{% with {attr: row_attr|merge({class: row_class})} %}{{ block('attributes') }}{% endwith %}>
+        {{- form_widget(form, widget_attr) -}}
+        {{- form_help(form) -}}
+        {{- form_errors(form) -}}
+    </div>
+{%- endblock checkbox_row %}
+
+
 {% block button_row -%}
     <div{% with {attr: row_attr|merge({class: (row_attr.class|default('') ~ ' cb-form-row')|trim})} %}{{ block('attributes') }}{% endwith %}>
         {{- form_widget(form) -}}

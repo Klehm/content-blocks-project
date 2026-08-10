@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -18,7 +20,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * a message and a type-matched glyph (shipped inline — no icon library).
  */
 #[AsContentBlock(priority: 35)]
-class AlertBlock extends AbstractKitBlock
+class AlertBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function getType(): string
     {
@@ -82,6 +84,15 @@ class AlertBlock extends AbstractKitBlock
             'title' => '',
             'content' => '',
         ];
+    }
+
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        $title = self::previewString($data, 'title');
+
+        return $title !== null && trim($title) !== ''
+            ? BlockPreviewHint::heading($title)
+            : BlockPreviewHint::text(self::previewString($data, 'content'));
     }
 
     public function getViewTemplate(): ?string

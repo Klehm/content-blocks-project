@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Form\Type;
 
+use ContentBlocks\Builder\BuilderAction;
+use ContentBlocks\Builder\BuilderActionCollection;
 use ContentBlocks\Entity\ContentArea;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Form\AbstractType;
@@ -34,6 +36,7 @@ final class ContentAreaType extends AbstractType implements DataTransformerInter
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
+        private readonly ?BuilderActionCollection $builderActions = null,
     ) {
     }
 
@@ -92,7 +95,15 @@ final class ContentAreaType extends AbstractType implements DataTransformerInter
         $view->vars['is_pending'] = !$isPersisted;
         $view->vars['enable_replace'] = $options['enable_replace'];
         $view->vars['enable_import_export'] = $options['enable_import_export'];
-        $view->vars['topbar_actions'] = $options['topbar_actions'];
+        // Providers only have something to say about an area that exists; on
+        // the "save first" placeholder there is no builder to hang a menu off
+        // anyway, so the form's own entries are all that survive.
+        $view->vars['topbar_actions'] = $isPersisted && $this->builderActions !== null
+            ? $this->builderActions->forArea($contentArea, $options['topbar_actions'])
+            : array_map(
+                static fn (mixed $a) => $a instanceof BuilderAction ? $a : BuilderAction::fromArray($a),
+                array_values($options['topbar_actions']),
+            );
     }
 
     /** @param ContentArea|null $value */

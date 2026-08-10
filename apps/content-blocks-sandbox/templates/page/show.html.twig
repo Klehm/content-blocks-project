@@ -16,6 +16,12 @@
             padding: 2rem 1.5rem;
         }
     </style>
+    {# Kit blocks ship their own self-contained stylesheet, and this template
+       does not extend base.html.twig — so it has to link it itself. This page
+       is also what the builder loads in its preview iframe: without this, every
+       kit block renders unstyled there (most visibly, a preset-width image
+       ignores its `max-width: 100%` and bursts out of its column). #}
+    <link rel="stylesheet" href="{{ path('content_blocks_kit_asset_css') }}">
 </head>
 <body>
     <article>

@@ -27,6 +27,7 @@ use ContentBlocks\Transfer\ContentAreaImporterInterface;
 use ContentBlocks\Publishing\ContentAreaPublisherInterface;
 use ContentBlocks\Section\SectionCloner;
 use ContentBlocks\Section\SectionClonerInterface;
+use ContentBlocks\SectionTemplate\SectionPosterBuilder;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiatorInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
@@ -154,6 +155,10 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(SectionTemplateInstantiatorInterface::class, SectionTemplateInstantiator::class);
     $services->set(DenyAllSectionTemplateManager::class);
     $services->alias(SectionTemplateManagerInterface::class, DenyAllSectionTemplateManager::class);
+    // Draws the library's thumbnails from the stored payload. Nothing to
+    // configure: block types opt into richer tiles by implementing
+    // BlockPreviewHintInterface, and the ones that don't get a labelled tile.
+    $services->set(SectionPosterBuilder::class);
 
     // Content-version seam: what to do with stored content from another schema
     // generation of the *host's* own making. The package cannot know what
@@ -288,6 +293,16 @@ return static function (ContainerConfigurator $container): void {
     // One-off normalization of content stored before `_id` existed. The
     // #[AsCommand] attribute is picked up by console.command autoconfiguration.
     $services->set(\ContentBlocks\Command\BackfillCollectionIdsCommand::class);
+
+    // ---------- Builder topbar actions ----------
+
+    // The Actions menu. A bundle contributes through
+    // BuilderActionProviderInterface (autoconfigured); a single form still
+    // declares one-offs through the `topbar_actions` option, and the collection
+    // merges both into one ordered list.
+    $services->set(\ContentBlocks\Builder\BuilderActionCollection::class)
+        ->args([tagged_iterator('content_blocks.builder_action_provider')])
+        ->public();
 
     // ---------- Content translation (convention only) ----------
 

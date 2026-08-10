@@ -119,12 +119,29 @@ The token names are public surface — they are covered by the package's semver 
 | Accent | `--cb-accent-rgb`, `--cb-accent`, `--cb-accent-strong`, `--cb-accent-darker`, `--cb-accent-soft`, `--cb-accent-bg` |
 | Status | `--cb-danger`, `--cb-danger-strong`, `--cb-success`, `--cb-success-strong`, `--cb-warning`, `--cb-badge-bg`, `--cb-badge-fg` |
 | Shadow | `--cb-shadow-rgb` |
+| Type | `--cb-font-mono`, `--cb-caption-size`, `--cb-caption-size-sm`, `--cb-caption-tracking` |
 | Geometry | `--cb-radius`, `--cb-radius-sm`, `--cb-radius-xs` |
 
-Two details worth knowing:
+Three details worth knowing:
 
 - **Alpha variants come from the `*-rgb` tokens.** Rules build translucency with `rgba(var(--cb-accent-rgb), 0.25)`, so overriding `--cb-accent-rgb` moves the solid color *and* every focus ring, hover tint and shadow that derives from it. Override `--cb-accent` alone and the alphas stay behind.
 - **Form widgets have their own alias layer.** `--cb-form-*` (in `forms.css`) points at the tokens above. Redeclare just those to make inputs differ from the rest of the chrome without touching the shared palette.
+- **Captions are the only text the builder sets in its own font.** Field labels, group titles and the small hints inside a control render in `--cb-font-mono`, uppercase — a label names a control, and the difference in case and family is what lets the eye skip them when scanning a settings column for a value. Body text and headings inherit the host's font.
+
+  The caption scale is two sizes, not three. A group heading is the *same* size as the field labels under it and outranks them by weight and color (`700` / `--cb-text-2` against `500` / `--cb-muted`); `--cb-caption-size-sm` is reserved for captions subordinate to a single control, like the side names in the box-spacing grid. Stacking a third size on top of uppercase + mono + tracking only makes every caption shout at a slightly different volume.
+
+  Checkbox and radio labels are deliberately left in the body font: those are the sentence the user reads to decide, not a name for a control. A standalone checkbox therefore renders *without* a row-level label, since it would repeat that sentence as a caption — while a radio group keeps its row label, which names the group rather than an option.
+
+  To put labels back in sentence case:
+
+  ```css
+  .cb-shell {
+      --cb-form-label-transform: none;
+      --cb-form-label-font: inherit;
+      --cb-form-label-size: 0.8125rem;
+      --cb-form-label-tracking: normal;
+  }
+  ```
 
 ::: info Reskinning the admin never restyles content
 The preview iframe renders the host's public page with the kit's stylesheet. Its colors come from `content_blocks.palette` and the block styling settings documented above — a separate system on purpose, so changing the tool's accent never moves a button on the published page.

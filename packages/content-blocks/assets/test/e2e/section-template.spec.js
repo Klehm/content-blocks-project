@@ -74,8 +74,9 @@ test.describe('section-template library — round trip', () => {
         const targetFrame = await openBuilder(page, targetUrl);
         await expect.poll(() => targetFrame.locator('[data-cb-section-id]').count()).toBe(0);
 
-        await page.locator('.cb-sidebar-empty__library').click();
-        const picker = page.locator('.cb-template-picker');
+        // No click to get here: with nothing selected the sidebar *is* the
+        // library.
+        const picker = page.locator('.cb-sidebar-library');
         await expect(picker).toBeVisible();
 
         await picker.locator('.cb-template-picker__search').fill(templateName);
@@ -83,10 +84,40 @@ test.describe('section-template library — round trip', () => {
         await picker.locator('.cb-template-picker__item-btn').first().click();
 
         // Inserted as one draft section carrying its block; publish is enabled.
+        // The sidebar swaps to the new section's settings, which is what
+        // replaces the library rather than any close gesture.
         await expect(picker).toBeHidden();
         await expect.poll(() => targetFrame.locator('[data-cb-section-id]').count()).toBe(1);
         await expect.poll(() => targetFrame.locator('[data-cb-block-id]').count()).toBe(1);
         await expect(page.locator('.cb-shell__publish')).toBeEnabled();
+    });
+
+    test('saving a section drops the sidebar back on the library, showing the new entry', async ({ page }) => {
+        // Saving is triggered from the section's own toolbar, so the sidebar is
+        // sitting on that section's settings when it completes — leaving the
+        // editor with no sight of what they just created, nor of whether it
+        // saved at all. The panel goes back to its default state instead.
+        const templateName = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+        const frame = await openBuilder(page, await createFreshPage(page));
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+
+        // Clicking the section to reach its toolbar mounts its settings form.
+        await frame.locator('[data-cb-section-id]').first().click({ position: { x: 5, y: 5 } });
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar.locator('.cb-sidebar__section-settings')).toBeVisible();
+
+        await saveFirstSectionAsTemplate(page, frame, templateName);
+
+        const picker = page.locator('.cb-sidebar-library');
+        await expect(picker).toBeVisible();
+        await expect(sidebar.locator('.cb-sidebar__section-settings')).toHaveCount(0);
+        // The list re-fetched rather than repainting a stale cache, so the
+        // entry that was just created is on screen.
+        await expect(
+            picker.locator('.cb-template-picker__item-name', { hasText: templateName }),
+        ).toHaveCount(1);
     });
 
     test('opening the library from the in-iframe add-section tray works too', async ({ page }) => {
@@ -104,8 +135,10 @@ test.describe('section-template library — round trip', () => {
         const targetFrame = await openBuilder(page, targetUrl);
         await addFullSection(page, targetFrame);
 
+        // From the preview the button no longer opens a modal — it clears the
+        // selection, which is what puts the library back on screen.
         await targetFrame.locator('.cb-add-section-tray__library').click();
-        const picker = page.locator('.cb-template-picker');
+        const picker = page.locator('.cb-sidebar-library');
         await expect(picker).toBeVisible();
         await picker.locator('.cb-template-picker__search').fill(templateName);
         await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
@@ -122,8 +155,9 @@ test.describe('section-template library — round trip', () => {
         // from getDefaultData) and every field a host BlockFormExtension
         // contributes — here the sandbox's global `anchorId`.
         //
-        // Since a warning now keeps the picker open on its status line, "the
-        // picker closed" *is* the assertion "no field was wrongly flagged".
+        // A warning keeps the library on screen with its status line; a clean
+        // insert lets the sidebar move on to the new section's settings. So
+        // "the settings form is up" *is* the assertion "nothing was flagged".
         const templateName = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
         const sourceUrl = await createFreshPage(page);
@@ -151,15 +185,15 @@ test.describe('section-template library — round trip', () => {
 
         const targetUrl = await createFreshPage(page);
         const targetFrame = await openBuilder(page, targetUrl);
-        await page.locator('.cb-sidebar-empty__library').click();
-        const picker = page.locator('.cb-template-picker');
+        const picker = page.locator('.cb-sidebar-library');
         await expect(picker).toBeVisible();
         await picker.locator('.cb-template-picker__search').fill(templateName);
         await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
         await picker.locator('.cb-template-picker__item-btn').first().click();
 
-        await expect(picker).toBeHidden();
-        await expect(page.locator('.cb-template-picker__status')).toHaveText('');
+        const targetSidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(targetSidebar.locator('input[name="section_settings[classes]"]')).toBeVisible();
+        await expect(page.locator('.cb-template-picker__status')).toHaveCount(0);
         await expect.poll(() => targetFrame.locator('[data-cb-section-id]').count()).toBe(1);
         // The extension field survived the snapshot round-trip.
         await expect(targetFrame.locator('#tpl-anchor')).toHaveCount(1);
@@ -171,7 +205,18 @@ test.describe('section-template library — round trip', () => {
  * get a payload this build cannot fully use, since saving snapshots real,
  * registered blocks. Backed by the sandbox's debug-only fixture route.
  */
-async function stageTemplate(page, { name, blocks, blockTypes, format = 'content-blocks/section-v1', contentVersion = null }) {
+async function stageTemplate(page, {
+    name,
+    blocks,
+    blockTypes,
+    format = 'content-blocks/section-v1',
+    contentVersion = null,
+    // Most cases only need one full-width column, so `blocks` is the short
+    // form; pass `columns` when the shape of the section is what's under test.
+    columns = null,
+    layout = 'full',
+    settings = null,
+}) {
     const response = await page.request.post('/test-fixtures/section-template', {
         data: {
             name,
@@ -179,9 +224,9 @@ async function stageTemplate(page, { name, blocks, blockTypes, format = 'content
             contentVersion,
             payload: {
                 format,
-                layout: 'full',
-                settings: null,
-                columns: [{ preset: 'col-12', blocks }],
+                layout,
+                settings,
+                columns: columns ?? [{ preset: 'col-12', blocks }],
             },
         },
     });
@@ -190,8 +235,7 @@ async function stageTemplate(page, { name, blocks, blockTypes, format = 'content
 
 async function openLibraryOn(page, url) {
     const frame = await openBuilder(page, url);
-    await page.locator('.cb-sidebar-empty__library').click();
-    const picker = page.locator('.cb-template-picker');
+    const picker = page.locator('.cb-sidebar-library');
     await expect(picker).toBeVisible();
 
     return { frame, picker };
@@ -327,7 +371,7 @@ test.describe('section-template library — management', () => {
         // the section settings, not the empty state). Confirm the row is
         // present with a delete affordance (management is allowed in sandbox).
         await sourceFrame.locator('.cb-add-section-tray__library').click();
-        const picker = page.locator('.cb-template-picker');
+        const picker = page.locator('.cb-sidebar-library');
         await expect(picker).toBeVisible();
         await picker.locator('.cb-template-picker__search').fill(templateName);
         await expect.poll(() => picker.locator('.cb-template-picker__item').count()).toBe(1);
@@ -343,5 +387,165 @@ test.describe('section-template library — management', () => {
 
         // The list reloads without the deleted template.
         await expect.poll(() => picker.locator('.cb-template-picker__item').count()).toBe(0);
+    });
+});
+
+test.describe('section-template library — thumbnails', () => {
+    test('a card draws the saved section: real copy, real picture, real proportions', async ({ page }) => {
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            layout: 'two_cols',
+            blockTypes: ['title', 'text', 'image', 'divider'],
+            columns: [
+                {
+                    preset: 'col-8',
+                    blocks: [
+                        { type: 'title', data: { text: 'Poster heading', size: 'h2', tag: 'h2' } },
+                        { type: 'text', data: { content: 'Body copy that lands on the tile.' } },
+                    ],
+                },
+                {
+                    preset: 'col-4',
+                    blocks: [
+                        { type: 'image', data: { src: '/test-fixtures/pixel', alt: '' } },
+                        { type: 'divider', data: { style: 'solid' } },
+                    ],
+                },
+            ],
+        });
+
+        const { picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        const poster = picker.locator('.cb-template-poster');
+        await expect(poster).toBeVisible();
+
+        // The presets survive the trip: an 8/4 split stays an 8/4 split.
+        const cols = poster.locator('.cb-template-poster__col');
+        await expect(cols).toHaveCount(2);
+        await expect(cols.nth(0)).toHaveCSS('flex-grow', '8');
+        await expect(cols.nth(1)).toHaveCSS('flex-grow', '4');
+
+        // Stored copy reaches the tiles — this is what makes two saved heroes
+        // tell each other apart in the library.
+        await expect(poster.locator('.cb-template-poster__tile--heading')).toHaveText('Poster heading');
+        await expect(poster.locator('.cb-template-poster__tile--text')).toContainText('Body copy');
+        await expect(poster.locator('.cb-template-poster__tile--image img')).toHaveAttribute(
+            'src',
+            '/test-fixtures/pixel',
+        );
+        await expect(poster.locator('.cb-template-poster__tile--rule')).toHaveCount(1);
+
+        // Decorative: the card's accessible name stays the template name, not
+        // a recital of every tile.
+        await expect(poster).toHaveAttribute('aria-hidden', 'true');
+        await expect(picker.locator('.cb-template-picker__item-btn').first()).toHaveAccessibleName(name);
+    });
+
+    test('the thumbnail wears the section background, and repaints its copy for a dark one', async ({ page }) => {
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            blockTypes: ['title'],
+            blocks: [{ type: 'title', data: { text: 'Dark hero', size: 'h2', tag: 'h2' } }],
+            settings: { styling: { backgroundColor: '#101828' } },
+        });
+
+        const { picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        const poster = picker.locator('.cb-template-poster');
+        await expect(poster).toHaveCSS('background-color', 'rgb(16, 24, 40)');
+        // The heading has to survive its own ground — dark-on-dark is what a
+        // background you paint but don't account for looks like.
+        await expect(poster.locator('.cb-template-poster__tile--heading'))
+            .toHaveCSS('color', 'rgb(255, 255, 255)');
+    });
+
+    test('a picture whose upload was deleted degrades to a named tile', async ({ page }) => {
+        // Templates reference uploads by path (see the SectionTemplate entity's
+        // stated trade-off), so the file can disappear under a saved template.
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            blockTypes: ['image'],
+            blocks: [{ type: 'image', data: { src: '/uploads/deleted-long-ago.png', alt: '' } }],
+        });
+
+        const { picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        const tile = picker.locator('.cb-template-poster__tile');
+        await expect(tile).toHaveClass(/cb-template-poster__tile--generic/);
+        await expect(tile.locator('img')).toHaveCount(0);
+        await expect(tile).not.toHaveText('');
+    });
+
+    test('the thumbnail shows where a missing block type sits', async ({ page }) => {
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            blockTypes: ['title', 'countdown'],
+            blocks: [
+                { type: 'title', data: { text: 'Still here', size: 'h2', tag: 'h2' } },
+                { type: 'countdown', data: {} },
+            ],
+        });
+
+        const { picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        const missing = picker.locator('.cb-template-poster__tile--missing');
+        await expect(missing).toHaveCount(1);
+        await expect(missing).toHaveText('countdown');
+        // The words are still on the button; the poster adds the "where".
+        await expect(picker.locator('.cb-template-picker__item-btn')).toHaveAttribute('title', /countdown/);
+    });
+
+    test('a template whose envelope cannot be read renders as a plain named card', async ({ page }) => {
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            format: 'content-blocks/section-vX',
+            blockTypes: ['title'],
+            // An unreadable envelope means the columns cannot be trusted either;
+            // the card must degrade to its name rather than frame an empty box.
+            columns: [],
+            blocks: [],
+        });
+
+        const { picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        await expect(picker.locator('.cb-template-poster')).toHaveCount(0);
+        await expect(picker.locator('.cb-template-picker__item-name')).toHaveText(name);
+        await expect(picker.locator('.cb-template-picker__item-btn')).toBeDisabled();
+    });
+
+    test('a section saved from the builder gets a thumbnail without a reload', async ({ page }) => {
+        const templateName = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+        const frame = await openBuilder(page, await createFreshPage(page));
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+        await saveFirstSectionAsTemplate(page, frame, templateName);
+
+        // Saving ran from the section's toolbar, but the sidebar lands back on
+        // the library on its own — no click needed. That is where the editor
+        // can see what they just created.
+        const picker = page.locator('.cb-sidebar-library');
+        await expect(picker).toBeVisible();
+
+        // Saving invalidates the cached list, so the library re-fetches — and
+        // the poster comes from that same response, no extra round trip.
+        await picker.locator('.cb-template-picker__search').fill(templateName);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+        await expect(picker.locator('.cb-template-poster__tile')).not.toHaveCount(0);
     });
 });

@@ -63,6 +63,7 @@ cb:
         cancel: "Cancel"
         remove: "Remove"
         duplicate: "Duplicate"
+        drag: "Drag to move"
         tab:
             general: "General"
             style: "Styling"
@@ -89,6 +90,7 @@ cb:
             section_deleted: "Section deleted"
             action: "Undo"
         pending: "Save this entity first to start adding content."
+        actions: "Actions"
         toggle_sidebar: "Toggle sidebar"
         sidebar:
             empty: "Click an element in the preview to edit it."
@@ -104,6 +106,7 @@ cb:
             more: "Load more"
         template:
             insert: "Insert from library"
+            save: "Save as template"
             title: "Section library"
             search_placeholder: "Search templates…"
             empty: "No saved templates yet"

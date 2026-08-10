@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\Form\Type\PaletteColorType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -14,7 +16,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 #[AsContentBlock(priority: 100)]
-class TitleBlock extends AbstractKitBlock
+class TitleBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function getType(): string
     {
@@ -102,6 +104,15 @@ class TitleBlock extends AbstractKitBlock
             'tag' => 'h2',
             'color' => '',
         ];
+    }
+
+    /**
+     * The heading is the block — a library thumbnail showing the real words
+     * is what makes one saved hero distinguishable from the next.
+     */
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        return BlockPreviewHint::heading(self::previewString($data, 'text'));
     }
 
     public function getViewTemplate(): ?string

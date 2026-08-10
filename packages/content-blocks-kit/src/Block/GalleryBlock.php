@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\Form\Type\Styling\BoxSpacingType;
 use ContentBlocks\Kit\Form\Type\GalleryItemType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -23,7 +25,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * Option `max_columns` (config) caps the column choices offered.
  */
 #[AsContentBlock(priority: 60)]
-class GalleryBlock extends AbstractKitBlock
+class GalleryBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function defaultOptions(): array
     {
@@ -127,6 +129,12 @@ class GalleryBlock extends AbstractKitBlock
                 ['src' => '', 'alt' => '', 'caption' => '', 'url' => ''],
             ],
         ];
+    }
+
+    /** The first item that actually has a picture stands in for the set. */
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        return BlockPreviewHint::image(self::previewFirst($data, 'items', 'src') ?? '');
     }
 
     public function getViewTemplate(): ?string

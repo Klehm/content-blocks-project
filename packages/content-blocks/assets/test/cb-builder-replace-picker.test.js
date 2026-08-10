@@ -10,8 +10,9 @@ import Controller from '../controllers/cb-builder_controller.js';
 function setupController(options = {}) {
     document.body.innerHTML = `
         <div data-controller="cb-builder">
-            <button class="cb-shell__replace" aria-expanded="false"></button>
+            <button class="cb-shell__replace"></button>
             <iframe></iframe>
+            <div class="cb-modal-backdrop" hidden></div>
             <div class="cb-replace-picker" hidden></div>
             <input data-cb-builder-target="replacePickerSearch" />
             <ul class="cb-replace-picker__list"></ul>
@@ -52,7 +53,7 @@ describe('cb-builder replace picker: open / close', () => {
         vi.spyOn(console, 'log').mockImplementation(() => {});
     });
 
-    it('openReplacePicker unhides the panel and focuses the search field', async () => {
+    it('openReplacePicker unhides the panel, focuses the search field and dims the builder', async () => {
         global.fetch = vi.fn(() => Promise.resolve({
             ok: true,
             json: () => Promise.resolve({ items: [], hasMore: false }),
@@ -62,7 +63,9 @@ describe('cb-builder replace picker: open / close', () => {
 
         expect(picker.hidden).toBe(false);
         expect(document.activeElement).toBe(search);
-        expect(controller.element.querySelector('.cb-shell__replace').getAttribute('aria-expanded')).toBe('true');
+        // The picker is modal now: without the backdrop the rest of the
+        // builder still looks live while it is not.
+        expect(controller.element.querySelector('.cb-modal-backdrop').hidden).toBe(false);
     });
 
     it('openReplacePicker only fetches candidates once across reopens', async () => {
@@ -78,14 +81,35 @@ describe('cb-builder replace picker: open / close', () => {
         expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
-    it('closeReplacePicker hides the panel and flips aria-expanded back', () => {
+    it('closeReplacePicker hides the panel and takes the backdrop with it', () => {
         picker.hidden = false;
-        controller.element.querySelector('.cb-shell__replace').setAttribute('aria-expanded', 'true');
+        controller.element.querySelector('.cb-modal-backdrop').hidden = false;
 
         controller.closeReplacePicker({ preventDefault: () => {} });
 
         expect(picker.hidden).toBe(true);
-        expect(controller.element.querySelector('.cb-shell__replace').getAttribute('aria-expanded')).toBe('false');
+        expect(controller.element.querySelector('.cb-modal-backdrop').hidden).toBe(true);
+    });
+
+    it('Escape closes the open picker', () => {
+        picker.hidden = false;
+        controller._onDocumentKeydown = controller._onDocumentKeydown.bind(controller);
+
+        controller._onDocumentKeydown({ key: 'Escape', preventDefault: () => {} });
+
+        expect(picker.hidden).toBe(true);
+    });
+
+    it('a click on the backdrop closes the open picker, a click inside does not', () => {
+        picker.hidden = false;
+        const backdrop = controller.element.querySelector('.cb-modal-backdrop');
+        controller._onDocumentPointerDown = controller._onDocumentPointerDown.bind(controller);
+
+        controller._onDocumentPointerDown({ target: picker });
+        expect(picker.hidden).toBe(false);
+
+        controller._onDocumentPointerDown({ target: backdrop });
+        expect(picker.hidden).toBe(true);
     });
 });
 

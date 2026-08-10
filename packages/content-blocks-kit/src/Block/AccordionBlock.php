@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\Kit\Form\Type\AccordionItemType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -18,7 +20,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * native <details>/<summary>, so it needs zero JavaScript and stays accessible.
  */
 #[AsContentBlock(priority: 50)]
-class AccordionBlock extends AbstractKitBlock
+class AccordionBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function getType(): string
     {
@@ -74,6 +76,12 @@ class AccordionBlock extends AbstractKitBlock
                 ['title' => 'Question', 'content' => 'Answer'],
             ],
         ];
+    }
+
+    /** The first question stands in for the panel. */
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        return BlockPreviewHint::heading(self::previewFirst($data, 'items', 'title'));
     }
 
     public function getViewTemplate(): ?string

@@ -42,14 +42,41 @@ async function addFullSection(page) {
 }
 
 test.describe('builder topbar — host actions (cb:builder:action)', () => {
-    test('the host action renders as a topbar button with its key class', async ({ page }) => {
+    test('the host action renders as a menu item with its key class', async ({ page }) => {
         await openBuilder(page);
+
+        // Area-wide actions live behind the topbar's Actions menu.
+        const menu = page.locator('.cb-shell__actions-list');
+        await expect(menu).toBeHidden();
+        await page.locator('.cb-shell__actions-toggle').click();
+        await expect(menu).toBeVisible();
 
         const actionBtn = page.locator('.cb-shell__action--save-as-model');
         await expect(actionBtn).toBeVisible();
         await expect(actionBtn).toHaveText(/Save page as model/);
-        // The optional title falls through to both title + aria-label.
-        await expect(actionBtn).toHaveAttribute('aria-label', 'Save this content as a reusable model');
+        // The optional title is a tooltip only. It deliberately does NOT become
+        // an aria-label: overriding the visible text with different words is
+        // what breaks "Label in Name" for anyone driving this by voice.
+        await expect(actionBtn).toHaveAttribute('title', 'Save this content as a reusable model');
+        await expect(actionBtn).not.toHaveAttribute('aria-label', /./);
+    });
+
+    test('the menu closes on an outside click and after running an action', async ({ page }) => {
+        await openBuilder(page);
+        const menu = page.locator('.cb-shell__actions-list');
+
+        await page.locator('.cb-shell__actions-toggle').click();
+        await expect(menu).toBeVisible();
+        // Empty stretch of the topbar itself — the viewport switcher used to
+        // sit there and served as the outside-click target; it now lives in
+        // the right cluster, so click the bar's own bare middle.
+        await page.locator('.cb-shell__topbar').click();
+        await expect(menu).toBeHidden();
+
+        await page.locator('.cb-shell__actions-toggle').click();
+        await expect(menu).toBeVisible();
+        await page.locator('.cb-shell__action--save-as-model').click();
+        await expect(menu).toBeHidden();
     });
 
     test('clicking the button dispatches one generic event carrying the key + area id', async ({ page }) => {
@@ -72,6 +99,7 @@ test.describe('builder topbar — host actions (cb:builder:action)', () => {
         // Seed a section so the model is cloned with real content.
         await addFullSection(page);
 
+        await page.locator('.cb-shell__actions-toggle').click();
         await page.locator('.cb-shell__action--save-as-model').click();
 
         // The host controller appends a link to the freshly-created model once
