@@ -4,6 +4,14 @@ title: Upgrade guide (beta → 1.0)
 
 # Upgrade guide: `0.1.0-beta.x` → `1.0.0`
 
+::: warning `1.0.0` is not released yet
+Nothing below is tagged. It sits on `master`, under `[Unreleased]` in both
+CHANGELOGs, waiting on the translation package, the kit's rich-text blocks and
+its image-optimization seam — then a `1.0.0-RC1`. Read this if you track
+`dev-master` or want to know what the RC will ask of you; on a tagged
+`0.1.0-beta.x` there is nothing to do yet.
+:::
+
 The `1.0.0` release freezes the public surface — `Block.data` JSON keys, config
 YAML keys, and the styling `settings` shape become a stable contract. Converging
 onto it from the beta line means a few **breaking changes**, grouped below by the
