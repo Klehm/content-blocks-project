@@ -38,6 +38,56 @@ Everything below is on `master` only. See the
 
 ### Added
 
+- **`rich_text` picks its editor: TinyMCE (default) or CKEditor 5.** One block,
+  a pluggable adapter — not one block per editor. Whichever editor runs, the
+  block stores the same `{ content: "<html>" }`, so the editor is a display-time
+  choice and switching it is a config change rather than a data migration.
+  Encoding a vendor name in `cb_block.type` would have made it one, and would
+  have asked the person writing the page to answer a question that belongs to
+  whoever installed the site.
+
+  ```yaml
+  content_blocks_kit:
+      blocks:
+          rich_text:
+              options:
+                  editor: ckeditor   # tinymce (default) | ckeditor | a host's own
+                  cdn: true          # false → the host bundles the editor itself
+                  cdn_url: null      # or point at a self-hosted build
+                  uploads: true      # image button wired to the builder endpoint
+                  config: {}         # merged over the coded init config, host wins
+  ```
+
+  Existing installs are unaffected: the defaults are the behaviour that shipped
+  before, down to the same TinyMCE CDN URL.
+
+  - **Images go through the builder's own endpoint.** Both editors upload to
+    `/_content-blocks/upload` with the builder's CSRF token, so a picture pasted
+    into rich text lands in the same storage, under the same size cap and MIME
+    allow-list, as one added through the `image` block. TinyMCE gets an
+    `images_upload_handler` plus a file picker; CKEditor gets a custom upload
+    adapter mapping the endpoint's `{ url }` onto the `{ default }` it expects.
+  - **Loading the editor is the host's call.** CDN by default so a fresh install
+    works with nothing to build; `cdn_url` to self-host the same build under a
+    strict CSP; `cdn: false` to bundle it and let the kit load nothing. If the
+    global is missing, the block says so precisely in the console and leaves the
+    plain textarea holding the HTML — the content stays editable either way.
+  - **`options.config` merges over the coded init config** in the browser:
+    objects key by key, arrays and scalars replaced. Two things survive the
+    merge on purpose, because losing them costs data rather than looks — the
+    write-back that keeps autosave in sync (a host `setup` callback runs after
+    it, not instead of it), and the upload adapter, which outlives a replaced
+    plugin list.
+  - **A third editor is a service away.** `RichTextEditorInterface`
+    (autoconfigured, resolved through `RichTextEditorRegistry`) plus a Stimulus
+    controller makes Quill, Trix or an in-house editor selectable as
+    `options.editor: <name>`; `AbstractRichTextEditor` hands over the shared
+    option handling. The form theme renders whatever controller and values an
+    adapter names, so it never learns any editor's name.
+
+  Hosts selecting CKEditor must enable the new `cb-ckeditor` controller in
+  `assets/controllers.json` (Flex writes it on install).
+
 - **Translatable fields declared across the block set.** 29 fields are tagged
   `cb_translatable` (the core's convention): prose — headings, body copy, item
   labels, alt text, captions — and link targets, since a localized site

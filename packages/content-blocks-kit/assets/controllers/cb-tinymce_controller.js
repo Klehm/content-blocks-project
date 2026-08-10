@@ -1,56 +1,39 @@
 import { Controller } from '@hotwired/stimulus';
+import {
+    adoptDetachedUi,
+    mergeConfig,
+    parseJsonValue,
+    readCsrfToken,
+    resolveEditorGlobal,
+    uploadFile,
+} from '../lib/rich_text.js';
 
 /**
- * TinyMCE bridge for the RichText block's edit form.
+ * TinyMCE adapter for the `rich_text` block.
  *
- * Loads TinyMCE from CDN on demand (the kit stays self-contained — the host
- * doesn't have to bundle it) and binds it to the wrapped textarea, with the
- * fixes a Live-Component builder needs:
+ * Mounts TinyMCE on the block's textarea with the fixes a Live-Component
+ * builder needs:
  *
- *  - the wrapper carries `data-live-ignore`, so the morpher leaves TinyMCE's
- *    injected DOM (toolbar, iframe) untouched on re-renders;
- *  - on every edit `editor.save()` writes the HTML back to the textarea BEFORE
- *    the `input`/`change` event bubbles, so cb-autosave (and the Live save it
- *    triggers) always reads the latest value — no "one edit behind" race;
+ *  - the wrapper carries `data-live-ignore` (set by the form theme), so the
+ *    morpher leaves TinyMCE's injected DOM — toolbar, iframe — untouched on
+ *    re-renders;
+ *  - on every edit `editor.save()` writes the HTML back to the textarea
+ *    BEFORE the `input`/`change` event bubbles, so cb-autosave (and the Live
+ *    save it triggers) always reads the latest value — no "one edit behind"
+ *    race;
  *  - TinyMCE's auxiliary container (toolbar popups + WindowManager modals) is
- *    re-parented into the builder's native `<dialog>`. The dialog is opened
- *    with `showModal()` (top layer), so anything appended to `<body>` renders
- *    behind it and is uninteractable;
- *  - the color picker's swatches are seeded from the ContentBlocks palette when
- *    the form provides it (`data-cb-tinymce-palette-value`), then the standard
- *    web palette, with a free picker still available (`custom_colors`).
+ *    re-parented into the builder's `<dialog>`, which is opened with
+ *    `showModal()` and therefore renders above anything left on `<body>`;
+ *  - the color picker's swatches are seeded from the ContentBlocks palette,
+ *    then the standard web palette, with a free picker still available.
  *
- * Values:
- *  - `content-css`: comma-separated stylesheet URLs injected into the editor
- *    body so the editing surface mirrors the published page.
- *  - `palette`: JSON array of `{label, color}` (see `cb_color_palette()`),
- *    prepended to the color swatches.
+ * Values (all written by the PHP adapter, see TinyMceEditor):
+ *  - `script-url`: where to load TinyMCE from; empty means the host bundled it
+ *    and `window.tinymce` is expected to exist already.
+ *  - `upload-url`: the builder's upload endpoint; empty disables image upload.
+ *  - `config`: JSON merged over the init config below — the host's word wins.
+ *  - `palette`: JSON `[{label, color}]` seeding the color swatches.
  */
-
-const TINYMCE_CDN_URL = 'https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js';
-
-// Module-level promise so concurrent connects share a single network load —
-// multiple rich-text blocks on a page won't each fetch the script.
-let tinymceLoader = null;
-
-function loadTinyMce() {
-    if (window.tinymce) return Promise.resolve(window.tinymce);
-    if (tinymceLoader) return tinymceLoader;
-
-    tinymceLoader = new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = TINYMCE_CDN_URL;
-        script.referrerPolicy = 'origin';
-        script.onload = () => resolve(window.tinymce);
-        script.onerror = () => {
-            tinymceLoader = null;
-            reject(new Error('Failed to load TinyMCE from CDN'));
-        };
-        document.head.appendChild(script);
-    });
-
-    return tinymceLoader;
-}
 
 // Standard web-color swatches appended after the theme palette. Kept in the
 // TinyMCE `color_map` flat format: [hex, label, hex, label, …].
@@ -79,67 +62,80 @@ export function buildColorMap(palette) {
     return [...themeSwatches, ...WEB_COLOR_MAP];
 }
 
+/**
+ * The init config before the host's overrides. Exported so a test can assert
+ * what uploads add — and what they leave alone.
+ */
+export function buildTinyMceConfig({ palette, uploads }) {
+    const plugins = ['advlist', 'lists', 'link', 'autolink', 'code'];
+    const toolbar = [
+        'undo redo', 'blocks', 'bold italic underline', 'forecolor backcolor',
+        'alignleft aligncenter alignright', 'bullist numlist', 'link',
+    ];
+
+    if (uploads) {
+        // `image` brings the dialog and the toolbar button; `automatic_uploads`
+        // is what routes a pasted or dropped picture through the handler
+        // instead of leaving a base64 data URI in the stored HTML.
+        plugins.push('image');
+        toolbar.push('image');
+    }
+
+    toolbar.push('removeformat code');
+
+    return {
+        license_key: 'gpl',
+        menubar: false,
+        branding: false,
+        promotion: false,
+        // Keep the status bar solely for the drag-to-resize grip.
+        statusbar: true,
+        elementpath: false,
+        resize: true,
+        toolbar_mode: 'sliding',
+        plugins: plugins.join(' '),
+        toolbar: toolbar.join(' | '),
+        color_map: buildColorMap(palette),
+        color_cols: 5,
+        custom_colors: true,
+        height: 320,
+        automatic_uploads: uploads,
+        file_picker_types: 'image',
+    };
+}
+
 export default class extends Controller {
     static targets = ['textarea'];
-    static values = { contentCss: String, palette: String };
+    static values = {
+        scriptUrl: String,
+        styleUrl: String,
+        uploadUrl: String,
+        config: String,
+        palette: String,
+    };
 
     async connect() {
         if (!this.hasTextareaTarget) return;
 
         const textarea = this.textareaTarget;
-        const dialog = textarea.closest('dialog');
-
-        // Re-parent TinyMCE's aux container into the dialog as soon as it
-        // appears, so popups/modals render in the same top layer as the
-        // builder dialog rather than behind it.
-        if (dialog) {
-            this._auxObserver = new MutationObserver((mutations) => {
-                for (const m of mutations) {
-                    for (const node of m.addedNodes) {
-                        if (node.nodeType === 1 && node.classList?.contains('tox-tinymce-aux')) {
-                            dialog.appendChild(node);
-                        }
-                    }
-                }
-            });
-            this._auxObserver.observe(document.body, { childList: true });
-        }
-
-        let palette = null;
-        if (this.paletteValue) {
-            try {
-                palette = JSON.parse(this.paletteValue);
-            } catch (_) {
-                palette = null;
-            }
-        }
+        this._detachedUi = adoptDetachedUi(textarea, '.tox-tinymce-aux');
 
         try {
-            const tinymce = await loadTinyMce();
+            const tinymce = await resolveEditorGlobal('tinymce', this.scriptUrlValue);
             if (!this.hasTextareaTarget) return; // disconnected while loading
 
+            const config = mergeConfig(
+                buildTinyMceConfig({
+                    palette: parseJsonValue(this.paletteValue, null),
+                    uploads: Boolean(this.uploadUrlValue),
+                }),
+                parseJsonValue(this.configValue, {}),
+            );
+
             const editors = await tinymce.init({
+                ...config,
                 target: textarea,
-                license_key: 'gpl',
-                menubar: false,
-                branding: false,
-                promotion: false,
-                // Keep the status bar solely for the drag-to-resize grip.
-                statusbar: true,
-                elementpath: false,
-                resize: true,
-                toolbar_mode: 'sliding',
-                plugins: 'advlist lists link autolink code',
-                toolbar:
-                    'undo redo | blocks | bold italic underline | forecolor backcolor | '
-                    + 'alignleft aligncenter alignright | bullist numlist | link | removeformat | code',
-                color_map: buildColorMap(palette),
-                color_cols: 5,
-                custom_colors: true,
-                height: 320,
-                ...(this.contentCssValue
-                    ? { content_css: this.contentCssValue.split(',').filter(Boolean) }
-                    : {}),
+                ...(this.uploadUrlValue ? this._uploadHandlers(textarea) : {}),
                 setup: (editor) => {
                     // Sync editor HTML → textarea + bubble the event so
                     // cb-autosave's Live model binding picks it up. `input`
@@ -150,16 +146,15 @@ export default class extends Controller {
                     };
                     editor.on('input keyup', sync('input'));
                     editor.on('change undo redo ExecCommand blur', sync('change'));
+
+                    // A host's `config.setup` runs after ours rather than
+                    // replacing it: losing the autosave sync would be a
+                    // silent data-loss bug, not a styling preference.
+                    if (typeof config.setup === 'function') config.setup(editor);
                 },
             });
 
-            // Catch-up: aux container may have been created synchronously
-            // during init (already on <body> by the time we get here).
-            if (dialog) {
-                const aux = document.body.querySelector(':scope > .tox-tinymce-aux');
-                if (aux) dialog.appendChild(aux);
-            }
-
+            this._detachedUi.sweep();
             this._editor = Array.isArray(editors) ? editors[0] : editors;
         } catch (e) {
             // Leave the plain textarea visible as fallback.
@@ -167,11 +162,43 @@ export default class extends Controller {
         }
     }
 
+    /**
+     * Both routes an image can take into the editor, pointed at the builder's
+     * upload endpoint: the dialog's "browse" button, and paste / drag-drop.
+     */
+    _uploadHandlers(textarea) {
+        const target = { uploadUrl: this.uploadUrlValue, csrfToken: readCsrfToken(textarea) };
+
+        return {
+            images_upload_handler: (blobInfo) => uploadFile(blobInfo.blob(), {
+                ...target,
+                filename: blobInfo.filename(),
+            }),
+            file_picker_callback: (callback, _value, meta) => {
+                if (meta.filetype !== 'image') return;
+
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.addEventListener('change', async () => {
+                    const file = input.files?.[0];
+                    if (!file) return;
+                    try {
+                        callback(await uploadFile(file, target), { alt: file.name });
+                    } catch (e) {
+                        console.error('[cb-tinymce]', e);
+                        this._editor?.notificationManager?.open({ text: e.message, type: 'error' });
+                    }
+                });
+                input.click();
+            },
+        };
+    }
+
     disconnect() {
-        if (this._auxObserver) {
-            this._auxObserver.disconnect();
-            this._auxObserver = null;
-        }
+        this._detachedUi?.stop();
+        this._detachedUi = null;
+
         if (this._editor) {
             try {
                 this._editor.remove();

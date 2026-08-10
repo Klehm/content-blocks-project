@@ -40,7 +40,7 @@ Initial values for a new block. Override per host with `defaults:`.
 | `customHeight` | `400` |
 | `fit` | `cover` |
 | `align` | `center` |
-| `link` | `''` |
+| `url` | `''` |
 | `caption` | `''` |
 | `borderRadius` | `{"linked":true}` |
 

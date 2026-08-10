@@ -10,6 +10,12 @@
                 "fetch": "lazy",
                 "enabled": true
             },
+            "cb-ckeditor": {
+                "main": "controllers/cb-ckeditor_controller.js",
+                "name": "cb-ckeditor",
+                "fetch": "lazy",
+                "enabled": true
+            },
             "cb-gallery": {
                 "main": "controllers/cb-gallery_controller.js",
                 "name": "cb-gallery",

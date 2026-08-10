@@ -22,6 +22,7 @@ use ContentBlocks\Kit\Block\RichTextBlock;
 use ContentBlocks\Kit\Block\TabsBlock;
 use ContentBlocks\Kit\Block\TextBlock;
 use ContentBlocks\Kit\Block\TitleBlock;
+use ContentBlocks\Kit\RichText\RichTextEditorInterface;
 use Symfony\Component\AssetMapper\AssetMapper;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -112,6 +113,20 @@ final class ContentBlocksKitBundle extends AbstractBundle
                     ->end()
                 ->end()
             ->end();
+    }
+
+    /**
+     * Auto-tag host-registered rich-text editors, so wiring a third editor
+     * (Quill, Trix, an in-house one) is a service declaration and nothing
+     * else — the same deal the core gives palette and section-style
+     * providers.
+     */
+    public function build(ContainerBuilder $container): void
+    {
+        parent::build($container);
+
+        $container->registerForAutoconfiguration(RichTextEditorInterface::class)
+            ->addTag('content_blocks_kit.rich_text_editor');
     }
 
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void

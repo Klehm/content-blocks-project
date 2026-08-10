@@ -7,7 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
-use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use ContentBlocks\Kit\Form\Type\RichTextEditorType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Contracts\Translation\TranslatableInterface;
@@ -18,6 +18,30 @@ class RichTextBlock extends AbstractKitBlock implements BlockPreviewHintInterfac
     public static function getType(): string
     {
         return 'rich_text';
+    }
+
+    /**
+     * Which editor mounts the field, and how it is loaded and configured.
+     * The stored payload is the same HTML under every editor, so `editor` is
+     * a display-time choice: flipping it does not touch a single row.
+     */
+    public static function defaultOptions(): array
+    {
+        return [
+            // Any name in the RichTextEditorRegistry — `tinymce`, `ckeditor`,
+            // or one the host registered.
+            'editor' => 'tinymce',
+            // false → the kit loads no editor JS; the host bundles it and the
+            // editor's global must be present when the form opens.
+            'cdn' => true,
+            // Override to self-host the same build (air-gapped admin, strict CSP).
+            'cdn_url' => null,
+            'cdn_style_url' => null,
+            // Wires the editor's image button to the builder's upload endpoint.
+            'uploads' => true,
+            // Merged over the adapter's coded init config, in the browser.
+            'config' => [],
+        ];
     }
 
     public static function getLabel(): TranslatableInterface
@@ -36,15 +60,18 @@ class RichTextBlock extends AbstractKitBlock implements BlockPreviewHintInterfac
 
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
-        // The TextareaType is enhanced client-side by the cb-tinymce
-        // Stimulus controller (declared in the form theme). When JS is
-        // disabled, the user still gets a plain textarea fallback.
-        $builder->add('content', TextareaType::class, [
+        // The textarea is enhanced client-side by whichever editor's Stimulus
+        // controller the adapter names. With JS disabled — or an editor that
+        // fails to load — the user still gets a plain textarea holding the
+        // same HTML.
+        $builder->add('content', RichTextEditorType::class, [
             'cb_translatable' => true,
             'label' => 'cb_kit.block.rich_text.field.content',
             'translation_domain' => 'content_blocks_kit',
-            'required' => false,
-            'attr' => ['rows' => 10],
+            // Resolved rather than raw: a block built outside the bundle's
+            // merge (a unit test, a host instantiating it directly) still
+            // hands the adapter a complete option set.
+            'editor_options' => array_replace(static::defaultOptions(), $this->options),
         ]);
     }
 
@@ -75,7 +102,7 @@ class RichTextBlock extends AbstractKitBlock implements BlockPreviewHintInterfac
         return '@ContentBlocksKit/block/rich_text/view.html.twig';
     }
 
-    // The view renders stored HTML statically; TinyMCE only runs in the
+    // The view renders stored HTML statically; the editor only runs in the
     // edit form — safe to hot-reload in place.
     public function supportsPreviewHotReload(): bool
     {

@@ -31,26 +31,6 @@ Legend: 🅿️ planned · 🤔 under consideration · 💡 idea
 
 ---
 
-## Kit — rich-text blocks (TinyMCE & CKEditor) with overridable init 🅿️
-
-**Context.** The kit ships a neutral `rich_text` block, but real editors want a full WYSIWYG. Two ecosystems dominate — **TinyMCE** and **CKEditor** — and hosts are rarely neutral: they already standardize on one. Hard-wiring either (or a single init config) would break the kit's "drops into any host" promise and fight whatever the host already loads.
-
-**Direction.** Ship the two rich-text blocks as **opt-in** kit blocks (like `html_raw`, off unless enabled), each self-contained but with a documented seam to override the editor's init config:
-
-- Two new kit blocks (`rich_text_tinymce`, `rich_text_ckeditor`) — Stimulus-driven, mounting the editor on a textarea, persisting HTML like the current `rich_text`.
-- **Override API**: the integrator supplies the init/config object without forking the block — via a Stimulus value / `data-*` config seam and/or a JS hook (e.g. `window`-scoped registry or a controller they extend), so the host's toolbar/plugins/branding win. Default init = a sane neutral toolbar.
-- Editor JS itself stays a **host concern** (importmap/CDN), not a kit `require` — the block wires the bridge, the host brings the library. Mirror the existing core TinyMCE bridge where it makes sense (palette `color_map` via `cb_color_palette()`).
-- Same raw-HTML caveat as `html_raw` → these blocks trust their editors; document the trust boundary.
-
-**Rough scope when picked up:**
-- [ ] `rich_text_tinymce` + `rich_text_ckeditor` blocks (opt-in, in `DEFAULT_DISABLED`)
-- [ ] Stimulus controller(s) mounting each editor on a textarea; HTML persisted + sanitization note
-- [ ] Init-config override seam (data-config / JS hook / extendable controller) — host config wins, neutral default otherwise
-- [ ] Palette bridge (swatches / color_map) reused from core where applicable
-- [ ] Docs: enable + override recipe for each editor; trust-boundary note
-
----
-
 ## New package — Translation / Multilingual 🅿️
 
 **Context.** Hosts need multilingual content areas. The design compromise: **one shared layout** (sections/columns/blocks structure is language-agnostic) but **translatable blocks/fields** — the same visual skeleton renders per language, with only tagged field values swapped.

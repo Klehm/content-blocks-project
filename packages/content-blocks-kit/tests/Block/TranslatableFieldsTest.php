@@ -13,9 +13,11 @@ use ContentBlocks\Kit\Block\RichTextBlock;
 use ContentBlocks\Kit\Form\Type\AccordionItemType;
 use ContentBlocks\Kit\Form\Type\BreadcrumbItemType;
 use ContentBlocks\Kit\Form\Type\ListItemType;
+use ContentBlocks\Kit\Form\Type\RichTextEditorType;
 use ContentBlocks\Kit\Form\Type\TabEntryType;
 use ContentBlocks\Kit\Form\Type\TableCellType;
 use ContentBlocks\Kit\Form\Type\TableColumnType;
+use ContentBlocks\Kit\RichText\RichTextEditorRegistry;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
@@ -117,6 +119,11 @@ final class TranslatableFieldsTest extends TestCase
         return Forms::createFormFactoryBuilder()
             ->addExtension(new ValidatorExtension(Validation::createValidator()))
             ->addTypeExtension(new TranslatableFieldTypeExtension())
+            // `rich_text` renders through a type that takes the editor
+            // registry; outside a container it has to be handed over. An
+            // empty one is enough here — resolving an editor happens when the
+            // view is built, and this test only inspects builders.
+            ->addType(new RichTextEditorType(new RichTextEditorRegistry()))
             ->getFormFactory();
     }
 }

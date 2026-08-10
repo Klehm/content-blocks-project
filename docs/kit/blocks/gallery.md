@@ -44,7 +44,7 @@ Initial values for a new block. Override per host with `defaults:`.
 | `columns` | `3` |
 | `fit` | `cover` |
 | `borderRadius` | `{"linked":true}` |
-| `items` | `[{"src":"","alt":"","caption":"","link":""}]` |
+| `items` | `[{"src":"","alt":"","caption":"","url":""}]` |
 
 #### Example
 
@@ -63,7 +63,7 @@ content_blocks_kit:
 Rendered markup: `.cb-kit-gallery` (grid) / `.cb-kit-gallery--slider` (slider). Style it by overriding the `--cb-kit-*` custom properties (see [the kit stylesheet](../index.md#front-stylesheet-required)).
 
 ::: tip Requires a Stimulus controller
-Enable the `cb-gallery` controller under `@klehm/content-blocks-kit` in your host `assets/controllers.json`.
+Enable `cb-gallery` under `@klehm/content-blocks-kit` in your host `assets/controllers.json`.
 :::
 
 ## Notes
