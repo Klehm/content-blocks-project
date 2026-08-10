@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\Kit\Form\Type\BreadcrumbItemType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Translation\TranslatableMessage;
@@ -17,7 +19,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * empty url renders as plain text (the current page).
  */
 #[AsContentBlock(priority: 20)]
-class BreadcrumbBlock extends AbstractKitBlock
+class BreadcrumbBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function getType(): string
     {
@@ -66,6 +68,20 @@ class BreadcrumbBlock extends AbstractKitBlock
                 ['label' => 'Current page', 'url' => ''],
             ],
         ];
+    }
+
+    /** Rendered the way a breadcrumb reads: labels joined by separators. */
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        $labels = [];
+        foreach (self::previewItems($data) as $item) {
+            $label = self::previewString($item, 'label');
+            if ($label !== null && trim($label) !== '') {
+                $labels[] = trim($label);
+            }
+        }
+
+        return BlockPreviewHint::text($labels === [] ? null : implode(' / ', $labels));
     }
 
     public function getViewTemplate(): ?string

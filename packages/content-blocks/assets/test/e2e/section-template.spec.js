@@ -177,7 +177,18 @@ test.describe('section-template library — round trip', () => {
  * get a payload this build cannot fully use, since saving snapshots real,
  * registered blocks. Backed by the sandbox's debug-only fixture route.
  */
-async function stageTemplate(page, { name, blocks, blockTypes, format = 'content-blocks/section-v1', contentVersion = null }) {
+async function stageTemplate(page, {
+    name,
+    blocks,
+    blockTypes,
+    format = 'content-blocks/section-v1',
+    contentVersion = null,
+    // Most cases only need one full-width column, so `blocks` is the short
+    // form; pass `columns` when the shape of the section is what's under test.
+    columns = null,
+    layout = 'full',
+    settings = null,
+}) {
     const response = await page.request.post('/test-fixtures/section-template', {
         data: {
             name,
@@ -185,9 +196,9 @@ async function stageTemplate(page, { name, blocks, blockTypes, format = 'content
             contentVersion,
             payload: {
                 format,
-                layout: 'full',
-                settings: null,
-                columns: [{ preset: 'col-12', blocks }],
+                layout,
+                settings,
+                columns: columns ?? [{ preset: 'col-12', blocks }],
             },
         },
     });
@@ -348,5 +359,165 @@ test.describe('section-template library — management', () => {
 
         // The list reloads without the deleted template.
         await expect.poll(() => picker.locator('.cb-template-picker__item').count()).toBe(0);
+    });
+});
+
+test.describe('section-template library — thumbnails', () => {
+    test('a card draws the saved section: real copy, real picture, real proportions', async ({ page }) => {
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            layout: 'two_cols',
+            blockTypes: ['title', 'text', 'image', 'divider'],
+            columns: [
+                {
+                    preset: 'col-8',
+                    blocks: [
+                        { type: 'title', data: { text: 'Poster heading', size: 'h2', tag: 'h2' } },
+                        { type: 'text', data: { content: 'Body copy that lands on the tile.' } },
+                    ],
+                },
+                {
+                    preset: 'col-4',
+                    blocks: [
+                        { type: 'image', data: { src: '/test-fixtures/pixel', alt: '' } },
+                        { type: 'divider', data: { style: 'solid' } },
+                    ],
+                },
+            ],
+        });
+
+        const { picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        const poster = picker.locator('.cb-template-poster');
+        await expect(poster).toBeVisible();
+
+        // The presets survive the trip: an 8/4 split stays an 8/4 split.
+        const cols = poster.locator('.cb-template-poster__col');
+        await expect(cols).toHaveCount(2);
+        await expect(cols.nth(0)).toHaveCSS('flex-grow', '8');
+        await expect(cols.nth(1)).toHaveCSS('flex-grow', '4');
+
+        // Stored copy reaches the tiles — this is what makes two saved heroes
+        // tell each other apart in the library.
+        await expect(poster.locator('.cb-template-poster__tile--heading')).toHaveText('Poster heading');
+        await expect(poster.locator('.cb-template-poster__tile--text')).toContainText('Body copy');
+        await expect(poster.locator('.cb-template-poster__tile--image img')).toHaveAttribute(
+            'src',
+            '/test-fixtures/pixel',
+        );
+        await expect(poster.locator('.cb-template-poster__tile--rule')).toHaveCount(1);
+
+        // Decorative: the card's accessible name stays the template name, not
+        // a recital of every tile.
+        await expect(poster).toHaveAttribute('aria-hidden', 'true');
+        await expect(picker.locator('.cb-template-picker__item-btn').first()).toHaveAccessibleName(name);
+    });
+
+    test('the thumbnail wears the section background, and repaints its copy for a dark one', async ({ page }) => {
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            blockTypes: ['title'],
+            blocks: [{ type: 'title', data: { text: 'Dark hero', size: 'h2', tag: 'h2' } }],
+            settings: { styling: { backgroundColor: '#101828' } },
+        });
+
+        const { picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        const poster = picker.locator('.cb-template-poster');
+        await expect(poster).toHaveCSS('background-color', 'rgb(16, 24, 40)');
+        // The heading has to survive its own ground — dark-on-dark is what a
+        // background you paint but don't account for looks like.
+        await expect(poster.locator('.cb-template-poster__tile--heading'))
+            .toHaveCSS('color', 'rgb(255, 255, 255)');
+    });
+
+    test('a picture whose upload was deleted degrades to a named tile', async ({ page }) => {
+        // Templates reference uploads by path (see the SectionTemplate entity's
+        // stated trade-off), so the file can disappear under a saved template.
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            blockTypes: ['image'],
+            blocks: [{ type: 'image', data: { src: '/uploads/deleted-long-ago.png', alt: '' } }],
+        });
+
+        const { picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        const tile = picker.locator('.cb-template-poster__tile');
+        await expect(tile).toHaveClass(/cb-template-poster__tile--generic/);
+        await expect(tile.locator('img')).toHaveCount(0);
+        await expect(tile).not.toHaveText('');
+    });
+
+    test('the thumbnail shows where a missing block type sits', async ({ page }) => {
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            blockTypes: ['title', 'countdown'],
+            blocks: [
+                { type: 'title', data: { text: 'Still here', size: 'h2', tag: 'h2' } },
+                { type: 'countdown', data: {} },
+            ],
+        });
+
+        const { picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        const missing = picker.locator('.cb-template-poster__tile--missing');
+        await expect(missing).toHaveCount(1);
+        await expect(missing).toHaveText('countdown');
+        // The words are still on the button; the poster adds the "where".
+        await expect(picker.locator('.cb-template-picker__item-btn')).toHaveAttribute('title', /countdown/);
+    });
+
+    test('a template whose envelope cannot be read renders as a plain named card', async ({ page }) => {
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await stageTemplate(page, {
+            name,
+            format: 'content-blocks/section-vX',
+            blockTypes: ['title'],
+            // An unreadable envelope means the columns cannot be trusted either;
+            // the card must degrade to its name rather than frame an empty box.
+            columns: [],
+            blocks: [],
+        });
+
+        const { picker } = await openLibraryOn(page, await createFreshPage(page));
+        await picker.locator('.cb-template-picker__search').fill(name);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+
+        await expect(picker.locator('.cb-template-poster')).toHaveCount(0);
+        await expect(picker.locator('.cb-template-picker__item-name')).toHaveText(name);
+        await expect(picker.locator('.cb-template-picker__item-btn')).toBeDisabled();
+    });
+
+    test('a section saved from the builder gets a thumbnail without a reload', async ({ page }) => {
+        const templateName = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+        const frame = await openBuilder(page, await createFreshPage(page));
+        await addFullSection(page, frame);
+        await addFirstBlock(page, frame);
+        await saveFirstSectionAsTemplate(page, frame, templateName);
+
+        // Saving ran from the section's toolbar, but the sidebar lands back on
+        // the library on its own — no click needed. That is where the editor
+        // can see what they just created.
+        const picker = page.locator('.cb-sidebar-library');
+        await expect(picker).toBeVisible();
+
+        // Saving invalidates the cached list, so the library re-fetches — and
+        // the poster comes from that same response, no extra round trip.
+        await picker.locator('.cb-template-picker__search').fill(templateName);
+        await expect.poll(() => picker.locator('.cb-template-picker__item-btn').count()).toBe(1);
+        await expect(picker.locator('.cb-template-poster__tile')).not.toHaveCount(0);
     });
 });

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -18,7 +20,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * (re)load to init, so this block does not opt into preview hot reload.
  */
 #[AsContentBlock(priority: 30)]
-class EmbedBlock extends AbstractKitBlock
+class EmbedBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function getType(): string
     {
@@ -60,6 +62,16 @@ class EmbedBlock extends AbstractKitBlock
     protected function defaults(): array
     {
         return ['url' => '', 'title' => ''];
+    }
+
+    /**
+     * No thumbnail without calling the provider, which a list endpoint has no
+     * business doing — so the tile stays generic and carries the title when
+     * the editor gave one.
+     */
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        return BlockPreviewHint::generic(self::previewString($data, 'title'));
     }
 
     public function getViewTemplate(): ?string

@@ -135,6 +135,14 @@ final class MyBlock implements BlockTypeInterface
 
 Le bloc sera automatiquement détecté et enregistré dans le `BlockTypeRegistry` grâce à l'autoconfiguration Symfony.
 
+### Vignettes de la bibliothèque de sections
+
+Les cartes de la bibliothèque portent une vignette dessinée à la volée depuis le payload du snapshot (`SectionPosterBuilder`) : presets de colonnes réels, une tuile par bloc, avec la vraie image (`<img>` vers le fichier stocké) et le vrai texte. **Ce n'est pas une capture** — donc pas de colonne, pas de migration, pas de stockage, pas de navigateur headless, et les modèles enregistrés avant la fonctionnalité en ont une aussi. Le spec JSON est exposé par `list()` sous la clé `poster` et rendu en DOM par `cb-builder#_buildTemplatePoster`.
+
+La vignette porte aussi la **couleur de fond** de la section (y compris celle héritée de son preset `styleName`, résolue avec la même précédence que `BlockRenderer::applyPresetSettings`) et celle de chaque bloc — le sous-arbre `styling` est schéma core, donc lu directement, sans passer par un hint. Le texte est repeint selon la luminance du fond, à l'échelle de la section et de chaque tuile. Padding/marges/min-height sont volontairement ignorés (bruit à cette taille).
+
+Le core ignore la forme de `block.data` : un type de bloc déclare ce qu'il vaut la peine de montrer via l'interface **optionnelle** `BlockPreviewHintInterface` (`previewHint(array $data): ?BlockPreviewHint`), avec six formes — `image`, `heading`, `text`, `button`, `rule`, `generic`. Ne pas l'implémenter reste correct : la tuile affiche alors le label du type. Le `$data` reçu est brut, d'âge inconnu et non résolu (aucun `BlockDataResolverInterface` n'est passé) — lire défensivement. Le kit l'implémente sur 14 blocs ; `icon`, `table` et `html_raw` restent volontairement des tuiles nommées.
+
 ## UI Admin
 
 ### Live Components (CRUD serveur)

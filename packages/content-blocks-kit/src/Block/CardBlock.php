@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\Kit\Form\Type\CardItemType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -20,7 +22,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * The column-count field reveals only for the grid layout (cb-condition).
  */
 #[AsContentBlock(priority: 65)]
-class CardBlock extends AbstractKitBlock
+class CardBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function defaultOptions(): array
     {
@@ -109,6 +111,20 @@ class CardBlock extends AbstractKitBlock
                 ['src' => '', 'title' => 'Card title', 'content' => 'Card text', 'url' => '', 'buttonText' => ''],
             ],
         ];
+    }
+
+    /**
+     * A card grid reads first as pictures, so the cover wins; a card set with
+     * no images falls back to the first title.
+     */
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        $cover = self::previewFirst($data, 'items', 'src');
+        if ($cover !== null) {
+            return BlockPreviewHint::image($cover, self::previewFirst($data, 'items', 'title'));
+        }
+
+        return BlockPreviewHint::heading(self::previewFirst($data, 'items', 'title'));
     }
 
     public function getViewTemplate(): ?string

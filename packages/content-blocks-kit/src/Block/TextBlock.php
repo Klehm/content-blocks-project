@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\Form\Type\PaletteColorType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -12,7 +14,7 @@ use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 #[AsContentBlock(priority: 90)]
-class TextBlock extends AbstractKitBlock
+class TextBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function getType(): string
     {
@@ -54,6 +56,11 @@ class TextBlock extends AbstractKitBlock
     protected function defaults(): array
     {
         return ['content' => '', 'color' => ''];
+    }
+
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        return BlockPreviewHint::text(self::previewString($data, 'content'));
     }
 
     public function getViewTemplate(): ?string

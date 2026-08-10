@@ -382,7 +382,9 @@
   letter-spacing: var(--cb-caption-tracking);
 }
 .cb-sidebar-library .cb-template-picker__list {
-  max-height: 40vh;
+  /* Roomier than the flat list it replaced: the rows are thumbnail cards now,
+     and at 40vh barely two of them fitted. */
+  max-height: 55vh;
   overflow-y: auto;
 }
 
@@ -454,10 +456,33 @@
 
 /* Section-template library picker: shares the replace picker's shell +
    item classes, adds a per-row delete affordance, a disabled state for
-   incompatible templates, and a "load more" pagination control. */
+   incompatible templates, and a "load more" pagination control.
+   Unlike the replace picker's rows, these are cards: a thumbnail drawn from
+   the stored payload sits above the name (see .cb-template-poster below). */
+/* Declared after the shared list rule above, which sets the replace picker's
+   denser 0.125rem — cards need air between them, dense rows do not. */
+.cb-template-picker__list {
+  gap: 0.5rem;
+}
 .cb-template-picker__item {
   align-items: center;
   gap: 0.25rem;
+  /* Anchors the delete button over the card's top-right corner — beside the
+     name it would eat width the thumbnail needs. */
+  position: relative;
+}
+.cb-template-picker__item-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.cb-template-picker__item-name {
+  /* One line: names are editor-typed and can run long, and a card that grows
+     with its name breaks the grid rhythm the thumbnails create. */
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* These three matched `.cb-replace-picker__item-btn` until now — a class the
    library's rows never carry, so an incompatible template looked exactly like
@@ -473,7 +498,7 @@
 /* Partially usable: some of its blocks will be skipped. Still clickable — the
    marker warns without taking the useful insert away (the button's title spells
    out which types). */
-.cb-template-picker__item--partial .cb-template-picker__item-btn::after {
+.cb-template-picker__item--partial .cb-template-picker__item-name::after {
   content: "!";
   display: inline-flex;
   align-items: center;
@@ -489,9 +514,15 @@
   vertical-align: middle;
 }
 .cb-template-picker__delete {
-  flex: 0 0 auto;
-  background: transparent;
-  border: 1px solid transparent;
+  /* Floats over the thumbnail's corner. Kept permanently visible rather than
+     revealed on hover: it is already in the tab order, and a control you can
+     focus but not see is worse than one that is simply there. */
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
+  background: var(--cb-panel);
+  border: 1px solid var(--cb-line);
   border-radius: var(--cb-radius-xs);
   padding: 0.25rem 0.375rem;
   font-size: 0.9rem;
@@ -522,6 +553,188 @@
 .cb-template-picker__more:focus-visible {
   background: rgba(var(--cb-accent-rgb), 0.08);
   outline: none;
+}
+
+/* ---- Section-template thumbnail ("poster") ----
+ *
+ * Not a screenshot: a small diagram of the saved section, built from the
+ * payload by SectionPosterBuilder and drawn as DOM by the builder controller.
+ * Pictures are real <img> elements and headings real text, which is what lets
+ * it work on any host (no rasterizer, no CSS inlining, nothing to store) and
+ * on templates saved long before the feature existed.
+ *
+ * It reads as a *sketch*, deliberately: every tile is a flat neutral shape at
+ * a size where no one could mistake it for the rendered section. */
+.cb-template-poster {
+  display: flex;
+  gap: 3px;
+  /* Height follows the content, within bounds. A fixed frame left a short
+     section floating in dead space, which reads as a thumbnail that failed to
+     load rather than as a short section. */
+  min-height: 3.5rem;
+  max-height: 12rem;
+  padding: 4px;
+  background: var(--cb-surface);
+  border: 1px solid var(--cb-line);
+  border-radius: var(--cb-radius-xs);
+  overflow: hidden;
+}
+.cb-template-poster__col {
+  /* flex-grow carries the column's real preset (col-4 → 4); basis 0 makes the
+     ratio depend on that alone and not on the tiles inside. */
+  flex: 0 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+.cb-template-poster__tile {
+  display: block;
+  flex: 0 0 auto;
+  min-height: 6px;
+  padding: 2px 3px;
+  border-radius: 2px;
+  background: var(--cb-panel);
+  color: var(--cb-text-2);
+  font-size: 7px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cb-template-poster__tile--heading {
+  font-weight: 700;
+  font-size: 8px;
+  color: var(--cb-text);
+}
+.cb-template-poster__tile--text {
+  color: var(--cb-muted);
+  /* Two lines of real copy, then cut — enough to tell two text blocks apart. */
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.cb-template-poster__tile--image {
+  /* The one tile that claims leftover height: a picture is what the eye uses
+     to recognise a section, so it gets the room the text tiles don't need —
+     and, in a column of nothing but text tiles, sets the poster's height. */
+  flex: 1 1 auto;
+  min-height: 3.25rem;
+  padding: 0;
+  background: var(--cb-field-bg);
+}
+.cb-template-poster__tile--image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 2px;
+}
+.cb-template-poster__tile--button {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--cb-accent);
+  color: var(--cb-on-solid);
+  font-size: 7px;
+}
+.cb-template-poster__tile--rule {
+  min-height: 0;
+  height: 1px;
+  padding: 0;
+  margin: 2px 0;
+  background: var(--cb-line-strong);
+}
+/* A block with nothing to preview says its own name rather than showing an
+   empty shape — "Tableau" is information, a blank rectangle is not. */
+.cb-template-poster__tile--generic {
+  background: transparent;
+  border: 1px dashed var(--cb-line-strong);
+  color: var(--cb-faint);
+}
+/* Genuinely empty content (a title block with no title yet) — a plain bar,
+   because there is nothing to name. */
+.cb-template-poster__tile--blank {
+  min-height: 5px;
+  background: var(--cb-line);
+}
+/* A block type this build no longer registers. The card's tooltip lists them;
+   the poster shows *where* they sit. */
+.cb-template-poster__tile--missing {
+  border: 1px dashed rgba(var(--cb-danger-rgb), 0.5);
+  background: rgba(var(--cb-danger-rgb), 0.06);
+  color: var(--cb-danger);
+}
+.cb-template-poster__more {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  color: var(--cb-faint);
+  font-size: 7px;
+  line-height: 1.4;
+}
+
+/* ---- Poster on a coloured section ----
+ *
+ * The section's own background (or its style preset's) is painted on the
+ * frame, so a saved dark hero reads as a dark hero in the library rather than
+ * as the same grey sketch as everything else.
+ *
+ * The tiles then have to give way: their default panel fill is opaque and
+ * would tile white rectangles over the colour. Translucent white/black lets
+ * the section's colour carry through while keeping each block legible as a
+ * shape — and `--dark` flips the copy so it survives its own ground (the
+ * server decided which, from the colour's luminance). */
+.cb-template-poster--tinted {
+  border-color: rgba(var(--cb-shadow-rgb), 0.18);
+}
+.cb-template-poster--tinted .cb-template-poster__tile {
+  background: rgba(255, 255, 255, 0.55);
+}
+.cb-template-poster--tinted .cb-template-poster__tile--generic,
+.cb-template-poster--tinted .cb-template-poster__tile--rule {
+  background: transparent;
+}
+.cb-template-poster--tinted .cb-template-poster__tile--rule {
+  background: rgba(var(--cb-shadow-rgb), 0.35);
+}
+
+.cb-template-poster--dark .cb-template-poster__tile {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+.cb-template-poster--dark .cb-template-poster__tile--heading {
+  color: #fff;
+}
+.cb-template-poster--dark .cb-template-poster__tile--text,
+.cb-template-poster--dark .cb-template-poster__tile--generic,
+.cb-template-poster--dark .cb-template-poster__more {
+  color: rgba(255, 255, 255, 0.75);
+}
+.cb-template-poster--dark .cb-template-poster__tile--generic {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.cb-template-poster--dark .cb-template-poster__tile--rule {
+  background: rgba(255, 255, 255, 0.4);
+}
+.cb-template-poster--dark .cb-template-poster__tile--blank {
+  background: rgba(255, 255, 255, 0.28);
+}
+/* A tile with its own stored colour keeps it — the inline background beats
+   both rule sets above, which is the intent: the block said so explicitly.
+   Its copy then has to answer for itself, since a red card can be dark ground
+   inside a light section. Declared last so it wins over the --dark block. */
+.cb-template-poster .cb-template-poster__tile--on-dark,
+.cb-template-poster--dark .cb-template-poster__tile--on-dark {
+  color: #fff;
+}
+.cb-template-poster .cb-template-poster__tile--on-light,
+.cb-template-poster--dark .cb-template-poster__tile--on-light {
+  color: var(--cb-text);
 }
 
 /* ---- Import / Export topbar button + picker overlay ----

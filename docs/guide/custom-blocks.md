@@ -65,6 +65,8 @@ The block is detected automatically as long as its class lives in a namespace lo
 
 Beyond the interface, the `#[AsContentBlock]` attribute takes a `priority` that [orders the block in the picker](#ordering-blocks-in-the-picker), and — because a block is a real service — you can [inject dependencies](#injecting-services) through its constructor.
 
+One more capability lives outside `BlockTypeInterface`, on an interface of its own: implement `BlockPreviewHintInterface` to say what your block should look like in a [section-library thumbnail](#showing-up-in-section-library-thumbnails).
+
 ## The view template
 
 `getViewTemplate()` returns the Twig template that renders the block — on the **public page and inside the preview alike**. It receives the block's stored `data` array (rendered with `with_context = false`, so `data` is the only variable in scope):
@@ -202,6 +204,52 @@ public function supportsPreviewHotReload(): bool
 ```
 
 This is about the rendered view, not the edit form — a block whose *form* uses JavaScript (upload widget, rich-text editor) can still opt in, because that JS lives in the sidebar, never in the preview. If the view needs a little JS of its own, re-initialise idempotently from the `cb:block:rendered` event. See [Rendering → Preview hot reload](./rendering.md#preview-hot-reload) for the full details.
+
+## Showing up in section-library thumbnails
+
+Every card in the section library carries a thumbnail: a small diagram of the saved section, drawn from its stored payload — real column proportions, one tile per block. It is **not** a screenshot, so there is nothing to store, no image processing, and no headless browser anywhere.
+
+The package knows the *structure* of a saved section, but not what your block **holds** — that is your business. So a block that owns something worth seeing at thumbnail size says so through the optional `BlockPreviewHintInterface`:
+
+```php
+use ContentBlocks\BlockType\AbstractBlockType;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
+
+#[AsContentBlock]
+final class QuoteBlock extends AbstractBlockType implements BlockPreviewHintInterface
+{
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        return BlockPreviewHint::text($data['quote'] ?? null);
+    }
+
+    // getType(), buildForm(), … as usual
+}
+```
+
+Six shapes are available, each a named constructor on `BlockPreviewHint`:
+
+| Shape | Renders as | Use for |
+|---|---|---|
+| `image(string $src, ?string $caption = null)` | A real `<img>` pointing at the stored file | Pictures. An empty `$src` degrades to `generic($caption)` on its own. |
+| `heading(?string $text)` | One emphasised line | Titles, the first item of an accordion or tab set. |
+| `text(?string $text)` | Small copy, clamped to two lines | Paragraphs, list items joined together. |
+| `button(?string $label)` | A pill | Calls to action. |
+| `rule()` | A hairline | Dividers. |
+| `generic(?string $text = null)` | A dashed tile bearing the block's label | Anything with nothing to preview. |
+
+Text is collapsed onto one line and truncated for you, and an empty value degrades to `generic()` — you do not need to guard for either.
+
+::: tip Implementing it is optional
+A block that does not implement the interface still appears in the thumbnail, as a tile bearing its label. Nothing breaks and no existing block needs touching — add a hint when it buys recognition, skip it when it wouldn't.
+:::
+
+::: warning The `$data` you receive is raw and old
+It is the payload exactly as it was persisted — possibly by an earlier version of your block, or by a host that has since changed its schema. Read defensively (null-coalesce, check types) and return `null` rather than assuming a shape. No [`BlockDataResolverInterface`](./rendering.md) has run on it either: a hint sees **stored** values, not resolved ones.
+:::
+
+Colours need no hint. Background colours live in the `styling` sub-form the package adds to every block and every section, so the thumbnail reads them directly — including the one a section inherits from its style preset — and repaints its copy for dark grounds.
 
 ## Styling your block
 

@@ -156,6 +156,50 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
+     * Reads a string field out of stored block data.
+     *
+     * Every {@see \ContentBlocks\BlockType\BlockPreviewHintInterface::previewHint()}
+     * in the kit goes through this: the data it receives is whatever was
+     * persisted, possibly by an older version of the block, so a field that is
+     * a string today may be absent or another type entirely in an old row.
+     */
+    protected static function previewString(array $data, string $key): ?string
+    {
+        $value = $data[$key] ?? null;
+
+        return is_string($value) ? $value : null;
+    }
+
+    /**
+     * Entries of a collection field, keeping only the well-formed ones — same
+     * defensive contract as {@see previewString()}.
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected static function previewItems(array $data, string $key = 'items'): array
+    {
+        $items = $data[$key] ?? null;
+
+        return is_array($items) ? array_values(array_filter($items, 'is_array')) : [];
+    }
+
+    /**
+     * First non-empty value of `$key` across a collection's entries — the
+     * cover image of a gallery, the heading of the first card, and so on.
+     */
+    protected static function previewFirst(array $data, string $itemsKey, string $key): ?string
+    {
+        foreach (self::previewItems($data, $itemsKey) as $item) {
+            $value = self::previewString($item, $key);
+            if ($value !== null && trim($value) !== '') {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Machine-readable description of this block's host-configurable surface,
      * for tooling (see the `content-blocks-kit:blocks` command). Reads the same
      * coded schema `buildForm()` consumes, so it never drifts from reality.

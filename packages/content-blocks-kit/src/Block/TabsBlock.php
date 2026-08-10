@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\Kit\Form\Type\TabEntryType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Translation\TranslatableMessage;
@@ -13,7 +15,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
 
 #[AsContentBlock(priority: 60)]
-class TabsBlock extends AbstractKitBlock
+class TabsBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function getType(): string
     {
@@ -63,6 +65,12 @@ class TabsBlock extends AbstractKitBlock
                 ['title' => 'Tab 1', 'content' => ''],
             ],
         ];
+    }
+
+    /** The first tab's label stands in for the set. */
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        return BlockPreviewHint::heading(self::previewFirst($data, 'items', 'title'));
     }
 
     public function getViewTemplate(): ?string

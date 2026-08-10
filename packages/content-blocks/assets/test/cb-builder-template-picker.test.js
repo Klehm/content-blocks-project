@@ -439,3 +439,276 @@ describe('cb-builder template picker: save section as template', () => {
         expect(reqSpy).not.toHaveBeenCalled();
     });
 });
+
+describe('cb-builder template picker: poster thumbnails', () => {
+    let controller, list;
+
+    beforeEach(() => {
+        ({ controller, list } = setupController());
+        vi.spyOn(console, 'log').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    /** Paints one item and returns its rendered card. */
+    async function paint(item) {
+        global.fetch = vi.fn(() => okJson({ items: [item], hasMore: false }));
+        await controller.openTemplatePicker();
+
+        return list.querySelector('.cb-template-picker__item');
+    }
+
+    const poster = (columns, layout = 'full') => ({ layout, columns });
+    const tile = (kind, extra = {}) => ({ kind, text: null, image: null, label: 'Block', missing: false, ...extra });
+
+    it('draws one tile per block, in payload order', async () => {
+        const card = await paint({
+            id: 1,
+            name: 'Hero',
+            insertable: true,
+            canManage: false,
+            poster: poster([{ width: 12, more: 0, tiles: [
+                tile('heading', { text: 'Our story' }),
+                tile('text', { text: 'Some words' }),
+                tile('button', { text: 'Buy' }),
+            ] }]),
+        });
+
+        const tiles = card.querySelectorAll('.cb-template-poster__tile');
+        expect(tiles).toHaveLength(3);
+        expect(tiles[0].classList.contains('cb-template-poster__tile--heading')).toBe(true);
+        expect(tiles[0].textContent).toBe('Our story');
+        expect(tiles[2].classList.contains('cb-template-poster__tile--button')).toBe(true);
+    });
+
+    it('carries the real column presets so proportions survive', async () => {
+        const card = await paint({
+            id: 2,
+            name: 'Split',
+            insertable: true,
+            canManage: false,
+            poster: poster([
+                { width: 8, more: 0, tiles: [] },
+                { width: 4, more: 0, tiles: [] },
+            ], 'two_cols'),
+        });
+
+        const cols = card.querySelectorAll('.cb-template-poster__col');
+        expect(cols).toHaveLength(2);
+        expect(cols[0].style.flexGrow).toBe('8');
+        expect(cols[1].style.flexGrow).toBe('4');
+    });
+
+    it('renders a picture as a lazy <img> pointing at the stored file', async () => {
+        const card = await paint({
+            id: 3,
+            name: 'Gallery',
+            insertable: true,
+            canManage: false,
+            poster: poster([{ width: 12, more: 0, tiles: [tile('image', { image: '/uploads/a.png' })] }]),
+        });
+
+        const img = card.querySelector('.cb-template-poster__tile--image img');
+        expect(img).not.toBeNull();
+        expect(img.getAttribute('src')).toBe('/uploads/a.png');
+        expect(img.loading).toBe('lazy');
+        // Decorative inside an already-labelled card.
+        expect(img.alt).toBe('');
+    });
+
+    it('falls back to the block label when the stored upload is gone', async () => {
+        // Templates reference uploads by path, so deleting the file leaves the
+        // tile pointing at nothing. A broken-image glyph would read as "the
+        // thumbnail is broken" rather than "that picture is gone".
+        const card = await paint({
+            id: 10,
+            name: 'Hero',
+            insertable: true,
+            canManage: false,
+            poster: poster([{ width: 12, more: 0, tiles: [tile('image', { image: '/uploads/gone.png', label: 'Image' })] }]),
+        });
+
+        const el = card.querySelector('.cb-template-poster__tile');
+        el.querySelector('img').dispatchEvent(new Event('error'));
+
+        expect(el.querySelector('img')).toBeNull();
+        expect(el.classList.contains('cb-template-poster__tile--generic')).toBe(true);
+        expect(el.classList.contains('cb-template-poster__tile--image')).toBe(false);
+        expect(el.textContent).toBe('Image');
+    });
+
+    it('names a block that has nothing to preview instead of drawing a blank', async () => {
+        const card = await paint({
+            id: 4,
+            name: 'Mixed',
+            insertable: true,
+            canManage: false,
+            poster: poster([{ width: 12, more: 0, tiles: [
+                tile('generic', { label: 'Tableau' }),
+                tile('image', { image: null, label: 'Image' }),
+            ] }]),
+        });
+
+        const tiles = card.querySelectorAll('.cb-template-poster__tile');
+        expect(tiles[0].textContent).toBe('Tableau');
+        // A picture whose path the server refused still says what it is.
+        expect(tiles[1].textContent).toBe('Image');
+        expect(tiles[1].querySelector('img')).toBeNull();
+    });
+
+    it('marks a tile whose block type is gone', async () => {
+        const card = await paint({
+            id: 5,
+            name: 'Legacy',
+            insertable: true,
+            skippedTypes: ['map'],
+            canManage: false,
+            poster: poster([{ width: 12, more: 0, tiles: [tile('generic', { label: 'map', missing: true })] }]),
+        });
+
+        const missing = card.querySelector('.cb-template-poster__tile--missing');
+        expect(missing).not.toBeNull();
+        expect(missing.textContent).toBe('map');
+    });
+
+    it('paints the section background on the frame, flagging a dark one', async () => {
+        const card = await paint({
+            id: 11,
+            name: 'Hero',
+            insertable: true,
+            canManage: false,
+            poster: {
+                layout: 'full',
+                background: '#101828',
+                dark: true,
+                columns: [{ width: 12, more: 0, tiles: [tile('heading', { text: 'Dark hero' })] }],
+            },
+        });
+
+        const frame = card.querySelector('.cb-template-poster');
+        expect(frame.style.background).toBe('rgb(16, 24, 40)');
+        expect(frame.classList.contains('cb-template-poster--tinted')).toBe(true);
+        // The server decided this from the colour's luminance; the class is
+        // what repaints the tiles so their copy survives the ground.
+        expect(frame.classList.contains('cb-template-poster--dark')).toBe(true);
+    });
+
+    it('tints without the dark treatment when the background is light', async () => {
+        const card = await paint({
+            id: 12,
+            name: 'Hero',
+            insertable: true,
+            canManage: false,
+            poster: {
+                layout: 'full',
+                background: '#faf5ee',
+                dark: false,
+                columns: [{ width: 12, more: 0, tiles: [] }],
+            },
+        });
+
+        const frame = card.querySelector('.cb-template-poster');
+        expect(frame.classList.contains('cb-template-poster--tinted')).toBe(true);
+        expect(frame.classList.contains('cb-template-poster--dark')).toBe(false);
+    });
+
+    it('leaves the frame untouched when the section has no background', async () => {
+        const card = await paint({
+            id: 13,
+            name: 'Hero',
+            insertable: true,
+            canManage: false,
+            poster: poster([{ width: 12, more: 0, tiles: [] }]),
+        });
+
+        const frame = card.querySelector('.cb-template-poster');
+        expect(frame.style.background).toBe('');
+        expect(frame.classList.contains('cb-template-poster--tinted')).toBe(false);
+    });
+
+    it('carries a block-level background onto its tile', async () => {
+        const card = await paint({
+            id: 14,
+            name: 'Cards',
+            insertable: true,
+            canManage: false,
+            poster: poster([{ width: 12, more: 0, tiles: [
+                tile('heading', { text: 'Coloured', background: '#eb0540' }),
+                tile('heading', { text: 'Plain' }),
+            ] }]),
+        });
+
+        const tiles = card.querySelectorAll('.cb-template-poster__tile');
+        expect(tiles[0].style.background).toBe('rgb(235, 5, 64)');
+        expect(tiles[1].style.background).toBe('');
+    });
+
+    it('flips a coloured tile\'s copy according to its own colour, not the section\'s', async () => {
+        const card = await paint({
+            id: 15,
+            name: 'Cards',
+            insertable: true,
+            canManage: false,
+            poster: {
+                layout: 'full',
+                background: '#faf5ee',
+                dark: false,
+                columns: [{ width: 12, more: 0, tiles: [
+                    tile('heading', { text: 'Dark card', background: '#eb0540', backgroundDark: true }),
+                    tile('heading', { text: 'Pale card', background: '#fff8e1', backgroundDark: false }),
+                ] }],
+            },
+        });
+
+        const tiles = card.querySelectorAll('.cb-template-poster__tile');
+        expect(tiles[0].classList.contains('cb-template-poster__tile--on-dark')).toBe(true);
+        expect(tiles[1].classList.contains('cb-template-poster__tile--on-light')).toBe(true);
+    });
+
+    it('folds the blocks beyond the cap into a +N chip', async () => {
+        const card = await paint({
+            id: 6,
+            name: 'Long',
+            insertable: true,
+            canManage: false,
+            poster: poster([{ width: 12, more: 4, tiles: [tile('heading', { text: 'x' })] }]),
+        });
+
+        expect(card.querySelector('.cb-template-poster__more').textContent).toBe('+4');
+    });
+
+    it('leaves the poster out of the accessibility tree, keeping the name as the label', async () => {
+        const card = await paint({
+            id: 7,
+            name: 'Hero',
+            insertable: true,
+            canManage: false,
+            poster: poster([{ width: 12, more: 0, tiles: [tile('heading', { text: 'Our story' })] }]),
+        });
+
+        expect(card.querySelector('.cb-template-poster').getAttribute('aria-hidden')).toBe('true');
+        expect(card.querySelector('.cb-template-picker__item-name').textContent).toBe('Hero');
+    });
+
+    it('falls back to a plain named card when the payload has nothing to draw', async () => {
+        for (const noPoster of [undefined, null, { layout: 'full', columns: [] }]) {
+            const card = await paint({ id: 8, name: 'Ancient', insertable: true, canManage: false, poster: noPoster });
+
+            expect(card.querySelector('.cb-template-poster')).toBeNull();
+            expect(card.querySelector('.cb-template-picker__item-name').textContent).toBe('Ancient');
+        }
+    });
+
+    it('still renders the delete affordance over a card that has a poster', async () => {
+        const card = await paint({
+            id: 9,
+            name: 'Hero',
+            insertable: true,
+            canManage: true,
+            poster: poster([{ width: 12, more: 0, tiles: [tile('rule')] }]),
+        });
+
+        expect(card.querySelector('.cb-template-picker__delete')).not.toBeNull();
+        // A rule carries no copy — it must not fall back to a label.
+        expect(card.querySelector('.cb-template-poster__tile--rule').textContent).toBe('');
+    });
+});

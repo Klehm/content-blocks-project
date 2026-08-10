@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\Form\Type\ImageUploadType;
 use ContentBlocks\Form\Type\Styling\BoxSpacingType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -30,7 +32,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * the generic cb-condition controller.
  */
 #[AsContentBlock(priority: 70)]
-class ImageBlock extends AbstractKitBlock
+class ImageBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function getType(): string
     {
@@ -164,6 +166,20 @@ class ImageBlock extends AbstractKitBlock
             'caption' => '',
             'borderRadius' => ['linked' => true],
         ];
+    }
+
+    /**
+     * `src` is a storage path, so the tile shows the actual picture — the
+     * single biggest win of drawing the poster in the DOM rather than
+     * rasterising it. An image still being uploaded has none, and
+     * BlockPreviewHint::image() degrades that to a labelled tile.
+     */
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        return BlockPreviewHint::image(
+            self::previewString($data, 'src') ?? '',
+            self::previewString($data, 'caption') ?? self::previewString($data, 'alt'),
+        );
     }
 
     public function getViewTemplate(): ?string

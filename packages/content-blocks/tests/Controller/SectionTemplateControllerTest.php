@@ -7,9 +7,12 @@ namespace ContentBlocks\Tests\Controller;
 use ContentBlocks\Controller\SectionTemplateController;
 use ContentBlocks\Entity\SectionTemplate;
 use ContentBlocks\Security\AccessCheckerInterface;
+use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
+use ContentBlocks\Tests\Fixtures\EchoTranslator;
 use ContentBlocks\SectionTemplate\AllowAllSectionTemplateManager;
 use ContentBlocks\SectionTemplate\DenyAllSectionTemplateManager;
+use ContentBlocks\SectionTemplate\SectionPosterBuilder;
 use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
@@ -41,6 +44,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
             new SectionTemplateSerializer(),
             new SectionTemplateInstantiator($this->makeRegistry(), $this->makeDataKeys()),
             $this->makeRegistry(),
+            new SectionPosterBuilder($this->makeRegistry(), new EchoTranslator(), new SectionStyleRegistry()),
             $this->makeCsrfManager($csrfValid),
             $upgrader ?? new DenyOnMismatchUpgrader(),
             new EnvelopeUpgradeChain(),

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\Kit\Form\Type\ListItemType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -17,7 +19,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * A styled list (bulleted, checkmarks or numbered) of short text items.
  */
 #[AsContentBlock(priority: 40)]
-class ListBlock extends AbstractKitBlock
+class ListBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function getType(): string
     {
@@ -84,6 +86,20 @@ class ListBlock extends AbstractKitBlock
                 ['text' => 'List item'],
             ],
         ];
+    }
+
+    /** Items joined into one line; the hint truncates whatever overflows. */
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        $texts = [];
+        foreach (self::previewItems($data) as $item) {
+            $text = self::previewString($item, 'text');
+            if ($text !== null && trim($text) !== '') {
+                $texts[] = trim($text);
+            }
+        }
+
+        return BlockPreviewHint::text($texts === [] ? null : implode(' · ', $texts));
     }
 
     public function getViewTemplate(): ?string

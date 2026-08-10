@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\Form\Type\PaletteColorType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -15,7 +17,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * A horizontal rule with a line style and an optional palette color.
  */
 #[AsContentBlock(priority: 25)]
-class DividerBlock extends AbstractKitBlock
+class DividerBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function getType(): string
     {
@@ -68,6 +70,11 @@ class DividerBlock extends AbstractKitBlock
             'style' => 'solid',
             'color' => '',
         ];
+    }
+
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        return BlockPreviewHint::rule();
     }
 
     public function getViewTemplate(): ?string

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPreviewHint;
+use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -19,7 +21,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * choice, optional full-width and new-tab.
  */
 #[AsContentBlock(priority: 55)]
-class ButtonBlock extends AbstractKitBlock
+class ButtonBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function getType(): string
     {
@@ -114,6 +116,11 @@ class ButtonBlock extends AbstractKitBlock
             'fullWidth' => false,
             'newTab' => false,
         ];
+    }
+
+    public function previewHint(array $data): ?BlockPreviewHint
+    {
+        return BlockPreviewHint::button(self::previewString($data, 'text'));
     }
 
     public function getViewTemplate(): ?string

@@ -1649,6 +1649,119 @@ export default class extends Controller {
         }
     }
 
+    /**
+     * Draws a template's thumbnail from the poster spec produced server-side
+     * by SectionPosterBuilder — column widths taken from the real presets, one
+     * tile per block.
+     *
+     * Built in the DOM rather than rasterized: a picture stays a real `<img>`
+     * pointing at the stored file, and a heading stays real text. That is what
+     * makes the thumbnail survive a host whose CSS lives on another origin,
+     * and what lets templates saved long before this feature get one too.
+     *
+     * Returns null when there is nothing to draw, so the caller can fall back
+     * to the plain named row instead of framing an empty box.
+     */
+    _buildTemplatePoster(poster) {
+        const columns = Array.isArray(poster?.columns) ? poster.columns : [];
+        if (columns.length === 0) return null;
+
+        const root = document.createElement('div');
+        root.className = 'cb-template-poster';
+        // Decorative: the card's name is its accessible label.
+        root.setAttribute('aria-hidden', 'true');
+
+        // The section's own background (or the one its style preset brings —
+        // the server resolved that). `dark` comes with it: the tiles have to
+        // repaint for a dark ground or the thumbnail's copy disappears into it.
+        if (typeof poster.background === 'string' && poster.background !== '') {
+            root.style.background = poster.background;
+            root.classList.add('cb-template-poster--tinted');
+            if (poster.dark) root.classList.add('cb-template-poster--dark');
+        }
+
+        for (const column of columns) {
+            const col = document.createElement('div');
+            col.className = 'cb-template-poster__col';
+            // Preset widths (col-4 / col-8 …) so a sidebar column stays a
+            // sidebar column in the thumbnail. Flex basis 0 + grow keeps the
+            // ratio whatever the tiles inside happen to measure.
+            col.style.flexGrow = String(Number(column?.width) || 12);
+
+            for (const tile of (Array.isArray(column?.tiles) ? column.tiles : [])) {
+                col.appendChild(this._buildPosterTile(tile));
+            }
+
+            const more = Number(column?.more) || 0;
+            if (more > 0) {
+                const chip = document.createElement('span');
+                chip.className = 'cb-template-poster__more';
+                chip.textContent = `+${more}`;
+                col.appendChild(chip);
+            }
+
+            root.appendChild(col);
+        }
+
+        return root;
+    }
+
+    /** One block, as one tile. Unknown kinds degrade to the generic chip. */
+    _buildPosterTile(tile) {
+        const kind = typeof tile?.kind === 'string' ? tile.kind : 'generic';
+        const el = document.createElement('span');
+        el.className = `cb-template-poster__tile cb-template-poster__tile--${kind}`;
+        if (tile?.missing) el.classList.add('cb-template-poster__tile--missing');
+        // A block-level background, from the core `styling` sub-form every
+        // block carries. Set on the tile so a section made of coloured cards
+        // still reads as coloured cards at thumbnail size.
+        if (typeof tile?.background === 'string' && tile.background !== '') {
+            el.style.background = tile.background;
+            // A tile can be dark inside a light section (a red card on cream),
+            // so it answers the contrast question for itself.
+            el.classList.add(tile.backgroundDark
+                ? 'cb-template-poster__tile--on-dark'
+                : 'cb-template-poster__tile--on-light');
+        }
+
+        if (kind === 'image' && typeof tile.image === 'string' && tile.image !== '') {
+            const img = document.createElement('img');
+            // Ten cards' worth of thumbnails would otherwise all fetch at once
+            // for a list the editor may never scroll through.
+            img.loading = 'lazy';
+            img.alt = '';
+            // A template stores the *path* to an upload, not the file, so
+            // deleting that upload leaves this pointing at nothing (the known
+            // trade-off, spelled out on the SectionTemplate entity). Falling
+            // back to the labelled tile beats a broken-image glyph, which reads
+            // as "the thumbnail is broken" rather than "that picture is gone".
+            img.addEventListener('error', () => {
+                img.remove();
+                el.classList.remove('cb-template-poster__tile--image');
+                el.classList.add('cb-template-poster__tile--generic');
+                el.textContent = tile.label ?? '';
+            }, { once: true });
+            img.src = tile.image;
+            el.appendChild(img);
+            return el;
+        }
+
+        if (kind === 'rule') return el;
+
+        // Heading, text and button show the stored copy. A block with no hint,
+        // one this build no longer has, or a picture whose path the server
+        // refused to hand over, names itself instead — an empty tile would
+        // read as "this block is empty", which is a different statement.
+        const named = kind === 'generic' || kind === 'image';
+        const text = typeof tile?.text === 'string' && tile.text !== ''
+            ? tile.text
+            : (named ? (tile?.label ?? '') : '');
+        el.textContent = text;
+        if (text === '') el.classList.add('cb-template-poster__tile--blank');
+
+        return el;
+    }
+
     _buildTemplateRow(item, filter) {
         const li = document.createElement('li');
         li.className = 'cb-template-picker__item';
@@ -1657,7 +1770,18 @@ export default class extends Controller {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'cb-template-picker__item-btn';
-        btn.textContent = item.name ?? `#${item.id}`;
+
+        // Thumbnail first, name under it. The poster is decorative: the name
+        // already labels the card, and reading out a pile of tile fragments
+        // would bury it. A payload with no drawable structure yields no
+        // poster at all, and the card falls back to a plain named row.
+        const poster = this._buildTemplatePoster(item.poster);
+        if (poster) btn.appendChild(poster);
+
+        const name = document.createElement('span');
+        name.className = 'cb-template-picker__item-name';
+        name.textContent = item.name ?? `#${item.id}`;
+        btn.appendChild(name);
 
         const skipped = Array.isArray(item.skippedTypes) ? item.skippedTypes : [];
 

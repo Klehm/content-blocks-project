@@ -11,6 +11,7 @@ use ContentBlocks\Entity\SectionTemplate;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
+use ContentBlocks\SectionTemplate\SectionPosterBuilder;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiatorInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
@@ -61,6 +62,7 @@ final class SectionTemplateController
         private readonly SectionTemplateSerializerInterface $serializer,
         private readonly SectionTemplateInstantiatorInterface $instantiator,
         private readonly BlockTypeRegistry $blockTypeRegistry,
+        private readonly SectionPosterBuilder $posterBuilder,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ContentVersionUpgraderInterface $versionUpgrader,
         private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
@@ -184,6 +186,11 @@ final class SectionTemplateController
                 'staleVersion' => !$versionOk,
                 'canManage' => $this->templateManager->canManage(),
                 'createdAt' => $template->getCreatedAt()->format(\DateTimeInterface::ATOM),
+                // Thumbnail spec, derived from the payload on every read rather
+                // than stored: no column to migrate, and rows saved before this
+                // existed get one too. Null when the payload holds no drawable
+                // structure — the card then renders without a thumbnail.
+                'poster' => $this->posterBuilder->build($template->getPayload()),
             ];
         }
 
