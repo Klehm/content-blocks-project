@@ -20,6 +20,24 @@
     --cb-kit-radius: 8px;
 }
 
+/* ---------- Editor-authored HTML ----------
+ *
+ * The two blocks whose content is written by an editor rather than by the kit
+ * (rich text via TinyMCE, raw HTML) are the only places an <img> can arrive
+ * carrying its intrinsic width and burst out of its column. The kit's own
+ * pictures — image, gallery, card — cap themselves further down.
+ *
+ * Deliberately NOT a bare `img` selector: this stylesheet is linked on the
+ * host's whole front layout, so an unscoped rule would cap the host's logo,
+ * its header, its own components — everything the kit does not own. Same
+ * reason it stays inside :where(), which zeroes the specificity: an editor
+ * pasting a deliberately oversized image can be un-capped by the host with
+ * any selector at all, no !important needed. */
+:where(.cb-block-rich-text, .cb-block-html-raw) img {
+    max-width: 100%;
+    height: auto;
+}
+
 /* ---------- Title ---------- */
 /* Size is a class, decoupled from the element: cb-kit-title--h* sets the visual
    scale so a semantic <h2> can look like an h1. `display:block` keeps span/p
