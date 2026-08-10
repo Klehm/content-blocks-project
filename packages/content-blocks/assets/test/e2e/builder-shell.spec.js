@@ -617,6 +617,66 @@ test.describe('builder shell — blocks', () => {
 });
 
 test.describe('builder shell — preview hardening', () => {
+    test('the preview loads the kit stylesheet, so a preset-width image stays inside its column', async ({ page }) => {
+        // Regression guard, and it bites twice over. The preview iframe loads
+        // the host's own public page, so anything that layout forgets to link
+        // is missing from the preview too — here the kit stylesheet, whose
+        // `.cb-kit-image__img { max-width: 100% }` is the only thing keeping a
+        // 1200px preset image inside a col-4. Without it the image renders at
+        // its literal width and bursts out of the section.
+        //
+        // Staged through the template library purely because it is the shortest
+        // route to a section holding a preset-width image (the UI path would
+        // need a real upload).
+        const name = `Tpl ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        await page.request.post('/test-fixtures/section-template', {
+            data: {
+                name,
+                blockTypes: ['image'],
+                contentVersion: null,
+                payload: {
+                    format: 'content-blocks/section-v1',
+                    layout: 'three_cols',
+                    settings: null,
+                    columns: [
+                        {
+                            preset: 'col-4',
+                            blocks: [{
+                                type: 'image',
+                                data: { src: '/test-fixtures/pixel', alt: '', size: 'lg', align: 'center', fit: 'cover' },
+                            }],
+                        },
+                        { preset: 'col-4', blocks: [] },
+                        { preset: 'col-4', blocks: [] },
+                    ],
+                },
+            },
+        });
+
+        const frame = await openBuilder(page);
+        await page.locator('.cb-sidebar-library .cb-template-picker__search').fill(name);
+        await expect.poll(() => page.locator('.cb-template-picker__item-btn').count()).toBe(1);
+        await page.locator('.cb-template-picker__item-btn').first().click();
+        await expect.poll(() => frame.locator('.cb-kit-image__img').count()).toBe(1);
+
+        const measured = await page.locator('.cb-shell__iframe').evaluate((iframe) => {
+            const doc = iframe.contentDocument;
+            const img = doc.querySelector('.cb-kit-image__img');
+            return {
+                kitStylesheetLoaded: [...doc.styleSheets].some((s) => (s.href ?? '').includes('/_content-blocks-kit/')),
+                imgWidth: img.getBoundingClientRect().width,
+                columnWidth: img.closest('.cb-col').getBoundingClientRect().width,
+                scrollWidth: doc.body.scrollWidth,
+                clientWidth: doc.body.clientWidth,
+            };
+        });
+
+        expect(measured.kitStylesheetLoaded).toBe(true);
+        expect(measured.imgWidth).toBeLessThanOrEqual(measured.columnWidth);
+        // And nothing else pushed the page sideways either.
+        expect(measured.scrollWidth).toBeLessThanOrEqual(measured.clientWidth);
+    });
+
     test('three-column section renders columns side by side, not stacked', async ({ page }) => {
         const frame = await openBuilder(page);
         await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="three_cols"]').click();

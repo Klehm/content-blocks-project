@@ -63,4 +63,36 @@ final class TestFixtureController
 
         return new JsonResponse(['id' => $template->getId()]);
     }
+
+    /**
+     * A real, always-present image at a stable URL.
+     *
+     * The section-library thumbnail renders a stored picture as an `<img>` and
+     * falls back to a labelled tile when the file is gone — so a spec asserting
+     * the *picture* path needs a source that genuinely resolves. Uploads live
+     * under a gitignored directory, which makes them unavailable on a fresh
+     * clone; a route can't go missing.
+     *
+     * Deliberately extension-less. Playwright's webServer runs PHP's built-in
+     * server with no router script, and that server treats any path ending in a
+     * known static extension as a file on disk — `/…/pixel.png` would 404
+     * without ever reaching Symfony. The browser reads the Content-Type header,
+     * not the URL, so an `<img>` is perfectly happy with this.
+     */
+    #[Route('/test-fixtures/pixel', name: 'app_test_fixture_pixel', methods: ['GET'])]
+    public function pixel(): Response
+    {
+        if (!$this->debug) {
+            return new Response('Not available', Response::HTTP_NOT_FOUND);
+        }
+
+        // 1×1 transparent PNG.
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk'
+            . 'YPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+            true,
+        );
+
+        return new Response($png, Response::HTTP_OK, ['Content-Type' => 'image/png']);
+    }
 }
