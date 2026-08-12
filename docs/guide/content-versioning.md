@@ -209,6 +209,20 @@ and re-importing brings it back.
 If you control both ends of a transfer and want to gate it on a version anyway,
 decorate `ContentAreaImporterInterface`.
 
+### Why the clipboard refuses instead
+
+Copy/paste is the third case, and it takes the third answer: an entry copied
+under a different `content_version` is **refused outright**, and the clipboard is
+emptied.
+
+The number is comparable — it came from this same installation, like a
+template's — so an upgrader *could* be consulted. It is not, because the two
+differ in lifetime. A section template is a stored row that may outlive several
+schema generations, which is exactly what `ContentVersionUpgraderInterface` is
+for. A clipboard entry is minutes old: the honest fix is for the editor to copy
+again under the current generation, and there is nothing to lose in doing so.
+Refusing is also the safer default for a payload that lives in the browser.
+
 ## The envelope — ours
 
 You should never have to think about this one, but it is worth knowing it exists.
@@ -234,4 +248,7 @@ invented a payload format of your own. Otherwise: nothing to do.
 - **`NULL` means unknown**, never zero.
 - **Snapshots are frozen**, so their stamp stays true — and
   `ContentVersionUpgraderInterface` decides what happens to the older ones.
+- **Three payloads, three policies**: a snapshot is upgraded (or refused) by
+  your upgrader, an import ignores a foreign number and is judged by shape, a
+  clipboard entry is refused outright.
 - **We own the envelope**, and its migrations ship with the package.

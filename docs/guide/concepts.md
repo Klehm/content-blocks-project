@@ -50,6 +50,29 @@ The admin UI deliberately mixes two technologies, each for what it does best:
 Do **not** use a LiveAction for operations that reorder child Live Components. Morphdom/Idiomorph cannot reconcile the reorder of child Live Components that use `data-live-preserve` — reordering must go through Stimulus/DOM, not a server round-trip morph.
 :::
 
+### Editor gestures: copy / paste
+
+Editors can copy a section or a block and paste it elsewhere — another section, another area, another page. It is deliberately **keyboard-only**: `Ctrl/Cmd-C` and `Ctrl/Cmd-V`, no toolbar button, no menu entry. The shortcut works from inside the preview iframe too (the overlay relays it), and it stands back whenever the keystroke belongs to the editor's own text — focus in a field, or a live text selection.
+
+What gets copied is **whatever the sidebar has open**. Clicking an element is what opens it, so the sidebar *is* the selection, and there is no second "focused entity" state to keep in sync with it. A copy changes nothing on screen, so it is acknowledged in the snackbar — the same bar as the undo offer, minus the button.
+
+Where a paste lands follows that same selection:
+
+| Copied | Selection | Lands |
+|---|---|---|
+| a section | a section | right after it |
+| a section | a block | right after that block's section |
+| a section | nothing | at the end of the area |
+| a block | a block | right after it, in its column |
+| a block | a section | at the end of its **first** column |
+| a block | nothing | refused, with a reason |
+
+The last row is the rule that matters: pasting a block with nothing selected has no answer to *where*, so the builder says so instead of guessing. Paste writes to the **draft**, like every other structural operation — Publish commits it, Discard reverts it — and `canEdit()` is checked on the **target** area, which for a cross-area paste is not the one the copy came from.
+
+::: info The clipboard is `localStorage`, so a paste is not a restore
+Storing the entry in the browser is what lets a copy survive leaving the page — and what makes the payload user-writable. Every pasted block is therefore replayed through its own form before anything is written. See [Security → the clipboard goes through the same door](./security.md#the-clipboard-goes-through-the-same-door).
+:::
+
 ### Key admin components
 
 - **ContentAreaBuilder** — the main component; manages adding/removing sections (1, 2 or 3 columns).

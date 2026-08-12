@@ -328,6 +328,27 @@
         }
     });
 
+    /**
+     * Copy / paste, relayed rather than handled: the preview is a separate
+     * document, so a Ctrl/Cmd-C pressed here never reaches the builder window.
+     * What gets copied is decided over there (the sidebar's open entity), so
+     * this only forwards the intent — no clipboard state lives in the preview.
+     *
+     * Two things must NOT be stolen: a keystroke typed into a form field the
+     * page itself renders, and a genuine text selection someone is copying.
+     */
+    document.addEventListener('keydown', (event) => {
+        if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
+        const key = event.key && event.key.toLowerCase();
+        if (key !== 'c' && key !== 'v') return;
+        if (isTypingTarget(event.target)) return;
+        const selection = window.getSelection && window.getSelection();
+        if (selection && !selection.isCollapsed) return;
+
+        event.preventDefault();
+        postToParent(key === 'c' ? 'cb:clipboard:copy-requested' : 'cb:clipboard:paste-requested');
+    });
+
     // ---------- Single-block hot reload ----------
 
     /**

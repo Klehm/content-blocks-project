@@ -13,6 +13,13 @@ then a `1.0.0-RC1`. Everything below is on `master` only. See the
 
 ### Changed
 
+- **`symfony/validator` is now a dependency, not an assumption.** The package's
+  security model says a block's form is "the whitelist **and** the validator" —
+  but nothing declared the validator, so a host installing the core alone could
+  run without it and have `constraints` silently do nothing. In practice every
+  install already had it (`klehm/content-blocks-kit` requires it), which is
+  precisely the problem: a core guarantee was resting on a sibling package's
+  dependency list. No action needed on upgrade.
 - **BREAKING — `BlockRendererInterface` takes a `RenderContext` instead of a
   bare `RenderMode`.** `render(ContentArea, ?RenderMode)` becomes
   `render(ContentArea, ?RenderContext)`, and `renderBlock()` / `renderSection()`
@@ -154,6 +161,38 @@ then a `1.0.0-RC1`. Everything below is on `master` only. See the
 
 ### Added
 
+- **Copy / paste a section or a block, across areas and across pages.**
+  `Ctrl/Cmd-C` copies whatever the sidebar has open — clicking an element is
+  what opens it, so the sidebar *is* the selection — and `Ctrl/Cmd-V` pastes it.
+  The shortcut works from the preview iframe too (the overlay relays it; the
+  preview holds no clipboard state of its own), and it stands back whenever the
+  keystroke belongs to the editor's text: focus in a field, or any live text
+  selection. A copy changes nothing on screen, so it is acknowledged in the
+  snackbar — the same bar as the undo offer, minus the button.
+
+  Placement follows the selection: a section lands right after the selected
+  section (at the end of the area when nothing is selected), a block right after
+  the selected block, or at the end of the selected section's first column.
+  Pasting a block with nothing selected has no answer to *where*, so it is
+  refused with a sentence rather than guessed. Paste writes to **draft**, like
+  every other structural op: Publish commits it, Discard reverts it, and
+  `canEdit()` is checked on the **target** area — which for a cross-area paste
+  is not the one the copy came from.
+
+  The clipboard lives in the browser's `localStorage`, which is what lets a copy
+  survive leaving the page — and what makes the payload **input, not truth**.
+  Every pasted block is therefore replayed through its own form
+  (`ContentBlocks\Clipboard\BlockDataReplayer`): an undeclared key never reaches
+  `Block.data`, and a value the form refuses is reset to the type's default and
+  reported, rather than costing the whole block. An entry copied under another
+  `content_version` is refused outright (a clipboard entry is cheap to recreate,
+  unlike a stored section template, which still routes through
+  `ContentVersionUpgraderInterface`).
+
+  New public surface: `GET /_content-blocks/section|block/{id}/copy`,
+  `POST /_content-blocks/area/{id}/paste`, and
+  `BlockSnapshotSerializerInterface` (the block-level counterpart of
+  `SectionTemplateSerializerInterface`, format `content-blocks/block-v1`).
 - **`ImageUrlResolverInterface` — the seam for responsive images.** The package
   ships no image processing: an uploaded file is served as stored and only its
   *display box* is controlled by CSS. Reducing byte size needs an image library

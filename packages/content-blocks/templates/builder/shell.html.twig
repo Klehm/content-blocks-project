@@ -13,7 +13,19 @@
         toolbar, so it must be readable whatever the sidebar happens to show —
         hence the shell root rather than the library panel. #}
      data-i18n-cb-builder-template-name-prompt="{{ 'cb.builder.template.name_prompt'|trans({}, 'content_blocks') }}"
-     data-i18n-cb-builder-template-delete-confirm="{{ 'cb.builder.template.delete_confirm'|trans({}, 'content_blocks') }}">
+     data-i18n-cb-builder-template-delete-confirm="{{ 'cb.builder.template.delete_confirm'|trans({}, 'content_blocks') }}"
+     {# Copy / paste is keyboard-driven (Ctrl/Cmd-C, Ctrl/Cmd-V) and its only
+        feedback is the snackbar, so every one of its messages — the
+        acknowledgement, the refusals — is read from here. #}
+     data-i18n-cb-builder-clipboard-section-copied="{{ 'cb.builder.clipboard.section_copied'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-clipboard-block-copied="{{ 'cb.builder.clipboard.block_copied'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-clipboard-nothing-selected="{{ 'cb.builder.clipboard.nothing_selected'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-clipboard-empty="{{ 'cb.builder.clipboard.empty'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-clipboard-no-target="{{ 'cb.builder.clipboard.no_target'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-clipboard-stale-version="{{ 'cb.builder.clipboard.stale_version'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-clipboard-unreadable="{{ 'cb.builder.clipboard.unreadable'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-clipboard-skipped-blocks="{{ 'cb.builder.clipboard.skipped_blocks'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-clipboard-dropped-fields="{{ 'cb.builder.clipboard.dropped_fields'|trans({}, 'content_blocks') }}">
 
     <div class="cb-shell__progress" data-cb-builder-target="progress" aria-hidden="true"></div>
 
@@ -297,9 +309,10 @@
                 title="{{ 'cb.builder.preview'|trans({}, 'content_blocks') }}"></iframe>
     </main>
 
-    {# Undo snackbar: deletes are immediate (no confirm dialog), so this is
-       the editor's one-click recovery — the alternative, Discard, throws
-       away the whole draft. Shown for a few seconds after each delete. #}
+    {# Snackbar. Two uses, one element: the undo offer after a delete (label +
+       action), and the plain acknowledgement copy/paste needs (label only, the
+       button hidden) — a copy changes nothing on screen, so without a word here
+       the editor has no way to tell it worked. #}
     <div class="cb-shell__undo"
          data-cb-builder-target="undoBar"
          data-cb-builder-undo-block-deleted="{{ 'cb.builder.undo.block_deleted'|trans({}, 'content_blocks') }}"
@@ -310,6 +323,7 @@
         <span class="cb-shell__undo-label" data-cb-builder-target="undoLabel"></span>
         <button type="button"
                 class="cb-shell__undo-btn"
+                data-cb-builder-target="undoButton"
                 data-action="cb-builder#undoDelete">
             {{ 'cb.builder.undo.action'|trans({}, 'content_blocks') }}
         </button>

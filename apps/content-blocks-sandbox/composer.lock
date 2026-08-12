@@ -1264,7 +1264,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks",
-                "reference": "54533e1826293068cf18dca946d45ab176356369"
+                "reference": "70ad7e26051641598095946e640368cd5479d373"
             },
             "require": {
                 "doctrine/orm": "^2.12 || ^3.0",
@@ -1278,6 +1278,7 @@
                 "symfony/twig-bundle": "^6.4 || ^7.0 || ^8.0",
                 "symfony/ux-live-component": "^2.0 || ^3.0",
                 "symfony/ux-twig-component": "^2.0 || ^3.0",
+                "symfony/validator": "^6.4 || ^7.0 || ^8.0",
                 "twig/twig": "^3.10"
             },
             "require-dev": {

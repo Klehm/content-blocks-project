@@ -104,6 +104,16 @@ cb:
             error: "Failed to load available content."
             confirm: "Are you sure you want to overwrite the current content with the selected one?"
             more: "Load more"
+        clipboard:
+            section_copied: "Section copied"
+            block_copied: "Block copied"
+            nothing_selected: "Select a section or a block to copy it"
+            empty: "Nothing copied yet"
+            no_target: "Select a section or a block first — a copied block needs somewhere to go"
+            stale_version: "This copy was made under another version of your content schema — copy it again"
+            unreadable: "This copy cannot be read and was discarded"
+            skipped_blocks: "Pasted — %count% block(s) skipped, missing type(s): %types%"
+            dropped_fields: "Pasted, but some fields were reset on: %types%"
         template:
             insert: "Insert from library"
             save: "Save as template"

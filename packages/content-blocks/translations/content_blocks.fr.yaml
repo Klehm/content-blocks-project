@@ -104,6 +104,16 @@ cb:
             error: "Impossible de charger les contenus disponibles."
             confirm: "Êtes-vous sûr de vouloir écraser le contenu avec celui sélectionné ?"
             more: "Charger plus"
+        clipboard:
+            section_copied: "Section copiée"
+            block_copied: "Bloc copié"
+            nothing_selected: "Sélectionnez une section ou un bloc pour le copier"
+            empty: "Rien n'a encore été copié"
+            no_target: "Sélectionnez d'abord une section ou un bloc — un bloc copié a besoin d'une destination"
+            stale_version: "Cette copie a été faite sous une autre version de votre schéma de contenu — recopiez-la"
+            unreadable: "Cette copie est illisible et a été écartée"
+            skipped_blocks: "Collé — %count% bloc(s) ignoré(s), type(s) manquant(s) : %types%"
+            dropped_fields: "Collé, mais certains champs ont été réinitialisés sur : %types%"
         template:
             insert: "Insérer depuis la bibliothèque"
             save: "Enregistrer comme modèle"
