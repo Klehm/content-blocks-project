@@ -10,10 +10,12 @@ Legend: 🅿️ planned · 🤔 under consideration · 💡 idea
 
 The seam itself shipped: `ImageUrlResolverInterface` + `ResolvedImage` + a passthrough default live in `klehm/content-blocks`, `cb_image()` exposes them to any template, and the kit's `image`, `gallery` and `card` views resolve through it. A host wires one service and gets `srcset`/`sizes` everywhere.
 
+The LiipImagine side is answered too, as a **recipe rather than a package**: [docs/guide/recipes/liip-imagine.md](docs/guide/recipes/liip-imagine.md) wires compression + WebP in ~40 lines of host code, and `apps/content-blocks-sandbox` runs it under an end-to-end test. A `klehm/content-blocks-liip` bridge would save a host that file and cost everyone a package to version — not obviously worth it, and easy to reverse if hosts keep copying the same class.
+
 What is left is optional and outside either package's `require`:
 
-- **LiipImagine / Glide bridge** — a thin adapter, shipped as its own package (e.g. `klehm/content-blocks-liip`) or as a documented recipe + composer `suggest`. Never a hard dependency.
-- **A worked CDN recipe** beyond the one in the host-services guide (Cloudflare Images, imgix, Cloudinary each want slightly different URL shapes).
+- **A Glide adapter**, if anyone asks for one — same shape as the LiipImagine recipe.
+- **More CDN recipes** beyond the Cloudflare-shaped one in the host-services guide (imgix and Cloudinary want slightly different URL shapes).
 
 Neither blocks the release: the seam is the part that had to exist before the freeze.
 

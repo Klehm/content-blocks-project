@@ -234,6 +234,10 @@ Things worth knowing:
 
 With nothing wired, `PassthroughImageUrlResolver` returns the stored source untouched and no `srcset`/`sizes` attribute is rendered — byte-for-byte the markup that predates the seam.
 
+::: tip Want compression and WebP, not just a CDN?
+[Compress and convert images to WebP](./recipes/liip-imagine.md) is the full LiipImagine recipe — filter sets, the resolver, and the two operational traps. It is what the sandbox runs, so it is covered by an end-to-end test.
+:::
+
 ## Customizing default values
 
 A few section and block fields ship with a baked-in default so the form always presents a usable value and the renderer can fall back when the user leaves a field empty. The two surfaces (form pre-fill + renderer fallback) read the **same source**, so changing the default in one place keeps them in sync.

@@ -470,7 +470,10 @@ case. Your own block templates reach the same seam through `cb_image()`:
 
 With nothing wired, the default resolver returns the source untouched and no
 `srcset`/`sizes` is rendered. Full details in
-[the host-services guide](../../docs/guide/host-services.md).
+[the host-services guide](../../docs/guide/host-services.md); for real
+compression and WebP, see the
+[LiipImagine recipe](../../docs/guide/recipes/liip-imagine.md), which is what
+the sandbox runs.
 
 ## Content versioning (`content_blocks.content_version`)
 

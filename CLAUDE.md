@@ -359,11 +359,17 @@ composer install
 php bin/console doctrine:database:create --if-not-exists
 php bin/console doctrine:schema:create
 
-# Lancer le serveur
-php -S 127.0.0.1:8000 -t public
+# Lancer le serveur — le script routeur n'est pas optionnel : le serveur intégré
+# traite toute URL qui ressemble à un fichier comme un asset statique, donc
+# l'URL de cache paresseux de LiipImagine (/media/cache/resolve/…/photo.png)
+# renvoie 404 au lieu d'atteindre le front controller. nginx/apache n'en ont
+# pas besoin.
+php -S 127.0.0.1:8000 -t public public/router.php
 
 # Accéder à http://127.0.0.1:8000
 ```
+
+C'est aussi la sandbox **LiipImagine** : elle aliase `ImageUrlResolverInterface` vers `App\Image\LiipImagineImageUrlResolver` (~40 lignes) et déclare quatre filter sets `cb_w400/800/1200/1600` en `format: webp`, `quality: 72`. Toute image du kit y sort donc en WebP dimensionné, avec `srcset` — sans override de template. C'est la démo exécutable de la recette [docs/guide/recipes/liip-imagine.md](docs/guide/recipes/liip-imagine.md), gardée par `assets/test/e2e/image-optimization.spec.js` (upload réel → page publique → octets RIFF/WEBP décodés). Corollaire CI : le job Playwright a besoin de l'extension `gd`.
 
 ### 2. Sandbox Sylius
 

@@ -154,8 +154,11 @@ core's `ImageUrlResolverInterface`, whose default returns the source untouched.
 Alias that interface in your app (to a CDN URL builder, a LiipImagine bridge…)
 and the three views emit `srcset`/`sizes` with no template override. The `image`
 block hands the resolver the display width it computed (sm=400, md=800, lg=1200,
-or the custom width) — exactly what a resizing resolver needs. See
-[Host services](../../docs/guide/host-services.md).
+or the custom width) — exactly what a resizing resolver needs.
+
+Worked example, compression and WebP included:
+[Compress and convert images](../../docs/guide/recipes/liip-imagine.md). Seam
+reference: [Host services](../../docs/guide/host-services.md).
 
 ## Documentation & contributing
 

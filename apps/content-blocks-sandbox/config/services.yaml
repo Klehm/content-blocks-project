@@ -23,3 +23,10 @@ services:
 
     # File storage moved to the main package and is now configured via the
     # content_blocks.upload semantic config (see config/packages/content_blocks.yaml)
+
+    # Image optimization: swap the bundle's passthrough resolver for one backed
+    # by LiipImagine, so every picture the kit renders comes out as a WebP sized
+    # for its box. This one alias is the entire opt-in — no template override
+    # anywhere. See docs/guide/recipes/liip-imagine.md.
+    ContentBlocks\Image\ImageUrlResolverInterface:
+        class: App\Image\LiipImagineImageUrlResolver

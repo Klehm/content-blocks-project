@@ -193,7 +193,9 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_mysql, intl, mbstring
+          # gd: the sandbox demos the image seam through LiipImagine, which
+          # needs an imagine driver to produce its WebP variants.
+          extensions: pdo_mysql, intl, mbstring, gd
           coverage: none
 
       - uses: actions/setup-node@v6
