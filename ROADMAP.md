@@ -61,6 +61,54 @@ Versioning consequence: the unreleased work carries breaking changes (the `Block
 
 ---
 
+## Action history — Ctrl+Z to undo the last action 🅿️ (post-1.0)
+
+**Context.** Today the only rescue is scoped: a delete offers an "Undo" snackbar for a few seconds, and Discard reverts *everything* unpublished. Between those two there is nothing — a move, a duplicate, a paste, a settings change or a block edit is final until the editor undoes it by hand. Editors coming from any other builder expect `Ctrl/Cmd-Z`.
+
+**Direction.** A per-session, draft-scoped **action journal**, undone by replaying an inverse operation server-side — not by snapshotting the whole area. Every structural mutation already funnels through a small set of endpoints (`section|block create/move/duplicate/delete/restore`, `paste`, `replace-with`, the sidebar `settings` saves) and, client-side, through the builder's `_mutationQueue`; those are the two chokepoints where an entry gets recorded and where an undo is applied, so the feature does not need every call site to opt in.
+
+Open design questions, worth settling before coding:
+
+- **Where the journal lives**: a `cb_action_log` table (survives reload, needs a migration, needs pruning) vs in-memory in the builder session (free, but lost on refresh — and refresh is exactly when an editor panics). Leaning table, keyed by content area + a builder session id, pruned on publish/discard.
+- **Granularity of a block edit**: the sidebar autosaves, so a naive journal turns one paragraph of typing into forty undo steps. Needs coalescing (same block + same field + short window = one entry).
+- **What an inverse is** for each operation — trivial for create/delete/move, less so for `replace-with` and `paste` (the inverse is a bulk delete of exactly what was inserted, so the journal must record the ids it produced).
+- **Redo**, and whether the stack survives a page reload.
+- **Concurrency**: two editors on the same area must not undo each other's work — the journal is per builder session, and an entry whose target moved under it is refused rather than guessed.
+
+**Rough scope when picked up:**
+- [ ] Design note: journal storage, entry shape, coalescing rules, inverse per operation
+- [ ] Recording seam at the mutation chokepoint (server) + `_mutationQueue` (client)
+- [ ] `POST /_content-blocks/area/{id}/undo` (and `/redo`), CSRF + `canEdit` on the target area
+- [ ] `Ctrl/Cmd-Z` binding, sharing the clipboard shortcuts' rules (relayed from the iframe, yields to text editing)
+- [ ] Pruning on publish/discard + a migration for hosts
+- [ ] Tests: PHPUnit on the inverses, Vitest on the stack, Playwright on the round trip
+
+---
+
+## Tree view — the whole area as an outline 🅿️ (post-1.0)
+
+**Context.** The builder shows content as it renders, which is the right default and a poor way to see a long page. There is no view that answers "what is in this area, in order" — and no way to move a block from the top of the page to the bottom without dragging past everything in between.
+
+**Direction.** A topbar toggle opening the full outline — sections → columns → blocks — with drag-to-reorder, duplicate and delete on every node. Selecting a node opens the same sidebar a click in the preview opens, so the tree is a second way to reach existing state, not a second state to keep in sync.
+
+Two placements to choose between: a **floating panel over the preview** (fast to open and dismiss, overlaps the content it describes) or a **sidebar mode** (permanent, costs preview width, composes badly with the edit sidebar that already lives there). The floating panel looks likelier; worth a mockup before committing.
+
+Most of the backend already exists: section and block `move`, `duplicate` and `delete` are endpoints today, and the poster builder (`SectionPosterBuilder`) already proves the payload can describe an area's structure without knowing any block's data shape. Two gaps:
+
+- **A tree payload**: one `GET` returning the area's structure with a per-node label. Block labels want the same seam the section-library thumbnails use — `BlockPreviewHintInterface` already yields a heading/text/image summary, and a type that does not implement it falls back to its label.
+- **Columns are not first-class**: they are derived from the section's layout and column widths, with no CRUD of their own. Reordering columns is plausible (swap presets + reassign blocks); duplicating or deleting one means deciding what happens to the section's layout. Possibly the tree exposes columns as read-only nodes in v1 and only blocks and sections are actionable.
+
+**Rough scope when picked up:**
+- [ ] Placement decision (floating panel vs sidebar) — mockup first
+- [ ] `GET /_content-blocks/area/{id}/tree` + per-node labels via `BlockPreviewHintInterface`
+- [ ] `cb-tree` Stimulus controller (declare in `assets/package.json` + the three sandboxes' `controllers.json`)
+- [ ] Reorder / duplicate / delete wired to the existing endpoints, through `_mutationQueue`
+- [ ] Decide the column story (read-only nodes vs real column operations)
+- [ ] Selection sync both ways: tree → sidebar, preview click → highlighted node
+- [ ] Tests: Vitest on the controller, Playwright on reorder + duplicate + delete from the tree
+
+---
+
 ## Adding to this roadmap
 
 Keep entries outcome-oriented: what problem, what direction, and (for larger ones) a rough scope checklist. Move an item to the relevant package `CHANGELOG.md` when it ships, and delete it here.
