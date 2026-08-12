@@ -166,9 +166,23 @@ function page(type, b, meta) {
   out.push(`Rendered markup: ${meta.markup} Style it by overriding the \`--cb-kit-*\` custom properties (see [the kit stylesheet](../index.md#front-stylesheet-required)).`);
   out.push('');
   if (meta.controller) {
+    // A block may be served by more than one controller (the rich-text
+    // block, one per selectable editor), so a list is allowed too.
+    const controllers = [].concat(meta.controller);
     out.push('::: tip Requires a Stimulus controller');
-    out.push(`Enable the \`${meta.controller}\` controller under \`@klehm/content-blocks-kit\` in your host \`assets/controllers.json\`.`);
+    out.push(
+      `Enable ${controllers.map((c) => `\`${c}\``).join(' / ')} under \`@klehm/content-blocks-kit\``
+      + ` in your host \`assets/controllers.json\`${controllers.length > 1 ? ' (whichever you select — both, if you are unsure)' : ''}.`,
+    );
     out.push(':::');
+    out.push('');
+  }
+  // Free-form prose sections, for blocks whose surface needs more than the
+  // generated tables can carry.
+  for (const section of meta.sections ?? []) {
+    out.push(`## ${section.title}`);
+    out.push('');
+    out.push(section.body.trim());
     out.push('');
   }
   if (meta.notes && meta.notes.length) {

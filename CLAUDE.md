@@ -389,6 +389,8 @@ php -S 127.0.0.1:8003 -t public
 
 App volontairement minimale : **Symfony 6.4 + Doctrine ORM 2 + Webpack Encore**, sans AssetMapper (il est dans le `conflict` de son `composer.json`). Elle reproduit la forme d'un hôte Sylius 1.x et sert de fixture à `playwright.encore.config.js`.
 
+C'est aussi la sandbox **CKEditor** : elle configure `rich_text` avec `editor: ckeditor` + `cdn: false`, et son entrée webpack importe `ckeditor5` pour le publier en `window.CKEDITOR`. Les deux autres sandboxes restent sur le défaut (TinyMCE via CDN), donc la répartition couvre les deux éditeurs *et* les deux modes de chargement. Corollaire pratique : c'est la seule suite e2e qui pilote un vrai éditeur sans toucher au réseau — d'où les specs CKEditor ici plutôt que dans la suite principale, qui doit bloquer le CDN pour être déterministe.
+
 ```bash
 cd apps/content-blocks-encore-sandbox
 
@@ -464,8 +466,8 @@ npm test
 
 | Config | Fixture | Couvre |
 |---|---|---|
-| `playwright.config.js` | `content-blocks-sandbox` — Symfony 7/8, AssetMapper | le **comportement** du builder (88 specs) |
-| `playwright.encore.config.js` | `content-blocks-encore-sandbox` — Symfony 6.4, ORM 2, Webpack Encore | le **chemin d'installation** sous un bundler qu'on ne développe pas au quotidien (4 specs) |
+| `playwright.config.js` | `content-blocks-sandbox` — Symfony 7/8, AssetMapper | le **comportement** du builder (105 specs) |
+| `playwright.encore.config.js` | `content-blocks-encore-sandbox` — Symfony 6.4, ORM 2, Webpack Encore | le **chemin d'installation** sous un bundler qu'on ne développe pas au quotidien, + l'éditeur rich-text bundlé par l'hôte (7 specs) |
 
 La suite Encore reste volontairement petite : tout ce qui passerait à l'identique sous les deux bundlers appartient à la suite principale. Elle existe parce qu'un bug de boot (le prepend `asset_mapper` inconditionnel) a pu vivre longtemps sans qu'aucun test ne le voie — la sandbox met `symfony/asset-mapper` dans son `conflict` Composer pour que la jambe ne puisse jamais redériver vers le chemin déjà couvert.
 

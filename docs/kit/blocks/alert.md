@@ -32,7 +32,7 @@ Initial values for a new block. Override per host with `defaults:`.
 | --- | --- |
 | `type` | `info` |
 | `title` | `''` |
-| `message` | `''` |
+| `content` | `''` |
 
 #### Example
 

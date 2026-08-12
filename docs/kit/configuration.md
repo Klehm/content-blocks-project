@@ -37,6 +37,7 @@ content_blocks_kit:
 - Blocks omitted from config are enabled with their coded defaults — **except** [`html_raw`](./blocks/html_raw.md), which is **disabled by default**: it renders unescaped markup (`{{ html|raw }}`), so it trusts its editors and must be opted in explicitly.
 - `choices` values not offered by the block are ignored; an empty or all-invalid list falls back to the full set (the select is never empty).
 - `defaults` only apply to fields the block declares; unknown keys are ignored.
+- `options` are per-block knobs, so what they do is documented on each block's page. The widest set belongs to [`rich_text`](./blocks/rich_text.md), which picks the WYSIWYG editor (TinyMCE or CKEditor), decides where its JavaScript is loaded from, and passes an init config through.
 
 ::: tip Restricting a picker never invalidates stored data
 Narrowing a `choices` list only affects what the editor can *pick*. Validation still accepts the block's **full coded set**, so content already saved with a now-hidden value stays valid. (The kit derives its `Assert\Choice` constraint from the complete choice set for exactly this reason.)

@@ -58,6 +58,10 @@
                 "enabled": true,
                 "fetch": "lazy"
             },
+            "cb-ckeditor": {
+                "enabled": true,
+                "fetch": "lazy"
+            },
             "cb-gallery": {
                 "enabled": true,
                 "fetch": "eager"

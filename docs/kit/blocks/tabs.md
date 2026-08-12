@@ -22,7 +22,7 @@ Initial values for a new block. Override per host with `defaults:`.
 
 | Field | Default |
 | --- | --- |
-| `tabs` | `[{"title":"Tab 1","content":""}]` |
+| `items` | `[{"title":"Tab 1","content":""}]` |
 
 #### Example
 

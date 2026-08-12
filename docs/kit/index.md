@@ -14,7 +14,7 @@ The kit is **self-contained**: no Tailwind, no Bootstrap, no LiipImagine, no ico
 |---|---|
 | [`title`](./blocks/title.md) | Heading with a visual size decoupled from its semantic tag |
 | [`text`](./blocks/text.md) | Plain paragraph text with a palette color |
-| [`rich_text`](./blocks/rich_text.md) | WYSIWYG (TinyMCE) rich text |
+| [`rich_text`](./blocks/rich_text.md) | WYSIWYG rich text, on TinyMCE or CKEditor |
 | [`image`](./blocks/image.md) | Image with size, fit, align, link, caption, rounded corners |
 | [`gallery`](./blocks/gallery.md) | Image grid or arrow slider |
 | [`button`](./blocks/button.md) | Call-to-action button (variants, sizes, alignment) |
@@ -52,16 +52,17 @@ Retheme by overriding the `--cb-kit-*` custom properties (or the classes) in you
 
 ### Stimulus controllers
 
-Two blocks need a Stimulus controller. Enable them in your host `assets/controllers.json` under the `@klehm/content-blocks-kit` package:
+Two blocks need a Stimulus controller. Enable them in your host `assets/controllers.json` under the `@klehm/content-blocks-kit` package — `rich_text` has one per selectable editor, so enable the one you configured (or both, if you are unsure):
 
 | Controller | Needed by |
 |---|---|
-| `cb-tinymce` | [`rich_text`](./blocks/rich_text.md) |
+| `cb-tinymce` | [`rich_text`](./blocks/rich_text.md) on its default editor |
+| `cb-ckeditor` | [`rich_text`](./blocks/rich_text.md) when `options.editor: ckeditor` |
 | `cb-gallery` | [`gallery`](./blocks/gallery.md) (slider layout only) |
 
 ## Colors
 
-Every color field in the kit — icon and divider colors, the `title` and `text` blocks' text color, and the rich-text (TinyMCE) swatches — draws from the **one** core palette declared in `content_blocks.palette`. Add a named color there once and it appears everywhere:
+Every color field in the kit — icon and divider colors, the `title` and `text` blocks' text color, and the rich-text editor's swatches — draws from the **one** core palette declared in `content_blocks.palette`. Add a named color there once and it appears everywhere:
 
 ```yaml
 # config/packages/content_blocks.yaml

@@ -1,23 +1,32 @@
-{# Form theme for RichTextBlock — wraps the content textarea with a
-   TinyMCE Stimulus controller. The textarea stays in the DOM (TinyMCE
-   binds to it and syncs HTML on every edit), so LiveComponent
-   data-model binding keeps working unchanged.
+{# Form theme for RichTextBlock — wraps the content textarea with whichever
+   editor's Stimulus controller the selected adapter names
+   (`content_blocks_kit.blocks.rich_text.options.editor`).
 
-   data-live-ignore is set on the wrapper so the morpher leaves
-   TinyMCE's injected DOM (toolbar, iframe) alone across re-renders. #}
+   The template knows nothing about any particular editor: the adapter hands
+   over a controller name and a bag of already-encoded values, so adding an
+   editor never touches this file.
 
-{% block _content_block_content_row %}
-    <div class="cb-form-row">
-        {{ form_label(form) }}
-        {# Seed the editor's color swatches from the ContentBlocks palette
-           (cb_color_palette(), the same colors PaletteColorType offers).
-           Empty palette → the controller falls back to the web colors. #}
-        <div data-controller="cb-tinymce" data-live-ignore
-             data-cb-tinymce-palette-value="{{ cb_color_palette()|json_encode|e('html_attr') }}">
-            {{ form_widget(form, { attr: form.vars.attr|merge({
-                'data-cb-tinymce-target': 'textarea'
-            }) }) }}
-        </div>
-        {{ form_errors(form) }}
+   Two things stay true under every editor, and both are load-bearing:
+
+   - the <textarea> remains in the DOM. It is what the Live Component binds
+     to, what the editor syncs its HTML back into, and the fallback when the
+     editor fails to load;
+   - the wrapper carries `data-live-ignore`, so the morpher leaves the DOM
+     the editor injects (toolbar, iframe, balloons) alone across re-renders. #}
+
+{# `use` (not `extends`) pulls the core theme's blocks into this template so
+   `textarea_widget` resolves here: form-theme *stacking* decides which theme
+   answers a form block name, but a `block()` call inside a template is a
+   plain Twig lookup against that template alone. #}
+{% use '@ContentBlocks/form/cb_form_theme.html.twig' %}
+
+{% block cb_rich_text_widget -%}
+    {%- set editor = cb_editor -%}
+    {# The Stimulus target is named after the controller, so the same markup
+       serves every adapter without the theme knowing any of them. #}
+    {%- set attr = attr|merge({('data-' ~ editor.controller ~ '-target'): 'textarea'}) -%}
+    <div data-controller="{{ editor.controller }}" data-live-ignore
+        {%- for name, value in editor.values %} data-{{ editor.controller }}-{{ name }}-value="{{ value }}"{% endfor %}>
+        {{ block('textarea_widget') }}
     </div>
-{% endblock %}
+{%- endblock cb_rich_text_widget %}

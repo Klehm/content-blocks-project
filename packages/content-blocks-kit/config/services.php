@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use ContentBlocks\Kit\RichText\RichTextEditorRegistry;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 return static function (ContainerConfigurator $container): void {
     $services = $container->services()
@@ -25,6 +28,16 @@ return static function (ContainerConfigurator $container): void {
     // Controllers (the public kit.css endpoint).
     $services->load('ContentBlocks\\Kit\\Controller\\', '../src/Controller/')
         ->tag('controller.service_arguments');
+
+    // Rich-text editor adapters. Shipped implementations are registered by
+    // the glob; a host's own is auto-tagged through
+    // RichTextEditorInterface (see ContentBlocksKitBundle::build()). The
+    // view value object is excluded — it is data, not a service.
+    $services->load('ContentBlocks\\Kit\\RichText\\', '../src/RichText/')
+        ->exclude('../src/RichText/RichTextEditorView.php');
+
+    $services->set(RichTextEditorRegistry::class)
+        ->args([tagged_iterator('content_blocks_kit.rich_text_editor')]);
 
     // File storage, the upload endpoint and the asset resolver bridge all
     // live in the main package now (ContentBlocks\Storage\*,

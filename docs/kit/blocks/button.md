@@ -33,7 +33,7 @@ Initial values for a new block. Override per host with `defaults:`.
 | Field | Default |
 | --- | --- |
 | `text` | `Learn more` |
-| `href` | `''` |
+| `url` | `''` |
 | `variant` | `primary` |
 | `size` | `md` |
 | `align` | `start` |

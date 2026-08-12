@@ -17,10 +17,13 @@
     },
     "dependencies": {
         "@hotwired/stimulus": "^3.2.0",
-        "@symfony/ux-live-component": "file:vendor/symfony/ux-live-component/assets",
         "@klehm/content-blocks": "file:vendor/klehm/content-blocks/assets",
         "@klehm/content-blocks-kit": "file:vendor/klehm/content-blocks-kit/assets",
+        "@symfony/ux-live-component": "file:vendor/symfony/ux-live-component/assets",
+        "ckeditor5": "^48.4.0",
         "sortablejs": "^1.15.0"
     },
-    "browserslist": ["defaults"]
+    "browserslist": [
+        "defaults"
+    ]
 }

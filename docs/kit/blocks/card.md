@@ -41,7 +41,7 @@ Initial values for a new block. Override per host with `defaults:`.
 | --- | --- |
 | `layout` | `grid` |
 | `columns` | `3` |
-| `items` | `[{"src":"","title":"Card title","content":"Card text","buttonUrl":"","buttonLabel":""}]` |
+| `items` | `[{"src":"","title":"Card title","content":"Card text","url":"","buttonText":""}]` |
 
 #### Example
 

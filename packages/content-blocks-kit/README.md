@@ -12,7 +12,7 @@ shipped stylesheet, so it drops into any host regardless of its CSS setup.
 |---|---|
 | `title` | Heading with visual size, semantic tag, and palette text color |
 | `text` | Plain paragraph text with palette text color |
-| `rich_text` | WYSIWYG (TinyMCE) rich text |
+| `rich_text` | WYSIWYG rich text, on TinyMCE or CKEditor (`options.editor`) |
 | `image` | Image with size preset / custom size, fit, align, link, caption, rounded corners |
 | `gallery` | Image grid or slider (arrows) with columns, fit, rounded corners |
 | `button` | Call-to-action button (variants, sizes, alignment) |
@@ -53,8 +53,8 @@ your own stylesheet loaded after it.
 ### Stimulus controllers
 
 Enable the kit's controllers in your host `assets/controllers.json` under the
-`@klehm/content-blocks-kit` package: `cb-tinymce` (rich text) and `cb-gallery`
-(gallery slider).
+`@klehm/content-blocks-kit` package: `cb-tinymce` / `cb-ckeditor` (rich text —
+whichever editor you selected) and `cb-gallery` (gallery slider).
 
 ## Configuring blocks
 
