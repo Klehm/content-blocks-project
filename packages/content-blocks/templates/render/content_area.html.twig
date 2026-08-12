@@ -1,17 +1,26 @@
 {# @var sections array #}
 {# @var mode \ContentBlocks\Rendering\RenderMode #}
 {% set isPreview = mode.value == 'preview' %}
+{# `chrome` = the builder's editing furniture. It normally tracks isPreview;
+   `?cb_chrome=0` turns it off to render draft content the way a reader will
+   see it once published. `is defined` rather than |default(): a Twig default
+   filter treats `false` as empty and would flip it back on. #}
+{% set chrome = chrome is defined ? chrome : isPreview %}
 <link rel="stylesheet" href="{{ path('content_blocks_asset_layout') }}">
 <link rel="stylesheet" href="{{ path('content_blocks_asset_styling') }}">
-{% if isPreview %}
+{% if chrome %}
     <link rel="stylesheet" href="{{ path('content_blocks_asset_builder') }}">
 {% endif %}
-{% set visibleSections = isPreview ? sections : sections|filter(s => not s.deleted) %}
-<div class="cb-content-area{% if isPreview and visibleSections is empty %} cb-content-area--empty{% endif %}"{% if isPreview %} data-cb-preview="1"{% endif %}>
-{% for section in sections %}
-    {{ include('@ContentBlocks/render/section.html.twig', { section: section, isPreview: isPreview }, with_context = false) }}
+{# Without the chrome there is nothing to explain a struck-through section, so
+   what is pending deletion is simply left out — the published shape. #}
+{% set visibleSections = chrome ? sections : sections|filter(s => not s.deleted) %}
+{# The empty-state class is a builder affordance ("nothing here yet, add a
+   section"), so it follows the chrome rather than the mode. #}
+<div class="cb-content-area{% if chrome and visibleSections is empty %} cb-content-area--empty{% endif %}"{% if isPreview %} data-cb-preview="1"{% endif %}>
+{% for section in visibleSections %}
+    {{ include('@ContentBlocks/render/section.html.twig', { section: section, isPreview: isPreview, chrome: chrome }, with_context = false) }}
 {% endfor %}
-{% if isPreview %}
+{% if chrome %}
     {% set isEmpty = visibleSections is empty %}
     {% set trayLabel = isEmpty
         ? 'cb.builder.empty_cta'|trans({}, 'content_blocks')

@@ -31,6 +31,30 @@ Render-mode is auto-detected from the request:
 
 See [host services](./host-services.md#accesscheckerinterface-authorization) for `AccessCheckerInterface`, and [Security](./security.md#cross-firewall-auth-detection) for the cross-firewall gotcha that can silently keep the iframe in public mode.
 
+### Draft content without the editing chrome
+
+Preview mode decides two things at once: **which data** is rendered (draft) and
+**what is drawn around it** (the toolbars, the add-section tray, the section
+handles, `builder.css`, the overlay script). Add `?cb_chrome=0` to keep the first
+and drop the second:
+
+```
+/my-page?cb_preview=1&cb_chrome=0
+```
+
+The result is the page as a reader will see it once published, drawn from
+unpublished data — for a review link, an approval step, or a preview pane in a
+tool that is not the builder. Soft-deleted sections, columns and blocks are left
+out too: with no chrome to strike them through, showing them would read as live
+content.
+
+`data-cb-block-id` / `-section-id` markers stay, so a caller can still scroll to
+a block or hot-swap one through `GET /_content-blocks/block/{id}/render`.
+
+The parameter is **opt-out and preview-only**: absent (or any other value) keeps
+today's chrome, and a public render never gains any. `klehm/content-blocks-i18n`'s
+translation workbench is the first consumer.
+
 ## Changing what a block renders
 
 Overriding a template changes *how* a block's data is presented. To change the **data itself** on the way to the template — without forking the renderer — register a `BlockDataResolverInterface`:

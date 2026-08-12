@@ -1,13 +1,15 @@
 {# @var column \ContentBlocks\Entity\Column #}
 {# @var isPreview bool #}
+{# @var chrome bool — the builder's editing furniture; see content_area.html.twig #}
+{% set chrome = chrome is defined ? chrome : isPreview %}
 <div class="cb-col cb-col--{{ column.preset }}{% if column.width is defined and column.width %} cb-col--weighted{% endif %}{% if column.deleted %} cb-col--deleted{% endif %}"
     {% if column.width is defined and column.width %}style="--cb-col-grow: {{ column.width }};"{% endif %}
     {% if isPreview %}data-cb-column-id="{{ column.id }}"{% endif %}
     {% if column.deleted %}data-cb-deleted="1"{% endif %}>
-    {% for block in column.blocks %}
+    {% for block in (chrome ? column.blocks : column.blocks|filter(b => not b.deleted)) %}
         {{ include('@ContentBlocks/render/block.html.twig', { block: block, isPreview: isPreview }, with_context = false) }}
     {% endfor %}
-    {% if isPreview %}
+    {% if chrome %}
         <button type="button"
                 class="cb-add-block-inline"
                 data-cb-add-block-column-id="{{ column.id }}"

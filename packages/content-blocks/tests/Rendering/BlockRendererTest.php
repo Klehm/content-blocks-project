@@ -93,6 +93,83 @@ final class BlockRendererTest extends TestCase
     }
 
     /**
+     * `?cb_chrome=0` — draft content, none of the builder's editing furniture.
+     *
+     * The distinction this pins is between the two things preview mode used to
+     * mean at once: *which data* is rendered (draft) and *what is rendered
+     * around it* (toolbars, tray, handles). A reader of a draft — a reviewer, an
+     * approver, the translation workbench's preview pane — wants the first
+     * without the second, and hiding the chrome in CSS afterwards does not
+     * count: the overlay script would still load, bind and post messages.
+     */
+    public function testPreviewWithoutChromeRendersDraftContentAsAReaderWillSeeIt(): void
+    {
+        $area = $this->makeArea();
+
+        $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $column = $this->makeColumn($section, position: 0, previewPosition: 0);
+
+        $edited = $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Old'], draftData: ['title' => 'New'], position: 0, previewPosition: 0);
+        $deleted = $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Goodbye'], position: 1, previewPosition: 1);
+        $deleted->setDeleted(true);
+
+        $renderer = $this->makeRenderer(mode: RenderMode::PREVIEW, query: ['cb_chrome' => '0']);
+        $html = $renderer->render($area, new RenderContext(RenderMode::PREVIEW));
+
+        // Draft data, exactly as in a normal preview.
+        $this->assertStringContainsString('New', $html);
+        $this->assertStringNotContainsString('Old', $html);
+
+        // None of the editing furniture, at the source rather than hidden.
+        $this->assertStringNotContainsString('content_blocks_asset_preview_overlay', $html);
+        $this->assertStringNotContainsString('content_blocks_asset_builder', $html);
+        $this->assertStringNotContainsString('cb-add-section-tray', $html);
+        $this->assertStringNotContainsString('cb-section-handle', $html);
+        $this->assertStringNotContainsString('cb-add-block-inline', $html);
+
+        // Pending deletions are left out: with no chrome to strike them
+        // through, showing them would read as live content.
+        $this->assertStringNotContainsString('Goodbye', $html);
+
+        // Ids stay: they are what lets a caller scroll to a block and swap one
+        // in place — the whole reason this is an iframe and not a screenshot.
+        $this->assertStringContainsString('data-cb-block-id', $html);
+    }
+
+    /** The chrome is opt-out, so every preview URL that predates it is unchanged. */
+    public function testPreviewKeepsItsChromeUnlessAskedOtherwise(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $column = $this->makeColumn($section, position: 0, previewPosition: 0);
+        $this->makeBlock($column, type: 'text', publishedData: null, draftData: ['title' => 'New'], position: 0, previewPosition: 0);
+
+        foreach ([[], ['cb_chrome' => '1'], ['cb_chrome' => 'yes']] as $query) {
+            $html = $this->makeRenderer(mode: RenderMode::PREVIEW, query: $query)
+                ->render($area, new RenderContext(RenderMode::PREVIEW));
+
+            $this->assertStringContainsString('content_blocks_asset_preview_overlay', $html, json_encode($query));
+            $this->assertStringContainsString('cb-add-section-tray', $html, json_encode($query));
+        }
+    }
+
+    /** A public page never had chrome, and asking for it cannot conjure any. */
+    public function testChromeIsNeverAddedToAPublicRender(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $column = $this->makeColumn($section, position: 0, previewPosition: 0);
+        $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Visible'], position: 0, previewPosition: 0);
+
+        $html = $this->makeRenderer(mode: RenderMode::PUBLIC, query: ['cb_chrome' => '1'])
+            ->render($area, new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertStringContainsString('Visible', $html);
+        $this->assertStringNotContainsString('content_blocks_asset_preview_overlay', $html);
+        $this->assertStringNotContainsString('cb-add-section-tray', $html);
+    }
+
+    /**
      * In preview, sort is by previewPosition — verify order swap when
      * preview/published positions differ.
      */
@@ -602,9 +679,9 @@ final class BlockRendererTest extends TestCase
      * @param list<\ContentBlocks\Rendering\BlockDataResolverInterface> $extraResolvers
      *        appended after CoreBlockDataResolver, as a host's would be
      */
-    private function makeRenderer(RenderMode $mode = RenderMode::PUBLIC, array $extraResolvers = []): BlockRenderer
+    private function makeRenderer(RenderMode $mode = RenderMode::PUBLIC, array $extraResolvers = [], array $query = []): BlockRenderer
     {
-        $request = new Request($mode === RenderMode::PREVIEW ? ['cb_preview' => '1'] : []);
+        $request = new Request(($mode === RenderMode::PREVIEW ? ['cb_preview' => '1'] : []) + $query);
         $stack = new RequestStack();
         $stack->push($request);
 

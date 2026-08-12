@@ -35,6 +35,23 @@ interface BlockRendererInterface
     public const QUERY_PARAM = 'cb_preview';
 
     /**
+     * Set to `0` alongside {@see self::QUERY_PARAM} to render draft content
+     * **without the builder's editing chrome** — no `builder.css`, no add
+     * tray, no section handle, no overlay script, and soft-deleted sections /
+     * columns / blocks left out.
+     *
+     * The result is what the page will look like once published, drawn from
+     * unpublished data. It exists for readers of a draft rather than editors
+     * of one: a review link, an approval step, or the translation workbench's
+     * preview pane, where the builder's toolbars would be dead ends because
+     * there is no builder around them.
+     *
+     * Absent or any other value keeps the chrome, so every existing preview
+     * URL renders exactly as before.
+     */
+    public const CHROME_QUERY_PARAM = 'cb_chrome';
+
+    /**
      * Render a full content area. With no context — or a context whose mode is
      * null — the mode is auto-detected from the current request.
      */

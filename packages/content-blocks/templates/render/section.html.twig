@@ -1,11 +1,13 @@
 {# @var section \ContentBlocks\Entity\Section #}
 {# @var isPreview bool #}
+{# @var chrome bool — the builder's editing furniture; see content_area.html.twig #}
+{% set chrome = chrome is defined ? chrome : isPreview %}
 <section class="cb-section cb-section--{{ section.layout }}{% if section.deleted %} cb-section--deleted{% endif %}{% if section.extraClasses %} {{ section.extraClasses }}{% endif %}"
     {% if isPreview %}data-cb-section-id="{{ section.id }}"{% endif %}
     {% if section.deleted %}data-cb-deleted="1"{% endif %}
     {% if section.inlineStyle %}style="{{ section.inlineStyle }}"{% endif %}
     {% for k, v in section.extraAttributes %} {{ k }}="{{ v }}"{% endfor %}>
-    {% if isPreview %}
+    {% if chrome %}
         {# Hover-revealed handle: a reliable way to select the section even
            when it's full of blocks (clicking inside would otherwise hit a
            block). As a direct child of <section> — not inside .cb-row — a
@@ -20,8 +22,8 @@
         </button>
     {% endif %}
     <div class="cb-row">
-        {% for column in section.columns %}
-            {{ include('@ContentBlocks/render/column.html.twig', { column: column, isPreview: isPreview }, with_context = false) }}
+        {% for column in (chrome ? section.columns : section.columns|filter(c => not c.deleted)) %}
+            {{ include('@ContentBlocks/render/column.html.twig', { column: column, isPreview: isPreview, chrome: chrome }, with_context = false) }}
         {% endfor %}
     </div>
 </section>

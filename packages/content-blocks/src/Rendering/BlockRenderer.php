@@ -77,7 +77,24 @@ final class BlockRenderer implements BlockRendererInterface
             'mode' => $mode,
             'sections' => $sections,
             'blockTypes' => $blockTypes,
+            'chrome' => $this->chromeEnabled($mode),
         ]);
+    }
+
+    /**
+     * Whether this render carries the builder's editing chrome.
+     *
+     * Only ever true in PREVIEW — public pages have never had it. Within
+     * preview it is opt-out, via {@see BlockRendererInterface::CHROME_QUERY_PARAM},
+     * so every URL that worked before this existed still renders identically.
+     */
+    private function chromeEnabled(?RenderMode $mode): bool
+    {
+        if ($mode !== RenderMode::PREVIEW) {
+            return false;
+        }
+
+        return $this->requestStack->getCurrentRequest()?->query->get(self::CHROME_QUERY_PARAM) !== '0';
     }
 
     public function resolveMode(ContentArea $area): RenderMode
@@ -145,6 +162,7 @@ final class BlockRenderer implements BlockRendererInterface
         return $this->twig->render(self::SECTION_TEMPLATE, [
             'section' => $this->buildSectionViewModel($section, $context),
             'isPreview' => $context->mode === RenderMode::PREVIEW,
+            'chrome' => $this->chromeEnabled($context->mode),
         ]);
     }
 
