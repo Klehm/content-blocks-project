@@ -140,3 +140,12 @@ cb:
             unknown_fields: "Importé, mais certains champs enregistrés sont inconnus sur : %types%"
     upload:
         file: "Fichier image"
+        drop_hint: "Déposez une image ici"
+        choose: "Choisir une image"
+        remove: "Retirer"
+        path_toggle: "Saisir / coller un chemin"
+        path_placeholder: "/uploads/… ou https://…"
+        uploading: "Envoi en cours…"
+        failed: "L'envoi a échoué"
+        network_error: "Erreur réseau"
+        rejected: "Type de fichier non pris en charge"

@@ -532,22 +532,84 @@
 {# ---------- Image upload field (ImageUploadType) ----------
    File picker + preview around the hidden path input. The cb-file-upload
    controller uploads to /_content-blocks/upload and writes the returned
-   URL into the hidden input (dispatching `change` for autosave). #}
-{% block cb_image_upload_widget -%}
-    <div data-controller="cb-file-upload" class="cb-image-upload">
-        <input type="file"
-               class="cb-form-file"
-               accept="{{ accept|default('image/*') }}"
-               data-action="change->cb-file-upload#upload:stop">
-        <span data-cb-file-upload-target="status" class="cb-upload-status"></span>
+   URL into the hidden input (dispatching `change` for autosave).
 
-        {%- set src = form.vars.value -%}
-        <div class="cb-image-upload__preview"{% if not src %} hidden{% endif %}>
+   The whole widget is a drop zone: the drag listeners sit on the root so a file
+   can be released anywhere over the field, preview included. Only drags that
+   carry files are intercepted, so dragging a collection row across the sidebar
+   still behaves. Localized strings the controller needs at runtime ride along
+   as `data-i18n-*`, the convention the builder shell already uses. #}
+{# ImageUploadType parents HiddenType, so Symfony picks `hidden_row` for it — a
+   bare widget with no row wrapper and no label. That is right for a real hidden
+   input and wrong for this one, which is a visible control: it left the field
+   nameless and butting into the next one, outside the form's vertical rhythm.
+   Route it back through the standard row. #}
+{% block cb_image_upload_row -%}
+    {{- block('form_row') -}}
+{%- endblock cb_image_upload_row %}
+
+{% block cb_image_upload_widget -%}
+    {%- set src = form.vars.value -%}
+    <div data-controller="cb-file-upload"
+         class="cb-image-upload{% if not src %} cb-image-upload--empty{% endif %}"
+         data-action="dragenter->cb-file-upload#dragEnter dragover->cb-file-upload#dragOver dragleave->cb-file-upload#dragLeave drop->cb-file-upload#drop"
+         data-i18n-cb-upload-uploading="{{ 'cb.upload.uploading'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-upload-failed="{{ 'cb.upload.failed'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-upload-network-error="{{ 'cb.upload.network_error'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-upload-rejected="{{ 'cb.upload.rejected'|trans({}, 'content_blocks') }}">
+
+        {# The drop zone frames the image itself, so the target an editor aims at
+           is the picture they are replacing. The hint only shows while the field
+           is empty (or during a drag) — once there is an image, the frame is the
+           affordance and the text is noise. #}
+        <div class="cb-image-upload__preview">
             <img data-cb-file-upload-target="preview"
                  {% if src %}src="{{ src }}"{% endif %}
                  class="cb-thumbnail"
+                 alt=""
                  {% if not src %}hidden{% endif %}>
+            <p class="cb-image-upload__hint">{{ 'cb.upload.drop_hint'|trans({}, 'content_blocks') }}</p>
         </div>
+
+        <div class="cb-image-upload__actions">
+            {# The native file input is a poor button, so it is visually hidden
+               inside its label — which keeps the click, the keyboard focus and
+               the accessible name without a JS trigger. #}
+            <label class="cb-form-btn cb-form-btn--sm cb-image-upload__choose">
+                {{ 'cb.upload.choose'|trans({}, 'content_blocks') }}
+                <input type="file"
+                       class="cb-image-upload__file"
+                       accept="{{ accept|default('image/*') }}"
+                       data-cb-file-upload-target="file"
+                       data-action="change->cb-file-upload#upload:stop">
+            </label>
+            {# Hidden server-side too, not only by the controller: a Live morph
+               re-renders this markup and would otherwise bring the button back
+               on an empty field. #}
+            <button type="button"
+                    class="cb-form-btn cb-form-btn--sm"
+                    data-cb-file-upload-target="remove"
+                    data-action="cb-file-upload#remove"
+                    {% if not src %}hidden{% endif %}>{{ 'cb.upload.remove'|trans({}, 'content_blocks') }}</button>
+            <button type="button"
+                    class="cb-form-btn cb-form-btn--sm cb-image-upload__path-toggle"
+                    data-action="cb-file-upload#togglePath"
+                    aria-expanded="false"
+                    title="{{ 'cb.upload.path_toggle'|trans({}, 'content_blocks') }}"
+                    aria-label="{{ 'cb.upload.path_toggle'|trans({}, 'content_blocks') }}">🔗</button>
+        </div>
+
+        {# Paste-a-path escape hatch: same value as the hidden input, revealed on
+           demand. Nameless on purpose — only the hidden input is submitted. #}
+        <input type="text"
+               class="cb-form-control cb-image-upload__path"
+               data-cb-file-upload-target="path"
+               data-action="input->cb-file-upload#editPath change->cb-file-upload#commitPath keydown->cb-file-upload#pathKeydown"
+               placeholder="{{ 'cb.upload.path_placeholder'|trans({}, 'content_blocks') }}"
+               value="{{ src }}"
+               hidden>
+
+        <span data-cb-file-upload-target="status" class="cb-upload-status"></span>
 
         {# Hidden input carrying the stored path; targets set by the type. #}
         {{ block('hidden_widget') }}
