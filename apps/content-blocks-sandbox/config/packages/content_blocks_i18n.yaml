@@ -16,17 +16,13 @@ content_blocks_i18n:
     machine:
         # Which provider runs by default. `pseudo` (src/Translation/) is
         # deterministic and offline, so a fresh checkout and the e2e suite both
-        # work with no credentials; set CB_I18N_PROVIDER=claude (and
-        # ANTHROPIC_API_KEY) to see real output from the demo adapter next to it.
+        # work with no credentials. It is the only one here — set
+        # CB_I18N_PROVIDER to name another once you have wired one.
         default: '%env(default:cb_i18n_default_provider:CB_I18N_PROVIDER)%'
 
-        # DeepL ships with the package and needs only a key:
-        #
-        #     deepl:
-        #         api_key: '%env(DEEPL_API_KEY)%'
-        #
-        # Left out deliberately. Declaring the node is what registers the
-        # provider — the container cannot read env values at compile time, so an
-        # empty variable would still put a permanently-failing DeepL in the
-        # picker. The sandbox demonstrates the seam with `pseudo` and `claude`
-        # instead.
+        # There is no engine to configure here, and that is the design: the
+        # package ships the *seam* and no adapter for any translation service.
+        # Where a page's text may be sent is the host's call, not a transitive
+        # dependency of a page builder — so an adapter is a class in the host's
+        # own code, autoconfigured by implementing TranslationProviderInterface.
+        # Both of this sandbox's live in src/Translation/.

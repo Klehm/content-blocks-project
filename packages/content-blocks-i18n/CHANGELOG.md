@@ -32,16 +32,54 @@ field values, stored in a side table.**
 - **Progress reporting** — `TranslationInspector` / `TranslationProgress`, with
   translated / outdated / missing counted separately, per block, section, area
   and locale.
-- **Machine translation** — `TranslationProviderInterface` (batch-shaped, so a
-  page is one call), a registry, `NullTranslationProvider` as an honest default,
-  and a shipped `DeepLTranslationProvider`. `MachineTranslator` drives both the
-  per-field and whole-page flows through one code path, writing results through
-  the ordinary write gate.
+- **Machine translation — a seam, no engine.** `TranslationProviderInterface`
+  (batch-shaped, so a page is one call), a registry, and
+  `NullTranslationProvider` as an honest default. **No adapter for any
+  translation service ships here**: where a page's text may be sent is a
+  host decision about cost, quality and confidentiality, not something that
+  should arrive as a transitive dependency of a page builder. The sandbox's
+  `pseudo` provider — offline and deterministic — is the worked example, and no
+  vendor SDK is in any package's `require`.
+  `MachineTranslator` drives both the per-field and whole-page flows through one
+  code path, writing results through the ordinary write gate.
+
+  With no provider registered the workbench renders **no machine-translation
+  affordance at all** — no ⚡ on a field, no "translate this page", no picker —
+  and a provider whose `supports()` rejects a page's language pair is left out
+  for that page. An unconfigured feature is better absent than present and
+  failing; manual translation is unaffected either way.
 - **Lifecycle** — `TranslationPublisher` decorates the core publisher so
   translations ride Publish and Discard with the content they translate;
   `TranslationCloneObserver` carries translations onto duplicated sections.
 - **HTTP API** under `/_content-blocks/i18n` (CSRF + `canEdit`) and two console
   commands, `content-blocks:i18n:status` and `content-blocks:i18n:translate`.
+- **The workbench** (`GET /_content-blocks/i18n/workbench/{id}/{locale}`) — every
+  translatable field of a page in one list, source beside target, with the page
+  previewed next to it. A standalone page rendered in full by the package, with
+  its rows server-rendered so a translator can type on first paint. Saves are
+  debounced and batched per block, and flushed on unload with `keepalive`; the
+  preview swaps one block at a time, so its scroll position and JS state survive
+  an edit.
+- **Localized preview without a second resolver** — the workbench appends
+  `?cb_preview=1&cb_chrome=0&cb_locale=<target>` to the URL the host's
+  `ContentAreaUrlResolverInterface` returned, and `PreviewLocaleListener` turns
+  the locale parameter into the request locale. It is honoured only on a request
+  that is already in preview mode, so it cannot switch the language of a public
+  page. `cb_chrome=0` (core) drops the builder's toolbars from the pane — they
+  would be dead ends here, with no builder sidebar to open.
+- **The mount point is the host's choice** — `config/routes/bare.php` carries the
+  routes with no prefix, so a host can import them under `/admin/translations`
+  (or anywhere) and let one firewall pattern cover them; `config/routes.php`
+  keeps the default `/_content-blocks/i18n`. Route names are the same either
+  way, and the workbench generates every URL its JavaScript calls with `path()`,
+  so nothing hardcodes a path.
+- **Twig helpers** (`I18nExtension`) — `cb_i18n_workbench_url()`,
+  `cb_i18n_locales()` and `cb_i18n_progress()`, so a host's page list can link
+  into the workbench and show "DE 40%" without knowing how any of it is computed.
+- **Self-served assets** — `/_content-blocks/i18n/asset/workbench-{css,js}`. The
+  workbench is deliberately not a Stimulus controller: the page never loads the
+  host's bundle, so a self-contained ES module needs no `controllers.json` entry
+  and no asset recompilation, under AssetMapper or Encore alike.
 
 ### Requires (core)
 

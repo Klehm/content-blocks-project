@@ -33,7 +33,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * editor uses. Nothing a provider returns bypasses the translatable-field
  * allow-list, and nothing goes public without a Publish.
  */
-#[Route('/_content-blocks/i18n')]
 final class MachineTranslationController
 {
     private const CSRF_TOKEN_ID = 'content_blocks';
@@ -71,7 +70,7 @@ final class MachineTranslationController
 
     /**
      * Translate one block. Body (all optional):
-     * `{"paths": [...], "overwrite": false, "provider": "deepl"}`.
+     * `{"paths": [...], "overwrite": false, "provider": "my_engine"}`.
      *
      * Omitting `paths` translates every field of the block that is missing or
      * outdated — which is what the per-block button does. Passing a single path
@@ -118,7 +117,7 @@ final class MachineTranslationController
     }
 
     /**
-     * Translate the whole page. Body: `{"overwrite": false, "provider": "deepl"}`.
+     * Translate the whole page. Body: `{"overwrite": false, "provider": "my_engine"}`.
      *
      * Synchronous on purpose: one batched provider call for a page is seconds,
      * not minutes, and an editor who pressed the button wants to see the result

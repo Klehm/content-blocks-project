@@ -7,8 +7,15 @@ namespace ContentBlocks\I18n\Machine;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
- * A machine-translation backend — DeepL, an LLM, Google, an in-house service, a
- * human-translation vendor's API.
+ * A machine-translation backend — a translation API, an LLM, a self-hosted
+ * engine, an in-house service, a human-translation vendor's queue.
+ *
+ * **This package ships no adapter for any of them, deliberately.** Which
+ * service a page's text is sent to is a decision about cost, quality and where
+ * the content is allowed to travel; it belongs to the host, and it should not
+ * arrive as a transitive dependency of a page builder. What ships here is the
+ * seam and everything around it — batching, the write gate, staleness, the
+ * workbench — so that an adapter is a single small class.
  *
  * Tag with `content_blocks_i18n.translation_provider`, or just implement the
  * interface: it is autoconfigured. Registering one is the *whole* integration —

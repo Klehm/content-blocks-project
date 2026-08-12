@@ -26,10 +26,7 @@
         "twig/twig": "^3.10",
         "symfony/translation": "^7.4 || ^8.0",
         "symfony/mime": "^7.4 || ^8.0",
-        "liip/imagine-bundle": "^2.17",
-        "anthropic-ai/sdk": "^0.41",
-        "symfony/http-client": "^7.0 || ^8.0",
-        "nyholm/psr7": "^1.8"
+        "liip/imagine-bundle": "^2.17"
     },
     "repositories": [
         {

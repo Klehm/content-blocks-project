@@ -1,7 +1,4 @@
 parameters:
-    # Default fallback for the ANTHROPIC_MODEL env var. Claude Opus 5 is the
-    # current flagship; override the env var to trade capability for cost.
-    cb_i18n_default_model: 'claude-opus-5'
     # Provider used when nothing is set: deterministic and offline, so a fresh
     # checkout and the e2e suite both work with no credentials.
     cb_i18n_default_provider: 'pseudo'
@@ -41,23 +38,17 @@ services:
 
     # ---- Machine translation ----------------------------------------------
     #
-    # Two providers, both auto-tagged through the package's
-    # TranslationProviderInterface autoconfiguration. Which one runs is decided
-    # by `content_blocks_i18n.machine.default` (env CB_I18N_PROVIDER, default
-    # `pseudo`), so the sandbox works offline out of the box and shows real
-    # output the moment a key is present.
+    # One provider — `pseudo` (src/Translation/), deterministic and offline —
+    # auto-tagged through the package's TranslationProviderInterface
+    # autoconfiguration. No service definition needed: implementing the
+    # interface is the whole registration.
     #
-    #   pseudo  — deterministic, no network. The e2e suite drives this one.
-    #   claude  — the real thing, via the official Anthropic PHP SDK.
+    # There is no vendor engine here, in the sandbox any more than in the
+    # package: sending a page's text to a third-party service is a decision for
+    # a real host to make, with its own credentials and its own view on where
+    # content may travel. A demo that translated for real would only prove that
+    # someone paid for an API key.
     #
-    # The client is constructed with whatever ANTHROPIC_API_KEY holds, including
-    # nothing: an empty key builds fine and fails at call time with a message
-    # the workbench can show, which beats a container that refuses to boot.
-    Anthropic\Client:
-        arguments:
-            $apiKey: '%env(default::ANTHROPIC_API_KEY)%'
-
-    App\Translation\ClaudeTranslationProvider:
-        arguments:
-            $client: '@Anthropic\Client'
-            $model: '%env(default:cb_i18n_default_model:ANTHROPIC_MODEL)%'
+    # Remove this provider and the workbench renders no ⚡ button, no "translate
+    # this page" and no engine picker — the unconfigured state, which is what a
+    # host sees before wiring its own.

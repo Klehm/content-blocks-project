@@ -34,7 +34,6 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  * workbench layout, so the same endpoints back a side-by-side editor, a
  * per-block sidebar, or a script.
  */
-#[Route('/_content-blocks/i18n')]
 final class WorkbenchController
 {
     private const CSRF_TOKEN_ID = 'content_blocks';
@@ -83,7 +82,10 @@ final class WorkbenchController
      * moves — and having it arrive at once is what lets the editor tab from
      * field to field without a round trip per row.
      */
-    #[Route('/area/{id}/{locale}', name: 'content_blocks_i18n_area_fields', methods: ['GET'], requirements: ['id' => '\d+', 'locale' => '[A-Za-z0-9_-]+'])]
+    // `/fields/` in the path rather than `/area/{id}/{locale}`: the latter is
+    // ambiguous with `/area/{id}/locales` above and would resolve only by
+    // declaration order, which is a trap for whoever reorders the methods.
+    #[Route('/area/{id}/fields/{locale}', name: 'content_blocks_i18n_area_fields', methods: ['GET'], requirements: ['id' => '\d+', 'locale' => '[A-Za-z0-9_-]+'])]
     public function areaFields(int $id, string $locale): JsonResponse
     {
         $area = $this->area($id);

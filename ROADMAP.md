@@ -41,17 +41,20 @@ What landed:
 - [x] Locale-aware render path (`BlockDataResolverInterface` + `RenderContext`), one query per area
 - [x] Draft/published lifecycle: translations ride the area's Publish and Discard
 - [x] Progress + **staleness** (source digests → translated / outdated / missing)
-- [x] Machine-translation seam (batch-shaped `TranslationProviderInterface`), DeepL shipped, Claude demo in the sandbox
+- [x] Machine-translation seam (batch-shaped `TranslationProviderInterface`) — **no engine shipped**, adapters are the host's; offline `pseudo` demo in the sandbox
 - [x] Clone/duplicate interaction via the new core `BlockCloneObserverInterface`
 - [x] HTTP API + `content-blocks:i18n:{status,translate}`
+- [x] **The workbench UI** — full-page field list with the preview beside it,
+      scroll-to-field, inline single-block reload, collapsible preview, as
+      specced in [docs/guide/translation-ui-proposal.md](docs/guide/translation-ui-proposal.md).
+      Landed with the one additive core change it needed (`?locale=` on
+      `GET /_content-blocks/block/{id}/render`) and its own Vitest suite. It is
+      **not** a Stimulus controller in the end: the workbench is a standalone
+      page that never loads the host's bundle, so a package-served ES module
+      needs no `controllers.json` entry and no recompilation in any host.
 
 Still open:
 
-- [ ] **The workbench UI** — decided and specced in [docs/guide/translation-ui-proposal.md](docs/guide/translation-ui-proposal.md):
-      full-page field list with the preview beside it, scroll-to-field, inline
-      HTML reload, collapsible preview. Needs one small additive core change
-      (`?locale=` on `GET /_content-blocks/block/{id}/render`), a Stimulus
-      controller, and Vitest + Playwright coverage.
 - [ ] Export/import and section templates do **not** carry translations yet —
       the transfer walks need the same observer treatment the cloner got.
 - [ ] Per-locale publishing (the rows support it; no flow exposes it)

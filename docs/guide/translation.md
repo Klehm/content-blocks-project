@@ -142,14 +142,32 @@ whole-batch failures, and never persist anything yourself — results go back
 through the ordinary write gate, so the allow-list and the digests apply to
 machine output exactly as they do to typing.
 
-**DeepL ships with the package** (declare `machine.deepl.api_key`). An **LLM**
-fits the same seam and can use the context the request already carries — that
-this string is a button label rather than a heading, a glossary, a tone;
-[`ClaudeTranslationProvider`](https://github.com/klehm/content-blocks-project/blob/master/apps/content-blocks-sandbox/src/Translation/ClaudeTranslationProvider.php)
-in the sandbox is a working example. Vendor adapters live in the sandbox rather
-than the package for the same reason the [LiipImagine
-integration](./recipes/liip-imagine) is a recipe: the seam belongs in the
-package, a vendor SDK in every host's `require` does not.
+**The package ships no adapter for any engine**, on purpose. Which service a
+page's text may be sent to — and whether it may leave the building at all — is a
+decision about cost, quality and confidentiality that belongs to the host; it
+should not arrive as a transitive dependency of a page builder. Same call as the
+[LiipImagine integration](./recipes/liip-imagine): the seam belongs in the
+package, a vendor in every host's `require` does not.
+
+Writing one is a single class — implementing the interface is the whole
+registration. **[Machine translation with LibreTranslate](./recipes/translation-provider.md)**
+is the full worked recipe: a self-hosted engine, a complete adapter, and the
+failure paths spelled out. The sandbox's
+[`PseudoTranslationProvider`](https://github.com/klehm/content-blocks-project/blob/master/apps/content-blocks-sandbox/src/Translation/PseudoTranslationProvider.php)
+is the smallest possible one: offline, deterministic, no credentials, and what
+the demo and the e2e suite run on.
+
+A real engine is the same shape. A translation API (DeepL, Google, Azure) or a
+self-hosted one (LibreTranslate) maps almost directly onto it, since
+`TranslationRequest::isHtml()` already says which calls need the engine's markup
+mode. An **LLM** fits too, and can use context a dedicated engine ignores: that
+this string is a button label rather than a heading, a glossary, a tone.
+
+**With no provider registered, the workbench renders no machine-translation
+affordance at all** — no ⚡ on a field, no "translate this page", no engine
+picker. Manual translation is unaffected. A button that can only fail is worse
+than an absent one, and a provider is also skipped for a page whose language
+pair its `supports()` rejects.
 
 Bulk, for starting a translation project without clicking through 200 pages:
 

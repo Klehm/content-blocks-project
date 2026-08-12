@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- See messages.fr.xlf. `fr` is this app's default_locale; `en` is here so the
+     builder's own English catalog is not paired with untranslated host keys. -->
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+    <file source-language="en" target-language="en" datatype="plaintext" original="messages">
+        <body>
+            <trans-unit id="builder.save_as_model">
+                <source>app.builder.save_as_model</source>
+                <target>Save page as model</target>
+            </trans-unit>
+            <trans-unit id="builder.save_as_model_title">
+                <source>app.builder.save_as_model_title</source>
+                <target>Save this content as a reusable model</target>
+            </trans-unit>
+            <trans-unit id="builder.translate">
+                <source>app.builder.translate</source>
+                <target>Translate this page</target>
+            </trans-unit>
+            <trans-unit id="builder.translate_title">
+                <source>app.builder.translate_title</source>
+                <target>Open the translation workbench in a new tab</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

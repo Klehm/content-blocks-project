@@ -23,9 +23,14 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * nothing and cost a network call, an API key in CI, and a suite that fails when
  * someone else's rate limit does.
  *
- * So this is the sandbox's default provider: deterministic, instant, offline.
- * `ClaudeTranslationProvider` sits next to it for anyone who wants to see real
- * output, and takes over as soon as `ANTHROPIC_API_KEY` is set.
+ * So this is the sandbox's only provider: deterministic, instant, offline. No
+ * vendor engine ships here any more than in the package — sending a page's text
+ * to a third-party service is a decision for a real host, with its own
+ * credentials and its own view on where content may travel. A demo that
+ * translated for real would only prove that someone paid for an API key.
+ *
+ * It is also the shape to copy: implementing the interface *is* the whole
+ * registration, and the batch signature is what a real engine needs anyway.
  *
  * The output is deliberately obvious — `[EN] Bienvenue` — because a pseudo
  * translation that looked plausible would be the worst of both worlds: nobody

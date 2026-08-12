@@ -53,11 +53,16 @@ test.describe('builder topbar — host actions (cb:builder:action)', () => {
 
         const actionBtn = page.locator('.cb-shell__action--save-as-model');
         await expect(actionBtn).toBeVisible();
-        await expect(actionBtn).toHaveText(/Save page as model/);
+        // French, because the fixture's default_locale is `fr` and the host
+        // passes translation keys: the package runs `|trans` on a contributed
+        // action's label and title, so a host entry is localized like the
+        // builder's own entries rather than stuck in whatever language it was
+        // typed in.
+        await expect(actionBtn).toHaveText(/Enregistrer la page comme modèle/);
         // The optional title is a tooltip only. It deliberately does NOT become
         // an aria-label: overriding the visible text with different words is
         // what breaks "Label in Name" for anyone driving this by voice.
-        await expect(actionBtn).toHaveAttribute('title', 'Save this content as a reusable model');
+        await expect(actionBtn).toHaveAttribute('title', 'Enregistrer ce contenu comme modèle réutilisable');
         await expect(actionBtn).not.toHaveAttribute('aria-label', /./);
     });
 
@@ -118,5 +123,41 @@ test.describe('builder topbar — host actions (cb:builder:action)', () => {
         await page.goto(modelHref);
         await expect(page.locator('.cb-launcher__button')).toBeVisible();
         await expect(page.locator('h1')).toContainText('(model)');
+    });
+
+    /**
+     * The second host action, and the sandbox's entry point into the i18n
+     * package's translation workbench. Same generic event, a different key —
+     * which is the point of the mechanism: the package contributes no
+     * i18n-specific button, the host decides where the link belongs.
+     *
+     * It opens in a new tab on purpose: the builder holds unsaved draft state
+     * in a <dialog>, and the workbench is a full page of its own.
+     */
+    test('the translate action opens the workbench in a new tab', async ({ page }) => {
+        await openBuilder(page);
+
+        await page.locator('.cb-shell__actions-toggle').click();
+
+        const action = page.locator('.cb-shell__action--translate');
+        // Localized like every other entry — see the first test in this file.
+        await expect(action).toHaveText(/Traduire cette page/);
+        await expect(action).toHaveAttribute('title', "Ouvrir l'atelier de traduction dans un nouvel onglet");
+
+        const [workbench] = await Promise.all([
+            page.waitForEvent('popup'),
+            action.click(),
+        ]);
+
+        // The sandbox mounts the package's routes under its own admin path, so
+        // this URL is also the proof that the mount point is the host's choice.
+        await expect(workbench).toHaveURL(/\/admin\/translations\/workbench\/\d+\/en$/);
+        // The source language is stated, the target is the one being edited.
+        await expect(workbench.locator('.cb-wb__source-tag')).toBeVisible();
+        // Draft content, in the target language, with no editing chrome.
+        await expect(workbench.locator('.cb-wb__preview iframe')).toHaveAttribute(
+            'src',
+            /cb_preview=1&cb_chrome=0&cb_locale=en$/,
+        );
     });
 });

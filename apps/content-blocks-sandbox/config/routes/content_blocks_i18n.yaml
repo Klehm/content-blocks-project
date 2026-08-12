@@ -1,0 +1,17 @@
+# Content-translation routes (workbench page, JSON API, workbench assets).
+#
+# Mounted under `/admin/translations` rather than at the package's default
+# `/_content-blocks/i18n`, so everything an editor reaches sits under one path —
+# which is what a host with a firewall needs, since `security.firewalls.<name>.pattern`
+# matches on the path. Access itself is unchanged either way: the workbench calls
+# `AccessCheckerInterface::canEdit()` on the area exactly like the builder's own
+# endpoints do; the prefix is what lets an authentication layer cover it too.
+#
+# `routes/bare.php` is the package's route file with no prefix of its own —
+# importing `config/routes.php` instead would keep the default one. Nothing
+# hardcodes these paths: the workbench page generates every URL its JavaScript
+# calls with `path()` and hands them over on the DOM, so the mount point can move
+# without the fetches following it by hand.
+content_blocks_i18n:
+    resource: '@ContentBlocksI18nBundle/config/routes/bare.php'
+    prefix: /admin/translations

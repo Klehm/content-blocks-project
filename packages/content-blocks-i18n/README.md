@@ -34,9 +34,10 @@ content_blocks_i18n:
         - es
 
     machine:
-        default: deepl
-        deepl:
-            api_key: '%env(DEEPL_API_KEY)%'
+        # Optional: which of your registered providers runs when a caller names
+        # none. There is nothing to configure here otherwise — the package ships
+        # no translation engine, see "Machine translation" below.
+        default: my_engine
 ```
 
 Then create the table — see
@@ -141,6 +142,86 @@ php bin/console content-blocks:i18n:status --locale=de --incomplete
 
 ---
 
+## The workbench
+
+The editorial UI: every translatable field of a page in one list, source beside
+target, with the page itself previewed next to it.
+
+```
+/_content-blocks/i18n/workbench/{areaId}/{locale}
+```
+
+It is a **standalone page this package renders in full**, not a panel inside the
+builder — the unit of work is the page, not the block, and the point is never to
+leave the list. Link to it from wherever the host keeps its admin UI:
+
+```twig
+<a href="{{ cb_i18n_workbench_url(page.contentArea, 'de') }}">Translate</a>
+
+{# Decorate a page list with per-locale progress — "DE 40%" #}
+{% for code, progress in cb_i18n_progress(page.contentArea) %}
+    {{ code }} {{ progress.percent }}%
+{% endfor %}
+
+{# Configured locales, source flagged, for a picker #}
+{% for locale in cb_i18n_locales() %}{{ locale.label }}{% endfor %}
+```
+
+Four things about it are deliberate:
+
+- **Rows are rendered server-side.** A translator's first action is to read and
+  start typing; a spinner between the click and the first field is the latency
+  the whole design removes. The JSON endpoints remain the API for everything
+  else.
+- **Saves are debounced and batched per block.** Tabbing through the four fields
+  of a card produces one request, not four — which is why the save endpoint
+  takes a batch. A pending edit is flushed on unload with `keepalive`, so a
+  navigation cannot lose what is already on screen.
+- **The preview updates one block at a time.** After a save exactly one block is
+  re-fetched and swapped, so scroll position and any JS state in the preview
+  survive the edit. Only a block type that answers `hotReload: false` forces a
+  full frame reload.
+- **The preview is the raw page**, in the language being translated: the host's
+  own public URL loaded with `?cb_preview=1&cb_chrome=0&cb_locale=<target>`.
+  `cb_chrome=0` is a core flag that keeps draft content but drops the builder's
+  toolbars, tray and overlay script — they would be dead ends here, since this
+  page has no builder sidebar to open. The locale rides the same way: the
+  package appends a parameter to whatever `ContentAreaUrlResolverInterface`
+  returned and a request listener turns it into the request locale, so this
+  works whether the host spells locales as a path prefix, a subdomain or a
+  stored preference, with no second resolver to implement. That parameter is
+  honoured **only** on a request already in preview mode (which the core grants
+  only after `canEdit()`), so it can never switch the language of a public page.
+
+Its CSS and JS are served from the package. There is no Stimulus controller to
+declare and nothing to recompile in a host's asset pipeline: the page never
+loads the host's bundle, so a self-contained ES module works identically under
+AssetMapper and Webpack Encore.
+
+### Where the routes live
+
+By default everything sits under `/_content-blocks/i18n`, matching the core. A
+host that would rather mount it elsewhere — under its admin path, so one
+firewall pattern covers it — imports the unprefixed route file and names its own
+prefix:
+
+```yaml
+# config/routes/content_blocks_i18n.yaml
+content_blocks_i18n:
+    resource: '@ContentBlocksI18nBundle/config/routes/bare.php'
+    prefix: /admin/translations        # → /admin/translations/workbench/{id}/{locale}
+```
+
+Route **names** are identical either way, so nothing else changes: the workbench
+generates every URL its JavaScript calls with `path()` and hands them over on the
+DOM. Authorization is unaffected by the choice — the workbench and its endpoints
+call `AccessCheckerInterface::canEdit()` on the area exactly like the builder's
+own endpoints, and the writing ones require the `content_blocks` CSRF token. A
+prefix is about letting an authentication layer cover the routes, not about
+access control on the content.
+
+---
+
 ## Machine translation
 
 Registering a provider is the whole integration. The per-field button and the
@@ -183,19 +264,37 @@ Three more rules worth knowing before writing one:
 
 ### What ships
 
-| Provider | Notes |
-|---|---|
-| `null` | The default when nothing is wired. Answers every request with `no_provider_configured` rather than throwing, so an unconfigured installation looks unconfigured instead of broken. |
-| `deepl` | Ships with the package; declare `machine.deepl.api_key` to register it. Groups HTML and plain text into separate calls (`tag_handling` is per-request) and maps locale codes to DeepL's spelling. |
+**No engine ships with this package**, and that is deliberate. Where a page's
+text is allowed to travel is a decision about cost, quality and confidentiality
+that belongs to the host — it should not arrive as a transitive dependency of a
+page builder, and no default here could be right for everyone. The only provider
+in the box is `null`: it answers every request with `no_provider_configured`
+rather than throwing, so the API and the CLI on an unconfigured installation
+look unconfigured instead of broken.
 
-An **LLM adapter** is a good fit too — a model can be told that a string is a
-button label rather than a heading, that a glossary term must not be translated,
-and what tone the site uses, all of which the request already carries.
-[`ClaudeTranslationProvider`](../../apps/content-blocks-sandbox/src/Translation/ClaudeTranslationProvider.php)
-in the sandbox is a working ~200-line example using the official Anthropic PHP
-SDK. It lives there rather than here for the same reason the LiipImagine
-integration is a recipe: the seam belongs in the package, a vendor SDK in every
-host's `require` does not.
+**[Machine translation with LibreTranslate](https://klehm.github.io/content-blocks-project/guide/recipes/translation-provider)**
+is the worked recipe: a self-hosted, no-account engine behind a complete
+adapter, with the failure paths spelled out. The sandbox's
+[`PseudoTranslationProvider`](../../apps/content-blocks-sandbox/src/Translation/PseudoTranslationProvider.php)
+is the smallest possible one — offline, deterministic, no credentials, and what
+the demo and the e2e suite run on. Both are a single class, because implementing
+the interface *is* the whole registration.
+
+A real engine is the same shape. A translation API (DeepL, Google, Azure) or a
+self-hosted one (LibreTranslate) maps almost directly onto it —
+`TranslationRequest::isHtml()` already tells you which calls need the engine's
+markup mode, and the batch signature is what those APIs want anyway. An **LLM**
+fits too, and can use context the request already carries that a dedicated
+engine ignores: that a string is a button label rather than a heading, a
+glossary, a tone.
+
+### When nothing is registered
+
+The workbench renders **no machine-translation affordance at all**: no ⚡ button
+on a field, no "translate this page", no engine picker. Typing, "still current"
+and reset are untouched. A provider is also skipped for a page whose language
+pair its `supports()` rejects, so an engine that covers European languages does
+not offer a button on the Japanese column.
 
 ### Bulk
 
@@ -221,12 +320,13 @@ pass `canEdit()` on the target area.
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/area/{id}/locales` | Configured locales + per-locale progress |
-| `GET` | `/area/{id}/{locale}` | Every translatable field of the page, in reading order |
+| `GET` | `/area/{id}/fields/{locale}` | Every translatable field of the page, in reading order |
 | `POST` | `/block/{id}/{locale}` | Save a batch of values |
 | `POST` | `/block/{id}/{locale}/approve` | Re-stamp digests ("still current") |
 | `POST` | `/block/{id}/{locale}/translate` | Machine-translate one block or named fields |
 | `POST` | `/area/{id}/{locale}/translate` | Machine-translate the page |
 | `GET` | `/providers` | Registered providers, for a picker |
+| `GET` | `/workbench/{id}/{locale}` | The workbench page itself |
 
 On save, **`null` clears** a translation (the field falls back to the source)
 and **`""` stores a deliberate blank**. The distinction is load-bearing: a card
@@ -268,7 +368,9 @@ run `content-blocks:backfill-collection-ids` to normalize it.
 - PHP >= 8.2
 - `klehm/content-blocks` ^0.1
 - Symfony 6.4 LTS, 7.x or 8.x
-- `symfony/http-client` if you use the shipped DeepL provider
+
+No HTTP client, no vendor SDK: the package talks to no third-party service. A
+machine-translation adapter is the host's, and brings its own dependencies.
 
 ## License
 

@@ -1,0 +1,185 @@
+{# The translation workbench.
+
+   A standalone page rather than a panel inside the builder: the unit of work
+   here is *the page*, not a block, and the point is to never leave the list.
+   The rows are rendered server-side (see WorkbenchPageController) so a
+   translator can read and start typing on first paint, with no spinner between
+   the click and the first field.
+
+   @var area  \ContentBlocks\Entity\ContentArea
+   @var blocks    array
+   @var progress  array
+   @var locales   array
+   @var providers array
+#}
+{% trans_default_domain 'content_blocks_i18n' %}
+<!DOCTYPE html>
+<html lang="{{ app.request.locale|default('en') }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ 'cb_i18n.workbench.title'|trans }} — {{ localeLabel }}</title>
+    <link rel="stylesheet" href="{{ path('content_blocks_i18n_asset_css') }}">
+    <script type="module" src="{{ path('content_blocks_i18n_asset_js') }}" defer></script>
+</head>
+<body>
+<div class="cb-wb"
+     data-cb-i18n-workbench
+     data-cb-i18n-workbench-area-id-value="{{ area.id }}"
+     data-cb-i18n-workbench-locale-value="{{ locale }}"
+     data-cb-translate-all-url="{{ path('content_blocks_i18n_area_translate', { id: area.id, locale: locale }) }}"
+     data-cb-csrf-token="{{ csrfToken }}"
+     data-i18n-saved="{{ 'cb_i18n.workbench.saved'|trans }}"
+     data-i18n-save-failed="{{ 'cb_i18n.workbench.save_failed'|trans }}"
+     data-i18n-translating="{{ 'cb_i18n.workbench.translating'|trans }}"
+     data-i18n-translate-failed="{{ 'cb_i18n.workbench.translate_failed'|trans }}"
+     data-i18n-translate-all-confirm="{{ 'cb_i18n.workbench.translate_all_confirm'|trans }}">
+
+    <header class="cb-wb__topbar">
+        <div class="cb-wb__topbar-left">
+            <a class="cb-wb__back" href="{{ previewUrl|split('?')|first }}" title="{{ 'cb_i18n.workbench.back'|trans }}">←</a>
+
+            {# Source → target. The source is stated, not chosen: block data
+               *is* the source text, so there is nothing to switch it to. #}
+            <span class="cb-wb__pair">
+                <span class="cb-wb__source-tag">{{ sourceLabel }}</span>
+                <span class="cb-wb__arrow" aria-hidden="true">→</span>
+                <label class="cb-wb__locale">
+                    <span class="cb-wb__sr">{{ 'cb_i18n.workbench.target_locale'|trans }}</span>
+                    <select data-act="switchLocale">
+                        {% for l in locales|filter(l => not l.source) %}
+                            <option value="{{ l.code }}" {{ l.code == locale ? 'selected' : '' }}>{{ l.label }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </span>
+        </div>
+
+        <div class="cb-wb__topbar-right">
+            {% if providers is not empty %}
+                {% if providers|length > 1 %}
+                    <label class="cb-wb__provider">
+                        <span class="cb-wb__sr">{{ 'cb_i18n.workbench.provider'|trans }}</span>
+                        <select data-target="provider">
+                            {% for p in providers %}
+                                <option value="{{ p.name }}">{{ p.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                {% else %}
+                    <input type="hidden" data-target="provider" value="{{ (providers|first).name }}">
+                {% endif %}
+
+                <button type="button" class="cb-wb__btn cb-wb__btn--accent" data-act="translateAll">
+                    <span aria-hidden="true">⚡</span> {{ 'cb_i18n.workbench.translate_all'|trans }}
+                </button>
+            {% endif %}
+
+            <button type="button" class="cb-wb__btn" data-target="previewToggle" data-act="togglePreview" aria-pressed="true">
+                <span aria-hidden="true">◨</span>
+                <span data-target="previewToggleLabel"
+                      data-hide="{{ 'cb_i18n.workbench.hide_preview'|trans }}"
+                      data-show="{{ 'cb_i18n.workbench.show_preview'|trans }}">{{ 'cb_i18n.workbench.hide_preview'|trans }}</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="cb-wb__meter">
+        <div class="cb-wb__meter-bar">
+            <span class="cb-wb__meter-fill" data-target="meterFill" style="width: {{ progress.percent }}%"></span>
+        </div>
+
+        <div class="cb-wb__meter-counts">
+            <strong data-target="percent">{{ progress.percent }}%</strong>
+            <span class="cb-wb__chip cb-wb__chip--ok"><b data-target="countTranslated">{{ progress.translated }}</b> {{ 'cb_i18n.status.translated'|trans }}</span>
+            <span class="cb-wb__chip cb-wb__chip--outdated"><b data-target="countOutdated">{{ progress.outdated }}</b> {{ 'cb_i18n.status.outdated'|trans }}</span>
+            <span class="cb-wb__chip cb-wb__chip--missing"><b data-target="countMissing">{{ progress.missing }}</b> {{ 'cb_i18n.status.missing'|trans }}</span>
+        </div>
+
+        {# The filters double as the job list: "translate the 19 missing fields"
+           is one click plus one Tab pass, because filtering narrows tab order
+           too (see _applyFilter). #}
+        <div class="cb-wb__filters" role="group" aria-label="{{ 'cb_i18n.workbench.filter'|trans }}">
+            <button type="button" class="cb-wb__filter is-active" data-act="filter" data-filter-value="all">{{ 'cb_i18n.workbench.filter_all'|trans }}</button>
+            <button type="button" class="cb-wb__filter" data-act="filter" data-filter-value="missing">{{ 'cb_i18n.status.missing'|trans }}</button>
+            <button type="button" class="cb-wb__filter" data-act="filter" data-filter-value="outdated">{{ 'cb_i18n.status.outdated'|trans }}</button>
+        </div>
+    </div>
+
+    <main class="cb-wb__main">
+        <section class="cb-wb__list" data-target="list" aria-label="{{ 'cb_i18n.workbench.fields'|trans }}">
+            {% if blocks is empty %}
+                <p class="cb-wb__empty">{{ 'cb_i18n.workbench.nothing'|trans }}</p>
+            {% endif %}
+
+            {# Every URL the script calls is generated here, per block, rather
+               than assembled from a hardcoded prefix in JavaScript. That is
+               what lets a host mount these routes wherever it likes — under
+               `/admin`, behind its own firewall — without the workbench
+               fetching a 404. #}
+            {% for block in blocks %}
+                <article class="cb-wb__block"
+                         data-cb-block="{{ block.blockId }}"
+                         data-cb-save-url="{{ path('content_blocks_i18n_block_save', { id: block.blockId, locale: locale }) }}"
+                         data-cb-approve-url="{{ path('content_blocks_i18n_block_approve', { id: block.blockId, locale: locale }) }}"
+                         data-cb-translate-url="{{ path('content_blocks_i18n_block_translate', { id: block.blockId, locale: locale }) }}"
+                         data-cb-render-url="{{ path('content_blocks_block_render', { id: block.blockId, locale: locale }) }}">
+                    <h2 class="cb-wb__block-title">
+                        <span class="cb-wb__block-index">§{{ block.sectionNumber }}</span>
+                        {{ block.blockLabel }}
+                    </h2>
+
+                    {% for field in block.fields %}
+                        <div class="cb-wb__row cb-wb__row--{{ field.status }}"
+                             data-target="row"
+                             data-status="{{ field.status }}"
+                             data-block="{{ block.blockId }}"
+                             data-path="{{ field.path }}">
+
+                            <div class="cb-wb__source">
+                                <span class="cb-wb__label">
+                                    {{ field.labelDomain ? field.label|trans({}, field.labelDomain) : field.label }}
+                                    {%- if field.entryIndex %} <span class="cb-wb__entry">#{{ field.entryIndex }}</span>{% endif %}
+                                </span>
+                                <p class="cb-wb__source-text">{{ field.source }}</p>
+                                <p class="cb-wb__stale" {{ field.status != 'outdated' ? 'hidden' : '' }}>⟲ {{ 'cb_i18n.workbench.source_changed'|trans }}</p>
+                            </div>
+
+                            <div class="cb-wb__target">
+                                {% if field.widget in ['textarea', 'html'] %}
+                                    <textarea rows="3" data-target="input" placeholder="{{ field.source }}">{{ field.value }}</textarea>
+                                {% else %}
+                                    <input type="text" data-target="input" placeholder="{{ field.source }}" value="{{ field.value }}">
+                                {% endif %}
+
+                                <div class="cb-wb__row-actions">
+                                    {% if providers is not empty %}
+                                        <button type="button" class="cb-wb__icon" data-act="translateField"
+                                                title="{{ 'cb_i18n.workbench.translate_field'|trans }}">⚡</button>
+                                    {% endif %}
+                                    {# "Still current" — re-stamps the source digest without retyping.
+                                       A staleness flag that can only be cleared by redoing finished
+                                       work is a flag people learn to ignore. #}
+                                    <button type="button" class="cb-wb__icon cb-wb__icon--approve" data-act="approve"
+                                            title="{{ 'cb_i18n.workbench.mark_current'|trans }}">✓</button>
+                                    {# Distinct from clearing the text box: this sends null, so the
+                                       field falls back to its source instead of rendering blank. #}
+                                    <button type="button" class="cb-wb__icon" data-act="reset"
+                                            title="{{ 'cb_i18n.workbench.reset'|trans }}">⨯</button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </article>
+            {% endfor %}
+        </section>
+
+        <aside class="cb-wb__preview" data-target="previewPane">
+            <iframe data-target="preview" src="{{ previewUrl }}" title="{{ 'cb_i18n.workbench.preview'|trans }}"></iframe>
+        </aside>
+    </main>
+
+    <div class="cb-wb__toast" data-target="toast" role="status" aria-live="polite" hidden></div>
+</div>
+</body>
+</html>

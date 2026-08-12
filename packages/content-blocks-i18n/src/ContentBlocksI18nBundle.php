@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace ContentBlocks\I18n;
 
-use ContentBlocks\I18n\Machine\DeepLTranslationProvider;
 use ContentBlocks\I18n\Machine\TranslationProviderInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
 /**
@@ -38,10 +36,16 @@ final class ContentBlocksI18nBundle extends AbstractBundle
      *         - fr
      *         - { code: de, label: 'Deutsch' }
      *     machine:
-     *         default: deepl             # provider used when the caller names none
-     *         deepl:
-     *             api_key: '%env(DEEPL_API_KEY)%'
+     *         default: my_engine         # provider used when the caller names none
      * ```
+     *
+     * Machine translation is a **seam, not an integration**: this package ships
+     * {@see TranslationProviderInterface} and no adapter for any engine. Which
+     * service to send content to — and whether to send it anywhere at all — is
+     * the host's decision, and it should not arrive as a transitive dependency
+     * of a page builder. Implement the interface (it is autoconfigured) and the
+     * workbench picks it up; with none registered, the machine-translation
+     * affordances simply do not render.
      */
     public function configure(DefinitionConfigurator $definition): void
     {
@@ -86,23 +90,6 @@ final class ContentBlocksI18nBundle extends AbstractBundle
                             ->info('Name of the provider used when a request names none. Leave null to use the only registered one.')
                             ->defaultNull()
                         ->end()
-                        ->arrayNode('deepl')
-                            ->addDefaultsIfNotSet()
-                            ->children()
-                                ->scalarNode('api_key')
-                                    ->info('Declaring this key registers the shipped DeepL provider; omit the node entirely to keep it unregistered. Note an `%env()%` placeholder always counts as declared — the container cannot read env values at compile time — so a host that wants DeepL only sometimes should omit the node in the configs where it is unwanted rather than rely on an empty variable.')
-                                    ->defaultNull()
-                                ->end()
-                                ->scalarNode('endpoint')
-                                    ->info('Override the API endpoint. Derived from the key by default (a `:fx` suffix means the free tier, which uses a different host).')
-                                    ->defaultNull()
-                                ->end()
-                                ->arrayNode('locale_map')
-                                    ->info('Host locale => DeepL language code, for the cases the mechanical mapping gets wrong.')
-                                    ->scalarPrototype()->end()
-                                ->end()
-                            ->end()
-                        ->end()
                     ->end()
                 ->end()
             ->end();
@@ -128,27 +115,19 @@ final class ContentBlocksI18nBundle extends AbstractBundle
             ->set('content_blocks_i18n.locales', $codes)
             ->set('content_blocks_i18n.locale_labels', $labels)
             ->set('content_blocks_i18n.machine.default', $config['machine']['default']);
-
-        // Same opt-in shape the core uses for LocalFileStorage: a provider that
-        // needs credentials is only registered once it has them, so it can
-        // never appear in the picker as an option that always fails.
-        $deepl = $config['machine']['deepl'];
-
-        if ($deepl['api_key'] !== null && $deepl['api_key'] !== '') {
-            $container->services()
-                ->set(DeepLTranslationProvider::class)
-                ->args([
-                    new Reference('http_client'),
-                    $deepl['api_key'],
-                    $deepl['endpoint'],
-                    $deepl['locale_map'],
-                ])
-                ->tag('content_blocks_i18n.translation_provider');
-        }
     }
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
+        // The workbench is a standalone page this bundle renders in full, so it
+        // needs its own Twig namespace. Registered here rather than asking the
+        // host to declare a path it never authors templates in.
+        if (isset($builder->getExtensions()['twig'])) {
+            $builder->prependExtensionConfig('twig', [
+                'paths' => [$this->getPath() . '/templates' => 'ContentBlocksI18n'],
+            ]);
+        }
+
         // Map the bundle's own entity so a host does not have to add a
         // `doctrine.orm.mappings` entry by hand for a table it never touches
         // directly. Guarded on the extension being present so the bundle can

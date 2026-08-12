@@ -9,14 +9,28 @@
     {% if page.contentArea %}
         {# The host wires its own builder topbar actions: each entry renders a
            button that dispatches the generic `cb:builder:action` event, which
-           the cb-host-actions controller below picks up off `document`. #}
+           the cb-host-actions controller below picks up off `document`.
+
+           Their labels and titles are **translation keys**, not text: the
+           package runs `|trans` on a contributed action's label and title, so a
+           host entry lands in the editor's language exactly like the builder's
+           own entries. Catalog in translations/messages.*.xlf.
+
+           "Translate" opens the i18n package's workbench. It is a host action
+           rather than a button the package contributes on its own: the package
+           is optional, and only the host knows where the link belongs in its
+           admin. The sandbox always ships it, so the helper is called
+           unguarded; a host that installs it conditionally would wrap this in
+           `{% if function_exists(...) %}` or pass the URL from its controller. #}
         <div data-controller="cb-host-actions"
-             data-cb-host-actions-save-as-model-url-value="{{ path('app_page_save_as_model', { id: page.id }) }}">
+             data-cb-host-actions-save-as-model-url-value="{{ path('app_page_save_as_model', { id: page.id }) }}"
+             data-cb-host-actions-workbench-url-value="{{ cb_i18n_workbench_url(page.contentArea) }}">
             {% include '@ContentBlocks/builder/launcher.html.twig' with {
                 area: page.contentArea,
                 iframeUrl: cb_preview_url(page.contentArea),
                 topbarActions: [
-                    { key: 'save-as-model', label: 'Save page as model', icon: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>', title: 'Save this content as a reusable model' },
+                    { key: 'save-as-model', label: 'app.builder.save_as_model', icon: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>', title: 'app.builder.save_as_model_title' },
+                    { key: 'translate', label: 'app.builder.translate', icon: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>', title: 'app.builder.translate_title' },
                 ],
             } only %}
             <p class="sandbox-muted" data-cb-host-actions-target="status" style="margin-top: 1rem;" hidden></p>

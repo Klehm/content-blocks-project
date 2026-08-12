@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use ContentBlocks\I18n\Command\TranslateAreaCommand;
 use ContentBlocks\I18n\Command\TranslationStatusCommand;
+use ContentBlocks\I18n\Controller\AssetController;
 use ContentBlocks\I18n\Controller\MachineTranslationController;
 use ContentBlocks\I18n\Controller\WorkbenchController;
+use ContentBlocks\I18n\Controller\WorkbenchPageController;
 use ContentBlocks\I18n\Field\FieldMetadataReader;
 use ContentBlocks\I18n\Field\TranslatableFieldCatalog;
 use ContentBlocks\I18n\Lifecycle\TranslationCloneObserver;
@@ -16,12 +18,14 @@ use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Machine\MachineTranslator;
 use ContentBlocks\I18n\Machine\NullTranslationProvider;
 use ContentBlocks\I18n\Machine\TranslationProviderRegistry;
+use ContentBlocks\I18n\Preview\PreviewLocaleListener;
 use ContentBlocks\I18n\Progress\TranslationInspector;
 use ContentBlocks\I18n\Rendering\PrefetchingBlockRenderer;
 use ContentBlocks\I18n\Rendering\TranslationBlockDataResolver;
 use ContentBlocks\I18n\Repository\BlockTranslationRepository;
 use ContentBlocks\I18n\Storage\TranslationStore;
 use ContentBlocks\I18n\Storage\TranslationWriter;
+use ContentBlocks\I18n\Twig\I18nExtension;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Publishing\ContentAreaPublisherInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -109,10 +113,23 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(MachineTranslator::class)->public();
 
+    // ---------- Preview ----------
+
+    // Turns `?cb_locale=` on a builder-preview request into the request locale,
+    // so the workbench can preview the host's own page in the language being
+    // translated without the host implementing a second URL resolver.
+    $services->set(PreviewLocaleListener::class);
+
+    // ---------- Twig ----------
+
+    $services->set(I18nExtension::class)->tag('twig.extension');
+
     // ---------- HTTP + CLI ----------
 
     $services->set(WorkbenchController::class)->tag('controller.service_arguments');
+    $services->set(WorkbenchPageController::class)->tag('controller.service_arguments');
     $services->set(MachineTranslationController::class)->tag('controller.service_arguments');
+    $services->set(AssetController::class)->tag('controller.service_arguments');
 
     $services->set(TranslateAreaCommand::class);
     $services->set(TranslationStatusCommand::class);

@@ -8,9 +8,9 @@ namespace ContentBlocks\I18n\Machine;
  * The registered {@see TranslationProviderInterface} services, keyed by name.
  *
  * Same shape as the core's block-type and palette registries: an autoconfigured
- * tagged collection, indexed lazily. A host can therefore wire DeepL and an LLM
- * side by side and let the editor pick — which is the realistic setup, since
- * the two are good at different things (a glossary-bound engine for product
+ * tagged collection, indexed lazily. A host can therefore wire two engines side
+ * by side and let the editor pick — which is the realistic setup, since they
+ * are good at different things (a glossary-bound translation engine for product
  * copy, a model for marketing prose).
  */
 final class TranslationProviderRegistry
@@ -51,11 +51,15 @@ final class TranslationProviderRegistry
      * The provider to use when the caller named none: the configured default,
      * else the only registered one, else {@see NullTranslationProvider}.
      *
-     * Falling through to the null provider rather than throwing keeps the
-     * workbench's "translate" button rendering on an installation with nothing
-     * wired: the click comes back with a stated reason instead of a 500, which
-     * is the difference between a feature that looks broken and one that looks
-     * unconfigured.
+     * Falling through to the null provider rather than throwing is what keeps
+     * the *API and the CLI* answering with a stated reason instead of a 500 on
+     * an installation with nothing wired — `content-blocks:i18n:translate` says
+     * it has no engine rather than crashing.
+     *
+     * The workbench does not rely on it: it filters the null provider out and
+     * renders no machine-translation affordance at all when nothing usable is
+     * registered. An unconfigured feature is better absent than present and
+     * failing.
      */
     public function getDefault(): TranslationProviderInterface
     {

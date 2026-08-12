@@ -1,0 +1,224 @@
+/* Translation workbench.
+ *
+ * Standalone page, so this sheet carries its own reset and tokens rather than
+ * inheriting the host's admin CSS. Tokens mirror the builder's "Paper · Marine"
+ * skin (teal accent, cool blue-grey surfaces) so the two read as one product
+ * without this package depending on the core's stylesheet.
+ */
+
+:root {
+    --cb-wb-bg: #f4f6f8;
+    --cb-wb-surface: #ffffff;
+    --cb-wb-border: #dfe4ea;
+    --cb-wb-text: #1f2933;
+    --cb-wb-muted: #6b7785;
+    --cb-wb-accent: #0e7490;
+    --cb-wb-accent-soft: #e0f2f7;
+    --cb-wb-ok: #15803d;
+    --cb-wb-outdated: #b45309;
+    --cb-wb-outdated-soft: #fef3c7;
+    --cb-wb-missing: #9ca3af;
+    --cb-wb-danger: #b91c1c;
+    --cb-wb-radius: 8px;
+    --cb-wb-topbar-h: 52px;
+    --cb-wb-meter-h: 56px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--cb-wb-bg);
+    color: var(--cb-wb-text);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.cb-wb { display: flex; flex-direction: column; height: 100vh; }
+
+.cb-wb__sr {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---- topbar ---------------------------------------------------------- */
+
+.cb-wb__topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 0 16px;
+    height: var(--cb-wb-topbar-h); flex: 0 0 auto;
+    background: var(--cb-wb-surface);
+    border-bottom: 1px solid var(--cb-wb-border);
+}
+
+.cb-wb__topbar-left, .cb-wb__topbar-right { display: flex; align-items: center; gap: 12px; }
+
+.cb-wb__back {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: var(--cb-wb-radius);
+    color: var(--cb-wb-muted); text-decoration: none; font-size: 18px;
+}
+.cb-wb__back:hover { background: var(--cb-wb-bg); color: var(--cb-wb-text); }
+
+.cb-wb__pair { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.cb-wb__source-tag { color: var(--cb-wb-muted); }
+.cb-wb__arrow { color: var(--cb-wb-muted); }
+
+.cb-wb__locale select, .cb-wb__provider select {
+    font: inherit; padding: 5px 8px;
+    border: 1px solid var(--cb-wb-border); border-radius: var(--cb-wb-radius);
+    background: var(--cb-wb-surface); color: inherit;
+}
+
+.cb-wb__btn {
+    font: inherit; padding: 6px 12px; cursor: pointer;
+    border: 1px solid var(--cb-wb-border); border-radius: var(--cb-wb-radius);
+    background: var(--cb-wb-surface); color: inherit;
+}
+.cb-wb__btn:hover { background: var(--cb-wb-bg); }
+.cb-wb__btn--accent { background: var(--cb-wb-accent); border-color: var(--cb-wb-accent); color: #fff; }
+/* The background is repeated here, and it is not redundant: `.cb-wb__btn:hover`
+   is a class *plus* a pseudo-class, so it outranks the plain `--accent` rule
+   above and would repaint the button pale on hover — while `color: #fff` stayed,
+   leaving white text on a near-white ground. Restating the background at equal
+   specificity is what keeps the label readable. */
+.cb-wb__btn--accent:hover { background: var(--cb-wb-accent); filter: brightness(1.08); }
+
+/* ---- progress -------------------------------------------------------- */
+
+.cb-wb__meter {
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 16px; height: var(--cb-wb-meter-h); flex: 0 0 auto;
+    background: var(--cb-wb-surface);
+    border-bottom: 1px solid var(--cb-wb-border);
+}
+
+.cb-wb__meter-bar {
+    flex: 1 1 auto; max-width: 260px; height: 8px;
+    background: var(--cb-wb-bg); border-radius: 999px; overflow: hidden;
+}
+.cb-wb__meter-fill {
+    display: block; height: 100%;
+    background: var(--cb-wb-accent); transition: width .25s ease;
+}
+
+.cb-wb__meter-counts { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.cb-wb__chip { color: var(--cb-wb-muted); font-size: 12px; }
+.cb-wb__chip b { color: var(--cb-wb-text); }
+.cb-wb__chip--ok b { color: var(--cb-wb-ok); }
+.cb-wb__chip--outdated b { color: var(--cb-wb-outdated); }
+
+.cb-wb__filters { margin-left: auto; display: flex; gap: 4px; }
+.cb-wb__filter {
+    font: inherit; font-size: 12px; padding: 4px 10px; cursor: pointer;
+    border: 1px solid transparent; border-radius: 999px;
+    background: transparent; color: var(--cb-wb-muted);
+}
+.cb-wb__filter:hover { background: var(--cb-wb-bg); }
+.cb-wb__filter.is-active {
+    background: var(--cb-wb-accent-soft);
+    border-color: var(--cb-wb-accent);
+    color: var(--cb-wb-accent);
+}
+
+/* ---- layout ---------------------------------------------------------- */
+
+.cb-wb__main { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+.cb-wb--no-preview .cb-wb__main { grid-template-columns: 1fr; }
+.cb-wb--no-preview .cb-wb__preview { display: none; }
+
+.cb-wb__list { overflow-y: auto; padding: 16px; }
+.cb-wb__empty { color: var(--cb-wb-muted); text-align: center; padding: 48px 0; }
+
+.cb-wb__preview { border-left: 1px solid var(--cb-wb-border); background: var(--cb-wb-surface); }
+.cb-wb__preview iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+/* ---- rows ------------------------------------------------------------ */
+
+.cb-wb__block { margin-bottom: 20px; }
+.cb-wb__block-title {
+    display: flex; align-items: center; gap: 8px;
+    margin: 0 0 8px; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .04em;
+    color: var(--cb-wb-muted);
+}
+.cb-wb__block-index { color: var(--cb-wb-accent); }
+
+.cb-wb__row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    padding: 10px 12px; margin-bottom: 6px;
+    background: var(--cb-wb-surface);
+    border: 1px solid var(--cb-wb-border);
+    border-left: 3px solid var(--cb-wb-missing);
+    border-radius: var(--cb-wb-radius);
+}
+.cb-wb__row[hidden] { display: none; }
+
+/* The left border is the status at a glance — the one thing a translator
+   scanning a long list reads before anything else. */
+.cb-wb__row--translated { border-left-color: var(--cb-wb-ok); }
+.cb-wb__row--outdated { border-left-color: var(--cb-wb-outdated); background: var(--cb-wb-outdated-soft); }
+.cb-wb__row--missing { border-left-color: var(--cb-wb-missing); }
+.cb-wb__row.is-dirty { border-left-color: var(--cb-wb-accent); }
+
+.cb-wb__label { display: block; font-size: 11px; font-weight: 600; color: var(--cb-wb-muted); text-transform: uppercase; letter-spacing: .03em; }
+.cb-wb__entry { color: var(--cb-wb-accent); }
+.cb-wb__source-text { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cb-wb__stale { margin: 4px 0 0; font-size: 12px; color: var(--cb-wb-outdated); }
+.cb-wb__stale[hidden] { display: none; }
+
+/* The field matches the height of the source text beside it.
+   The row is a two-column grid, so both cells are already as tall as the
+   taller one; `stretch` is what passes that height down to the input instead
+   of letting `rows="3"` decide it. A long HTML source therefore gets a box
+   long enough to hold its translation, with no measuring in JavaScript and
+   nothing to re-measure on resize. */
+.cb-wb__target { display: flex; align-items: stretch; gap: 6px; }
+.cb-wb__target input, .cb-wb__target textarea {
+    flex: 1 1 auto; font: inherit; padding: 6px 8px;
+    border: 1px solid var(--cb-wb-border); border-radius: var(--cb-wb-radius);
+    background: var(--cb-wb-bg); color: inherit; resize: vertical;
+    /* Floor for one-line sources, so a short row still has a usable box. */
+    min-height: 34px;
+}
+/* Buttons keep their own size and stay at the top of a tall row. */
+.cb-wb__row-actions { align-self: flex-start; }
+.cb-wb__target input:focus, .cb-wb__target textarea:focus {
+    outline: 2px solid var(--cb-wb-accent); outline-offset: 1px;
+    background: var(--cb-wb-surface);
+}
+
+.cb-wb__row-actions { display: flex; flex-direction: column; gap: 2px; }
+.cb-wb__icon {
+    width: 26px; height: 26px; padding: 0; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid transparent; border-radius: var(--cb-wb-radius);
+    background: transparent; color: var(--cb-wb-muted); font-size: 13px;
+}
+.cb-wb__icon:hover { background: var(--cb-wb-bg); color: var(--cb-wb-text); border-color: var(--cb-wb-border); }
+
+/* "Still current" only means something while the row is flagged. */
+.cb-wb__icon--approve { display: none; }
+.cb-wb__row--outdated .cb-wb__icon--approve { display: inline-flex; color: var(--cb-wb-outdated); }
+
+/* ---- toast ----------------------------------------------------------- */
+
+.cb-wb__toast {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+    padding: 8px 16px; border-radius: var(--cb-wb-radius);
+    background: var(--cb-wb-text); color: #fff; font-size: 13px;
+    box-shadow: 0 6px 20px rgba(31, 41, 51, .22);
+    z-index: 50;
+}
+.cb-wb__toast[hidden] { display: none; }
+.cb-wb__toast--error { background: var(--cb-wb-danger); }
+
+/* ---- narrow screens -------------------------------------------------- */
+
+@media (max-width: 1024px) {
+    /* Below this the two panes stop being side by side in any useful sense;
+       the list wins, since it is where the work happens. */
+    .cb-wb__main { grid-template-columns: 1fr; }
+    .cb-wb__preview { display: none; }
+    .cb-wb__row { grid-template-columns: 1fr; }
+}
