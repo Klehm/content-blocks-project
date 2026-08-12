@@ -6,28 +6,16 @@ Legend: 🅿️ planned · 🤔 under consideration · 💡 idea
 
 ---
 
-## Kit — image optimization seam 🅿️
+## Image optimization — a concrete adapter 🤔
 
-**Context.** The kit is deliberately dependency-free: the `image` block serves the uploaded file **as-is** and only controls the *display* box via CSS (`width`/`height`, `object-fit`, `border-radius`, `loading="lazy"`). It already does the free wins (no CLS, lazy loading), but it does **not** reduce byte size — there is no responsive `srcset`, no WebP/AVIF, no server-side thumbnails. That inherently requires either an image-processing library (LiipImagine/Glide/GD/Imagick) or a transforming CDN, neither of which the kit should hard-depend on.
+The seam itself shipped: `ImageUrlResolverInterface` + `ResolvedImage` + a passthrough default live in `klehm/content-blocks`, `cb_image()` exposes them to any template, and the kit's `image`, `gallery` and `card` views resolve through it. A host wires one service and gets `srcset`/`sizes` everywhere.
 
-**Direction.** Add a *seam*, not a dependency — mirroring the project's existing "interface + passthrough default" pattern (`FileStorageInterface`, `AccessCheckerInterface`, `ContentAreaUrlResolverInterface`):
+What is left is optional and outside either package's `require`:
 
-- Introduce `ImageUrlResolverInterface::resolve(string $src, ?int $width, ?int $height): ResolvedImage` where `ResolvedImage` carries `{ src, srcset?, sizes? }`.
-- Ship a default `PassthroughImageUrlResolver` returning `src` unchanged → **the current zero-dependency behavior, unchanged and backward-compatible**.
-- The `image` view template calls the resolver and emits `srcset`/`sizes` only when the resolver provides them. The kit **already computes** the target display widths (sm=400, md=800, lg=1200, custom) — exactly the input a resolver needs.
+- **LiipImagine / Glide bridge** — a thin adapter, shipped as its own package (e.g. `klehm/content-blocks-liip`) or as a documented recipe + composer `suggest`. Never a hard dependency.
+- **A worked CDN recipe** beyond the one in the host-services guide (Cloudflare Images, imgix, Cloudinary each want slightly different URL shapes).
 
-**Opt-in optimization then lives outside the kit's `require`:**
-- **CDN** (Cloudflare Images, imgix, Cloudinary) — the resolver just builds URLs with transform params. Zero PHP processing dependency; likely the best "optimized, turnkey" path for production hosts.
-- **LiipImagine / Glide** — a thin bridge, shipped as a separate package (e.g. `klehm/content-blocks-kit-liip`) or a documented recipe + composer `suggest`. Never a hard dependency.
-
-**Why this shape.** Keeps the kit's "self-contained, drops into any host" promise intact while unblocking real byte-size optimization as a one-line host opt-in. The plumbing (interface + passthrough default + `srcset` in the template) is small, dependency-free, and non-breaking, and can land before any concrete adapter exists.
-
-**Rough scope when picked up:**
-- [ ] `ImageUrlResolverInterface` + `ResolvedImage` value object (kit or core)
-- [ ] `PassthroughImageUrlResolver` default + autowiring
-- [ ] Route the computed display width/height through the resolver in `image/view.html.twig`, render `srcset`/`sizes`
-- [ ] Unit test: passthrough emits today's markup exactly; a fake resolver emits `srcset`
-- [ ] Recipe: wire a CDN resolver · Recipe/bridge: LiipImagine
+Neither blocks the release: the seam is the part that had to exist before the freeze.
 
 ---
 
@@ -50,18 +38,51 @@ Legend: 🅿️ planned · 🤔 under consideration · 💡 idea
 
 ---
 
+## Builder — copy / paste a section or a block 🅿️
+
+**Context.** Duplicating exists, but only in place: `Duplicate` puts a copy right next to the original, and the section library needs a deliberate "save this as a template" step with a name. Neither covers the everyday move — *take this block and put it over there*, in another section, another area, another page. Editors do it by hand today: recreate the block, retype the fields, re-upload the image.
+
+**Direction.** A clipboard on top of the snapshot machinery that already exists, not a new persistence path. `SectionTemplateSerializerInterface` produces a self-contained section payload (`content-blocks/section-v1`, asset references as plain storage paths) and `SectionTemplateInstantiatorInterface` replays it against the *current* block-type registry — skipping types that no longer exist, keeping fields the block cannot hold yet. Copy/paste wants exactly that behavior; the block case needs the equivalent pair one level down.
+
+Interaction rules:
+
+- **Copy is acknowledged.** A copy produces no visible change, so it needs feedback — the "deleted — Undo" snackbar the builder already has, minus the action button. Silent copy is how an editor ends up pasting the wrong thing three times.
+- **Pasting a section appends it** after the existing sections of the area.
+- **Pasting a block requires a selected section.** With nothing selected there is no answer to *where*, so the action is disabled and says why rather than guessing.
+- **A pasted block lands in the first column** of the selected section.
+- **It lands right after the selected block**, or at the end of the column when the selection is the section itself.
+
+Open questions worth settling before coding:
+
+- **Where the clipboard lives.** In-memory is trivial and useless across pages — and across pages is the whole point, since in-place copying is what `Duplicate` already does. `localStorage` (or `sessionStorage`) gives cross-tab, cross-area paste for one user. **It also makes the payload user-writable**, so paste must stay a replay through the instantiator + the block's own form validation, never a trusted write. Same rule as import: the payload is input, not truth.
+- **A payload copied under an older `content_version`.** Section templates route this through `ContentVersionUpgraderInterface` (`DenyOnMismatchUpgrader` by default). A clipboard is short-lived enough that refusing outright may be the honest answer — but it must be *decided*, not inherited by accident.
+- **Whether pasting a section should follow the block rule** and land right after the selected section rather than at the end. Appending is what is specified above; the asymmetry is deliberate but worth a second look once it is in an editor's hands.
+- **Keyboard vs menu.** Ctrl/Cmd-C and Ctrl/Cmd-V on the focused entity are the expected gesture, but they must not steal a genuine text selection inside a sidebar form field. Menu entries (and the in-preview toolbar) are the discoverable path either way.
+
+**Rough scope when picked up:**
+- [ ] Block-level serializer/instantiator pair mirroring the section ones (or a shared one parameterized by scope)
+- [ ] Clipboard store + payload envelope (`format`, `contentVersion`, scope) — decide storage and the mismatch policy
+- [ ] Copy affordances (toolbar + menu + keyboard) with the snackbar acknowledgement
+- [ ] Paste endpoints writing to draft, gated by `AccessCheckerInterface::canEdit()` on the **target** area, with placement as specified above
+- [ ] Paste disabled-with-a-reason when the selection cannot answer "where"
+- [ ] Tests: placement rules (first column, after selection, append), an unknown block type in the payload, a tampered payload, cross-area paste
+
+Additive by construction and touching no published contract, so it does not gate the release — it can land on either side of the RC.
+
+---
+
 ## Release — an RC once the feature set is whole, then 1.0 🅿️
 
 **Context.** The last tag is `v0.1.0-beta.7`. The block set, core styling, security model, config surface and docs are in place, and the work that had to land *before* a freeze already has: the 1.0 seams (`RenderContext`, `BlockDataResolverInterface`, collection `_id`, the `_` reserved prefix), the `Block.data` key unification and the upgrade guide are on `master`, unreleased, accumulating under `[Unreleased]` in both CHANGELOGs.
 
-**Direction.** Stay on the beta line and finish the feature set first — an RC is only worth testing once hosts can exercise what 1.0 will actually contain. **The three items above ship first** (translation package, kit rich-text blocks, kit image-optimization seam), *then* `1.0.0-RC1`, *then* the stable tag.
+**Direction.** Stay on the beta line and finish the feature set first — an RC is only worth testing once hosts can exercise what 1.0 will actually contain. Of the three items this release was waiting on, two have shipped (the kit's rich-text editors, the image-optimization seam); **the translation package ships first**, *then* `1.0.0-RC1`, *then* the stable tag.
 
-Why this order: the translation package is the one that would most likely expose a missing core seam, and finding that during an RC — after the freeze promise — is exactly what an RC is meant to prevent. The rich-text blocks and the image seam are additive by construction, so they cost the freeze nothing but round out what a host gets on day one.
+Why that one and not the others: the translation package is the one that would most likely expose a missing core seam, and finding that during an RC — after the freeze promise — is exactly what an RC is meant to prevent. The two that already landed were additive by construction, so they cost the freeze nothing while rounding out what a host gets on day one.
 
 Versioning consequence: the unreleased work carries breaking changes (the `Block.data` key renames, the `BlockRendererInterface` signature), and `0.1.0-beta.1` promised those bump to `0.2`. Any tag cut before the RC is therefore `0.2.0-beta.x`, not `0.1.0-beta.8`.
 
 **Rough scope when picked up:**
-- [ ] The three feature items above, shipped and documented
+- [ ] The translation package, shipped and documented
 - [ ] Public-surface audit → freeze list + "experimental" markers
 - [ ] Upgrade guide (beta → stable) + verified migrations — drafted, revisit once the three items land
 - [ ] Green CI on the full supported matrix (Symfony 6.4/7.x/8.x, PHP 8.2–8.4; PHPUnit + Vitest + Playwright ×2)

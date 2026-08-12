@@ -408,6 +408,70 @@ use ContentBlocks\Form\Type\ImageUploadType;
 $builder->add('src', ImageUploadType::class);
 ```
 
+The widget frames its preview in a drop zone, and offers three ways to fill the
+field:
+
+- **pick** a file from the dialog,
+- **drop** one anywhere on the widget — same endpoint, CSRF token and limits,
+  filtered client-side against the field's own `accept`,
+- **paste a path** behind the link toggle, for an image that already exists (a
+  media library, an asset migrated from a previous CMS, a CDN URL). Nothing is
+  uploaded; an absolute URL on the builder's own origin is stored as its path,
+  anything else exactly as typed. Such a value lives outside
+  `FileStorageInterface`, so export/import does not bundle it — constrain the
+  field if your blocks should only reference your own storage.
+
+A **Remove** button clears the reference; the stored file itself is never
+deleted by ContentBlocks.
+
+### Image optimization (`ImageUrlResolverInterface`, optional)
+
+The package ships no image processing: a stored file is served as-is and only
+its *display box* is controlled by CSS. Shrinking bytes needs an image library
+or a transforming CDN, so it is a seam with a passthrough default rather than a
+dependency. Alias it and every image the kit renders gains `srcset`/`sizes`,
+with no template override:
+
+```php
+use ContentBlocks\Image\ImageUrlResolverInterface;
+use ContentBlocks\Image\ResolvedImage;
+
+final class CdnImageResolver implements ImageUrlResolverInterface
+{
+    public function resolve(string $src, ?int $width = null, ?int $height = null): ResolvedImage
+    {
+        if (!str_starts_with($src, '/uploads/')) {
+            return new ResolvedImage($src);   // not ours — pass it through
+        }
+
+        $at = static fn (int $w): string => "/cdn-cgi/image/width={$w},format=auto{$src}";
+
+        return new ResolvedImage(
+            $at($width ?? 1200),
+            implode(', ', array_map(static fn (int $w) => $at($w) . " {$w}w", [400, 800, 1200])),
+        );
+    }
+}
+```
+
+```yaml
+ContentBlocks\Image\ImageUrlResolverInterface:
+    class: App\Image\CdnImageResolver
+```
+
+`$width`/`$height` are the display box the view intends, in px, and are `null`
+where the layout is genuinely fluid — return candidates and own `sizes` in that
+case. Your own block templates reach the same seam through `cb_image()`:
+
+```twig
+{% set img = cb_image(data.src, 800) %}
+<img src="{{ img.src }}"{% if img.srcset %} srcset="{{ img.srcset }}"{% endif %}>
+```
+
+With nothing wired, the default resolver returns the source untouched and no
+`srcset`/`sizes` is rendered. Full details in
+[the host-services guide](../../docs/guide/host-services.md).
+
 ## Content versioning (`content_blocks.content_version`)
 
 The shape of what a block stores is decided by its **block type** — yours, or the kit's — not by this package. So the schema generation of your content is yours to declare:

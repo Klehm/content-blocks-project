@@ -8,8 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 Headed for `1.0.0`, but not tagged: the release waits on the translation package,
-the kit's rich-text blocks and its image-optimization seam, then a `1.0.0-RC1`.
-Everything below is on `master` only. See the
+then a `1.0.0-RC1`. Everything below is on `master` only. See the
 [roadmap](https://github.com/klehm/content-blocks-project/blob/master/ROADMAP.md).
 
 ### Changed
@@ -155,6 +154,57 @@ Everything below is on `master` only. See the
 
 ### Added
 
+- **`ImageUrlResolverInterface` — the seam for responsive images.** The package
+  ships no image processing: an uploaded file is served as stored and only its
+  *display box* is controlled by CSS. Reducing byte size needs an image library
+  or a transforming CDN, so this is an interface with a passthrough default
+  rather than a dependency — the same shape as `FileStorageInterface`.
+  `resolve(string $src, ?int $width, ?int $height)` returns a `ResolvedImage`
+  (`{src, srcset?, sizes?}`); the shipped `PassthroughImageUrlResolver` returns
+  the source untouched, so **markup is byte-for-byte what it was** until a host
+  aliases the interface. View templates reach it through the new `cb_image()`
+  Twig function, and the kit already routes its `image`, `gallery` and `card`
+  views through it — aliasing the interface gives all three `srcset`/`sizes`
+  with no template override.
+
+  The width/height passed are the display box the view intends, and are `null`
+  where the layout is genuinely fluid; a resolver that returns candidates
+  without `sizes` gets one derived from that width, since a bare `srcset` is
+  read as `100vw`.
+- **The image field is a drop zone, and gained Remove + paste-a-path.**
+  `ImageUploadType`'s widget was a bare file input with a thumbnail under it; it
+  now frames the preview in a dashed drop zone with an actions row beneath —
+  *Choose an image*, *Remove* (only once there is a value), and a link toggle
+  revealing the raw path.
+
+  - **Drop** — a file released anywhere on the widget, preview included, uploads
+    through the same `/_content-blocks/upload` endpoint, CSRF token and limits as
+    one picked from the dialog. The highlight is depth-counted so it survives the
+    pointer crossing child elements, and only drags carrying files are
+    intercepted, so dragging a collection row across the sidebar still behaves.
+    A dropped file is filtered client-side against the field's own `accept`
+    (extensions, exact types and wildcards) — a courtesy on top of the
+    server-side MIME/size gate.
+  - **Paste a path** — the escape hatch for an image that already exists (a host
+    media library, an asset migrated from a previous CMS, a CDN URL). Nothing is
+    uploaded. The value is stored as typed, with one normalization: an absolute
+    URL on the builder's own origin becomes its path, since that is what survives
+    a domain change. Such a value lives outside `FileStorageInterface`, so
+    export/import does not bundle it — constrain the field if a block should only
+    reference your own storage.
+  - **Remove** clears the reference; the stored file is never deleted.
+
+  It also **gets its label back**. Because `ImageUploadType` parents
+  `HiddenType`, Symfony picked `hidden_row` for it — no row wrapper, no label —
+  so the field rendered nameless and outside the form's vertical rhythm, running
+  into whatever came next. A `cb_image_upload_row` block routes it through the
+  standard row again.
+
+  Nine new `cb.upload.*` keys (en + fr) cover the labels and the status wording,
+  which the controller reads from `data-i18n-*` attributes. **If you overrode the
+  `cb_image_upload_widget` form-theme block, your version keeps working** but
+  gains none of this — the new controls are markup, and `cb-file-upload` treats
+  each of its targets as optional.
 - **`BuilderActionProviderInterface` — the seam for a *bundle* to add a topbar
   action.** Autoconfigured (`content_blocks.builder_action_provider`); each
   provider yields `BuilderAction` value objects for a given area, so an action

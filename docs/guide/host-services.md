@@ -169,6 +169,71 @@ use ContentBlocks\Form\Type\ImageUploadType;
 $builder->add('src', ImageUploadType::class);
 ```
 
+The widget renders a dashed frame around the preview, a **Choose an image** button, a **Remove** button (only once there is a value) and a link toggle that reveals a raw path field.
+
+- **Drop** — the whole widget is a drop zone: a file dropped anywhere on it goes through the same endpoint, the same CSRF token and the same limits as one picked from the dialog. A drop is filtered client-side against the field's own `accept` (`'accept' => 'image/png,image/webp'` on the type narrows both the dialog and the drop), but that is a courtesy — the server remains the gate.
+- **Paste a path** — the link toggle is the escape hatch for an image that already exists: a media library the host fills by other means, an asset migrated from a previous CMS, a URL on a CDN. Nothing is uploaded; the typed value is stored as-is, with one normalization: an absolute URL **on the builder's own origin** is stored as its path (`https://your-site/uploads/a.jpg` → `/uploads/a.jpg`), because the path is what survives a domain change. Foreign URLs and relative paths are left exactly as typed.
+
+  Two consequences worth knowing. A value pointing outside your `FileStorageInterface` is invisible to [export/import](./recipes/index.md): `FileStorageAssetResolver` only bundles assets it owns, so an external URL travels as a bare string and resolves only where that URL resolves. And since the value is a free string, it is worth constraining if your blocks should only ever reference your own storage — the block's form is the whitelist, as always:
+
+  ```php
+  $builder->add('src', ImageUploadType::class, [
+      'constraints' => [new Assert\Regex('#^/uploads/#')],
+  ]);
+  ```
+- **Remove** — clears the reference. The stored file is left alone; ContentBlocks never deletes from storage on its own.
+
+### `ImageUrlResolverInterface` — responsive images
+
+_(Only needed if you want smaller image bytes.)_
+
+ContentBlocks ships no image processing: an uploaded file is served as stored, and only its *display box* is controlled by CSS. That already avoids layout shift and lazy-loads below the fold, but it never shrinks a 4000px photo dropped into a 400px card — and doing so requires either an image library (LiipImagine, Glide, GD, Imagick) or a transforming CDN, neither of which belongs in this package's dependencies.
+
+So it is a seam with a passthrough default. Wire your own implementation and every image the kit renders gains `srcset`/`sizes`, with no template override:
+
+```php
+use ContentBlocks\Image\ImageUrlResolverInterface;
+use ContentBlocks\Image\ResolvedImage;
+
+final class CloudflareImageResolver implements ImageUrlResolverInterface
+{
+    public function resolve(string $src, ?int $width = null, ?int $height = null): ResolvedImage
+    {
+        // Not one of ours (an absolute URL an editor pasted, say) — pass it through.
+        if (!str_starts_with($src, '/uploads/')) {
+            return new ResolvedImage($src);
+        }
+
+        $variant = static fn (int $w): string => sprintf('/cdn-cgi/image/width=%d,format=auto%s', $w, $src);
+        $candidates = array_filter([400, 800, 1200, 1600], fn (int $w) => $width === null || $w <= $width * 2);
+
+        return new ResolvedImage(
+            $variant($width ?? 1200),
+            implode(', ', array_map(fn (int $w) => $variant($w) . ' ' . $w . 'w', $candidates)),
+        );
+    }
+}
+```
+
+```yaml
+# config/services.yaml
+ContentBlocks\Image\ImageUrlResolverInterface:
+    class: App\Image\CloudflareImageResolver
+```
+
+Things worth knowing:
+
+- **`$width` / `$height` are the display box the view intends**, in px — the image block's preset (sm=400, md=800, lg=1200) or its custom width, and the pinned height when the editor set one. They are `null` where the view is genuinely fluid (a `full` image, a gallery cell, card media), which is a fact about the layout, not a gap: return a candidate set and own `sizes` yourself.
+- **`sizes` is derived only when you leave it null and the view knows its width** — a `srcset` with no `sizes` is read as `100vw`, which would make a browser fetch the widest candidate for a 400px box. Where no width is pinned, nothing is emitted rather than something invented.
+- **Never throw on a source you cannot handle.** `$src` is whatever an editor stored — a local path, an absolute URL, a leftover from a previous storage backend. Returning `new ResolvedImage($src)` is always a valid answer.
+- **Your own blocks get it too**, via the `cb_image()` Twig function:
+  ```twig
+  {% set img = cb_image(data.src, 800) %}
+  <img src="{{ img.src }}"{% if img.srcset %} srcset="{{ img.srcset }}"{% endif %}>
+  ```
+
+With nothing wired, `PassthroughImageUrlResolver` returns the stored source untouched and no `srcset`/`sizes` attribute is rendered — byte-for-byte the markup that predates the seam.
+
 ## Customizing default values
 
 A few section and block fields ship with a baked-in default so the form always presents a usable value and the renderer can fall back when the user leaves a field empty. The two surfaces (form pre-fill + renderer fallback) read the **same source**, so changing the default in one place keeps them in sync.
