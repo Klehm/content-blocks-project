@@ -20,7 +20,12 @@ export default defineConfig({
         // worker processes so concurrent requests are actually served in
         // parallel. Note: only takes effect when this command STARTS the server
         // (a reused, already-running server keeps its own worker count).
-        command: 'PHP_CLI_SERVER_WORKERS=8 php -S 127.0.0.1:8001 -t ../../apps/content-blocks-sandbox/public',
+        //
+        // The router script is what makes the built-in server behave like a
+        // real one: without it, any URL that looks like a file (LiipImagine's
+        // `/media/cache/resolve/…/photo.png`) 404s instead of reaching the
+        // front controller, so no image variant is ever generated.
+        command: 'PHP_CLI_SERVER_WORKERS=8 php -S 127.0.0.1:8001 -t ../../apps/content-blocks-sandbox/public ../../apps/content-blocks-sandbox/public/router.php',
         url: 'http://127.0.0.1:8001',
         reuseExistingServer: true,
         timeout: 10000,

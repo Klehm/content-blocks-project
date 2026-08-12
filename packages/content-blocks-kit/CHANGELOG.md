@@ -8,8 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 Headed for `1.0.0`, but not tagged: the release waits on the translation package,
-the kit's rich-text blocks and its image-optimization seam, then a `1.0.0-RC1`.
-Everything below is on `master` only. See the
+then a `1.0.0-RC1`. Everything below is on `master` only. See the
 [roadmap](https://github.com/klehm/content-blocks-project/blob/master/ROADMAP.md).
 
 ### Changed
@@ -38,6 +37,18 @@ Everything below is on `master` only. See the
 
 ### Added
 
+- **Every image the kit renders goes through the core's
+  `ImageUrlResolverInterface`.** `image`, `gallery` items and `card` media now
+  resolve their source through `cb_image()` instead of printing it raw, so a
+  host that aliases the interface (CDN, LiipImagine…) gets `srcset`/`sizes` in
+  all three without overriding a template. The `image` block passes the display
+  width it already computed — the preset (sm=400, md=800, lg=1200) or the custom
+  width, plus the pinned height when there is one; the fluid views pass none and
+  leave `sizes` to the resolver.
+
+  With no resolver wired the default is passthrough, so **the rendered markup is
+  unchanged** — no `srcset`, no `sizes`, the stored source as-is. The kit gains
+  no dependency: the seam and its default live in `klehm/content-blocks`.
 - **`rich_text` picks its editor: TinyMCE (default) or CKEditor 5.** One block,
   a pluggable adapter — not one block per editor. Whichever editor runs, the
   block stores the same `{ content: "<html>" }`, so the editor is a display-time

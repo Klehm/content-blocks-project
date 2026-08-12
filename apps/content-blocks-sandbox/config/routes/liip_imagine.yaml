@@ -1,0 +1,5 @@
+# The lazy-resolution endpoint: the first request for a cached variant renders
+# it and redirects to the stored file; later ones are served straight from
+# public/media/cache by the web server.
+_liip_imagine:
+    resource: '@LiipImagineBundle/Resources/config/routing.yaml'

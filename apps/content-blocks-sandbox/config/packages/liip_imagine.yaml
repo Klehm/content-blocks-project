@@ -1,0 +1,33 @@
+# LiipImagine, wired as the sandbox's demo of ImageUrlResolverInterface — the
+# core's image seam. ContentBlocks itself depends on none of this: the bundle
+# ships a passthrough resolver, and a host that wants smaller bytes brings its
+# own tooling. See docs/guide/recipes/liip-imagine.md.
+#
+# One filter set per candidate width, and every one of them converts to WebP at
+# a fixed quality. That is the whole compression story: a 4000px JPEG dropped
+# into a 400px card is served as a 400px WebP.
+liip_imagine:
+    # GD covers JPEG/PNG/WebP and needs no external binary. Imagick is the
+    # upgrade path when a host cares about color profiles or AVIF.
+    driver: gd
+
+    # Uploads live under public/, and the stored src is the public path
+    # (`/uploads/content-blocks/blocks/<hash>.png`), so the default filesystem
+    # loader resolves them by rooting it at public/.
+    loaders:
+        default:
+            filesystem:
+                data_root: '%kernel.project_dir%/public'
+
+    filter_sets:
+        cache: ~
+
+        # `inset` keeps the aspect ratio and never crops; the tall bound is a
+        # ceiling that a normal photo will never reach, so width is what
+        # actually constrains. `allow_upscale: false` matters — without it a
+        # 500px original would be blown up to 1600px, which costs bytes and
+        # buys nothing.
+        cb_w400:  { quality: 72, format: webp, filters: { thumbnail: { size: [400, 4000],  mode: inset, allow_upscale: false } } }
+        cb_w800:  { quality: 72, format: webp, filters: { thumbnail: { size: [800, 8000],  mode: inset, allow_upscale: false } } }
+        cb_w1200: { quality: 72, format: webp, filters: { thumbnail: { size: [1200, 12000], mode: inset, allow_upscale: false } } }
+        cb_w1600: { quality: 72, format: webp, filters: { thumbnail: { size: [1600, 16000], mode: inset, allow_upscale: false } } }

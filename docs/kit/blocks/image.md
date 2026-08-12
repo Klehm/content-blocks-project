@@ -62,7 +62,8 @@ Rendered markup: `.cb-kit-image` — wraps a `<figure>` when a caption is presen
 ## Notes
 
 - Picking `size: custom` reveals `customWidth` / `customHeight` (with a `customHeightAuto` toggle) via conditional fields.
-- Requires [file storage](../../guide/host-services.md#file-storage) to be configured for uploads to work.
+- Requires [file storage](../../guide/host-services.md#file-storage) to be configured for uploads to work. The field accepts a picked *or* dropped file.
+- The stored source is resolved through [`ImageUrlResolverInterface`](../../guide/host-services.md#imageurlresolverinterface-responsive-images), which the display width (sm=400, md=800, lg=1200, or the custom width) is handed to. With no resolver wired the source renders as-is; wire one and this block emits `srcset`/`sizes`.
 - Opts into preview hot-reload — the upload JS is in the sidebar, not the view.
 
 ---

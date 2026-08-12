@@ -816,22 +816,104 @@
     border-color: var(--cb-form-border-focus);
 }
 
-/* ---- Image / file upload widget (kit) ----
+/* ---- Image / file upload widget (ImageUploadType) ----
  *
- * Styling shared with the ContentBlocks-Kit image_theme: a thumbnail
- * preview underneath the file input, plus a small upload-status pill
- * the cb-file-upload Stimulus controller drives. */
+ * Layout: a dashed drop frame holding the preview, a row of actions under it
+ * (choose / remove / paste a path), then the revealed path field and the
+ * upload-status pill the cb-file-upload controller drives.
+ *
+ * The frame is drawn at rest rather than only on drag: it is what tells an
+ * editor the picture is a target at all, and it doubles as the empty
+ * placeholder. Dragging a file over it moves it to the accent color. */
+.cb-shell .cb-image-upload {
+    display: grid;
+    gap: 0.5rem;
+}
+.cb-shell .cb-image-upload__preview {
+    display: grid;
+    place-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem;
+    border: 1px dashed var(--cb-form-border);
+    border-radius: var(--cb-form-radius);
+    transition: border-color 120ms ease, background-color 120ms ease;
+}
+/* Empty field: no image, so the frame IS the widget — give it a body to aim at
+ * and let the hint sit in the middle of it. */
+.cb-shell .cb-image-upload--empty .cb-image-upload__preview {
+    min-height: 72px;
+}
+.cb-shell .cb-image-upload--dragging .cb-image-upload__preview {
+    border-color: var(--cb-form-border-focus);
+    background: rgba(var(--cb-accent-rgb), 0.08);
+}
+/* The hint is the affordance for an empty field. Once there is an image the
+ * frame speaks for itself and the sentence is noise — except while a drag is in
+ * flight, when it becomes the confirmation that releasing here does something. */
+.cb-shell .cb-image-upload__hint {
+    display: none;
+    margin: 0;
+    color: var(--cb-form-label-color);
+    font-size: var(--cb-form-font-size-xs);
+    line-height: 1.3;
+    text-align: center;
+}
+.cb-shell .cb-image-upload--empty .cb-image-upload__hint,
+.cb-shell .cb-image-upload--dragging .cb-image-upload__hint {
+    display: block;
+}
+.cb-shell .cb-image-upload--dragging .cb-image-upload__hint {
+    color: var(--cb-form-accent);
+}
 .cb-shell .cb-thumbnail {
     display: inline-block;
     max-width: 100%;
     max-height: 150px;
-    padding: 0.25rem;
-    background: var(--cb-form-bg);
-    border: 1px solid var(--cb-form-border);
-    border-radius: var(--cb-form-radius);
+    border-radius: var(--cb-form-radius-sm);
 }
-.cb-shell .cb-image-upload__preview {
-    margin-top: 0.5rem;
+.cb-shell .cb-image-upload__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+/* The file input is visually hidden inside its label rather than display:none,
+ * so it can still take keyboard focus — the label is the button, and the ring
+ * is drawn on the label when the input behind it is focused. */
+.cb-shell .cb-image-upload__file {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+.cb-shell .cb-image-upload__choose {
+    position: relative;
+}
+.cb-shell .cb-image-upload__choose:focus-within {
+    border-color: var(--cb-form-border-focus);
+    box-shadow: 0 0 0 3px var(--cb-form-focus-ring);
+}
+/* The path toggle is a glyph button: square, so it reads as an icon next to two
+ * word buttons. */
+.cb-shell .cb-image-upload__path-toggle {
+    padding-inline: 0.45rem;
+}
+.cb-shell .cb-image-upload__path-toggle[aria-expanded="true"] {
+    border-color: var(--cb-form-border-focus);
+    color: var(--cb-form-accent);
+}
+.cb-shell .cb-image-upload__path {
+    font-family: var(--cb-font-mono);
+    font-size: var(--cb-form-font-size-xs);
+}
+/* `.cb-form-btn` and `.cb-form-control` set `display`, which outranks the UA's
+ * `[hidden] { display: none }` — without this the remove button and the path
+ * field would both show through their `hidden` attribute. */
+.cb-shell .cb-image-upload [hidden] {
+    display: none;
 }
 .cb-shell .cb-upload-status {
     display: inline-block;

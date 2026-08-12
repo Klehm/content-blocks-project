@@ -140,3 +140,12 @@ cb:
             unknown_fields: "Imported, but some stored fields are unknown on: %types%"
     upload:
         file: "Image file"
+        drop_hint: "Drop an image here"
+        choose: "Choose an image"
+        remove: "Remove"
+        path_toggle: "Enter / paste a path"
+        path_placeholder: "/uploads/… or https://…"
+        uploading: "Uploading…"
+        failed: "Upload failed"
+        network_error: "Network error"
+        rejected: "Unsupported file type"

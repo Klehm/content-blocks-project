@@ -70,6 +70,7 @@ Enable `cb-gallery` under `@klehm/content-blocks-kit` in your host `assets/contr
 
 - The `cb-gallery` controller is only needed for the **slider** layout; a pure grid is CSS-only.
 - Use the `max_columns` option to restrict the `columns` choice list for a given host.
+- Item sources are resolved through [`ImageUrlResolverInterface`](../../guide/host-services.md#imageurlresolverinterface-responsive-images). A cell is fluid, so no display width is passed and a resolver returning candidates owns `sizes` itself.
 
 ---
 

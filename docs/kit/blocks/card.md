@@ -62,6 +62,7 @@ Rendered markup: `.cb-kit-card` items inside `.cb-kit-cards`. Style it by overri
 ## Notes
 
 - The `max_columns` option caps the grid column choice for a given host.
+- Card media is resolved through [`ImageUrlResolverInterface`](../../guide/host-services.md#imageurlresolverinterface-responsive-images). A tile is fluid, so no display width is passed and a resolver returning candidates owns `sizes` itself.
 
 ---
 

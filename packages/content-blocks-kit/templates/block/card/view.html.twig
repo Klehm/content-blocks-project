@@ -7,7 +7,12 @@
         {% for item in items %}
             <article class="cb-kit-card">
                 {% if item.src|default('')|trim is not empty %}
-                    <div class="cb-kit-card__media"><img src="{{ item.src }}" alt="{{ item.title|default('') }}" loading="lazy" decoding="async"></div>
+                    {# Card media is fluid (the grid decides its width), so the
+                       resolver gets the source alone and owns `sizes` if it
+                       returns candidates. #}
+                    {% set img = cb_image(item.src) %}
+                    <div class="cb-kit-card__media"><img src="{{ img.src }}" alt="{{ item.title|default('') }}"
+                        {%- if img.srcset %} srcset="{{ img.srcset }}"{% endif %}{% if img.sizes %} sizes="{{ img.sizes }}"{% endif %} loading="lazy" decoding="async"></div>
                 {% endif %}
                 <div class="cb-kit-card__body">
                     {% if item.title|default('')|trim is not empty %}<h3 class="cb-kit-card__title">{{ item.title }}</h3>{% endif %}
