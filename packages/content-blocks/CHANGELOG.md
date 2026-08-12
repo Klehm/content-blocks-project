@@ -161,6 +161,21 @@ then a `1.0.0-RC1`. Everything below is on `master` only. See the
 
 ### Added
 
+- **`BlockCloneObserverInterface` — told which copy came from which source
+  during a deep clone.** `SectionCloner` copies a block's `data` wholesale, so
+  anything stored *inside* it rides along for free; anything stored **beside** a
+  block — a satellite package's own table keyed by `block_id` — did not, and had
+  no way to learn a copy existed. Implement the interface (it is autoconfigured)
+  and you are called once per copied block, during the walk.
+
+  Additive by construction, which is why it can land after the interface freeze:
+  `SectionCloner` gains an **optional** constructor argument, so `new
+  SectionCloner()` still works and `SectionClonerInterface` never moves. With no
+  observer registered, cloning is byte-for-byte what it was.
+
+  Consumed by `klehm/content-blocks-i18n`, which uses it to carry a block's
+  per-locale values onto its duplicates; the shape is general enough for
+  per-block analytics, A/B variants or review state.
 - **Copy / paste a section or a block, across areas and across pages.**
   `Ctrl/Cmd-C` copies whatever the sidebar has open — clicking an element is
   what opens it, so the sidebar *is* the selection — and `Ctrl/Cmd-V` pastes it.

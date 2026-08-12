@@ -38,6 +38,9 @@
     "klehm/content-blocks": {
         "version": "dev-main"
     },
+    "klehm/content-blocks-i18n": {
+        "version": "dev-master"
+    },
     "klehm/content-blocks-kit": {
         "version": "dev-main"
     },
@@ -49,6 +52,18 @@
             "version": "1.8",
             "ref": "d1227d002b70d1a1f941d91845fcd7ac7fbfc929"
         }
+    },
+    "php-http/discovery": {
+        "version": "1.20",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "1.18",
+            "ref": "f45b5dd173a27873ab19f5e3180b2f661c21de02"
+        },
+        "files": [
+            "config/packages/http_discovery.yaml"
+        ]
     },
     "symfony/asset-mapper": {
         "version": "7.4",

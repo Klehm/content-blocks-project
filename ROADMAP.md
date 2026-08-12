@@ -21,22 +21,40 @@ Neither blocks the release: the seam is the part that had to exist before the fr
 
 ---
 
-## New package — Translation / Multilingual 🅿️
+## New package — Translation / Multilingual — backend shipped ✅ / UI 🅿️
 
-**Context.** Hosts need multilingual content areas. The design compromise: **one shared layout** (sections/columns/blocks structure is language-agnostic) but **translatable blocks/fields** — the same visual skeleton renders per language, with only tagged field values swapped.
+**Shipped:** `klehm/content-blocks-i18n` — the whole backend, tested (97 specs) and
+verified end to end against `content-blocks-sandbox` (FR source + EN/DE/ES).
+Package docs: [README](packages/content-blocks-i18n/README.md) ·
+[guide](docs/guide/translation.md).
 
-**Direction.** A dedicated package (e.g. `klehm/content-blocks-translation`) so the core stays single-language by default:
+The schema question the spike left open is answered: **a side table**
+(`cb_block_translation`), one row per block per locale, holding a flat map of
+field path → value, with collection entries keyed by their `_id`. The envelope
+alternative was rejected for being unqueryable — a multilingual site is run from
+a progress view, and an envelope cannot produce one without reading every row.
 
-- **Field-level opt-in**: let a block dev *tag* which fields are translatable; those (and only those) surface in a dedicated per-field translation UI. Untagged fields (and the whole layout structure) stay shared across languages.
-- **Language-aware rendering**: load a `ContentArea` in a given locale — defaulting to the Symfony request/translator context (`LocaleAwareInterface` / `Request::getLocale`) unless overridden.
-- **Data schema — the open design question**: decide between (a) a side table of per-field, per-locale overrides keyed by `(block_id, field, locale)`, vs (b) a locale-keyed JSON envelope inside `Block.data`, vs (c) cloned per-locale blocks sharing a layout id. Trade-offs: migration/diff cost, query complexity, fallback-to-default-locale behavior, and how it interacts with the draft/publish + replace-content flows. **Needs a schema spike before implementation.**
+What landed:
 
-**Rough scope when picked up:**
-- [ ] Design spike: data schema (side-table vs JSON envelope vs cloned blocks) + fallback rules — write it up before coding
-- [ ] Field-tagging mechanism (attribute/metadata on block fields) → drives the translatable-field allow-list
-- [ ] Per-field translation UI (field-by-field, per locale)
-- [ ] Locale-aware render path (default from Symfony context, explicit override)
-- [ ] Interaction with draft/publish + replace-content; migration story
+- [x] Design spike → side table + per-field fallback (`TRANSLATION-SPIKE.md`, now folded into the package docs)
+- [x] Field tagging via the core's frozen `cb_translatable` convention
+- [x] Locale-aware render path (`BlockDataResolverInterface` + `RenderContext`), one query per area
+- [x] Draft/published lifecycle: translations ride the area's Publish and Discard
+- [x] Progress + **staleness** (source digests → translated / outdated / missing)
+- [x] Machine-translation seam (batch-shaped `TranslationProviderInterface`), DeepL shipped, Claude demo in the sandbox
+- [x] Clone/duplicate interaction via the new core `BlockCloneObserverInterface`
+- [x] HTTP API + `content-blocks:i18n:{status,translate}`
+
+Still open:
+
+- [ ] **The workbench UI** — decided and specced in [docs/guide/translation-ui-proposal.md](docs/guide/translation-ui-proposal.md):
+      full-page field list with the preview beside it, scroll-to-field, inline
+      HTML reload, collapsible preview. Needs one small additive core change
+      (`?locale=` on `GET /_content-blocks/block/{id}/render`), a Stimulus
+      controller, and Vitest + Playwright coverage.
+- [ ] Export/import and section templates do **not** carry translations yet —
+      the transfer walks need the same observer treatment the cloner got.
+- [ ] Per-locale publishing (the rows support it; no flow exposes it)
 
 ---
 
@@ -51,7 +69,7 @@ Why that one and not the others: the translation package is the one that would m
 Versioning consequence: the unreleased work carries breaking changes (the `Block.data` key renames, the `BlockRendererInterface` signature), and `0.1.0-beta.1` promised those bump to `0.2`. Any tag cut before the RC is therefore `0.2.0-beta.x`, not `0.1.0-beta.8`.
 
 **Rough scope when picked up:**
-- [ ] The translation package, shipped and documented
+- [x] The translation package, shipped and documented (backend; UI still open)
 - [ ] Public-surface audit → freeze list + "experimental" markers
 - [ ] Upgrade guide (beta → stable) + verified migrations — drafted, revisit once the three items land
 - [ ] Green CI on the full supported matrix (Symfony 6.4/7.x/8.x, PHP 8.2–8.4; PHPUnit + Vitest + Playwright ×2)

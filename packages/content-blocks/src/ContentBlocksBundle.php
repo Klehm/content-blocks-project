@@ -333,6 +333,11 @@ final class ContentBlocksBundle extends AbstractBundle
         // than declared form by form.
         $container->registerForAutoconfiguration(\ContentBlocks\Builder\BuilderActionProviderInterface::class)
             ->addTag('content_blocks.builder_action_provider');
+
+        // Told which copy came from which source during a deep clone — the
+        // seam for anything stored beside a block rather than inside its data.
+        $container->registerForAutoconfiguration(\ContentBlocks\Section\BlockCloneObserverInterface::class)
+            ->addTag('content_blocks.block_clone_observer');
     }
 
     public function getPath(): string

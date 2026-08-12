@@ -7,6 +7,7 @@
         "php": ">=8.2",
         "klehm/content-blocks": "@dev",
         "klehm/content-blocks-kit": "@dev",
+        "klehm/content-blocks-i18n": "@dev",
         "doctrine/doctrine-bundle": "^2.13 || ^3.0",
         "doctrine/doctrine-migrations-bundle": "^3.3 || ^4.0",
         "doctrine/orm": "^3.2",
@@ -25,7 +26,10 @@
         "twig/twig": "^3.10",
         "symfony/translation": "^7.4 || ^8.0",
         "symfony/mime": "^7.4 || ^8.0",
-        "liip/imagine-bundle": "^2.17"
+        "liip/imagine-bundle": "^2.17",
+        "anthropic-ai/sdk": "^0.41",
+        "symfony/http-client": "^7.0 || ^8.0",
+        "nyholm/psr7": "^1.8"
     },
     "repositories": [
         {
@@ -36,6 +40,11 @@
         {
             "type": "path",
             "url": "../../packages/content-blocks-kit",
+            "options": { "symlink": true }
+        },
+        {
+            "type": "path",
+            "url": "../../packages/content-blocks-i18n",
             "options": { "symlink": true }
         }
     ],

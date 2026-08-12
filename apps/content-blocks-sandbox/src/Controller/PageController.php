@@ -137,4 +137,25 @@ final class PageController
             'page' => $page,
         ]));
     }
+
+    /**
+     * The same page in a translated locale.
+     *
+     * Note what this controller does *not* do: it never mentions translation.
+     * Symfony's locale listener sets the request locale from `{_locale}`, and
+     * the package's render resolver reads it — so a host gets a translated page
+     * by routing, without touching its templates or its rendering code.
+     *
+     * The `fr` source has no rows of its own and is served by the plain
+     * `/page/{id}` route above, hence the requirement listing only the targets.
+     */
+    #[Route(
+        '/{_locale}/page/{id}',
+        name: 'app_page_show_localized',
+        requirements: ['id' => '\d+', '_locale' => 'en|de|es'],
+    )]
+    public function showLocalized(int $id): Response
+    {
+        return $this->show($id);
+    }
 }

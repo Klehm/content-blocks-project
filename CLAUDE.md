@@ -23,7 +23,8 @@ content-blocks/
 │   │   ├── templates/           # Twig components
 │   │   ├── composer.json        # PHP deps
 │   │   └── package.json         # JS deps (vitest, playwright)
-│   └── content-blocks-kit/      # ~17 blocs prêts à l'emploi, autonomes (kit.css)
+│   ├── content-blocks-kit/      # ~17 blocs prêts à l'emploi, autonomes (kit.css)
+│   └── content-blocks-i18n/     # Traduction de contenu (satellite, table à part)
 │
 ├── apps/
 │   ├── content-blocks-sandbox/          # App Symfony de dev/test (fixture Playwright)
@@ -42,10 +43,12 @@ Ce projet est un **monorepo**. Les packages sont publiés séparément sur Packa
 - **Repos read-only** (générés automatiquement par la CI) :
   - `github.com/klehm/content-blocks` → miroir de `packages/content-blocks/`
   - `github.com/klehm/content-blocks-kit` → miroir de `packages/content-blocks-kit/`
+  - `github.com/klehm/content-blocks-i18n` → miroir de `packages/content-blocks-i18n/`
 
 Les utilisateurs installent via Composer normalement :
 ```bash
 composer require klehm/content-blocks klehm/content-blocks-kit
+composer require klehm/content-blocks-i18n   # optionnel : contenu multilingue
 ```
 
 Les contributeurs clonent le monorepo et ont tout (packages + sandboxes + tests).
@@ -77,6 +80,7 @@ Les contributeurs clonent le monorepo et ont tout (packages + sandboxes + tests)
 
 ### Architecture & responsabilités
 - **content-blocks** : package unique contenant les entités Doctrine (`ContentArea`, `Section`, `Column`, `Block`), le système de blocs (`BlockTypeInterface`, `AsContentBlock`, `BlockTypeRegistry`, `BlockTypeCompilerPass`), l'UI admin (Live Components, Stimulus), et le `ContentAreaType` (FormType Symfony)
+- **content-blocks-i18n** : satellite de traduction de contenu. **Une seule mise en page, des valeurs par locale** — sections/colonnes/ordre/styling restent partagés, seuls les champs tagués `cb_translatable` changent de langue. Stockage en **table à part** (`cb_block_translation`, une ligne par bloc × locale, map plate `chemin de champ → valeur`), choisi contre l'enveloppe dans `Block.data` parce qu'un site multilingue se pilote depuis une vue d'avancement qu'une enveloppe opaque ne peut pas produire. Les entrées de collection sont clés par leur `_id`, jamais par position. Fallback **par champ** (une page à moitié traduite est incomplète, pas cassée) ; les traductions s'écrivent en **draft** et suivent le Publish/Discard de la zone. Trois états — traduit / **périmé** / manquant — la péremption étant détectée par un digest du texte source stocké à côté de la traduction. Seam de traduction automatique **par lot** (`TranslationProviderInterface`) : DeepL livré, un adaptateur Claude en exemple dans la sandbox. Commandes `content-blocks:i18n:{status,translate}`, API HTTP sous `/_content-blocks/i18n`. **Backend fait et testé ; l'UI (workbench) reste à construire** — spec dans [docs/guide/translation-ui-proposal.md](docs/guide/translation-ui-proposal.md).
 - **content-blocks-kit** : dépend de content-blocks. Fournit ~17 blocs prêts à l'emploi, **autonomes** (aucune dépendance Tailwind/Bootstrap/LiipImagine/icônes ; markup neutre `cb-kit-*` stylé par une feuille `kit.css` servie à la route publique `content_blocks_kit_asset_css`) : title (taille visuelle découplée du tag sémantique + couleur palette), text (+ couleur palette), rich_text, image (avec resize/fit/légende/coins arrondis), gallery (grille/carrousel), button, card, list, icon (IconSet livré), alert, divider, accordion (`<details>` natif), table, embed (`cb_embed_url` YouTube/Vimeo), breadcrumb, html_raw (**désactivé par défaut** — rend `{{ html|raw }}`, opt-in via `enabled: true`), tabs. Les champs couleur (title/text/icon/divider + swatches TinyMCE) puisent tous dans la palette core `content_blocks.palette`.
   - **Config sémantique** (`config/packages/content_blocks_kit.yaml`) : `content_blocks_kit.blocks.<type>.{enabled, options, choices, defaults}` — `enabled:false` dé-enregistre le service (jamais dans le picker ; `html_raw` est off par défaut, cf. `ContentBlocksKitBundle::DEFAULT_DISABLED`) ; `options` = knobs bloc (ex. `gallery`/`card` `max_columns`) ; `choices` = allow-list qui restreint/réordonne un `ChoiceType` (fallback sur le set complet si vide/invalide) ; `defaults` = override des valeurs initiales. Base `AbstractKitBlock` : `choiceFields()` (source unique des maps, consommée par `choices()`/`choiceConstraint()` — contrainte = superset complet, restreindre le picker n'invalide jamais une donnée stockée), `defaults()` (mergé par le `getDefaultData()` final), `describe()` (introspection). Gating + merge dans `resolveBlocks()` (pur, testable). Commande `content-blocks-kit:blocks [type]` documente toute la surface (lit `describe()`, jamais périmée).
   - Les champs couleur des blocs réutilisent le `PaletteColorType` du core ; le `color_map` TinyMCE lit la palette via `cb_color_palette()`.

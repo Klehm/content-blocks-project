@@ -62,6 +62,7 @@ export default defineConfig({
             { text: 'Styling', link: '/guide/styling' },
             { text: 'Security', link: '/guide/security' },
             { text: 'Custom blocks', link: '/guide/custom-blocks' },
+            { text: 'Translation (i18n)', link: '/guide/translation' },
             { text: 'Content versioning', link: '/guide/content-versioning' },
           ],
         },

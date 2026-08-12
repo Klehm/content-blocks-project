@@ -1,0 +1,32 @@
+# Content translation.
+#
+# The sandbox's block data is written in French (the app's `default_locale`), so
+# French is the *source* — it has no translation rows of its own — and English,
+# German and Spanish are the targets editors work in.
+#
+# Nothing here changes rendered output on its own: with no translation rows and
+# no target locale resolved, every block renders its own data exactly as before.
+content_blocks_i18n:
+    source_locale: fr
+    locales:
+        - { code: en, label: 'English' }
+        - { code: de, label: 'Deutsch' }
+        - { code: es, label: 'Español' }
+
+    machine:
+        # Which provider runs by default. `pseudo` (src/Translation/) is
+        # deterministic and offline, so a fresh checkout and the e2e suite both
+        # work with no credentials; set CB_I18N_PROVIDER=claude (and
+        # ANTHROPIC_API_KEY) to see real output from the demo adapter next to it.
+        default: '%env(default:cb_i18n_default_provider:CB_I18N_PROVIDER)%'
+
+        # DeepL ships with the package and needs only a key:
+        #
+        #     deepl:
+        #         api_key: '%env(DEEPL_API_KEY)%'
+        #
+        # Left out deliberately. Declaring the node is what registers the
+        # provider — the container cannot read env values at compile time, so an
+        # empty variable would still put a permanently-failing DeepL in the
+        # picker. The sandbox demonstrates the seam with `pseudo` and `claude`
+        # instead.
