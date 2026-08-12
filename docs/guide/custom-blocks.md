@@ -187,10 +187,12 @@ A block's `data` is never written raw — the block's Symfony form **is** its wh
 
 There is no `sanitizeData()` / `getAllowedDataKeys()` hook to implement — you secure a block's data purely through the fields and constraints declared in `buildForm()`. For a field with a fixed set of allowed values, add an `Assert\Choice` constraint derived from the full coded choice set. See [Security → Block data sanitization](./security.md#block-data-sanitization) for the full rationale.
 
+This pays off in a place you never wrote code for: **a pasted block is replayed through your form**. The [copy/paste clipboard](./concepts.md#editor-gestures-copy-paste) lives in the browser's `localStorage`, so its payload is user-writable — a key you did not declare never reaches `data`, and a value your `constraints` refuse is reset to your `getDefaultData()` value and reported to the editor rather than costing the whole block. Nothing to opt into; the form you already wrote is the filter.
+
 ### Two names the package owns
 
 - **Never declare a field whose name starts with `_`.** The prefix is reserved by ContentBlocks at every level of `Block.data`, including collection entries.
-- **`_id`** is what it uses today: every entry of a `CollectionType` / `LiveCollectionType` field gets one automatically, so a reorder, duplicate or delete never shifts what per-entry information points at. You do not declare it, render it, or maintain it — but do not strip it either if you post-process `data` yourself.
+- **`_id`** is what it uses today: every entry of a `CollectionType` / `LiveCollectionType` field gets one automatically, so a reorder, duplicate or delete never shifts what per-entry information points at. You do not declare it, render it, or maintain it — but do not strip it either if you post-process `data` yourself. (Copies carry their entry ids across — cloning a section, importing an area, inserting a template — with one exception: a **pasted** block gets fresh ones, since it went back through the form.)
 
 ## Opting into preview hot reload
 

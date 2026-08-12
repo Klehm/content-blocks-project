@@ -234,6 +234,31 @@ Editors can overwrite an area's content with another area's content via the topb
 
 When upgrading existing projects, add a migration for `cb_content_area.updated_at` (see [apps/content-blocks-sandbox/migrations/Version20260518120000.php](apps/content-blocks-sandbox/migrations/Version20260518120000.php) for the SQL).
 
+## Copier / coller (presse-papier)
+
+`Ctrl/Cmd-C` copie **ce que la sidebar a d'ouvert** — cliquer un élément ouvre sa sidebar, donc la sidebar *est* la sélection (`data-cb-sidebar-block-id` / `-section-id`), il n'y a pas de second état de sélection à tenir synchronisé. `Ctrl/Cmd-V` colle. **Fonction clavier-seule** : aucun bouton de toolbar, aucune entrée de menu. Le raccourci marche aussi depuis l'iframe (l'overlay le relaie par `cb:clipboard:copy-requested` / `paste-requested` ; la preview ne détient aucun état de presse-papier) et s'efface devant le texte de l'éditeur : focus dans un champ, ou n'importe quelle sélection de texte non vide. Une copie ne change rien à l'écran, donc elle est **accusée dans le snackbar** — la même barre que l'offre d'annulation, bouton masqué (`_notify`).
+
+Placement, décidé côté serveur d'après la sélection transmise :
+
+| Portée | Sélection | Destination |
+|---|---|---|
+| section | une section | juste après elle |
+| section | un bloc | juste après la section de ce bloc |
+| section | rien | fin de la zone |
+| bloc | un bloc | juste après lui, dans sa colonne |
+| bloc | une section | fin de sa **première** colonne |
+| bloc | rien | refus motivé (`no_target`) — pas de devinette |
+
+Endpoints : `GET /_content-blocks/section|block/{id}/copy` (canEdit sur la source) renvoie l'enveloppe ; `POST /_content-blocks/area/{id}/paste` (CSRF + canEdit sur la zone **cible**, qui pour un collage inter-zones n'est pas celle d'origine) écrit **en draft** — Publish valide, Discard annule. Les ids de cible du body sont résolus *contre la zone cible*, donc un body forgé ne peut pas placer du contenu dans une zone qu'on n'édite pas.
+
+**Le presse-papier vit dans le `localStorage`** (clé `cb-builder.clipboard`) : c'est ce qui fait survivre une copie au changement de page — et ce qui rend le payload **entrant, pas fiable**. D'où le rejeu strict : chaque bloc collé repasse par son propre form (`ContentBlocks\Clipboard\BlockDataReplayer`), donc une clé non déclarée n'atteint jamais `Block.data`, et une valeur refusée par le form est ramenée au défaut du type puis signalée (`droppedFields`) plutôt que de coûter le bloc entier.
+
+Deux pièges que le replayer traite explicitement, à connaître avant de le modifier :
+- **`submit()` attend la forme *postée*, pas la forme *modèle***. `styling.backgroundColor` est stocké `'#eb0540'` alors que `PaletteColorType` est composé avec data mapper : soumettre la valeur stockée telle quelle raterait sur tout champ de ce genre. Le replayer construit donc un premier form *sur le payload* qui sert de **convertisseur** (modèle → vue), puis soumet le résultat à un form construit **sur les défauts**, seul juge de la validité.
+- **Les clés déclarées mais non éditables** (dans `getDefaultData()` sans champ de form) passent verbatim — même règle d'union que `BlockDataKeys`. Les `_id` d'entrées de collection, eux, ne traversent pas : `CollectionItemIds::backfill()` en frappe de nouveaux, un bloc collé étant un nouveau bloc.
+
+**Versions de contenu** : une entrée copiée sous un autre `content_version` est **refusée net** (`incompatible_content_version`) et le presse-papier est vidé — une copie coûte quelques secondes à refaire, contrairement à un modèle de section stocké, qui lui passe par `ContentVersionUpgraderInterface`.
+
 ## Security
 
 ### Access Control (IDOR protection)

@@ -5,6 +5,10 @@ declare(strict_types=1);
 use ContentBlocks\Asset\AssetResolverInterface;
 use ContentBlocks\Asset\NullAssetResolver;
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Clipboard\BlockDataReplayer;
+use ContentBlocks\Clipboard\BlockSnapshotSerializer;
+use ContentBlocks\Clipboard\BlockSnapshotSerializerInterface;
+use ContentBlocks\Clipboard\ClipboardPaster;
 use ContentBlocks\Doctrine\ContentAreaTouchListener;
 use ContentBlocks\Palette\ColorPaletteRegistry;
 use ContentBlocks\Palette\ConfigColorPaletteProvider;
@@ -169,6 +173,17 @@ return static function (ContainerConfigurator $container): void {
     // configure: block types opt into richer tiles by implementing
     // BlockPreviewHintInterface, and the ones that don't get a labelled tile.
     $services->set(SectionPosterBuilder::class);
+
+    // Copy / paste. Nothing here stores a clipboard: it lives in the editor's
+    // localStorage, which is what lets a copy survive a page change — and what
+    // makes the payload untrusted on the way back in. The serializers snapshot
+    // what was copied (the section one is the library's, reused as-is), the
+    // paster replays it and places the result, and BlockDataReplayer is the
+    // part that makes a browser-writable payload safe to write.
+    $services->set(BlockSnapshotSerializer::class);
+    $services->alias(BlockSnapshotSerializerInterface::class, BlockSnapshotSerializer::class);
+    $services->set(BlockDataReplayer::class);
+    $services->set(ClipboardPaster::class);
 
     // Content-version seam: what to do with stored content from another schema
     // generation of the *host's* own making. The package cannot know what

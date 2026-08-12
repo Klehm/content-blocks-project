@@ -40,39 +40,6 @@ Neither blocks the release: the seam is the part that had to exist before the fr
 
 ---
 
-## Builder — copy / paste a section or a block 🅿️
-
-**Context.** Duplicating exists, but only in place: `Duplicate` puts a copy right next to the original, and the section library needs a deliberate "save this as a template" step with a name. Neither covers the everyday move — *take this block and put it over there*, in another section, another area, another page. Editors do it by hand today: recreate the block, retype the fields, re-upload the image.
-
-**Direction.** A clipboard on top of the snapshot machinery that already exists, not a new persistence path. `SectionTemplateSerializerInterface` produces a self-contained section payload (`content-blocks/section-v1`, asset references as plain storage paths) and `SectionTemplateInstantiatorInterface` replays it against the *current* block-type registry — skipping types that no longer exist, keeping fields the block cannot hold yet. Copy/paste wants exactly that behavior; the block case needs the equivalent pair one level down.
-
-Interaction rules:
-
-- **Copy is acknowledged.** A copy produces no visible change, so it needs feedback — the "deleted — Undo" snackbar the builder already has, minus the action button. Silent copy is how an editor ends up pasting the wrong thing three times.
-- **Pasting a section appends it** after the existing sections of the area.
-- **Pasting a block requires a selected section.** With nothing selected there is no answer to *where*, so the action is disabled and says why rather than guessing.
-- **A pasted block lands in the first column** of the selected section.
-- **It lands right after the selected block**, or at the end of the column when the selection is the section itself.
-
-Open questions worth settling before coding:
-
-- **Where the clipboard lives.** In-memory is trivial and useless across pages — and across pages is the whole point, since in-place copying is what `Duplicate` already does. `localStorage` (or `sessionStorage`) gives cross-tab, cross-area paste for one user. **It also makes the payload user-writable**, so paste must stay a replay through the instantiator + the block's own form validation, never a trusted write. Same rule as import: the payload is input, not truth.
-- **A payload copied under an older `content_version`.** Section templates route this through `ContentVersionUpgraderInterface` (`DenyOnMismatchUpgrader` by default). A clipboard is short-lived enough that refusing outright may be the honest answer — but it must be *decided*, not inherited by accident.
-- **Whether pasting a section should follow the block rule** and land right after the selected section rather than at the end. Appending is what is specified above; the asymmetry is deliberate but worth a second look once it is in an editor's hands.
-- **Keyboard vs menu.** Ctrl/Cmd-C and Ctrl/Cmd-V on the focused entity are the expected gesture, but they must not steal a genuine text selection inside a sidebar form field. Menu entries (and the in-preview toolbar) are the discoverable path either way.
-
-**Rough scope when picked up:**
-- [ ] Block-level serializer/instantiator pair mirroring the section ones (or a shared one parameterized by scope)
-- [ ] Clipboard store + payload envelope (`format`, `contentVersion`, scope) — decide storage and the mismatch policy
-- [ ] Copy affordances (toolbar + menu + keyboard) with the snackbar acknowledgement
-- [ ] Paste endpoints writing to draft, gated by `AccessCheckerInterface::canEdit()` on the **target** area, with placement as specified above
-- [ ] Paste disabled-with-a-reason when the selection cannot answer "where"
-- [ ] Tests: placement rules (first column, after selection, append), an unknown block type in the payload, a tampered payload, cross-area paste
-
-Additive by construction and touching no published contract, so it does not gate the release — it can land on either side of the RC.
-
----
-
 ## Release — an RC once the feature set is whole, then 1.0 🅿️
 
 **Context.** The last tag is `v0.1.0-beta.7`. The block set, core styling, security model, config surface and docs are in place, and the work that had to land *before* a freeze already has: the 1.0 seams (`RenderContext`, `BlockDataResolverInterface`, collection `_id`, the `_` reserved prefix), the `Block.data` key unification and the upgrade guide are on `master`, unreleased, accumulating under `[Unreleased]` in both CHANGELOGs.

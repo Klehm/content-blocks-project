@@ -7,7 +7,7 @@ This package provides the core: entities, admin UI (Live Components + Stimulus),
 ## Requirements
 
 - PHP >= 8.2 (>= 8.4 for Symfony 8.0)
-- Symfony 6.4 LTS, 7.x or 8.x
+- Symfony 6.4 LTS, 7.x or 8.x (including `symfony/validator`, pulled in as a dependency)
 - Doctrine ORM ^2.12 or ^3.0
 
 ## Installation
@@ -246,6 +246,39 @@ Background colours need no hint: the `styling` sub-tree is the package's own sch
 **Implementing it is optional.** A block type that doesn't still appears in the thumbnail — as a tile bearing its label — so nothing breaks and no existing block needs touching. The kit implements it on the fourteen blocks that have something to show; `icon`, `table` and `html_raw` deliberately stay labelled tiles.
 
 Two things to keep in mind when writing one: the `$data` you receive is **raw stored data of unknown age** (an older version of your block may have written a different shape, so null-coalesce and check types rather than assume), and **no `BlockDataResolverInterface` has run on it** — a hint sees stored values, not resolved ones. Returning `null` is always safe and means "nothing to show here".
+
+### Copy / paste (`Ctrl/Cmd-C`, `Ctrl/Cmd-V`)
+
+Editors can copy a section or a block and paste it elsewhere — another section,
+another area, another page. It is deliberately **keyboard-only**: no toolbar
+button, no menu entry. The shortcut also works from inside the preview iframe
+(the overlay relays it), and it stands back whenever the keystroke belongs to
+the editor's text — focus in a field, or a live text selection.
+
+What gets copied is **whatever the sidebar has open**: clicking an element is
+what opens it, so the sidebar *is* the selection. A copy changes nothing on
+screen, so it is acknowledged in the snackbar.
+
+Where a paste lands follows the same selection: a section right after the
+selected section (at the end of the area when nothing is selected), a block
+right after the selected block, or at the end of the selected section's first
+column. Pasting a block with nothing selected has no answer to *where*, so it is
+refused with a message rather than guessed. Paste writes to the **draft** —
+Publish commits it, Discard reverts it — and `canEdit()` is checked on the
+**target** area.
+
+Nothing to configure. Two things worth knowing:
+
+- **The clipboard is the browser's `localStorage`**, which is what lets a copy
+  survive leaving the page — and what makes the payload untrusted. Every pasted
+  block is replayed through its own form, so a key your block type does not
+  declare never reaches `Block.data`, and a value your `constraints` refuse is
+  reset to the type's default and reported rather than costing the whole block.
+  Custom blocks get this for free: the form you already wrote *is* the filter.
+- **A copy is refused across `content_version` bumps.** Unlike a stored section
+  template — which routes through `ContentVersionUpgraderInterface` — a
+  clipboard entry is minutes old, so a mismatch is refused outright and the
+  editor copies again.
 
 ### Lifecycle
 

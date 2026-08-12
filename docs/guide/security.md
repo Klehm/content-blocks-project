@@ -126,6 +126,12 @@ Two guarantees fall out of this:
 
 There is **no** `getAllowedDataKeys()` / `sanitizeData()` / `processData()` hook — a custom block secures its data purely by what it declares in `buildForm()` (fields + constraints). The kit's `AbstractKitBlock::choiceConstraint()` derives an `Assert\Choice` from the field's full coded choice set for exactly this reason.
 
+### The clipboard goes through the same door
+
+Copy/paste stores its entry in the browser's `localStorage`, which is what lets a copy survive leaving the page — and what makes the payload **user-writable**. So a paste is not a restore: every block in it is replayed through its own form (`ContentBlocks\Clipboard\BlockDataReplayer`) before anything is written. A key your block type does not declare never reaches `Block.data`; a value your `constraints` refuse is reset to the type's default and reported to the editor, rather than costing the whole block.
+
+This is stricter than the two older restore paths (section-template insert, area import), and deliberately so: those replay rows *this* application wrote, so they keep unknown keys and merely warn. Nothing extra to do in a custom block — the form you already wrote is the filter.
+
 ::: danger Raw-HTML caveat
 The kit's `html_raw` block renders `{{ html|raw }}`, so it trusts its editors. It is **disabled by default** (`content_blocks_kit.blocks.html_raw.enabled: false`) and must be explicitly opted in.
 :::

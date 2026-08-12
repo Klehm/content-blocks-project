@@ -28,6 +28,7 @@ export default class extends Controller {
         'saveError',
         'undoBar',
         'undoLabel',
+        'undoButton',
         'replacePicker',
         'replacePickerSearch',
         'replacePickerList',
@@ -62,6 +63,15 @@ export default class extends Controller {
     /** Confirm prompt shown before deleting a library template. */
     static TEMPLATE_DELETE_CONFIRM_FALLBACK =
         'Delete this section template? This cannot be undone.';
+
+    /**
+     * Where a copied section / block waits. localStorage rather than memory
+     * because "copy here, paste over there" is the whole point: the target is
+     * usually another area, reached by leaving this page. The flip side is that
+     * the payload is user-writable — the paste endpoint treats it as input and
+     * replays it through each block's own form, so nothing here is trusted.
+     */
+    static CLIPBOARD_KEY = 'cb-builder.clipboard';
 
     static SIDEBAR_WIDTH_KEY = 'cb-builder.sidebarWidth';
     static SIDEBAR_COLLAPSED_KEY = 'cb-builder.sidebarCollapsed';
@@ -199,8 +209,22 @@ export default class extends Controller {
         }
     }
 
-    /** Escape closes the topmost thing that is open: a picker, else the menu. */
+    /**
+     * Escape closes the topmost thing that is open: a picker, else the menu.
+     * Ctrl/Cmd-C and Ctrl/Cmd-V drive the clipboard — see `_isTextEditing` for
+     * what keeps them out of a genuine text copy.
+     */
     _onDocumentKeydown(event) {
+        if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey) {
+            const key = event.key?.toLowerCase();
+            if ((key === 'c' || key === 'v') && !this._isTextEditing()) {
+                event.preventDefault();
+                if (key === 'c') this.copySelection(); else this.pasteClipboard();
+
+                return;
+            }
+        }
+
         if (event.key !== 'Escape') return;
         if (this._closeTopModal()) {
             event.preventDefault();
@@ -723,8 +747,8 @@ export default class extends Controller {
      * removes the race entirely; the added latency is invisible for
      * click/drag-driven actions.
      */
-    _jsonRequest(method, url, body) {
-        const exec = () => this._performJsonRequest(method, url, body);
+    _jsonRequest(method, url, body, options) {
+        const exec = () => this._performJsonRequest(method, url, body, options);
         // Chain onto the queue tail (run on both fulfil and reject so a prior
         // failure still releases the slot). _performJsonRequest never rejects —
         // it catches network + non-OK and resolves to null — so callers keep
@@ -743,7 +767,7 @@ export default class extends Controller {
      * Performs a single JSON request. Pulls the CSRF token from the shell
      * wrapper element (`data-cb-csrf-token`) and forwards it as `X-CSRF-Token`.
      */
-    async _performJsonRequest(method, url, body) {
+    async _performJsonRequest(method, url, body, options = {}) {
         const csrfToken = this.element.dataset.cbCsrfToken || '';
         const init = {
             method,
@@ -772,6 +796,13 @@ export default class extends Controller {
                 return null;
             }
             if (!response.ok) {
+                // An endpoint that answers a refusal with a *reason* the editor
+                // can act on (paste with nothing selected, a copy from another
+                // schema generation) opts its status out of the generic banner:
+                // the caller reads the body and says something specific.
+                if (options.tolerate?.includes(response.status)) {
+                    return await response.json().catch(() => null);
+                }
                 console.error('[cb-builder] request failed', method, url, response.status);
                 this._showSaveError();
                 return null;
@@ -855,6 +886,168 @@ export default class extends Controller {
         this.saveErrorTarget.hidden = true;
     }
 
+    // ---------- Clipboard (copy / paste) ----------
+
+    /**
+     * Ctrl/Cmd-C. Copies whatever the sidebar has open — clicking a block or a
+     * section in the preview is what opens it, so the sidebar *is* the
+     * selection, and there is no second notion of "focused entity" to keep in
+     * sync with it. A block wins over its section: it is the more specific of
+     * the two, and it is what the editor was last looking at.
+     *
+     * The copy is acknowledged in the snackbar. Nothing changes on screen
+     * otherwise, and a silent copy is how an editor pastes the wrong thing
+     * three times.
+     */
+    async copySelection() {
+        const { blockId, sectionId } = this._selectionIds();
+        const scope = blockId ? 'block' : (sectionId ? 'section' : null);
+        if (!scope) {
+            this._notify(this._t('cb.builder.clipboard.nothing_selected', 'Select a section or a block to copy it'));
+
+            return;
+        }
+
+        const entry = await this._jsonRequest('GET', `/_content-blocks/${scope}/${blockId || sectionId}/copy`);
+        if (entry === null) return;
+
+        try {
+            window.localStorage.setItem(this.constructor.CLIPBOARD_KEY, JSON.stringify(entry));
+        } catch (e) {
+            // Private mode, quota, storage disabled — the copy simply did not
+            // happen, and saying so beats a paste that mystifyingly does nothing.
+            console.error('[cb-builder] clipboard write failed', e);
+            this._notify(this._t('cb.builder.clipboard.unreadable', 'This copy cannot be read and was discarded'));
+
+            return;
+        }
+
+        this._notify(this._t(
+            scope === 'block' ? 'cb.builder.clipboard.block_copied' : 'cb.builder.clipboard.section_copied',
+            scope === 'block' ? 'Block copied' : 'Section copied',
+        ));
+    }
+
+    /**
+     * Ctrl/Cmd-V. Hands the stored entry back to the server with the current
+     * selection as the target; placement is decided there (a section after the
+     * selected section, a block after the selected block). Writes to draft, so
+     * Publish commits it and Discard reverts it.
+     */
+    async pasteClipboard() {
+        const entry = this._readClipboard();
+        if (!entry) {
+            this._notify(this._t('cb.builder.clipboard.empty', 'Nothing copied yet'));
+
+            return;
+        }
+
+        const { blockId, sectionId } = this._selectionIds();
+        const result = await this._jsonRequest(
+            'POST',
+            `/_content-blocks/area/${this.areaIdValue}/paste`,
+            {
+                payload: entry,
+                ...(blockId ? { targetBlockId: blockId } : {}),
+                ...(sectionId ? { targetSectionId: sectionId } : {}),
+            },
+            // A refusal here is a *reason* the editor can act on, not a failed
+            // save: read the body and say it, rather than raising the generic
+            // error banner.
+            { tolerate: [422] },
+        );
+        if (result === null) return;
+
+        if (result.error) {
+            this._notifyPasteRefusal(result.error);
+
+            return;
+        }
+
+        const warning = this._restoreWarning(result, {
+            skipped: ['cb.builder.clipboard.skipped_blocks', 'Pasted — %count% block(s) skipped, missing type(s): %types%'],
+            unknown: ['cb.builder.clipboard.dropped_fields', 'Pasted, but some fields were reset on: %types%'],
+            fieldsKey: 'droppedFields',
+        });
+        if (warning !== null) this._notify(warning);
+
+        if (result.sectionId) this._scrollPreviewTo(result.sectionId);
+        this._afterStructuralOp();
+    }
+
+    _notifyPasteRefusal(error) {
+        const messages = {
+            no_target: ['cb.builder.clipboard.no_target', 'Select a section or a block first — a copied block needs somewhere to go'],
+            incompatible_content_version: ['cb.builder.clipboard.stale_version', 'This copy was made under another version of your content schema — copy it again'],
+            incompatible_clipboard: ['cb.builder.clipboard.unreadable', 'This copy cannot be read and was discarded'],
+            unreadable_clipboard: ['cb.builder.clipboard.unreadable', 'This copy cannot be read and was discarded'],
+        };
+        const [key, fallback] = messages[error] ?? messages.unreadable_clipboard;
+        // An entry the server cannot read will never paste, here or anywhere
+        // else — keeping it would only let the editor hit the same wall again.
+        // A stale version is the same: only a fresh copy fixes it.
+        if (error !== 'no_target') this._clearClipboard();
+        this._notify(this._t(key, fallback));
+    }
+
+    /** The open sidebar's entity, as ids. Both null when nothing is selected. */
+    _selectionIds() {
+        if (!this.hasSidebarTarget) return { blockId: null, sectionId: null };
+        const blockId = this.sidebarTarget.getAttribute('data-cb-sidebar-block-id');
+        const sectionId = this.sidebarTarget.getAttribute('data-cb-sidebar-section-id');
+
+        return {
+            blockId: blockId ? parseInt(blockId, 10) : null,
+            sectionId: sectionId ? parseInt(sectionId, 10) : null,
+        };
+    }
+
+    /**
+     * Whether Ctrl-C/V belongs to the editor's text rather than to us. Typing
+     * in a sidebar field is the obvious case; a selected run of text anywhere
+     * (a label, a paragraph the editor wants to quote) is the subtler one, and
+     * stealing that copy would be worse than not having the shortcut at all.
+     */
+    _isTextEditing() {
+        const active = document.activeElement;
+        if (active && (active.isContentEditable
+            || ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName))) {
+            return true;
+        }
+        const selection = window.getSelection?.();
+
+        return !!selection && !selection.isCollapsed;
+    }
+
+    _readClipboard() {
+        let raw = null;
+        try {
+            raw = window.localStorage.getItem(this.constructor.CLIPBOARD_KEY);
+        } catch (e) {
+            console.error('[cb-builder] clipboard read failed', e);
+        }
+        if (!raw) return null;
+        try {
+            const entry = JSON.parse(raw);
+
+            return entry && typeof entry === 'object' ? entry : null;
+        } catch {
+            // Corrupt beyond parsing — drop it now so the next paste says
+            // "nothing copied" instead of failing on the server every time.
+            this._clearClipboard();
+
+            return null;
+        }
+    }
+
+    _clearClipboard() {
+        try {
+            window.localStorage.removeItem(this.constructor.CLIPBOARD_KEY);
+        } catch (e) {
+            console.error('[cb-builder] clipboard clear failed', e);
+        }
+    }
+
     // ---------- Undo delete (snackbar) ----------
 
     /**
@@ -871,6 +1064,24 @@ export default class extends Controller {
             const key = kind === 'section' ? 'cbBuilderUndoSectionDeleted' : 'cbBuilderUndoBlockDeleted';
             this.undoLabelTarget.textContent = this.undoBarTarget.dataset[key] || '';
         }
+        if (this.hasUndoButtonTarget) this.undoButtonTarget.hidden = false;
+        this.undoBarTarget.hidden = false;
+        clearTimeout(this._undoTimer);
+        this._undoTimer = setTimeout(() => this._hideUndo(), this.constructor.UNDO_TIMEOUT_MS);
+    }
+
+    /**
+     * The same snackbar with nothing to click: an acknowledgement ("Section
+     * copied") or a refusal ("select something first"). It shares the timer and
+     * the single slot with the undo offer — two bars stacking would be worse
+     * than the newer message winning — so it also clears any pending undo it
+     * replaces, rather than leaving an invisible offer armed.
+     */
+    _notify(message) {
+        if (!this.hasUndoBarTarget) return;
+        this._pendingUndo = null;
+        if (this.hasUndoLabelTarget) this.undoLabelTarget.textContent = message;
+        if (this.hasUndoButtonTarget) this.undoButtonTarget.hidden = true;
         this.undoBarTarget.hidden = false;
         clearTimeout(this._undoTimer);
         this._undoTimer = setTimeout(() => this._hideUndo(), this.constructor.UNDO_TIMEOUT_MS);
@@ -967,6 +1178,16 @@ export default class extends Controller {
                 break;
             case 'cb:template:insert-requested':
                 this.openTemplatePicker();
+                break;
+            // The preview is a separate document, so its keydown never reaches
+            // this one. The overlay relays the shortcut instead of duplicating
+            // the clipboard: what gets copied is still "whatever the sidebar
+            // has open", which only this side knows.
+            case 'cb:clipboard:copy-requested':
+                this.copySelection();
+                break;
+            case 'cb:clipboard:paste-requested':
+                this.pasteClipboard();
                 break;
             case 'cb:section:delete-requested':
                 this._deleteSection(data.sectionId);
@@ -2061,7 +2282,12 @@ export default class extends Controller {
                 .replace('%types%', skipped.join(', '));
         }
 
-        const fields = Array.isArray(payload?.unknownFields) ? payload.unknownFields : [];
+        // Restore flows report per-block field trouble under their own key —
+        // `unknownFields` for what a template *kept* and could not vouch for,
+        // `droppedFields` for what a paste threw away. Same shape, same
+        // sentence, different verb.
+        const raw = payload?.[messages.fieldsKey ?? 'unknownFields'];
+        const fields = Array.isArray(raw) ? raw : [];
         if (fields.length > 0) {
             const types = [...new Set(fields.map((f) => f.blockType))].join(', ');
 
