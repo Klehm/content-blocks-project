@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+    <file source-language="en" target-language="en" datatype="plaintext" original="content_blocks_i18n">
+        <body>
+            <trans-unit id="workbench.title">
+                <source>cb_i18n.workbench.title</source>
+                <target>Translation</target>
+            </trans-unit>
+            <trans-unit id="workbench.back">
+                <source>cb_i18n.workbench.back</source>
+                <target>Back to the page</target>
+            </trans-unit>
+            <trans-unit id="workbench.target_locale">
+                <source>cb_i18n.workbench.target_locale</source>
+                <target>Target language</target>
+            </trans-unit>
+            <trans-unit id="workbench.provider">
+                <source>cb_i18n.workbench.provider</source>
+                <target>Translation engine</target>
+            </trans-unit>
+            <trans-unit id="workbench.translate_all">
+                <source>cb_i18n.workbench.translate_all</source>
+                <target>Translate page</target>
+            </trans-unit>
+            <trans-unit id="workbench.translate_all_confirm">
+                <source>cb_i18n.workbench.translate_all_confirm</source>
+                <target>Machine-translate every missing or outdated field on this page? Nothing goes public until you publish.</target>
+            </trans-unit>
+            <trans-unit id="workbench.translate_field">
+                <source>cb_i18n.workbench.translate_field</source>
+                <target>Translate this field</target>
+            </trans-unit>
+            <trans-unit id="workbench.mark_current">
+                <source>cb_i18n.workbench.mark_current</source>
+                <target>Still current — keep this translation</target>
+            </trans-unit>
+            <trans-unit id="workbench.reset">
+                <source>cb_i18n.workbench.reset</source>
+                <target>Clear — fall back to the source text</target>
+            </trans-unit>
+            <trans-unit id="workbench.hide_preview">
+                <source>cb_i18n.workbench.hide_preview</source>
+                <target>Hide preview</target>
+            </trans-unit>
+            <trans-unit id="workbench.show_preview">
+                <source>cb_i18n.workbench.show_preview</source>
+                <target>Show preview</target>
+            </trans-unit>
+            <trans-unit id="workbench.preview">
+                <source>cb_i18n.workbench.preview</source>
+                <target>Page preview</target>
+            </trans-unit>
+            <trans-unit id="workbench.fields">
+                <source>cb_i18n.workbench.fields</source>
+                <target>Translatable fields</target>
+            </trans-unit>
+            <trans-unit id="workbench.filter">
+                <source>cb_i18n.workbench.filter</source>
+                <target>Filter</target>
+            </trans-unit>
+            <trans-unit id="workbench.filter_all">
+                <source>cb_i18n.workbench.filter_all</source>
+                <target>All</target>
+            </trans-unit>
+            <trans-unit id="workbench.nothing">
+                <source>cb_i18n.workbench.nothing</source>
+                <target>Nothing on this page is translatable yet.</target>
+            </trans-unit>
+            <trans-unit id="workbench.source_changed">
+                <source>cb_i18n.workbench.source_changed</source>
+                <target>the source changed since this was translated</target>
+            </trans-unit>
+            <trans-unit id="workbench.saved">
+                <source>cb_i18n.workbench.saved</source>
+                <target>Saved</target>
+            </trans-unit>
+            <trans-unit id="workbench.save_failed">
+                <source>cb_i18n.workbench.save_failed</source>
+                <target>Could not save</target>
+            </trans-unit>
+            <trans-unit id="workbench.translating">
+                <source>cb_i18n.workbench.translating</source>
+                <target>Translating…</target>
+            </trans-unit>
+            <trans-unit id="workbench.translate_failed">
+                <source>cb_i18n.workbench.translate_failed</source>
+                <target>Translation failed</target>
+            </trans-unit>
+            <trans-unit id="status.translated">
+                <source>cb_i18n.status.translated</source>
+                <target>done</target>
+            </trans-unit>
+            <trans-unit id="status.outdated">
+                <source>cb_i18n.status.outdated</source>
+                <target>outdated</target>
+            </trans-unit>
+            <trans-unit id="status.missing">
+                <source>cb_i18n.status.missing</source>
+                <target>empty</target>
+            </trans-unit>
+            <trans-unit id="action.translate">
+                <source>cb_i18n.action.translate</source>
+                <target>Translate</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

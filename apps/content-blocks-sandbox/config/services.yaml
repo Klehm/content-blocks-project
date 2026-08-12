@@ -1,3 +1,8 @@
+parameters:
+    # Provider used when nothing is set: deterministic and offline, so a fresh
+    # checkout and the e2e suite both work with no credentials.
+    cb_i18n_default_provider: 'pseudo'
+
 services:
     _defaults:
         autowire: true
@@ -30,3 +35,20 @@ services:
     # anywhere. See docs/guide/recipes/liip-imagine.md.
     ContentBlocks\Image\ImageUrlResolverInterface:
         class: App\Image\LiipImagineImageUrlResolver
+
+    # ---- Machine translation ----------------------------------------------
+    #
+    # One provider — `pseudo` (src/Translation/), deterministic and offline —
+    # auto-tagged through the package's TranslationProviderInterface
+    # autoconfiguration. No service definition needed: implementing the
+    # interface is the whole registration.
+    #
+    # There is no vendor engine here, in the sandbox any more than in the
+    # package: sending a page's text to a third-party service is a decision for
+    # a real host to make, with its own credentials and its own view on where
+    # content may travel. A demo that translated for real would only prove that
+    # someone paid for an API key.
+    #
+    # Remove this provider and the workbench renders no ⚡ button, no "translate
+    # this page" and no engine picker — the unconfigured state, which is what a
+    # host sees before wiring its own.

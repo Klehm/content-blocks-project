@@ -12,6 +12,7 @@ use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -40,7 +41,7 @@ final class BlockRenderController
         methods: ['GET'],
         requirements: ['id' => '\d+'],
     )]
-    public function render(int $id): Response
+    public function render(int $id, Request $request): Response
     {
         $block = $this->em->find(Block::class, $id);
 
@@ -65,10 +66,21 @@ final class BlockRenderController
             return new JsonResponse(['hotReload' => false]);
         }
 
+        // An optional `?locale=` pins the render language. Empty or absent
+        // keeps the historical behaviour — whatever the request's own locale
+        // resolves to — so the builder's own hot-swap path is unchanged.
+        //
+        // It exists for the translation workbench, which swaps a single block
+        // in a preview showing a language other than the one the workbench page
+        // itself is served in. Anything a locale actually *does* lives in a
+        // satellite package; the core only carries the value through.
+        $locale = $request->query->get('locale');
+        $locale = \is_string($locale) && $locale !== '' ? $locale : null;
+
         return new JsonResponse([
             'hotReload' => true,
             'type' => $type,
-            'html' => $this->blockRenderer->renderBlock($block, RenderContext::forPreview()),
+            'html' => $this->blockRenderer->renderBlock($block, RenderContext::forPreview($locale)),
         ]);
     }
 }

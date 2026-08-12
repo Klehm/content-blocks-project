@@ -1,0 +1,28 @@
+# Content translation.
+#
+# The sandbox's block data is written in French (the app's `default_locale`), so
+# French is the *source* — it has no translation rows of its own — and English,
+# German and Spanish are the targets editors work in.
+#
+# Nothing here changes rendered output on its own: with no translation rows and
+# no target locale resolved, every block renders its own data exactly as before.
+content_blocks_i18n:
+    source_locale: fr
+    locales:
+        - { code: en, label: 'English' }
+        - { code: de, label: 'Deutsch' }
+        - { code: es, label: 'Español' }
+
+    machine:
+        # Which provider runs by default. `pseudo` (src/Translation/) is
+        # deterministic and offline, so a fresh checkout and the e2e suite both
+        # work with no credentials. It is the only one here — set
+        # CB_I18N_PROVIDER to name another once you have wired one.
+        default: '%env(default:cb_i18n_default_provider:CB_I18N_PROVIDER)%'
+
+        # There is no engine to configure here, and that is the design: the
+        # package ships the *seam* and no adapter for any translation service.
+        # Where a page's text may be sent is the host's call, not a transitive
+        # dependency of a page builder — so an adapter is a class in the host's
+        # own code, autoconfigured by implementing TranslationProviderInterface.
+        # Both of this sandbox's live in src/Translation/.

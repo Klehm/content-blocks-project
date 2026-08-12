@@ -1,8 +1,8 @@
 name: CI
 
 # Tests gate the split: the read-only mirrors (klehm/content-blocks,
-# klehm/content-blocks-kit) and the tags Packagist consumes are only
-# updated when every suite is green.
+# klehm/content-blocks-kit, klehm/content-blocks-i18n) and the tags Packagist
+# consumes are only updated when every suite is green.
 on:
   push:
     branches:
@@ -111,6 +111,55 @@ jobs:
         working-directory: packages/content-blocks-kit
         run: ./vendor/bin/phpunit
 
+  i18n-php-tests:
+    name: PHPUnit i18n (PHP ${{ matrix.php }} · Symfony ${{ matrix.symfony }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # Same full matrix as the core and the kit.
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+        symfony: ['6.4.*', '7.*', '8.*']
+        exclude:
+          # Symfony 8.0 requires PHP >= 8.4.
+          - { php: '8.2', symfony: '8.*' }
+          - { php: '8.3', symfony: '8.*' }
+
+    steps:
+      # fetch-depth: 0 for the same reason as the kit job: without tags,
+      # composer versions the path-repo'd sibling core as `dev-<sha>`, which
+      # does not satisfy `klehm/content-blocks: ^0.1`.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_mysql, intl, mbstring
+          coverage: none
+
+      - name: Install flex (Symfony version constraint)
+        run: |
+          composer global config --no-plugins allow-plugins.symfony/flex true
+          composer global require --no-progress --no-scripts --no-plugins symfony/flex
+
+      # Like the kit, this package path-repos the sibling core, so it always
+      # tests against the monorepo's current core rather than a release. That
+      # matters more here than anywhere else: the whole design rests on core
+      # seams (BlockDataResolverInterface, RenderContext, the `cb_translatable`
+      # convention, BlockCloneObserverInterface), and this job is what catches
+      # one of them drifting.
+      - name: Install dependencies
+        working-directory: packages/content-blocks-i18n
+        env:
+          SYMFONY_REQUIRE: ${{ matrix.symfony }}
+        run: composer update --no-progress --no-interaction
+
+      - name: Run PHPUnit
+        working-directory: packages/content-blocks-i18n
+        run: ./vendor/bin/phpunit
+
   js-tests:
     name: Vitest
     runs-on: ubuntu-latest
@@ -151,6 +200,27 @@ jobs:
 
       - name: Run Vitest
         working-directory: packages/content-blocks-kit
+        run: npm run test:unit
+
+  i18n-js-tests:
+    name: Vitest i18n
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: packages/content-blocks-i18n/package-lock.json
+
+      - name: Install dependencies
+        working-directory: packages/content-blocks-i18n
+        run: npm ci
+
+      - name: Run Vitest
+        working-directory: packages/content-blocks-i18n
         run: npm run test:unit
 
   e2e-tests:
@@ -327,7 +397,7 @@ jobs:
   packages_split:
     name: Split ${{ matrix.package.split_repository }}
     runs-on: ubuntu-latest
-    needs: [php-tests, kit-php-tests, js-tests, kit-js-tests, e2e-tests, encore-e2e-tests]
+    needs: [php-tests, kit-php-tests, i18n-php-tests, js-tests, kit-js-tests, i18n-js-tests, e2e-tests, encore-e2e-tests]
     # PRs never split; only pushes to master and v* tags do.
     if: github.event_name == 'push'
 
@@ -339,6 +409,8 @@ jobs:
             split_repository: content-blocks
           - local_path: content-blocks-kit
             split_repository: content-blocks-kit
+          - local_path: content-blocks-i18n
+            split_repository: content-blocks-i18n
 
     steps:
       - uses: actions/checkout@v6

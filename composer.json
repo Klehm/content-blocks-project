@@ -7,18 +7,30 @@
         {
             "type": "path",
             "url": "packages/content-blocks",
-            "options": { "symlink": true }
+            "options": {
+                "symlink": true
+            }
         },
         {
             "type": "path",
             "url": "packages/content-blocks-kit",
-            "options": { "symlink": true }
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "packages/content-blocks-i18n",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
         "php": ">=8.2",
         "klehm/content-blocks": "@dev",
-        "klehm/content-blocks-kit": "@dev"
+        "klehm/content-blocks-kit": "@dev",
+        "klehm/content-blocks-i18n": "@dev"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

@@ -11,4 +11,5 @@ return [
     Liip\ImagineBundle\LiipImagineBundle::class => ['all' => true],
     ContentBlocks\ContentBlocksBundle::class => ['all' => true],
     ContentBlocks\Kit\ContentBlocksKitBundle::class => ['all' => true],
+    ContentBlocks\I18n\ContentBlocksI18nBundle::class => ['all' => true],
 ];

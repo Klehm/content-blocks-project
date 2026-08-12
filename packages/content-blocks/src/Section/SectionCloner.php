@@ -16,6 +16,18 @@ use ContentBlocks\Entity\Section;
  */
 final class SectionCloner implements SectionClonerInterface
 {
+    /**
+     * The observer collection is optional so that constructing a cloner by
+     * hand — which tests and a host's own scripts do — stays a no-argument
+     * call. The container always injects the real collection.
+     */
+    private readonly BlockCloneObserverCollection $observers;
+
+    public function __construct(?BlockCloneObserverCollection $observers = null)
+    {
+        $this->observers = $observers ?? new BlockCloneObserverCollection([]);
+    }
+
     public function cloneSection(Section $source): Section
     {
         $copy = new Section();
@@ -44,6 +56,12 @@ final class SectionCloner implements SectionClonerInterface
                 $blockCopy->setDraftData($block->getDraftData() ?? $block->getPublishedData() ?? []);
                 $blockCopy->setPreviewPosition($block->getPreviewPosition());
                 $columnCopy->addBlock($blockCopy);
+
+                // Everything inside `data` is already copied above; this is how
+                // anything stored *beside* the block (a satellite package's own
+                // table) learns that a copy exists. See
+                // BlockCloneObserverInterface — the copy has no id yet.
+                $this->observers->blockCloned($block, $blockCopy);
             }
 
             $copy->addColumn($columnCopy);

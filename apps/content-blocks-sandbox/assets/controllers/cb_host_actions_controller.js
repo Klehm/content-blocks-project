@@ -9,11 +9,13 @@ import { Controller } from '@hotwired/stimulus';
  * builder <dialog> to <body>, so the event bubbles all the way up to
  * `document` — we listen there, not on this element. The host owns the
  * behaviour: here "save-as-model" round-trips to a host endpoint and surfaces
- * a link to the freshly-created model page.
+ * a link to the freshly-created model page, and "translate" opens the i18n
+ * package's workbench.
  */
 export default class extends Controller {
     static values = {
         saveAsModelUrl: String,
+        workbenchUrl: String,
     };
 
     static targets = ['status'];
@@ -29,7 +31,14 @@ export default class extends Controller {
 
     async _onAction(event) {
         // One generic event for every host action — filter on the key.
-        if (event.detail?.key !== 'save-as-model') return;
+        const key = event.detail?.key;
+
+        if (key === 'translate') {
+            this._openWorkbench();
+            return;
+        }
+
+        if (key !== 'save-as-model') return;
 
         this._setStatus('Saving as model…');
 
@@ -49,6 +58,17 @@ export default class extends Controller {
         }
 
         this._renderSuccess(payload);
+    }
+
+    /**
+     * The workbench is a full page of its own, and the builder holds unsaved
+     * draft state in a <dialog> — so it opens in a new tab rather than
+     * navigating away from work in progress.
+     */
+    _openWorkbench() {
+        if (!this.hasWorkbenchUrlValue || this.workbenchUrlValue === '') return;
+
+        window.open(this.workbenchUrlValue, '_blank', 'noopener');
     }
 
     _renderSuccess(payload) {

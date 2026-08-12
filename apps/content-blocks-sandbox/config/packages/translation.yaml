@@ -1,5 +1,11 @@
 framework:
     default_locale: fr
+    # The four languages this sandbox demonstrates. `fr` is the source (block
+    # data itself); the other three are the translation targets configured in
+    # content_blocks_i18n.yaml. Listing them here is what lets the public page
+    # route resolve `/{_locale}/page/{id}` and what the request-locale render
+    # resolver reads.
+    enabled_locales: ['fr', 'en', 'de', 'es']
     translator:
         default_path: '%kernel.project_dir%/translations'
         providers:

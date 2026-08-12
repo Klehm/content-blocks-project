@@ -1,0 +1,16 @@
+{
+    "name": "@klehm/content-blocks-i18n",
+    "description": "Content translation for klehm/content-blocks — translation workbench.",
+    "license": "MIT",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test:unit": "vitest run",
+        "test:unit:watch": "vitest"
+    },
+    "devDependencies": {
+        "jsdom": "^26.1.0",
+        "vitest": "^3.2.1"
+    }
+}

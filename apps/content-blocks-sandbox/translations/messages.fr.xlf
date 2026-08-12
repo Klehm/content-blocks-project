@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Labels for the host actions this app contributes to the builder's Actions
+    menu (see templates/page/builder.html.twig).
+
+    They live here rather than in the template because the package runs `|trans`
+    on a contributed action's label and title: a host passes a key, the builder
+    renders it in the editor's language, exactly like its own entries. A menu
+    that mixed translated and hardcoded items would look half-finished — which
+    it was, before this file existed.
+-->
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+    <file source-language="en" target-language="fr" datatype="plaintext" original="messages">
+        <body>
+            <trans-unit id="builder.save_as_model">
+                <source>app.builder.save_as_model</source>
+                <target>Enregistrer la page comme modèle</target>
+            </trans-unit>
+            <trans-unit id="builder.save_as_model_title">
+                <source>app.builder.save_as_model_title</source>
+                <target>Enregistrer ce contenu comme modèle réutilisable</target>
+            </trans-unit>
+            <trans-unit id="builder.translate">
+                <source>app.builder.translate</source>
+                <target>Traduire cette page</target>
+            </trans-unit>
+            <trans-unit id="builder.translate_title">
+                <source>app.builder.translate_title</source>
+                <target>Ouvrir l'atelier de traduction dans un nouvel onglet</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

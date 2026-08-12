@@ -161,6 +161,43 @@ then a `1.0.0-RC1`. Everything below is on `master` only. See the
 
 ### Added
 
+- **`?cb_chrome=0` renders draft content without the builder's editing chrome.**
+  Preview mode used to decide two things at once — which data is rendered
+  (draft) and what is drawn around it (toolbars, add-section tray, section
+  handles, `builder.css`, the overlay script). Adding `cb_chrome=0` beside
+  `cb_preview=1` keeps the first and drops the second, so a draft can be shown
+  to someone who is not editing it: a review link, an approval step, a preview
+  pane in a tool that is not the builder. Soft-deleted sections / columns /
+  blocks are left out as well — with no chrome to strike them through, showing
+  them would read as live content — while `data-cb-block-id` markers stay, so
+  scroll-to-block and hot-swap still work.
+
+  Opt-out and preview-only: every existing preview URL renders exactly as
+  before, and a public render never gains chrome. Consumed by
+  `klehm/content-blocks-i18n`'s translation workbench.
+- **The block hot-swap endpoint accepts an optional `?locale=`.**
+  `GET /_content-blocks/block/{id}/render` passes it straight into
+  `RenderContext::forPreview()`; absent or empty keeps the previous behaviour of
+  letting the request decide, so the builder's own hot-swap path is unchanged.
+  The core does nothing with the value on its own — it exists so a satellite can
+  swap a single block into a preview showing a language other than the one the
+  calling page is served in, which is what `klehm/content-blocks-i18n`'s
+  workbench does.
+- **`BlockCloneObserverInterface` — told which copy came from which source
+  during a deep clone.** `SectionCloner` copies a block's `data` wholesale, so
+  anything stored *inside* it rides along for free; anything stored **beside** a
+  block — a satellite package's own table keyed by `block_id` — did not, and had
+  no way to learn a copy existed. Implement the interface (it is autoconfigured)
+  and you are called once per copied block, during the walk.
+
+  Additive by construction, which is why it can land after the interface freeze:
+  `SectionCloner` gains an **optional** constructor argument, so `new
+  SectionCloner()` still works and `SectionClonerInterface` never moves. With no
+  observer registered, cloning is byte-for-byte what it was.
+
+  Consumed by `klehm/content-blocks-i18n`, which uses it to carry a block's
+  per-locale values onto its duplicates; the shape is general enough for
+  per-block analytics, A/B variants or review state.
 - **Copy / paste a section or a block, across areas and across pages.**
   `Ctrl/Cmd-C` copies whatever the sidebar has open — clicking an element is
   what opens it, so the sidebar *is* the selection — and `Ctrl/Cmd-V` pastes it.

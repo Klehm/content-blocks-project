@@ -151,6 +151,14 @@ return static function (ContainerConfigurator $container): void {
     $services->set(\ContentBlocks\Publishing\ContentAreaPublisher::class);
     $services->alias(ContentAreaPublisherInterface::class, \ContentBlocks\Publishing\ContentAreaPublisher::class);
 
+    // Notified of every source→copy pair a deep clone produces, so a satellite
+    // package can duplicate whatever it stores beside a block. Empty by
+    // default: with no observer registered, cloning is byte-for-byte what it
+    // was before the seam existed.
+    $services->set(\ContentBlocks\Section\BlockCloneObserverCollection::class)
+        ->args([tagged_iterator('content_blocks.block_clone_observer')])
+        ->public();
+
     $services->set(SectionCloner::class);
     $services->alias(SectionClonerInterface::class, SectionCloner::class);
 

@@ -1,9 +1,16 @@
-# Translation schema spike — what the core must expose before v1.0.0
+# Schema decision record
 
-Working document: it drives a decision that has to be made *before* the tag, and it is deleted
-(or folded into the package docs) once the translation package ships.
+*Formerly `TRANSLATION-SPIKE.md` at the monorepo root. It drove a decision that
+had to be made before the core's 1.0 freeze, and it is kept here — rather than
+deleted — because it records **why** the storage schema is what it is, which the
+code cannot say for itself.*
 
-The [roadmap entry](ROADMAP.md) left the data schema as an open question — "needs a schema
+*Status: decided and implemented. Everything below the decision points is
+history; the current behaviour is documented in the [README](../README.md).*
+
+---
+
+The [roadmap entry](../../../ROADMAP.md) left the data schema as an open question — "needs a schema
 spike before implementation". This is that spike. Its job is **not** to design the translation
 package; it is to answer one question:
 

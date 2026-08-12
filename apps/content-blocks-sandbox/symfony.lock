@@ -38,6 +38,9 @@
     "klehm/content-blocks": {
         "version": "dev-main"
     },
+    "klehm/content-blocks-i18n": {
+        "version": "dev-master"
+    },
     "klehm/content-blocks-kit": {
         "version": "dev-main"
     },

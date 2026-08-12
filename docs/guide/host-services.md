@@ -350,11 +350,13 @@ There are two ways in, and which one is right depends on who owns the action.
 ```php
 $builder->add('contentArea', ContentAreaType::class, [
     'topbar_actions' => [
-        ['key' => 'save-as-model', 'label' => 'Save page as model', 'icon' => '💾',
-         'title' => 'Save this content as a reusable model'],
+        ['key' => 'save-as-model', 'label' => 'app.builder.save_as_model', 'icon' => '💾',
+         'title' => 'app.builder.save_as_model_title'],
     ],
 ]);
 ```
+
+Those labels are **translation keys** — see the note below. Hardcoding the text works and is the quickest way to end up with a half-English menu next to the package's own localized entries.
 
 **A bundle** implements `BuilderActionProviderInterface` instead, and its action appears in every builder in the application without the host editing each form. It is autoconfigured — declare the service and you are done:
 
@@ -396,7 +398,13 @@ document.addEventListener('cb:builder:action', (event) => {
 ```
 
 ::: tip Labels
-A `label` (or `title`) may be a plain, already-translated string or a `TranslatableInterface`. Both are run through `trans` at render, the same way block-type labels are — so a plain string with no catalogue entry comes out unchanged.
+A `label` (or `title`) is run through `trans` at render, the same way block-type labels are, so all three of these work:
+
+- **a translation key** (`'app.builder.save_as_model'`) resolved against the default `messages` domain — the simplest option, and the one to reach for from a Twig `topbarActions` array where building an object is awkward;
+- **a `TranslatableInterface`** (`new TranslatableMessage('action.translate', [], 'my_bundle')`) when the strings live in your bundle's own domain;
+- **a plain, already-translated string**, which comes out unchanged when it has no catalogue entry.
+
+The third is the trap: it renders fine in the language you typed it in, and stays in that language beside the builder's own localized entries. If your admin is ever anything but English, pass a key.
 
 `icon` is rendered raw so it can be inline SVG. It must therefore come from trusted code; never interpolate user input into it.
 :::
