@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\DependencyInjection;
 
+use ContentBlocks\Image\ImageUrlResolverInterface;
+use ContentBlocks\Image\PassthroughImageUrlResolver;
 use ContentBlocks\Rendering\BlockRenderer;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Transfer\ContentAreaExporter;
@@ -52,6 +54,7 @@ final class ServiceSeamAliasesTest extends TestCase
         yield 'template instantiator' => [SectionTemplateInstantiatorInterface::class, SectionTemplateInstantiator::class];
         yield 'content version upgrader' => [ContentVersionUpgraderInterface::class, DenyOnMismatchUpgrader::class];
         yield 'translatable fields' => [TranslatableFieldsInterface::class, TranslatableFields::class];
+        yield 'image url resolver' => [ImageUrlResolverInterface::class, PassthroughImageUrlResolver::class];
     }
 
     /**

@@ -120,10 +120,20 @@ return static function (ContainerConfigurator $container): void {
     $services->set(\ContentBlocks\Asset\FileStorageAssetResolver::class);
     $services->alias(AssetResolverInterface::class, \ContentBlocks\Asset\FileStorageAssetResolver::class);
 
+    // Image optimization seam. Default: passthrough — the stored source is
+    // rendered as-is, no srcset, exactly the markup that predates the seam.
+    // Hosts alias ImageUrlResolverInterface to a CDN/LiipImagine implementation
+    // to get responsive candidates in every kit image view.
+    $services->set(\ContentBlocks\Image\PassthroughImageUrlResolver::class);
+    $services->alias(\ContentBlocks\Image\ImageUrlResolverInterface::class, \ContentBlocks\Image\PassthroughImageUrlResolver::class);
+
     $services->load('ContentBlocks\\Twig\\Component\\', '../src/Twig/Component/')
         ->tag('twig.component');
 
     $services->set(\ContentBlocks\Twig\ContentBlocksExtension::class)
+        ->tag('twig.extension');
+
+    $services->set(\ContentBlocks\Twig\ImageExtension::class)
         ->tag('twig.extension');
 
     $services->set(\ContentBlocks\Rendering\BlockRenderer::class);

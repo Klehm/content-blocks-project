@@ -28,9 +28,15 @@
 
 {% macro item(item, fit) %}
     {% set link = item.url|default('')|trim %}
+    {# No display width to declare: a grid cell is fluid and a slide is sized in
+       CSS, so the resolver is asked for the source only. It may still return
+       candidates, in which case it owns `sizes` too — the view has nothing
+       truthful to derive one from. #}
+    {% set img = cb_image(item.src) %}
     <figure class="cb-kit-gallery__item">
         {% if link is not empty %}<a href="{{ link }}">{% endif %}
-        <img class="cb-kit-gallery__img" src="{{ item.src }}" alt="{{ item.alt|default('') }}" loading="lazy" decoding="async">
+        <img class="cb-kit-gallery__img" src="{{ img.src }}" alt="{{ item.alt|default('') }}"
+             {%- if img.srcset %} srcset="{{ img.srcset }}"{% endif %}{% if img.sizes %} sizes="{{ img.sizes }}"{% endif %} loading="lazy" decoding="async">
         {% if link is not empty %}</a>{% endif %}
         {% if item.caption|default('')|trim is not empty %}
             <figcaption class="cb-kit-gallery__caption">{{ item.caption }}</figcaption>
