@@ -21,12 +21,15 @@ Neither blocks the release: the seam is the part that had to exist before the fr
 
 ---
 
-## New package — Translation / Multilingual — backend shipped ✅ / UI 🅿️
+## New package — Translation / Multilingual ✅
 
-**Shipped:** `klehm/content-blocks-i18n` — the whole backend, tested (97 specs) and
-verified end to end against `content-blocks-sandbox` (FR source + EN/DE/ES).
-Package docs: [README](packages/content-blocks-i18n/README.md) ·
-[guide](docs/guide/translation.md).
+**Shipped** ([#19](https://github.com/klehm/content-blocks-project/pull/19)):
+`klehm/content-blocks-i18n`, backend *and* editorial UI — 109 PHP specs, 20
+Vitest specs and 4 browser specs, verified end to end against
+`content-blocks-sandbox` (FR source + EN/DE/ES). Package docs:
+[README](packages/content-blocks-i18n/README.md) ·
+[guide](docs/guide/translation.md) ·
+[provider recipe](docs/guide/recipes/translation-provider.md).
 
 The schema question the spike left open is answered: **a side table**
 (`cb_block_translation`), one row per block per locale, holding a flat map of
@@ -47,11 +50,17 @@ What landed:
 - [x] **The workbench UI** — full-page field list with the preview beside it,
       scroll-to-field, inline single-block reload, collapsible preview, as
       specced in [docs/guide/translation-ui-proposal.md](docs/guide/translation-ui-proposal.md).
-      Landed with the one additive core change it needed (`?locale=` on
-      `GET /_content-blocks/block/{id}/render`) and its own Vitest suite. It is
-      **not** a Stimulus controller in the end: the workbench is a standalone
-      page that never loads the host's bundle, so a package-served ES module
-      needs no `controllers.json` entry and no recompilation in any host.
+      It is **not** a Stimulus controller in the end: the workbench is a
+      standalone page that never loads the host's bundle, so a package-served
+      ES module needs no `controllers.json` entry and no recompilation in any
+      host. Its mount point is the host's choice (`config/routes/bare.php`),
+      which is what lets a firewall cover it in one pattern.
+- [x] **Two additive core seams** it turned out to need, both opt-out and
+      behaviour-preserving: `?locale=` on `GET /_content-blocks/block/{id}/render`,
+      and `?cb_chrome=0` to render draft content without the builder's editing
+      furniture. The second is the more generally useful of the two — a review
+      link or an approval step wants exactly that, and nothing else could
+      produce it from outside the package.
 
 Still open:
 
@@ -61,21 +70,38 @@ Still open:
 
 ---
 
+## The kit's rich-text CDNs — a default to decide before the freeze 🤔
+
+The translation package settled a principle: **no package sends anything to a third party the host did not ask for.** That is why it ships a seam and no engine. One place in the monorepo still does the opposite by default.
+
+The kit's `rich_text` block loads its editor from a public CDN — TinyMCE from `cdn.jsdelivr.net`, CKEditor from `cdn.ckeditor.com` — because `content_blocks_kit.blocks.rich_text.options.cdn` defaults to `true`. Opening a rich-text block therefore reaches out to a third party unless the host says otherwise.
+
+It is already fully opt-out: `cdn: false` and the host bundles the editor (what `content-blocks-encore-sandbox` does), or `cdn_url` / `cdn_style_url` point at a self-hosted copy. So this is purely a question about the **default**, and defaults are exactly what a 1.0 freezes:
+
+- **Keep `cdn: true`.** Nothing works out of the box otherwise — a fresh install gets a working editor with no bundler step, which is a real part of why the kit is pleasant to try.
+- **Flip to `cdn: false`.** Consistent with the rule the translation package just set, and the safer default for the GDPR-sensitive and offline/air-gapped installs that a page builder sold to agencies actually meets. Costs every host one bundling step, and turns a quiet first-run experience into a broken-looking one.
+- **A third way**: keep the CDN but make the reach-out *loud* — a startup notice, or a config node with no default that fails fast until the host picks a side.
+
+Not obviously urgent, and deliberately not decided here. It only needs settling before the tag, because reversing a default afterwards is a breaking change for whoever relied on it.
+
+---
+
 ## Release — an RC once the feature set is whole, then 1.0 🅿️
 
 **Context.** The last tag is `v0.1.0-beta.7`. The block set, core styling, security model, config surface and docs are in place, and the work that had to land *before* a freeze already has: the 1.0 seams (`RenderContext`, `BlockDataResolverInterface`, collection `_id`, the `_` reserved prefix), the `Block.data` key unification and the upgrade guide are on `master`, unreleased, accumulating under `[Unreleased]` in both CHANGELOGs.
 
-**Direction.** Stay on the beta line and finish the feature set first — an RC is only worth testing once hosts can exercise what 1.0 will actually contain. Of the three items this release was waiting on, two have shipped (the kit's rich-text editors, the image-optimization seam); **the translation package ships first**, *then* `1.0.0-RC1`, *then* the stable tag.
+**Direction.** All three items this release was waiting on have now shipped — the kit's rich-text editors, the image-optimization seam, and the translation package. **The next tag is `1.0.0-RC1`.**
 
-Why that one and not the others: the translation package is the one that would most likely expose a missing core seam, and finding that during an RC — after the freeze promise — is exactly what an RC is meant to prevent. The two that already landed were additive by construction, so they cost the freeze nothing while rounding out what a host gets on day one.
+The translation package was deliberately sequenced last, on the theory that it was the one most likely to expose a missing core seam — and it did, twice: `RenderContext` had to grow a locale before the freeze, and the workbench needed a way to render a draft without the builder's chrome. Both landed additive, which is the outcome an RC is meant to secure *before* the promise is made rather than after. That question is now settled: the largest satellite anyone is likely to write has been written, and it needed nothing breaking.
 
 Versioning consequence: the unreleased work carries breaking changes (the `Block.data` key renames, the `BlockRendererInterface` signature), and `0.1.0-beta.1` promised those bump to `0.2`. Any tag cut before the RC is therefore `0.2.0-beta.x`, not `0.1.0-beta.8`.
 
 **Rough scope when picked up:**
-- [x] The translation package, shipped and documented (backend; UI still open)
-- [ ] Public-surface audit → freeze list + "experimental" markers
-- [ ] Upgrade guide (beta → stable) + verified migrations — drafted, revisit once the three items land
-- [ ] Green CI on the full supported matrix (Symfony 6.4/7.x/8.x, PHP 8.2–8.4; PHPUnit + Vitest + Playwright ×2)
+- [x] The translation package, shipped and documented — backend, workbench, and the two core seams it needed
+- [ ] Public-surface audit → freeze list + "experimental" markers — the last thing standing between here and the RC
+- [ ] Decide the kit's rich-text CDN default (see above) — a default is as frozen as a signature
+- [ ] Upgrade guide (beta → stable) + verified migrations — drafted; now unblocked, since the three items have landed
+- [ ] Green CI on the full supported matrix (Symfony 6.4/7.x/8.x, PHP 8.2–8.4; PHPUnit + Vitest ×3 + Playwright ×2) — green as of [#19](https://github.com/klehm/content-blocks-project/pull/19) (27 checks), but this is a gate to re-run at tag time, not a box to tick once
 - [ ] Tag `1.0.0-RC1`, let hosts run it
 - [ ] Finalize docs site + stable release notes
 - [ ] Tag `v1.0.0`, verify Packagist split
