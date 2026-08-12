@@ -47,11 +47,17 @@ jobs:
       # `update` rather than `install`: the package is a library, so it resolves
       # its own (highest compatible within the pinned line) dependency set —
       # what consumers on that Symfony line actually get.
+      # No `--prefer-dist`: composer 2 already prefers dist for tagged releases,
+      # and passing the flag explicitly turns OFF the fallback to git source
+      # ("Source fallback is disabled. Not trying alternative sources."). A
+      # single flaky zipball download — CI has seen `curl error 60: self-signed
+      # certificate` on 2 packages out of 83, from a host that served the other
+      # 81 fine — then fails the whole job instead of costing one slower clone.
       - name: Install dependencies
         working-directory: packages/content-blocks
         env:
           SYMFONY_REQUIRE: ${{ matrix.symfony }}
-        run: composer update --prefer-dist --no-progress --no-interaction
+        run: composer update --no-progress --no-interaction
 
       - name: Run PHPUnit
         working-directory: packages/content-blocks
@@ -99,7 +105,7 @@ jobs:
         working-directory: packages/content-blocks-kit
         env:
           SYMFONY_REQUIRE: ${{ matrix.symfony }}
-        run: composer update --prefer-dist --no-progress --no-interaction
+        run: composer update --no-progress --no-interaction
 
       - name: Run PHPUnit
         working-directory: packages/content-blocks-kit
@@ -209,7 +215,7 @@ jobs:
       # rather than the Symfony-7 versions pinned in the committed lock.
       - name: Install sandbox dependencies
         working-directory: apps/content-blocks-sandbox
-        run: composer ${{ matrix.composer }} --prefer-dist --no-progress --no-interaction
+        run: composer ${{ matrix.composer }} --no-progress --no-interaction
 
       - name: Configure the sandbox database
         working-directory: apps/content-blocks-sandbox
@@ -279,7 +285,7 @@ jobs:
 
       - name: Install sandbox dependencies
         working-directory: apps/content-blocks-encore-sandbox
-        run: composer install --prefer-dist --no-progress --no-interaction
+        run: composer install --no-progress --no-interaction
 
       - name: Configure the sandbox database
         working-directory: apps/content-blocks-encore-sandbox
