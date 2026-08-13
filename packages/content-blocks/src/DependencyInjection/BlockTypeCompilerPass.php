@@ -9,6 +9,9 @@ use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\Compiler\PriorityTaggedServiceTrait;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
+/**
+ * @internal Wiring detail of the bundle. See FREEZE-AUDIT.md.
+ */
 final class BlockTypeCompilerPass implements CompilerPassInterface
 {
     use PriorityTaggedServiceTrait;

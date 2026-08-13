@@ -927,6 +927,10 @@ final class PageAccessChecker implements AccessCheckerInterface
 Full development setup, sandbox apps, and JS test suite live in the monorepo:
 [github.com/klehm/content-blocks-project](https://github.com/klehm/content-blocks-project)
 
+**Backward compatibility.** From `1.0.0`, what is covered by semver — and what is deliberately not — is listed in the
+[backward compatibility page](https://klehm.github.io/content-blocks-project/guide/backward-compatibility).
+Anything tagged `@internal` sits outside the promise.
+
 ## License
 
 MIT

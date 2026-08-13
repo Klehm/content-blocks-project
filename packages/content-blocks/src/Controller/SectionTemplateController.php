@@ -44,6 +44,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  * Insert writes to *draft* state on the target (a new section appended at the
  * end in previewPosition order), mirroring every other structural op: Publish
  * commits it, Discard reverts it.
+ *
+ * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
 #[Route('/_content-blocks')]
 final class SectionTemplateController

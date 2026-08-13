@@ -28,6 +28,8 @@ use Twig\Environment;
  *        unmounts the sidebar + reloads the iframe). On validation error,
  *        re-renders the form HTML with errors and returns 422 so the
  *        Stimulus controller swaps the sidebar content.
+ *
+ * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
 #[Route('/_content-blocks')]
 final class SectionSidebarController

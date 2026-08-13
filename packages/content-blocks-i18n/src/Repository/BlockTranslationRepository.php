@@ -12,6 +12,8 @@ use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * @extends ServiceEntityRepository<BlockTranslation>
+ *
+ * @internal Queried only by the package. See FREEZE-AUDIT.md.
  */
 class BlockTranslationRepository extends ServiceEntityRepository
 {

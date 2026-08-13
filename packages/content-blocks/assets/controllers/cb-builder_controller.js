@@ -15,6 +15,22 @@ import { Controller } from '@hotwired/stimulus';
  *
  * Reload preserves the iframe's scroll position so the user isn't kicked
  * back to the top after each save.
+ *
+ * ## The `cb:*` event contract
+ *
+ * Four events are public API and stable across 1.x — a host may listen to
+ * them on the builder element:
+ *
+ *  - `cb:ready`          the preview iframe has mounted and is interactive
+ *  - `cb:block:saved`    a block's draft was persisted
+ *  - `cb:section:saved`  a section's draft was persisted
+ *  - `cb:builder:action` a host-contributed topbar action was invoked
+ *
+ * Every other `cb:*` event in this file and in preview-overlay.js is
+ * **internal choreography** between the overlay, the iframe and this
+ * controller — the `…-requested`, `…:apply`, `…:patch` and `…:desync`
+ * families in particular. They may be renamed, split or removed in any
+ * minor release. See FREEZE-AUDIT.md.
  */
 export default class extends Controller {
     static targets = [

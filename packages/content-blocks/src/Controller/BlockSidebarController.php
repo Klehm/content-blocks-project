@@ -21,6 +21,8 @@ use Twig\Environment;
  * Live Components handles the rest: form rendering, validation, save
  * and cancel actions, which dispatch cb:block:saved / cb:block:cancel
  * browser events caught by cb-builder.
+ *
+ * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
 final class BlockSidebarController
 {

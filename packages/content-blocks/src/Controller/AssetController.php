@@ -27,6 +27,8 @@ use Symfony\Component\Routing\Attribute\Route;
  *  - /public/styling          → text/css     (PUBLIC + PREVIEW)
  *  - /public/builder          → text/css     (PREVIEW only)
  *  - /public/preview-overlay  → application/javascript (PREVIEW only)
+ *
+ * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
 final class AssetController
 {

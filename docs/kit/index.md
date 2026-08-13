@@ -71,6 +71,69 @@ content_blocks:
         - { label: 'Brand', color: '#eb0540' }
 ```
 
+### The kit's own tokens
+
+The palette covers what an *editor* picks per block. What a **developer** sets once, for every kit block on the site, is a set of seven CSS custom properties declared by `kit.css`:
+
+| Token | Default | Drives |
+|---|---|---|
+| `--cb-kit-primary` | `#4f46e5` | primary button fill, list markers, icon default |
+| `--cb-kit-primary-contrast` | `#ffffff` | text on a primary fill |
+| `--cb-kit-secondary` | `#64748b` | secondary button fill |
+| `--cb-kit-secondary-contrast` | `#ffffff` | text on a secondary fill |
+| `--cb-kit-border` | `#d1d5db` | alert, table and card rules |
+| `--cb-kit-text` | `#1f2937` | body text inside kit components |
+| `--cb-kit-radius` | `8px` | corner radius across the kit |
+
+They are declared inside `:where(.cb-kit-btn, .cb-kit-alert, .cb-kit-list, .cb-kit-icon)`, and `:where()` carries **zero specificity** — a single rule anywhere in your theme wins without `!important`:
+
+```css
+/* your front stylesheet, loaded after kit.css */
+.cb-kit-btn, .cb-kit-alert, .cb-kit-list, .cb-kit-icon {
+    --cb-kit-primary: #eb0540;
+    --cb-kit-radius: 2px;
+}
+```
+
+These names are public surface, covered by the package's semver guarantee. Note they style **content**, on the published page — they have nothing to do with the `--cb-*` tokens that theme the builder chrome ([styling guide](../guide/styling.md#theming-the-builder-chrome)).
+
+## Extending a kit block
+
+Overriding a template changes what a block *renders*. When you need it to **edit** something the kit does not offer — one extra field, a different default, a narrower choice set — subclass the block instead. This is a supported path: the 17 block classes are deliberately non-final, and their `protected` methods are covered by the package's semver guarantee.
+
+Disable the kit's service and register yours in its place, keeping the same type id so stored content keeps working:
+
+```yaml
+# config/packages/content_blocks_kit.yaml
+content_blocks_kit:
+    blocks:
+        button: { enabled: false }
+```
+
+```php
+#[AsContentBlock]
+final class AppButtonBlock extends ContentBlocks\Kit\Block\ButtonBlock
+{
+    public function buildForm(FormBuilderInterface $builder, array $data): void
+    {
+        parent::buildForm($builder, $data);
+        $builder->add('trackingId', TextType::class, ['required' => false, 'data' => $data['trackingId'] ?? '']);
+    }
+
+    protected function defaults(): array
+    {
+        return parent::defaults() + ['trackingId' => ''];
+    }
+}
+```
+
+Two things to know before you do:
+
+- **`getDefaultData()` is `final`.** It merges `defaults()` with the host's `content_blocks_kit.blocks.<type>.defaults` config, so replacing it would silently drop that config. Grow `defaults()` instead.
+- **Keep `getType()` inherited, and disable the kit's service.** Two services claiming one type id is a silent conflict — the registry keeps whichever was registered last, and which one that is depends on container order.
+
+The full contract, including `choiceFields()` and `describe()`, is in the [package README](https://github.com/klehm/content-blocks-kit#extending-a-kit-block).
+
 ## Discovering the surface from the CLI
 
 Every block's options, choice fields (default marked `*`) and data defaults are introspectable — read straight from the code, so the output never goes stale:

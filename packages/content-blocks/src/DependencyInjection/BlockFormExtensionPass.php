@@ -17,6 +17,8 @@ use Symfony\Component\DependencyInjection\Reference;
  *
  * The target ids live in the tag rather than the interface so a host writes a
  * single `#[AsBlockFormExtension('button')]` and implements only buildForm().
+ *
+ * @internal Wiring detail of the bundle. See FREEZE-AUDIT.md.
  */
 final class BlockFormExtensionPass implements CompilerPassInterface
 {

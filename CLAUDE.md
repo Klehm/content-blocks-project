@@ -150,16 +150,22 @@ Le core ignore la forme de `block.data` : un type de bloc déclare ce qu'il vaut
 ## UI Admin
 
 ### Live Components (CRUD serveur)
-- **ContentAreaBuilder** : composant principal, gère l'ajout/suppression de sections (1, 2 ou 3 colonnes)
-- **Column** : gère l'ajout/suppression de blocs dans une colonne
-- **Block** : mode édition inline (modale simplifiée)
-- **Section** : Twig Component simple (rendu statique des colonnes)
+- **BlockComponent** (`ContentBlocks:Block`) : **le seul qui reste**. Édite un bloc dans la sidebar, soumet son form, écrit le draft. Marqué `@internal` — il est piloté par les templates du builder, ce n'est pas un point d'extension hôte.
+
+Les composants `ContentAreaBuilder`, `Column` et `Section` n'existent plus : tout le CRUD structurel (sections, colonnes, réordonnancement) est passé aux controllers AJAX sous `/_content-blocks/*`, pilotés côté client par `cb-builder`. La règle d'architecture ci-dessous vaut toujours pour ce qui reste et pour les blocs custom, mais le builder lui-même n'a plus qu'un Live Component.
 
 ### Stimulus Controllers (contrôle DOM)
+Les 12 controllers livrés (source unique : `assets/package.json`) :
 - `cb-builder-launcher` : ouvre le `<dialog>` du builder depuis le widget hôte
-- `cb-builder` : orchestration de la fenêtre builder (sidebar, postMessage iframe, sauvegarde)
-- `cb-block-edit-keys` : raccourcis clavier dans la sidebar d'édition de bloc
+- `cb-builder` : orchestration de la fenêtre builder (sidebar, postMessage iframe, sauvegarde). Porte aussi le **contrat d'événements `cb:*`** : quatre sont publics (`cb:ready`, `cb:block:saved`, `cb:section:saved`, `cb:builder:action`), les 33 autres sont de la chorégraphie interne
+- `cb-autosave` : sauvegarde debouncée des forms de sidebar
 - `cb-section-settings-form` : sync live de la sidebar de settings de section
+- `cb-block-styling-form` : idem pour le styling de bloc
+- `cb-spacing-link` : lie les quatre côtés d'une grille de spacing
+- `cb-viewport-tabs` : bascule desktop/tablet/mobile
+- `cb-range` : slider avec valeur affichée
+- `cb-tabs` : onglets de la sidebar
+- `cb-collection-sort` : réordonnancement des entrées de collection
 - `cb-condition` : affichage conditionnel générique de champs (`data-cb-condition="field:value1|value2"` sur une row ; checkbox → `true`/`false` ; `field` seul → non-vide). Plusieurs clauses se combinent en **ET** via `;` (ex. `size:custom;customHeightAuto:false`), chaque clause gardant son **OU** via `|`. Les instances s'imbriquent (scope = plus proche ancêtre) ; le controller est aussi posé sur la **racine du form d'édition de bloc** ([Block.html.twig]) pour qu'un `<select>` puisse gater des rows sœurs (resize image). Utilisé par le switch « Personnaliser le style » et `PaletteColorType` ; réutilisable dans les forms de blocs custom
 - `cb-file-upload` : upload AJAX vers `/_content-blocks/upload` (preview + status), utilisé par `ImageUploadType`
 
@@ -292,13 +298,13 @@ final class PageAccessChecker implements AccessCheckerInterface
 }
 ```
 
-All controllers (`BlockController`, `SectionController`, `UploadController`) and Live Components (`BlockComponent`, `ColumnComponent`, `ContentAreaBuilderComponent`) call `canEdit()` before any mutation.
+Every AJAX controller under `/_content-blocks/*` (`AreaController`, `BlocksController`, `SectionsController`, `BlockSidebarController`, `SectionSidebarController`, `ClipboardController`, `ReplaceController`, `ImportExportController`, `SectionTemplateController`, `UploadController`) and the `BlockComponent` Live Component call `canEdit()` before any mutation. For a cross-area paste, the check runs on the **target** area, not the source.
 
 ### CSRF Protection
 
 AJAX controllers (`/_content-blocks/*`) require a `X-CSRF-Token` header validated against the token id `content_blocks`.
 
-The token is rendered in `ContentAreaBuilder.html.twig` via `{{ csrf_token('content_blocks') }}` on the `data-cb-csrf-token` attribute. Stimulus controllers read it with `closest('[data-cb-csrf-token]')`.
+The token is rendered in `@ContentBlocks/builder/shell.html.twig` via `{{ csrf_token('content_blocks') }}` on the `data-cb-csrf-token` attribute. Stimulus controllers read it with `closest('[data-cb-csrf-token]')`.
 
 **Host app requirements:**
 - `session: true` in `framework.yaml` (needed for session-based CSRF tokens)

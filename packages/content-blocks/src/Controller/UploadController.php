@@ -21,6 +21,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  * backend is whatever FileStorageInterface resolves to — NullFileStorage
  * (throws) until the host opts in via `content_blocks.upload.directory` or its
  * own alias.
+ *
+ * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
 #[Route('/_content-blocks')]
 final class UploadController

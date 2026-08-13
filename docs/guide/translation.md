@@ -203,6 +203,27 @@ translations by index would attach the German title of card 1 to card 3. An entr
 predating the `_id` backfill is skipped rather than guessed at — run
 `content-blocks:backfill-collection-ids` to normalize it.
 
+## Theming the workbench
+
+The workbench is a standalone page served by the package, so it carries its own
+stylesheet rather than reusing the builder's chrome tokens. Fifteen custom
+properties on `:root` cover it, and redeclaring them is the supported way to make
+it sit inside the host's admin:
+
+| Group | Tokens |
+|---|---|
+| Surfaces | `--cb-wb-bg` (`#f4f6f8`), `--cb-wb-surface` (`#ffffff`), `--cb-wb-border` (`#dfe4ea`) |
+| Text | `--cb-wb-text` (`#1f2933`), `--cb-wb-muted` (`#6b7785`) |
+| Accent | `--cb-wb-accent` (`#0e7490`), `--cb-wb-accent-soft` (`#e0f2f7`) |
+| Field states | `--cb-wb-ok` (`#15803d`), `--cb-wb-outdated` (`#b45309`), `--cb-wb-outdated-soft` (`#fef3c7`), `--cb-wb-missing` (`#9ca3af`), `--cb-wb-danger` (`#b91c1c`) |
+| Geometry | `--cb-wb-radius` (`8px`), `--cb-wb-topbar-h` (`52px`), `--cb-wb-meter-h` (`56px`) |
+
+The four field-state colors are the ones worth overriding first: they are what
+tells a translator at a glance which fields are done, stale or missing, so they
+should read as *your* admin's status colors rather than ours.
+
+These names are public surface, covered by the package's semver guarantee.
+
 ## See also
 
 - [Package README](https://github.com/klehm/content-blocks-i18n#readme) — the

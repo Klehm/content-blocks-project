@@ -24,6 +24,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * AJAX endpoints for structural operations on Blocks. All writes go to the
  * draft state (draftData / previewPosition / column / deleted) — never to
  * publishedData / position. Promotion runs through ContentAreaPublisher.
+ *
+ * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
 #[Route('/_content-blocks')]
 final class BlocksController

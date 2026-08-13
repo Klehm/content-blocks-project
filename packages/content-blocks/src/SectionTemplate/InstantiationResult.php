@@ -26,6 +26,9 @@ final class InstantiationResult
      * @param int                                                       $skippedBlockCount blocks left out because their type is no longer registered
      * @param list<string>                                              $skippedBlockTypes distinct type ids of those blocks
      * @param list<array{blockType: string, unknownKeys: list<string>}> $unknownFields     kept keys no registered type declares
+     *
+     * @internal Constructed by the package; hosts receive these objects, they do not
+     *           build them. Keeps it growable without a major bump. See FREEZE-AUDIT.md.
      */
     public function __construct(
         public readonly Section $section,

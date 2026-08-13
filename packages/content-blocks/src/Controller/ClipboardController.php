@@ -46,6 +46,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  * op: Publish commits it, Discard reverts it. Authorization is canEdit() on the
  * **target** area — the area the content lands in, which for a cross-area paste
  * is not the one it came from.
+ *
+ * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
 #[Route('/_content-blocks')]
 final class ClipboardController
