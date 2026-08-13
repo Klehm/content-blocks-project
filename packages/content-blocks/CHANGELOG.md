@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Headed for `1.0.0`, but not tagged: the release waits on the translation package,
-then a `1.0.0-RC1`. Everything below is on `master` only. See the
-[roadmap](https://github.com/klehm/content-blocks-project/blob/master/ROADMAP.md).
+## [1.0.0-RC1] - 2026-08-13
+
+The first release candidate for 1.0. The public surface is frozen as
+described in the [backward compatibility](https://klehm.github.io/content-blocks-project/guide/backward-compatibility)
+page: what is listed there is stable until 2.0, and anything marked
+`@internal` is outside the promise. Report anything this candidate
+breaks before the stable tag.
 
 ### Changed
 

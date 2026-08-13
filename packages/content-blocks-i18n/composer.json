@@ -25,7 +25,7 @@
     ],
     "require": {
         "php": ">=8.2",
-        "klehm/content-blocks": "^0.1",
+        "klehm/content-blocks": "^1.0",
         "doctrine/dbal": "^3.6 || ^4.0",
         "doctrine/orm": "^2.15 || ^3.0",
         "doctrine/doctrine-bundle": "^2.10 || ^3.0",
@@ -57,7 +57,7 @@
             "bundle": "ContentBlocks\\I18n\\ContentBlocksI18nBundle"
         },
         "branch-alias": {
-            "dev-master": "0.1.x-dev"
+            "dev-master": "1.0.x-dev"
         }
     },
     "minimum-stability": "dev",

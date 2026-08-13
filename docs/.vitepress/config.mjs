@@ -34,7 +34,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/quickstart' },
       { text: 'Block Kit', link: '/kit/' },
       {
-        text: 'v0.1.0-beta',
+        text: 'v1.0.0-RC1',
         items: [
           { text: 'Changelog (core)', link: 'https://github.com/klehm/content-blocks/blob/main/CHANGELOG.md' },
           { text: 'Changelog (kit)', link: 'https://github.com/klehm/content-blocks-kit/blob/main/CHANGELOG.md' },
