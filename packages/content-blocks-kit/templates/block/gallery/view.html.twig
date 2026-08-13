@@ -3,9 +3,14 @@
 {% import _self as gallery %}
 {% set items = data.items|default([])|filter(i => i.src|default('')|trim is not empty) %}
 {% if items|length > 0 %}
-    {% set layout = data.layout|default('grid') == 'slider' ? 'slider' : 'grid' %}
+    {# The layout is both a class suffix and a branch. It passes through to the
+       class, so a value a host added via config can be styled; the slider
+       branch stays keyed to the coded value, because it carries JS behaviour
+       (the cb-gallery controller and its nav buttons) that CSS cannot supply.
+       Anything else renders through the grid markup under its own class. #}
+    {% set layout = cb_kit_token(data.layout|default('grid'), 'grid') %}
     {% set columns = data.columns|default(3) %}
-    {% set fit = data.fit|default('cover') == 'contain' ? 'contain' : 'cover' %}
+    {% set fit = cb_kit_token(data.fit|default('cover'), 'cover') %}
     {% set br = data.borderRadius|default({}) %}
     {% set has_radius = (br.top ?? null) is not null or (br.right ?? null) is not null or (br.bottom ?? null) is not null or (br.left ?? null) is not null %}
     {% set vars = '--cb-kit-cols:' ~ columns ~ ';--cb-kit-fit:' ~ fit ~ ';'
@@ -20,7 +25,7 @@
             <button type="button" class="cb-kit-gallery__nav cb-kit-gallery__nav--next" data-cb-gallery-target="next" data-action="cb-gallery#next" aria-label="Next">{{ cb_kit_icon('arrow-right', 22)|raw }}</button>
         </div>
     {% else %}
-        <div class="cb-kit-gallery cb-kit-gallery--grid" style="{{ vars }}">
+        <div class="cb-kit-gallery cb-kit-gallery--{{ layout }}" style="{{ vars }}">
             {% for item in items %}{{ gallery.item(item, fit) }}{% endfor %}
         </div>
     {% endif %}

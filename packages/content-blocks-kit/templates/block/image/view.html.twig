@@ -7,17 +7,21 @@
 {% set src = data.src|default('')|trim %}
 {% if src is not empty %}
     {% set size = data.size|default('md') %}
-    {% set align = data.align|default('center') %}
-    {% set align = align in ['start', 'center', 'end'] ? align : 'center' %}
+    {% set align = cb_kit_token(data.align|default('center'), 'center') %}
 
     {# Target display width. Presets are fixed; 'custom' reads the field;
-       'full' → fluid (max-width:100%). #}
+       'full' → fluid (max-width:100%). A size a host added through config has
+       no preset entry, so it lands on the same fluid path as 'full' — the only
+       honest answer, since only this template knows what a pixel width means. #}
     {% set preset_width = { sm: 400, md: 800, lg: 1200 }[size]|default(null) %}
     {% set width = size == 'custom' ? (data.customWidth|default(null)) : preset_width %}
     {% set width = width ? width|abs : null %}
     {% set height_auto = data.customHeightAuto ?? true %}
     {% set height = (size == 'custom' and not height_auto and data.customHeight|default(null)) ? data.customHeight|abs : null %}
-    {% set fit = data.fit|default('cover') == 'contain' ? 'contain' : 'cover' %}
+
+    {# `fit` goes straight into `object-fit`, a CSS keyword — so a configured
+       value (fill, none, scale-down) works with no CSS to write at all. #}
+    {% set fit = cb_kit_token(data.fit|default('cover'), 'cover') %}
 
     {# Per-corner radius from BoxSpacingType {top,right,bottom,left}. #}
     {% set br = data.borderRadius|default({}) %}

@@ -1,12 +1,14 @@
-{# ButtonBlock view. Neutral cb-kit-* classes styled by kit.css. #}
+{# ButtonBlock view. Neutral cb-kit-* classes styled by kit.css.
+
+   variant / size / align are pure class suffixes, so they are passed through
+   as-is: a value a host added via `content_blocks_kit.blocks.button.choices`
+   reaches the markup, and the matching CSS is the host's to write.
+   `cb_kit_token()` only guards the *shape* of the value — see its extension. #}
 {% set text = data.text|default('')|trim %}
 {% if text is not empty %}
-    {% set align = data.align|default('start') %}
-    {% set align = align in ['start', 'center', 'end'] ? align : 'start' %}
-    {% set variant = data.variant|default('primary') %}
-    {% set variant = variant in ['primary', 'secondary', 'outline', 'link'] ? variant : 'primary' %}
-    {% set size = data.size|default('md') %}
-    {% set size = size in ['sm', 'md', 'lg'] ? size : 'md' %}
+    {% set align = cb_kit_token(data.align|default('start'), 'start') %}
+    {% set variant = cb_kit_token(data.variant|default('primary'), 'primary') %}
+    {% set size = cb_kit_token(data.size|default('md'), 'md') %}
     <div class="cb-kit-btn-wrap cb-kit-btn-wrap--{{ align }}">
         <a class="cb-kit-btn cb-kit-btn--{{ variant }} cb-kit-btn--{{ size }}{{ data.fullWidth|default(false) ? ' cb-kit-btn--block' : '' }}"
            href="{{ data.url|default('#') }}"

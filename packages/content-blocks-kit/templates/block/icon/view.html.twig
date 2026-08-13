@@ -1,9 +1,9 @@
 {# IconBlock view — renders a shipped IconSet glyph (kit-authored SVG, safe raw).
-   `color` is a plain #hex ('' → currentColor); size is px. #}
+   `color` is a plain #hex ('' → currentColor); size is px. `align` is a class
+   suffix and passes through, configured values included. #}
 {% set svg = cb_kit_icon(data.name|default('star'), data.size|default(48)|abs) %}
 {% if svg %}
-    {% set align = data.align|default('center') %}
-    {% set align = align in ['start', 'center', 'end'] ? align : 'center' %}
+    {% set align = cb_kit_token(data.align|default('center'), 'center') %}
     {% set color = data.color|default('') %}
     <div class="cb-kit-icon cb-kit-icon--{{ align }}"
          {%- if color is not empty %} style="color: {{ color|e('html_attr') }}"{% endif %}>

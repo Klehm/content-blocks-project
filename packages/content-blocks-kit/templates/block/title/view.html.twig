@@ -1,12 +1,25 @@
 {# TitleBlock view — the semantic element (tag) and the visual size are
    independent: a <h2> can be rendered at h1 size via cb-kit-title--h*. #}
 {% if data.text|default %}
+    {# `tag` is the one choice value in the kit that is NOT passed through.
+       It becomes the element name itself (`<{{ tag }}>`), so it is not a class
+       suffix a host can style but markup a host would be *emitting* — a list
+       that has to stay closed whatever `choices` says, because Block.data can
+       predate the field, arrive through an import, or be hand-edited. Adding a
+       tag means overriding this template, deliberately. #}
     {% set tag = data.tag|default('h2') %}
     {% set tag = tag in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'p'] ? tag : 'h2' %}
+
     {# Legacy blocks (saved before the size field) have no size → follow the tag
-       so their visual scale is preserved; a non-heading tag falls back to h2. #}
-    {% set size = data.size|default(tag) %}
-    {% set size = size in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] ? size : 'h2' %}
+       so their visual scale is preserved; a non-heading tag falls back to h2.
+       Resolved before the passthrough so those rows keep rendering as they did. #}
+    {% set size = data.size|default(tag in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] ? tag : 'h2') %}
+
+    {# The size, unlike the tag, only suffixes a class — so a value added
+       through `content_blocks_kit.blocks.title.choices` renders, and the host
+       writes `.cb-kit-title--<value>`. #}
+    {% set size = cb_kit_token(size, 'h2') %}
+
     {# Optional palette color ('' = inherit). html_attr-escaped like the divider. #}
     {% set color = data.color|default('') %}
     <{{ tag }} class="cb-kit-title cb-kit-title--{{ size }}"{% if color is not empty %} style="color: {{ color|e('html_attr') }}"{% endif %}>{{ data.text }}</{{ tag }}>

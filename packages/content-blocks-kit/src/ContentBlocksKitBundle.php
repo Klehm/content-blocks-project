@@ -79,6 +79,11 @@ final class ContentBlocksKitBundle extends AbstractBundle
      *             button:
      *                 choices:  { variant: [primary, secondary] }  # restrict/reorder a ChoiceType
      *                 defaults: { align: center }                  # override initial field values
+     *             alert:
+     *                 # A value:label map replaces the set instead of filtering
+     *                 # it, so it can add values the kit never coded. Labels go
+     *                 # through the field's translation domain.
+     *                 choices:  { type: { info: 'cb_kit.block.alert.type.info', tip: 'Astuce' } }
      *
      * Blocks omitted from config default to enabled with their coded option
      * defaults — except {@see self::DEFAULT_DISABLED} blocks, which stay off
@@ -102,7 +107,7 @@ final class ContentBlocksKitBundle extends AbstractBundle
                                 ->defaultValue([])
                             ->end()
                             ->variableNode('choices')
-                                ->info('Per-field allow-list restricting/reordering a ChoiceType field, keyed by field name (e.g. { variant: [primary, secondary] }). Unknown values are ignored.')
+                                ->info('Per-field choice override, keyed by field name. A list restricts/reorders the coded set and ignores unknown values ({ variant: [primary, secondary] }); a value:label map replaces it outright and may add values ({ variant: { ghost: "Ghost" } }).')
                                 ->defaultValue([])
                             ->end()
                             ->variableNode('defaults')

@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`choices` can now replace a block's choice set, not just narrow it.** The
+  option reads its value in one of two shapes, told apart by whether you wrote a
+  list or a map — no flag to set:
+
+  ```yaml
+  content_blocks_kit:
+      blocks:
+          button:
+              choices:
+                  size: [md, lg]                                  # list → restrict, as before
+                  variant: { ghost: 'Ghost', primary: 'Primaire' } # map  → replace, and add
+  ```
+
+  Labels go through the field's translation domain, so a translation key is
+  resolved and a literal string comes out as written. Validation accepts the
+  **union** of the coded values and the configured ones: a value you added
+  passes its own form, and content saved with a value you have since hidden
+  stays valid.
+
+  Restricting behaved this way already; what did not work — and failed silently,
+  by falling back to the full coded set — was trying to *add* through the list
+  form. That fallback is kept (an empty `<select>` is worse than an unfiltered
+  one) but is now documented as the signal that you wanted the map form.
+
+- **`AbstractKitBlock::describeConfigured()`**, the as-built counterpart of
+  `describe()`. `content-blocks-kit:blocks` reads it for its human output, so
+  the command now shows the block as *this app* configured it and names the
+  fields that were overridden. The `--format=json` half stays on the coded
+  schema, since it feeds the reference pages that describe the kit as shipped.
+
+- **`cb_kit_token()`** Twig function, used by the kit's views wherever a choice
+  value becomes a CSS class.
+
+### Changed
+
+- **Kit views no longer re-list their coded choice values.** Seven templates
+  each carried an inline whitelist (`variant in ['primary', 'secondary',
+  'outline', 'link'] ? variant : 'primary'`) that had to be kept in step with
+  `choiceFields()` by hand — and that quietly swapped a configured value back
+  for the coded default, making the config above pointless. They now pass the
+  stored value through `cb_kit_token()`, which checks its *shape* (a single
+  `[A-Za-z0-9_-]` token) rather than its membership in a list. A malformed value
+  still falls back; an unknown-but-valid one renders, which is what gives the
+  host's CSS something to hook onto.
+
+  Two deliberate exceptions:
+
+  - **`title.tag` stays closed.** It becomes the HTML element, so widening it
+    would let configuration decide what markup the kit emits. Adding a tag means
+    overriding that template.
+  - **Values that drive behaviour land on a fallback branch** — the `gallery`
+    slider carries a Stimulus controller, `list` renders `<ol>` only for
+    `numbered`, `alert` glyphs come from the kit's own icon set. They keep their
+    class, so they are still stylable, but going further needs a view override.
+
+- **A block whose default is no longer offered starts on the first value that
+  is.** Previously a host who replaced `variant` without also setting
+  `defaults.variant` got every new button on the kit's coded default — a value
+  absent from their own dropdown and unstyled on the page. This only moves a
+  default that the resolved choice set does not contain, so a block whose config
+  still includes its default is untouched.
+
 ## [1.0.0-RC1] - 2026-08-13
 
 The first release candidate for 1.0. The public surface is frozen as

@@ -27,7 +27,7 @@ The four console commands, their names and their options: `content-blocks:backfi
 
 ### Twig
 
-The nine functions — `cb_render_content_area`, `cb_preview_url`, `cb_color_palette`, `cb_image`, `cb_embed_url`, `cb_kit_icon`, `cb_i18n_workbench_url`, `cb_i18n_locales`, `cb_i18n_progress`.
+The ten functions — `cb_render_content_area`, `cb_preview_url`, `cb_color_palette`, `cb_image`, `cb_embed_url`, `cb_kit_icon`, `cb_kit_token`, `cb_i18n_workbench_url`, `cb_i18n_locales`, `cb_i18n_progress`.
 
 Every shipped template path, since overriding one under `templates/bundles/` is a supported integration. Their *contents* are not frozen — a template may be restructured — but the path will resolve and the block names a host overrides will keep working.
 

@@ -1,7 +1,11 @@
 {# CardBlock view — grid (N columns) or stacked list. #}
 {% set items = data.items|default([]) %}
 {% if items|length > 0 %}
-    {% set layout = data.layout|default('grid') == 'list' ? 'list' : 'grid' %}
+    {# Passed through to the class so a layout added via config can be styled.
+       The column count is only emitted for the coded `grid` layout, which is
+       the one whose CSS reads --cb-kit-cols; a host's own layout declares
+       whatever it needs in its own rules. #}
+    {% set layout = cb_kit_token(data.layout|default('grid'), 'grid') %}
     {% set columns = data.columns|default(3) %}
     <div class="cb-kit-cards cb-kit-cards--{{ layout }}"{% if layout == 'grid' %} style="--cb-kit-cols:{{ columns }}"{% endif %}>
         {% for item in items %}

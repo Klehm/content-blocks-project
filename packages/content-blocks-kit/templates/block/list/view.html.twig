@@ -1,8 +1,11 @@
-{# ListBlock view. Style: bullet | check | numbered. #}
+{# ListBlock view. Style: bullet | check | numbered, plus anything a host adds
+   through config — the value is a class suffix and passes through. Only the two
+   behaviours the kit itself implements stay keyed to their coded value: an
+   ordered list for `numbered`, the check glyph for `check`. An added style is a
+   `<ul>` carrying its own class, which is what CSS alone can restyle. #}
 {% set items = data.items|default([])|map(i => i.text|default(''))|filter(t => t|trim is not empty) %}
 {% if items|length > 0 %}
-    {% set style = data.style|default('bullet') %}
-    {% set style = style in ['bullet', 'check', 'numbered'] ? style : 'bullet' %}
+    {% set style = cb_kit_token(data.style|default('bullet'), 'bullet') %}
     {% set tag = style == 'numbered' ? 'ol' : 'ul' %}
     <{{ tag }} class="cb-kit-list cb-kit-list--{{ style }}">
         {% for text in items %}
