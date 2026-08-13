@@ -127,7 +127,7 @@ Note : `minimum-stability` vaut `alpha` (ybc), `beta` (efs), `stable` (em). Une
 contrainte explicite portant un suffixe de stabilité (`^1.0@RC`) suffit à Composer 2,
 même sous `stable` — pas besoin de toucher au `minimum-stability` global.
 
-### A.2 Les cinq ruptures qui comptent sur beta.5 → RC
+### A.2 Les six ruptures qui comptent sur beta.5 → RC
 
 88 commits séparent beta.5 de master. Ce qui casse réellement chez ces hôtes :
 
@@ -151,6 +151,22 @@ même sous `stable` — pas besoin de toucher au `minimum-stability` global.
   ```
   EFS forçait déjà `''` via des defaults providers basse priorité — ce contournement
   devient inutile et doit sauter.
+  **Que faire des lignes trouvées : les blanchir.** Sous beta.5 le défaut valait
+  `#ffffff`, donc une valeur égale était strippée avant rendu — aucun éditeur n'a
+  jamais pu obtenir un blanc en le choisissant. Un `#ffffff` en base est donc
+  toujours un artefact du hack : le remettre à `''` **préserve** le rendu au lieu de
+  perdre une intention (migration ybc `Version20260813130500`, à passer avant toute
+  écriture sous la RC).
+- **Le code de l'hôte qui *produit* des clés de viewport `d`/`t`/`m` meurt en
+  silence.** La bascule `d`/`t`/`m` → `desktop`/`tablet`/`mobile` (voir A.5) ne
+  touche pas que les données stockées : un `SectionSettingsDefaultsProviderInterface`
+  ou un `BlockDataDefaultsProviderInterface` de l'hôte qui retourne
+  `styling.padding.{d,t,m}` cesse simplement de s'appliquer — sans erreur, sans
+  warning. Les champs s'ouvrent vides et le rendu perd le padding, ce qui ressemble
+  à un choix éditorial. À chercher **avant** de migrer les données :
+  ```bash
+  grep -rn "'d' =>" src/   # tout provider de defaults, section comme bloc
+  ```
 - **La brique upload a migré du kit vers le core** (`ContentBlocks\Storage`,
   `UploadController`, `ImageUploadType`, widget `cb_image_upload`). Les deux hôtes
   l'avaient réimplémentée : conflit de services quasi certain, et c'est du code hôte
@@ -360,6 +376,12 @@ par surprise rencontrée, dans le projet où elle est apparue.
 | em | **Escape ferme le builder entier** (le shell vit dans un `<dialog>` ouvert en `showModal()`, sans handler `cancel`). Vu en test automatisé : `.cb-shell` passe à 0×0 alors que `display` reste `grid` — donc « bouton Publier invisible » sans la moindre erreur JS. | Comportement natif et intentionnel (les éditions sont autosauvées, aucune perte). La superposition est correcte, vérifiée : 1er Escape ferme le menu Actions, 2e ferme le builder. **Ne pas mettre d'Escape dans un script de fumée** — c'était le test qui était faux, pas le package. | Non. |
 | em | **Prod contrôlée avant publication : 0 ligne de `styling` persistée** (27 blocs, 8 areas), donc ni clés de viewport courtes ni `#ffffff`. Les deux ruptures de contenu de la RC sont sans objet sur cet hôte. | Aucune migration de contenu à écrire. `content_version: 1` posé et vérifié : les areas écrites sous la RC portent bien le stamp 1. | Non. |
 | em | Aucune des **cinq ruptures du §3 A.2** ne touche cet hôte : pas de décorateur de renderer, pas de brique upload réimplémentée, pas de `ColorType`, pas de contrôleur de condition ad-hoc, et **aucun `config/packages/content_blocks.yaml`** (donc ni `upload.dir` ni `styles` à renommer). Surface d'intégration : 4 fichiers (`AccessCheckerInterface`, `ContentAreaUrlResolverInterface`, `ContentAreaType`, entité `Page`). | Rien à faire. Le signal est propre : ce qui casse ici casse pour tout le monde. | Non. |
+| ybc | **Sixième rupture, absente du §3 A.2 : le code PHP de l'hôte qui *produit* des clés `d`/`t`/`m`.** La bascule des viewports ne concerne pas que les données stockées : un `SectionSettingsDefaultsProviderInterface` (ici `SectionPaddingDefaults`, qui pré-remplit 32px de padding horizontal) qui retourne `styling.padding.{d,t,m}` **cesse simplement de s'appliquer**, sans erreur ni warning. Symptôme : les champs « Marge intérieure » s'ouvrent vides et le rendu perd le padding — indiscernable d'un choix éditorial. Le CHANGELOG de la RC ne cite que les données stockées et le CSS. | Clés renommées dans le provider, plus son test unitaire. Vérifié dans le builder : les champs se ré-ouvrent bien à 32/32. **À chercher avant de migrer quoi que ce soit** : `grep -rn "'d' =>" src/` sur tout provider de defaults (settings de section comme data de bloc). Ajouté au §3 A.2. | **Oui** — le point BREAKING du CHANGELOG doit citer les providers de defaults de l'hôte comme troisième porteur des clés, à côté des données stockées et du CSS. C'est le seul des trois qui échoue en silence. |
+| ybc | **La collision de la brique upload est totale, pas partielle.** L'hôte avait réimplémenté la brique entière : même nom de route *et* même chemin (`content_blocks_upload`, `/_content-blocks/upload`), même nom de contrôleur Stimulus (`cb-file-upload`, que la recette Flex vient justement d'ajouter à `controllers.json`), même `FileStorageInterface`/`LocalFileStorage` à un namespace près. Rien ne lève : Symfony garde la dernière route enregistrée, Stimulus le dernier contrôleur chargé. | Suppression franche côté hôte (3 classes PHP, 1 contrôleur Stimulus, 2 form themes Twig, 2 entrées `services.yaml`), et bascule des champs `src` sur `ImageUploadType` du core. Nouveau `config/packages/content_blocks.yaml` avec `upload.directory` + `public_prefix`. Chaîne complète re-testée dans le builder : upload réel, fichier écrit, preview, publication, image servie en 200. **Capacité d'édition gagnée** au passage (glisser-déposer, bouton Retirer, coller un chemin) — c'est bien du code hôte à supprimer, pas à réconcilier. | Non — le §3 A.2 le disait, il sous-estimait juste l'ampleur. |
+| ybc | **Les deux ruptures de contenu de la RC sont bien réelles ici** (là où em n'avait rien) : 1 bloc porte à la fois les clés de viewport courtes et un `backgroundColor: '#ffffff'`, en `published_data` seul. Sur 10 blocs / 9 sections / 8 areas. | Deux migrations : le portage de la migration de référence `Version20260715130000`, et une seconde qui neutralise les `#ffffff`. Vérifié après coup : 0 clé courte restante, 0 `#ffffff` restant. | Non. |
+| ybc | **Le §3 A.2 dit de *contrôler* les fonds `#ffffff` mais pas quoi en faire.** La bonne décision se lit dans beta.5 : le défaut valait `#ffffff`, donc toute valeur égale était *strippée* avant rendu (`withoutDefaults`) — **aucun éditeur n'a jamais pu obtenir un blanc en le choisissant**. Un `#ffffff` en base est donc toujours un artefact du hack, jamais une intention. | Les blanchir à `''` est ce qui **préserve** le rendu, ce n'est pas une perte de donnée. Migration dédiée, `down()` volontairement irréversible (une valeur blanchie est indiscernable d'un « Aucune » choisi après coup — le dump d'avant-étape est le chemin de rollback). Ne vaut que tant qu'aucune ligne n'a été écrite sous la RC : c'est une migration à passer tôt, pas plus tard. | Non — mais le §3 A.2 gagne à porter la conclusion plutôt que le seul contrôle. |
+| ybc | **L'exemple de config du bundle est périmé et ne passe plus.** Le docblock de `ContentBlocksBundle::configure()` annonce encore `section_styles[].settings: { styling: { padding: { d: { top: 40, bottom: 40 } } } }`, alors que `responsiveBoxNode()` n'accepte plus que `desktop`/`tablet`/`mobile`. Un hôte qui recopie l'exemple se prend un `Unrecognized option "d"` au build du container. Sans effet ici (ybc déclare ses presets en PHP via `SectionStyleProviderInterface`, pas en YAML) — mais efs est le prochain et déclare, lui, de la config. | Rien à faire côté hôte. | **Oui** — corriger l'exemple du docblock dans le package. |
+| ybc | `content_version: 1` posé avant toute migration de contenu, et **vérifié sur une écriture réelle du builder** : l'area passe de `NULL` à `1` à l'enregistrement (pas seulement en test). Le reste du §3 A.2 est sans objet ici : pas de décorateur de renderer, pas de `ColorType` du package (les `ColorType` trouvés sont ceux de Symfony, dans des formulaires d'admin sans rapport), et les contrôleurs de condition ad-hoc (`cb-gallery-size`) n'entrent en collision avec rien — leur remplacement par `data-cb-condition` est du nettoyage, pas une rupture, et attend l'étape B. | Vérification manuelle complète au passage : ouverture du builder, édition de section, autosave, preview, Publier, Annuler les modifications, upload — zéro erreur console. | Non. |
 
 ---
 
