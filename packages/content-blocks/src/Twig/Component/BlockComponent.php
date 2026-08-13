@@ -30,6 +30,8 @@ use Symfony\UX\LiveComponent\LiveCollectionTrait;
  * toggle). On save / cancel, dispatches a browser CustomEvent that bubbles
  * up to the parent admin window's `cb-builder` Stimulus controller, which is
  * responsible for closing the sidebar and reloading the iframe.
+ *
+ * @internal Driven by the builder templates; not a host extension point. See FREEZE-AUDIT.md.
  */
 #[AsLiveComponent('ContentBlocks:Block', template: '@ContentBlocks/components/Block.html.twig')]
 final class BlockComponent

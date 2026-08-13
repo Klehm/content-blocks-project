@@ -24,6 +24,8 @@ use Symfony\Component\Routing\Attribute\Route;
  * safe to swap in place (static / CSS-only markup) or needs a full reload so
  * its JavaScript init runs again. When it isn't, this endpoint answers
  * `{ hotReload: false }` and the builder falls back to reload().
+ *
+ * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
 final class BlockRenderController
 {

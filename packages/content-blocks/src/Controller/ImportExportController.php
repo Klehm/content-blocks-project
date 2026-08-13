@@ -27,6 +27,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  * Import follows the same "draft replace" semantics as ReplaceController:
  * existing sections are soft-deleted, imported sections are added as
  * never-published drafts. Publish commits the swap, Discard reverts it.
+ *
+ * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
 #[Route('/_content-blocks')]
 final class ImportExportController

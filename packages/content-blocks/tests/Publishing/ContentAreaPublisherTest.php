@@ -9,6 +9,7 @@ use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Publishing\ContentAreaPublisher;
+use ContentBlocks\Publishing\PublishContext;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -49,6 +50,23 @@ final class ContentAreaPublisherTest extends TestCase
         $this->assertNull($block->getDraftData());
         $this->assertEmpty($this->removed);
         $this->assertSame(1, $this->flushCount);
+    }
+
+    public function testTheLocaleScopeNeverHoldsTheSourceBack(): void
+    {
+        // The core has no locale dimension: an area's draft is one state, and a
+        // context that scopes translations must not stop it going live. This is
+        // the invariant that makes "a translation can be held back but never
+        // pushed ahead of its source" true by construction.
+        $area = new ContentArea();
+        $section = $this->makeSection($area, position: 0, previewPosition: 0);
+        $column = $this->makeColumn($section, position: 0, previewPosition: 0);
+        $block = $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Old'], draftData: ['title' => 'New'], position: 0, previewPosition: 0);
+
+        (new ContentAreaPublisher($this->em))->publish($area, PublishContext::sourceOnly());
+
+        $this->assertSame(['title' => 'New'], $block->getPublishedData());
+        $this->assertNull($block->getDraftData());
     }
 
     public function testPublishSyncsSectionAndColumnPositions(): void

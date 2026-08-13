@@ -8,6 +8,7 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\I18n\Repository\BlockTranslationRepository;
 use ContentBlocks\I18n\Storage\TranslationStore;
 use ContentBlocks\Publishing\ContentAreaPublisherInterface;
+use ContentBlocks\Publishing\PublishContext;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -21,9 +22,18 @@ use Doctrine\ORM\EntityManagerInterface;
  * an unpublished draft. Riding the area's existing Publish means the source and
  * its translations always go live together, and Discard reverts both.
  *
- * (Per-locale publishing remains *possible* — the rows keep separate draft and
- * published payloads — but it is a deliberate later decision, not something a
- * host falls into by accident.)
+ * ---- Per-locale scoping ----
+ *
+ * That default is what a bare `publish($area)` still does. A caller that passes
+ * a {@see PublishContext} narrows which locales ride along: `withLocales('fr')`
+ * takes French live and leaves German on its published values, `sourceOnly()`
+ * publishes the source and holds every translation back.
+ *
+ * The dangerous direction stays inexpressible by construction — the context
+ * scopes translations, never the area's own draft, so a locale can be held back
+ * but never pushed ahead of the source text it was written against. No UI
+ * exposes this yet; it is API surface, frozen with 1.0 because the alternative
+ * was widening a published signature afterwards.
  *
  * ---- Ordering ----
  *
@@ -47,7 +57,7 @@ final class TranslationPublisher implements ContentAreaPublisherInterface
     ) {
     }
 
-    public function publish(ContentArea $area): void
+    public function publish(ContentArea $area, ?PublishContext $context = null): void
     {
         foreach ($this->repository->findForArea($area) as $row) {
             $block = $row->getBlock();
@@ -55,6 +65,14 @@ final class TranslationPublisher implements ContentAreaPublisherInterface
             if ($block === null || $block->isDeleted()) {
                 $this->em->remove($row);
 
+                continue;
+            }
+
+            // Out of scope: this locale keeps whatever it has published, and
+            // its draft survives for a later publish. Removing an orphaned row
+            // above is unconditional either way — the block is gone, so there
+            // is no locale left to hold back.
+            if ($context !== null && !$context->coversLocale($row->getLocale())) {
                 continue;
             }
 
@@ -69,10 +87,10 @@ final class TranslationPublisher implements ContentAreaPublisherInterface
         }
 
         $this->store->reset();
-        $this->inner->publish($area);
+        $this->inner->publish($area, $context);
     }
 
-    public function discardDraft(ContentArea $area): void
+    public function discardDraft(ContentArea $area, ?PublishContext $context = null): void
     {
         foreach ($this->repository->findForArea($area) as $row) {
             $block = $row->getBlock();
@@ -86,6 +104,12 @@ final class TranslationPublisher implements ContentAreaPublisherInterface
                 continue;
             }
 
+            // Same scoping rule as publish: the area's own draft always
+            // goes, a locale left out of the scope keeps its draft.
+            if ($context !== null && !$context->coversLocale($row->getLocale())) {
+                continue;
+            }
+
             $row->revertDraft();
 
             if ($row->isEmpty()) {
@@ -94,6 +118,6 @@ final class TranslationPublisher implements ContentAreaPublisherInterface
         }
 
         $this->store->reset();
-        $this->inner->discardDraft($area);
+        $this->inner->discardDraft($area, $context);
     }
 }

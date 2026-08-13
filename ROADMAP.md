@@ -66,7 +66,13 @@ Still open:
 
 - [ ] Export/import and section templates do **not** carry translations yet —
       the transfer walks need the same observer treatment the cloner got.
-- [ ] Per-locale publishing (the rows support it; no flow exposes it)
+- [ ] Per-locale publishing — **the API now exists**: `PublishContext` scopes
+      which locales ride along with a publish or discard, and
+      `TranslationPublisher` honours it. No flow exposes it yet, deliberately.
+      Before designing one, note the constraint: the layout is shared, so a
+      per-locale publish can only hold back *values of existing fields* — a
+      newly added block appears in every locale at once and renders its source
+      text there until translated.
 
 ---
 
@@ -98,9 +104,10 @@ Versioning consequence: the unreleased work carries breaking changes (the `Block
 
 **Rough scope when picked up:**
 - [x] The translation package, shipped and documented — backend, workbench, and the two core seams it needed
-- [ ] Public-surface audit → freeze list + "experimental" markers — the last thing standing between here and the RC
-- [ ] Decide the kit's rich-text CDN default (see above) — a default is as frozen as a signature
-- [ ] Upgrade guide (beta → stable) + verified migrations — drafted; now unblocked, since the three items have landed
+- [x] Public-surface audit → freeze list + "experimental" markers — run; the outcome is the [backward compatibility page](docs/guide/backward-compatibility.md), and the markers are in the code. The audit found that **not one symbol across 222 PHP files was marked `@internal`, `@experimental` or `@deprecated`**, so tagging as-was would have frozen the 14 controllers, the DI internals, `BlockComponent` and every collaborator signature. Now marked; the four-event `cb:*` contract and all 90 `--cb-*` tokens are declared, the latter guarded by a CI drift check. (Working notes live in `FREEZE-AUDIT.md`, kept out of git via `.git/info/exclude`.)
+- [x] **`ContentAreaPublisherInterface` widened before the freeze.** `publish()` and `discardDraft()` take a nullable `PublishContext`; `null` is today's behaviour, so no call site changed. It carries a locale scope the i18n decorator reads, and its shape makes the dangerous ordering inexpressible — a locale can be held back, never pushed ahead of its source. The other seams needed nothing: the transfer walks take their translation observer by constructor injection, exactly as `SectionCloner` did
+- [x] Decide the kit's rich-text CDN default (see above) — **decided: keep it as it is.** A default is as frozen as a signature, and this one has run unchanged across all three hosts without a complaint; changing it at the freeze would be trading a known default for an unproven one
+- [x] ~~Upgrade guide (beta → stable) + verified migrations~~ — **descoped as a published document.** The package has exactly three hosts, all ours (`em-interpretation`, `ybc`, `efs`), and no third-party install. A public beta → stable guide would be written for nobody. The migrations still get verified — by doing them: [HOST-MIGRATION-RUNBOOK.md](HOST-MIGRATION-RUNBOOK.md) carries the plan, and its §6 journal harvests the guide while the three upgrades happen. If an outside host ever appears, that journal is what gets published
 - [ ] Green CI on the full supported matrix (Symfony 6.4/7.x/8.x, PHP 8.2–8.4; PHPUnit + Vitest ×3 + Playwright ×2) — green as of [#19](https://github.com/klehm/content-blocks-project/pull/19) (27 checks), but this is a gate to re-run at tag time, not a box to tick once
 - [ ] Tag `1.0.0-RC1`, let hosts run it
 - [ ] Finalize docs site + stable release notes

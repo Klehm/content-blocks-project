@@ -372,6 +372,15 @@ run `content-blocks:backfill-collection-ids` to normalize it.
 No HTTP client, no vendor SDK: the package talks to no third-party service. A
 machine-translation adapter is the host's, and brings its own dependencies.
 
+## Documentation & contributing
+
+Full documentation and development setup live in the monorepo:
+[github.com/klehm/content-blocks-project](https://github.com/klehm/content-blocks-project)
+
+**Backward compatibility.** From `1.0.0`, what is covered by semver — and what is deliberately not — is listed in the
+[backward compatibility page](https://klehm.github.io/content-blocks-project/guide/backward-compatibility).
+Anything tagged `@internal` sits outside the promise.
+
 ## License
 
 MIT

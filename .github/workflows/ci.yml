@@ -202,6 +202,27 @@ jobs:
         working-directory: packages/content-blocks-kit
         run: npm run test:unit
 
+  token-docs:
+    name: CSS token docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      # Every --cb-* token is public surface from 1.0, so a token added to a
+      # package stylesheet without a docs entry is a silent freeze. Lives here
+      # rather than in the docs workflow because that one only fires on docs/**,
+      # and the drift is introduced in packages/**.
+      - name: Check every --cb-* token is documented
+        working-directory: docs
+        run: node scripts/check-tokens.mjs
+
   i18n-js-tests:
     name: Vitest i18n
     runs-on: ubuntu-latest

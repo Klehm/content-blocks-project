@@ -115,17 +115,32 @@ The token names are public surface — they are covered by the package's semver 
 |---|---|
 | Surfaces | `--cb-surface`, `--cb-panel`, `--cb-panel-2`, `--cb-panel-3`, `--cb-field-bg` |
 | Lines | `--cb-line`, `--cb-line-strong`, `--cb-line-hover` |
-| Text | `--cb-text`, `--cb-text-2`, `--cb-muted`, `--cb-faint`, `--cb-on-solid`, `--cb-inverse-surface` |
-| Accent | `--cb-accent-rgb`, `--cb-accent`, `--cb-accent-strong`, `--cb-accent-darker`, `--cb-accent-soft`, `--cb-accent-bg` |
-| Status | `--cb-danger`, `--cb-danger-strong`, `--cb-success`, `--cb-success-strong`, `--cb-warning`, `--cb-badge-bg`, `--cb-badge-fg` |
+| Text | `--cb-text`, `--cb-text-2`, `--cb-muted`, `--cb-faint`, `--cb-on-solid`, `--cb-on-solid-rgb`, `--cb-inverse-surface` |
+| Accent | `--cb-accent-rgb`, `--cb-accent`, `--cb-accent-strong`, `--cb-accent-darker`, `--cb-accent-soft`, `--cb-accent-soft-rgb`, `--cb-accent-bg` |
+| Status | `--cb-danger`, `--cb-danger-rgb`, `--cb-danger-strong`, `--cb-success`, `--cb-success-rgb`, `--cb-success-strong`, `--cb-warning`, `--cb-badge-bg`, `--cb-badge-fg` |
 | Shadow | `--cb-shadow-rgb` |
 | Type | `--cb-font-mono`, `--cb-caption-size`, `--cb-caption-size-sm`, `--cb-caption-tracking` |
 | Geometry | `--cb-radius`, `--cb-radius-sm`, `--cb-radius-xs` |
+| Layout | `--cb-sidebar-width` (340px), `--cb-sidebar-collapsed-width` (32px) |
+
+### The form alias layer
+
+`forms.css` declares a second, narrower set that points at the tokens above. Redeclare only these to make the builder's inputs differ from the rest of the chrome — useful when the host's admin has a strong form style of its own and you would rather not fight it.
+
+| Group | Tokens |
+|---|---|
+| Color | `--cb-form-bg`, `--cb-form-bg-soft`, `--cb-form-bg-disabled`, `--cb-form-text`, `--cb-form-text-muted`, `--cb-form-placeholder`, `--cb-form-accent` |
+| Borders & focus | `--cb-form-border`, `--cb-form-border-hover`, `--cb-form-border-focus`, `--cb-form-focus-ring` |
+| Status | `--cb-form-danger`, `--cb-form-danger-ring`, `--cb-form-success` |
+| Type | `--cb-form-font-size`, `--cb-form-font-size-sm`, `--cb-form-font-size-xs`, `--cb-form-line-height`, `--cb-form-label-color` |
+| Metrics | `--cb-form-control-height`, `--cb-form-gap`, `--cb-form-radius`, `--cb-form-radius-sm` |
+
+The label typography tokens used in the sentence-case recipe below — `--cb-form-label-transform`, `--cb-form-label-font`, `--cb-form-label-size`, `--cb-form-label-tracking` — belong to this layer too.
 
 Three details worth knowing:
 
 - **Alpha variants come from the `*-rgb` tokens.** Rules build translucency with `rgba(var(--cb-accent-rgb), 0.25)`, so overriding `--cb-accent-rgb` moves the solid color *and* every focus ring, hover tint and shadow that derives from it. Override `--cb-accent` alone and the alphas stay behind.
-- **Form widgets have their own alias layer.** `--cb-form-*` (in `forms.css`) points at the tokens above. Redeclare just those to make inputs differ from the rest of the chrome without touching the shared palette.
+- **The `--cb-form-*` layer is an alias layer, not a second palette.** Each token defaults to one of the chrome tokens above, so overriding `--cb-accent-rgb` alone already moves the form accent with it. Reach for the form tokens when you want the inputs to *diverge* from the chrome, not to restate it.
 - **Captions are the only text the builder sets in its own font.** Field labels, group titles and the small hints inside a control render in `--cb-font-mono`, uppercase — a label names a control, and the difference in case and family is what lets the eye skip them when scanning a settings column for a value. Body text and headings inherit the host's font.
 
   The caption scale is two sizes, not three. A group heading is the *same* size as the field labels under it and outranks them by weight and color (`700` / `--cb-text-2` against `500` / `--cb-muted`); `--cb-caption-size-sm` is reserved for captions subordinate to a single control, like the side names in the box-spacing grid. Stacking a third size on top of uppercase + mono + tracking only makes every caption shout at a slightly different volume.

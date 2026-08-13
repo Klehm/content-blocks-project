@@ -52,6 +52,7 @@ export default defineConfig({
             { text: 'Installation', link: '/guide/installation' },
             { text: 'Core concepts', link: '/guide/concepts' },
             { text: 'Upgrade (beta → 1.0)', link: '/guide/upgrade' },
+            { text: 'Backward compatibility', link: '/guide/backward-compatibility' },
           ],
         },
         {

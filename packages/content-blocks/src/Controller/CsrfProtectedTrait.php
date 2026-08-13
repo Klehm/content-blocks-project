@@ -14,6 +14,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  * Shared CSRF check for the AJAX builder endpoints. The token is rendered
  * in the shell template as `data-cb-csrf-token` and forwarded by the
  * cb-builder Stimulus controller in the X-CSRF-Token header.
+ *
+ * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
 trait CsrfProtectedTrait
 {

@@ -17,6 +17,9 @@ final class SectionTemplateSnapshot
     /**
      * @param array<string, mixed> $payload
      * @param list<string>         $blockTypes
+     *
+     * @internal Constructed by the package; hosts receive these objects, they do not
+     *           build them. Keeps it growable without a major bump. See FREEZE-AUDIT.md.
      */
     public function __construct(
         public readonly array $payload,

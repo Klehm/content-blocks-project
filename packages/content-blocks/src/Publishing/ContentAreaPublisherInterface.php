@@ -26,13 +26,23 @@ interface ContentAreaPublisherInterface
      * Promote every draft change on the area — positions, section settings,
      * block data — to its published slot. Entities flagged as soft-deleted are
      * removed for good, their descendants following through Doctrine's cascade.
+     *
+     * `$context` null means the same thing {@see PublishContext::everything()}
+     * does, so `publish($area)` behaves exactly as it always has. The core
+     * ignores the context: an area's own draft is a single state with no locale
+     * dimension. It is read by satellite packages decorating this seam — with
+     * `klehm/content-blocks-i18n` installed, it scopes which locales'
+     * translations go live alongside the source.
      */
-    public function publish(ContentArea $area): void;
+    public function publish(ContentArea $area, ?PublishContext $context = null): void;
 
     /**
      * Drop every unpublished change: an entity that was never published is a
      * brand-new addition and is removed entirely, everything else reverts to
      * its last published state.
+     *
+     * Same context semantics as {@see self::publish()}: null discards
+     * everything, and a locale scope narrows which translations are reverted.
      */
-    public function discardDraft(ContentArea $area): void;
+    public function discardDraft(ContentArea $area, ?PublishContext $context = null): void;
 }

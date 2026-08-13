@@ -17,6 +17,11 @@
  *
  * No AJAX here — this script only dispatches intents. The parent's
  * cb-builder Stimulus controller handles them.
+ *
+ * Of the `cb:*` events crossing this boundary, only `cb:ready` is public
+ * API. The rest are internal choreography and may change in any minor
+ * release — the contract is listed in cb-builder_controller.js and in
+ * FREEZE-AUDIT.md.
  */
 (function () {
     'use strict';

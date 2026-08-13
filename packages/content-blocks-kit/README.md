@@ -127,6 +127,56 @@ Drop a file at the matching relative path under `templates/bundles/ContentBlocks
 
 > Requires `klehm/content-blocks-kit >= 0.1.0-alpha.4` for overrides to take priority. Earlier versions manually registered the vendor `templates/` path under `@ContentBlocksKit`, which shadowed the host's `templates/bundles/ContentBlocksKitBundle/` directory.
 
+## Extending a kit block
+
+Overriding a template changes what a block *renders*. When you need it to **edit** something the kit does not offer — one extra field, a different default, a narrower choice set — subclass the block instead. This is a supported path, not a loophole: the 17 block classes are deliberately non-final and their `protected` methods are public API under the package's semver guarantee.
+
+Turn the kit's version off and register yours in its place, keeping the same type id so stored content keeps working:
+
+```yaml
+# config/packages/content_blocks_kit.yaml
+content_blocks_kit:
+    blocks:
+        button: { enabled: false }   # de-registers the kit service entirely
+```
+
+```php
+use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\Kit\Block\ButtonBlock;
+
+#[AsContentBlock]
+final class AppButtonBlock extends ButtonBlock
+{
+    public function buildForm(FormBuilderInterface $builder, array $data): void
+    {
+        parent::buildForm($builder, $data);
+        $builder->add('trackingId', TextType::class, [
+            'required' => false,
+            'data' => $data['trackingId'] ?? '',
+        ]);
+    }
+
+    protected function defaults(): array
+    {
+        return parent::defaults() + ['trackingId' => ''];
+    }
+}
+```
+
+You inherit the kit's view template and its stored data shape; only the form grows. Override the template too if the new field has to render.
+
+The extension points `AbstractKitBlock` guarantees:
+
+| Method | Purpose |
+|---|---|
+| `choiceFields()` | single source for the block's choice maps — `choices()` and `choiceConstraint()` both read it, so adding an option here reaches the form *and* the validator |
+| `defaults()` | initial values for the block's data |
+| `describe()` | introspection, consumed by `content-blocks-kit:blocks` |
+
+Note `getDefaultData()` is **`final`**: it merges `defaults()` with the host's `content_blocks_kit.blocks.<type>.defaults` config, and letting a subclass replace it would silently drop that config. Add your keys in `defaults()` instead.
+
+**Keep `getType()` inherited.** Two services claiming one type id is a silent conflict — `BlockTypeRegistry` keeps whichever was registered last — which is why the kit's own service has to be disabled rather than merely shadowed.
+
 ## File uploads
 
 `ImageBlock` uses the main package's upload brick (`ImageUploadType`, the
@@ -164,6 +214,10 @@ reference: [Host services](../../docs/guide/host-services.md).
 
 Full documentation and development setup live in the monorepo:
 [github.com/klehm/content-blocks-project](https://github.com/klehm/content-blocks-project)
+
+**Backward compatibility.** From `1.0.0`, what is covered by semver — and what is deliberately not — is listed in the
+[backward compatibility page](https://klehm.github.io/content-blocks-project/guide/backward-compatibility).
+Anything tagged `@internal` sits outside the promise.
 
 ## License
 

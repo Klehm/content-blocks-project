@@ -24,6 +24,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  * AJAX endpoints for structural operations on Sections. All writes go to
  * the *draft* state (previewPosition / deleted) — never to the public
  * position. Promotion happens via ContentAreaPublisher::publish().
+ *
+ * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
 #[Route('/_content-blocks')]
 final class SectionsController

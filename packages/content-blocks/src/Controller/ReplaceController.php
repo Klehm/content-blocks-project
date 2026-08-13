@@ -28,6 +28,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  * sections are inserted as never-published drafts. The user can preview the
  * result and either Publish (commits the swap) or Discard (restores the
  * original content). This mirrors how every other structural op behaves.
+ *
+ * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
 #[Route('/_content-blocks')]
 final class ReplaceController
