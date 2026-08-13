@@ -109,7 +109,10 @@ Versioning consequence: the unreleased work carries breaking changes (the `Block
 - [x] Decide the kit's rich-text CDN default (see above) — **decided: keep it as it is.** A default is as frozen as a signature, and this one has run unchanged across all three hosts without a complaint; changing it at the freeze would be trading a known default for an unproven one
 - [x] ~~Upgrade guide (beta → stable) + verified migrations~~ — **descoped as a published document.** The package has exactly three hosts, all ours (`em-interpretation`, `ybc`, `efs`), and no third-party install. A public beta → stable guide would be written for nobody. The migrations still get verified — by doing them: [HOST-MIGRATION-RUNBOOK.md](HOST-MIGRATION-RUNBOOK.md) carries the plan, and its §6 journal harvests the guide while the three upgrades happen. If an outside host ever appears, that journal is what gets published
 - [ ] Green CI on the full supported matrix (Symfony 6.4/7.x/8.x, PHP 8.2–8.4; PHPUnit + Vitest ×3 + Playwright ×2) — green as of [#19](https://github.com/klehm/content-blocks-project/pull/19) (27 checks), but this is a gate to re-run at tag time, not a box to tick once
-- [ ] Tag `1.0.0-RC1`, let hosts run it
+- [ ] Tag **`v1.0.0-RC1`**, let hosts run it. The `v` is not cosmetic: `ci.yml`
+      triggers on `tags: ['v*']`, and the split job is what propagates a tag to
+      the three read-only mirrors. A tag without it runs nothing and reaches
+      neither the mirrors nor Packagist
 - [ ] Finalize docs site + stable release notes
 - [ ] Tag `v1.0.0`, verify Packagist split
 

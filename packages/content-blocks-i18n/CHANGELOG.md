@@ -7,6 +7,11 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0-RC1] - 2026-08-13
+
+First release of the content-translation satellite, shipped as part of the
+1.0 release candidate.
+
 First release of the content-translation satellite. It implements the schema
 decided in the monorepo's translation spike: **one shared layout, per-locale
 field values, stored in a side table.**

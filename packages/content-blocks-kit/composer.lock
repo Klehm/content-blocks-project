@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bf2c8ea4a1aca9c2c6bae671dc4f33e6",
+    "content-hash": "6e338cd4c53f346f74704b06ed20d778",
     "packages": [
         {
             "name": "doctrine/collections",
@@ -762,7 +762,7 @@
             "dist": {
                 "type": "path",
                 "url": "../content-blocks",
-                "reference": "4be5b5de9dd37854807e972cb2bf28be739142ef"
+                "reference": "95984c221a9a651d40af6f4fe328e6091310d69f"
             },
             "require": {
                 "doctrine/orm": "^2.12 || ^3.0",
@@ -776,6 +776,7 @@
                 "symfony/twig-bundle": "^6.4 || ^7.0 || ^8.0",
                 "symfony/ux-live-component": "^2.0 || ^3.0",
                 "symfony/ux-twig-component": "^2.0 || ^3.0",
+                "symfony/validator": "^6.4 || ^7.0 || ^8.0",
                 "twig/twig": "^3.10"
             },
             "require-dev": {
@@ -787,7 +788,7 @@
                     "bundle": "ContentBlocks\\ContentBlocksBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "0.1.x-dev"
+                    "dev-master": "1.0.x-dev"
                 }
             },
             "autoload": {
