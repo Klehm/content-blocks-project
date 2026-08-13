@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Transfer;
 
 use ContentBlocks\Asset\AssetResolverInterface;
-use ContentBlocks\Entity\Block;
-use ContentBlocks\Entity\Column;
-use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Test\ColumnBuilder;
+use ContentBlocks\Test\ContentAreaBuilder;
+use ContentBlocks\Test\SectionBuilder;
 use ContentBlocks\Transfer\ContentAreaExporter;
 use PHPUnit\Framework\TestCase;
 
@@ -33,56 +33,39 @@ final class ContentAreaExporterTest extends TestCase
         return $resolver;
     }
 
-    private function makeArea(): ContentArea
+    /**
+     * The exporter reads the draft side in preference to the published one, so
+     * these fixtures are built as drafts unless a test is about that choice.
+     */
+    private function draftArea(): ContentAreaBuilder
     {
-        return new ContentArea();
+        return ContentAreaBuilder::create()->draft();
     }
 
-    private function makeSection(ContentArea $area, int $previewPosition = 0, ?array $draftSettings = null): Section
+    /**
+     * The shape most tests here need: one section, one column, one block whose
+     * payload is the thing under test.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function areaWithOneBlock(string $type, array $data): \ContentBlocks\Entity\ContentArea
     {
-        $section = new Section();
-        $section->setLayout(Section::LAYOUT_FULL);
-        $section->setPreviewPosition($previewPosition);
-        if ($draftSettings !== null) {
-            $section->setDraftSettings($draftSettings);
-        }
-        $area->addSection($section);
-
-        return $section;
-    }
-
-    private function makeColumn(Section $section, int $previewPosition = 0): Column
-    {
-        $column = new Column();
-        $column->setPreset('col-12');
-        $column->setPreviewPosition($previewPosition);
-        $section->addColumn($column);
-
-        return $column;
-    }
-
-    private function makeBlock(Column $column, string $type = 'text', ?array $draft = null, ?array $published = null, int $previewPosition = 0): Block
-    {
-        $block = new Block();
-        $block->setType($type);
-        $block->setPreviewPosition($previewPosition);
-        if ($draft !== null) {
-            $block->setDraftData($draft);
-        }
-        if ($published !== null) {
-            $block->setPublishedData($published);
-        }
-        $column->addBlock($block);
-
-        return $block;
+        return $this->draftArea()
+            ->section(fn (SectionBuilder $s) => $s
+                ->column(fn (ColumnBuilder $c) => $c->block($type, $data)))
+            ->build();
     }
 
     public function testExportProducesTheVersionedFormatWithTheFullTree(): void
     {
-        $area = $this->makeArea();
-        $section = $this->makeSection($area, draftSettings: ['backgroundColor' => '#fff']);
-        $column = $this->makeColumn($section);
-        $this->makeBlock($column, 'text', draft: ['content' => 'hello']);
+        $area = $this->draftArea()
+            ->section(fn (SectionBuilder $s) => $s
+                ->layout(Section::LAYOUT_FULL)
+                ->settings(['backgroundColor' => '#fff'])
+                ->column(fn (ColumnBuilder $c) => $c
+                    ->preset('col-12')
+                    ->block('text', ['content' => 'hello'])))
+            ->build();
 
         $payload = (new ContentAreaExporter($this->makeResolver()))->export($area);
 
@@ -103,9 +86,15 @@ final class ContentAreaExporterTest extends TestCase
 
     public function testExportPrefersDraftDataOverPublished(): void
     {
-        $area = $this->makeArea();
-        $column = $this->makeColumn($this->makeSection($area));
-        $this->makeBlock($column, draft: ['content' => 'draft'], published: ['content' => 'published']);
+        $area = ContentAreaBuilder::create()
+            ->section(fn (SectionBuilder $s) => $s
+                ->column(fn (ColumnBuilder $c) => $c->block(
+                    'text',
+                    configure: fn ($b) => $b
+                        ->draftData(['content' => 'draft'])
+                        ->publishedData(['content' => 'published']),
+                )))
+            ->build();
 
         $payload = (new ContentAreaExporter($this->makeResolver()))->export($area);
 
@@ -117,16 +106,18 @@ final class ContentAreaExporterTest extends TestCase
 
     public function testExportSkipsDeletedEntriesAndOrdersByPreviewPosition(): void
     {
-        $area = $this->makeArea();
-        $second = $this->makeSection($area, previewPosition: 1, draftSettings: ['marker' => 'second']);
-        $first = $this->makeSection($area, previewPosition: 0, draftSettings: ['marker' => 'first']);
-        $dead = $this->makeSection($area, previewPosition: 2);
-        $dead->setDeleted(true);
-
-        $column = $this->makeColumn($first);
-        $deadBlock = $this->makeBlock($column, draft: ['content' => 'dead'], previewPosition: 0);
-        $deadBlock->setDeleted(true);
-        $this->makeBlock($column, draft: ['content' => 'alive'], previewPosition: 1);
+        // Added out of collection order on purpose: the export is ordered by
+        // previewPosition, not by the order sections were attached.
+        $area = $this->draftArea()
+            ->section(fn (SectionBuilder $s) => $s->position(1)->settings(['marker' => 'second']))
+            ->section(fn (SectionBuilder $s) => $s
+                ->position(0)
+                ->settings(['marker' => 'first'])
+                ->column(fn (ColumnBuilder $c) => $c
+                    ->block('text', ['content' => 'dead'], fn ($b) => $b->deleted())
+                    ->block('text', ['content' => 'alive'])))
+            ->section(fn (SectionBuilder $s) => $s->position(2)->deleted())
+            ->build();
 
         $payload = (new ContentAreaExporter($this->makeResolver()))->export($area);
 
@@ -145,10 +136,12 @@ final class ContentAreaExporterTest extends TestCase
         $hash = hash('sha256', $binary);
         $resolver = $this->makeResolver(['/uploads/a.png' => $binary, '/uploads/b.png' => $binary]);
 
-        $area = $this->makeArea();
-        $column = $this->makeColumn($this->makeSection($area));
-        $this->makeBlock($column, 'image', draft: ['src' => '/uploads/a.png'], previewPosition: 0);
-        $this->makeBlock($column, 'image', draft: ['src' => '/uploads/b.png'], previewPosition: 1);
+        $area = $this->draftArea()
+            ->section(fn (SectionBuilder $s) => $s
+                ->column(fn (ColumnBuilder $c) => $c
+                    ->block('image', ['src' => '/uploads/a.png'])
+                    ->block('image', ['src' => '/uploads/b.png'])))
+            ->build();
 
         $payload = (new ContentAreaExporter($resolver))->export($area);
 
@@ -163,9 +156,7 @@ final class ContentAreaExporterTest extends TestCase
 
     public function testExportKeepsThePathWhenTheAssetIsMissingOnDisk(): void
     {
-        $area = $this->makeArea();
-        $column = $this->makeColumn($this->makeSection($area));
-        $this->makeBlock($column, 'image', draft: ['src' => '/uploads/gone.png']);
+        $area = $this->areaWithOneBlock('image', ['src' => '/uploads/gone.png']);
 
         $payload = (new ContentAreaExporter($this->makeResolver()))->export($area);
 
@@ -182,9 +173,7 @@ final class ContentAreaExporterTest extends TestCase
         $hash = hash('sha256', $binary);
         $resolver = $this->makeResolver(['/uploads/deep.jpg' => $binary]);
 
-        $area = $this->makeArea();
-        $column = $this->makeColumn($this->makeSection($area));
-        $this->makeBlock($column, 'tabs', draft: [
+        $area = $this->areaWithOneBlock('tabs', [
             'tabs' => [
                 ['title' => 'One', 'image' => '/uploads/deep.jpg'],
             ],

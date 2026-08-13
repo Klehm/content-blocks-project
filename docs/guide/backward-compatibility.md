@@ -23,7 +23,7 @@ Every key of the three semantic config trees (`content_blocks`, `content_blocks_
 
 Route **names**, their methods, payload shapes and CSRF requirement. Mount *paths* belong to the host — the i18n package ships `config/routes/bare.php` precisely so a host can mount its routes wherever its firewall covers — so the names are the contract, not the URLs.
 
-The four console commands, their names and their options: `content-blocks:backfill-collection-ids`, `content-blocks-kit:blocks`, `content-blocks:i18n:status`, `content-blocks:i18n:translate`.
+The five console commands, their names and their options: `content-blocks:backfill-collection-ids`, `content-blocks:import`, `content-blocks-kit:blocks`, `content-blocks:i18n:status`, `content-blocks:i18n:translate`.
 
 ### Twig
 
@@ -61,6 +61,7 @@ Some defaults are load-bearing enough to be API:
 - `BlockTranslationRepository`.
 - The constructors of `ImportResult`, `InstantiationResult` and `SectionTemplateSnapshot`.
 - Every `cb:*` event outside the four above.
+- `ContentBlocks\Test\` — the fixture builders, tagged `@experimental`. They ship in `src/` so your own test suite can use them, but their shape is still being driven by this package's suite and may change in a minor release. See [Seed content & fixtures](./recipes/fixtures.md).
 - Anything else carrying `@internal`.
 
 ## How changes are made

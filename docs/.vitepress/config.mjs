@@ -75,6 +75,7 @@ export default defineConfig({
             { text: 'Add a field to a block', link: '/guide/recipes/add-block-field' },
             { text: 'Compress images (WebP)', link: '/guide/recipes/liip-imagine' },
             { text: 'Machine translation', link: '/guide/recipes/translation-provider' },
+            { text: 'Seed content & fixtures', link: '/guide/recipes/fixtures' },
           ],
         },
       ],

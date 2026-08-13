@@ -327,6 +327,10 @@ return static function (ContainerConfigurator $container): void {
     // #[AsCommand] attribute is picked up by console.command autoconfiguration.
     $services->set(\ContentBlocks\Command\BackfillCollectionIdsCommand::class);
 
+    // Replays an exported envelope from the shell — the seeding half of the
+    // builder's Export button. See docs/guide/recipes/fixtures.md.
+    $services->set(\ContentBlocks\Command\ImportContentAreaCommand::class);
+
     // ---------- Builder topbar actions ----------
 
     // The Actions menu. A bundle contributes through

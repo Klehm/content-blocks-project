@@ -6,6 +6,7 @@ namespace ContentBlocks\Tests\Replace;
 
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Replace\DefaultContentAreaProvider;
+use ContentBlocks\Test\ContentAreaBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr;
 use Doctrine\ORM\QueryBuilder;
@@ -88,14 +89,10 @@ final class DefaultContentAreaProviderTest extends TestCase
 
     private function makeArea(int $id, ?\DateTimeImmutable $updatedAt): ContentArea
     {
-        $area = new ContentArea();
-        $idRef = new \ReflectionProperty(ContentArea::class, 'id');
-        $idRef->setValue($area, $id);
-        if ($updatedAt !== null) {
-            $area->setUpdatedAt($updatedAt);
-        }
-
-        return $area;
+        return ContentAreaBuilder::create()
+            ->withId($id)
+            ->updatedAt($updatedAt)
+            ->build();
     }
 
     private function makeEm(): EntityManagerInterface

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`content-blocks:import` console command.** Replays an exported envelope into
+  an existing area from the shell — the seeding half of the builder's Export
+  button, and the piece that makes a JSON fixture replayable in a Doctrine
+  fixture, a demo install or CI. `--publish` promotes the import in the same
+  run; without it the content is written as a draft, which the command now says
+  out loud because that is the failure everyone hits once: an imported area
+  shows up in the builder and leaves the public page empty. `--dry-run`
+  validates an envelope without writing.
+
+- **`ContentBlocks\Test\` fixture builders** (`ContentAreaBuilder`,
+  `SectionBuilder`, `ColumnBuilder`, `BlockBuilder`). A fluent, in-memory way to
+  build a content tree for a test, published by default for the same reason the
+  command warns. Tagged **`@experimental`**: they ship in `src/` so a host's own
+  test suite can use them, but their shape is still driven by this package's
+  suite and may change in a minor release. This is the only symbol in the three
+  packages outside the BC promise that is not `@internal`.
+
+- Recipe: [Seed content & fixtures](https://klehm.github.io/content-blocks-project/guide/recipes/fixtures),
+  covering both routes and the draft/published trap they exist to defuse.
+
 ## [1.0.0-RC1] - 2026-08-13
 
 The first release candidate for 1.0. The public surface is frozen as

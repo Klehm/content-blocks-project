@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Twig;
 
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Test\ContentAreaBuilder;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -92,11 +93,7 @@ final class BuilderToggleTemplatesTest extends TestCase
 
     private function makeArea(int $id = 1): ContentArea
     {
-        $area = new ContentArea();
-        $ref = new \ReflectionProperty($area::class, 'id');
-        $ref->setValue($area, $id);
-
-        return $area;
+        return ContentAreaBuilder::create()->withId($id)->build();
     }
 
     private function makeTwig(): Environment
