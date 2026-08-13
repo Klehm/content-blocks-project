@@ -138,9 +138,16 @@ même sous `stable` — pas besoin de toucher au `minimum-stability` global.
 - **Le défaut de fond est passé à transparent.** `CoreStylingDefaults` /
   `CoreBlockStylingDefaults` valent `''`. Conséquence sournoise : **un `#ffffff`
   déjà persisté rend maintenant un vrai fond blanc**, là où le hack d'avant le
-  rendait invisible. À contrôler en base avant/après :
+  rendait invisible. À contrôler en base avant/après — attention, **il n'y a pas de
+  colonne `data`** : un bloc porte `published_data` / `draft_data`, une section
+  `published_settings` / `draft_settings`, et les quatre se contrôlent :
   ```sql
-  SELECT id, type FROM cb_block WHERE JSON_EXTRACT(data, '$.styling.backgroundColor') = '#ffffff';
+  SELECT id, type FROM cb_block
+  WHERE JSON_EXTRACT(published_data, '$.styling.backgroundColor') = '#ffffff'
+     OR JSON_EXTRACT(draft_data,     '$.styling.backgroundColor') = '#ffffff';
+  SELECT id FROM cb_section
+  WHERE JSON_EXTRACT(published_settings, '$.styling.backgroundColor') = '#ffffff'
+     OR JSON_EXTRACT(draft_settings,     '$.styling.backgroundColor') = '#ffffff';
   ```
   EFS forçait déjà `''` via des defaults providers basse priorité — ce contournement
   devient inutile et doit sauter.
@@ -171,7 +178,44 @@ Le stamp existant vaut `NULL` sur les trois hôtes (antérieur au versionnage), 
 le `DenyOnMismatchUpgrader` accepte. Chaque migration de données de l'étape B
 incrémente ce numéro.
 
-### A.4 Recompiler et vérifier
+### A.4 Migrer le schéma — la RC en ajoute
+
+La RC apporte deux objets absents de beta.5 / beta.6, tous deux postérieurs à ces
+tags. Ce n'est pas optionnel : sans la colonne, **toute écriture sur une
+`ContentArea` échoue** (`Unknown column 'content_version' in 'field list'`).
+
+```sql
+CREATE TABLE cb_section_template (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(255) NOT NULL,
+  payload JSON NOT NULL, block_types JSON NOT NULL, content_version INT DEFAULT NULL,
+  created_at DATETIME NOT NULL, PRIMARY KEY (id)) DEFAULT CHARACTER SET utf8mb4;
+ALTER TABLE cb_content_area ADD content_version INT DEFAULT NULL;
+```
+
+Génère-la (`doctrine:migrations:diff`) plutôt que de la copier, puis applique-la.
+**La base de test ne se migre pas toute seule** : `--env=test` aussi, sinon la
+suite tombe sur la colonne manquante et non sur une vraie régression.
+
+### A.5 La migration de contenu de l'étape A : les clés de viewport
+
+La RC renomme les clés du sous-arbre responsive (`styling.padding` / `margin` /
+`gap`) : `d`/`t`/`m` → `desktop`/`tablet`/`mobile`, dans les quatre colonnes JSON.
+Les noms des custom properties CSS émises ne bougent pas — le CSS de l'hôte n'est
+pas concerné. Migration de référence livrée par le package :
+`Version20260715130000` (les deux sandboxes, réversible).
+
+Compte les lignes concernées avant de décider :
+
+```sql
+SELECT COUNT(*) FROM cb_block
+WHERE JSON_CONTAINS_PATH(draft_data,     'one', '$.styling.padding.d', '$.styling.margin.d', '$.styling.gap.d')
+   OR JSON_CONTAINS_PATH(published_data, 'one', '$.styling.padding.d', '$.styling.margin.d', '$.styling.gap.d');
+```
+
+Zéro ligne en dev ne dit rien de la prod : **relance le compte sur la base de
+production** avant de publier. (Sur em : zéro des deux côtés, aucun `styling`
+n'ayant jamais été persisté.)
+
+### A.6 Recompiler et vérifier
 
 Assets recompilés selon le bundler de l'hôte, puis vérification manuelle sur des
 pages réelles : le builder ouvre, une section s'édite, un bloc s'enregistre, la
@@ -308,7 +352,14 @@ par surprise rencontrée, dans le projet où elle est apparue.
 
 | Projet | Surprise rencontrée | Résolution | Doit remonter dans le package ? |
 |---|---|---|---|
-| | | | |
+| em | **L'étape A demande une migration de schéma, que ce runbook ne mentionnait pas.** La RC ajoute la table `cb_section_template` et la colonne `cb_content_area.content_version` — deux fonctionnalités postérieures à beta.6. Sans elles, tout écrit sur une `ContentArea` casse (`Unknown column 'content_version'`). | `doctrine:migrations:diff` puis `migrate`, en dev **et** dans la base de test (elle ne se migre pas toute seule). §3 corrigé : c'est maintenant l'étape A.4. | Non — c'est le runbook qui était incomplet. |
+| em | **Le SQL de contrôle des fonds `#ffffff` (§3 A.2) visait une colonne `data` qui n'existe pas.** Le schéma réel porte `cb_block.published_data` / `draft_data` et `cb_section.published_settings` / `draft_settings` — le contrôle passait donc « au vert » par erreur de colonne, pas par absence de fond blanc. | Requête corrigée dans le §3, sur les quatre colonnes. Sur em : zéro `#ffffff`, zéro `styling` persisté du tout (contenu semé par fixtures). | Non — erreur du runbook. |
+| em | **La bascule des clés de viewport `d`/`t`/`m` → `desktop`/`tablet`/`mobile` est une migration de contenu de l'étape A**, pas de l'étape B. Le §3 ne la citait pas ; elle est dans le CHANGELOG de la RC avec une migration de référence (`Version20260715130000`, les deux sandboxes). | Sur em : zéro ligne concernée (aucun `styling` persisté), donc rien à migrer — mais **à vérifier sur la base de prod avant de publier**, et ybc/efs y passeront presque sûrement. Ajouté au §3 comme A.3. | Non — le package fournit déjà la migration de référence. |
+| em | Chemin de distribution réel **validé de bout en bout** : `composer require klehm/content-blocks:^1.0@RC` résout depuis Packagist sous `minimum-stability: stable` sans toucher au global, et la recette Flex met bien `assets/controllers.json` à jour (ajout de `cb-condition` et `cb-file-upload`). | Rien à faire. | Non — c'était le test, il passe. |
+| em | **Un `public/assets/` compilé qui traîne fait tourner l'ANCIEN JS du builder, sans un mot.** En debug, AssetMapper sert les fichiers compilés s'ils existent — après le `composer require`, le builder chargeait encore le contrôleur de beta.6. Symptôme : `Action "click->cb-builder#toggleActions" references undefined method`, alors que la méthode est bien dans `vendor/`. Symfony ne le dit qu'en warning, à la compilation suivante. | `rm -rf public/assets` en dev (c'est un artefact de build, gitignoré), puis `cache:clear`. **À faire systématiquement après le `composer require`**, avant de conclure quoi que ce soit d'un test manuel. | Non — comportement AssetMapper. Mais c'est le piège n°1 de la vérification de l'étape A : il fabrique de faux bugs de package. |
+| em | **Escape ferme le builder entier** (le shell vit dans un `<dialog>` ouvert en `showModal()`, sans handler `cancel`). Vu en test automatisé : `.cb-shell` passe à 0×0 alors que `display` reste `grid` — donc « bouton Publier invisible » sans la moindre erreur JS. | Comportement natif et intentionnel (les éditions sont autosauvées, aucune perte). La superposition est correcte, vérifiée : 1er Escape ferme le menu Actions, 2e ferme le builder. **Ne pas mettre d'Escape dans un script de fumée** — c'était le test qui était faux, pas le package. | Non. |
+| em | **Prod contrôlée avant publication : 0 ligne de `styling` persistée** (27 blocs, 8 areas), donc ni clés de viewport courtes ni `#ffffff`. Les deux ruptures de contenu de la RC sont sans objet sur cet hôte. | Aucune migration de contenu à écrire. `content_version: 1` posé et vérifié : les areas écrites sous la RC portent bien le stamp 1. | Non. |
+| em | Aucune des **cinq ruptures du §3 A.2** ne touche cet hôte : pas de décorateur de renderer, pas de brique upload réimplémentée, pas de `ColorType`, pas de contrôleur de condition ad-hoc, et **aucun `config/packages/content_blocks.yaml`** (donc ni `upload.dir` ni `styles` à renommer). Surface d'intégration : 4 fichiers (`AccessCheckerInterface`, `ContentAreaUrlResolverInterface`, `ContentAreaType`, entité `Page`). | Rien à faire. Le signal est propre : ce qui casse ici casse pour tout le monde. | Non. |
 
 ---
 
