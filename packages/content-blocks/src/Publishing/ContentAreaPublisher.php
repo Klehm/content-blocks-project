@@ -31,7 +31,13 @@ final class ContentAreaPublisher implements ContentAreaPublisherInterface
     ) {
     }
 
-    public function publish(ContentArea $area): void
+    /**
+     * The context is accepted and deliberately unused: the core knows
+     * nothing about locales, and an area's draft is one state to promote or
+     * not. A decorator that does know — the i18n package's
+     * `TranslationPublisher` — reads it before delegating here.
+     */
+    public function publish(ContentArea $area, ?PublishContext $context = null): void
     {
         // Snapshot the collections to plain arrays — em->remove() during the
         // walk would otherwise mutate the underlying iteration.
@@ -65,7 +71,8 @@ final class ContentAreaPublisher implements ContentAreaPublisherInterface
         $this->em->flush();
     }
 
-    public function discardDraft(ContentArea $area): void
+    /** Accepts the context for the same reason {@see self::publish()} does. */
+    public function discardDraft(ContentArea $area, ?PublishContext $context = null): void
     {
         foreach ($area->getSections()->toArray() as $section) {
             // A section never published is a brand-new addition: drop it

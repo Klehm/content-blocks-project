@@ -13,6 +13,18 @@ then a `1.0.0-RC1`. Everything below is on `master` only. See the
 
 ### Changed
 
+- **Subclassing a kit block is now a documented contract, not a happy accident.**
+  The 17 block classes are non-final on purpose: when a host needs one extra
+  field, a different default or a narrower choice set, the supported route is to
+  disable the kit's service (`blocks.<type>.enabled: false`), subclass the block
+  and keep its `getType()`. `AbstractKitBlock`'s `choiceFields()`, `defaults()`
+  and `describe()` are covered by semver as extension points. Note
+  `getDefaultData()` is `final` — it merges `defaults()` with the host's
+  `blocks.<type>.defaults` config, so new keys go in `defaults()`.
+- **The kit's seven `--cb-kit-*` content tokens are documented** with their
+  defaults and the zero-specificity `:where()` scope that makes them overridable
+  from a host stylesheet without `!important`. They style the published page and
+  are unrelated to the `--cb-*` tokens that theme the builder chrome.
 - **BREAKING — `Block.data` key unification (road to v1.0).** The same concept
   was stored under different keys across blocks; they are reconciled here so the
   persisted schema is a coherent public contract. Renames:

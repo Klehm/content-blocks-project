@@ -13,6 +13,24 @@ field values, stored in a side table.**
 
 ### Added
 
+- **Per-locale publish and discard, at the API level.** `TranslationPublisher`
+  now reads the core's new `PublishContext`: `withLocales('fr')` takes French
+  live and leaves German on its published values with its draft intact,
+  `sourceOnly()` publishes the source and holds every translation back. Passing
+  no context keeps the previous all-or-nothing behaviour, which stays the
+  default and the only thing any UI offers today.
+
+  A row whose block is being deleted is still removed whatever the scope —
+  there is no locale left to hold back. And the area's own draft always
+  publishes: the scope narrows translations only, so a translation can never
+  run ahead of its source.
+- **The workbench's fifteen `--cb-wb-*` tokens are documented** with their
+  defaults, so restyling it to sit inside the host's admin no longer means
+  reading the stylesheet. The four field-state colors (translated, outdated,
+  missing, error) are the ones worth overriding first.
+- `BlockTranslationRepository` is marked `@internal` ahead of the 1.0 freeze —
+  it is queried only by the package. The seams remain
+  `TranslationProviderInterface` and `RenderLocaleResolverInterface`.
 - **`BlockTranslation` entity + `cb_block_translation` table** — one row per
   block per locale, holding a flat map of field path to value, with separate
   draft and published payloads mirroring `Block` exactly.

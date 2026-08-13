@@ -13,6 +13,54 @@ then a `1.0.0-RC1`. Everything below is on `master` only. See the
 
 ### Changed
 
+- **BREAKING — `ContentAreaPublisherInterface` gained a `?PublishContext`.**
+  `publish(ContentArea)` becomes `publish(ContentArea, ?PublishContext)`, and
+  `discardDraft()` follows. Both parameters are optional and `null` means what
+  the methods always did, so **every call site keeps working unchanged** — only
+  an implementor or a decorator has to widen its own signature.
+
+  It lands now for the same reason `RenderContext` did: adding a parameter to a
+  published interface breaks every implementor, including a host's decorator for
+  an audit trail or a cache purge, and the publish path has a known input still
+  to grow. `PublishContext` carries a locale scope — `everything()` (the
+  default), `withLocales('fr')`, `sourceOnly()` — read by
+  `klehm/content-blocks-i18n` to decide which locales' translations go live
+  beside the source. The core ignores it: an area's draft is a single state with
+  no locale dimension.
+
+  The shape enforces an invariant rather than documenting one. The scope covers
+  translations, never the area's own draft, so a locale can be **held back** but
+  never **pushed ahead of** the source text it was written against — the one
+  ordering that puts a French heading live describing an English heading nobody
+  has seen. No UI exposes per-locale publishing; this is API surface, frozen
+  with 1.0 because the alternative was widening a published signature after it.
+- **The public surface is now marked, ahead of the 1.0 freeze.** An audit found
+  that not one symbol across the three packages carried `@internal`,
+  `@experimental` or `@deprecated` — so tagging 1.0 as it stood would have frozen
+  the 14 HTTP controllers, `CsrfProtectedTrait`, `DependencyInjection\`, the
+  block-type compiler pass and `BlockComponent` alongside the seams that are
+  actually the product. All of those are now `@internal`, as are the
+  constructors of `ImportResult`, `InstantiationResult` and
+  `SectionTemplateSnapshot` — the objects stay frozen as things you *read*, so
+  the package can grow their fields without a major bump.
+
+  Nothing was removed and no signature changed; this only writes down where the
+  line already was. What 1.0 covers is now a page of its own:
+  [backward compatibility](https://klehm.github.io/content-blocks-project/guide/backward-compatibility).
+- **The `cb:*` event contract is four events**, not thirty-seven. `cb:ready`,
+  `cb:block:saved`, `cb:section:saved` and `cb:builder:action` are public and
+  stable across 1.x. The rest — the `…-requested`, `…:apply`, `…:patch` and
+  `…:desync` families — are internal choreography between the preview overlay,
+  the iframe and the builder shell, and are documented as such at their dispatch
+  sites. A host listening to one of those today should move to a public event
+  before 1.0.
+- **All 90 `--cb-*` CSS custom properties are documented**, up from 39. The
+  guide already claimed the token names were covered by semver while listing
+  fewer than half of them, which made the promise unverifiable. The builder
+  chrome and the form alias layer are in the [styling
+  guide](https://klehm.github.io/content-blocks-project/guide/styling); a CI
+  check now fails the build when a package declares a `--cb-*` token that no doc
+  page mentions.
 - **`symfony/validator` is now a dependency, not an assumption.** The package's
   security model says a block's form is "the whitelist **and** the validator" —
   but nothing declared the validator, so a host installing the core alone could
