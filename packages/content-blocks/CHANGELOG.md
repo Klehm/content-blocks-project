@@ -150,6 +150,11 @@ breaks before the stable tag.
   stay terse (`--cb-s-pad-d-t`, `--cb-gap-d`) — the decorators map long→short — so
   `styling.css` and any host CSS override are unaffected. Migrate existing rows with
   the reference migration `Version20260715130000` (both sandboxes; reversible).
+  **Host code that *produces* those keys needs updating too, and this one fails
+  silently**: a `SectionSettingsDefaultsProviderInterface` or
+  `BlockDataDefaultsProviderInterface` returning `styling.padding.{d,t,m}` simply
+  stops applying — no error, no warning, just fields opening empty. Stored data and
+  CSS are the visible halves of this rename; defaults providers are the quiet one.
 - **BREAKING — config key `upload.dir` → `upload.directory`.** The last
   abbreviation in the config tree, next to `public_prefix`, `max_size` and
   `allowed_mime_types` spelled out in the same block. Renamed now because YAML

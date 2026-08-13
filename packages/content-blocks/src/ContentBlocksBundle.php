@@ -38,7 +38,7 @@ final class ContentBlocksBundle extends AbstractBundle
      *             - name: boxed
      *               label: 'Boxed'
      *               css_class: 'my-section--boxed'
-     *               settings: { styling: { padding: { d: { top: 40, bottom: 40 } } } }
+     *               settings: { styling: { padding: { desktop: { top: 40, bottom: 40 } } } }
      *         upload:
      *             directory: '%kernel.project_dir%/public/uploads/content-blocks'
      *             public_prefix: '/uploads/content-blocks'
