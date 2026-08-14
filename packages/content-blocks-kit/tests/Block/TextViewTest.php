@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Kit\Tests\Block;
 
+use ContentBlocks\Kit\Twig\ChoiceTokenExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -61,6 +62,9 @@ final class TextViewTest extends TestCase
         $loader->addPath(\dirname(__DIR__, 2) . '/templates', 'ContentBlocksKit');
 
         $env = new Environment($loader, ['strict_variables' => false]);
+        // Kit views pass choice values through cb_kit_token() instead of
+        // re-listing them inline; see ChoiceTokenExtension.
+        $env->addExtension(new ChoiceTokenExtension());
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
 
         return $env;

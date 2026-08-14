@@ -1,6 +1,6 @@
-{# DividerBlock view. `color` is a plain #hex ('' → stylesheet default). #}
-{% set style = data.style|default('solid') %}
-{% set style = style in ['solid', 'dashed', 'dotted'] ? style : 'solid' %}
+{# DividerBlock view. `color` is a plain #hex ('' → stylesheet default).
+   `style` is a class suffix, so a configured value passes through. #}
+{% set style = cb_kit_token(data.style|default('solid'), 'solid') %}
 {% set color = data.color|default('') %}
 <hr class="cb-kit-divider cb-kit-divider--{{ style }}"
     {%- if color is not empty %} style="border-color: {{ color|e('html_attr') }}"{% endif %}>

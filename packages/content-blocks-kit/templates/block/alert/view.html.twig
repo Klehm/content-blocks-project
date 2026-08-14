@@ -1,9 +1,14 @@
-{# AlertBlock view. Type drives the color scheme and the built-in glyph. #}
+{# AlertBlock view. Type drives the color scheme and the built-in glyph.
+
+   The type is a class suffix and passes through, so a host can add one via
+   config and style it. The glyph map is the part that cannot follow: it names
+   icons from the kit's own IconSet, and an added type has no entry — hence the
+   explicit `info` fallback rather than a null handed to cb_kit_icon(). A host
+   wanting its own glyph overrides this template. #}
 {% set message = data.content|default('')|trim %}
 {% if message is not empty %}
-    {% set type = data.type|default('info') %}
-    {% set type = type in ['info', 'success', 'warning', 'error'] ? type : 'info' %}
-    {% set glyph = { info: 'info', success: 'check-circle', warning: 'warning', error: 'warning' }[type] %}
+    {% set type = cb_kit_token(data.type|default('info'), 'info') %}
+    {% set glyph = { info: 'info', success: 'check-circle', warning: 'warning', error: 'warning' }[type]|default('info') %}
     {% set title = data.title|default('')|trim %}
     <div class="cb-kit-alert cb-kit-alert--{{ type }}" role="note">
         <span class="cb-kit-alert__icon" aria-hidden="true">{{ cb_kit_icon(glyph, 20)|raw }}</span>

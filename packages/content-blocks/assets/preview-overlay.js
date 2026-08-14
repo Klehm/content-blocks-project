@@ -984,6 +984,22 @@
         true,
     );
 
+    // Native HTML5 drag, suppressed: links and images are draggable by
+    // default, and a mousedown that travels a few pixels on one starts a drag
+    // instead of a click — the browser then fires NO click event at all. On a
+    // block whose content IS the link (a card wrapped in <a>, a tile filling
+    // its column) that makes the block unselectable: every attempt to click it
+    // lands on the link and is swallowed. Reordering here runs on its own
+    // pointer events from the toolbar grip, so nothing in the preview needs
+    // the native drag machinery.
+    document.addEventListener(
+        'dragstart',
+        (event) => {
+            event.preventDefault();
+        },
+        true,
+    );
+
     // ---------- Inbound focus messages ----------
     //
     // The parent posts `cb:focus:block` / `cb:focus:section` after an

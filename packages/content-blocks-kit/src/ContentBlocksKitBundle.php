@@ -22,6 +22,7 @@ use ContentBlocks\Kit\Block\RichTextBlock;
 use ContentBlocks\Kit\Block\TabsBlock;
 use ContentBlocks\Kit\Block\TextBlock;
 use ContentBlocks\Kit\Block\TitleBlock;
+use ContentBlocks\Kit\Icon\IconProviderInterface;
 use ContentBlocks\Kit\RichText\RichTextEditorInterface;
 use Symfony\Component\AssetMapper\AssetMapper;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -79,6 +80,11 @@ final class ContentBlocksKitBundle extends AbstractBundle
      *             button:
      *                 choices:  { variant: [primary, secondary] }  # restrict/reorder a ChoiceType
      *                 defaults: { align: center }                  # override initial field values
+     *             alert:
+     *                 # A value:label map replaces the set instead of filtering
+     *                 # it, so it can add values the kit never coded. Labels go
+     *                 # through the field's translation domain.
+     *                 choices:  { type: { info: 'cb_kit.block.alert.type.info', tip: 'Astuce' } }
      *
      * Blocks omitted from config default to enabled with their coded option
      * defaults — except {@see self::DEFAULT_DISABLED} blocks, which stay off
@@ -102,7 +108,7 @@ final class ContentBlocksKitBundle extends AbstractBundle
                                 ->defaultValue([])
                             ->end()
                             ->variableNode('choices')
-                                ->info('Per-field allow-list restricting/reordering a ChoiceType field, keyed by field name (e.g. { variant: [primary, secondary] }). Unknown values are ignored.')
+                                ->info('Per-field choice override, keyed by field name. A list restricts/reorders the coded set and ignores unknown values ({ variant: [primary, secondary] }); a value:label map replaces it outright and may add values ({ variant: { ghost: "Ghost" } }).')
                                 ->defaultValue([])
                             ->end()
                             ->variableNode('defaults')
@@ -127,6 +133,12 @@ final class ContentBlocksKitBundle extends AbstractBundle
 
         $container->registerForAutoconfiguration(RichTextEditorInterface::class)
             ->addTag('content_blocks_kit.rich_text_editor');
+
+        // Same deal for icons: contributing a glyph is a service declaration.
+        // It is also the only way to *add* to the icon block's picker — see
+        // IconProviderInterface on why `choices` cannot do that job alone.
+        $container->registerForAutoconfiguration(IconProviderInterface::class)
+            ->addTag('content_blocks_kit.icon_provider');
     }
 
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void

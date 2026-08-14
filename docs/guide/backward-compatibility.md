@@ -8,7 +8,7 @@ That second half is the part worth reading. In PHP almost everything is reachabl
 
 ### PHP
 
-- **The 30 core interfaces**, plus the kit's `RichTextEditorInterface` and i18n's `TranslationProviderInterface` and `RenderLocaleResolverInterface`. These are the extension surface — implement them, alias them, decorate them.
+- **The 30 core interfaces**, plus the kit's `RichTextEditorInterface` and `IconProviderInterface`, and i18n's `TranslationProviderInterface` and `RenderLocaleResolverInterface`. These are the extension surface — implement them, alias them, decorate them.
 - **`AbstractBlockType`, `AbstractKitBlock`, `AbstractRichTextEditor`** and their documented extension points.
 - **The 17 kit block classes, as subclassable** — see [extending a kit block](../kit/#extending-a-kit-block).
 - **The `#[AsContentBlock]` attribute.**
@@ -27,7 +27,7 @@ The four console commands, their names and their options: `content-blocks:backfi
 
 ### Twig
 
-The nine functions — `cb_render_content_area`, `cb_preview_url`, `cb_color_palette`, `cb_image`, `cb_embed_url`, `cb_kit_icon`, `cb_i18n_workbench_url`, `cb_i18n_locales`, `cb_i18n_progress`.
+The ten functions — `cb_render_content_area`, `cb_preview_url`, `cb_color_palette`, `cb_image`, `cb_embed_url`, `cb_kit_icon`, `cb_kit_token`, `cb_i18n_workbench_url`, `cb_i18n_locales`, `cb_i18n_progress`.
 
 Every shipped template path, since overriding one under `templates/bundles/` is a supported integration. Their *contents* are not frozen — a template may be restructured — but the path will resolve and the block names a host overrides will keep working.
 

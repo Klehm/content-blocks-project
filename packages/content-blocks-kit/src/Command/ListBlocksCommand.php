@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Kit\Command;
 
+use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Kit\Block\AbstractKitBlock;
 use ContentBlocks\Kit\ContentBlocksKitBundle;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -32,8 +34,10 @@ final class ListBlocksCommand extends Command
     /** Above this, a choice list is truncated in the table to stay readable (e.g. the icon set). */
     private const MAX_CHOICES_SHOWN = 15;
 
-    public function __construct(private readonly TranslatorInterface $translator)
-    {
+    public function __construct(
+        private readonly TranslatorInterface $translator,
+        private readonly BlockTypeRegistry $registry,
+    ) {
         parent::__construct();
     }
 
@@ -77,11 +81,15 @@ final class ListBlocksCommand extends Command
         $io->title('ContentBlocks Kit — block library');
         $io->text([
             sprintf('%d block(s). Configure each under <info>content_blocks_kit.blocks.\<type\></info>:', \count($blocks)),
-            '  <comment>enabled</comment> (bool) · <comment>options</comment> (knobs) · <comment>choices</comment> (restrict a select) · <comment>defaults</comment> (initial values)',
+            '  <comment>enabled</comment> (bool) · <comment>options</comment> (knobs) · <comment>choices</comment> (restrict or replace a select) · <comment>defaults</comment> (initial values)',
         ]);
 
         foreach ($blocks as $blockType => $class) {
-            $this->renderBlock($io, $blockType, new $class(), $locale);
+            // The registered instance carries this app's config; the bare one
+            // is the kit as shipped. Preferring the former is what makes the
+            // command usable for checking an override actually took.
+            $registered = $this->registry->has($blockType) ? $this->registry->get($blockType) : null;
+            $this->renderBlock($io, $blockType, $registered instanceof AbstractKitBlock ? $registered : new $class(), $locale);
         }
 
         return Command::SUCCESS;
@@ -131,12 +139,28 @@ final class ListBlocksCommand extends Command
     private function renderBlock(SymfonyStyle $io, string $type, object $block, string $locale): void
     {
         /** @var \ContentBlocks\Kit\Block\AbstractKitBlock $block */
-        $desc = $block->describe();
+        $coded = $block->describe();
+        $desc = $block->describeConfigured();
         $label = $block::getLabel();
         $labelStr = $label instanceof TranslatableInterface ? $label->trans($this->translator, $locale) : (string) $label;
 
         $suffix = \in_array($type, ContentBlocksKitBundle::DEFAULT_DISABLED, true) ? '  (disabled by default — opt in with enabled: true)' : '';
         $io->section(sprintf('%s — %s%s', $type, $labelStr, $suffix));
+
+        // Named explicitly rather than left to be inferred: the whole reason a
+        // host runs this command after editing config is to find out whether
+        // what they wrote took effect.
+        $overridden = array_keys(array_filter(
+            $desc['choices'],
+            static fn (array $map, string $field): bool => array_values($map) !== array_values($coded['choices'][$field] ?? []),
+            \ARRAY_FILTER_USE_BOTH,
+        ));
+        if ([] !== $overridden) {
+            $io->writeln(sprintf(
+                ' <comment>config applied</comment> — choices overridden for: %s',
+                implode(', ', $overridden),
+            ));
+        }
 
         if ([] !== $desc['options']) {
             $io->writeln(' <info>options</info>');
@@ -147,7 +171,7 @@ final class ListBlocksCommand extends Command
         }
 
         if ([] !== $desc['choices']) {
-            $io->writeln(' <info>choices</info>  (host: <comment>choices: { field: [values] }</comment> — <comment>*</comment> marks the default)');
+            $io->writeln(' <info>choices</info>  (host: <comment>choices: { field: [values] }</comment> to restrict, <comment>choices: { field: { value: label } }</comment> to replace — <comment>*</comment> marks the default)');
             $rows = [];
             foreach ($desc['choices'] as $field => $map) {
                 $rows[] = [$field, self::renderChoiceValues(array_values($map), $desc['defaults'][$field] ?? null)];

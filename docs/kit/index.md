@@ -97,6 +97,18 @@ They are declared inside `:where(.cb-kit-btn, .cb-kit-alert, .cb-kit-list, .cb-k
 
 These names are public surface, covered by the package's semver guarantee. Note they style **content**, on the published page — they have nothing to do with the `--cb-*` tokens that theme the builder chrome ([styling guide](../guide/styling.md#theming-the-builder-chrome)).
 
+One block adds tokens of its own, because its colors have no equivalent elsewhere in the kit — `tabs`, whose open tab has to sit on the panel it opens:
+
+| Token | Default | Drives |
+|---|---|---|
+| `--cb-kit-tabs-line` | `#e5e7eb` | panel border, and the rule under the tab row |
+| `--cb-kit-tabs-tab` | `#6b7280` | a closed tab's label |
+| `--cb-kit-tabs-tab-active` | `#1f2937` | the open tab's label (and any hovered one) |
+| `--cb-kit-tabs-panel-bg` | `#ffffff` | panel fill, reused by the open tab so it joins the panel |
+| `--cb-kit-tabs-accent` | `#4f46e5` | keyboard focus ring |
+
+Same rule as above: declared inside `:where(.cb-kit-tabs)`, so `.cb-kit-tabs { --cb-kit-tabs-line: … }` in your stylesheet wins.
+
 ## Extending a kit block
 
 Overriding a template changes what a block *renders*. When you need it to **edit** something the kit does not offer — one extra field, a different default, a narrower choice set — subclass the block instead. This is a supported path: the 17 block classes are deliberately non-final, and their `protected` methods are covered by the package's semver guarantee.
