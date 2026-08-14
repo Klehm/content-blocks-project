@@ -43,7 +43,11 @@
     {% set img = cb_image(src, width, height) %}
     {% set sizes = img.sizes ?? (img.srcset and width ? '(max-width: ' ~ width ~ 'px) 100vw, ' ~ width ~ 'px' : null) %}
 
-    <figure class="cb-kit-image cb-kit-image--{{ align }}">
+    {# The size also lands on a class. Without it a value a host added through
+       config would be entirely inert here — it maps to no preset width, so the
+       image goes fluid and nothing in the markup says which size was chosen.
+       Additive: the coded sizes gain a class they did not have. #}
+    <figure class="cb-kit-image cb-kit-image--{{ align }} cb-kit-image--size-{{ cb_kit_token(size, 'md') }}">
         {% if data.url|default('')|trim is not empty %}<a href="{{ data.url }}">{% endif %}
         <img class="cb-kit-image__img" src="{{ img.src }}" alt="{{ data.alt|default('') }}"
              {%- if img.srcset %} srcset="{{ img.srcset }}"{% endif %}{% if sizes %} sizes="{{ sizes }}"{% endif %}

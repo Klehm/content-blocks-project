@@ -9,7 +9,9 @@
        (the cb-gallery controller and its nav buttons) that CSS cannot supply.
        Anything else renders through the grid markup under its own class. #}
     {% set layout = cb_kit_token(data.layout|default('grid'), 'grid') %}
-    {% set columns = data.columns|default(3) %}
+    {# Cast: the value is concatenated into a style attribute, and Block.data
+       can arrive from an import that never met this block's validator. #}
+    {% set columns = data.columns|default(3)|abs %}
     {% set fit = cb_kit_token(data.fit|default('cover'), 'cover') %}
     {% set br = data.borderRadius|default({}) %}
     {% set has_radius = (br.top ?? null) is not null or (br.right ?? null) is not null or (br.bottom ?? null) is not null or (br.left ?? null) is not null %}

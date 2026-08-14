@@ -8,7 +8,7 @@ That second half is the part worth reading. In PHP almost everything is reachabl
 
 ### PHP
 
-- **The 30 core interfaces**, plus the kit's `RichTextEditorInterface` and i18n's `TranslationProviderInterface` and `RenderLocaleResolverInterface`. These are the extension surface — implement them, alias them, decorate them.
+- **The 30 core interfaces**, plus the kit's `RichTextEditorInterface` and `IconProviderInterface`, and i18n's `TranslationProviderInterface` and `RenderLocaleResolverInterface`. These are the extension surface — implement them, alias them, decorate them.
 - **`AbstractBlockType`, `AbstractKitBlock`, `AbstractRichTextEditor`** and their documented extension points.
 - **The 17 kit block classes, as subclassable** — see [extending a kit block](../kit/#extending-a-kit-block).
 - **The `#[AsContentBlock]` attribute.**

@@ -22,6 +22,7 @@ use ContentBlocks\Kit\Block\RichTextBlock;
 use ContentBlocks\Kit\Block\TabsBlock;
 use ContentBlocks\Kit\Block\TextBlock;
 use ContentBlocks\Kit\Block\TitleBlock;
+use ContentBlocks\Kit\Icon\IconProviderInterface;
 use ContentBlocks\Kit\RichText\RichTextEditorInterface;
 use Symfony\Component\AssetMapper\AssetMapper;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -132,6 +133,12 @@ final class ContentBlocksKitBundle extends AbstractBundle
 
         $container->registerForAutoconfiguration(RichTextEditorInterface::class)
             ->addTag('content_blocks_kit.rich_text_editor');
+
+        // Same deal for icons: contributing a glyph is a service declaration.
+        // It is also the only way to *add* to the icon block's picker — see
+        // IconProviderInterface on why `choices` cannot do that job alone.
+        $container->registerForAutoconfiguration(IconProviderInterface::class)
+            ->addTag('content_blocks_kit.icon_provider');
     }
 
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void

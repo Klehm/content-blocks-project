@@ -224,7 +224,7 @@ final class ChoiceOverrideTest extends TestCase
         $env = new Environment($loader, ['strict_variables' => false]);
         $env->addExtension(new ChoiceTokenExtension());
         $env->addExtension(new TranslationExtension($this->translator()));
-        $env->addExtension(new \ContentBlocks\Kit\Twig\IconExtension(new \ContentBlocks\Kit\Icon\IconSet()));
+        $env->addExtension(new \ContentBlocks\Kit\Twig\IconExtension(new \ContentBlocks\Kit\Icon\IconRegistry()));
 
         return $env->render($template, ['data' => $data]);
     }

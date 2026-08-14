@@ -63,7 +63,7 @@ final class ImageViewTest extends TestCase
         // <img> carries the display width...
         $this->assertMatchesRegularExpression('/<img[^>]*style="[^"]*width:800px/', $html);
         // ...and the <figure> carries no inline style at all.
-        $this->assertMatchesRegularExpression('/<figure class="cb-kit-image cb-kit-image--end">/', $html);
+        $this->assertMatchesRegularExpression('/<figure class="cb-kit-image cb-kit-image--end cb-kit-image--size-md">/', $html);
         $this->assertDoesNotMatchRegularExpression('/<figure[^>]*style=/', $html);
     }
 

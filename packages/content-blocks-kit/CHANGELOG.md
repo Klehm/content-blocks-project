@@ -42,6 +42,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`cb_kit_token()`** Twig function, used by the kit's views wherever a choice
   value becomes a CSS class.
 
+- **`IconProviderInterface` + `IconRegistry`** — icons are now contributable.
+  An implementation returns `name => inner SVG markup` and is autoconfigured, so
+  declaring the service is the whole opt-in; the glyph appears in the `icon`
+  block's picker with no config at all, and reusing a shipped name replaces that
+  glyph. The kit's wrapper (viewBox, sizing, `currentColor`) stays in charge, so
+  a contributed icon looks like one of the family.
+
+  This exists because `icon.name` was the one field where widening `choices`
+  would have made things *worse*: a name with no glyph made `cb_kit_icon()`
+  return nothing, the view's `{% if %}` fail, and the block render as literally
+  no markup. Names and glyphs have to arrive together, which config alone cannot
+  do. The view also falls back to a real glyph now, so stored data naming an
+  icon that has since gone still renders something.
+
 ### Changed
 
 - **Kit views no longer re-list their coded choice values.** Seven templates
@@ -63,6 +77,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     slider carries a Stimulus controller, `list` renders `<ol>` only for
     `numbered`, `alert` glyphs come from the kit's own icon set. They keep their
     class, so they are still stylable, but going further needs a view override.
+
+- **`image` sizes now carry a class**, `cb-kit-image--size-<value>`, alongside
+  the alignment one. Additive for the coded sizes; the point is that a size
+  added through config maps to no preset pixel width, so without a class it
+  reached the markup as nothing at all — offered in the picker, invisible on the
+  page. Every one of the kit's 18 choice fields is now covered by a test that
+  renders an added value, so the reference table in the docs cannot drift.
 
 - **A block whose default is no longer offered starts on the first value that
   is.** Previously a host who replaced `variant` without also setting

@@ -6,7 +6,8 @@
        the one whose CSS reads --cb-kit-cols; a host's own layout declares
        whatever it needs in its own rules. #}
     {% set layout = cb_kit_token(data.layout|default('grid'), 'grid') %}
-    {% set columns = data.columns|default(3) %}
+    {# Cast, for the same reason as gallery: it lands in a style attribute. #}
+    {% set columns = data.columns|default(3)|abs %}
     <div class="cb-kit-cards cb-kit-cards--{{ layout }}"{% if layout == 'grid' %} style="--cb-kit-cols:{{ columns }}"{% endif %}>
         {% for item in items %}
             <article class="cb-kit-card">

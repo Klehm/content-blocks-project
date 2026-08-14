@@ -42,6 +42,8 @@ content_blocks_kit:
 
 `choices` reads its value in one of two shapes, told apart by whether you wrote a **list** or a **map**. There is no flag to set — the shape is the instruction.
 
+Both shapes are available on **every** choice field — the difference is what you want to do, not which field you are on.
+
 ```yaml
 content_blocks_kit:
     blocks:
@@ -49,7 +51,7 @@ content_blocks_kit:
             choices:
                 # A LIST restricts: keep these coded values, in this order.
                 # Values the block does not code are ignored.
-                size: [md, lg]
+                align: [start, center]
 
                 # A MAP replaces: this becomes the entire choice set, so it can
                 # add values the kit never shipped.
@@ -57,6 +59,12 @@ content_blocks_kit:
                     primary: 'cb_kit.block.button.variant.primary'   # a translation key
                     ghost: 'Ghost'                                   # or a literal label
                     brand-outline: 'Contour marque'
+
+                # …and nothing stops you replacing `size` too — sm/md/lg are
+                # just the coded defaults, not a fixed vocabulary.
+                size:
+                    md: 'cb_kit.block.size.normal'
+                    jumbo: 'Jumbo'
 ```
 
 Choosing between them:
@@ -82,14 +90,49 @@ If your override drops the value a block starts with, the block's initial data m
 
 ### Whether an added value *renders*
 
-Getting a value into the picker is half the job; the other half is the view, and how far it follows depends on what the value does in the markup:
+Getting a value into the picker is half the job; the other half is the view. Here is every choice field in the kit and how far an added value travels — the table is [pinned by a test](https://github.com/klehm/content-blocks-project/blob/master/packages/content-blocks-kit/tests/Block/ChoiceFieldCoverageTest.php) that renders each one, so it cannot drift.
 
-- **Values that only suffix a CSS class follow all the way.** `button.variant` / `size`, `title.size`, `divider.style`, `alert.type`, `list.style`, every `align`, and the `gallery` / `card` layouts all render as `cb-kit-*--<your value>`. Write the matching CSS and you are done — no template override.
-- **`image.fit` needs nothing at all**: the value goes straight into `object-fit`, so `fill`, `none` and `scale-down` work as-is.
-- **Values that drive behaviour land on a fallback.** The `gallery` slider carries a Stimulus controller, `list` renders `<ol>` only for `numbered`, `alert` glyphs come from the kit's own icon set, and `image` sizes map to fixed pixel widths. An added value keeps its class but takes the default branch; going further means overriding that view template.
-- **`title.tag` is closed on purpose.** It becomes the HTML element, so its list stays fixed whatever `choices` says — configuration widens what a host can *style*, never what markup the kit emits. Adding a tag means overriding [the template](https://github.com/klehm/content-blocks-project/blob/master/packages/content-blocks-kit/templates/block/title/view.html.twig), deliberately.
+| Field | An added value… | You supply |
+|---|---|---|
+| `button.variant` · `button.size` · `button.align` | renders as `cb-kit-btn--<value>` / `cb-kit-btn-wrap--<value>` | CSS |
+| `title.size` | renders as `cb-kit-title--<value>` | CSS |
+| `divider.style` | renders as `cb-kit-divider--<value>` | CSS |
+| `alert.type` | renders as `cb-kit-alert--<value>`, with the `info` glyph | CSS |
+| `list.style` | renders as `cb-kit-list--<value>`, inside `<ul>` | CSS |
+| `image.align` · `image.size` | render as `cb-kit-image--<value>` / `cb-kit-image--size-<value>`; an added size has no preset pixel width, so the image goes fluid | CSS |
+| `image.fit` · `gallery.fit` | go straight into `object-fit` / `--cb-kit-fit` | **nothing** — `fill`, `none`, `scale-down` work as-is |
+| `gallery.layout` · `card.layout` | render as `cb-kit-gallery--<value>` / `cb-kit-cards--<value>`, through the grid markup | CSS |
+| `gallery.columns` · `card.columns` | feed `--cb-kit-cols`; must be numeric | **nothing** |
+| `icon.align` | renders as `cb-kit-icon--<value>` | CSS |
+| **`icon.name`** | **needs a glyph** — see below | an `IconProviderInterface` |
+| **`title.tag`** | **does not render** — closed by design | a template override |
 
-Views pass choice values through the `cb_kit_token()` Twig function, which checks the value's *shape* — a single `[A-Za-z0-9_-]` token — rather than its membership in a list. That is what lets an unknown-but-valid value through while a malformed one (a space that would inject a second class) still falls back.
+Two of them are worth reading in full.
+
+**`title.tag` is closed on purpose.** It becomes the HTML element, so its list stays fixed whatever `choices` says: configuration widens what a host can *style*, never what markup the kit emits. Adding a tag means overriding [the template](https://github.com/klehm/content-blocks-project/blob/master/packages/content-blocks-kit/templates/block/title/view.html.twig), deliberately.
+
+**`icon.name` is extensible, but not through `choices`.** A name without a glyph draws nothing, so listing one in config would give you an empty block. Contribute the icon instead — it shows up in the picker with no config at all:
+
+```php
+use ContentBlocks\Kit\Icon\IconProviderInterface;
+
+final class BrandIcons implements IconProviderInterface
+{
+    public function icons(): array
+    {
+        // Inner SVG markup only, on a 24×24 viewBox. The wrapper — sizing,
+        // currentColor, stroke width — is the kit's, so a contributed glyph
+        // looks like it belongs.
+        return ['brand-logo' => '<path d="M4 4h16v16H4z"/>'];
+    }
+}
+```
+
+The service is autoconfigured; declaring it is enough. Returning a name the kit already ships **replaces** that glyph, which is how you restyle one icon without touching a template. `choices` then works on top as usual, restricting what the registry produced.
+
+**Behaviour does not follow a class.** The `gallery` slider carries a Stimulus controller, `list` renders `<ol>` only for `numbered`, `alert` glyphs come from the kit's icon set. An added value keeps its class — so it is still stylable — but takes the default branch; going further means overriding that view template.
+
+Views pass choice values through the `cb_kit_token()` Twig function, which checks the value's *shape* — a single `[A-Za-z0-9_-]` token — rather than its membership in a list. That is what lets an unknown-but-valid value through while a malformed one (a space, which would inject a second class) still falls back.
 
 ## Where the values come from
 
