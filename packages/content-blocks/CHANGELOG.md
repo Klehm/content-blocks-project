@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-RC2] - 2026-08-14
+
 ### Fixed
 
 - **A block whose whole body is a link is selectable again.** `<a>` is draggable

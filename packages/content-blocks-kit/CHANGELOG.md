@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-RC2] - 2026-08-14
+
 ### Added
 
 - **`choices` can now replace a block's choice set, not just narrow it.** The
