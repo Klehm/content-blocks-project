@@ -1,0 +1,16 @@
+/*
+ * Styles injected INSIDE the rich-text editor's editing area, so what an
+ * editor types looks like what a reader will get. AssetMapper serves this file
+ * under a digested name, which is exactly why the kit resolves
+ * `content_css: 'asset:styles/wysiwyg.css'` instead of taking a literal path:
+ * nobody can spell the digest in a YAML file, and it changes on every build.
+ */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1f2330;
+    padding: 16px 18px;
+}
+
+a {
+    color: #4f46e5;
+}

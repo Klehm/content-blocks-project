@@ -23,6 +23,10 @@ import {
  *
  * Values are written by the PHP adapter (see CkEditor): `script-url`,
  * `style-url`, `upload-url`, `config`, `palette`.
+ *
+ * Events: `cb-rich-text:configure` fires on the wrapper (bubbling) once the
+ * config is merged and before the editor is created. `event.detail.config` is
+ * the live object — mutate it to add what JSON cannot express.
  */
 
 /**
@@ -198,6 +202,14 @@ export default class extends Controller {
                 }),
                 parseJsonValue(this.configValue, {}),
             );
+
+            // Last word on the config, and the only way to pass anything JSON
+            // cannot carry — a plugin function, a custom upload adapter, URLs
+            // only a bundler knows. Listeners mutate `detail.config` in place.
+            this.dispatch('configure', {
+                prefix: 'cb-rich-text',
+                detail: { config, editor: 'ckeditor', element: this.element },
+            });
 
             // Appended after the merge, so a host replacing `plugins` to trim
             // the build does not silently lose its image uploads — that is

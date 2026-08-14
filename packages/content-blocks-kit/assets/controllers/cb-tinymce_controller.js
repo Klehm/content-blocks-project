@@ -33,6 +33,12 @@ import {
  *  - `upload-url`: the builder's upload endpoint; empty disables image upload.
  *  - `config`: JSON merged over the init config below — the host's word wins.
  *  - `palette`: JSON `[{label, color}]` seeding the color swatches.
+ *
+ * Events:
+ *  - `cb-rich-text:configure` fires on the wrapper (bubbling) once the config
+ *    is merged and before TinyMCE is initialized. `event.detail.config` is the
+ *    live object: mutate it to add what JSON cannot express — `setup` and the
+ *    custom buttons it registers, or URLs only a bundler knows.
  */
 
 // Standard web-color swatches appended after the theme palette. Kept in the
@@ -131,6 +137,15 @@ export default class extends Controller {
                 }),
                 parseJsonValue(this.configValue, {}),
             );
+
+            // Last word on the config, and the only way to pass anything JSON
+            // cannot carry — `setup`, a custom button's `onAction`, a list of
+            // stylesheet URLs a bundler only knows at build time. Listeners
+            // mutate `detail.config` in place.
+            this.dispatch('configure', {
+                prefix: 'cb-rich-text',
+                detail: { config, editor: 'tinymce', element: this.element },
+            });
 
             const editors = await tinymce.init({
                 ...config,

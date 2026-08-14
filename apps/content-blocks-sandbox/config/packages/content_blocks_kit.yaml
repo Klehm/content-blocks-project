@@ -5,3 +5,12 @@ content_blocks_kit:
     blocks:
         html_raw:
             enabled: true
+
+        # The editing area is styled with the site's own stylesheet, which
+        # AssetMapper serves under a digested name. `asset:` is what lets a
+        # static config file name it — the digest changes on every build, so a
+        # literal path here would be wrong the moment anything is edited.
+        rich_text:
+            options:
+                config:
+                    content_css: 'asset:styles/wysiwyg.css'

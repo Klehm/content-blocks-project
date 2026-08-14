@@ -78,6 +78,23 @@ test('rich text — the selected editor is wired onto the field', async ({ page 
     expect(await textarea.getAttribute('name')).toMatch(/\[content]$/);
 });
 
+test('rich text — an asset: option reaches the editor as a digested URL', async ({ page }) => {
+    const { sidebar } = await openBuilderWithRichText(page);
+
+    // The sandbox configures `content_css: 'asset:styles/wysiwyg.css'`. Only a
+    // real container can prove the round trip: the option is resolved through
+    // the host's asset packages, so what lands in the editor config is the
+    // digested filename AssetMapper actually serves — which is the whole point,
+    // since no static config file could name it.
+    const config = JSON.parse(
+        await sidebar.locator('[data-controller="cb-tinymce"]').getAttribute('data-cb-tinymce-config-value'),
+    );
+
+    expect(config.content_css).toMatch(/^\/assets\/styles\/wysiwyg-[A-Za-z0-9_-]+\.css$/);
+    const asset = await page.request.get(config.content_css);
+    expect(asset.status()).toBe(200);
+});
+
 test('rich text — content is still editable and saved when the editor cannot load', async ({ page }) => {
     const { frame, sidebar } = await openBuilderWithRichText(page);
 

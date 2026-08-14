@@ -34,7 +34,13 @@ class RichTextBlock extends AbstractKitBlock implements BlockPreviewHintInterfac
             // false → the kit loads no editor JS; the host bundles it and the
             // editor's global must be present when the form opens.
             'cdn' => true,
-            // Override to self-host the same build (air-gapped admin, strict CSP).
+            // Override to self-host the same build (air-gapped admin, strict
+            // CSP). `asset:<path>` resolves through the host's asset packages,
+            // which is what a versioned filename needs.
+            'script_url' => null,
+            'style_url' => null,
+            // The names these two replaced, still honoured: they read as "another
+            // CDN", which is not what self-hosting is.
             'cdn_url' => null,
             'cdn_style_url' => null,
             // Wires the editor's image button to the builder's upload endpoint.
