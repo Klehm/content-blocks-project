@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A block whose whole body is a link is selectable again.** `<a>` is draggable
+  by default: a press that drifts a few pixels before release starts a native
+  link drag, and the browser then fires no `click` at all. On a block whose root
+  *is* the link — a card wrapped in `<a>`, a panel filling its column — the
+  entire clickable surface was a drag surface, so the block could not be opened
+  for editing at all; on a small button the same defect goes unnoticed. The
+  preview overlay now cancels native drags, which it had no use for: reordering
+  runs on its own pointer events from the toolbar grip. Found while installing
+  the RC on a host, against a block rendered as one full-column `<a>`.
+- **The bundle's config example named a key the tree rejects.** The docblock of
+  `ContentBlocksBundle::configure()` still showed
+  `section_styles[].settings.styling.padding.d`, while `responsiveBoxNode()` has
+  accepted only `desktop`/`tablet`/`mobile` since the viewport rename below. A
+  host copying the example got `Unrecognized option "d"` when the container was
+  built.
+
 ## [1.0.0-RC1] - 2026-08-13
 
 The first release candidate for 1.0. The public surface is frozen as

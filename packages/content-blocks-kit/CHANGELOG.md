@@ -9,47 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`asset:<path>` in the rich-text editor options.** A versioned asset's URL
-  carries a digest — `/assets/styles/wysiwyg-8f3a2c.css` — that no static YAML
-  file can spell and that changes on every build, and `asset()` only exists in
-  Twig. Any string in `options` may now be written `asset:<path>` and is
-  resolved through the host's asset packages, at any depth: `script_url`,
-  `style_url`, and anything inside `config` — `content_css` above all, since an
-  editing surface is supposed to look like the published page. A value without
-  the prefix is untouched; an `asset:` value with no asset packages configured
-  raises rather than emitting a URL that would 404 inside the editor chrome.
-  Needs `symfony/asset` — AssetMapper does not pull it in on its own.
-- **`options.script_url` / `options.style_url`**, replacing `cdn_url` /
-  `cdn_style_url`, which read as "another CDN" while their whole point was
-  self-hosting. The old names still work, and lose to the new ones when both
-  are set.
-- **A `cb-rich-text:configure` event**, fired on the field wrapper by both
-  editor controllers once the config is merged and before the editor is
-  created. `detail.config` is the live object, so a host adds what JSON cannot
-  carry — a `setup` callback and the custom buttons it registers, a plugin
-  instance, a stylesheet list only a bundler knows — from its own admin entry,
-  with no controller to fork and no editor adapter to write. The two existing
-  protections still apply after it: the autosave write-back runs before a
-  host's `setup`, and the upload adapter is appended after a replaced plugin
-  list.
-### Fixed
-
-- **BREAKING (markup) — the `tabs` block no longer inlines its own CSS.** It was
-  the one block that shipped a `<style>` tag per instance, with hardcoded colors
-  and an active-tab rule keyed on the instance's random id — specificity (1,4,0)
-  under a name a host could not even predict, so retheming it meant
-  `!important`. The styling moved into `kit.css` next to every other block, and
-  the markup became `radio → label → panel` repeated inside a wrapping flex row,
-  which reduces the whole behaviour to two static rules
-  (`:checked + label`, `:checked + label + panel`) with class-only specificity.
-  What changes for a host: the classes are now `cb-kit-tabs`, `cb-kit-tabs__tab`
-  and `cb-kit-tabs__panel` (they were `cb-block-tabs*`), the `cb-block-tabs__nav`
-  and `cb-block-tabs__panels` wrappers are gone, and the block reads the
-  `--cb-kit-tabs-*` tokens documented with the rest. Keyboard navigation
-  improves on the way through: the radios stay focusable, so a tab set is
-  operable with the arrow keys and the focus ring is drawn on the label.
-### Added
-
 - **`choices` can now replace a block's choice set, not just narrow it.** The
   option reads its value in one of two shapes, told apart by whether you wrote a
   list or a map — no flag to set:
@@ -97,6 +56,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   do. The view also falls back to a real glyph now, so stored data naming an
   icon that has since gone still renders something.
 
+- **`asset:<path>` in the rich-text editor options.** A versioned asset's URL
+  carries a digest — `/assets/styles/wysiwyg-8f3a2c.css` — that no static YAML
+  file can spell and that changes on every build, and `asset()` only exists in
+  Twig. Any string in `options` may now be written `asset:<path>` and is
+  resolved through the host's asset packages, at any depth: `script_url`,
+  `style_url`, and anything inside `config` — `content_css` above all, since an
+  editing surface is supposed to look like the published page. A value without
+  the prefix is untouched; an `asset:` value with no asset packages configured
+  raises rather than emitting a URL that would 404 inside the editor chrome.
+  Needs `symfony/asset` — AssetMapper does not pull it in on its own.
+- **`options.script_url` / `options.style_url`**, replacing `cdn_url` /
+  `cdn_style_url`, which read as "another CDN" while their whole point was
+  self-hosting. The old names still work, and lose to the new ones when both
+  are set.
+- **A `cb-rich-text:configure` event**, fired on the field wrapper by both
+  editor controllers once the config is merged and before the editor is
+  created. `detail.config` is the live object, so a host adds what JSON cannot
+  carry — a `setup` callback and the custom buttons it registers, a plugin
+  instance, a stylesheet list only a bundler knows — from its own admin entry,
+  with no controller to fork and no editor adapter to write. The two existing
+  protections still apply after it: the autosave write-back runs before a
+  host's `setup`, and the upload adapter is appended after a replaced plugin
+  list.
+
 ### Changed
 
 - **Kit views no longer re-list their coded choice values.** Seven templates
@@ -132,6 +115,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   absent from their own dropdown and unstyled on the page. This only moves a
   default that the resolved choice set does not contain, so a block whose config
   still includes its default is untouched.
+
+### Fixed
+
+- **BREAKING (markup) — the `tabs` block no longer inlines its own CSS.** It was
+  the one block that shipped a `<style>` tag per instance, with hardcoded colors
+  and an active-tab rule keyed on the instance's random id — specificity (1,4,0)
+  under a name a host could not even predict, so retheming it meant
+  `!important`. The styling moved into `kit.css` next to every other block, and
+  the markup became `radio → label → panel` repeated inside a wrapping flex row,
+  which reduces the whole behaviour to two static rules
+  (`:checked + label`, `:checked + label + panel`) with class-only specificity.
+  What changes for a host: the classes are now `cb-kit-tabs`, `cb-kit-tabs__tab`
+  and `cb-kit-tabs__panel` (they were `cb-block-tabs*`), the `cb-block-tabs__nav`
+  and `cb-block-tabs__panels` wrappers are gone, and the block reads the
+  `--cb-kit-tabs-*` tokens documented with the rest. Keyboard navigation
+  improves on the way through: the radios stay focusable, so a tab set is
+  operable with the arrow keys and the focus ring is drawn on the label.
 
 ## [1.0.0-RC1] - 2026-08-13
 

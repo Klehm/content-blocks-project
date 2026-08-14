@@ -244,8 +244,12 @@ d'entamer l'étape B.**
 
 ### B.0 Installer le kit, tout ce qui collisionne éteint
 
+**L'ordre des trois gestes n'est pas cosmétique** : un `composer require` nu
+lance un `cache:clear`, donc construit le container avec toutes les collisions
+actives avant qu'une seule ligne de config ait pu les éteindre.
+
 ```bash
-composer require klehm/content-blocks-kit
+composer require klehm/content-blocks-kit --no-scripts
 ```
 
 ```yaml
@@ -257,18 +261,73 @@ content_blocks_kit:
         # ... un par id en collision, tant qu'il n'est pas migré
 ```
 
+```bash
+php bin/console cache:clear    # seulement maintenant
+```
+
 (`html_raw` est déjà off par défaut via `ContentBlocksKitBundle::DEFAULT_DISABLED`.)
 
 Ou, mieux : applique le renommage `legacy_*` de la §1 et n'éteins rien.
 
-Le kit sert sa propre feuille sur la route `content_blocks_kit_asset_css` ; le
-markup est neutre (`cb-kit-*`), sans dépendance à Tailwind, Bootstrap, LiipImagine
-ou un pack d'icônes.
+**Éteins aussi, explicitement, les types que le kit apporte sans équivalent
+maison.** Ils ne collisionnent avec rien, donc ils s'enregistrent tout seuls et
+arrivent dans le picker en markup neutre, non habillé au thème. Ce sont des
+capacités à ouvrir quand tu les auras habillées — pas quelque chose à subir le
+jour de l'installation.
+
+### B.0 bis Ouvrir la feuille du kit dans le pare-feu
+
+Le kit sert sa propre feuille sur la route `content_blocks_kit_asset_css`, sous
+`/_content-blocks-kit/public/` ; le markup est neutre (`cb-kit-*`), sans
+dépendance à Tailwind, Bootstrap, LiipImagine ou un pack d'icônes.
+
+**Un `access_control` en `^/_content-blocks` attrape aussi ce chemin** — c'est le
+réglage naturel, donc les trois hôtes l'ont probablement. La feuille part alors en
+302 vers la page de connexion pour tout visiteur anonyme. Rien ne lève : la page
+rend, les blocs du kit sortent sans un style, et en session admin tout paraît
+normal.
+
+```yaml
+security:
+    access_control:
+        - { path: ^/_content-blocks-kit/public, roles: PUBLIC_ACCESS }   # AVANT la règle large
+        - { path: ^/_content-blocks, roles: ROLE_ADMIN }
+```
+
+Pour vérifier, **ne te fie pas au rendu** : ce que tu vois peut venir entièrement
+des surcharges de l'hôte. Contrôle une propriété que seul le kit pose
+(`.cb-kit-btn` doit être `inline-flex`, pas `inline`) — et en console, une feuille
+inaccessible lève `SecurityError` sur `cssRules`.
 
 ### B.1 Le diff de champs — avant d'écrire une ligne de code
 
 **C'est ici que se joue « on ne perd aucune capacité d'édition »**, pas dans la
-migration de données. Mets les champs du `buildForm()` de l'hôte en face de ceux du
+migration de données.
+
+#### Geste préalable : relever la donnée réelle, pas le formulaire
+
+Classer les champs à la lecture du `buildForm()` fait inventer des équivalents pour
+du vide, et fait passer pour cosmétiques des champs en usage. Les deux erreurs sont
+arrivées, en sens inverse :
+
+- em — `moreLabel` / `moreHref` de `faq` : NULL sur les 3 lignes. Deux champs morts
+  qu'on s'apprêtait à remonter dans le kit.
+- ybc — le `size` du bloc texte semblait décoratif ; **3 lignes sur 17** portaient
+  autre chose que le défaut. La bascule vers `rich_text`, qui n'a pas d'échelle de
+  taille, les alignait en silence et sans retour possible.
+
+Donc, avant le diff, un `SELECT` par champ candidat :
+
+```sql
+SELECT JSON_UNQUOTE(JSON_EXTRACT(published_data, '$.size')) AS v, COUNT(*)
+FROM cb_block WHERE type = '<type>' GROUP BY v;
+```
+
+Un champ mort ne se migre pas, il se supprime. Un champ vivant se classe sur ce
+qu'il porte réellement. Avec 21 blocs chez ybc et efs, c'est le geste qui fait le
+plus d'économie.
+
+Ensuite seulement, mets les champs du `buildForm()` de l'hôte en face de ceux du
 bloc kit, et classe **chaque** champ dans exactement une des quatre cases :
 
 1. **Équivalent dans le kit** → mappé par la migration de données.
@@ -286,6 +345,18 @@ bloc kit, et classe **chaque** champ dans exactement une des quatre cases :
 > **Règle bloquante : aucun type ne bascule tant qu'un seul de ses champs n'est pas
 > classé.** C'est la seule garantie réelle contre la perte de capacité d'édition.
 > Un champ qu'on n'arrive pas à classer est un champ qu'on n'a pas compris.
+
+Deux réflexes à corriger avant de classer en case 4 :
+
+- **Un champ « dynamique » n'est pas un motif de garder un bloc maison.** Un bloc
+  qui affiche une valeur de configuration au rendu — téléphone, e-mail, adresse —
+  n'a pas besoin de la figer en donnée : `BlockDataResolverInterface` développe des
+  jetons (`{{ contact.phone }}`) au rendu, sur liste blanche de clés. C'est ce qui a
+  rendu `booking_steps` décomposable alors qu'il paraissait bloqué.
+- **Une valeur de choix manquante non plus.** `choices` sait maintenant *remplacer*
+  un jeu de choix, pas seulement le restreindre (forme map), et les icônes sont
+  contribuables via `IconProviderInterface`. Une variante de plus qu'au kit n'est
+  plus un motif de renoncer.
 
 Écris le diff dans le commit (ou dans un fichier `docs/` de l'hôte). Il documente
 *pourquoi* la bascule était sûre, ce qu'aucun diff de code ne dira.
@@ -359,6 +430,23 @@ diverger les trois projets la première fois.
 Ce qui remonte dans le package se corrige **dans le monorepo**, avec ses tests, et
 part dans la RC suivante. Rien ne se patche dans `vendor/`.
 
+### Avant toute mesure : purger ce qui sert de l'ancien
+
+Deux artefacts fabriquent des bugs de package qui n'existent pas. Les deux ont fait
+perdre du temps sur em.
+
+- **`public/assets/` compilé.** En debug, AssetMapper sert les fichiers compilés
+  s'ils existent : après un `composer require`, le builder tourne encore sur le JS
+  de la version précédente, sans un mot. Symptôme typique : `references undefined
+  method` sur une méthode qui est pourtant bien dans `vendor/`.
+  `rm -rf public/assets` (c'est un artefact de build, gitignoré) puis `cache:clear`,
+  **systématiquement après le `composer require`**.
+- **Le CSS a une build de retard** quand l'hôte empile AssetMapper, tailwind-bundle
+  et un worker FrankenPHP : l'empreinte se calcule sur la source, le contenu vient
+  de la build, et une requête entre les deux fige l'ancien contenu. Ni `cache:clear`
+  ni un simple redémarrage n'y suffisent. Recette fiable :
+  `tailwind:build` → `rm -rf var/cache/dev` → redémarrer le conteneur php.
+
 ---
 
 ## 6. Journal d'upgrade — à remplir en faisant
@@ -370,14 +458,14 @@ par surprise rencontrée, dans le projet où elle est apparue.
 |---|---|---|---|
 | em | **L'étape A demande une migration de schéma, que ce runbook ne mentionnait pas.** La RC ajoute la table `cb_section_template` et la colonne `cb_content_area.content_version` — deux fonctionnalités postérieures à beta.6. Sans elles, tout écrit sur une `ContentArea` casse (`Unknown column 'content_version'`). | `doctrine:migrations:diff` puis `migrate`, en dev **et** dans la base de test (elle ne se migre pas toute seule). §3 corrigé : c'est maintenant l'étape A.4. | Non — c'est le runbook qui était incomplet. |
 | em | **Le SQL de contrôle des fonds `#ffffff` (§3 A.2) visait une colonne `data` qui n'existe pas.** Le schéma réel porte `cb_block.published_data` / `draft_data` et `cb_section.published_settings` / `draft_settings` — le contrôle passait donc « au vert » par erreur de colonne, pas par absence de fond blanc. | Requête corrigée dans le §3, sur les quatre colonnes. Sur em : zéro `#ffffff`, zéro `styling` persisté du tout (contenu semé par fixtures). | Non — erreur du runbook. |
-| em | **La bascule des clés de viewport `d`/`t`/`m` → `desktop`/`tablet`/`mobile` est une migration de contenu de l'étape A**, pas de l'étape B. Le §3 ne la citait pas ; elle est dans le CHANGELOG de la RC avec une migration de référence (`Version20260715130000`, les deux sandboxes). | Sur em : zéro ligne concernée (aucun `styling` persisté), donc rien à migrer — mais **à vérifier sur la base de prod avant de publier**, et ybc/efs y passeront presque sûrement. Ajouté au §3 comme A.3. | Non — le package fournit déjà la migration de référence. |
+| em | **La bascule des clés de viewport `d`/`t`/`m` → `desktop`/`tablet`/`mobile` est une migration de contenu de l'étape A**, pas de l'étape B. Le §3 ne la citait pas ; elle est dans le CHANGELOG de la RC avec une migration de référence (`Version20260715130000`, les deux sandboxes). | Sur em : zéro ligne concernée (aucun `styling` persisté), donc rien à migrer — mais **à vérifier sur la base de prod avant de publier**, et ybc/efs y passeront presque sûrement. Ajouté au §3 comme A.5. | Non — le package fournit déjà la migration de référence. |
 | em | Chemin de distribution réel **validé de bout en bout** : `composer require klehm/content-blocks:^1.0@RC` résout depuis Packagist sous `minimum-stability: stable` sans toucher au global, et la recette Flex met bien `assets/controllers.json` à jour (ajout de `cb-condition` et `cb-file-upload`). | Rien à faire. | Non — c'était le test, il passe. |
 | em | **Un `public/assets/` compilé qui traîne fait tourner l'ANCIEN JS du builder, sans un mot.** En debug, AssetMapper sert les fichiers compilés s'ils existent — après le `composer require`, le builder chargeait encore le contrôleur de beta.6. Symptôme : `Action "click->cb-builder#toggleActions" references undefined method`, alors que la méthode est bien dans `vendor/`. Symfony ne le dit qu'en warning, à la compilation suivante. | `rm -rf public/assets` en dev (c'est un artefact de build, gitignoré), puis `cache:clear`. **À faire systématiquement après le `composer require`**, avant de conclure quoi que ce soit d'un test manuel. | Non — comportement AssetMapper. Mais c'est le piège n°1 de la vérification de l'étape A : il fabrique de faux bugs de package. |
 | em | **Escape ferme le builder entier** (le shell vit dans un `<dialog>` ouvert en `showModal()`, sans handler `cancel`). Vu en test automatisé : `.cb-shell` passe à 0×0 alors que `display` reste `grid` — donc « bouton Publier invisible » sans la moindre erreur JS. | Comportement natif et intentionnel (les éditions sont autosauvées, aucune perte). La superposition est correcte, vérifiée : 1er Escape ferme le menu Actions, 2e ferme le builder. **Ne pas mettre d'Escape dans un script de fumée** — c'était le test qui était faux, pas le package. | Non. |
 | em | **Prod contrôlée avant publication : 0 ligne de `styling` persistée** (27 blocs, 8 areas), donc ni clés de viewport courtes ni `#ffffff`. Les deux ruptures de contenu de la RC sont sans objet sur cet hôte. | Aucune migration de contenu à écrire. `content_version: 1` posé et vérifié : les areas écrites sous la RC portent bien le stamp 1. | Non. |
 | em | **Étape B — `^/_content-blocks` attrape aussi `/_content-blocks-kit/`.** L'hôte verrouillait `- { path: ^/_content-blocks, roles: ROLE_ADMIN }` ; le préfixe couvre le chemin du kit, donc sa feuille de style front partait en **302 vers la page de connexion pour tout visiteur anonyme**. Aucune erreur : la page rend, les blocs du kit sortent simplement sans un seul style, et en session admin tout paraît normal. | Ajouter `- { path: ^/_content-blocks-kit/public, roles: PUBLIC_ACCESS }` **avant** la règle ROLE_ADMIN. À vérifier sur les trois hôtes : la règle large est le réglage naturel, donc les trois l'ont probablement. | Non — mais à mettre dans le §4 comme geste d'installation du kit. |
 | em | **Se fier au rendu pour valider le thème mène à l'erreur inverse.** Les blocs paraissaient correctement stylés alors que la feuille du kit ne se chargeait pas : ce qu'on voyait venait uniquement des surcharges de l'hôte. Le signe qui ne trompe pas est une propriété que **seul** le kit pose — `.cb-kit-btn` en `display: inline` au lieu de `inline-flex`. | Contrôler une propriété propre au kit, pas une couleur, et vérifier `document.styleSheets` : la feuille inaccessible lève `SecurityError` sur `cssRules`. | Non. |
-| em | **La régénération de la doc du kit écrase les notes écrites à la main.** `npm run docs:blocks:refresh` a voulu supprimer les renvois à `ImageUrlResolverInterface` de `card.md` et `image.md`. Le pied de page affirme pourtant « generated … they never go stale ». | Notes restaurées à la main. Le générateur devrait préserver une section libre, ou la doc ne devrait pas se compléter à la main. | **Oui** — soit le générateur préserve les notes, soit le pied de page arrête de promettre ce qu'il ne tient pas. |
+| em | **La régénération de la doc du kit écrase les notes écrites à la main.** `npm run docs:blocks:refresh` a voulu supprimer les renvois à `ImageUrlResolverInterface` de `card.md` et `image.md`. Le pied de page affirme pourtant « generated … they never go stale ». | Notes restaurées à la main. Le générateur devrait préserver une section libre, ou la doc ne devrait pas se compléter à la main. | **Oui — tranché : la doc ne se complète pas à la main.** Les notes perdues (`card`, `gallery`, `image`) sont remontées dans `docs/scripts/blocks-meta.mjs`, qui redevient la source unique — une régénération redonne exactement ce qui est commité. Éditer un `.md` généré reste sans effet durable : c'est le générateur qu'on édite. |
 | em | **Un champ manquant se règle par une sous-classe dans l'hôte, pas par une remontée dans le kit.** Les 3 lignes `faq` portaient un surtitre, et l'éclatement en blocs du kit n'avait nulle part où le mettre. Premier réflexe : ajouter `eyebrow` au `title` du kit (cas ② du §4.1). **Mauvais réflexe** — un surtitre est la typographie d'une charte, pas un besoin général, et le paquet est partagé par trois hôtes. | Cas ③ : `title: { enabled: false }` et `App\ContentBlocks\Block\TitleBlock extends ContentBlocks\Kit\Block\TitleBlock`, qui garde l'identifiant `title`, ajoute son champ et rend son template. Tout le reste est hérité. Le rendu y gagne : le template réutilise le composant `<twig:Eyebrow>` du site, donc le surtitre suit la charte sans la redécrire — ce qu'un champ générique dans le kit n'aurait pas pu faire. **Aucune RC2 nécessaire.** | Non — et c'est l'enseignement : le cas ② se mérite. Avant de toucher au paquet, vérifier que le champ n'est pas simplement la charte d'un hôte. |
 | em | **`BlockDataResolverInterface` répond au cas « le bloc lit une valeur de configuration au rendu ».** Le `booking_steps` d'em affichait le téléphone et l'e-mail du site — aucune donnée de bloc ne peut porter ça sans en figer une copie. Le docblock du paquet cite le cas mot pour mot : « resolving placeholder tokens ». | Un resolver hôte développe `{{ contact.phone }}` dans les champs texte, sur liste blanche de clés. Le bloc devient un texte riche ordinaire, et le numéro reste dans l'admin. **C'est ce qui a rendu `booking_steps` décomposable** alors qu'il paraissait bloqué. | Non — le seam existe et est documenté. À citer au §4.1 : un champ « dynamique » n'est pas un motif de garder un bloc maison. |
 | em | **Un bloc dont la surface entière est cliquable ne se décompose pas — mais se réduit.** Une colonne rend un `<div>` et la carte du kit met son lien sur un bouton interne. Mesuré en revanche : une colonne est `flex-direction: column` et s'étire à la hauteur de la rangée, donc **un bloc unique en `flex:1` remplit toute sa boîte de contenu**. | `service_doors` (collection de 2 panneaux) devient `service_door` au singulier, un par colonne, racine `<a>`. Toujours un bloc maison, mais qui compose avec les sections — et padding/marges/alignement viennent gratuitement de l'onglet Style, que `BlockFormType` ajoute à **tous** les blocs. | Non. |
@@ -399,10 +487,13 @@ par surprise rencontrée, dans le projet où elle est apparue.
 | ybc | `content_version: 1` posé avant toute migration de contenu, et **vérifié sur une écriture réelle du builder** : l'area passe de `NULL` à `1` à l'enregistrement (pas seulement en test). Le reste du §3 A.2 est sans objet ici : pas de décorateur de renderer, pas de `ColorType` du package (les `ColorType` trouvés sont ceux de Symfony, dans des formulaires d'admin sans rapport), et les contrôleurs de condition ad-hoc (`cb-gallery-size`) n'entrent en collision avec rien — leur remplacement par `data-cb-condition` est du nettoyage, pas une rupture, et attend l'étape B. | Vérification manuelle complète au passage : ouverture du builder, édition de section, autosave, preview, Publier, Annuler les modifications, upload — zéro erreur console. | Non. |
 | ybc — **étape B** | **`composer require` du kit fait tourner un `cache:clear`, donc construit le container avec les 14 collisions actives** avant qu'aucune config n'ait pu les éteindre. Le §4 B.0 donne la config à écrire mais pas l'ordre dans lequel elle survient. | `composer require klehm/content-blocks-kit --no-scripts`, écrire le `content_blocks_kit.yaml` avec tous les types en collision à `false`, **puis seulement** vider le cache. Le registre n'a alors jamais vu une collision. À ajouter au §4 B.0. | Non — c'est le runbook qui laissait un trou. |
 | ybc — étape B | **Le kit apporte trois types sans équivalent maison** (`card`, `rich_text`, `tabs`) : eux ne collisionnent avec rien et **s'enregistrent donc tout seuls**, sans figurer dans aucune liste de bascule. Ils arriveraient dans le picker avec le markup neutre `cb-kit-*`, non habillé au thème de l'hôte. | Éteints explicitement le temps de les habiller. Ce sont des capacités à ouvrir, pas une migration — mais il faut le décider, pas le subir. | Non. |
-| ybc — étape B | **Un bloc du kit ne peut pas se voir *ajouter* une valeur de choix par la configuration.** `choices` est une liste blanche filtrée par `array_intersect` contre le jeu codé, et `choiceConstraint()` valide contre ce même jeu en ignorant les overrides : une valeur inconnue est écartée du select *et* refusée à la validation. | Le point d'extension est ailleurs : **aucun bloc du kit n'est `final`** et `choiceFields()` est `protected`, lu à la fois par le select et par la contrainte. Une sous-classe qui le redéfinit étend les deux d'un coup. C'est ce qui rend `title` migrable (ajout de `h1_variant`). | **Oui, à trancher côté package** : ybc a renoncé à migrer `button` (8 variantes maison contre 4) en attendant que le mécanisme évolue. |
-| ybc — étape B | **Le bloc `text` de l'hôte était un éditeur riche, le `text` du kit est un textarea.** L'équivalent est `rich_text`, à l'id différent — donc le cas confortable du §1, pas une collision. Le piège : `rich_text` charge TinyMCE **depuis un CDN** par défaut, et son adaptateur nomme le contrôleur `cb-tinymce`, exactement comme celui de l'hôte, **sans émettre `content-css-value`** — la zone d'édition perdrait les feuilles du front qui la font ressembler à la page publiée. | `options.cdn: false` (« le kit ne charge rien, l'hôte fournit l'éditeur ») et thème de formulaire de l'hôte conservé. **Ne pas se fier au seul nom du bloc pour juger d'un équivalent : comparer le type de champ.** | Non. |
+| ybc — étape B | **Un bloc du kit ne peut pas se voir *ajouter* une valeur de choix par la configuration.** `choices` est une liste blanche filtrée par `array_intersect` contre le jeu codé, et `choiceConstraint()` valide contre ce même jeu en ignorant les overrides : une valeur inconnue est écartée du select *et* refusée à la validation. | Le point d'extension est ailleurs : **aucun bloc du kit n'est `final`** et `choiceFields()` est `protected`, lu à la fois par le select et par la contrainte. Une sous-classe qui le redéfinit étend les deux d'un coup. C'est ce qui rend `title` migrable (ajout de `h1_variant`). | **Oui — fait.** `choices` lit désormais deux formes : une **liste** restreint (inchangé), une **map** `valeur: libellé` **remplace et ajoute**, la validation acceptant l'union du jeu codé et du jeu configuré. Les vues du kit ne re-listent plus leurs valeurs codées (`cb_kit_token()`), donc une valeur ajoutée atteint vraiment le markup, et un défaut qui n'est plus offert glisse sur la première valeur qui l'est. `button` n'est donc plus bloqué — voir la ligne de bilan ci-dessous. |
+| ybc — étape B | **Le bloc `text` de l'hôte était un éditeur riche, le `text` du kit est un textarea.** L'équivalent est `rich_text`, à l'id différent — donc le cas confortable du §1, pas une collision. Le piège : `rich_text` charge TinyMCE **depuis un CDN** par défaut, et son adaptateur nomme le contrôleur `cb-tinymce`, exactement comme celui de l'hôte, **sans émettre `content-css-value`** — la zone d'édition perdrait les feuilles du front qui la font ressembler à la page publiée. | `options.cdn: false` (« le kit ne charge rien, l'hôte fournit l'éditeur ») et thème de formulaire de l'hôte conservé. **Ne pas se fier au seul nom du bloc pour juger d'un équivalent : comparer le type de champ.** | **Oui — fait depuis.** Le manque était réel et il est comblé : `config.content_css: 'asset:styles/wysiwyg.css'` passe par les asset packages de l'hôte (donc un nom digéré), et `cb-rich-text:configure` laisse déposer ce que JSON ne porte pas. Le contournement noté ici reste valable, mais l'hôte peut maintenant reprendre le contrôleur du kit au lieu de maintenir le sien. |
 | ybc — étape B | **Un champ orphelin peut être en usage réel sans qu'on s'en doute.** Le `size` du bloc texte semblait cosmétique ; sur la prod, 3 blocs sur 17 portaient autre chose que la valeur par défaut (`large` ×2, `secondary` ×1). Migrer vers `rich_text`, qui n'a aucune échelle de taille, les aurait alignés en silence **sans possibilité de les restaurer**. | Compter les valeurs réellement en base avant de classer un champ en case 1, jamais d'après le défaut du formulaire. Ici : sous-classe qui réintroduit `size`, et rendu vérifié identique (`text-lg` et `text-sm` présents des deux côtés). | Non — mais c'est le meilleur argument pour la règle bloquante du §4.1. |
-| ybc — étape B | Bilan : **11 des 14 types en collision tournent sur du code du kit** — 7 servis directement (`accordion` `breadcrumb` `embed` `html_raw` `image` `list` `table`), 4 par sous-classe (`alert` `divider` `gallery` `title`), plus `text` → `rich_text` par sous-classe. Ne migrent pas : `button` et `icon`. Sept blocs métier restent inchangés. | Aspect vérifié contre le HTML servi par la prod, pas contre une capture : déclarations de fond identiques au détail, **classes des titres identiques au caractère près**, tailles de texte identiques. Migration de données idempotente, `--dry-run` par défaut, 34 blocs convertis sur la copie de prod. | Non. |
+| ybc — étape B | Bilan : **11 des 14 types en collision tournent sur du code du kit** — 7 servis directement (`accordion` `breadcrumb` `embed` `html_raw` `image` `list` `table`), 4 par sous-classe (`alert` `divider` `gallery` `title`), plus `text` → `rich_text` par sous-classe. Ne migraient pas : `button` et `icon`. **Les deux sont débloqués depuis** (map de `choices` pour les 8 variantes, `IconProviderInterface` pour les glyphes) : c'est redevenu un choix, à re-trancher sur la copie de prod avant de clore l'étape B. Sept blocs métier restent inchangés. | Aspect vérifié contre le HTML servi par la prod, pas contre une capture : déclarations de fond identiques au détail, **classes des titres identiques au caractère près**, tailles de texte identiques. Migration de données idempotente, `--dry-run` par défaut, 34 blocs convertis sur la copie de prod. | Non. |
+| em / ybc — étape B | **Le bloc `tabs` du kit était le seul à embarquer son CSS dans son template**, avec des couleurs en dur et un état actif accroché à l'id aléatoire de l'instance : spécificité (1,4,0) sous un nom que l'hôte ne peut pas prédire. Impossible à retaper depuis le thème autrement qu'en `!important` — alors que `kit.css` et la doc du bloc annonçaient `.cb-kit-tabs` et des tokens. | Style déplacé dans `kit.css`, markup passé à `radio → label → panneau` dans une ligne flex : deux règles statiques, sans index ni id. **Markup public modifié** (`cb-block-tabs*` → `cb-kit-tabs*`, enveloppes `__nav`/`__panels` supprimées) — sans effet sur ybc, qui n'a pas `tabs` en collision et l'a gardé éteint. | **Oui — fait.** BREAKING (markup) au CHANGELOG du kit. |
+| em — étape B | **Un bloc dont la racine est un `<a>` ne peut plus être sélectionné dans le builder.** `<a>` est draggable nativement : un appui qui dérive de quelques pixels démarre un drag de lien et le navigateur ne tire aucun `click`. Quand tout le bloc *est* le lien — ce que la ligne « un bloc qui remplit sa boîte » recommande justement de faire — il n'y a plus nulle part où cliquer. Mesuré : `dragstart:1, click:0`. | Rien à faire côté hôte. | **Oui — fait.** La preview annule le drag natif ; elle n'en avait aucun usage, le réordonnancement tourne sur ses propres pointer events. Couvre aussi les images et les blocs du kit dont le corps est un lien (`button`, `card`). |
+| em / efs — étape B | **Les options de l'éditeur ne savaient pas nommer un asset versionné.** L'URL d'une feuille servie par AssetMapper ou Encore porte un digest qu'aucun YAML statique ne peut écrire, et `asset()` n'existe qu'en Twig : pointer `content_css` sur la feuille du site était impossible. Et rien ne pouvait porter du code — efs configure deux boutons custom dans un `setup: function (editor)`. | Côté hôte : `content_css: 'asset:styles/wysiwyg.css'`, et le `setup` dans un listener `cb-rich-text:configure` de l'entrée admin. Rien à forker. | **Oui — fait.** `asset:<chemin>` résolu récursivement dans les options, `script_url`/`style_url` (anciens noms gardés), et l'événement `cb-rich-text:configure` sur les deux contrôleurs. **Attention : la résolution demande `symfony/asset`, qu'AssetMapper n'embarque pas** — la sandbox ne l'avait pas. |
 
 ---
 
@@ -415,3 +506,26 @@ ne figent rien.
 
 Tout ce qui est corrigé dans le package pendant ces trois migrations part dans la RC
 suivante, avec une ligne dans le `CHANGELOG.md` du package concerné.
+
+### Ce que la RC2 apporte aux hôtes
+
+Récolté sur em et ybc, à relire dans les `[Unreleased]` des deux CHANGELOG avant de
+reprendre une migration. Les quatre premiers points **débloquent** des cas qui
+avaient été contournés ou abandonnés :
+
+| Ce qui change | Pour qui |
+|---|---|
+| `choices` en forme map **remplace et ajoute** des valeurs de choix ; les vues du kit ne re-listent plus les leurs | ybc — `button` (8 variantes) redevient migrable |
+| `IconProviderInterface` : les glyphes sont contribuables | ybc — `icon` redevient migrable |
+| `asset:<chemin>` dans les options de l'éditeur + `script_url` / `style_url` | em, efs — `content_css` sur la feuille du site, éditeur auto-hébergé |
+| `cb-rich-text:configure` : un listener dépose ce que JSON ne porte pas | efs — ses boutons custom, sans forker le contrôleur |
+| Le drag natif est annulé dans la preview | tous — un bloc dont la racine est un `<a>` redevient sélectionnable |
+| **BREAKING (markup)** — `tabs` : `cb-block-tabs*` → `cb-kit-tabs*`, plus de `<style>` inline, tokens `--cb-kit-tabs-*` | qui rend déjà des `tabs` du kit. Le type est **actif par défaut** : ybc l'a explicitement éteint, em ne l'a pas fait — donc y compter les lignes (`SELECT COUNT(*) FROM cb_block WHERE type = 'tabs'`) et reprendre le CSS de thème s'il y en a |
+| L'exemple `section_styles` du docblock du bundle ne propose plus une clé refusée | qui déclare ses presets en YAML — efs |
+
+Le reste des `[Unreleased]` est du confort ou de l'interne : `describeConfigured()`
+et la sortie de `content-blocks-kit:blocks`, `cb_kit_token()`, la classe de taille
+sur `image`.
+
+**Aucun changement depuis la RC1 ne touche la forme de `block.data`** : rien à
+migrer, et pas de `content_version` à incrémenter pour passer en RC2.
