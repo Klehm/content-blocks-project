@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\Definition;
  * services cannot claim the same type id — which took the type out of the
  * registration loop, so the host's subclass came up autowired with the
  * constructor defaults and its whole configuration was dropped in silence. It
- * cost ybc two debugging sessions: an editor going back to the CDN despite
+ * cost a host two debugging sessions: an editor going back to the CDN despite
  * `cdn: false`, then a title variant added through `choices` never appearing.
  */
 final class KitBlockConfigPassTest extends TestCase
