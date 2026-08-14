@@ -1,91 +1,39 @@
 {# TabsBlock — CSS-only tabs (no JS dependency).
 
-   Each tab is driven by a hidden radio input pinned at the root of the
-   block. Their `:checked` state toggles the matching panel via sibling
-   combinators. Inline `<style>` keeps the rendering self-contained on
-   the host's front-end (which does not load the package's admin CSS).
+   A radio per tab, its label right after it, its panel right after the label.
+   Flex ordering puts every label on the first row and every panel below, so
+   the active state is two static rules in kit.css (`:checked + label`,
+   `:checked + label + panel`) — no per-tab rule, no id selector, and no
+   inline <style>. The ids below only pair a label with its input; nothing
+   styles them, so a host retheming the block never fights their specificity.
 #}
 {% if data.items is defined and data.items is iterable and data.items|length > 0 %}
-    {% set uid = 'cb-tabs-' ~ random() %}
-    <div class="cb-block-tabs" id="{{ uid }}">
+    {% set uid = 'cb-kit-tabs-' ~ random() %}
+    <div class="cb-kit-tabs">
         {% for tab in data.items %}
+            {# Native radios, kept focusable (offscreen, not `display:none`):
+               a radio group already gives arrow-key navigation for free, and
+               the visible focus ring is drawn on the label next to it. #}
             <input type="radio"
-                   name="{{ uid }}__state"
-                   id="{{ uid }}__r{{ loop.index0 }}"
-                   class="cb-block-tabs__radio"
-                   data-tab-index="{{ loop.index0 }}"
+                   name="{{ uid }}"
+                   id="{{ uid }}-{{ loop.index0 }}"
+                   class="cb-kit-tabs__radio"
+                   aria-controls="{{ uid }}-{{ loop.index0 }}-panel"
                    {% if loop.first %}checked{% endif %}>
+            <label for="{{ uid }}-{{ loop.index0 }}"
+                   id="{{ uid }}-{{ loop.index0 }}-label"
+                   class="cb-kit-tabs__tab">{{ tab.title|default('Untitled') }}</label>
+            {# `region` + aria-labelledby rather than a half-built tab/tablist
+               set: the panel is honestly a labelled region, and the radios
+               keep their native semantics. #}
+            <div class="cb-kit-tabs__panel"
+                 id="{{ uid }}-{{ loop.index0 }}-panel"
+                 role="region"
+                 aria-labelledby="{{ uid }}-{{ loop.index0 }}-label">
+                {{ tab.content|default('')|nl2br }}
+            </div>
         {% endfor %}
-        <div class="cb-block-tabs__nav" role="tablist">
-            {% for tab in data.items %}
-                <label for="{{ uid }}__r{{ loop.index0 }}" class="cb-block-tabs__tab" role="tab">
-                    {{ tab.title|default('Untitled') }}
-                </label>
-            {% endfor %}
-        </div>
-        <div class="cb-block-tabs__panels">
-            {% for tab in data.items %}
-                <div class="cb-block-tabs__panel" data-tab-index="{{ loop.index0 }}" role="tabpanel">
-                    {{ tab.content|default('')|nl2br }}
-                </div>
-            {% endfor %}
-        </div>
     </div>
-    <style>
-        .cb-block-tabs { display: block; }
-        .cb-block-tabs__radio {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-            width: 0; height: 0;
-        }
-        .cb-block-tabs__nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 2px;
-            border-bottom: 1px solid #e3e5e9;
-        }
-        .cb-block-tabs__tab {
-            padding: 0.5rem 0.9rem;
-            font-size: 0.9rem;
-            line-height: 1.3;
-            color: #5b6478;
-            background: transparent;
-            border: 1px solid transparent;
-            border-bottom: 0;
-            border-top-left-radius: 0.375rem;
-            border-top-right-radius: 0.375rem;
-            cursor: pointer;
-            user-select: none;
-            margin-bottom: -1px;
-        }
-        .cb-block-tabs__tab:hover { color: #1f2330; }
-        {# Active tab + matching panel via the sibling :checked selector.
-           Each radio is followed by all tabs and all panels (flat layout),
-           so we target by data-tab-index matching the radio's index. #}
-        {% for tab in data.items %}
-            #{{ uid }}__r{{ loop.index0 }}:checked ~ .cb-block-tabs__nav .cb-block-tabs__tab:nth-of-type({{ loop.index }}) {
-                color: #1f2330;
-                background: #fff;
-                border-color: #e3e5e9;
-            }
-            #{{ uid }}__r{{ loop.index0 }}:checked ~ .cb-block-tabs__panels .cb-block-tabs__panel[data-tab-index="{{ loop.index0 }}"] {
-                display: block;
-            }
-        {% endfor %}
-        .cb-block-tabs__panel {
-            display: none;
-            padding: 1rem 0.85rem;
-            border: 1px solid #e3e5e9;
-            border-top: 0;
-            border-bottom-left-radius: 0.375rem;
-            border-bottom-right-radius: 0.375rem;
-        }
-        .cb-block-tabs__tab:focus-visible {
-            outline: 2px solid #4f8df9;
-            outline-offset: -2px;
-        }
-    </style>
 {% else %}
-    <small style="color: #5b6478;">{{ 'cb_kit.block.tabs.empty'|trans({}, 'content_blocks_kit') }}</small>
+    <small class="cb-kit-tabs__empty">{{ 'cb_kit.block.tabs.empty'|trans({}, 'content_blocks_kit') }}</small>
 {% endif %}
