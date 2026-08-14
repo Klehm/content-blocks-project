@@ -247,6 +247,40 @@ describe('cb-ckeditor connect', () => {
             .toBe('https://cdn.example/ckeditor5.css');
     });
 
+    it('offers the merged config to cb-rich-text:configure before create', async () => {
+        const { ckeditor } = stubCkEditor();
+        const { controller } = mount({ config: JSON.stringify({ toolbar: ['bold'] }) });
+        const seen = [];
+        document.addEventListener('cb-rich-text:configure', (e) => {
+            seen.push({
+                editor: e.detail.editor,
+                toolbar: e.detail.config.toolbar,
+                createCalled: ckeditor.ClassicEditor.create.mock.calls.length,
+            });
+        }, { once: true });
+
+        await controller.connect();
+
+        expect(seen).toEqual([{ editor: 'ckeditor', toolbar: ['bold'], createCalled: 0 }]);
+    });
+
+    it('lets a listener add what JSON cannot carry, and still wires uploads after it', async () => {
+        const { ckeditor } = stubCkEditor();
+        const { controller } = mount({ uploadUrl: '/_content-blocks/upload' });
+        function HostPlugin() {}
+        document.addEventListener('cb-rich-text:configure', (e) => {
+            // A host replacing the plugin list wholesale must not silently
+            // lose its uploads — the adapter is appended after this hook.
+            e.detail.config.plugins = [HostPlugin];
+        }, { once: true });
+
+        await controller.connect();
+
+        const config = ckeditor.createArgs[0];
+        expect(config.plugins[0]).toBe(HostPlugin);
+        expect(config.plugins).toHaveLength(2);
+    });
+
     it('lets the host config win over the coded defaults', async () => {
         const { ckeditor } = stubCkEditor();
         const { controller } = mount({

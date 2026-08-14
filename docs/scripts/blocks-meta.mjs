@@ -67,15 +67,20 @@ content_blocks_kit:
         rich_text:
             options:
                 # 1. Self-host the same build — for a strict CSP, or an admin
-                #    with no outbound internet access.
-                cdn_url: '/assets/vendor/ckeditor5.umd.js'
-                cdn_style_url: '/assets/vendor/ckeditor5.css'   # CKEditor only
+                #    with no outbound internet access. \`asset:\` runs the path
+                #    through your asset packages, which is what a versioned
+                #    filename needs (see below).
+                script_url: 'asset:vendor/ckeditor5.umd.js'
+                style_url: 'asset:vendor/ckeditor5.css'   # CKEditor only
 
                 # 2. Bundle it yourself: the kit then loads nothing and expects
                 #    the editor's global (window.tinymce / window.CKEDITOR) to
                 #    be there when the sidebar opens.
                 cdn: false
 \`\`\`
+
+\`cdn_url\` and \`cdn_style_url\` are the names these two replaced and still work.
+They read as "another CDN", which is not what self-hosting is.
 
 With \`cdn: false\` it is on the host to \`npm install\` the editor and import it
 in the entry that serves the admin — for example
@@ -130,9 +135,54 @@ cost data rather than looks: the write-back that keeps autosave in sync (a
 the upload adapter, which survives a replaced plugin list — use
 \`uploads: false\` if you mean to drop it.
 
-Whatever JSON cannot carry — callbacks, plugin instances — belongs in a host
-Stimulus controller extending \`cb-tinymce\` / \`cb-ckeditor\`, or in an editor
-adapter of your own (see below).
+### Naming a versioned asset
+
+A digested filename — \`/assets/styles/wysiwyg-8f3a2c.css\` — cannot be written
+by hand in a static YAML file, and \`asset()\` only exists in Twig. Prefix the
+path with \`asset:\` and the kit resolves it through your asset packages
+(AssetMapper, Encore, any package you configured), at any depth in the config:
+
+\`\`\`yaml
+options:
+    config:
+        # The usual case: the editing surface should look like the page.
+        content_css: 'asset:styles/wysiwyg.css'
+\`\`\`
+
+The list form works too (\`['asset:a.css', 'https://cdn.example/b.css']\`), and a
+value without the prefix is left exactly as written. If no asset packages are
+configured, an \`asset:\` value raises an explicit error rather than emitting a
+URL that would 404 inside the editor.
+
+::: warning Needs symfony/asset
+Resolution goes through \`assets.packages\`, so \`symfony/asset\` must be installed
+and \`framework.assets\` enabled. AssetMapper does **not** pull it in on its own —
+an app that only ever uses \`importmap()\` can be missing it and not know.
+:::
+
+### Anything JSON cannot carry
+
+Callbacks, custom buttons, plugin instances, a stylesheet list only your
+bundler knows: those never travel through YAML. Listen for
+**\`cb-rich-text:configure\`** instead — it fires on the field wrapper, bubbling,
+once the config is merged and before the editor is created. \`detail.config\` is
+the live object:
+
+\`\`\`js
+// your admin entry — no controller to fork, no adapter to write
+document.addEventListener('cb-rich-text:configure', (event) => {
+    if (event.detail.editor !== 'tinymce') return;
+
+    event.detail.config.content_css = window.MY_EDITOR_CSS;   // hashes included
+    event.detail.config.setup = (editor) => {
+        editor.ui.registry.addButton('twocolumns', { text: '2 Cols', onAction: () => { /* … */ } });
+    };
+});
+\`\`\`
+
+The two protections above still hold after the event: your \`setup\` runs after
+the autosave write-back, and the upload adapter is appended after your plugin
+list.
 `,
       },
       {
@@ -162,7 +212,8 @@ further wiring, and nothing in the kit changes.
     markup: '`.cb-kit-image` — wraps a `<figure>` when a caption is present.',
     notes: [
       'Picking `size: custom` reveals `customWidth` / `customHeight` (with a `customHeightAuto` toggle) via conditional fields.',
-      'Requires [file storage](../../guide/host-services.md#file-storage) to be configured for uploads to work.',
+      'Requires [file storage](../../guide/host-services.md#file-storage) to be configured for uploads to work. The field accepts a picked *or* dropped file.',
+      'The stored source is resolved through [`ImageUrlResolverInterface`](../../guide/host-services.md#imageurlresolverinterface-responsive-images), which the display width (sm=400, md=800, lg=1200, or the custom width) is handed to. With no resolver wired the source renders as-is; wire one and this block emits `srcset`/`sizes`.',
       'Opts into preview hot-reload — the upload JS is in the sidebar, not the view.',
     ],
   },
@@ -177,6 +228,7 @@ further wiring, and nothing in the kit changes.
     notes: [
       'The `cb-gallery` controller is only needed for the **slider** layout; a pure grid is CSS-only.',
       'Use the `max_columns` option to restrict the `columns` choice list for a given host.',
+      'Item sources are resolved through [`ImageUrlResolverInterface`](../../guide/host-services.md#imageurlresolverinterface-responsive-images). A cell is fluid, so no display width is passed and a resolver returning candidates owns `sizes` itself.',
     ],
   },
   button: {
@@ -195,7 +247,10 @@ further wiring, and nothing in the kit changes.
       'A repeatable set of cards, each combining an image, a title, some text and an optional button. Lay them out as a **grid** (capped by the `max_columns` option) or a vertical **list**. Great for feature rows and teaser sections.',
     whenToUse: 'Feature grids, service tiles, article teasers, pricing tiers.',
     markup: '`.cb-kit-card` items inside `.cb-kit-cards`.',
-    notes: ['The `max_columns` option caps the grid column choice for a given host.'],
+    notes: [
+      'The `max_columns` option caps the grid column choice for a given host.',
+      'Card media is resolved through [`ImageUrlResolverInterface`](../../guide/host-services.md#imageurlresolverinterface-responsive-images). A tile is fluid, so no display width is passed and a resolver returning candidates owns `sizes` itself.',
+    ],
   },
   list: {
     order: 8,

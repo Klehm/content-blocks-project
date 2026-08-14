@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\RichText;
 
 use ContentBlocks\Palette\ColorPaletteRegistry;
+use Symfony\Component\Asset\Packages;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
@@ -13,18 +14,37 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * palette. Subclasses only declare their identity (name, controller, default
  * asset URLs) and may add values of their own.
  *
- * The four knobs live under `content_blocks_kit.blocks.rich_text.options`:
+ * The knobs live under `content_blocks_kit.blocks.rich_text.options`:
  *
  *     cdn: true          # false → the kit loads nothing; the host bundles the editor
- *     cdn_url: null      # null → the adapter's default URL (self-host by overriding it)
+ *     script_url: null   # null → the adapter's default URL (self-host by overriding it)
+ *     style_url: null    # idem for the stylesheet an editor needs alongside
  *     uploads: true      # false → no image upload button wired
  *     config: {}         # merged over the adapter's coded init config, in the browser
+ *
+ * Any string in there may be written `asset:<path>` and is resolved through the
+ * host's asset packages — the only way a static YAML file can name a versioned
+ * asset, whose URL carries a digest nobody can spell out by hand:
+ *
+ *     script_url: 'asset:vendor/tinymce/tinymce.min.js'
+ *     config:
+ *         content_css: 'asset:styles/wysiwyg.css'
+ *
+ * What cannot travel this way is code — `setup`, a custom button's `onAction`.
+ * JSON has no function type, so those belong to the `cb-rich-text:configure`
+ * event the controllers fire before init (see the kit's rich-text guide).
  */
 abstract class AbstractRichTextEditor implements RichTextEditorInterface
 {
+    /** Marks a value as a path to run through the host's asset packages. */
+    private const ASSET_PREFIX = 'asset:';
+
     public function __construct(
         private readonly ColorPaletteRegistry $palette,
         private readonly UrlGeneratorInterface $urlGenerator,
+        // Null when the host has no asset component installed. Only an
+        // `asset:` value needs it, so its absence is reported then, not here.
+        private readonly ?Packages $assets = null,
     ) {
     }
 
@@ -67,27 +87,71 @@ abstract class AbstractRichTextEditor implements RichTextEditorInterface
         $cdn = (bool) ($options['cdn'] ?? true);
 
         return [
-            'script-url' => $cdn ? $this->assetUrl($options, 'cdn_url', static::getDefaultScriptUrl()) : '',
-            'style-url' => $cdn ? $this->assetUrl($options, 'cdn_style_url', static::getDefaultStyleUrl() ?? '') : '',
+            'script-url' => $cdn ? $this->assetUrl($options, 'script_url', 'cdn_url', static::getDefaultScriptUrl()) : '',
+            'style-url' => $cdn ? $this->assetUrl($options, 'style_url', 'cdn_style_url', static::getDefaultStyleUrl() ?? '') : '',
             // Empty upload URL is how the controller learns uploads are off —
             // one value carrying both the flag and its target.
             'upload-url' => ($options['uploads'] ?? true) ? $this->urlGenerator->generate('content_blocks_upload') : '',
             // Cast at the top level only, so an empty config reads as `{}`
             // rather than `[]` — nested lists (a spelled-out toolbar) keep
             // their array shape.
-            'config' => $this->encode((object) ($options['config'] ?? [])),
+            'config' => $this->encode((object) $this->resolveAssets($options['config'] ?? [])),
             'palette' => $this->encode($this->paletteColors()),
         ];
     }
 
     /**
+     * The URL under `$key`, or under the legacy `$legacyKey` it replaced, or
+     * the adapter's default. `cdn_url` / `cdn_style_url` came from a time when
+     * the only override was another CDN; they still work, and they are the
+     * wrong name for the self-hosted case that motivated them.
+     *
      * @param array<string, mixed> $options
      */
-    private function assetUrl(array $options, string $key, string $default): string
+    private function assetUrl(array $options, string $key, string $legacyKey, string $default): string
     {
-        $override = $options[$key] ?? null;
+        foreach ([$key, $legacyKey] as $candidate) {
+            $override = $options[$candidate] ?? null;
 
-        return \is_string($override) && $override !== '' ? $override : $default;
+            if (\is_string($override) && $override !== '') {
+                return $this->resolveAssets($override);
+            }
+        }
+
+        return $default;
+    }
+
+    /**
+     * Rewrites every `asset:<path>` string into the URL the host's asset
+     * packages give it, at any depth — TinyMCE's `content_css` takes a list as
+     * readily as a single file, and an editor's config is free-form beyond
+     * that.
+     *
+     * A missing resolver throws rather than emitting the path untouched: a
+     * silent passthrough would ship a 404 into the editor chrome, where it
+     * reads as "my styles are ignored" and not as "this needs configuring".
+     */
+    private function resolveAssets(mixed $value): mixed
+    {
+        if (\is_array($value)) {
+            return array_map($this->resolveAssets(...), $value);
+        }
+
+        if (!\is_string($value) || !str_starts_with($value, self::ASSET_PREFIX)) {
+            return $value;
+        }
+
+        $path = substr($value, \strlen(self::ASSET_PREFIX));
+
+        if ($this->assets === null) {
+            throw new \LogicException(sprintf(
+                'Cannot resolve "%s" in the rich-text editor options: no asset packages are available. '
+                . 'Install symfony/asset and enable the "framework.assets" configuration, or give a plain URL.',
+                $value,
+            ));
+        }
+
+        return $this->assets->getUrl($path);
     }
 
     /**

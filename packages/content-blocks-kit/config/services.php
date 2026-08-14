@@ -6,6 +6,7 @@ use ContentBlocks\Kit\Icon\IconRegistry;
 use ContentBlocks\Kit\RichText\RichTextEditorRegistry;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 return static function (ContainerConfigurator $container): void {
@@ -34,8 +35,14 @@ return static function (ContainerConfigurator $container): void {
     // the glob; a host's own is auto-tagged through
     // RichTextEditorInterface (see ContentBlocksKitBundle::build()). The
     // view value object is excluded — it is data, not a service.
+    // `assets.packages` is what turns an `asset:<path>` option into a URL. It
+    // only exists when the host enabled framework.assets, so it is passed
+    // ignore-on-invalid rather than autowired: an editor is perfectly usable
+    // without it, and the adapter reports the gap only if an `asset:` value
+    // actually shows up.
     $services->load('ContentBlocks\\Kit\\RichText\\', '../src/RichText/')
-        ->exclude('../src/RichText/RichTextEditorView.php');
+        ->exclude('../src/RichText/RichTextEditorView.php')
+        ->bind('$assets', service('assets.packages')->ignoreOnInvalid());
 
     $services->set(RichTextEditorRegistry::class)
         ->args([tagged_iterator('content_blocks_kit.rich_text_editor')]);

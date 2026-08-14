@@ -142,14 +142,10 @@ describe('cb-tinymce connect', () => {
     it('keeps the autosave sync when the host also declares a setup callback', async () => {
         const { tinymce, editor } = stubTinyMce();
         const hostSetup = vi.fn();
-        const { controller, textarea } = mount({ config: JSON.stringify({ setup: null }) });
-        // A JSON value cannot carry a function, so simulate the JS-side hook
-        // by injecting it the way a host extending the controller would.
-        const originalParse = JSON.parse;
-        vi.spyOn(JSON, 'parse').mockImplementation((raw) => {
-            const parsed = originalParse(raw);
-            return parsed && typeof parsed === 'object' ? { ...parsed, setup: hostSetup } : parsed;
-        });
+        const { controller, textarea } = mount();
+        document.addEventListener('cb-rich-text:configure', (e) => {
+            e.detail.config.setup = hostSetup;
+        }, { once: true });
 
         await controller.connect();
 
@@ -162,6 +158,43 @@ describe('cb-tinymce connect', () => {
 
         expect(editor.save).toHaveBeenCalled();
         expect(bubbled).toHaveBeenCalled();
+    });
+
+    it('offers the merged config to cb-rich-text:configure before init', async () => {
+        const { tinymce } = stubTinyMce();
+        const { controller } = mount({ config: JSON.stringify({ height: 500 }) });
+        const seen = [];
+        document.addEventListener('cb-rich-text:configure', (e) => {
+            seen.push({
+                editor: e.detail.editor,
+                height: e.detail.config.height,
+                license: e.detail.config.license_key,
+                initCalled: tinymce.init.mock.calls.length,
+            });
+        }, { once: true });
+
+        await controller.connect();
+
+        // The listener sees the coded config already merged with the host's
+        // JSON — and it sees it while there is still time to change it.
+        expect(seen).toEqual([{ editor: 'tinymce', height: 500, license: 'gpl', initCalled: 0 }]);
+    });
+
+    it('lets a listener add what JSON cannot carry', async () => {
+        const { tinymce } = stubTinyMce();
+        const { controller } = mount();
+        const onAction = vi.fn();
+        document.addEventListener('cb-rich-text:configure', (e) => {
+            // The efs case: a stylesheet list only the bundler knows, and a
+            // custom button whose handler is a function.
+            e.detail.config.content_css = ['/build/app.4b6.css', '/build/front.f0a.css'];
+            e.detail.config.buttons = { twocolumns: { onAction } };
+        }, { once: true });
+
+        await controller.connect();
+
+        expect(tinymce.config.content_css).toEqual(['/build/app.4b6.css', '/build/front.f0a.css']);
+        expect(tinymce.config.buttons.twocolumns.onAction).toBe(onAction);
     });
 
     it('routes a pasted image through the builder upload endpoint', async () => {

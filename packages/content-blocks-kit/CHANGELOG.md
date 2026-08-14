@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`asset:<path>` in the rich-text editor options.** A versioned asset's URL
+  carries a digest — `/assets/styles/wysiwyg-8f3a2c.css` — that no static YAML
+  file can spell and that changes on every build, and `asset()` only exists in
+  Twig. Any string in `options` may now be written `asset:<path>` and is
+  resolved through the host's asset packages, at any depth: `script_url`,
+  `style_url`, and anything inside `config` — `content_css` above all, since an
+  editing surface is supposed to look like the published page. A value without
+  the prefix is untouched; an `asset:` value with no asset packages configured
+  raises rather than emitting a URL that would 404 inside the editor chrome.
+  Needs `symfony/asset` — AssetMapper does not pull it in on its own.
+- **`options.script_url` / `options.style_url`**, replacing `cdn_url` /
+  `cdn_style_url`, which read as "another CDN" while their whole point was
+  self-hosting. The old names still work, and lose to the new ones when both
+  are set.
+- **A `cb-rich-text:configure` event**, fired on the field wrapper by both
+  editor controllers once the config is merged and before the editor is
+  created. `detail.config` is the live object, so a host adds what JSON cannot
+  carry — a `setup` callback and the custom buttons it registers, a plugin
+  instance, a stylesheet list only a bundler knows — from its own admin entry,
+  with no controller to fork and no editor adapter to write. The two existing
+  protections still apply after it: the autosave write-back runs before a
+  host's `setup`, and the upload adapter is appended after a replaced plugin
+  list.
 ### Fixed
 
 - **BREAKING (markup) — the `tabs` block no longer inlines its own CSS.** It was

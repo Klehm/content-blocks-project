@@ -55,6 +55,8 @@
         "options": {
             "editor": "tinymce",
             "cdn": true,
+            "script_url": null,
+            "style_url": null,
             "cdn_url": null,
             "cdn_style_url": null,
             "uploads": true,
