@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A subclassed block now receives its configuration.** `options`, `choices`
+  and `defaults` were wired while the bundle registered its own block services —
+  which meant they reached every block *except* the ones a host had extended,
+  since extending one requires switching the kit's service off (two services
+  cannot claim a single type id). The subclass came up autowired with the
+  constructor defaults, and its whole YAML applied to nothing. Nothing said so:
+  the config was valid, it just had no addressee. A compiler pass now hands the
+  config to anything tagged as a block type whose class extends
+  `AbstractKitBlock`, keyed by `getType()` — the same identity the config is
+  keyed by. Whatever was set explicitly (the bundle's own registrations, a host
+  wiring a block by hand) keeps the last word.
+
+  This is what makes the RC2 `choices` map useful where it matters: adding a
+  *field* still needs a subclass, and until now subclassing cancelled the
+  configuration. A subclass that renames its type is configured under the new
+  id, which falls out of keying on `getType()` rather than on the parent class.
+- **`table` no longer starts on an alignment it refuses.** `defaults()` still
+  returned `align: left` and `align: right` after the RC1 rename to
+  `start`/`end` went through `TableColumnType` and the template: a new table
+  opened with two columns its own `<select>` could not represent, the second
+  rendering left while announcing right. Every block's coded defaults are now
+  confronted with its own form's choice fields — collections walked through
+  their `entry_type` — so the whole family of drifts fails a test instead of
+  waiting to be seen.
+
 ## [1.0.0-RC2] - 2026-08-14
 
 ### Added

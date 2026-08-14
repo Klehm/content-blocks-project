@@ -6,6 +6,17 @@ content_blocks_kit:
         html_raw:
             enabled: true
 
+        # Extended by App\ContentBlocks\Block\DividerBlock, which keeps the
+        # `divider` id and adds one field. The kit's service has to go — two
+        # services cannot claim one type id — and everything below has to reach
+        # the subclass anyway: that is the whole point of the fixture.
+        divider:
+            enabled: false
+            choices:
+                # A map, so it replaces the coded set and adds a value.
+                style: { solid: 'Trait plein', double: 'Double trait' }
+            defaults: { style: 'double' }
+
         # The editing area is styled with the site's own stylesheet, which
         # AssetMapper serves under a digested name. `asset:` is what lets a
         # static config file name it — the digest changes on every build, so a

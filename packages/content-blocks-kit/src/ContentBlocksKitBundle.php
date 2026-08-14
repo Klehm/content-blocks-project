@@ -22,6 +22,7 @@ use ContentBlocks\Kit\Block\RichTextBlock;
 use ContentBlocks\Kit\Block\TabsBlock;
 use ContentBlocks\Kit\Block\TextBlock;
 use ContentBlocks\Kit\Block\TitleBlock;
+use ContentBlocks\Kit\DependencyInjection\KitBlockConfigPass;
 use ContentBlocks\Kit\Icon\IconProviderInterface;
 use ContentBlocks\Kit\RichText\RichTextEditorInterface;
 use Symfony\Component\AssetMapper\AssetMapper;
@@ -32,6 +33,14 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
 final class ContentBlocksKitBundle extends AbstractBundle
 {
+    /**
+     * Raw `blocks` config, kept for {@see KitBlockConfigPass} — which is
+     * registered in `build()`, long before there is any configuration to read.
+     *
+     * @var array<string, array{enabled?: bool, options?: array<string, mixed>, choices?: array<string, mixed>, defaults?: array<string, mixed>}>
+     */
+    private array $blocksConfig = [];
+
     /**
      * The blocks this kit ships, keyed by their `getType()`. Single source
      * of truth for both the config tree and conditional registration.
@@ -139,6 +148,11 @@ final class ContentBlocksKitBundle extends AbstractBundle
         // IconProviderInterface on why `choices` cannot do that job alone.
         $container->registerForAutoconfiguration(IconProviderInterface::class)
             ->addTag('content_blocks_kit.icon_provider');
+
+        // The loop in loadExtension() reaches the blocks this bundle registers;
+        // this reaches the ones a host subclassed, which are precisely the ones
+        // that had to switch the kit's service off to exist.
+        $container->addCompilerPass(new KitBlockConfigPass(fn (): array => $this->blocksConfig));
     }
 
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
@@ -146,6 +160,8 @@ final class ContentBlocksKitBundle extends AbstractBundle
         // Shared services (form types); block services are registered
         // conditionally below, not bulk-loaded.
         $container->import('../config/services.php');
+
+        $this->blocksConfig = $config['blocks'] ?? [];
 
         $services = $container->services();
 
