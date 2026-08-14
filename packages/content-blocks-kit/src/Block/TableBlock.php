@@ -90,8 +90,11 @@ class TableBlock extends AbstractKitBlock
         return [
             'striped' => true,
             'columns' => [
-                ['label' => 'Name', 'align' => 'left'],
-                ['label' => 'Value', 'align' => 'right'],
+                // `start`/`end`, not `left`/`right`: the RC1 rename covered
+                // TableColumnType and the view, and left these two behind — so a
+                // fresh table opened with a column its own form rejects.
+                ['label' => 'Name', 'align' => 'start'],
+                ['label' => 'Value', 'align' => 'end'],
             ],
             'rows' => [
                 ['cells' => [['content' => 'Row 1'], ['content' => '—']]],

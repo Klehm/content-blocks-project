@@ -139,10 +139,22 @@ final class AppButtonBlock extends ContentBlocks\Kit\Block\ButtonBlock
 }
 ```
 
-Two things to know before you do:
+Three things to know before you do:
 
 - **`getDefaultData()` is `final`.** It merges `defaults()` with the host's `content_blocks_kit.blocks.<type>.defaults` config, so replacing it would silently drop that config. Grow `defaults()` instead.
 - **Keep `getType()` inherited, and disable the kit's service.** Two services claiming one type id is a silent conflict — the registry keeps whichever was registered last, and which one that is depends on container order.
+- **The config still applies.** `enabled: false` only un-registers the kit's *service*; `options`, `choices` and `defaults` declared under that same type reach your subclass, merged over its own coded defaults. So subclassing to add one field does not cost you the configuration of everything else:
+
+  ```yaml
+  content_blocks_kit:
+      blocks:
+          divider:
+              enabled: false                                     # yours takes over
+              choices: { style: { solid: 'Solid', double: 'Double' } }
+              defaults: { style: 'double' }
+  ```
+
+  A subclass that gives itself a new `getType()` is configured under that new id instead — the config is keyed by the type, never by the class.
 
 The full contract, including `choiceFields()` and `describe()`, is in the [package README](https://github.com/klehm/content-blocks-kit#extending-a-kit-block).
 
