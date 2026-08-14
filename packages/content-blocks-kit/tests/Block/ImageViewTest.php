@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Tests\Block;
 use ContentBlocks\Image\ImageUrlResolverInterface;
 use ContentBlocks\Image\PassthroughImageUrlResolver;
 use ContentBlocks\Image\ResolvedImage;
+use ContentBlocks\Kit\Twig\ChoiceTokenExtension;
 use ContentBlocks\Twig\ImageExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
@@ -33,12 +34,22 @@ final class ImageViewTest extends TestCase
         $this->assertStringContainsString('cb-kit-image--end', $this->render(['align' => 'end']));
     }
 
-    public function testInvalidAlignmentFallsBackToCenter(): void
+    public function testAnAlignmentTheKitDoesNotCodeStillReachesTheClass(): void
     {
-        $html = $this->render(['align' => 'bogus']);
+        // No longer a membership test: `align` is a class suffix, so a value
+        // added through `content_blocks_kit.blocks.image.choices` has to render
+        // for the host's CSS to have anything to hook onto.
+        $this->assertStringContainsString('cb-kit-image--baseline', $this->render(['align' => 'baseline']));
+    }
+
+    public function testAMalformedAlignmentFallsBackToCenter(): void
+    {
+        // What the old whitelist was really guarding: a value carrying a space
+        // would silently become a second class on the figure.
+        $html = $this->render(['align' => 'bogus start']);
 
         $this->assertStringContainsString('cb-kit-image--center', $html);
-        $this->assertStringNotContainsString('cb-kit-image--bogus', $html);
+        $this->assertStringNotContainsString('bogus', $html);
     }
 
     /**
@@ -52,7 +63,7 @@ final class ImageViewTest extends TestCase
         // <img> carries the display width...
         $this->assertMatchesRegularExpression('/<img[^>]*style="[^"]*width:800px/', $html);
         // ...and the <figure> carries no inline style at all.
-        $this->assertMatchesRegularExpression('/<figure class="cb-kit-image cb-kit-image--end">/', $html);
+        $this->assertMatchesRegularExpression('/<figure class="cb-kit-image cb-kit-image--end cb-kit-image--size-md">/', $html);
         $this->assertDoesNotMatchRegularExpression('/<figure[^>]*style=/', $html);
     }
 
@@ -169,6 +180,9 @@ final class ImageViewTest extends TestCase
         $loader->addPath(\dirname(__DIR__, 2) . '/templates', 'ContentBlocksKit');
 
         $env = new Environment($loader, ['strict_variables' => false]);
+        // Kit views pass choice values through cb_kit_token() instead of
+        // re-listing them inline; see ChoiceTokenExtension.
+        $env->addExtension(new ChoiceTokenExtension());
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
         $env->addExtension(new ImageExtension($resolver ?? new PassthroughImageUrlResolver()));
 

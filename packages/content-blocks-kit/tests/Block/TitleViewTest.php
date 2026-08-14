@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Kit\Tests\Block;
 
+use ContentBlocks\Kit\Twig\ChoiceTokenExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -34,13 +35,32 @@ final class TitleViewTest extends TestCase
         $this->assertStringContainsString('</span>', $html);
     }
 
-    public function testInvalidValuesFallBackToH2(): void
+    /**
+     * The two fields are deliberately not treated alike.
+     *
+     * `tag` becomes the element, so its list stays closed no matter what
+     * `content_blocks_kit.blocks.title.choices` says — emitting markup is not
+     * something config gets to widen. `size` only suffixes a class, so a value
+     * the kit does not code reaches the page and the host styles it; that is
+     * what makes the choice set extensible at all.
+     */
+    public function testAnUnknownTagFallsBackWhileAnUnknownSizePassesThrough(): void
     {
         $html = $this->render(['text' => 'X', 'tag' => 'script', 'size' => 'huge']);
 
-        $this->assertStringContainsString('<h2 class="cb-kit-title cb-kit-title--h2"', $html);
+        $this->assertStringContainsString('<h2 class="cb-kit-title cb-kit-title--huge"', $html);
         $this->assertStringNotContainsString('script', $html);
-        $this->assertStringNotContainsString('huge', $html);
+    }
+
+    public function testAMalformedSizeStillFallsBack(): void
+    {
+        // A value that is not a single class token would leak a second class
+        // into the attribute — the shape guard cb_kit_token() kept from the
+        // whitelists it replaced.
+        $html = $this->render(['text' => 'X', 'size' => 'huge display-1']);
+
+        $this->assertStringContainsString('class="cb-kit-title cb-kit-title--h2"', $html);
+        $this->assertStringNotContainsString('display-1', $html);
     }
 
     public function testLegacyBlockWithoutSizeFollowsTheTag(): void
@@ -95,6 +115,9 @@ final class TitleViewTest extends TestCase
         $loader->addPath(\dirname(__DIR__, 2) . '/templates', 'ContentBlocksKit');
 
         $env = new Environment($loader, ['strict_variables' => false]);
+        // Kit views pass choice values through cb_kit_token() instead of
+        // re-listing them inline; see ChoiceTokenExtension.
+        $env->addExtension(new ChoiceTokenExtension());
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
 
         return $env;

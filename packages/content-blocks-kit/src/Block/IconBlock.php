@@ -6,7 +6,7 @@ namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\Form\Type\PaletteColorType;
-use ContentBlocks\Kit\Icon\IconSet;
+use ContentBlocks\Kit\Icon\IconRegistry;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\RangeType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -14,12 +14,26 @@ use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
- * A single icon from the kit's shipped {@see IconSet}, with a size, an optional
+ * A single icon from the resolved {@see IconRegistry}, with a size, an optional
  * palette color and alignment. No external icon library needed.
  */
 #[AsContentBlock(priority: 45)]
 class IconBlock extends AbstractKitBlock
 {
+    /**
+     * @param array<string, mixed>        $options
+     * @param array<string, list<string>> $choiceOverrides
+     * @param array<string, mixed>        $defaultOverrides
+     */
+    public function __construct(
+        array $options = [],
+        array $choiceOverrides = [],
+        array $defaultOverrides = [],
+        private readonly IconRegistry $icons = new IconRegistry(),
+    ) {
+        parent::__construct($options, $choiceOverrides, $defaultOverrides);
+    }
+
     public static function getType(): string
     {
         return 'icon';
@@ -71,8 +85,10 @@ class IconBlock extends AbstractKitBlock
     {
         return [
             // Labels are the icon names themselves (choice_translation_domain
-            // is false on the field); restricting this narrows the icon set.
-            'name' => IconSet::choices(),
+            // is false on the field). The set comes from the registry, so a
+            // host's IconProviderInterface shows up here with no config at
+            // all; `choices` then restricts or reorders what it produced.
+            'name' => $this->icons->choices(),
             'align' => $this->alignChoices(),
         ];
     }
