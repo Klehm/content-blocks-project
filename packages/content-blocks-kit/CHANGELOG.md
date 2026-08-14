@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **BREAKING (markup) — the `tabs` block no longer inlines its own CSS.** It was
+  the one block that shipped a `<style>` tag per instance, with hardcoded colors
+  and an active-tab rule keyed on the instance's random id — specificity (1,4,0)
+  under a name a host could not even predict, so retheming it meant
+  `!important`. The styling moved into `kit.css` next to every other block, and
+  the markup became `radio → label → panel` repeated inside a wrapping flex row,
+  which reduces the whole behaviour to two static rules
+  (`:checked + label`, `:checked + label + panel`) with class-only specificity.
+  What changes for a host: the classes are now `cb-kit-tabs`, `cb-kit-tabs__tab`
+  and `cb-kit-tabs__panel` (they were `cb-block-tabs*`), the `cb-block-tabs__nav`
+  and `cb-block-tabs__panels` wrappers are gone, and the block reads the
+  `--cb-kit-tabs-*` tokens documented with the rest. Keyboard navigation
+  improves on the way through: the radios stay focusable, so a tab set is
+  operable with the arrow keys and the focus ring is drawn on the label.
+
 ## [1.0.0-RC1] - 2026-08-13
 
 The first release candidate for 1.0. The public surface is frozen as
