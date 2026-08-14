@@ -139,7 +139,7 @@ final class AppButtonBlock extends ContentBlocks\Kit\Block\ButtonBlock
 }
 ```
 
-Three things to know before you do:
+Four things to know before you do:
 
 - **`getDefaultData()` is `final`.** It merges `defaults()` with the host's `content_blocks_kit.blocks.<type>.defaults` config, so replacing it would silently drop that config. Grow `defaults()` instead.
 - **Keep `getType()` inherited, and disable the kit's service.** Two services claiming one type id is a silent conflict — the registry keeps whichever was registered last, and which one that is depends on container order.
@@ -155,6 +155,12 @@ Three things to know before you do:
   ```
 
   A subclass that gives itself a new `getType()` is configured under that new id instead — the config is keyed by the type, never by the class.
+
+- **In tests, take the block from the registry.** Since the config arrives through the constructor, `new YourBlock()` yields the *coded* surface — the block as its class defines it, with none of your YAML. That is the right object for a unit test of `defaults()` or `choiceFields()`, and the wrong one for asserting anything you configured: the assertion then describes the class, not the application, and passes or fails for a reason that has nothing to do with your config. Ask `BlockTypeRegistry` instead, and you get the instance the app actually renders with:
+
+  ```php
+  $block = self::getContainer()->get(BlockTypeRegistry::class)->get('divider');
+  ```
 
 The full contract, including `choiceFields()` and `describe()`, is in the [package README](https://github.com/klehm/content-blocks-kit#extending-a-kit-block).
 
