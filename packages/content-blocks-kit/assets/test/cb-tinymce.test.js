@@ -185,8 +185,8 @@ describe('cb-tinymce connect', () => {
         const { controller } = mount();
         const onAction = vi.fn();
         document.addEventListener('cb-rich-text:configure', (e) => {
-            // The efs case: a stylesheet list only the bundler knows, and a
-            // custom button whose handler is a function.
+            // The case this exists for: a stylesheet list only the bundler
+            // knows, and a custom button whose handler is a function.
             e.detail.config.content_css = ['/build/app.4b6.css', '/build/front.f0a.css'];
             e.detail.config.buttons = { twocolumns: { onAction } };
         }, { once: true });
