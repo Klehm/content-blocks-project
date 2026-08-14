@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Kit\Tests\Command;
 
+use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Kit\Block\ButtonBlock;
 use ContentBlocks\Kit\Command\ListBlocksCommand;
 use ContentBlocks\Kit\ContentBlocksKitBundle;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorTrait;
 
 final class ListBlocksCommandTest extends TestCase
 {
@@ -27,7 +30,58 @@ final class ListBlocksCommandTest extends TestCase
             }
         };
 
-        return new CommandTester(new ListBlocksCommand($translator));
+        // An empty registry is the "no host config" case: the command falls
+        // back to a bare instance of each block, i.e. the kit as shipped.
+        return new CommandTester(new ListBlocksCommand($translator, new BlockTypeRegistry()));
+    }
+
+    /**
+     * The txt output reports the block *as configured*, so a host can check an
+     * override took — and says which fields were overridden, rather than
+     * leaving them to spot the difference.
+     */
+    public function testConfiguredChoicesAreShownAndFlagged(): void
+    {
+        $translator = new class implements TranslatorInterface {
+            use TranslatorTrait;
+        };
+        $registry = new BlockTypeRegistry();
+        $registry->register(new ButtonBlock([], ['variant' => ['ghost' => 'Ghost', 'flat' => 'Flat']], []));
+
+        $tester = new CommandTester(new ListBlocksCommand($translator, $registry));
+        $tester->execute(['type' => 'button']);
+
+        $tester->assertCommandIsSuccessful();
+        $output = $tester->getDisplay();
+
+        $this->assertStringContainsString('config applied', $output);
+        $this->assertStringContainsString('variant', $output);
+        $this->assertStringContainsString('ghost', $output);
+        $this->assertStringNotContainsString('outline', $output, 'the replaced coded values are gone');
+    }
+
+    /**
+     * The JSON half feeds the generated reference pages, which describe the kit
+     * as shipped — so it must stay on the coded schema even when this app has
+     * overridden it.
+     */
+    public function testJsonIgnoresHostConfigAndReportsTheCodedSet(): void
+    {
+        $translator = new class implements TranslatorInterface {
+            use TranslatorTrait;
+        };
+        $registry = new BlockTypeRegistry();
+        $registry->register(new ButtonBlock([], ['variant' => ['ghost' => 'Ghost']], []));
+
+        $tester = new CommandTester(new ListBlocksCommand($translator, $registry));
+        $tester->execute(['type' => 'button', '--format' => 'json']);
+
+        $decoded = json_decode($tester->getDisplay(), true, flags: \JSON_THROW_ON_ERROR);
+
+        $this->assertSame(
+            ['primary', 'secondary', 'outline', 'link'],
+            $decoded['button']['choices']['variant']['values'],
+        );
     }
 
     public function testListsEveryBlockWithItsConfigurableSurface(): void

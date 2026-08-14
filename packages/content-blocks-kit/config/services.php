@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use ContentBlocks\Kit\Icon\IconRegistry;
 use ContentBlocks\Kit\RichText\RichTextEditorRegistry;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -38,6 +39,12 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(RichTextEditorRegistry::class)
         ->args([tagged_iterator('content_blocks_kit.rich_text_editor')]);
+
+    // The shipped IconSet plus any host IconProviderInterface (auto-tagged in
+    // ContentBlocksKitBundle::build()). One resolved set feeds both the icon
+    // block's picker and cb_kit_icon(), so a pickable name is always drawable.
+    $services->set(IconRegistry::class)
+        ->args([tagged_iterator('content_blocks_kit.icon_provider')]);
 
     // File storage, the upload endpoint and the asset resolver bridge all
     // live in the main package now (ContentBlocks\Storage\*,

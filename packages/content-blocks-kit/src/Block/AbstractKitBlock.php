@@ -91,24 +91,49 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
-     * Resolved choices for a ChoiceType field: the coded map ({@see choiceFields()}),
-     * filtered and reordered to the host's `choices.<field>` allow-list. Values
-     * not in the coded set are ignored, and an empty or all-invalid override
-     * falls back to the full coded map so the select is never empty.
+     * Resolved choices for a ChoiceType field. The host's `choices.<field>`
+     * override is read in one of two shapes, told apart by whether it is a list:
+     *
+     *  - **a list of values** — an *allow-list*: the coded map ({@see choiceFields()})
+     *    filtered and reordered to it. Values the block does not code are ignored,
+     *    and an empty or all-invalid list falls back to the full coded map so the
+     *    select is never empty.
+     *
+     *        choices: { variant: [outline, primary] }
+     *
+     *  - **a map of `value: label`** — a *replacement*: this becomes the field's
+     *    entire choice set, so it can add values the kit never coded, relabel
+     *    them, and order them freely.
+     *
+     *        choices: { variant: { ghost: 'Ghost', primary: 'cb_kit.block.button.variant.primary' } }
+     *
+     *    Labels go through the field's `translation_domain`, so a translation key
+     *    is translated and a plain string comes out as written — Symfony returns
+     *    an unknown key unchanged.
+     *
+     * Adding a value only reaches the picker and the stored data. Whether it
+     * *renders* is the templates' business: the kit's views pass a choice value
+     * through as a CSS class token, so a new one needs the matching CSS on the
+     * host's side, and a value that drives a branch (a gallery layout, an alert
+     * glyph) lands on that branch's fallback until the view is overridden.
      *
      * @return array<string, string> label => value, ready for ChoiceType `choices`
      */
     protected function choices(string $field): array
     {
         $coded = $this->choiceFields()[$field] ?? [];
-        $allow = $this->choiceOverrides[$field] ?? null;
+        $override = $this->choiceOverrides[$field] ?? null;
 
-        if (!\is_array($allow) || [] === $allow) {
+        if (!\is_array($override) || [] === $override) {
             return $coded;
         }
 
+        if (!array_is_list($override)) {
+            return self::mapToChoices($override);
+        }
+
         // Keep only requested values that actually exist, in the host's order.
-        $allow = array_values(array_intersect($allow, array_values($coded)));
+        $allow = array_values(array_intersect($override, array_values($coded)));
         if ([] === $allow) {
             return $coded; // all-invalid → keep the full set rather than an empty select
         }
@@ -123,13 +148,51 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
-     * An {@see Assert\Choice} built from the FULL coded value set — a superset
-     * of any host restriction — so narrowing the picker never invalidates data
-     * already stored with a now-hidden value.
+     * Turns a host's `value: label` map into ChoiceType's `label => value`.
+     *
+     * Written as a loop rather than `array_flip()` because the host's map is
+     * arbitrary input: values are cast to string (YAML happily hands over
+     * integers), and two values sharing a label would silently collapse — so
+     * the second one is disambiguated instead of lost.
+     *
+     * @param array<array-key, mixed> $map
+     *
+     * @return array<string, string>
+     */
+    private static function mapToChoices(array $map): array
+    {
+        $out = [];
+        foreach ($map as $value => $label) {
+            $value = (string) $value;
+            $label = \is_scalar($label) ? (string) $label : $value;
+            if ($label === '') {
+                $label = $value;
+            }
+            if (isset($out[$label])) {
+                $label .= ' (' . $value . ')';
+            }
+            $out[$label] = $value;
+        }
+
+        return $out;
+    }
+
+    /**
+     * An {@see Assert\Choice} over the **union** of the coded value set and the
+     * resolved one.
+     *
+     * Both halves earn their place. The coded set is kept so narrowing the
+     * picker never invalidates content already stored with a now-hidden value.
+     * The resolved set is added so a value the host introduced through config
+     * survives its own form — without it, `choices` could offer a value the
+     * validator would then reject.
      */
     protected function choiceConstraint(string $field): Assert\Choice
     {
-        return new Assert\Choice(choices: array_values($this->choiceFields()[$field] ?? []));
+        $coded = array_values($this->choiceFields()[$field] ?? []);
+        $resolved = array_values($this->choices($field));
+
+        return new Assert\Choice(choices: array_values(array_unique([...$coded, ...$resolved])));
     }
 
     /**
@@ -143,16 +206,53 @@ abstract class AbstractKitBlock extends AbstractBlockType
 
     /**
      * Final default data: coded {@see defaults()} with the host's `defaults.<field>`
-     * merged over them. Overrides are restricted to keys the block declares, so a
-     * typo in host config never leaks a stray key into stored block data.
+     * merged over them, then reconciled with the resolved choice sets. Overrides
+     * are restricted to keys the block declares, so a typo in host config never
+     * leaks a stray key into stored block data.
      *
      * @return array<string, mixed>
      */
     final public function getDefaultData(): array
     {
         $coded = $this->defaults();
+        $data = array_replace($coded, array_intersect_key($this->defaultOverrides, $coded));
 
-        return array_replace($coded, array_intersect_key($this->defaultOverrides, $coded));
+        return $this->reconcileChoiceDefaults($data);
+    }
+
+    /**
+     * Pulls each choice field's default back into the set the picker actually
+     * offers.
+     *
+     * A host that replaces `variant` without also setting `defaults.variant`
+     * would otherwise have every new button start on the kit's coded default —
+     * a value their config just removed, absent from the dropdown and unstyled
+     * on the page. Falling back to the first offered value makes the two halves
+     * of the config agree on their own.
+     *
+     * Only ever moves a default that is *not* on offer, so a block whose config
+     * still contains its default is untouched.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    private function reconcileChoiceDefaults(array $data): array
+    {
+        foreach (array_keys($this->choiceFields()) as $field) {
+            if (!\array_key_exists($field, $data)) {
+                continue;
+            }
+
+            $offered = array_values($this->choices($field));
+            if ($offered === [] || \in_array($data[$field], $offered, true)) {
+                continue;
+            }
+
+            $data[$field] = $offered[0];
+        }
+
+        return $data;
     }
 
     /**
@@ -212,6 +312,32 @@ abstract class AbstractKitBlock extends AbstractBlockType
             'options' => static::defaultOptions(),
             'choices' => $this->choiceFields(),
             'defaults' => $this->defaults(),
+        ];
+    }
+
+    /**
+     * The same shape as {@see describe()}, but as this instance was actually
+     * built — host config applied.
+     *
+     * The two are deliberately separate. `describe()` documents the kit *as
+     * shipped*, which is what the generated reference pages must show; this one
+     * documents one installation, which is what an operator debugging their own
+     * `choices` needs to see. Reporting the coded set to someone who has just
+     * replaced it is how a config lands in the "it does nothing" bucket.
+     *
+     * @return array{options: array<string, mixed>, choices: array<string, array<string, string>>, defaults: array<string, mixed>}
+     */
+    public function describeConfigured(): array
+    {
+        $choices = [];
+        foreach (array_keys($this->choiceFields()) as $field) {
+            $choices[$field] = $this->choices($field);
+        }
+
+        return [
+            'options' => array_replace(static::defaultOptions(), $this->options),
+            'choices' => $choices,
+            'defaults' => $this->getDefaultData(),
         ];
     }
 }
