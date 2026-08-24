@@ -92,27 +92,36 @@ Not obviously urgent, and deliberately not decided here. It only needs settling 
 
 ---
 
-## Release — an RC once the feature set is whole, then 1.0 🅿️
+## Release — the RC cycle, then 1.0 🅿️
 
-**Context.** The last tag is `v0.1.0-beta.7`. The block set, core styling, security model, config surface and docs are in place, and the work that had to land *before* a freeze already has: the 1.0 seams (`RenderContext`, `BlockDataResolverInterface`, collection `_id`, the `_` reserved prefix), the `Block.data` key unification and the upgrade guide are on `master`, unreleased, accumulating under `[Unreleased]` in both CHANGELOGs.
-
-**Direction.** All three items this release was waiting on have now shipped — the kit's rich-text editors, the image-optimization seam, and the translation package. **The next tag is `1.0.0-RC1`.**
+**Context.** The candidates are out: `v1.0.0-RC1` (13 Aug), `v1.0.0-RC2` (14 Aug), `v1.0.0-RC3` (24 Aug). The public surface is frozen as described in the [backward compatibility page](docs/guide/backward-compatibility.md), and the work that had to land *before* the freeze did: the 1.0 seams (`RenderContext`, `BlockDataResolverInterface`, collection `_id`, the `_` reserved prefix), the `Block.data` key unification, the kit's rich-text editors, the image-optimization seam, and the translation package.
 
 The translation package was deliberately sequenced last, on the theory that it was the one most likely to expose a missing core seam — and it did, twice: `RenderContext` had to grow a locale before the freeze, and the workbench needed a way to render a draft without the builder's chrome. Both landed additive, which is the outcome an RC is meant to secure *before* the promise is made rather than after. That question is now settled: the largest satellite anyone is likely to write has been written, and it needed nothing breaking.
 
-Versioning consequence: the unreleased work carries breaking changes (the `Block.data` key renames, the `BlockRendererInterface` signature), and `0.1.0-beta.1` promised those bump to `0.2`. Any tag cut before the RC is therefore `0.2.0-beta.x`, not `0.1.0-beta.8`.
+**Direction.** Every candidate so far was cut *because a host ran the previous one* — that is the whole point of the cycle, and a candidate that never gets re-tagged means nobody ran it. RC2 came out of the first two migrations (a block whose root is an `<a>` was unselectable in the builder; the bundle's own config example named a key the tree rejects). RC3 came out of the next one (a subclassed kit block received none of its configuration — and subclassing is exactly what a host does to keep a field the kit lacks, so the feature was unreachable where it mattered; plus `table` starting on an alignment its own form refuses).
 
-**Rough scope when picked up:**
+No candidate since RC1 has touched the shape of `block.data`: there is no content migration between candidates and no `content_version` bump.
+
+**What 1.0 is now waiting on:** the last host migration. Two of the three are on the RC — one through both steps (core up, then house blocks swapped for kit blocks), one with the majority of its colliding types running on kit code. The third is the one with real editorial volume, and it is the one whose findings RC2 and RC3 were meant to unblock. Whatever it turns up is either an RC4 or the go-ahead for the stable tag.
+
+**Rough scope:**
 - [x] The translation package, shipped and documented — backend, workbench, and the two core seams it needed
 - [x] Public-surface audit → freeze list + "experimental" markers — run; the outcome is the [backward compatibility page](docs/guide/backward-compatibility.md), and the markers are in the code. The audit found that **not one symbol across 222 PHP files was marked `@internal`, `@experimental` or `@deprecated`**, so tagging as-was would have frozen the 14 controllers, the DI internals, `BlockComponent` and every collaborator signature. Now marked; the four-event `cb:*` contract and all 90 `--cb-*` tokens are declared, the latter guarded by a CI drift check. (Working notes live in `FREEZE-AUDIT.md`, kept out of git via `.git/info/exclude`.)
 - [x] **`ContentAreaPublisherInterface` widened before the freeze.** `publish()` and `discardDraft()` take a nullable `PublishContext`; `null` is today's behaviour, so no call site changed. It carries a locale scope the i18n decorator reads, and its shape makes the dangerous ordering inexpressible — a locale can be held back, never pushed ahead of its source. The other seams needed nothing: the transfer walks take their translation observer by constructor injection, exactly as `SectionCloner` did
 - [x] Decide the kit's rich-text CDN default (see above) — **decided: keep it as it is.** A default is as frozen as a signature, and this one has run unchanged across all three hosts without a complaint; changing it at the freeze would be trading a known default for an unproven one
 - [x] ~~Upgrade guide (beta → stable) + verified migrations~~ — **descoped as a published document.** The package has exactly three hosts, all of them ours, and no third-party install. A public beta → stable guide would be written for nobody. The migrations still get verified — by doing them, against a migration runbook kept outside this repository: it names the hosts, their paths and their production volumes, which a public repository is no place for. Its journal is what would get published if an outside host ever appeared
-- [ ] Green CI on the full supported matrix (Symfony 6.4/7.x/8.x, PHP 8.2–8.4; PHPUnit + Vitest ×3 + Playwright ×2) — green as of [#19](https://github.com/klehm/content-blocks-project/pull/19) (27 checks), but this is a gate to re-run at tag time, not a box to tick once
-- [ ] Tag **`v1.0.0-RC1`**, let hosts run it. The `v` is not cosmetic: `ci.yml`
+- [x] Green CI on the full supported matrix (Symfony 6.4/7.x/8.x, PHP 8.2–8.4; PHPUnit + Vitest ×3 + Playwright ×2) — **a gate re-run at every tag, not a box ticked once.** The split job `needs` all eight test jobs, so a red matrix reaches neither the mirrors nor Packagist on its own
+- [x] Tag **`v1.0.0-RC1`**, let hosts run it. The `v` is not cosmetic: `ci.yml`
       triggers on `tags: ['v*']`, and the split job is what propagates a tag to
       the three read-only mirrors. A tag without it runs nothing and reaches
-      neither the mirrors nor Packagist
+      neither the mirrors nor Packagist. Distribution verified end to end from a
+      host: `composer require klehm/content-blocks:^1.0@RC` resolves from
+      Packagist under `minimum-stability: stable` + the `@RC` flag
+- [x] **`v1.0.0-RC2`** — the first two migrations' findings
+- [x] **`v1.0.0-RC3`** — a subclassed kit block gets its configuration; `table`'s
+      defaults are confronted with its own choice fields, so the whole family of
+      drift fails a test instead of waiting to be seen
+- [ ] The last host migration — the go/no-go for stable, and the source of an RC4 if there is one
 - [ ] Finalize docs site + stable release notes
 - [ ] Tag `v1.0.0`, verify Packagist split
 
