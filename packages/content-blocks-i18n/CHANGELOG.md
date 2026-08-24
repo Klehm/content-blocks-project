@@ -7,6 +7,13 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0-RC3] - 2026-08-24
+
+Version bump only — no functional change in `klehm/content-blocks-i18n`, and
+none in RC2 either. The tag is cut across the monorepo so the three packages
+stay installable as one set; see the `klehm/content-blocks-kit` CHANGELOG for
+what this candidate fixes.
+
 ## [1.0.0-RC1] - 2026-08-13
 
 First release of the content-translation satellite, shipped as part of the

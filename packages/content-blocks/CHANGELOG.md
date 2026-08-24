@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-RC3] - 2026-08-24
+
+Version bump only — no functional change in `klehm/content-blocks`. The tag is
+cut across the monorepo so the three packages stay installable as one set; the
+candidate's fixes are in `klehm/content-blocks-kit` (a subclassed block now
+receives its `options` / `choices` / `defaults`, and `table` no longer starts on
+an alignment its own form refuses). Nothing here touches the shape of
+`block.data`, so there is no content migration and no `content_version` bump
+between RC2 and RC3.
+
 ## [1.0.0-RC2] - 2026-08-14
 
 ### Fixed
