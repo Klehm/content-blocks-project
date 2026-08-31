@@ -74,6 +74,12 @@ final class ContentAreaPublisher implements ContentAreaPublisherInterface
     /** Accepts the context for the same reason {@see self::publish()} does. */
     public function discardDraft(ContentArea $area, ?PublishContext $context = null): void
     {
+        // Before anything is removed: a block dragged into another column has
+        // to go home first. The column it was dragged *into* may well be one
+        // of the brand-new ones the loop below deletes, and a block still
+        // sitting in that column would be cascaded away with it.
+        $this->restoreMovedBlocks($area);
+
         foreach ($area->getSections()->toArray() as $section) {
             // A section never published is a brand-new addition: drop it
             // entirely (Doctrine cascade removes its columns + blocks).
@@ -104,5 +110,41 @@ final class ContentAreaPublisher implements ContentAreaPublisherInterface
         }
 
         $this->em->flush();
+    }
+
+    /**
+     * Puts every draft-moved block back in the column it is published in.
+     *
+     * The published column is stored as a bare id, so resolving it is this
+     * class's job — it is already walking the whole area. A block whose
+     * published column has since disappeared (its section was deleted and
+     * published away in an earlier round) stays where it is: the move is all
+     * that is left of it.
+     */
+    private function restoreMovedBlocks(ContentArea $area): void
+    {
+        $columns = [];
+        $moved = [];
+
+        foreach ($area->getSections() as $section) {
+            foreach ($section->getColumns() as $column) {
+                $columns[$column->getId()] = $column;
+                foreach ($column->getBlocks() as $block) {
+                    if ($block->getPublishedColumnId() !== null) {
+                        $moved[] = $block;
+                    }
+                }
+            }
+        }
+
+        foreach ($moved as $block) {
+            $home = $columns[$block->getPublishedColumnId()] ?? null;
+            if ($home === null) {
+                $block->setPublishedColumnId(null);
+
+                continue;
+            }
+            $block->restoreTo($home);
+        }
     }
 }

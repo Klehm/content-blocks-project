@@ -90,6 +90,38 @@ column — in particular, the area stamp means *"last written under version N"*,
 not *"conforms to version N"*, and `NULL` means "predates versioning", which is
 not the same as `0`.
 
+### 1e. The published render becomes immutable — `Version20260831120000` <Badge type="danger" text="do not skip" />
+
+Public pages now show the **last published state and nothing else**, so that no
+action in the builder can change a live page before Publish. Two consequences
+need a migration.
+
+**`cb_block.published_column_id` (new, nullable).** Dragging a block into
+another column writes `column_id` immediately — that FK is what the builder, the
+preview and Doctrine's cascades navigate, so it is the *draft* location. This
+column is the note the block leaves behind saying where the public page should
+keep showing it until Publish. `NULL` everywhere means "not moved", which is
+what every existing row already is.
+
+**A backfill of `cb_section.published_at` / `cb_column.published_at`.** These
+columns were introduced without one, so rows that predate them carry `NULL`
+while being very much live — and a section without a `published_at` is now read
+as a draft addition and left off the public page. Left alone, those rows would
+**disappear from your live site the moment you deploy**. The migration stamps
+exactly the rows the old renderer put on the public page (every non-deleted
+section and column), so the live page after the upgrade is the live page before
+it, unchanged.
+
+::: warning Drafts that are open when you deploy
+Under the old behaviour an unpublished section was *already* on the live page,
+so the backfill stamps it as published too — that is what "freeze the current
+public page" means. If you would rather those additions stay pending, ask
+editors to Publish or Discard before you deploy.
+:::
+
+Nothing else is required: the behaviour change is in the renderer, and no host
+code, template or config refers to it.
+
 ```bash
 # after copying the migration(s) into your app and fixing the namespace
 php bin/console doctrine:migrations:migrate
@@ -412,8 +444,10 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
 ## Checklist
 
 - [ ] Copy + re-namespace `Version20260715120000` (kit data keys),
-      `Version20260715130000` (styling viewports) and `Version20260729120000`
-      (content-version columns); run `doctrine:migrations:migrate`.
+      `Version20260715130000` (styling viewports), `Version20260729120000`
+      (content-version columns) and **`Version20260831120000`** (published-render
+      immutability — skipping it hides already-live sections); run
+      `doctrine:migrations:migrate`.
 - [ ] (Pre-beta.6 only) add `cb_content_area.updated_at` via `Version20260518120000`.
 - [ ] Rename `content_blocks.styles` → `section_styles` and `upload.dir` → `upload.directory`.
 - [ ] Spell out `d`/`t`/`m` → `desktop`/`tablet`/`mobile` in any preset `settings`.

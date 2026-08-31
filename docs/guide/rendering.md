@@ -31,6 +31,27 @@ Render-mode is auto-detected from the request:
 
 See [host services](./host-services.md#accesscheckerinterface-authorization) for `AccessCheckerInterface`, and [Security](./security.md#cross-firewall-auth-detection) for the cross-firewall gotcha that can silently keep the iframe in public mode.
 
+### What "public mode" reads
+
+Public mode renders the **last published state and nothing else**. Concretely, a
+section or column is on the page only once it carries a `published_at`, a block
+only once it has `published_data`, and each is placed at its published
+`position`, in its published column, with its published settings.
+
+Draft state is invisible here — **including the draft `deleted` flag**.
+Soft-deleting is an intent to remove at the next Publish, not a removal, so the
+public page keeps serving the block until then. The same goes for a block
+dragged into another column: the drag writes the column FK straight away (that
+is the draft location), and `published_column_id` remembers where the public
+page should keep showing it.
+
+That is the whole guarantee, and it is worth stating plainly: **no action in the
+builder changes the published page.** An editor can add, delete, reorder, drag
+across columns, restyle, insert another page's content or paste a whole section,
+and visitors keep seeing exactly what they saw before the builder was opened —
+until Publish. `tests/Rendering/PublishedRenderImmutabilityTest.php` and
+`assets/test/e2e/published-render-immutability.spec.js` hold the package to it.
+
 ### Draft content without the editing chrome
 
 Preview mode decides two things at once: **which data** is rendered (draft) and

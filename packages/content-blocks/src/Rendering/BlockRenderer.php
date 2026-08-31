@@ -21,7 +21,14 @@ use Twig\Environment;
 /**
  * Renders a ContentArea for the front-end.
  *
- * In PUBLIC mode: only published, non-deleted content, ordered by position.
+ * In PUBLIC mode: the last published state and nothing else — published
+ * entities only (a Section/Column with a publishedAt, a Block with
+ * publishedData), published payloads, published positions, published column
+ * membership. Draft state is invisible here *including the draft `deleted`
+ * flag*: soft-deleting is an intent to remove at the next Publish, not a
+ * removal, so the public page keeps serving the block until then. This is what
+ * makes the published render immutable across a whole builder session.
+ *
  * In PREVIEW mode: draft data merged in, soft-deleted entities included with a
  * marker, ordered by previewPosition. The PREVIEW HTML also embeds the overlay
  * JS bridge so the parent admin window can react to user interactions.
@@ -174,18 +181,55 @@ final class BlockRenderer implements BlockRendererInterface
         $sections = $area->getSections()->toArray();
 
         if ($context->mode === RenderMode::PUBLIC) {
-            $sections = array_values(array_filter($sections, fn (Section $s) => !$s->isDeleted()));
+            $sections = array_values(array_filter($sections, fn (Section $s) => $s->isPublished()));
             usort($sections, fn (Section $a, Section $b) => $a->getPosition() <=> $b->getPosition());
         } else {
             usort($sections, fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
         }
 
+        $buckets = $context->mode === RenderMode::PUBLIC ? $this->publishedColumnBuckets($area) : [];
+
         $out = [];
         foreach ($sections as $section) {
-            $out[] = $this->buildSectionViewModel($section, $context);
+            $out[] = $this->buildSectionViewModel($section, $context, $buckets);
         }
 
         return $out;
+    }
+
+    /**
+     * Where the public page puts each block, keyed by column id.
+     *
+     * A cross-column drag writes the block's column FK straight away — it is
+     * the draft location. `publishedColumnId` remembers the column the block
+     * was published in, so the public page can keep showing it there until
+     * Publish. Returns `[]` when no block in the area carries one, which is
+     * the overwhelmingly common case: callers then read each column's own
+     * collection, exactly as before this existed.
+     *
+     * @return array<int, list<Block>>
+     */
+    private function publishedColumnBuckets(ContentArea $area): array
+    {
+        $moved = false;
+        $buckets = [];
+
+        foreach ($area->getSections() as $section) {
+            foreach ($section->getColumns() as $column) {
+                $buckets[$column->getId()] ??= [];
+                foreach ($column->getBlocks() as $block) {
+                    $home = $block->getPublishedColumnId();
+                    if ($home === null) {
+                        $home = $column->getId();
+                    } else {
+                        $moved = true;
+                    }
+                    $buckets[$home][] = $block;
+                }
+            }
+        }
+
+        return $moved ? $buckets : [];
     }
 
     /**
@@ -196,9 +240,20 @@ final class BlockRenderer implements BlockRendererInterface
      *
      * @return array{id: ?int, layout: string, deleted: bool, extraClasses: string, inlineStyle: string, extraAttributes: array<string, string>, columns: list<array<string, mixed>>}
      */
-    private function buildSectionViewModel(Section $section, RenderContext $context): array
+    private function buildSectionViewModel(Section $section, RenderContext $context, ?array $buckets = null): array
     {
-        $sectionDeleted = $section->isDeleted();
+        // Standalone entry point (renderSection): resolve the area's moved
+        // blocks ourselves. Inside a full area render the caller already did.
+        if ($buckets === null) {
+            $area = $context->mode === RenderMode::PUBLIC ? $section->getContentArea() : null;
+            $buckets = $area !== null ? $this->publishedColumnBuckets($area) : [];
+        }
+
+        // `deleted` is a draft flag, and the templates leave a flagged
+        // subtree out whenever they render without the chrome. In PUBLIC that
+        // would be the leak all over again: the block is still published, so
+        // it is still on the page until Publish commits the removal.
+        $sectionDeleted = $context->mode === RenderMode::PREVIEW && $section->isDeleted();
         $settings = $section->getEffectiveSettings(preferDraft: $context->mode === RenderMode::PREVIEW);
         // Style presets can carry settings values (padding, background…):
         // they apply as the base layer, the section's own saved settings win
@@ -218,7 +273,7 @@ final class BlockRenderer implements BlockRendererInterface
             'extraClasses' => $decoration->classString(),
             'inlineStyle' => $decoration->styleString(),
             'extraAttributes' => $decoration->attributes,
-            'columns' => $this->buildColumnTree($section, $context, $sectionDeleted, $settings['columnWidths'] ?? null),
+            'columns' => $this->buildColumnTree($section, $context, $sectionDeleted, $settings['columnWidths'] ?? null, $buckets),
         ];
     }
 
@@ -253,12 +308,12 @@ final class BlockRenderer implements BlockRendererInterface
      *
      * @return list<array{id: ?int, preset: string, deleted: bool, width: ?int, blocks: list<array<string, mixed>>}>
      */
-    private function buildColumnTree(Section $section, RenderContext $context, bool $parentDeleted, mixed $columnWidths = null): array
+    private function buildColumnTree(Section $section, RenderContext $context, bool $parentDeleted, mixed $columnWidths = null, array $buckets = []): array
     {
         $columns = $section->getColumns()->toArray();
 
         if ($context->mode === RenderMode::PUBLIC) {
-            $columns = array_values(array_filter($columns, fn (Column $c) => !$c->isDeleted()));
+            $columns = array_values(array_filter($columns, fn (Column $c) => $c->isPublished()));
             usort($columns, fn (Column $a, Column $b) => $a->getPosition() <=> $b->getPosition());
         } else {
             usort($columns, fn (Column $a, Column $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
@@ -268,13 +323,13 @@ final class BlockRenderer implements BlockRendererInterface
 
         $out = [];
         foreach ($columns as $i => $column) {
-            $columnDeleted = $parentDeleted || $column->isDeleted();
+            $columnDeleted = $parentDeleted || ($context->mode === RenderMode::PREVIEW && $column->isDeleted());
             $out[] = [
                 'id' => $column->getId(),
                 'preset' => $column->getPreset(),
                 'deleted' => $columnDeleted,
                 'width' => $widths[$i] ?? null,
-                'blocks' => $this->buildBlockList($column, $context, $columnDeleted),
+                'blocks' => $this->buildBlockList($column, $context, $columnDeleted, $buckets),
             ];
         }
 
@@ -319,14 +374,14 @@ final class BlockRenderer implements BlockRendererInterface
     /**
      * @return list<array{id: ?int, type: string, data: array<string, mixed>, viewTemplate: ?string, deleted: bool}>
      */
-    private function buildBlockList(Column $column, RenderContext $context, bool $parentDeleted): array
+    private function buildBlockList(Column $column, RenderContext $context, bool $parentDeleted, array $buckets = []): array
     {
-        $blocks = $column->getBlocks()->toArray();
+        $blocks = $buckets === [] ? $column->getBlocks()->toArray() : ($buckets[$column->getId()] ?? []);
 
         if ($context->mode === RenderMode::PUBLIC) {
             $blocks = array_values(array_filter(
                 $blocks,
-                fn (Block $b) => !$b->isDeleted() && $b->getPublishedData() !== null,
+                fn (Block $b) => $b->getPublishedData() !== null,
             ));
             usort($blocks, fn (Block $a, Block $b) => $a->getPosition() <=> $b->getPosition());
         } else {
@@ -375,7 +430,7 @@ final class BlockRenderer implements BlockRendererInterface
             'type' => $block->getType(),
             'data' => $data,
             'viewTemplate' => $blockType?->getViewTemplate(),
-            'deleted' => $parentDeleted || $block->isDeleted(),
+            'deleted' => $parentDeleted || ($context->mode === RenderMode::PREVIEW && $block->isDeleted()),
             'extraClasses' => $decoration->classString(),
             'inlineStyle' => $decoration->styleString(),
             'extraAttributes' => $decoration->attributes,

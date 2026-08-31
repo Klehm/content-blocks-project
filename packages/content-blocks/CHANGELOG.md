@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The published page no longer changes while someone edits it.** Reported from
+  a live site: an editor rearranged a page without publishing, and the public
+  page changed under them — into something matching neither the previously
+  published page nor the builder. Pressing Publish then "fixed" it, which is the
+  tell: the public render was reading draft state.
+
+  It was reading three kinds of it. The **draft `deleted` flag** was honoured, so
+  deleting a block or a section took it off the live site immediately — a soft
+  delete is an intent to remove at the next Publish, not a removal. **Sections
+  and columns that had never been published** were rendered, so adding a section,
+  duplicating one, applying a section template, pasting, importing or using
+  "Insert content" dropped an empty section onto the live page — at `position` 0,
+  ahead of everything, which is why the result matched no view of the page. And a
+  block **dragged into another column** moved on the live page at once, because
+  the drag writes the column FK, which the public render followed.
+
+  Public mode now renders the last published state and nothing else: entities
+  with a `published_at` / `published_data`, at their published positions, in
+  their published columns, with their published settings. `Block` gained
+  `published_column_id` to remember where a dragged block is published, and
+  Discard now puts such a block back where it came from (it previously could
+  not, and the move survived the discard).
+
+  Two suites hold the package to it end to end — one exercising every builder
+  controller against a rendered public page, one driving the real builder in a
+  browser and diffing the public markup byte for byte.
+
+  ::: warning Migration required
+  `Version20260831120000` adds the column **and backfills `published_at`** on
+  sections and columns that predate it. Without the backfill those rows read as
+  unpublished and vanish from live pages. See the
+  [upgrade guide](https://klehm.github.io/content-blocks-project/guide/upgrade).
+  :::
+
 ## [1.0.0-RC3] - 2026-08-24
 
 Version bump only — no functional change in `klehm/content-blocks`. The tag is
