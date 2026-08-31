@@ -94,7 +94,7 @@ Not obviously urgent, and deliberately not decided here. It only needs settling 
 
 ## Release — the RC cycle, then 1.0 🅿️
 
-**Context.** The candidates are out: `v1.0.0-RC1` (13 Aug), `v1.0.0-RC2` (14 Aug), `v1.0.0-RC3` (24 Aug). The public surface is frozen as described in the [backward compatibility page](docs/guide/backward-compatibility.md), and the work that had to land *before* the freeze did: the 1.0 seams (`RenderContext`, `BlockDataResolverInterface`, collection `_id`, the `_` reserved prefix), the `Block.data` key unification, the kit's rich-text editors, the image-optimization seam, and the translation package.
+**Context.** The candidates are out: `v1.0.0-RC1` (13 Aug), `v1.0.0-RC2` (14 Aug), `v1.0.0-RC3` (24 Aug), `v1.0.0-RC4` (31 Aug). The public surface is frozen as described in the [backward compatibility page](docs/guide/backward-compatibility.md), and the work that had to land *before* the freeze did: the 1.0 seams (`RenderContext`, `BlockDataResolverInterface`, collection `_id`, the `_` reserved prefix), the `Block.data` key unification, the kit's rich-text editors, the image-optimization seam, and the translation package.
 
 The translation package was deliberately sequenced last, on the theory that it was the one most likely to expose a missing core seam — and it did, twice: `RenderContext` had to grow a locale before the freeze, and the workbench needed a way to render a draft without the builder's chrome. Both landed additive, which is the outcome an RC is meant to secure *before* the promise is made rather than after. That question is now settled: the largest satellite anyone is likely to write has been written, and it needed nothing breaking.
 
@@ -102,7 +102,11 @@ The translation package was deliberately sequenced last, on the theory that it w
 
 No candidate since RC1 has touched the shape of `block.data`: there is no content migration between candidates and no `content_version` bump.
 
-**What 1.0 is now waiting on:** the last host migration. Two of the three are on the RC — one through both steps (core up, then house blocks swapped for kit blocks), one with the majority of its colliding types running on kit code. The third is the one with real editorial volume, and it is the one whose findings RC2 and RC3 were meant to unblock. Whatever it turns up is either an RC4 or the go-ahead for the stable tag.
+RC4 came out of the third one, and it is the one candidate so far that was worth the whole cycle on its own. An editor rearranged a page **without publishing** and watched the live page change under them, into a shape that matched neither the published page nor the builder. Three separate reads of draft state in the public render, all of them there since the renderer's first commit in April, none of them caught by a beta line's worth of tests — because no test ever compared the public page across a builder action. Two suites now do, one per controller and one through a real browser.
+
+That is the value the cycle is supposed to produce, and it is worth saying plainly: no amount of reading the renderer found this. Running it on a page somebody cared about did.
+
+**What 1.0 is now waiting on:** the rest of that third migration. Two of the three hosts are on the RC — one through both steps (core up, then house blocks swapped for kit blocks), one with the majority of its colliding types running on kit code. The third is the one with real editorial volume; it is now on RC4, with the migration to apply and the pages to re-check. Whatever it turns up next is either an RC5 or the go-ahead for the stable tag.
 
 **Rough scope:**
 - [x] The translation package, shipped and documented — backend, workbench, and the two core seams it needed
@@ -121,7 +125,12 @@ No candidate since RC1 has touched the shape of `block.data`: there is no conten
 - [x] **`v1.0.0-RC3`** — a subclassed kit block gets its configuration; `table`'s
       defaults are confronted with its own choice fields, so the whole family of
       drift fails a test instead of waiting to be seen
-- [ ] The last host migration — the go/no-go for stable, and the source of an RC4 if there is one
+- [x] **`v1.0.0-RC4`** — the published render is immutable until Publish. The
+      public page was reading three kinds of draft state (the `deleted` flag,
+      sections never published, a block's dragged-to column), so a builder
+      session edited the live site. Needs a migration: a new column, and a
+      `published_at` backfill without which already-live sections vanish
+- [ ] The last host migration, finished — the go/no-go for stable, and the source of an RC5 if there is one
 - [ ] Finalize docs site + stable release notes
 - [ ] Tag `v1.0.0`, verify Packagist split
 
