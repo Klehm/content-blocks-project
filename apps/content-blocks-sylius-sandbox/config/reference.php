@@ -1089,7 +1089,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     blocks?: array<string, array{ // Default: []
  *         enabled?: bool|Param, // Default: true
  *         options?: mixed, // Block-specific knobs (e.g. max_columns); merged over the block's coded defaults. // Default: []
- *         choices?: mixed, // Per-field allow-list restricting/reordering a ChoiceType field, keyed by field name (e.g. { variant: [primary, secondary] }). Unknown values are ignored. // Default: []
+ *         choices?: mixed, // Per-field choice override, keyed by field name. A list restricts/reorders the coded set and ignores unknown values ({ variant: [primary, secondary] }); a value:label map replaces it outright and may add values ({ variant: { ghost: "Ghost" } }). // Default: []
  *         defaults?: mixed, // Per-field overrides of the block's initial data, keyed by field name (e.g. { align: center }). // Default: []
  *     }>,
  * }
