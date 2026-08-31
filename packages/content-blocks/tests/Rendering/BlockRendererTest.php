@@ -34,19 +34,25 @@ use Twig\Loader\FilesystemLoader;
 final class BlockRendererTest extends TestCase
 {
     /**
-     * Public mode strips deleted entities, blocks without publishedData, and
-     * orders by `position` (not previewPosition).
+     * Public mode shows the last published state: published blocks, at their
+     * published `position` (not previewPosition).
+     *
+     * A soft-deleted block is still one of them. `deleted` is a draft flag —
+     * an intent to remove at the next Publish — so honouring it here would
+     * mean an editor pressing Delete edits the live site, which is precisely
+     * what {@see PublishedRenderImmutabilityTest} exists to forbid.
      */
-    public function testPublicModeFiltersAndOrdersByPosition(): void
+    public function testPublicModeShowsPublishedStateAndOrdersByPosition(): void
     {
         $area = $this->makeArea();
 
         $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
         $column = $this->makeColumn($section, position: 0, previewPosition: 0);
 
-        // Three blocks: one published, one deleted (soft), one never published.
+        // Three blocks: one published, one published then soft-deleted, one
+        // never published.
         $published = $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Visible'], position: 0, previewPosition: 0);
-        $deleted = $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Old'], position: 1, previewPosition: 1);
+        $deleted = $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Doomed'], position: 1, previewPosition: 1);
         $deleted->setDeleted(true);
         $neverPublished = $this->makeBlock($column, type: 'text', publishedData: null, draftData: ['title' => 'Pending'], position: 2, previewPosition: 2);
 
@@ -54,12 +60,68 @@ final class BlockRendererTest extends TestCase
         $html = $renderer->render($area, new RenderContext(RenderMode::PUBLIC));
 
         $this->assertStringContainsString('Visible', $html);
-        $this->assertStringNotContainsString('Old', $html);
+        $this->assertStringContainsString('Doomed', $html);
         $this->assertStringNotContainsString('Pending', $html);
+        // …and without the draft marker: nothing on a public page is "pending".
+        $this->assertStringNotContainsString('data-cb-deleted', $html);
 
         // No preview markers / overlay script in public mode.
         $this->assertStringNotContainsString('data-cb-block-id', $html);
         $this->assertStringNotContainsString('preview-overlay', $html);
+    }
+
+    /**
+     * A section (and its columns) added in the builder is not on the public
+     * page until Publish stamps it — otherwise adding one would drop an empty
+     * section onto the live site, at position 0, ahead of everything.
+     */
+    public function testPublicModeSkipsSectionsAndColumnsThatWereNeverPublished(): void
+    {
+        $area = $this->makeArea();
+
+        $live = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $liveColumn = $this->makeColumn($live, position: 0, previewPosition: 0);
+        $this->makeBlock($liveColumn, type: 'text', publishedData: ['title' => 'Live'], position: 0, previewPosition: 0);
+
+        $fresh = $this->makeSection($area, layout: Section::LAYOUT_TWO_COLS, position: 0, previewPosition: 1, published: false);
+        $freshColumn = $this->makeColumn($fresh, position: 0, previewPosition: 0, published: false);
+        $this->makeBlock($freshColumn, type: 'text', publishedData: null, draftData: ['title' => 'Draft'], position: 0, previewPosition: 0);
+
+        $html = $this->makeRenderer(mode: RenderMode::PUBLIC)->render($area, new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertStringContainsString('Live', $html);
+        $this->assertStringNotContainsString('Draft', $html);
+        $this->assertSame(1, substr_count($html, '<section'), 'the unpublished section has no wrapper on the public page either');
+    }
+
+    /**
+     * A published block dragged into another column keeps its published home
+     * on the public page — the drag writes the column FK, which is the draft
+     * location, and `publishedColumnId` is the note it leaves behind.
+     */
+    public function testPublicModeKeepsADraggedBlockInThePublishedColumn(): void
+    {
+        $area = $this->makeArea();
+
+        $section = $this->makeSection($area, layout: Section::LAYOUT_TWO_COLS, position: 0, previewPosition: 0);
+        $left = $this->makeColumn($section, position: 0, previewPosition: 0, id: 201);
+        $right = $this->makeColumn($section, position: 1, previewPosition: 1, id: 202);
+
+        $this->makeBlock($left, type: 'text', publishedData: ['title' => 'Stay'], position: 0, previewPosition: 0);
+        $dragged = $this->makeBlock($left, type: 'text', publishedData: ['title' => 'Dragged'], position: 1, previewPosition: 1);
+        $dragged->moveTo($right);
+
+        $html = $this->makeRenderer(mode: RenderMode::PUBLIC)->render($area, new RenderContext(RenderMode::PUBLIC));
+
+        $columns = explode('<div class="cb-col', $html);
+        $this->assertStringContainsString('Dragged', $columns[1], 'still in the left column publicly');
+        $this->assertStringNotContainsString('Dragged', $columns[2]);
+
+        // …while the builder shows it where the editor dropped it.
+        $preview = $this->makeRenderer(mode: RenderMode::PREVIEW)->render($area, new RenderContext(RenderMode::PREVIEW));
+        $previewColumns = explode('<div class="cb-col', $preview);
+        $this->assertStringNotContainsString('Dragged', $previewColumns[1]);
+        $this->assertStringContainsString('Dragged', $previewColumns[2]);
     }
 
     /**
@@ -790,7 +852,7 @@ final class BlockRendererTest extends TestCase
         return $area;
     }
 
-    private function makeSection(ContentArea $area, string $layout, int $position, int $previewPosition, ?int $id = null): Section
+    private function makeSection(ContentArea $area, string $layout, int $position, int $previewPosition, ?int $id = null, bool $published = true): Section
     {
         static $auto = 100;
         $section = new Section();
@@ -799,10 +861,13 @@ final class BlockRendererTest extends TestCase
         $section->setPreviewPosition($previewPosition);
         $area->addSection($section);
         $this->setId($section, $id ?? $auto++);
+        if ($published) {
+            $this->markPublished($section);
+        }
         return $section;
     }
 
-    private function makeColumn(Section $section, int $position, int $previewPosition, ?int $id = null): Column
+    private function makeColumn(Section $section, int $position, int $previewPosition, ?int $id = null, bool $published = true): Column
     {
         static $auto = 200;
         $column = new Column();
@@ -810,7 +875,17 @@ final class BlockRendererTest extends TestCase
         $column->setPreviewPosition($previewPosition);
         $section->addColumn($column);
         $this->setId($column, $id ?? $auto++);
+        if ($published) {
+            $this->markPublished($column);
+        }
         return $column;
+    }
+
+    /** Stamps publishedAt, the way Section/Column::publish() does. */
+    private function markPublished(Section|Column $entity): void
+    {
+        (new \ReflectionProperty($entity::class, 'publishedAt'))
+            ->setValue($entity, new \DateTimeImmutable('2026-01-01 00:00:00'));
     }
 
     /**

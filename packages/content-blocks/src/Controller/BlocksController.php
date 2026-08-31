@@ -170,7 +170,10 @@ final class BlocksController
             usort($sourceBlocks, fn (Block $a, Block $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
             $this->reindexPreview($sourceBlocks);
 
-            $block->setColumn($target);
+            // moveTo(), not setColumn(): the FK is the *draft* location, so a
+            // published block has to leave a note saying which column the
+            // public page should keep showing it in until Publish.
+            $block->moveTo($target);
         }
 
         $targetBlocks = array_values(array_filter(

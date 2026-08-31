@@ -112,6 +112,36 @@ ContentArea → Section → Column → Block
 - **Block.type** : identifiant du BlockType (ex: `text`, `title`, `image`)
 - **Block.data** : JSON libre, structure dépend du type de bloc
 
+### Draft / publié — le rendu public est immuable
+
+**Aucune action du builder ne change la page publiée.** Le mode PUBLIC ne lit que
+l'état publié : une Section/Column n'est sur la page qu'une fois `published_at`
+posé, un Block qu'une fois `published_data` écrit, chacun à sa `position`
+publiée, dans sa colonne publiée, avec ses settings publiés. Chaque champ
+mutable a son jumeau draft — `position`/`previewPosition`,
+`publishedData`/`draftData`, `publishedSettings`/`draftSettings` — et la règle
+tient tant que **rien n'écrit un champ publié hors de `publish()`**.
+
+Deux pièges que ça a coûté (RC3, remontés d'un site en prod) :
+- **`deleted` est un drapeau draft**, pas une suppression. Le rendu public
+  l'ignore : supprimer un bloc n'enlève rien de la page en ligne avant Publish.
+  Le rendu public ne pose jamais le drapeau non plus (les templates élaguent un
+  sous-arbre marqué dès que `chrome` est faux — ce qui est juste pour la preview
+  `cb_chrome=0`, et serait la fuite en public).
+- **La FK `Block.column` est la position draft** : un glisser-déposer entre
+  colonnes l'écrit tout de suite, parce que c'est elle que le builder, la preview
+  et les cascades Doctrine parcourent. `published_column_id` retient la colonne
+  publiée ; `Block::moveTo()` la pose, `restoreTo()` (appelé par le publisher au
+  Discard) la reprend. Les deux synchronisent les deux côtés de l'association —
+  Doctrine annule l'orphan removal quand l'entité rejoint une autre collection,
+  donc l'ordre `removeElement` puis `add` est ce qui garde le bloc vivant.
+
+Filet : `tests/Rendering/PublishedRenderImmutabilityTest.php` (chaque contrôleur
+du builder contre un rendu public snapshoté) et
+`assets/test/e2e/published-render-immutability.spec.js` (le vrai builder, la
+vraie page publique, comparaison octet pour octet). Toute nouvelle action de
+builder s'y ajoute.
+
 ## Système de Blocs
 
 ### Principe
