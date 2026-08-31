@@ -7,6 +7,19 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0-RC4] - 2026-08-31
+
+Version bump only — no functional change in `klehm/content-blocks-i18n`. The tag
+is cut across the monorepo so the three packages stay installable as one set;
+this candidate's fix is in `klehm/content-blocks` — the published page no longer
+changes while someone edits it. **It needs a migration**: see that package's
+CHANGELOG and the [upgrade guide](https://klehm.github.io/content-blocks-project/guide/upgrade).
+
+Worth knowing here, since translations key off block ids: a block dragged
+between columns now keeps its id through a Discard instead of staying put in its
+new column, so its rows in `cb_block_translation` follow the block the editor
+actually sees.
+
 ## [1.0.0-RC3] - 2026-08-24
 
 Version bump only — no functional change in `klehm/content-blocks-i18n`, and

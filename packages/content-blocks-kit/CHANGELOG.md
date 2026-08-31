@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-RC4] - 2026-08-31
+
+Version bump only — no functional change in `klehm/content-blocks-kit`. The tag
+is cut across the monorepo so the three packages stay installable as one set;
+this candidate's fix is in `klehm/content-blocks` — the published page no longer
+changes while someone edits it. **It needs a migration**: see that package's
+CHANGELOG and the [upgrade guide](https://klehm.github.io/content-blocks-project/guide/upgrade).
+
 ## [1.0.0-RC3] - 2026-08-24
 
 ### Fixed
