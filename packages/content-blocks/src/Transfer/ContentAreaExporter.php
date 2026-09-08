@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Transfer;
 
+use ContentBlocks\Asset\AssetReferenceCollector;
 use ContentBlocks\Asset\AssetResolverInterface;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
@@ -17,10 +18,14 @@ use ContentBlocks\Entity\Section;
  */
 final class ContentAreaExporter implements ContentAreaExporterInterface
 {
+    private readonly AssetReferenceCollector $collector;
+
     public function __construct(
         private readonly AssetResolverInterface $assetResolver,
         private readonly int $contentVersion = 1,
+        ?AssetReferenceCollector $collector = null,
     ) {
+        $this->collector = $collector ?? new AssetReferenceCollector($assetResolver);
     }
 
     /**
@@ -108,25 +113,30 @@ final class ContentAreaExporter implements ContentAreaExporterInterface
     }
 
     /**
-     * Recursively walks an array, replacing every string that the resolver
-     * recognizes as a stored asset with an `asset://{hash}` token and
-     * registering the binary under that hash in $assets.
+     * Replaces every asset reference in the payload with an `asset://{hash}`
+     * token and registers the binary under that hash in $assets.
+     *
+     * Finding the references is {@see AssetReferenceCollector}'s job, shared
+     * with the garbage collector so the two cannot disagree about what counts
+     * as a reference. That includes paths embedded in rich-text markup, which
+     * are replaced in place — the surrounding `<img src="…">` survives.
      *
      * @param array<string, mixed> $assets
      */
     private function walkAssets(mixed $value, array &$assets): mixed
     {
-        if (is_string($value) && $this->assetResolver->isAssetPath($value)) {
-            $binary = $this->assetResolver->read($value);
+        return $this->collector->map($value, function (string $path) use (&$assets): string {
+            $binary = $this->assetResolver->read($path);
             if ($binary === null) {
                 // Missing on disk — keep the original path so the import
                 // side at least sees a reference rather than silently
                 // dropping the field.
-                return $value;
+                return $path;
             }
+
             $hash = hash('sha256', $binary);
             if (!isset($assets[$hash])) {
-                $extension = pathinfo($value, PATHINFO_EXTENSION);
+                $extension = pathinfo($path, PATHINFO_EXTENSION);
                 $assets[$hash] = [
                     'mimeType' => $this->guessMime($binary),
                     'extension' => is_string($extension) && $extension !== '' ? $extension : 'bin',
@@ -135,18 +145,7 @@ final class ContentAreaExporter implements ContentAreaExporterInterface
             }
 
             return 'asset://' . $hash;
-        }
-
-        if (is_array($value)) {
-            $out = [];
-            foreach ($value as $k => $v) {
-                $out[$k] = $this->walkAssets($v, $assets);
-            }
-
-            return $out;
-        }
-
-        return $value;
+        });
     }
 
     private function guessMime(string $binary): string

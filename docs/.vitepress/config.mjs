@@ -65,6 +65,7 @@ export default defineConfig({
             { text: 'Custom blocks', link: '/guide/custom-blocks' },
             { text: 'Translation (i18n)', link: '/guide/translation' },
             { text: 'Content versioning', link: '/guide/content-versioning' },
+            { text: 'Asset lifecycle', link: '/guide/asset-lifecycle' },
           ],
         },
         {

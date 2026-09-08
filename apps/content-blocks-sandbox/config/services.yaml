@@ -22,6 +22,12 @@ services:
     ContentBlocks\SectionTemplate\SectionTemplateManagerInterface:
         class: ContentBlocks\SectionTemplate\AllowAllSectionTemplateManager
 
+    # Override ContentBlocks default (DenyAll) so /_content-blocks/assets/report
+    # is reachable in the sandbox. In a real host this asks the authorization
+    # layer — the report spans every area in the install.
+    ContentBlocks\Asset\AssetReportViewerInterface:
+        class: ContentBlocks\Asset\AllowAllAssetReportViewer
+
     # Maps a ContentArea to its public URL (used by the iframe preview)
     ContentBlocks\Preview\ContentAreaUrlResolverInterface:
         class: App\Preview\PageContentAreaUrlResolver

@@ -394,6 +394,49 @@ content_blocks:
 
 Pour S3/Flysystem : aliaser `FileStorageInterface` vers sa propre implémentation. Côté formulaire, `ImageUploadType` (core) rend le picker + preview via le widget `cb_image_upload` de `cb_form_theme.html.twig`. Le widget encadre sa preview dans une **drop zone** pointillée, avec une rangée d'actions dessous : *Choisir une image*, *Retirer* (seulement s'il y a une valeur), et un toggle 🔗 qui révèle le chemin brut. Trois entrées, un seul écrivain (`_setValue`) : picker, drop (même endpoint / token CSRF / limites ; compteur de profondeur pour que le surlignage survive au survol des enfants, interception uniquement des drags porteurs de fichiers, filtrage client sur le `accept`), et **collage de chemin** — aucun upload, valeur stockée telle quelle sauf une URL absolue sur l'origine du builder, réduite à son path. Une telle valeur vit hors de `FileStorageInterface` : l'export/import ne l'embarque pas. L'export/import d'assets passe par `FileStorageAssetResolver` (core), branché par défaut sur `AssetResolverInterface`.
 
+### Cycle de vie des assets — on ne supprime jamais en réaction à une action éditeur
+
+Supprimer un bloc ne supprime pas son fichier, et Publier non plus. Ce n'est pas
+un oubli : `deleted` est un **drapeau draft**, donc la page publiée rend encore
+ce bloc et Discard le ressuscite — délier le fichier là casserait une page en
+ligne. Et même au Publish, le fichier peut rester atteignable par le jumeau
+publié/draft, par un autre bloc après un copier/coller (le presse-papier
+duplique le **chemin** : deux blocs, un fichier), par une autre zone après un
+Insert content, par un `cb_section_template` (payload = chemins en clair), par
+une ligne i18n, ou par l'hôte lui-même. Tout compteur de références calculé à la
+suppression est donc soit faux, soit aussi coûteux que le scan complet.
+
+D'où **mark & sweep explicite** : `content-blocks:assets:gc` (rapport par
+défaut, `--force` pour supprimer, `--retention=30` jours, `--format=json`). Deux
+propriétés portent la sûreté — l'inventaire est **snapshoté avant** le marquage
+(un upload concurrent n'est pas dans le snapshot, donc insweepable), et la
+fenêtre de rétention couvre la vraie course : `/_content-blocks/upload` écrit le
+fichier dès que l'éditeur le choisit, des minutes avant que le form du bloc ne
+soit soumis. Aucun scheduler livré. Page de rapport **lecture seule** à
+`/_content-blocks/assets/report` (404 par défaut, sans bouton supprimer : le
+geste destructeur reste au shell).
+
+Trois seams additifs : `AssetInventoryInterface` (énumération — volontairement
+**pas** ajoutée à `FileStorageInterface`, que les hôtes aliasent ;
+`LocalFileStorage` l'implémente), `AssetReferenceProviderInterface`
+(autoconfiguré ; les deux sources du core y passent aussi, donc un provider
+hôte est à égalité) et `AssetReportViewerInterface` (capacité globale sans
+`ContentArea`, même forme que `SectionTemplateManagerInterface`).
+
+**`AssetReferenceCollector` est la définition unique de « cette chaîne référence
+un fichier »**, partagée avec l'exporteur — un détecteur qui en voit moins que
+l'exporteur perd un fichier à l'export, un qui en voit moins que la réalité en
+supprime un vivant. Il reconnaît trois formes, toutes présentes en données
+réelles : valeur entière, **enchâssée dans du markup** (`<img src="/uploads/…">`
+— invisible avant, d'où les images rich-text absentes des exports) et
+**enchâssée *et* relative** (`../../uploads/…`, ce que TinyMCE écrit vraiment,
+`relative_urls` étant actif par défaut : c'est le cas normal, pas un cas
+limite). Piège à connaître avant de toucher aux providers : l'hydratation
+scalaire de Doctrine **ne convertit pas** le type `json` — les colonnes
+reviennent en chaîne brute, d'où `JsonPayload::decode()`. Un `is_array()` naïf y
+faisait rapporter *zéro* référence, ce qui en balayage veut dire « tout
+supprimer ». Doc : [docs/guide/asset-lifecycle.md](docs/guide/asset-lifecycle.md).
+
 ## Choix Techniques
 
 - **Doctrine ORM** pour la persistance

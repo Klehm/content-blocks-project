@@ -164,6 +164,56 @@ final class ContentAreaImporterTest extends TestCase
         $this->assertSame('/uploads/imported-1.png', $block->getDraftData()['src']);
     }
 
+    /**
+     * The other half of the rich-text fix: the exporter now emits tokens
+     * *inside* markup, so the importer has to substitute them in place instead
+     * of only recognizing a token that is the whole value.
+     */
+    public function testImportRewritesAssetTokensEmbeddedInMarkup(): void
+    {
+        $binary = 'inline-bytes';
+        $hash = hash('sha256', $binary);
+        $payload = $this->makePayload(
+            [[
+                'layout' => Section::LAYOUT_FULL,
+                'columns' => [[
+                    'preset' => 'col-12',
+                    'blocks' => [[
+                        'type' => 'text',
+                        'data' => ['content' => '<p>Hi</p><img src="asset://' . $hash . '" alt="Hero">'],
+                    ]],
+                ]],
+            ]],
+            [$hash => ['mimeType' => 'image/png', 'extension' => 'png', 'data' => base64_encode($binary)]],
+        );
+
+        $target = new ContentArea();
+        $this->importer()->import($target, $payload);
+
+        $block = $target->getSections()[0]->getColumns()[0]->getBlocks()[0];
+        $this->assertSame(
+            '<p>Hi</p><img src="/uploads/imported-1.png" alt="Hero">',
+            $block->getDraftData()['content'],
+        );
+    }
+
+    public function testImportLeavesAnUnknownEmbeddedTokenInPlace(): void
+    {
+        $payload = $this->makePayload([[
+            'layout' => Section::LAYOUT_FULL,
+            'columns' => [[
+                'preset' => 'col-12',
+                'blocks' => [['type' => 'text', 'data' => ['content' => '<img src="asset://deadbeef">']]],
+            ]],
+        ]]);
+
+        $target = new ContentArea();
+        $this->importer()->import($target, $payload);
+
+        $block = $target->getSections()[0]->getColumns()[0]->getBlocks()[0];
+        $this->assertSame('<img src="asset://deadbeef">', $block->getDraftData()['content']);
+    }
+
     public function testImportLeavesUnknownAssetTokensInPlace(): void
     {
         $payload = $this->makePayload([[

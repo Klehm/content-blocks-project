@@ -183,6 +183,8 @@ The widget renders a dashed frame around the preview, a **Choose an image** butt
   ```
 - **Remove** — clears the reference. The stored file is left alone; ContentBlocks never deletes from storage on its own.
 
+  That last point holds everywhere, and it is deliberate: deleting a block does not delete its image, because `deleted` is a draft flag and the published page still renders that block. Reclaiming unreferenced files is a separate, explicit act — see [Asset lifecycle](./asset-lifecycle.md). If your own entities keep images in the same upload directory, that page also explains the one interface you need to register before sweeping.
+
 ### `ImageUrlResolverInterface` — responsive images
 
 _(Only needed if you want smaller image bytes.)_

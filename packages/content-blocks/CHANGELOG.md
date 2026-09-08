@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Uploaded files can finally be reclaimed.** `FileStorageInterface::remove()`
+  had no caller anywhere in the package: every upload leaked. Swapping a block's
+  image kept the old file, discarding a draft that had uploaded one kept it,
+  Insert content and import kept theirs. A dev sandbox held 340 MB of files that
+  nothing pointed at.
+
+  Cleaning up when a block is deleted would have been wrong, and not by a small
+  margin: `deleted` is a *draft* flag, so the published page still renders that
+  block until Publish and Discard brings it back — unlinking the file there
+  breaks a live page. Even at publish time the file may still be reachable from
+  the block's own published/draft twins, from another block after a copy/paste
+  (the clipboard duplicates the *path*, so two blocks share one file), from
+  another area after an Insert content clone, from a saved section template,
+  from a translated value, or from the host's own entities.
+
+  So the new `content-blocks:assets:gc` marks and sweeps instead. It reports by
+  default and deletes only with `--force`; it snapshots the storage inventory
+  *before* collecting references, so a concurrent upload cannot be swept; and a
+  `--retention` window (30 days) covers the race that actually happens — the
+  upload endpoint writes the file the moment an editor picks it, minutes before
+  the block referencing it is saved. There is no scheduler: whether this runs on
+  a cron is the host's call.
+
+  New seams, all additive: `AssetInventoryInterface` (enumeration, deliberately
+  *not* folded into `FileStorageInterface`, which hosts alias — `LocalFileStorage`
+  implements it), `AssetReferenceProviderInterface` (autoconfigured, "these
+  paths are still mine"; the package's own two sources go through it too, so a
+  host's provider is on equal footing), and `AssetReportViewerInterface` gating
+  a read-only report page at `/_content-blocks/assets/report` — 404 by default,
+  no delete button by design. See [Asset lifecycle](https://klehm.github.io/content-blocks/guide/asset-lifecycle).
+
 - **A bundle can render its own UI inside the builder shell.**
   `BuilderActionProviderInterface` gave a bundle a menu entry and a
   `cb:builder:action` event, and stopped there: what happened on the click was
@@ -33,6 +64,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the preview and re-syncs Publish / Discard, exactly as it does after an
   import or an "Insert content". `detail.hasUnpublishedChanges` is optional
   and defaults to `true`. The public `cb:*` contract is now five events.
+
+### Fixed
+
+- **Exports were silently losing every image uploaded from a rich-text editor.**
+  Asset detection tested whether a *whole stored string* was a storage path, and
+  a rich-text field stores `<p><img src="/uploads/…"></p>` — so the check said no
+  and the file was never bundled. The export looked complete and the import
+  produced a page with broken images.
+
+  Detection now also finds references embedded in markup, and replaces them in
+  place; the importer substitutes the resulting inline `asset://` tokens the
+  same way. It also recognizes **relative** URLs (`../../uploads/…`), which is
+  the spelling TinyMCE actually writes — `relative_urls` is on by default, so
+  that is the normal case for an editor-uploaded image, not an edge case.
+
+  This shares one implementation (`AssetReferenceCollector`) with the new asset
+  sweep on purpose: a detector that saw fewer references than the exporter would
+  lose a file from an export, and one that saw fewer than reality would delete a
+  file still on a page.
 
 ## [1.0.0-RC4] - 2026-08-31
 
