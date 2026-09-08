@@ -11,24 +11,10 @@ use ContentBlocks\Entity\Section;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 
 /**
- * Touches ContentArea::updatedAt — and stamps ContentArea::contentVersion —
- * whenever a child Section / Column / Block is inserted, updated, or removed in
- * the same flush.
+ * Touches `updatedAt` and stamps `contentVersion` on the owning ContentArea
+ * whenever a descendant changes in the same flush.
  *
- * On the version: it records the schema generation the content was **written**
- * under, which is a targeting index for host migrations, not a conformance
- * claim. Editing one block re-stamps the whole area while its other blocks keep
- * whatever shape they had — so migrate before letting editors work on a new
- * version. See ContentArea::$contentVersion and the upgrade guide.
- *
- * ContentArea itself rarely gets its own field mutated (the entity only has
- * id + the children collection), so a @PreUpdate on ContentArea would never
- * fire on a typical block edit. Listening on onFlush lets us watch every
- * relevant child entity and bubble the change up to the owning area.
- *
- * Registered via the `doctrine.event_listener` service tag in services.php
- * (event = "onFlush") so the package does not need to declare a hard
- * dependency on DoctrineBundle's #[AsDoctrineListener] attribute.
+ * @see docs/internals/publishing.md#why-the-touch-listener-hooks-onflush
  */
 final class ContentAreaTouchListener
 {
@@ -69,19 +55,16 @@ final class ContentAreaTouchListener
         $meta = $em->getClassMetadata(ContentArea::class);
 
         foreach ($touched as $area) {
-            // Skip areas about to be deleted in this same flush — touching
-            // them would be pointless and could re-add them to the
-            // updates set.
+            // Touching an area already scheduled for deletion is pointless and
+            // could re-add it to the update set.
             if ($uow->isScheduledForDelete($area)) {
                 continue;
             }
 
             $area->setUpdatedAt($now);
             $area->setContentVersion($this->contentVersion);
-            // ContentArea may not be in any change-tracking list yet (a child
-            // change doesn't put the parent in scheduled updates by itself).
-            // recomputeSingleEntityChangeSet picks up the new updatedAt so
-            // it lands in the SQL emitted by this flush.
+            // A child change does not schedule the parent by itself, so
+            // recompute to get the new updatedAt into this flush's SQL.
             $uow->recomputeSingleEntityChangeSet($meta, $area);
         }
     }

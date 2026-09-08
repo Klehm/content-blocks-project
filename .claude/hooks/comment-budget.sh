@@ -35,6 +35,9 @@ esac
 
 # Violating blocks, one per line: "<start> <end> <reason>"
 violations=$(awk -v mode="$mode" -v maxl="$MAX_LINES" -v maxc="$MAX_COLS" '
+# Character width, not byte length: mawk has no multibyte support, and this
+# codebase writes em-dashes and arrows. Counting bytes would penalise them.
+function cols(s,  t, n) { t = s; n = gsub(/[\200-\277]/, "", t); return length(s) - n }
 function flush(  reason) {
   if (blk_start == 0) return
   reason = ""
@@ -80,7 +83,7 @@ function flush(  reason) {
 
   if (blk_start == 0) blk_start = FNR
   blk_end = FNR
-  if (length($0) > longest) longest = length($0)
+  if (cols($0) > longest) longest = cols($0)
 
   sub(/[ \t]+$/, "", text)
   # Prose is what precedes the first @tag. From there on the block is

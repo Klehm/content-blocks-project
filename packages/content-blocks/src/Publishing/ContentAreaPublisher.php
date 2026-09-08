@@ -8,21 +8,10 @@ use ContentBlocks\Entity\ContentArea;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Default {@see ContentAreaPublisherInterface} — see it for the contract.
+ * Default {@see ContentAreaPublisherInterface}. Removal rides Doctrine's
+ * cascade rather than being walked here.
  *
- * Cascade semantics:
- *  - A soft-deleted Section/Column triggers em->remove() on itself; Doctrine's
- *    ORM cascade={"remove"} mapping then wipes the descendant Columns/Blocks
- *    transparently. We don't iterate into them ourselves.
- *  - A non-deleted entity has its draft state promoted: position ← previewPosition,
- *    publishedData ← draftData (Block only), draftData ← null.
- *
- * Discard semantics — an entity never published is a brand-new addition and is
- * dropped entirely, everything else reverts to its last published state:
- *  - Section/Column with publishedAt === null (see Section::isPublished()) is
- *    removed; Doctrine's cascade wipes its descendants.
- *  - Block with publishedData === null is removed.
- *  - Other entities have their draft flags cleared.
+ * @see docs/internals/publishing.md#publish-and-discard-semantics
  */
 final class ContentAreaPublisher implements ContentAreaPublisherInterface
 {
@@ -32,10 +21,8 @@ final class ContentAreaPublisher implements ContentAreaPublisherInterface
     }
 
     /**
-     * The context is accepted and deliberately unused: the core knows
-     * nothing about locales, and an area's draft is one state to promote or
-     * not. A decorator that does know — the i18n package's
-     * `TranslationPublisher` — reads it before delegating here.
+     * The context is accepted and deliberately unused — the core knows nothing
+     * about locales. A decorator reads it before delegating here.
      */
     public function publish(ContentArea $area, ?PublishContext $context = null): void
     {
@@ -74,10 +61,8 @@ final class ContentAreaPublisher implements ContentAreaPublisherInterface
     /** Accepts the context for the same reason {@see self::publish()} does. */
     public function discardDraft(ContentArea $area, ?PublishContext $context = null): void
     {
-        // Before anything is removed: a block dragged into another column has
-        // to go home first. The column it was dragged *into* may well be one
-        // of the brand-new ones the loop below deletes, and a block still
-        // sitting in that column would be cascaded away with it.
+        // Before anything is removed: the column a block was dragged into may
+        // be one the loop below deletes, cascading the block away with it.
         $this->restoreMovedBlocks($area);
 
         foreach ($area->getSections()->toArray() as $section) {
@@ -113,13 +98,10 @@ final class ContentAreaPublisher implements ContentAreaPublisherInterface
     }
 
     /**
-     * Puts every draft-moved block back in the column it is published in.
+     * Puts every draft-moved block back in its published column. One whose
+     * published column has since gone stays where it is.
      *
-     * The published column is stored as a bare id, so resolving it is this
-     * class's job — it is already walking the whole area. A block whose
-     * published column has since disappeared (its section was deleted and
-     * published away in an earlier round) stays where it is: the move is all
-     * that is left of it.
+     * @see docs/internals/publishing.md#publish-and-discard-semantics
      */
     private function restoreMovedBlocks(ContentArea $area): void
     {
