@@ -5,17 +5,15 @@ declare(strict_types=1);
 namespace ContentBlocks\SectionTemplate;
 
 /**
- * Thrown when a section template cannot be instantiated because one or more of
- * its block types is no longer registered in the BlockTypeRegistry.
+ * Thrown when a template had blocks and none of their types is registered any
+ * more, so there is nothing left to insert.
  *
- * Unknown block types are a hard stop (unlike missing *fields*, which only warn):
- * a block whose type has vanished has no form, no renderer and no default data,
- * so silently inserting it would drop content and confuse the editor.
+ * @see docs/internals/section-templates.md#two-ways-a-template-fails-to-read
  */
 final class IncompatibleTemplateException extends \RuntimeException
 {
     /**
-     * @param list<string> $missingTypes Block-type identifiers absent from the registry
+     * @param list<string> $missingTypes type ids absent from the registry
      */
     public function __construct(private readonly array $missingTypes)
     {

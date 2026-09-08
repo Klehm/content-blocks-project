@@ -27,6 +27,7 @@ annotations in the code; the budget that keeps them short is in
 | [assets.md](assets.md) | Upload, storage, reference detection, the GC |
 | [forms.md](forms.md) | Block forms as the whitelist, form extensions, styling types |
 | [section-templates.md](section-templates.md) | The section library, snapshots, posters |
+| [transfer.md](transfer.md) | Area export / import, the payload format, embedded assets |
 | [worker-mode.md](worker-mode.md) | Cross-request state, what may be cached on a service |
 | [i18n.md](i18n.md) | The translation satellite: storage, staleness, the workbench |
 | [kit.md](kit.md) | Kit block conventions, the config surface, rich-text editors |

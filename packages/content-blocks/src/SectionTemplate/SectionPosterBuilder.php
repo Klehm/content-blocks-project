@@ -12,28 +12,17 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Turns a stored section-template payload into a "poster": the small
- * structural description the library picker draws as a thumbnail.
+ * Turns a stored template payload into the structural spec the library picker
+ * draws as a thumbnail. `cb-builder#_buildTemplatePoster` is the other end.
  *
- * Why a spec and not an image. Rasterising the real section would mean either
- * a headless browser on every host, or a client-side canvas pass that quietly
- * loses its styling whenever the host serves CSS from another origin. The
- * payload, meanwhile, already holds the layout, the column presets, the block
- * order and the block data — enough to draw something faithful *in the DOM*,
- * where a real `<img>` is a real `<img>` and real copy is real text. It also
- * costs no column, no migration and no storage, and it works on rows that were
- * saved long before this feature existed.
- *
- * The renderer on the other end is
- * `cb-builder_controller.js#_buildTemplatePoster`; the shape returned here is
- * that contract.
+ * @see docs/internals/section-templates.md#why-the-poster-is-a-spec
  */
 final class SectionPosterBuilder
 {
     /**
-     * Tiles drawn per column before the rest is folded into a "+N" chip. A
-     * thumbnail a few hundred pixels tall cannot show more, and the cap is
-     * what keeps a 60-block section from bloating the list response.
+     * Tiles per column before the rest folds into a "+N" chip.
+     *
+     * @see docs/internals/section-templates.md#two-caps
      */
     private const MAX_TILES_PER_COLUMN = 6;
 
@@ -41,10 +30,9 @@ final class SectionPosterBuilder
     private const FULL_WIDTH = 12;
 
     /**
-     * Relative luminance above which a background counts as light. Straight
-     * off the sRGB coefficients; the exact threshold matters less than having
-     * one, since it only decides whether the poster paints its tiles for a
-     * light or a dark ground.
+     * Relative luminance above which a background counts as light.
+     *
+     * @see docs/internals/section-templates.md#what-the-poster-decides-in-php
      */
     private const LIGHT_LUMINANCE = 0.55;
 
@@ -56,12 +44,19 @@ final class SectionPosterBuilder
     }
 
     /**
-     * @param array<string, mixed> $payload a {@see SectionTemplateSerializer} snapshot
+     * Null when the payload holds no column structure to draw; callers then
+     * render the card without a thumbnail rather than an empty frame.
      *
-     * @return array{layout: string, columns: list<array{width: int, tiles: list<array<string, mixed>>, more: int}>}|null
-     *                                                                                                                  null when the payload holds no column structure to draw — an
-     *                                                                                                                  envelope from another format, or a row written by hand. Callers
-     *                                                                                                                  render the card without a thumbnail rather than an empty frame.
+     * @param array<string, mixed> $payload a serializer snapshot
+     *
+     * @return array{
+     *     layout: string,
+     *     columns: list<array{
+     *         width: int,
+     *         tiles: list<array<string, mixed>>,
+     *         more: int,
+     *     }>,
+     * }|null
      */
     public function build(array $payload): ?array
     {
@@ -89,23 +84,17 @@ final class SectionPosterBuilder
             'layout' => is_string($layout) ? $layout : '',
             'columns' => $columns,
             'background' => $background,
-            // Whether the tiles must be painted for a dark ground. Decided here
-            // rather than in CSS because only PHP has the resolved colour, and
-            // a poster whose copy is unreadable against its own background is
-            // worse than one with no background at all.
+            // Decided here rather than in CSS: only PHP has the resolved
+            // colour. See section-templates.md#what-the-poster-decides-in-php
             'dark' => $background !== null && !$this->isLight($background),
         ];
     }
 
     /**
      * Background the section actually renders with — its own, or the one its
-     * style preset brings.
+     * style preset brings, merged the way {@see BlockRenderer} merges them.
      *
-     * The merge mirrors {@see \ContentBlocks\Rendering\BlockRenderer}: preset
-     * settings sit *under* the section's, key by key, so an explicit choice
-     * wins and an untouched field falls through to the preset. Without this a
-     * section styled entirely by a preset would post a blank thumbnail while
-     * rendering, say, dark navy.
+     * @see docs/internals/section-templates.md#what-the-poster-decides-in-php
      */
     private function sectionBackground(mixed $settings): ?string
     {
@@ -125,9 +114,8 @@ final class SectionPosterBuilder
     }
 
     /**
-     * The one colour format the styling forms produce ({@see PaletteColorType}
-     * stores a plain `#hex`, `''` meaning none). Anything else is a row from
-     * elsewhere and gets ignored rather than passed into a `style` attribute.
+     * The one colour format the styling forms produce. Anything else is a row
+     * from elsewhere, ignored rather than passed into a `style` attribute.
      */
     private function hexOrNull(mixed $value): ?string
     {
@@ -136,7 +124,7 @@ final class SectionPosterBuilder
             : null;
     }
 
-    /** Relative luminance of a #rgb / #rrggbb colour, 0 (black) to 1 (white). */
+    /** Relative luminance of a #rgb / #rrggbb colour, 0 black to 1 white. */
     private function isLight(string $hex): bool
     {
         $hex = ltrim($hex, '#');
@@ -185,9 +173,8 @@ final class SectionPosterBuilder
         $data = $rawBlock['data'] ?? [];
         $data = is_array($data) ? $data : [];
 
-        // A type this build no longer registers still earns a tile: seeing
-        // *where* the holes are beats a thumbnail that silently omits them.
-        // list() reports the same absence in words via `skippedTypes`.
+        // An unregistered type still earns a tile: seeing *where* the holes
+        // are beats a thumbnail that silently omits them.
         if ($type === '' || !$this->blockTypeRegistry->has($type)) {
             return [
                 'type' => $type,
@@ -221,15 +208,11 @@ final class SectionPosterBuilder
             'text' => $hint->text,
             'image' => $this->safeImage($hint->image),
             'missing' => false,
-            // Read straight from the data, with no hint involved, because
-            // `styling` is the *core's* sub-form — added to every block by
-            // BlockFormType — not something a block type defines. The blocks
-            // own their fields; this one the package owns.
+            // No hint involved: `styling` is the core sub-form, not something
+            // a block type defines. Blocks own their fields; this one is ours.
             'background' => $background = $this->hexOrNull($data['styling']['backgroundColor'] ?? null),
-            // Same reasoning as the section's own flag, one level down: a tile
-            // painted its own saturated colour needs its copy flipped too, and
-            // it cannot inherit the section's answer — a red card on a cream
-            // section is dark ground inside a light one.
+            // A tile cannot inherit the section's answer — a red card on a
+            // cream section is a dark ground inside a light one.
             'backgroundDark' => $background !== null && !$this->isLight($background),
         ];
     }
@@ -258,10 +241,10 @@ final class SectionPosterBuilder
     }
 
     /**
-     * Only same-origin paths and http(s) URLs reach an `<img src>`. Stored
-     * data is form-validated, but this value is about to be written straight
-     * into the admin's DOM — narrowing it here is cheaper than trusting every
-     * block author and every legacy row that ever wrote the field.
+     * Only same-origin paths and http(s) URLs reach an `<img src>` — this
+     * value goes straight into the admin DOM.
+     *
+     * @see docs/internals/section-templates.md#what-the-poster-decides-in-php
      */
     private function safeImage(?string $src): ?string
     {

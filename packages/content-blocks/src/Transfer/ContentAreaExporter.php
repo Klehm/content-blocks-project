@@ -12,9 +12,8 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 
 /**
- * Default {@see ContentAreaExporterInterface} — see it for the contract and the
- * payload shape. Asset references are detected through
- * {@see AssetResolverInterface} and deduplicated by sha256 hash.
+ * Default {@see ContentAreaExporterInterface} — see it for the payload shape.
+ * Assets are found through {@see AssetResolverInterface}, deduplicated by hash.
  */
 final class ContentAreaExporter implements ContentAreaExporterInterface
 {
@@ -46,8 +45,7 @@ final class ContentAreaExporter implements ContentAreaExporterInterface
         return [
             'format' => self::FORMAT,
             // Informative only: a content version belongs to the app that
-            // issued it, so the importer on the other side ignores it. See
-            // ContentAreaExporterInterface.
+            // issued it, so the importer on the other side ignores it.
             'contentVersion' => $this->contentVersion,
             'exportedAt' => (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),
             'contentArea' => [
@@ -113,13 +111,10 @@ final class ContentAreaExporter implements ContentAreaExporterInterface
     }
 
     /**
-     * Replaces every asset reference in the payload with an `asset://{hash}`
-     * token and registers the binary under that hash in $assets.
+     * Replaces every asset reference with an `asset://{hash}` token and
+     * registers the binary under that hash in $assets.
      *
-     * Finding the references is {@see AssetReferenceCollector}'s job, shared
-     * with the garbage collector so the two cannot disagree about what counts
-     * as a reference. That includes paths embedded in rich-text markup, which
-     * are replaced in place — the surrounding `<img src="…">` survives.
+     * @see docs/internals/transfer.md#assets-travel-as-bytes-not-paths
      *
      * @param array<string, mixed> $assets
      */
@@ -128,9 +123,8 @@ final class ContentAreaExporter implements ContentAreaExporterInterface
         return $this->collector->map($value, function (string $path) use (&$assets): string {
             $binary = $this->assetResolver->read($path);
             if ($binary === null) {
-                // Missing on disk — keep the original path so the import
-                // side at least sees a reference rather than silently
-                // dropping the field.
+                // Missing on disk — keep the path so the import side sees a
+                // broken reference rather than a silently dropped field.
                 return $path;
             }
 

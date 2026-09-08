@@ -72,10 +72,10 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * An envelope from an older structure is migrated forward when this package
-     * ships a step for it, and refused otherwise. The target is read from the
-     * *interface* constant: a host that swaps the exporter must not leave the
-     * importer checking the shipped class.
+     * Migrated forward when this package ships a step for the structure, and
+     * refused otherwise. The target comes from the *interface* constant.
+     *
+     * @see docs/internals/transfer.md#the-payload-shape-is-the-contract
      *
      * @param array<string, mixed> $payload
      *
@@ -94,9 +94,8 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * Decodes every asset blob, stores it via the resolver, and returns a
-     * map of hash → new public path that the rewriter uses to patch
-     * `asset://` tokens.
+     * Decodes and stores every asset blob, returning the hash → new public
+     * path map the rewriter patches `asset://` tokens with.
      *
      * @return array<string, string>
      */
@@ -130,8 +129,8 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * @param array<string, mixed>                                      $raw
-     * @param array<string, string>                                     $assetMap
+     * @param array<string, mixed>  $raw
+     * @param array<string, string> $assetMap
      */
     private function buildSection(array $raw, array $assetMap, BlockRestoreTally $tally): Section
     {
@@ -161,8 +160,8 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * @param array<string, mixed>                                      $raw
-     * @param array<string, string>                                     $assetMap
+     * @param array<string, mixed>  $raw
+     * @param array<string, string> $assetMap
      */
     private function buildColumn(array $raw, array $assetMap, BlockRestoreTally $tally): Column
     {
@@ -193,8 +192,8 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * @param array<string, mixed>                                      $raw
-     * @param array<string, string>                                     $assetMap
+     * @param array<string, mixed>  $raw
+     * @param array<string, string> $assetMap
      *
      * @return Block|null null when the block's type is not registered here
      */
@@ -202,9 +201,8 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     {
         $type = $raw['type'] ?? null;
         if (is_string($type) && !$this->registry->has($type)) {
-            // Skipped: not refused (the payload comes from another install, so
-            // a type this app lacks is expected) and not imported either (it
-            // would leave an inert block). See ImportResult.
+            // Neither refused (a type this app lacks is expected from another
+            // install) nor imported (it would leave an inert block).
             $tally->skip($type);
 
             return null;
@@ -230,13 +228,10 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * Recursively rewrites every `asset://{hash}` token to its newly-uploaded
-     * public path. Unknown hashes are left as-is so the problem surfaces in
-     * the UI rather than vanishing silently.
+     * Rewrites every `asset://{hash}` token to its new public path, whether it
+     * is the whole value or sits inside markup. Unknown hashes are left as-is.
      *
-     * A token can be the whole value (an image field) or sit inside markup
-     * (`<img src="asset://…">`, what the exporter now produces for rich text),
-     * so both are handled — the second by substitution in place.
+     * @see docs/internals/transfer.md#assets-travel-as-bytes-not-paths
      *
      * @param array<string, string> $assetMap
      */

@@ -5,36 +5,24 @@ declare(strict_types=1);
 namespace ContentBlocks\Transfer;
 
 /**
- * Outcome of importing a payload into a ContentArea: what came in, and what
- * could not.
+ * What came in, and what could not. The import is optimistic: an unknown block
+ * type is skipped, an undeclared key is kept, and both are reported.
  *
- * The import is **optimistic**: everything this installation can use is brought
- * in, and the rest is reported rather than aborting the whole transfer. A
- * payload comes from another installation, so the two apps not having identical
- * blocks is the normal case — refusing would make cross-install transfer
- * useless.
- *
- * The two discrepancies are treated differently, because "compatible" is judged
- * per **block**, not per key:
- *
- *  - a block whose type is not registered here is **skipped**. It would render
- *    nothing (no view template) and offer no edit form, so importing it would
- *    hand the editor an inert placeholder. Nothing is lost: the payload file is
- *    the archive — install the block type and re-import.
- *  - a stored key no registered type declares is **kept**. The block itself is
- *    perfectly usable, the key harms nothing, and it may well be a field the
- *    host is about to add.
+ * @see docs/internals/section-templates.md#skipped-blocks-versus-kept-keys
  */
 final class ImportResult
 {
     /**
-     * @param int                                                       $sectionCount      imported sections
-     * @param int                                                       $skippedBlockCount blocks left out because their type is unknown here
-     * @param list<string>                                              $skippedBlockTypes distinct type ids of those blocks
-     * @param list<array{blockType: string, unknownKeys: list<string>}> $unknownFields     kept keys no registered type declares
+     * @param int          $sectionCount      imported sections
+     * @param int          $skippedBlockCount blocks whose type is unknown here
+     * @param list<string> $skippedBlockTypes distinct type ids of those
+     * @param list<array{
+     *     blockType: string,
+     *     unknownKeys: list<string>,
+     * }> $unknownFields kept keys no registered type declares
      *
-     * @internal Constructed by the package; hosts receive these objects, they do not
-     *           build them. Keeps it growable without a major bump. See FREEZE-AUDIT.md.
+     * @internal hosts receive these objects, they do not build them; see
+     *           FREEZE-AUDIT.md
      */
     public function __construct(
         public readonly int $sectionCount,

@@ -7,28 +7,23 @@ namespace ContentBlocks\SectionTemplate;
 use ContentBlocks\Entity\Section;
 
 /**
- * Outcome of instantiating a section template: the detached draft Section ready
- * to be attached to a ContentArea, plus what could not be brought along.
+ * The detached draft Section, plus what could not be brought along. Same
+ * optimistic rule as {@see \ContentBlocks\Transfer\ImportResult}.
  *
- * Same optimistic rule as {@see \ContentBlocks\Transfer\ImportResult}, and the
- * same vocabulary: a block whose type is no longer registered is **skipped**
- * (it would be inert — no view template, no edit form — and the stored payload
- * remains the archive), while a stored key nothing declares is **kept** and
- * merely reported.
- *
- * The one hard stop left is a template where *every* block would be skipped:
- * there is nothing left to insert, so {@see IncompatibleTemplateException} is
- * thrown rather than dropping an empty section into the area.
+ * @see docs/internals/section-templates.md#skipped-blocks-versus-kept-keys
  */
 final class InstantiationResult
 {
     /**
-     * @param int                                                       $skippedBlockCount blocks left out because their type is no longer registered
-     * @param list<string>                                              $skippedBlockTypes distinct type ids of those blocks
-     * @param list<array{blockType: string, unknownKeys: list<string>}> $unknownFields     kept keys no registered type declares
+     * @param int          $skippedBlockCount blocks whose type is unregistered
+     * @param list<string> $skippedBlockTypes distinct type ids of those
+     * @param list<array{
+     *     blockType: string,
+     *     unknownKeys: list<string>,
+     * }> $unknownFields kept keys no registered type declares
      *
-     * @internal Constructed by the package; hosts receive these objects, they do not
-     *           build them. Keeps it growable without a major bump. See FREEZE-AUDIT.md.
+     * @internal hosts receive these objects, they do not build them; see
+     *           FREEZE-AUDIT.md
      */
     public function __construct(
         public readonly Section $section,

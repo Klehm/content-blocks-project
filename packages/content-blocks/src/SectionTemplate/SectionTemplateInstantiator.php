@@ -13,9 +13,8 @@ use ContentBlocks\Entity\Section;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 
 /**
- * Default {@see SectionTemplateInstantiatorInterface} — see it for the contract.
- * What counts as a "known" data key is decided by {@see BlockDataKeys}, shared
- * with the import flow.
+ * Default {@see SectionTemplateInstantiatorInterface} — see it for the
+ * contract. Known data keys are decided by {@see BlockDataKeys}.
  */
 final class SectionTemplateInstantiator implements SectionTemplateInstantiatorInterface
 {
@@ -29,8 +28,8 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
     /**
      * @param array<string, mixed> $payload
      *
-     * @throws UnsupportedTemplateFormatException when the payload envelope is not readable
-     * @throws IncompatibleTemplateException      when no block of the template survives
+     * @throws UnsupportedTemplateFormatException on an unreadable envelope
+     * @throws IncompatibleTemplateException      when no block survives
      */
     public function instantiate(array $payload): InstantiationResult
     {
@@ -59,9 +58,7 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
             }
         }
 
-        // A template that had blocks but kept none has nothing left to insert;
-        // dropping an empty section into the area would only puzzle the editor.
-        // A template that never had any (a spacer section, say) inserts fine.
+        // Had blocks, kept none. One that never had any inserts fine.
         if ($tally->keptCount() === 0 && $tally->skippedCount() > 0) {
             throw new IncompatibleTemplateException($tally->skippedTypes());
         }
@@ -140,11 +137,10 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
     }
 
     /**
-     * The envelope format versions the payload *structure* — which this package
-     * owns, unlike the block data inside it. An older structure is migrated
-     * forward by {@see EnvelopeUpgradeChain} when a step exists for it, and
-     * refused otherwise: replaying a structure we cannot read would quietly
-     * produce half-empty sections.
+     * Migrated forward by {@see EnvelopeUpgradeChain} when a step exists for
+     * the structure, and refused otherwise.
+     *
+     * @see docs/internals/section-templates.md#versioning-the-envelope
      *
      * @param array<string, mixed> $payload
      *

@@ -7,48 +7,36 @@ namespace ContentBlocks\Transfer;
 use ContentBlocks\Entity\ContentArea;
 
 /**
- * Serializes a ContentArea into a self-contained, JSON-encodable array.
+ * Serializes a ContentArea into a self-contained, JSON-encodable array. The
+ * frozen contract is the payload shape, not this signature.
  *
- * Override seam: the bundle aliases this to the shipped {@see ContentAreaExporter}.
- *
- * The frozen contract here is not the PHP signature — it is the **payload
- * shape**, which travels on disk and between installations. {@see FORMAT}
- * versions it: a reader must refuse a payload whose `format` it does not know
- * rather than guess. Changing the shape means bumping the format string.
+ * @see docs/internals/transfer.md#the-payload-shape-is-the-contract
  */
 interface ContentAreaExporterInterface
 {
     /**
-     * Identifier written to (and expected back from) the payload's `format`
-     * key. Lives on the interface, not the implementation, so a host that
-     * swaps the exporter does not leave {@see ContentAreaImporterInterface}
-     * validating against the shipped class.
+     * Written to, and expected back from, the payload's `format` key.
+     *
+     * @see docs/internals/transfer.md#the-payload-shape-is-the-contract
      */
     public const FORMAT = 'content-blocks/v1';
 
     /**
-     * Draft state takes precedence over published state, soft-deleted entities
-     * are skipped, and everything is ordered by previewPosition — the same
-     * convention as the clone, replace and rendering pipelines.
+     * Draft wins, soft-deleted entities are skipped, order is previewPosition.
+     * Assets are embedded; `contentVersion` is informative only.
      *
-     * Asset references found inside block data / section settings are read from
-     * storage, embedded as base64 under their sha256 hash (identical binaries
-     * deduplicated), and replaced in place by an `asset://{hash}` token. A
-     * reference that cannot be read keeps its original path, so the import side
-     * sees a broken reference rather than a silently dropped field.
-     *
-     * The payload also carries the emitting app's `contentVersion` (the
-     * host-owned `content_blocks.content_version`). It is **informative**: a
-     * version number means something only inside the installation that issued
-     * it, so {@see ContentAreaImporterInterface} ignores it and stamps the
-     * target with the *local* version instead.
+     * @see docs/internals/transfer.md#what-is-exported
      *
      * @return array{
      *     format: string,
      *     contentVersion: int,
      *     exportedAt: string,
      *     contentArea: array{sections: list<array<string, mixed>>},
-     *     assets: array<string, array{mimeType: string, extension: string, data: string}>
+     *     assets: array<string, array{
+     *         mimeType: string,
+     *         extension: string,
+     *         data: string,
+     *     }>,
      * }
      */
     public function export(ContentArea $area): array;

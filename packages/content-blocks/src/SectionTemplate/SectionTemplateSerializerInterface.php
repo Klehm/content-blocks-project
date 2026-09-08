@@ -7,14 +7,10 @@ namespace ContentBlocks\SectionTemplate;
 use ContentBlocks\Entity\Section;
 
 /**
- * Snapshots a single Section into a self-contained array, for JSON storage in a
- * SectionTemplate (the reusable "section library").
+ * Snapshots one Section into a self-contained array for the reusable section
+ * library. Override seam; asset references stay plain storage paths.
  *
- * Override seam: the bundle aliases this to the shipped {@see SectionTemplateSerializer}.
- *
- * Unlike {@see ContentAreaExporterInterface}, asset references stay plain
- * storage paths: the library lives inside one app, so embedding binaries would
- * bloat every template for nothing.
+ * @see docs/internals/section-templates.md#what-a-snapshot-holds
  */
 interface SectionTemplateSerializerInterface
 {
@@ -25,12 +21,10 @@ interface SectionTemplateSerializerInterface
     public const FORMAT = 'content-blocks/section-v1';
 
     /**
-     * Draft state takes precedence over published state, soft-deleted entities
-     * are skipped, and columns/blocks are ordered by previewPosition.
+     * Draft wins, soft-deleted entities are skipped, order is previewPosition.
+     * The distinct block-type ids come back alongside the payload.
      *
-     * Alongside the payload, the distinct block-type identifiers used are
-     * returned so the library can flag an incompatible template cheaply,
-     * without deserializing it.
+     * @see docs/internals/section-templates.md#what-a-snapshot-holds
      */
     public function serialize(Section $section): SectionTemplateSnapshot;
 }

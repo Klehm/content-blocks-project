@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\SectionTemplate;
 
 /**
- * Default implementation: denies management of the section-template library.
- * Forces the host application to opt in by registering its own
- * SectionTemplateManagerInterface implementation.
+ * Default: denies library management, so a host has to opt in by registering
+ * its own {@see SectionTemplateManagerInterface}.
  */
 final class DenyAllSectionTemplateManager implements SectionTemplateManagerInterface
 {
