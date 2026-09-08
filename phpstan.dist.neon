@@ -1,0 +1,23 @@
+includes:
+    - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/phpstan/phpstan-doctrine/rules.neon
+
+parameters:
+    level: 8
+    paths:
+        - packages/content-blocks/src
+        - packages/content-blocks-kit/src
+        - packages/content-blocks-i18n/src
+
+    # Block data is free-form JSON of unknown age, read defensively on purpose.
+    # A declared type is what the writer promised, not what the row holds, so a
+    # guard PHPStan calls redundant is often the one that survives real data.
+    treatPhpDocTypesAsCertain: false
+
+    ignoreErrors:
+        # An owning-side association is nullable in PHP because the entity
+        # exists before it is attached, while the FK stays NOT NULL. Making
+        # either side agree would break the other.
+        -
+            identifier: doctrine.associationType
+            message: '#type mapping mismatch: property can contain .* but database expects#'
