@@ -1,34 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 
 /*
- * Generic conditional-field visibility controller.
- *
- * Attach to any element wrapping form fields (typically via a form type's
- * `attr` option, or on the sidebar form itself). Descendants declare their
- * visibility rule with a `data-cb-condition` attribute:
- *
- *     data-cb-condition="palette:custom"        shown when the `palette`
- *                                               field's value is "custom"
- *     data-cb-condition="size:custom|full"      OR — any listed value matches
- *     data-cb-condition="stylingCustom:true"    checkbox — checked maps to
- *                                               "true", unchecked to "false"
- *     data-cb-condition="link"                  no value — shown when the
- *                                               field is non-empty
- *     data-cb-condition="size:custom;customHeightAuto:false"
- *                                               AND — `;`-separated clauses,
- *                                               ALL must match (each clause is
- *                                               itself an OR over its `|` values)
- *
- * The field part matches the *last bracket segment* of the controlling
- * input's `name` (Symfony nests names like `settings[styling][bg][palette]`),
- * or a plain top-level `name="palette"`. The lookup is scoped to the
- * controller element, so attaching the controller on a compound type's root
- * keeps two instances of the same sub-field independent.
- *
- * Rows are toggled with the native `hidden` attribute so the behavior is
- * stylesheet-independent (works in the section sidebar and the block edit
- * form alike). Hidden fields still submit — persistence-side handling (e.g.
- * dropping the styling subtree when the switch is off) is a server concern.
+ * Generic conditional-field visibility from `data-cb-condition`: `|` is OR
+ * within a clause, `;` is AND between clauses. Hidden fields still submit.
  */
 export default class extends Controller {
     connect() {
@@ -45,10 +19,8 @@ export default class extends Controller {
 
     _syncAll() {
         for (const row of this.element.querySelectorAll('[data-cb-condition]')) {
-            // Instances nest (e.g. a palette color field inside a sidebar
-            // form, both carrying this controller): each row belongs to its
-            // *nearest* cb-condition ancestor only, so an outer instance
-            // never resolves an inner row's field against the wrong scope.
+            // Instances nest, and a row belongs to its *nearest* ancestor
+            // only — or an outer one resolves it against the wrong scope.
             const scope = row.closest('[data-controller~="cb-condition"]');
             if (scope && scope !== this.element && this.element.contains(scope)) continue;
             const specs = this._parse(row.getAttribute('data-cb-condition'));

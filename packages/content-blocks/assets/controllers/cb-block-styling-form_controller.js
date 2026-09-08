@@ -1,12 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Toggles visibility of conditional rows in the block styling sub-form.
- *
- * Currently: the `align-self` row is only meaningful when `max-width`
- * has a value — without it the block fills the column and the cross-axis
- * position has no visible effect. We hide the row by default and reveal
- * it as soon as the user types a max-width.
+ * Reveals the `align-self` row once `max-width` has a value — without one the
+ * block fills its column and the cross-axis position does nothing.
  */
 export default class extends Controller {
     static targets = ['alignSelfRow'];

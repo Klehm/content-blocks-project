@@ -1,23 +1,10 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Box-spacing link toggle: when the link is active, editing any of the four
- * side inputs (top/right/bottom/left) syncs the other three.
+ * Syncs the four sides while linked. Engaged from the values' **uniformity**
+ * on connect, not the persisted flag, so a mixed set starts unlinked.
  *
- * The link is only engaged when the four sides are "uniform" — all empty or
- * all strictly equal. It's derived from the current values on connect (not a
- * persisted flag), so loading a non-uniform set (e.g. 45 / 0 / 45 / 0) starts
- * unlinked and editing one side never overwrites the others. A uniform set
- * (e.g. 45 / 45 / 45 / 45, or all empty) starts linked. The button still lets
- * the user link (equalise the sides) or unlink on demand.
- *
- * The state is mirrored to a hidden `linked` checkbox so the server-side
- * BoxSpacingType keeps a value, but the authoritative source on load is the
- * values' uniformity.
- *
- * Targets:
- *   - input: the four IntegerType inputs (T/R/B/L)
- *   - toggle: the link button
+ * @see docs/internals/forms.md#the-responsive-styling-sub-types
  */
 export default class extends Controller {
     static targets = ['input', 'toggle'];
@@ -74,7 +61,7 @@ export default class extends Controller {
         if (cb) cb.checked = this.linkedValue;
     }
 
-    /** True when the four sides are uniform: all empty or all strictly equal. */
+    /** All four empty, or all strictly equal. */
     _isUniform() {
         const vals = this.inputTargets.map(i => i.value.trim());
         return vals.every(v => v === vals[0]);

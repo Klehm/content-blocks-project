@@ -1,37 +1,16 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Two-way sync between the slider and the editable number input rendered by
- * the cb_form_theme `range_widget` block.
+ * Two-way sync between the slider and the number input, which is the submitted
+ * and only model-bound field — so a slider move is re-dispatched onto it.
  *
- * The number input is the submitted field, so the editor can type a value
- * finer than the slider's step grid (a range <input> can't hold a value off
- * its step). The slider is a visual aid that mirrors the number input and,
- * when manipulated, writes its (step-snapped) value back into it.
- *
- * Crucially, the number input is the *only* model-bound field: the block edit
- * form is a Live Component whose fields sync into their LiveProp on `change`
- * (and autosave only flushes the focused element). Setting `number.value`
- * programmatically fires no event, so a slider move would never reach the
- * server and the morph would revert it. We therefore re-dispatch the slider's
- * own `input`/`change` onto the number input — as if the user had typed there
- * — so Live's binding and cb-autosave both observe the new value.
- *
- * Manual typing is debounced here, locally. Each keystroke's `input` event
- * would otherwise bubble straight to cb-autosave, whose own (shorter) debounce
- * then flushes a `change` on the still-focused number input — clamping the
- * partial value, snapping the slider, and triggering a Live morph between two
- * keystrokes. That mid-typing commit is the "jump" that makes the field hard
- * to fill. So while the editor types, we stop the raw `input` from reaching
- * autosave and instead emit a single `change` once they pause for
- * `commitDelay` ms — collapsing a burst of keystrokes into one debounced save.
- * The slider drag path is untouched (it keeps its immediate commit-on-release).
+ * @see docs/internals/frontend.md#why-the-range-field-debounces-locally
  */
 export default class extends Controller {
     static targets = ['slider', 'number'];
 
     static values = {
-        /** Idle window (ms) after the last keystroke before a typed value commits. */
+        /** Idle window (ms) before a typed value commits. */
         commitDelay: { type: Number, default: 400 },
     };
 
@@ -58,11 +37,8 @@ export default class extends Controller {
         this._mirrorToNumber('change');
     }
 
-    // Number typed -> move the slider thumb and debounce the commit.
-    //
-    // `_mirrorToNumber` re-dispatches `input` here when the slider moves; that
-    // path must stay live (it bubbles to autosave as before), so we only debounce
-    // genuine keystrokes — never the slider's mirrored event (`_mirroring`).
+    // Only genuine keystrokes are debounced; the slider's own mirrored
+    // event must stay live, hence `_mirroring`.
     fromNumber(event) {
         this._toSlider();
         if (this._mirroring) return;
@@ -72,7 +48,7 @@ export default class extends Controller {
         this._commitTimer = setTimeout(() => this._commit(), this.commitDelayValue);
     }
 
-    // Debounce elapsed -> emit the `change` autosave (and clampNumber) wait for.
+    // Emit the `change` that autosave and clampNumber wait for.
     _commit() {
         if (!this.hasNumberTarget) return;
         this.numberTarget.dispatchEvent(new Event('change', { bubbles: true }));
@@ -101,8 +77,7 @@ export default class extends Controller {
     _mirrorToNumber(eventType) {
         if (!this.hasNumberTarget || !this.hasSliderTarget) return;
         this.numberTarget.value = this.sliderTarget.value;
-        // Flag the synthetic dispatch so the `input` action handler (fromNumber)
-        // can tell a slider mirror from a real keystroke and skip the debounce.
+        // So fromNumber can tell a slider mirror from a keystroke.
         this._mirroring = true;
         try {
             this.numberTarget.dispatchEvent(new Event(eventType, { bubbles: true }));

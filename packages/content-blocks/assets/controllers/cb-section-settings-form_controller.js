@@ -1,11 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Hijacks the section settings form so its submit doesn't navigate the
- * admin page away. Posts the FormData via fetch; on success, fires
- * `cb:section:saved` so the parent cb-builder controller can close the
- * sidebar and reload the iframe. On a validation 422, swaps the
- * sidebar HTML with the re-rendered form so the user sees the errors.
+ * Posts the section form by fetch rather than navigating away, firing
+ * `cb:section:saved` on success and swapping in the errors on a 422.
  */
 export default class extends Controller {
     static targets = ['form', 'maxWidthRow', 'widthsField', 'widthInput', 'widthsTotal', 'customRow', 'customToggle'];
@@ -17,10 +14,8 @@ export default class extends Controller {
         if (this.hasFormTarget) {
             this.formTarget.addEventListener('submit', this._onSubmit);
             this.formTarget.addEventListener('change', this._onChange);
-            // Server-rendered visibility is correct on first paint; this
-            // call only matters if the form was re-rendered by a 422
-            // (validation) swap and the user had toggled widthMode
-            // before saving.
+            // Only matters after a 422 swap, where the user had toggled
+            // widthMode before saving.
             this._syncMaxWidthVisibility();
         }
         // Seed the column-width inputs from the stored CSV (or an equal split
@@ -36,9 +31,8 @@ export default class extends Controller {
     }
 
     /**
-     * Watches the widthMode radio group; the maxWidth row is only
-     * meaningful when the section is "centered" (BuiltInSectionDecorator
-     * ignores maxWidth in "full" mode).
+     * The maxWidth row is only meaningful when the section is centered — the
+     * decorator ignores it in "full" mode.
      */
     _onChange(event) {
         const name = event.target?.name;
@@ -87,10 +81,8 @@ export default class extends Controller {
     }
 
     /**
-     * Highlight the preset matching `value`; when it's a custom value (no
-     * preset matches) reveal the free inputs and flag the Custom button.
-     * An empty value (no explicit width = framework default) highlights the
-     * first/equal preset since that's what the columns render as.
+     * Highlights the matching preset, or reveals the free inputs. An empty
+     * value highlights the equal preset, which is what the columns render as.
      */
     _syncActive(value) {
         this._clearActive();
@@ -161,7 +153,7 @@ export default class extends Controller {
         if (this._isValid(widths)) this._commitWidths(widths.join(','));
     }
 
-    /** Write the canonical value and let cb-autosave persist + reload preview. */
+    /** Writes the canonical value; cb-autosave does the rest. */
     _commitWidths(csv) {
         if (!this.hasWidthsFieldTarget) return;
         if (this.widthsFieldTarget.value === csv) return; // no-op
@@ -258,9 +250,9 @@ export default class extends Controller {
     }
 
     /**
-     * Bubbles cb:save:error up the tree: cb-autosave (same element) resets
-     * its dirty baseline so the next interaction retries, and cb-builder
-     * shows the persistent topbar error banner.
+     * cb-autosave resets its dirty baseline and cb-builder raises the banner.
+     *
+     * @see docs/internals/frontend.md#live-component-failures-need-two-hooks
      */
     _dispatchSaveError() {
         this.element.dispatchEvent(new CustomEvent('cb:save:error', { bubbles: true }));

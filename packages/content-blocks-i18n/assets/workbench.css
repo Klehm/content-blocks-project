@@ -1,10 +1,5 @@
-/* Translation workbench.
- *
- * Standalone page, so this sheet carries its own reset and tokens rather than
- * inheriting the host's admin CSS. Tokens mirror the builder's "Paper · Marine"
- * skin (teal accent, cool blue-grey surfaces) so the two read as one product
- * without this package depending on the core's stylesheet.
- */
+/* Translation workbench. A standalone page, so this carries its own reset and
+   tokens, mirroring the builder's skin without depending on its stylesheet. */
 
 :root {
     --cb-wb-bg: #f4f6f8;
@@ -77,11 +72,8 @@ body {
 }
 .cb-wb__btn:hover { background: var(--cb-wb-bg); }
 .cb-wb__btn--accent { background: var(--cb-wb-accent); border-color: var(--cb-wb-accent); color: #fff; }
-/* The background is repeated here, and it is not redundant: `.cb-wb__btn:hover`
-   is a class *plus* a pseudo-class, so it outranks the plain `--accent` rule
-   above and would repaint the button pale on hover — while `color: #fff` stayed,
-   leaving white text on a near-white ground. Restating the background at equal
-   specificity is what keeps the label readable. */
+/* Not redundant: the plain `:hover` rule above outranks `--accent` and would
+   repaint the button pale while `color: #fff` stayed. */
 .cb-wb__btn--accent:hover { background: var(--cb-wb-accent); filter: brightness(1.08); }
 
 /* ---- progress -------------------------------------------------------- */
@@ -167,12 +159,8 @@ body {
 .cb-wb__stale { margin: 4px 0 0; font-size: 12px; color: var(--cb-wb-outdated); }
 .cb-wb__stale[hidden] { display: none; }
 
-/* The field matches the height of the source text beside it.
-   The row is a two-column grid, so both cells are already as tall as the
-   taller one; `stretch` is what passes that height down to the input instead
-   of letting `rows="3"` decide it. A long HTML source therefore gets a box
-   long enough to hold its translation, with no measuring in JavaScript and
-   nothing to re-measure on resize. */
+/* The grid already makes both cells as tall as the taller; `stretch` passes
+   that down to the input, so no JS measures anything. */
 .cb-wb__target { display: flex; align-items: stretch; gap: 6px; }
 .cb-wb__target input, .cb-wb__target textarea {
     flex: 1 1 auto; font: inherit; padding: 6px 8px;

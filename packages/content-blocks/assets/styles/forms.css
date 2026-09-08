@@ -1,25 +1,8 @@
-/* ContentBlocks — form widgets styles
- *
- * Scoped entirely under `.cb-shell` so these rules never leak into the
- * host application's own forms. The builder is always rendered inside
- * a `.cb-shell` container (either the fullscreen dialog or the iframe
- * preview), so every input the editor sees is matched.
- *
- * Class names follow the cb-form-* / cb-* convention used by the
- * companion @ContentBlocks/form/cb_form_theme.html.twig form theme.
- * Pair the two: the theme emits the markup, this stylesheet styles it.
- */
+/* Form widget styles, scoped entirely under `.cb-shell` so they never leak
+   into the host's own forms. The theme emits the markup, this styles it. */
 
 /* ---- Box-sizing reset ----
- *
- * Scoped reset so all builder UI inherits border-box without depending
- * on the host having one. Bootstrap was previously giving us this for
- * free via its global `* { box-sizing: border-box }`; with Bootstrap
- * gone, controls like `.cb-form-control { width: 100%; padding: ...;
- * border: 1px }` would overflow their column unless we set this
- * ourselves. The reset is scoped under `.cb-shell` so it never leaks
- * into the host's own pages.
- */
+   Scoped: Bootstrap used to supply border-box globally, and no longer does. */
 .cb-shell,
 .cb-shell *,
 .cb-shell *::before,
@@ -28,11 +11,8 @@
 }
 
 .cb-shell {
-    /* Form-widget aliases over the chrome tokens (tokens.css).
-       They stay as their own layer for two reasons: the ~900 rules below
-       already read them, and a host that wants inputs to differ from the
-       rest of the chrome can redeclare just these without touching the
-       shared palette. */
+    /* Their own layer over the chrome tokens, so a host can make inputs
+       differ without touching the shared palette. */
     --cb-form-text: var(--cb-text);
     --cb-form-text-muted: var(--cb-muted);
     --cb-form-placeholder: var(--cb-faint);
@@ -65,11 +45,7 @@
 }
 
 /* ---- Row ----
- *
- * Bootstrap shipped `mb-3` on every form row. We replace that with
- * `.cb-form-row { margin-bottom: 0.75rem }` so the spacing is consistent
- * without coupling to a utility class.
- */
+   Replaces Bootstrap's `mb-3`, so spacing needs no utility class. */
 .cb-shell .cb-form-row {
     margin: 0 0 var(--cb-form-gap);
 }
@@ -98,15 +74,7 @@
 }
 
 /* ---- Label ----
- *
- * Small uppercase mono: a label names its control, it is not content. The
- * contrast in *case and family* — not just in size — is what lets the eye
- * skip the labels when scanning a settings column for a value.
- *
- * Only labels that head a field get this. Checkbox and radio labels
- * (`.cb-form-check__label`) are the sentence the user reads to decide, so
- * they stay in the body font.
- */
+   Uppercase mono, so the eye can skip them. Check/radio labels stay body. */
 .cb-shell .cb-form-label {
     display: inline-block;
     margin: 0 0 0.3125rem;
@@ -166,9 +134,8 @@
     cursor: not-allowed;
 }
 
-/* Number inputs: hide spinners and use a slightly smaller font.
-   The styling sidebar packs lots of numeric inputs side-by-side, so a
-   smaller body type keeps values readable inside ~36px-wide cells. */
+/* No spinners, and a smaller face: the styling sidebar packs these into
+   ~36px cells. */
 .cb-shell .cb-form-control[type="number"]::-webkit-outer-spin-button,
 .cb-shell .cb-form-control[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -235,9 +202,7 @@
 }
 
 /* ---- Color input ----
- *
- * <input type="color"> is a square swatch — we keep it compact and let
- * the editor click anywhere on the swatch to open the picker. */
+   A square swatch, kept compact and clickable anywhere. */
 .cb-shell .cb-form-control--color {
     width: 38px;
     height: 30px;
@@ -323,9 +288,8 @@
     display: block;
     width: 100%;
 }
-/* Editable numeric readout floated at the row's top-right, aligned with
-   the label. It's a real <input type="number"> (the submitted field), so
-   it gets a compact bordered look rather than the full-width control. */
+/* The real submitted field, so it gets a compact bordered look rather
+   than the full-width control. */
 .cb-shell .cb-form-range-wrap__number {
     position: absolute;
     top: -2px;
@@ -375,11 +339,7 @@
 }
 
 /* ---- File input ----
- *
- * Native file inputs vary wildly across browsers. We style the wrapper
- * (`.cb-form-file`) so the editor sees a consistent target, and patch
- * the file-selector button so it looks like a small secondary button.
- */
+   Native ones vary wildly, so the wrapper carries the consistent target. */
 .cb-shell .cb-form-file {
     display: block;
     width: 100%;
@@ -422,11 +382,7 @@
 }
 
 /* ---- Checkbox / Radio ----
- *
- * We hide the native control and paint our own square (checkbox) / disc
- * (radio). The visible piece is a sibling `::before` so we can swap the
- * background when `:checked`. Keeps the input focusable and submittable
- * without any JS shim. */
+   A sibling `::before`, so the input stays focusable with no JS shim. */
 .cb-shell .cb-form-check {
     display: flex;
     align-items: center;
@@ -586,10 +542,7 @@
 }
 
 /* ---- Field errors ----
- *
- * Rendered as a list of messages below the control. The control itself
- * gets `.cb-form-control--invalid` (or the equivalent on select/textarea)
- * to paint a red border. */
+   A list below the control, which itself takes `--invalid`. */
 .cb-shell .cb-form-errors {
     margin: 0.25rem 0 0;
     padding: 0;
@@ -619,10 +572,7 @@
 }
 
 /* ---- Buttons emitted by the form theme ----
- *
- * The builder shell already styles its own chrome buttons (publish,
- * discard, etc.); these are for form-generated <button> / <input
- * type="submit"> nodes that may appear inside block forms. */
+   For form-generated nodes only; the shell styles its own chrome. */
 .cb-shell .cb-form-btn {
     display: inline-flex;
     align-items: center;
@@ -688,11 +638,7 @@
 }
 
 /* ---- Live collection (cards stack) ----
- *
- * Wraps any LiveCollectionType field rendered through the builder. The
- * widget container is a single-column grid (one card per row); each
- * entry+delete is grouped in a `.cb-form-collection__item` card with
- * the delete button as a small absolute icon in the corner. */
+   A single-column grid, one card per entry, delete pinned in its corner. */
 .cb-shell .cb-form-collection {
     display: grid;
     grid-template-columns: 1fr;
@@ -747,11 +693,7 @@
 }
 
 /* ---- Reorder controls (cb-collection-sort) ----
- *
- * A small toolbar at the top-left of each card: a drag handle SortableJS
- * grabs, plus up/down buttons that double as the keyboard-accessible
- * fallback. The delete button keeps its absolute top-right slot, so the
- * toolbar gets right padding to avoid sitting under it. */
+   Padded on the right, so it never sits under the absolute delete button. */
 .cb-shell .cb-form-collection__controls {
     display: flex;
     align-items: center;
@@ -817,14 +759,7 @@
 }
 
 /* ---- Image / file upload widget (ImageUploadType) ----
- *
- * Layout: a dashed drop frame holding the preview, a row of actions under it
- * (choose / remove / paste a path), then the revealed path field and the
- * upload-status pill the cb-file-upload controller drives.
- *
- * The frame is drawn at rest rather than only on drag: it is what tells an
- * editor the picture is a target at all, and it doubles as the empty
- * placeholder. Dragging a file over it moves it to the accent color. */
+   The frame is drawn at rest: it says the picture is a target at all. */
 .cb-shell .cb-image-upload {
     display: grid;
     gap: 0.5rem;
@@ -847,9 +782,8 @@
     border-color: var(--cb-form-border-focus);
     background: rgba(var(--cb-accent-rgb), 0.08);
 }
-/* The hint is the affordance for an empty field. Once there is an image the
- * frame speaks for itself and the sentence is noise — except while a drag is in
- * flight, when it becomes the confirmation that releasing here does something. */
+/* Noise once there is an image — except mid-drag, where it confirms that
+   releasing here does something. */
 .cb-shell .cb-image-upload__hint {
     display: none;
     margin: 0;
@@ -876,9 +810,8 @@
     flex-wrap: wrap;
     gap: 0.35rem;
 }
-/* The file input is visually hidden inside its label rather than display:none,
- * so it can still take keyboard focus — the label is the button, and the ring
- * is drawn on the label when the input behind it is focused. */
+/* Visually hidden rather than display:none, so it still takes keyboard
+   focus; the ring is drawn on the label. */
 .cb-shell .cb-image-upload__file {
     position: absolute;
     width: 1px;
@@ -909,9 +842,8 @@
     font-family: var(--cb-font-mono);
     font-size: var(--cb-form-font-size-xs);
 }
-/* `.cb-form-btn` and `.cb-form-control` set `display`, which outranks the UA's
- * `[hidden] { display: none }` — without this the remove button and the path
- * field would both show through their `hidden` attribute. */
+/* Those classes set `display`, outranking the UA's `[hidden]` rule — so
+   both would show through their `hidden` attribute. */
 .cb-shell .cb-image-upload [hidden] {
     display: none;
 }
@@ -941,9 +873,7 @@
 
 
 /* ---- Field separator (SeparatorType) ----
- * Renders a thin rule between groups of fields in the sidebar. Slightly more
- * vertical breathing room than the inter-row gap so the break reads as a
- * deliberate grouping, not just spacing. */
+   More room than the inter-row gap, so it reads as deliberate grouping. */
 .cb-shell .cb-form-separator {
     height: 0;
     margin: calc(var(--cb-form-gap) * 1.5) 0;

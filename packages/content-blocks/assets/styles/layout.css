@@ -1,12 +1,6 @@
 /**
- * ContentBlocks — front-side layout grid.
- *
- * Loaded via `<link rel="stylesheet" href="/_content-blocks/layout.css">` at
- * the top of every BlockRenderer output (both PUBLIC and PREVIEW). Self-
- * scoped via `.cb-content-area` so the rules can't bleed into the rest of
- * the host page.
- *
- * No framework dependency — pure flex layout with two breakpoints.
+ * Front-side layout grid, on every render. Scoped to `.cb-content-area` so it
+ * cannot bleed into the host page; pure flex, two breakpoints, no framework.
  */
 
 .cb-content-area {
@@ -25,11 +19,8 @@
     width: 100%;
 }
 
-/* Centered sections cap and center their inner row, NOT the <section>
-   itself — so the section's background spans the full viewport width while
-   its content stays contained. `--cb-row-max-w` is emitted inline on the
-   section by BuiltInSectionDecorator; absent (full-width mode) the row is
-   uncapped and the auto margins are a no-op. */
+/* Caps the inner row, NOT the <section>, so the background still spans
+   the viewport. See docs/internals/rendering.md */
 .cb-section--centered > .cb-row {
     max-width: var(--cb-row-max-w, none);
     margin-inline: auto;
@@ -38,28 +29,20 @@
 .cb-col {
     flex: 1 1 0;
     min-width: 0;
-    /* Flex column so blocks can opt into align-self (horizontal placement
-       inside their column). Default `align-self: stretch` keeps the
-       legacy full-width behavior; blocks with a max-width can override
-       via --cb-align-self set by StylingBlockDecorator. */
+    /* A flex column, so a block with a max-width can opt into align-self.
+       Stretch keeps the full-width default for everything else. */
     display: flex;
     flex-direction: column;
 }
 
-/* Each preset reserves exactly the row's actual gap: (N-1) gaps split across
-   N columns. The gap is configurable per section via --cb-gap-d (set on the
-   section in styling.css, inherited down to the columns); falls back to the
-   framework default 1rem for unstyled sections. Subtracting a hardcoded gap
-   here made columns wrap once the configured gap grew past 1rem. */
+/* Each preset reserves the row's *actual* gap, inherited from the section.
+   Subtracting a hardcoded one made columns wrap past a 1rem gap. */
 .cb-col--col-12 { flex-basis: 100%; }
 .cb-col--col-6  { flex-basis: calc((100% - var(--cb-gap-d, 1rem)) / 2); }
 .cb-col--col-4  { flex-basis: calc((100% - 2 * var(--cb-gap-d, 1rem)) / 3); }
 
-/* Custom column widths: a per-column grow weight (from the section's
-   `columnWidths` setting, e.g. 40/60) distributes the row proportionally.
-   flex-basis 0 so the weights alone decide the ratio; the row gap is taken
-   out by flex. Declared after the presets so the shorthand's basis:0 wins
-   over a preset's fixed flex-basis when both classes are present. */
+/* Basis 0, so the weights alone decide the ratio. Declared after the
+   presets, so the shorthand wins when both classes are present. */
 .cb-col--weighted { flex: var(--cb-col-grow, 1) 1 0; }
 
 @media (max-width: 768px) {

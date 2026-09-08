@@ -9,36 +9,10 @@ import {
 } from '../lib/rich_text.js';
 
 /**
- * TinyMCE adapter for the `rich_text` block.
+ * TinyMCE adapter. The wrapper is `data-live-ignore` so the morpher leaves its
+ * injected DOM alone, and its popups are re-parented into the modal `<dialog>`.
  *
- * Mounts TinyMCE on the block's textarea with the fixes a Live-Component
- * builder needs:
- *
- *  - the wrapper carries `data-live-ignore` (set by the form theme), so the
- *    morpher leaves TinyMCE's injected DOM — toolbar, iframe — untouched on
- *    re-renders;
- *  - on every edit `editor.save()` writes the HTML back to the textarea
- *    BEFORE the `input`/`change` event bubbles, so cb-autosave (and the Live
- *    save it triggers) always reads the latest value — no "one edit behind"
- *    race;
- *  - TinyMCE's auxiliary container (toolbar popups + WindowManager modals) is
- *    re-parented into the builder's `<dialog>`, which is opened with
- *    `showModal()` and therefore renders above anything left on `<body>`;
- *  - the color picker's swatches are seeded from the ContentBlocks palette,
- *    then the standard web palette, with a free picker still available.
- *
- * Values (all written by the PHP adapter, see TinyMceEditor):
- *  - `script-url`: where to load TinyMCE from; empty means the host bundled it
- *    and `window.tinymce` is expected to exist already.
- *  - `upload-url`: the builder's upload endpoint; empty disables image upload.
- *  - `config`: JSON merged over the init config below — the host's word wins.
- *  - `palette`: JSON `[{label, color}]` seeding the color swatches.
- *
- * Events:
- *  - `cb-rich-text:configure` fires on the wrapper (bubbling) once the config
- *    is merged and before TinyMCE is initialized. `event.detail.config` is the
- *    live object: mutate it to add what JSON cannot express — `setup` and the
- *    custom buttons it registers, or URLs only a bundler knows.
+ * @see docs/internals/kit.md#rich-text-one-payload-several-editors
  */
 
 // Standard web-color swatches appended after the theme palette. Kept in the
@@ -80,9 +54,8 @@ export function buildTinyMceConfig({ palette, uploads }) {
     ];
 
     if (uploads) {
-        // `image` brings the dialog and the toolbar button; `automatic_uploads`
-        // is what routes a pasted or dropped picture through the handler
-        // instead of leaving a base64 data URI in the stored HTML.
+        // `automatic_uploads` routes a pasted picture through the handler
+        // rather than leaving a base64 data URI in the stored HTML.
         plugins.push('image');
         toolbar.push('image');
     }
@@ -138,10 +111,8 @@ export default class extends Controller {
                 parseJsonValue(this.configValue, {}),
             );
 
-            // Last word on the config, and the only way to pass anything JSON
-            // cannot carry — `setup`, a custom button's `onAction`, a list of
-            // stylesheet URLs a bundler only knows at build time. Listeners
-            // mutate `detail.config` in place.
+            // The only way to pass what JSON cannot carry. Listeners mutate
+            // `detail.config` in place. See kit.md#assets-and-the-asset-prefix
             this.dispatch('configure', {
                 prefix: 'cb-rich-text',
                 detail: { config, editor: 'tinymce', element: this.element },
@@ -152,9 +123,8 @@ export default class extends Controller {
                 target: textarea,
                 ...(this.uploadUrlValue ? this._uploadHandlers(textarea) : {}),
                 setup: (editor) => {
-                    // Sync editor HTML → textarea + bubble the event so
-                    // cb-autosave's Live model binding picks it up. `input`
-                    // debounces; `change`/`blur` flush.
+                    // Bubbled so cb-autosave's Live binding sees it:
+                    // `input` debounces, `change`/`blur` flush.
                     const sync = (eventName) => () => {
                         editor.save();
                         textarea.dispatchEvent(new Event(eventName, { bubbles: true }));
@@ -162,8 +132,7 @@ export default class extends Controller {
                     editor.on('input keyup', sync('input'));
                     editor.on('change undo redo ExecCommand blur', sync('change'));
 
-                    // A host's `config.setup` runs after ours rather than
-                    // replacing it: losing the autosave sync would be a
+                    // After ours, not instead of it: losing the sync is a
                     // silent data-loss bug, not a styling preference.
                     if (typeof config.setup === 'function') config.setup(editor);
                 },

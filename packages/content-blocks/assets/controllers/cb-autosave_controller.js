@@ -1,29 +1,10 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Auto-save trigger for forms rendered inside the builder sidebar.
+ * Auto-save for the sidebar forms: `input` debounces, `change` and `focusout`
+ * save at once. Both form kinds are driven through one in-form save button.
  *
- * Attached to the root element of a block edit form or a section
- * settings form. It listens to user edits and clicks an in-form
- * `[data-cb-sidebar-save]` button to persist the change — block forms
- * route that click through Live Component's `live#action save`, section
- * forms through the cb-section-settings-form controller's submit
- * interceptor, so the trigger contract stays uniform across both.
- *
- * Strategy:
- *  - `input` event   → debounce (default 250 ms) then save. Catches
- *                      ongoing typing in text inputs.
- *  - `change` event  → save immediately. Fired by the browser after a
- *                      commit (select / checkbox / radio / file pickers,
- *                      and on blur for text inputs).
- *  - `focusout`      → save immediately as a safety net for fields
- *                      that don't reliably emit `change` (e.g. some
- *                      contenteditable widgets).
- *
- * Before triggering the save click, we synthesize a `change` event on
- * the still-focused field. Live Component form fields sync their
- * value into the LiveProp on `change`, so without this dispatch a
- * mid-typing debounce save would POST the stale (pre-edit) value.
+ * @see docs/internals/forms.md#why-collection-reorder-and-duplicate-flush
  */
 export default class extends Controller {
     static values = {
@@ -46,14 +27,8 @@ export default class extends Controller {
         // issued when something has actually changed (see _saveNow).
         this._lastSerialized = this._serializeForm();
 
-        // Structural edits — LiveCollection add/delete and any other live
-        // re-render — don't emit field input/change events, so the field
-        // listeners above miss them (an item removed via a live action would
-        // vanish from the sidebar but never persist to the draft, leaving a
-        // stale preview). Observe the form's node tree and reconcile: when a
-        // re-render changes the serialized form state, save it. _saveNow()'s
-        // serialized comparison makes this idempotent (a save's own re-render
-        // yields an identical snapshot → no loop).
+        // A live re-render emits no field events, so the listeners above
+        // miss it. _saveNow()'s serialized compare makes this loop-free.
         this._observer = new MutationObserver(() => this._onMutation());
         const form = this.element.querySelector('form') ?? this.element;
         this._observer.observe(form, { childList: true, subtree: true });
@@ -81,12 +56,10 @@ export default class extends Controller {
     }
 
     /**
-     * A downstream save failed (Live error response, network failure, or a
-     * section-form POST error — dispatched as cb:save:error on/through this
-     * element). _saveNow() had already bumped `_lastSerialized` to the failed
-     * state *before* the POST, so without this reset the exact same values
-     * would read as "already saved" and never be re-sent. Nulling the
-     * baseline makes the very next input/change/focusout retry the save.
+     * _saveNow() bumped the baseline *before* the POST, so without this reset
+     * the failed values would read as already saved and never be re-sent.
+     *
+     * @see docs/internals/frontend.md#live-component-failures-need-two-hooks
      */
     _onSaveError() {
         this._lastSerialized = null;
@@ -94,22 +67,14 @@ export default class extends Controller {
 
     _onFocusOut(event) {
         if (!this._isFormField(event.target)) return;
-        // focusout fires before the related target gets focus, so even
-        // when moving between two fields in the same form we still get
-        // a save. Inside the form change always fires for text inputs;
-        // this listener mostly catches the "user clicks completely
-        // outside the form" case.
+        // Mostly catches a click completely outside the form; inside it,
+        // `change` already fires for text inputs.
         this._saveNow();
     }
 
     /**
-     * Pressing Enter inside a single-line input would submit the
-     * surrounding <form> to its `action` URL — for the section form
-     * that's a real POST, for the block Live form it would navigate the
-     * iframe. Intercept Enter and trigger our own save instead so the
-     * flow stays consistent with the auto-save model. Multi-line
-     * targets (textarea / contenteditable) keep their default
-     * behavior so users can type newlines.
+     * Enter would submit the surrounding form to its action URL, so it saves
+     * instead. Multi-line targets keep the default, to type newlines.
      */
     _onKeydown(event) {
         if (event.key !== 'Enter') return;
@@ -131,11 +96,8 @@ export default class extends Controller {
     }
 
     /**
-     * A live re-render mutated the form's node tree (collection add/delete,
-     * or any structural change). Debounce and reconcile via _saveNow(), which
-     * only saves when the serialized state actually changed — so the morph
-     * caused by the save itself is a no-op and there's no loop. The `_saving`
-     * guard additionally skips the synchronous DOM churn we cause ourselves.
+     * Debounces and reconciles: _saveNow() only saves on a real change, so the
+     * morph the save itself causes is a no-op.
      */
     _onMutation() {
         if (this._saving) return;
@@ -149,32 +111,19 @@ export default class extends Controller {
         const btn = this.element.querySelector('[data-cb-sidebar-save]');
         if (!btn) return;
 
-        // Skip the save if the form's serialized state matches the
-        // last snapshot. Autosave fires from both the input-debounce
-        // and the subsequent focusout/change events, so a single
-        // logical edit otherwise produces two POSTs (and two iframe
-        // reloads). Comparing serialized state collapses the pair into
-        // one save whenever nothing actually changed between them.
+        // One logical edit fires both the debounce and a focusout, so
+        // comparing serialized state collapses the pair into one save.
         const current = this._serializeForm();
         if (current === this._lastSerialized) return;
         this._lastSerialized = current;
 
-        // Flush the currently-focused field so Live Component model
-        // bindings observe the latest value. Dispatching `change`
-        // (rather than blurring) keeps the user's cursor where it was,
-        // which matters for input-debounce saves that happen mid-edit.
-        // The `_saving` flag suppresses our own change/focusout
-        // handlers while we synthesize the event — otherwise the
-        // dispatch would re-enter _saveNow() and loop forever.
+        // Live syncs its LiveProp on `change`, so without this a mid-typing
+        // save POSTs the stale value. `_saving` stops it re-entering.
         this._saving = true;
         try {
             const active = document.activeElement;
-            // Never re-dispatch `change` on a file input. Its value is
-            // already committed elsewhere (cb-file-upload writes the upload
-            // result into a hidden input), and firing `change` again would
-            // re-trigger that upload controller — which re-uploads the same
-            // file under a fresh random name and fires another save, looping
-            // forever ("Uploading…" that never stops after picking an image).
+            // Never on a file input: it would re-trigger cb-file-upload,
+            // which re-uploads under a fresh name and saves again, forever.
             const isFileInput = active instanceof HTMLInputElement && active.type === 'file';
             if (active instanceof HTMLElement && this.element.contains(active)
                 && this._isFormField(active) && !isFileInput) {
@@ -187,21 +136,8 @@ export default class extends Controller {
     }
 
     /**
-     * Stable serialization of the form's current state, used to detect
-     * no-op saves. The wrapper element may contain a <form> (section
-     * settings, block forms via form_start) — anything outside isn't
-     * part of the persisted state and is intentionally excluded.
-     * FormData entries are sorted so the serialization order doesn't
-     * shift between calls.
-     *
-     * Box-spacing `[linked]` toggles are dropped: the cb-spacing-link
-     * controller engages them on connect when the four sides are uniform
-     * (the case for a freshly-focused block), which would otherwise dirty
-     * the form right after this baseline snapshot and trip a spurious save.
-     * The flag is a UI-only convenience re-derived from side uniformity on
-     * load, so excluding it from dirty-detection costs nothing — real
-     * spacing edits still flow through the side inputs, and the checkbox is
-     * still POSTed on genuine saves.
+     * Sorted, so the order cannot shift. `[linked]` toggles are dropped:
+     * cb-spacing-link engages them on connect and would dirty the baseline.
      */
     _serializeForm() {
         const form = this.element.querySelector('form');

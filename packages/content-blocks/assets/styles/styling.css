@@ -1,23 +1,8 @@
 /**
- * ContentBlocks — section + block styling (padding/margin/bg/min-height/align).
+ * Turns the decorators' variables into real properties. Section and block ones
+ * are namespaced, since custom properties inherit.
  *
- * Companion to StylingSectionDecorator / StylingBlockDecorator, which emit CSS
- * custom properties on each `.cb-section--styled` / `.cb-block--styled` element.
- * These rules turn those vars into real properties, with per-viewport overrides
- * via `@media`.
- *
- * IMPORTANT — section vs block vars are namespaced (`--cb-s-*` vs `--cb-b-*`)
- * for the properties both scopes use (padding / margin / background). CSS custom
- * properties inherit, so sharing names would make a block inherit its section's
- * padding/margin/background. Distinct names keep each scope independent.
- * Section-only (min-height, valign, gap, row max-width) and block-only
- * (max-width, align-self) vars are not shared, so they keep their plain names.
- *
- * The fallback chain inside each @media block ensures unset viewports inherit
- * from the next-wider one: mobile → tablet → desktop → 0.
- *
- * Loaded by render/content_area.html.twig at the top of every preview /
- * public render.
+ * @see docs/internals/rendering.md#section-decorators-emit-variables
  */
 
 .cb-section--styled {
@@ -33,13 +18,8 @@
     min-height: var(--cb-min-h, auto);
 }
 
-/* Vertical alignment. Two complementary effects from one setting:
-   1. align-items on the row aligns the COLUMNS relative to each other
-      (the common case for multi-column sections — works with no min-height,
-      e.g. center a short column against a taller sibling).
-   2. justify-content on the section (a flex column) places the row's block
-      vertically when a min-height leaves spare room (hero-style centering).
-   Default (no valign) keeps columns stretched to equal height. */
+/* One setting, two effects: `align-items` aligns the columns against each
+   other, `justify-content` places the row when a min-height leaves room. */
 .cb-section--has-valign {
     display: flex;
     flex-direction: column;
@@ -89,14 +69,8 @@
     }
 }
 
-/* ============================================================
-   Block-side styling (StylingBlockDecorator).
-
-   Same fallback chain as sections, but block-namespaced vars
-   (--cb-b-*) applied to `.cb-block--styled`, plus max-width.
-   Block backgrounds and constraints are deliberately scoped (no
-   flex/alignment) — layout decisions stay at the section level.
-   ============================================================ */
+/* ---- Block-side styling (StylingBlockDecorator) ----
+   No flex or alignment: layout decisions stay at the section level. */
 
 .cb-block--styled {
     padding-top: var(--cb-b-pad-d-t, 0);
@@ -109,10 +83,8 @@
     margin-left: var(--cb-b-mar-d-l, 0);
     background-color: var(--cb-b-bg, transparent);
     max-width: var(--cb-max-w, none);
-    /* align-self only takes effect when the block has a constrained
-       width (max-width) — the column is a flex column (see layout.css)
-       and otherwise the block stretches. The decorator only emits the
-       var when both align-self and max-width are set. */
+    /* Only meaningful with a max-width, since the column is a flex column
+       and the block otherwise stretches. */
     align-self: var(--cb-align-self, stretch);
 }
 

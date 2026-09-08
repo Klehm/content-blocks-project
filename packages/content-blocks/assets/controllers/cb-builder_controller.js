@@ -1,45 +1,10 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Bridges the parent admin window with the iframe preview and the sidebar.
+ * Bridges the parent admin window with the iframe preview and the sidebar, and
+ * owns every AJAX call. Five `cb:*` events are public API; the rest are not.
  *
- * Listens to `postMessage` events from the iframe (block edit/delete/add,
- * section move/delete, drag&drop reorder) and dispatches them as JS events
- * on its element so the rest of the admin can react.
- *
- * The sidebar is permanent: it always occupies its grid column and only its
- * content swaps based on which entity is focused. A collapsed state shrinks
- * the column to a fly-out toggle handle so the iframe can claim the full
- * row width. There is no "open / close" lifecycle anymore — block & section
- * forms save themselves via autosave (debounce on input, immediate on blur).
- *
- * Reload preserves the iframe's scroll position so the user isn't kicked
- * back to the top after each save.
- *
- * ## The `cb:*` event contract
- *
- * Five events are public API and stable across 1.x. Four are *outbound* — a
- * host may listen to them on the builder element:
- *
- *  - `cb:ready`          the preview iframe has mounted and is interactive
- *  - `cb:block:saved`    a block's draft was persisted
- *  - `cb:section:saved`  a section's draft was persisted
- *  - `cb:builder:action` a host-contributed topbar action was invoked
- *
- * One is *inbound* — dispatched *at* the builder, from the shell element or
- * anything inside it (a shell fragment, see BuilderShellExtensionInterface):
- *
- *  - `cb:area:changed`   the area was changed server-side behind the builder's
- *                        back (restored, replaced, mass-edited…); the builder
- *                        reloads the preview and re-syncs Publish / Discard.
- *                        `detail.hasUnpublishedChanges` is optional and
- *                        defaults to true — such a change is a draft write.
- *
- * Every other `cb:*` event in this file and in preview-overlay.js is
- * **internal choreography** between the overlay, the iframe and this
- * controller — the `…-requested`, `…:apply`, `…:patch` and `…:desync`
- * families in particular. They may be renamed, split or removed in any
- * minor release. See FREEZE-AUDIT.md.
+ * @see docs/internals/frontend.md#the-cb-event-contract
  */
 export default class extends Controller {
     static targets = [
@@ -90,11 +55,10 @@ export default class extends Controller {
         'Delete this section template? This cannot be undone.';
 
     /**
-     * Where a copied section / block waits. localStorage rather than memory
-     * because "copy here, paste over there" is the whole point: the target is
-     * usually another area, reached by leaving this page. The flip side is that
-     * the payload is user-writable — the paste endpoint treats it as input and
-     * replays it through each block's own form, so nothing here is trusted.
+     * localStorage, because "copy here, paste over there" means leaving this
+     * page — and therefore the payload is user-writable, and untrusted.
+     *
+     * @see docs/internals/frontend.md#keyboard-and-clipboard
      */
     static CLIPBOARD_KEY = 'cb-builder.clipboard';
 
@@ -103,25 +67,21 @@ export default class extends Controller {
     static SIDEBAR_MIN_WIDTH = 280;
     static SIDEBAR_MAX_WIDTH = 800;
     /**
-     * Coalesce window for the iframe reload after a save. Autosave can fire
-     * many `cb:*:saved` events per second while the user types; rather than
-     * reloading the preview on each one, we debounce so the iframe only
-     * refreshes after the user pauses for a moment.
+     * Autosave fires many saved-events per second while typing; the iframe
+     * refreshes only after a pause.
      */
     static SAVE_RELOAD_DEBOUNCE_MS = 500;
     static MOBILE_BREAKPOINT = '(max-width: 768px)';
     /**
-     * How long the "deleted — Undo" snackbar stays actionable. Deletes are
-     * immediate (no confirm dialog), so this window is the editor's only
-     * one-click recovery short of discarding the whole draft.
+     * The editor's only one-click recovery from a delete short of discarding
+     * the whole draft.
+     *
+     * @see docs/internals/frontend.md#feedback-what-stays-and-what-flashes
      */
     static UNDO_TIMEOUT_MS = 6000;
     /**
-     * Minimum shell width (in px) for each emulated viewport. The "desktop"
-     * viewport always fits because it tracks the shell's actual width. A
-     * tablet/mobile button is hidden when the shell is narrower than its
-     * target — emulating an iPad-width preview on a phone-sized screen
-     * would just clip the iframe, so the button isn't useful.
+     * Below its target width a viewport button is hidden: emulating an
+     * iPad-width preview on a phone screen only clips the iframe.
      */
     static VIEWPORT_MIN_WIDTHS = { desktop: 0, tablet: 768, mobile: 375 };
 
@@ -140,20 +100,16 @@ export default class extends Controller {
 
         window.addEventListener('message', this._onMessage);
         window.addEventListener('resize', this._onWindowResize);
-        // The Actions menu and the modal pickers both close on an outside
-        // click / Escape, and both live outside this controller's own click
-        // handlers — hence document-level listeners rather than per-element.
+        // Both close on outside-click and Escape, and both live outside
+        // this controller's own handlers — hence document-level listeners.
         document.addEventListener('pointerdown', this._onDocumentPointerDown);
         document.addEventListener('keydown', this._onDocumentKeydown);
         // BlockComponent.save() and the section-settings form both
         // dispatchBrowserEvent on save; the events bubble up to here.
         this.element.addEventListener('cb:block:saved', this._onBlockSaved);
         this.element.addEventListener('cb:section:saved', this._onSectionSaved);
-        // Save-failure feedback: live:connect bubbles up from every Live
-        // Component mounted in the sidebar (block edit forms) — we hook each
-        // component's error paths there. cb:save:error bubbles up from the
-        // section-settings form (its own fetch) and from the live error
-        // hooks below; both end in the persistent topbar error banner.
+        // live:connect bubbles from every Live Component in the sidebar;
+        // cb:save:error from the section form and the hooks below.
         this.element.addEventListener('live:connect', this._onLiveConnect);
         this.element.addEventListener('cb:save:error', this._onSaveError);
         // Inbound: a shell fragment (or the host) changed the area through
@@ -171,9 +127,8 @@ export default class extends Controller {
         // The library is the empty sidebar's whole content when nothing is
         // selected, so it loads with the builder rather than on demand.
         this._showTemplates();
-        // Mobile boots with no focused entity — collapse the bottom
-        // sheet so it reads as a strip at the bottom rather than a
-        // half-screen pane covering the preview.
+        // Mobile boots unfocused; collapse the sheet to a strip rather
+        // than a half-screen pane over the preview.
         this._syncEmptySidebar();
     }
 
@@ -217,17 +172,15 @@ export default class extends Controller {
         if (this.hasActionsToggleTarget) {
             this.actionsToggleTarget.setAttribute('aria-expanded', open ? 'true' : 'false');
             this.actionsToggleTarget.classList.toggle('cb-shell__actions-toggle--open', open);
-            // Returning focus to the toggle on close keeps keyboard users where
-            // they were; without it focus falls to <body> and the next Tab
+            // Without this, focus falls to <body> and the next Tab
             // restarts from the top of the shell.
             if (!open) this.actionsToggleTarget.focus({ preventScroll: true });
         }
     }
 
     /**
-     * Outside click. The menu closes; the modal pickers close only when the
-     * click landed on the backdrop itself, so a click inside a picker (or on
-     * the scrollbar of its list) never dismisses it.
+     * The menu closes; a picker only on its own backdrop, so a click inside
+     * one — or on its list's scrollbar — never dismisses it.
      */
     _onDocumentPointerDown(event) {
         const target = event.target;
@@ -240,9 +193,8 @@ export default class extends Controller {
     }
 
     /**
-     * Escape closes the topmost thing that is open: a picker, else the menu.
-     * Ctrl/Cmd-C and Ctrl/Cmd-V drive the clipboard — see `_isTextEditing` for
-     * what keeps them out of a genuine text copy.
+     * Escape closes the topmost open thing. See `_isTextEditing` for what
+     * keeps Ctrl-C/V out of a genuine text copy.
      */
     _onDocumentKeydown(event) {
         if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey) {
@@ -267,10 +219,8 @@ export default class extends Controller {
     }
 
     /**
-     * Closes whichever modal is open. Returns true when one was.
-     * Only one is ever open at a time — each opener closes the others. The
-     * section library is not in here: it lives in the sidebar, not over it,
-     * so there is nothing to dismiss.
+     * Closes whichever modal is open, returning true when one was. The section
+     * library is not one: it lives in the sidebar, not over it.
      */
     _closeTopModal() {
         if (this.hasReplacePickerTarget && !this.replacePickerTarget.hidden) {
@@ -286,10 +236,8 @@ export default class extends Controller {
     }
 
     /**
-     * Shows / hides the shared backdrop behind the modal pickers. One element
-     * for all three: they are mutually exclusive, and a single node means the
-     * dimming can never stack or be left behind by a picker that forgot to
-     * clean up after itself.
+     * One backdrop for all three pickers, so the dimming can never stack or be
+     * left behind by a picker that forgot to clean up.
      */
     _setBackdrop(visible) {
         const backdrop = this.element.querySelector('.cb-modal-backdrop');
@@ -305,9 +253,8 @@ export default class extends Controller {
     }
 
     /**
-     * Hide viewport buttons whose target width exceeds the shell width,
-     * and if the currently-active viewport just got hidden, fall back to
-     * desktop so the iframe doesn't stay stuck at a clipped size.
+     * Hides buttons wider than the shell, falling back to desktop if the
+     * active one just went — or the iframe stays stuck at a clipped size.
      */
     _refreshViewportButtons() {
         const shellWidth = this.element.clientWidth || window.innerWidth;
@@ -343,10 +290,8 @@ export default class extends Controller {
     }
 
     /**
-     * Reloads the iframe, preserving scrollY across the reload. While the
-     * iframe is mid-load the shell carries a "is-loading" class so the
-     * progress bar stays visible — the user gets continuous feedback from
-     * "AJAX submitted" all the way through to "preview repainted".
+     * Preserves scrollY across the reload, and keeps the progress bar up
+     * throughout so feedback is continuous.
      */
     reload() {
         if (!this.hasIframeTarget) return;
@@ -358,9 +303,8 @@ export default class extends Controller {
             // Cross-origin would throw; ignore and restore to 0.
         }
 
-        // A section that was just inserted is the one thing the editor wants to
-        // see, and it can be anywhere — including below the fold. Restoring the
-        // old scroll position would hide it, so the pending scroll wins.
+        // A just-inserted section is the one thing the editor wants to see,
+        // and restoring the old scroll would hide it.
         const scrollToSectionId = this._pendingScrollSectionId ?? null;
         this._pendingScrollSectionId = null;
 
@@ -377,9 +321,8 @@ export default class extends Controller {
                 }
             }
             this._restorePinnedFocus();
-            // Wait one frame so the iframe overlay has re-pinned the
-            // focused element and its rect is queryable before we
-            // measure for the mobile bottom-sheet auto-scroll.
+            // One frame, so the overlay has re-pinned focus and the rect
+            // is queryable before we measure.
             requestAnimationFrame(() => this._ensureFocusedVisible());
             this._endLoading();
         };
@@ -394,14 +337,10 @@ export default class extends Controller {
     }
 
     /**
-     * After the iframe finishes (re)loading, tell the preview overlay to
-     * re-pin focus on the element currently being edited. Without this,
-     * an autosave-triggered reload would wipe the blue outline + toolbar
-     * because the iframe DOM is rebuilt from scratch.
+     * Re-pins focus after a reload, or an autosave would wipe the outline and
+     * toolbar. The entity comes from the sidebar's mount markers.
      *
-     * The currently-edited entity is read from the sidebar's data-* mount
-     * markers (set by `_mountSidebarFrom`). When the sidebar shows the
-     * empty state, nothing is pinned and the call is a no-op.
+     * @see docs/internals/frontend.md#focus-and-the-sidebar
      */
     _restorePinnedFocus() {
         if (!this.hasSidebarTarget || !this.hasIframeTarget) return;
@@ -424,9 +363,8 @@ export default class extends Controller {
     }
 
     /**
-     * Reference-counted loading flag — multiple overlapping operations stack
-     * (e.g. a save followed by an iframe reload) and the bar only goes away
-     * once the last one finishes.
+     * Reference-counted, so overlapping operations stack and the bar only goes
+     * away once the last finishes.
      */
     _beginLoading() {
         this._loadingDepth = (this._loadingDepth ?? 0) + 1;
@@ -453,10 +391,8 @@ export default class extends Controller {
 
     async discard(event) {
         if (event) event.preventDefault();
-        // Discard throws away every unpublished edit at once — far more
-        // destructive than a single delete (which has its own Undo snackbar)
-        // and irreversible. Gate it behind a native confirm, same as the
-        // "Insert content" replace flow.
+        // Discard throws away every unpublished edit at once, and is
+        // irreversible — unlike a delete, which has its own Undo.
         const confirmText = this._t('cb.builder.discard_confirm', this.constructor.DISCARD_CONFIRM_FALLBACK);
         if (!window.confirm(confirmText)) return;
         const result = await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/discard`);
@@ -469,21 +405,10 @@ export default class extends Controller {
     }
 
     /**
-     * Refreshes topbar action states (Discard hidden/visible, Publish
-     * enabled/disabled) and the launcher badge outside the dialog so the
-     * parent admin page reflects the latest draft state without a full
-     * reload.
-     */
-    /**
-     * Inbound `cb:area:changed` (public API, see the file header). Something
-     * outside this controller — a shell fragment restoring a revision, the
-     * host running a bulk edit — wrote to the area through its own endpoint,
-     * so the preview and the Publish / Discard pair are stale. Same landing
-     * as the import and replace flows: re-sync the buttons, then reload.
+     * Inbound `cb:area:changed`: something outside wrote to the area, so
+     * re-sync the buttons and reload. Supersedes a pending debounced reload.
      *
-     * A pending debounced reload from an earlier save is superseded rather
-     * than coalesced with: the area just changed wholesale, and waiting out
-     * the quiet period would show the stale preview for that much longer.
+     * @see docs/internals/frontend.md#the-cb-event-contract
      */
     _onAreaChanged(event) {
         const detail = event?.detail;
@@ -496,16 +421,14 @@ export default class extends Controller {
     }
 
     _applyDraftState(hasUnpublishedChanges) {
-        // Discard is irrelevant when nothing is pending — hide it entirely
-        // rather than rendering a disabled button. The user only sees it
-        // when it's actually actionable.
+        // Hidden rather than disabled, so it is only ever seen when it is
+        // actionable.
         const discardBtn = this.element.querySelector('.cb-shell__discard');
         if (discardBtn) {
             discardBtn.hidden = !hasUnpublishedChanges;
         }
-        // Publish is the primary action — keep it visible at all times so
-        // the user knows it exists, but disable it when there's nothing to
-        // publish.
+        // The primary action: always visible so it is known to exist,
+        // disabled when there is nothing to publish.
         const publishBtn = this.element.querySelector('.cb-shell__publish');
         if (publishBtn) {
             publishBtn.disabled = !hasUnpublishedChanges;
@@ -529,9 +452,8 @@ export default class extends Controller {
     }
 
     /**
-     * Asks the next preview reload to bring this section into view instead of
-     * restoring the previous scroll position. A no-op for a missing id, so
-     * callers don't have to guard.
+     * Asks the next reload to scroll here instead of restoring the previous
+     * position. A no-op for a missing id, so callers need no guard.
      */
     _scrollPreviewTo(sectionId) {
         const id = parseInt(sectionId, 10);
@@ -552,14 +474,12 @@ export default class extends Controller {
         const allowed = ['full', 'two_cols', 'three_cols'];
         const finalLayout = allowed.includes(layout) ? layout : 'full';
         const result = await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/sections`, { layout: finalLayout });
-        // A new section lands at the end of the area — off screen as soon as
-        // the page is longer than the viewport. Scroll to it, or the editor
-        // gets no feedback that anything happened.
+        // It lands at the end of the area, off screen on any long page —
+        // without this the editor gets no feedback at all.
         this._scrollPreviewTo(result?.id);
         this._afterStructuralOp();
-        // Open the settings sidebar on the freshly-created section so the user
-        // can configure it immediately — mirrors _addBlock. The iframe reload
-        // above runs in parallel; the sidebar fetches its HTML separately.
+        // Configure it immediately. The reload above runs in parallel; the
+        // sidebar fetches its HTML separately.
         if (result?.id) {
             this._mountSectionSettings(result.id);
         }
@@ -571,26 +491,23 @@ export default class extends Controller {
         // Create failed (CSRF/access/network) — leave the preview untouched.
         if (result === null) return;
         this._applyDraftState(true);
-        // A static / CSS-only block ships its rendered markup: drop it into the
-        // preview in place. A JS-dependent block opts out (no html) and needs a
-        // full reload so its scripts run.
+        // A hot-reloadable block ships its markup; one that opts out needs
+        // a full reload. See frontend.md#hot-reload-and-when-it-is-refused
         if (result.hotReload && typeof result.html === 'string') {
             this._insertBlockInPreview(columnId, result.html);
         } else {
             this.reload();
         }
-        // Open the edit sidebar on the freshly-created block so the user can
-        // fill it in immediately. The insert/reload above happens in parallel —
-        // the sidebar mount fetches its HTML from a separate endpoint.
+        // Fill it in immediately. The insert above runs in parallel; the
+        // sidebar mount fetches from a separate endpoint.
         if (result.id) {
             this._mountSidebar(result.id);
         }
     }
 
     /**
-     * Asks the preview overlay to insert a freshly-rendered block at the end of
-     * its column (ahead of the permanent "+ Block" button). Falls back to a
-     * full reload if the iframe can't be reached.
+     * Inserts a rendered block at the end of its column, ahead of the
+     * "+ Block" button. Falls back to a reload if the iframe is unreachable.
      */
     _insertBlockInPreview(columnId, html) {
         if (!this.hasIframeTarget) {
@@ -679,10 +596,10 @@ export default class extends Controller {
     }
 
     /**
-     * Asks the preview overlay to relocate an existing section/block node in
-     * place after a server-confirmed reorder. Moving the live node keeps the
-     * block's DOM + JS state intact (a re-render or full reload would discard
-     * it). Falls back to a full reload if the iframe can't be reached.
+     * Moves the **live** node, keeping its DOM and JS state — a re-render
+     * would discard both. Falls back to a reload.
+     *
+     * @see docs/internals/frontend.md#hot-reload-and-when-it-is-refused
      */
     _reorderInPreview(message) {
         if (!this.hasIframeTarget) {
@@ -702,10 +619,8 @@ export default class extends Controller {
         // Duplicate failed (CSRF/access/network) — leave the preview untouched.
         if (result === null) return;
         this._applyDraftState(true);
-        // A section whose blocks all hot-reload ships its rendered markup: drop
-        // the copy into the preview in place, right after the source. A section
-        // carrying a JS-dependent block opts out (no html) and needs a full
-        // reload so its scripts run.
+        // Ships markup only when every block hot-reloads; otherwise a full
+        // reload so their scripts run.
         if (result.hotReload && typeof result.html === 'string') {
             this._duplicateInPreview({ type: 'cb:section:duplicate:apply', sourceId: sectionId, html: result.html });
         } else {
@@ -719,9 +634,7 @@ export default class extends Controller {
         // Duplicate failed (CSRF/access/network) — leave the preview untouched.
         if (result === null) return;
         this._applyDraftState(true);
-        // Same policy as _addBlock: a static / CSS-only copy ships its markup
-        // and lands in place (right after the source); a JS-dependent block
-        // opts out (no html) and falls back to a full reload.
+        // Same policy as _addBlock, landing right after the source.
         if (result.hotReload && typeof result.html === 'string') {
             this._duplicateInPreview({ type: 'cb:block:duplicate:apply', sourceId: blockId, html: result.html });
         } else {
@@ -730,9 +643,8 @@ export default class extends Controller {
     }
 
     /**
-     * Asks the preview overlay to drop a freshly-rendered duplicate into place,
-     * anchored right after its source node. Falls back to a full reload if the
-     * iframe can't be reached.
+     * Drops a rendered duplicate right after its source node, falling back to
+     * a full reload if the iframe is unreachable.
      */
     _duplicateInPreview(message) {
         if (!this.hasIframeTarget) {
@@ -751,9 +663,8 @@ export default class extends Controller {
         const result = await this._jsonRequest('DELETE', `/_content-blocks/section/${sectionId}`);
         // Delete failed (CSRF/access/network) — leave the preview untouched.
         if (result === null) return;
-        // Direct case: the focused element is the section itself. The
-        // cascading case (a focused block lived inside this section) is
-        // caught after reload via the iframe's `cb:focus:not-found` reply.
+        // The direct case. A focused block *inside* this section is caught
+        // after reload, by the overlay's `cb:focus:not-found` reply.
         if (this._isSidebarFocusedOnSection(sectionId)) {
             this._resetSidebarToEmptyState();
         }
@@ -772,10 +683,8 @@ export default class extends Controller {
     }
 
     /**
-     * Common tail for any structural mutation: every such op leaves the area
-     * with at least one unpublished change, so flip the discard button on
-     * proactively (instead of doing a roundtrip just to discover the area is
-     * dirty), then reload the iframe to reflect the new draft state.
+     * Every structural op leaves at least one unpublished change, so the draft
+     * state is flipped on proactively rather than round-tripped for.
      */
     _afterStructuralOp() {
         this._applyDraftState(true);
@@ -783,32 +692,20 @@ export default class extends Controller {
     }
 
     /**
-     * Shared AJAX helper for every structural mutation. Calls are SERIALIZED:
-     * each request waits for the previous one to settle before it starts, so at
-     * most one mutation is ever in flight.
+     * Shared AJAX helper. Calls are **serialized** — at most one mutation is
+     * ever in flight — because the endpoints share a read-modify-write.
      *
-     * Why serialize? Every reorder / duplicate / create / delete endpoint does a
-     * read-modify-write of a whole sibling set's previewPosition (the draft
-     * order). Two overlapping requests would each read the other's pre-commit
-     * state, and whichever committed last would clobber the earlier reorder — a
-     * classic lost update. The visible symptom was a drag that looked like it
-     * worked but silently snapped back to its old slot after a reload:
-     * intermittent, and worse on large pages where slower requests widen the
-     * overlap window. Funnelling every mutation through one in-flight slot
-     * removes the race entirely; the added latency is invisible for
-     * click/drag-driven actions.
+     * @see docs/internals/frontend.md#mutations-are-serialized
      */
     _jsonRequest(method, url, body, options) {
         const exec = () => this._performJsonRequest(method, url, body, options);
-        // Chain onto the queue tail (run on both fulfil and reject so a prior
-        // failure still releases the slot). _performJsonRequest never rejects —
-        // it catches network + non-OK and resolves to null — so callers keep
-        // getting their result (or null) in submission order.
+        // On both fulfil and reject, so a prior failure still releases the
+        // slot. _performJsonRequest never rejects.
         const result = this._mutationQueue
             ? this._mutationQueue.then(exec, exec)
             : exec();
-        // Swallow rejections on the tail only, so one failed request can't wedge
-        // every later mutation behind a permanently-rejected promise.
+        // Tail only, so one failure cannot wedge every later mutation
+        // behind a permanently-rejected promise.
         this._mutationQueue = result.catch(() => {});
 
         return result;
@@ -839,18 +736,15 @@ export default class extends Controller {
             try {
                 response = await fetch(url, init);
             } catch (e) {
-                // Network failure (offline, DNS, aborted) — without this catch
-                // the rejection would propagate to callers that never handle
-                // it, and the editor would get zero feedback.
+                // Without this the rejection reaches callers that never
+                // handle it, and the editor gets zero feedback.
                 console.error('[cb-builder] request failed', method, url, e);
                 this._showSaveError();
                 return null;
             }
             if (!response.ok) {
-                // An endpoint that answers a refusal with a *reason* the editor
-                // can act on (paste with nothing selected, a copy from another
-                // schema generation) opts its status out of the generic banner:
-                // the caller reads the body and says something specific.
+                // A refusal carrying a reason opts out of the generic
+                // banner; the caller reads the body and says it.
                 if (options.tolerate?.includes(response.status)) {
                     return await response.json().catch(() => null);
                 }
@@ -869,14 +763,10 @@ export default class extends Controller {
     // ---------- Save-failure feedback ----------
 
     /**
-     * A Live Component connected somewhere under the shell (block edit form
-     * in the sidebar). Hook its two failure paths:
-     *  - `response:error`  — the server answered with a non-component
-     *    response (500, expired session…). We suppress Live's default
-     *    raw-HTML error modal in favour of the topbar banner.
-     *  - network failure   — Live's own request promise has no rejection
-     *    handler at all (the save dies silently), so we attach one through
-     *    the `loading.state:started` hook, which receives the request.
+     * Hooks a Live Component's two failure paths — a non-component response,
+     * and a network failure its own promise never handles.
+     *
+     * @see docs/internals/frontend.md#live-component-failures-need-two-hooks
      */
     _onLiveConnect(event) {
         const component = event.detail?.component;
@@ -887,11 +777,8 @@ export default class extends Controller {
         });
         component.on('loading.state:started', (el, request) => {
             request?.promise?.catch(() => {
-                // Live never resets `backendRequest` when its request
-                // rejects, so every subsequent action would queue behind the
-                // dead request forever — the component is wedged and the
-                // editor's retry would silently do nothing. Clear it so the
-                // next interaction can actually re-save.
+                // Live never resets this on rejection, so every later
+                // action would queue behind a dead request forever.
                 if (component.backendRequest === request) {
                     component.backendRequest = null;
                 }
@@ -901,13 +788,10 @@ export default class extends Controller {
     }
 
     /**
-     * Route a save failure detected on a Live form. Dispatching cb:save:error
-     * on the form's autosave wrapper kills two birds: cb-autosave resets its
-     * dirty-detection baseline (so the next interaction re-attempts the save
-     * instead of considering the failed state "already saved"), and the event
-     * bubbles back up to our own cb:save:error listener which shows the
-     * banner. Falls back to showing the banner directly when the form has no
-     * autosave wrapper.
+     * Dispatched on the autosave wrapper, which both resets its dirty baseline
+     * and bubbles up to raise the banner.
+     *
+     * @see docs/internals/frontend.md#live-component-failures-need-two-hooks
      */
     _signalSaveError(fromElement) {
         const autosaveEl = fromElement?.querySelector?.('[data-controller~="cb-autosave"]');
@@ -923,9 +807,10 @@ export default class extends Controller {
     }
 
     /**
-     * Persistent (non-flashing) error banner in the topbar: unlike the
-     * transient "Saved" flash, it stays visible until a subsequent save
-     * succeeds — the editor must know their latest edits are not stored.
+     * Persistent, unlike the "Saved" flash: the editor must know their latest
+     * edits are not stored.
+     *
+     * @see docs/internals/frontend.md#feedback-what-stays-and-what-flashes
      */
     _showSaveError() {
         if (!this.hasSaveErrorTarget) return;
@@ -940,15 +825,10 @@ export default class extends Controller {
     // ---------- Clipboard (copy / paste) ----------
 
     /**
-     * Ctrl/Cmd-C. Copies whatever the sidebar has open — clicking a block or a
-     * section in the preview is what opens it, so the sidebar *is* the
-     * selection, and there is no second notion of "focused entity" to keep in
-     * sync with it. A block wins over its section: it is the more specific of
-     * the two, and it is what the editor was last looking at.
+     * Copies whatever the sidebar has open, block winning over section, and
+     * says so in the snackbar.
      *
-     * The copy is acknowledged in the snackbar. Nothing changes on screen
-     * otherwise, and a silent copy is how an editor pastes the wrong thing
-     * three times.
+     * @see docs/internals/frontend.md#keyboard-and-clipboard
      */
     async copySelection() {
         const { blockId, sectionId } = this._selectionIds();
@@ -965,8 +845,8 @@ export default class extends Controller {
         try {
             window.localStorage.setItem(this.constructor.CLIPBOARD_KEY, JSON.stringify(entry));
         } catch (e) {
-            // Private mode, quota, storage disabled — the copy simply did not
-            // happen, and saying so beats a paste that mystifyingly does nothing.
+            // The copy did not happen, and saying so beats a paste that
+            // mystifyingly does nothing.
             console.error('[cb-builder] clipboard write failed', e);
             this._notify(this._t('cb.builder.clipboard.unreadable', 'This copy cannot be read and was discarded'));
 
@@ -980,10 +860,10 @@ export default class extends Controller {
     }
 
     /**
-     * Ctrl/Cmd-V. Hands the stored entry back to the server with the current
-     * selection as the target; placement is decided there (a section after the
-     * selected section, a block after the selected block). Writes to draft, so
-     * Publish commits it and Discard reverts it.
+     * Hands the entry back with the current selection as target; placement is
+     * decided server-side, into the draft.
+     *
+     * @see docs/internals/clipboard.md#replay-and-placement
      */
     async pasteClipboard() {
         const entry = this._readClipboard();
@@ -1002,9 +882,7 @@ export default class extends Controller {
                 ...(blockId ? { targetBlockId: blockId } : {}),
                 ...(sectionId ? { targetSectionId: sectionId } : {}),
             },
-            // A refusal here is a *reason* the editor can act on, not a failed
-            // save: read the body and say it, rather than raising the generic
-            // error banner.
+            // A reason the editor can act on, not a failed save.
             { tolerate: [422] },
         );
         if (result === null) return;
@@ -1034,14 +912,13 @@ export default class extends Controller {
             unreadable_clipboard: ['cb.builder.clipboard.unreadable', 'This copy cannot be read and was discarded'],
         };
         const [key, fallback] = messages[error] ?? messages.unreadable_clipboard;
-        // An entry the server cannot read will never paste, here or anywhere
-        // else — keeping it would only let the editor hit the same wall again.
-        // A stale version is the same: only a fresh copy fixes it.
+        // An unreadable or stale entry will never paste anywhere; keeping
+        // it only lets the editor hit the same wall again.
         if (error !== 'no_target') this._clearClipboard();
         this._notify(this._t(key, fallback));
     }
 
-    /** The open sidebar's entity, as ids. Both null when nothing is selected. */
+    /** The open sidebar's entity. Both null when nothing is selected. */
     _selectionIds() {
         if (!this.hasSidebarTarget) return { blockId: null, sectionId: null };
         const blockId = this.sidebarTarget.getAttribute('data-cb-sidebar-block-id');
@@ -1054,10 +931,10 @@ export default class extends Controller {
     }
 
     /**
-     * Whether Ctrl-C/V belongs to the editor's text rather than to us. Typing
-     * in a sidebar field is the obvious case; a selected run of text anywhere
-     * (a label, a paragraph the editor wants to quote) is the subtler one, and
-     * stealing that copy would be worse than not having the shortcut at all.
+     * Whether Ctrl-C/V belongs to the editor's text. Stealing a real selection
+     * would be worse than not having the shortcut.
+     *
+     * @see docs/internals/frontend.md#keyboard-and-clipboard
      */
     _isTextEditing() {
         const active = document.activeElement;
@@ -1102,11 +979,8 @@ export default class extends Controller {
     // ---------- Undo delete (snackbar) ----------
 
     /**
-     * Deletes are immediate (no confirm dialog) and the only other recovery
-     * is discarding the WHOLE draft — far too coarse for one mis-click. So
-     * after every delete we offer a one-click undo for a few seconds. The
-     * offer is single-slot (a newer delete replaces it), which matches the
-     * usual snackbar pattern.
+     * Deletes are immediate, and discarding the whole draft is far too coarse
+     * for one mis-click. Single-slot: a newer delete replaces the offer.
      */
     _offerUndo(kind, id) {
         if (!this.hasUndoBarTarget) return;
@@ -1122,11 +996,8 @@ export default class extends Controller {
     }
 
     /**
-     * The same snackbar with nothing to click: an acknowledgement ("Section
-     * copied") or a refusal ("select something first"). It shares the timer and
-     * the single slot with the undo offer — two bars stacking would be worse
-     * than the newer message winning — so it also clears any pending undo it
-     * replaces, rather than leaving an invisible offer armed.
+     * The same snackbar with nothing to click. It shares the slot with the undo
+     * offer, and clears it rather than leaving an invisible one armed.
      */
     _notify(message) {
         if (!this.hasUndoBarTarget) return;
@@ -1157,9 +1028,8 @@ export default class extends Controller {
             `/_content-blocks/${pending.kind}/${pending.id}/restore`,
         );
         if (result === null) return;
-        // The restored element comes back with its full subtree — simplest
-        // correct refresh is a full reload (undo is rare; no need for the
-        // hot-reload path here).
+        // It comes back with its full subtree, and undo is rare — a full
+        // reload is the simplest correct refresh.
         this._applyDraftState(true);
         this.reload();
     }
@@ -1171,12 +1041,10 @@ export default class extends Controller {
     }
 
     /**
-     * Action: a host-provided topbar button was clicked. The bundle stays
-     * agnostic about what the action does — it just emits a single generic
-     * `cb:builder:action` event carrying the button's key (plus the area id
-     * and the clicked button for context). The host listens once on the
-     * shell and filters on `detail.key`; using one stable event name (rather
-     * than per-key event types) keeps add/removeEventListener simple.
+     * Emits one generic event carrying the button's key, rather than per-key
+     * event types, which keeps add/removeEventListener simple for the host.
+     *
+     * @see docs/internals/builder-extensions.md#what-the-package-renders
      */
     runAction(event) {
         if (event) event.preventDefault();
@@ -1230,10 +1098,8 @@ export default class extends Controller {
             case 'cb:template:insert-requested':
                 this.openTemplatePicker();
                 break;
-            // The preview is a separate document, so its keydown never reaches
-            // this one. The overlay relays the shortcut instead of duplicating
-            // the clipboard: what gets copied is still "whatever the sidebar
-            // has open", which only this side knows.
+            // Relayed by the overlay: what gets copied is whatever the
+            // sidebar has open, which only this side knows.
             case 'cb:clipboard:copy-requested':
                 this.copySelection();
                 break;
@@ -1253,9 +1119,8 @@ export default class extends Controller {
                 this._onPreviewOutsideClick();
                 break;
             case 'cb:focus:not-found':
-                // The iframe couldn't pin focus after reload — the focused
-                // element no longer exists (e.g. a section delete cascaded
-                // to a focused child block). Clear the stale form.
+                // The focused element no longer exists — a section delete
+                // that cascaded to a child block. Clear the stale form.
                 this._resetSidebarToEmptyState();
                 break;
             case 'cb:reorder:desync':
@@ -1289,9 +1154,7 @@ export default class extends Controller {
     async _mountSidebarFrom(url, dataAttrs = {}) {
         if (!this.hasSidebarTarget || !this.hasSidebarContentTarget) return;
 
-        // Expand the sidebar if it was collapsed — the user just asked to
-        // edit something, so we surface the form even without a manual
-        // expand click.
+        // The user just asked to edit something.
         this._setSidebarCollapsed(false);
 
         this._beginLoading();
@@ -1310,9 +1173,7 @@ export default class extends Controller {
             for (const [k, v] of Object.entries(dataAttrs)) {
                 this.sidebarTarget.setAttribute(k, v);
             }
-            // Sidebar now points at the new entity — scroll the iframe
-            // so the focused element isn't covered by the bottom sheet
-            // on mobile.
+            // So the focused element is not covered by the mobile sheet.
             this._ensureFocusedVisible();
         } catch (e) {
             console.error('[cb-builder] mount error', e);
@@ -1328,19 +1189,16 @@ export default class extends Controller {
     }
 
     /**
-     * Resets the sidebar content back to its empty state (the hint +
-     * three "Add section" buttons). Called when the user clicks empty
-     * preview space or after structural ops that remove the focused
-     * element. No animation — just an instant content swap.
+     * Back to the hint and the "Add section" buttons, on an outside click or
+     * after an op that removed the focused element.
      */
     _resetSidebarToEmptyState() {
         if (!this.hasSidebarContentTarget) return;
         if (typeof this._sidebarEmptyHtml !== 'string') return;
         this.sidebarContentTarget.innerHTML = this._sidebarEmptyHtml;
         this._clearSidebarDataAttrs();
-        // The snapshot has an empty library list — Stimulus rebinds the
-        // targets on the new nodes, but only this controller knows what was in
-        // it. Repaint from cache (or fetch on the very first pass).
+        // The snapshot's library list is empty and only this controller
+        // knows what was in it, so repaint from cache.
         this._showTemplates();
         // Mobile: nothing focused → collapse the sheet to its 32px
         // strip so the preview reclaims the screen.
@@ -1348,22 +1206,16 @@ export default class extends Controller {
     }
 
     /**
-     * The iframe forwards a `cb:preview:outside-click` whenever the user
-     * clicks anywhere in the preview that isn't an overlay toolbar/popover.
-     * In the new permanent-sidebar model we read it as "clear the focused
-     * form" — the sidebar stays on screen but reverts to the empty state.
+     * Read as "clear the focused form": the sidebar stays on screen and
+     * reverts to its empty state.
      */
     _onPreviewOutsideClick() {
         this._resetSidebarToEmptyState();
     }
 
     /**
-     * Action: close the builder dialog. Handled here rather than on the
-     * launcher controller because the launcher re-parents the <dialog> to
-     * document.body on connect — that moves this close button out of the
-     * launcher's element, so its Stimulus action no longer resolves. The
-     * cb-builder controller lives inside the shell (inside the dialog), so
-     * it stays in scope and can close the enclosing <dialog> directly.
+     * Here rather than on the launcher, which re-parents the <dialog> to
+     * document.body — moving this button out of its Stimulus scope.
      */
     close(event) {
         if (event) event.preventDefault();
@@ -1398,12 +1250,8 @@ export default class extends Controller {
     }
 
     /**
-     * Mobile-only: collapse the bottom sheet down to its 32px strip
-     * whenever nothing is focused — the empty-state hint shouldn't steal
-     * the bottom half of the screen when the user hasn't asked to edit
-     * anything yet. `persist: false` keeps the user's explicit
-     * expand/collapse preference in localStorage untouched, so once they
-     * focus an element again the sidebar restores their last choice.
+     * Mobile-only: an empty-state hint should not steal half the screen.
+     * `persist: false` leaves the user's own preference untouched.
      */
     _syncEmptySidebar() {
         if (!this._isMobile()) return;
@@ -1417,12 +1265,8 @@ export default class extends Controller {
     }
 
     /**
-     * Mobile-only safety net: when the bottom-sheet sidebar overlays the
-     * iframe, the element being edited can end up hidden behind the
-     * sheet. Scroll the iframe just enough so the focused element's
-     * bottom edge sits above the sheet — but only if it's actually
-     * hidden. No-op on desktop (sidebar is on the side, no vertical
-     * overlap), when collapsed, or when nothing is focused.
+     * Mobile-only: scrolls the iframe just enough to lift the focused element
+     * above the bottom sheet, and only when it is actually hidden.
      */
     _ensureFocusedVisible() {
         if (!this._isMobile()) return;
@@ -1444,9 +1288,8 @@ export default class extends Controller {
         if (!el) return;
 
         const iframeRect = this.iframeTarget.getBoundingClientRect();
-        // offsetHeight is the layout (post-CSS, pre-transform) height, so
-        // we can measure correctly even mid-transition while the sheet
-        // is still sliding up.
+        // The layout height, so this measures correctly even while the
+        // sheet is still sliding up.
         const sidebarHeight = this.sidebarTarget.offsetHeight;
         const visibleBottom = iframeRect.height - sidebarHeight;
         if (visibleBottom <= 0) return;
@@ -1466,15 +1309,10 @@ export default class extends Controller {
     }
 
     /**
-     * Autosave callback: a block was just persisted by the form. Bump the
-     * dirty indicators, flash "Saved", and refresh the preview.
+     * Hot-swaps the focused block where possible, the server having the final
+     * say. Both paths share one debounce, so a burst of saves is one refresh.
      *
-     * Hybrid reload: if we know which block is focused we try to hot-swap
-     * just that block's markup in the iframe (no flash, no re-running the
-     * host page's JS). The server has the final say — a JS-dependent block
-     * type answers "no hot reload" and we fall back to a full iframe reload.
-     * Both paths are coalesced through the same debounce timer so a burst of
-     * keystroke-saves only triggers one refresh.
+     * @see docs/internals/frontend.md#hot-reload-and-when-it-is-refused
      */
     _onBlockSaved(event) {
         this._applyDraftState(true);
@@ -1492,10 +1330,8 @@ export default class extends Controller {
     _onSectionSaved(event) {
         this._applyDraftState(true);
         this._flashSaved();
-        // Section settings only change the section wrapper's style + its column
-        // widths (never structure), so hot-reload just that section's
-        // attributes in place instead of reloading the whole iframe. Falls
-        // back to a full reload if the section id is unknown.
+        // Settings never change structure, so patching the wrapper in
+        // place is always safe. Falls back if the id is unknown.
         const sectionId = this.hasSidebarTarget
             ? this.sidebarTarget.getAttribute('data-cb-sidebar-section-id')
             : null;
@@ -1523,10 +1359,8 @@ export default class extends Controller {
     }
 
     /**
-     * Fetches the freshly-rendered markup for a single block and asks the
-     * preview overlay to swap it in place. Any failure — network error,
-     * missing block, or a block type that opts out of hot reload — falls
-     * back to a full iframe reload so the preview is never left stale.
+     * Any failure — network, missing block, a type that opts out — falls back
+     * to a full reload, so the preview is never left stale.
      */
     async _refreshBlock(blockId) {
         if (!blockId || !this.hasIframeTarget) {
@@ -1575,10 +1409,8 @@ export default class extends Controller {
     }
 
     /**
-     * Fetches the freshly-rendered markup for a single section and asks the
-     * preview overlay to patch its wrapper (class/style) + column widths in
-     * place. Any failure falls back to a full iframe reload so the preview is
-     * never left stale.
+     * Patches the wrapper and column widths in place, falling back to a full
+     * reload on any failure.
      */
     async _refreshSection(sectionId) {
         if (!sectionId || !this.hasIframeTarget) {
@@ -1639,10 +1471,8 @@ export default class extends Controller {
     // ---------- Replace-content picker ----------
 
     /**
-     * Action: opens the "insert content from an existing area" picker.
-     * First open loads the default (unfiltered) candidate list; subsequent
-     * opens re-use the cached list so the user can hop in and out without
-     * the network flashing.
+     * First open loads the candidate list; later opens re-use the cache, so
+     * hopping in and out does not flash the network.
      */
     async openReplacePicker(event) {
         if (event) event.preventDefault();
@@ -1750,9 +1580,8 @@ export default class extends Controller {
             `/_content-blocks/area/${this.areaIdValue}/replace-with/${item.id}`,
         );
         if (result === null) return;
-        // Close + invalidate the picker cache so the next open re-fetches
-        // (the target area's updatedAt just changed, and the user may want
-        // to replace again from the same source — sticky cache would lie).
+        // The target's updatedAt just changed, so a sticky cache would
+        // lie on the next open.
         this._replacePickerLoaded = false;
         this.closeReplacePicker();
         this._applyDraftState(result.hasUnpublishedChanges ?? true);
@@ -1767,9 +1596,8 @@ export default class extends Controller {
     // ---------- Section-template library ----------
 
     /**
-     * Saves the given section into the global template library. Triggered from
-     * the section toolbar (via the iframe overlay). The name prompt mirrors the
-     * confirm-based UX used elsewhere in the builder — no extra dialog markup.
+     * Saves a section into the global library. The name prompt mirrors the
+     * confirm-based UX used elsewhere, so there is no extra dialog markup.
      */
     async _saveSectionAsTemplate(sectionId) {
         const id = parseInt(sectionId, 10);
@@ -1789,29 +1617,23 @@ export default class extends Controller {
         // The library changed — drop the cache so the next paint re-fetches.
         this._templateItems = null;
         this._flashSaved();
-        // Saving ran from the section's toolbar, so the sidebar is showing that
-        // section's settings and the editor has no sight of what they just
-        // created. Land them in the library instead: it is the one place that
-        // answers "did it save, and under what name?", and it is where the next
-        // move (insert it somewhere) starts.
+        // The library is the one place that answers "did it save, and
+        // under what name?", and where the next move starts.
         await this.openTemplatePicker();
     }
 
     /**
-     * Action: opens the "insert a saved section" library picker. Also invoked
-     * from the iframe tray (cb:template:insert-requested). First open loads the
-     * list; later opens re-use the cache unless a save/delete invalidated it.
+     * Also invoked from the iframe tray. First open loads the list; later ones
+     * re-use the cache unless a save or delete invalidated it.
      */
     async openTemplatePicker(event) {
         if (event) event.preventDefault();
         this.closeActions();
-        // The library lives in the empty sidebar, so "open the library" means
-        // "clear the selection". Called from the in-preview add-section tray,
-        // which can fire while a block form is up.
+        // The library lives in the empty sidebar, so opening it means
+        // clearing the selection.
         this._resetSidebarToEmptyState();
-        // On mobile the empty state collapses the sheet to a strip — which is
-        // right when the user clicked away, and wrong when they just asked for
-        // the library. Asking wins.
+        // Right when the user clicked away, wrong when they asked for the
+        // library. Asking wins.
         if (this._isMobile()) {
             this._setSidebarCollapsed(false, { persist: false });
         }
@@ -1823,11 +1645,8 @@ export default class extends Controller {
     }
 
     /**
-     * Paints the library into whatever sidebar DOM exists right now. Every
-     * return to the empty state rebuilds that DOM from the snapshot taken at
-     * connect, so the list has to be re-rendered each time — from the cached
-     * items when we have them, since clicking empty preview space is a
-     * navigation gesture and should not cost a round trip.
+     * Every return to the empty state rebuilds the sidebar DOM, so the list is
+     * repainted each time — from cache, since clicking away is navigation.
      */
     async _showTemplates() {
         if (!this.hasTemplatePickerListTarget) return;
@@ -1841,7 +1660,7 @@ export default class extends Controller {
         this._paintTemplates();
     }
 
-    /** Action: input event on the template picker's search field (debounced). */
+    /** Debounced input on the template picker's search field. */
     onTemplatePickerSearch(event) {
         const value = event?.target?.value ?? '';
         clearTimeout(this._templatePickerSearchTimer);
@@ -1883,9 +1702,8 @@ export default class extends Controller {
     }
 
     /**
-     * Folds a page of results into the accumulated list, then repaints. The
-     * accumulated form is what makes the library survive a sidebar rebuild:
-     * the DOM is disposable, `_templateItems` is not.
+     * Folds a page into the accumulated list, then repaints. The DOM is
+     * disposable; `_templateItems` is what survives a sidebar rebuild.
      */
     _renderTemplates(payload, filter, append) {
         const items = Array.isArray(payload?.items) ? payload.items : [];
@@ -1895,7 +1713,7 @@ export default class extends Controller {
         this._paintTemplates();
     }
 
-    /** Renders `_templateItems` into the list target. Safe to call repeatedly. */
+    /** Renders `_templateItems`. Safe to call repeatedly. */
     _paintTemplates() {
         if (!this.hasTemplatePickerListTarget) return;
         const list = this.templatePickerListTarget;
@@ -1928,17 +1746,10 @@ export default class extends Controller {
     }
 
     /**
-     * Draws a template's thumbnail from the poster spec produced server-side
-     * by SectionPosterBuilder — column widths taken from the real presets, one
-     * tile per block.
+     * Draws a thumbnail from the server's poster spec, in the DOM rather than
+     * rasterized. Null when there is nothing to draw.
      *
-     * Built in the DOM rather than rasterized: a picture stays a real `<img>`
-     * pointing at the stored file, and a heading stays real text. That is what
-     * makes the thumbnail survive a host whose CSS lives on another origin,
-     * and what lets templates saved long before this feature get one too.
-     *
-     * Returns null when there is nothing to draw, so the caller can fall back
-     * to the plain named row instead of framing an empty box.
+     * @see docs/internals/section-templates.md#why-the-poster-is-a-spec
      */
     _buildTemplatePoster(poster) {
         const columns = Array.isArray(poster?.columns) ? poster.columns : [];
@@ -1949,9 +1760,8 @@ export default class extends Controller {
         // Decorative: the card's name is its accessible label.
         root.setAttribute('aria-hidden', 'true');
 
-        // The section's own background (or the one its style preset brings —
-        // the server resolved that). `dark` comes with it: the tiles have to
-        // repaint for a dark ground or the thumbnail's copy disappears into it.
+        // Resolved server-side, preset included. `dark` comes with it, or
+        // the copy disappears into its own ground.
         if (typeof poster.background === 'string' && poster.background !== '') {
             root.style.background = poster.background;
             root.classList.add('cb-template-poster--tinted');
@@ -1961,9 +1771,8 @@ export default class extends Controller {
         for (const column of columns) {
             const col = document.createElement('div');
             col.className = 'cb-template-poster__col';
-            // Preset widths (col-4 / col-8 …) so a sidebar column stays a
-            // sidebar column in the thumbnail. Flex basis 0 + grow keeps the
-            // ratio whatever the tiles inside happen to measure.
+            // Real preset widths, so a sidebar column still reads as one.
+            // Basis 0 plus grow keeps the ratio whatever the tiles measure.
             col.style.flexGrow = String(Number(column?.width) || 12);
 
             for (const tile of (Array.isArray(column?.tiles) ? column.tiles : [])) {
@@ -1990,8 +1799,7 @@ export default class extends Controller {
         const el = document.createElement('span');
         el.className = `cb-template-poster__tile cb-template-poster__tile--${kind}`;
         if (tile?.missing) el.classList.add('cb-template-poster__tile--missing');
-        // A block-level background, from the core `styling` sub-form every
-        // block carries. Set on the tile so a section made of coloured cards
+        // From the core `styling` sub-form, so a section of coloured cards
         // still reads as coloured cards at thumbnail size.
         if (typeof tile?.background === 'string' && tile.background !== '') {
             el.style.background = tile.background;
@@ -2008,11 +1816,8 @@ export default class extends Controller {
             // for a list the editor may never scroll through.
             img.loading = 'lazy';
             img.alt = '';
-            // A template stores the *path* to an upload, not the file, so
-            // deleting that upload leaves this pointing at nothing (the known
-            // trade-off, spelled out on the SectionTemplate entity). Falling
-            // back to the labelled tile beats a broken-image glyph, which reads
-            // as "the thumbnail is broken" rather than "that picture is gone".
+            // A template stores a path, not the file. The labelled tile
+            // beats a broken-image glyph, which reads as the wrong fault.
             img.addEventListener('error', () => {
                 img.remove();
                 el.classList.remove('cb-template-poster__tile--image');
@@ -2026,10 +1831,8 @@ export default class extends Controller {
 
         if (kind === 'rule') return el;
 
-        // Heading, text and button show the stored copy. A block with no hint,
-        // one this build no longer has, or a picture whose path the server
-        // refused to hand over, names itself instead — an empty tile would
-        // read as "this block is empty", which is a different statement.
+        // A block with no hint, or one this build lacks, names itself: an
+        // empty tile would say "this block is empty", which is different.
         const named = kind === 'generic' || kind === 'image';
         const text = typeof tile?.text === 'string' && tile.text !== ''
             ? tile.text
@@ -2049,10 +1852,8 @@ export default class extends Controller {
         btn.type = 'button';
         btn.className = 'cb-template-picker__item-btn';
 
-        // Thumbnail first, name under it. The poster is decorative: the name
-        // already labels the card, and reading out a pile of tile fragments
-        // would bury it. A payload with no drawable structure yields no
-        // poster at all, and the card falls back to a plain named row.
+        // The poster is decorative — the name already labels the card — and
+        // a payload with nothing drawable falls back to a plain named row.
         const poster = this._buildTemplatePoster(item.poster);
         if (poster) btn.appendChild(poster);
 
@@ -2064,11 +1865,8 @@ export default class extends Controller {
         const skipped = Array.isArray(item.skippedTypes) ? item.skippedTypes : [];
 
         if (item.insertable === false) {
-            // Nothing would come in. Three distinct reasons, and they are not
-            // interchangeable to whoever has to act on them: the payload
-            // envelope predates this build (our problem), its block types are
-            // gone (a blocks problem), or its schema generation is one the host
-            // has not taught us to read (a migration problem).
+            // Three distinct reasons, not interchangeable to whoever must
+            // act on them. See section-templates.md
             btn.disabled = true;
             if (item.unreadableFormat) {
                 btn.title = this._t(
@@ -2135,10 +1933,8 @@ export default class extends Controller {
         this._afterStructuralOp();
 
         if (warning !== null) {
-            // The library and the section form occupy the same panel, so
-            // mounting the form here would blank the only element carrying the
-            // warning. Leave the library up with its message; the section is in
-            // the preview and one click away.
+            // They share a panel, so mounting the form would blank the only
+            // element carrying the warning.
             this._setTemplatePickerStatus(warning);
         } else if (result.sectionId) {
             this._mountSectionSettings(result.sectionId);
@@ -2154,7 +1950,7 @@ export default class extends Controller {
 
         const result = await this._jsonRequest('DELETE', `/_content-blocks/section-templates/${item.id}`);
         if (result === null) return;
-        // Re-fetch the current page from the top so counts/pagination stay sane.
+        // From the top, so counts and pagination stay sane.
         await this._loadTemplates(filter ?? this._templatePickerFilter ?? '', 0, false);
     }
 
@@ -2164,13 +1960,8 @@ export default class extends Controller {
     }
 
     /**
-     * Tiny translation lookup. The host's translation strings are not
-     * available client-side; we read precomputed values from data-*
-     * attributes on any picker root that carries them, plus the shell root
-     * itself for topbar-level strings (e.g. the discard confirm) that live
-     * outside the optional pickers. Falls back to the English default. This
-     * keeps the bundle dependency-free while still letting hosts override the
-     * wording.
+     * Reads precomputed strings off `data-i18n-*` attributes, falling back to
+     * English — dependency-free, and still overridable by a host.
      */
     _t(key, fallback) {
         const attr = 'data-i18n-' + key.replace(/[._]/g, '-');
@@ -2190,9 +1981,8 @@ export default class extends Controller {
     // ---------- Import / Export picker ----------
 
     /**
-     * Action: opens the Import / Export overlay. Pure show/hide — no
-     * server roundtrip needed; the panel only contains a download button
-     * and a file picker.
+     * Pure show/hide: the panel is only a download button and a file picker,
+     * so there is nothing to fetch.
      */
     openImportExport(event) {
         if (event) event.preventDefault();
@@ -2212,16 +2002,15 @@ export default class extends Controller {
     }
 
     /**
-     * Action: download the area as a JSON file. Uses a programmatic
-     * <a download> click so the browser handles the save dialog with the
-     * filename the server provides via Content-Disposition.
+     * A programmatic `<a download>` click, so the browser's save dialog uses
+     * the server's Content-Disposition filename.
      */
     runExport(event) {
         if (event) event.preventDefault();
         const link = document.createElement('a');
         link.href = `/_content-blocks/area/${this.areaIdValue}/export`;
         link.rel = 'noopener';
-        // download="" lets the server-provided Content-Disposition filename win.
+        // Empty, so the server's Content-Disposition filename wins.
         link.download = '';
         document.body.appendChild(link);
         link.click();
@@ -2229,9 +2018,9 @@ export default class extends Controller {
     }
 
     /**
-     * Action: upload the picked JSON file and replace the current draft.
-     * Mirrors the replace-with flow: confirms, posts the file as multipart,
-     * then reloads the iframe so the new draft is visible.
+     * Mirrors the replace-with flow: confirm, post as multipart, reload.
+     *
+     * @see docs/internals/transfer.md#import-is-a-replace-and-does-not-flush
      */
     async runImport(event) {
         if (event) event.preventDefault();
@@ -2293,10 +2082,8 @@ export default class extends Controller {
             this._endLoading();
         }
 
-        // Non-blocking warnings: the import succeeded, but some of what came in
-        // has no block type here, or carries fields nothing can hold. Same rule
-        // as the template picker — keep the panel open on its status line,
-        // since closing it would blank the only element carrying the message.
+        // Non-blocking: the import succeeded. Keep the panel open, since
+        // closing it would blank the only element carrying the message.
         const warning = this._restoreWarning(payload, {
             skipped: ['cb.builder.import_export.skipped_blocks', 'Imported — %count% block(s) skipped, missing type(s): %types%'],
             unknown: ['cb.builder.import_export.unknown_fields', 'Imported, but some stored fields are unknown on: %types%'],
@@ -2317,13 +2104,10 @@ export default class extends Controller {
     }
 
     /**
-     * Message for a restore (import or template insert) that succeeded with
-     * reservations, or null when there is nothing to report. Both flows report
-     * the same two facts under the same names, hence one helper; only the
-     * wording differs, so callers pass their own [key, fallback] pairs.
+     * One helper for both restore flows, which report the same two facts.
+     * Skipped blocks come first: not arriving is worse news than a stray key.
      *
-     * Skipped blocks come first: content that did not come in at all is worse
-     * news than a stray stored field on content that did.
+     * @see docs/internals/section-templates.md#skipped-blocks-versus-kept-keys
      */
     _restoreWarning(payload, messages) {
         const skipped = Array.isArray(payload?.skippedBlockTypes) ? payload.skippedBlockTypes : [];
@@ -2333,10 +2117,8 @@ export default class extends Controller {
                 .replace('%types%', skipped.join(', '));
         }
 
-        // Restore flows report per-block field trouble under their own key —
-        // `unknownFields` for what a template *kept* and could not vouch for,
-        // `droppedFields` for what a paste threw away. Same shape, same
-        // sentence, different verb.
+        // `unknownFields` for what a template kept, `droppedFields` for what
+        // a paste threw away. Same shape, different verb.
         const raw = payload?.[messages.fieldsKey ?? 'unknownFields'];
         const fields = Array.isArray(raw) ? raw : [];
         if (fields.length > 0) {

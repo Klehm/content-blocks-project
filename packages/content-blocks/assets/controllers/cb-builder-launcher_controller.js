@@ -1,33 +1,16 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Opens the builder shell in a fullscreen <dialog>.
- *
- * The iframe inside the shell gets its src set lazily on first open, so
- * rendering the launcher button (and its hidden dialog) costs nothing
- * network-wise until the user actually clicks through.
- *
- * No close-guard prompt: edits in the sidebar are autosaved (debounce +
- * blur), so there is no "unsaved changes" state to warn about.
+ * Opens the builder shell in a fullscreen `<dialog>`, setting the iframe src
+ * lazily. No close guard: the sidebar autosaves, so nothing is unsaved.
  */
 export default class extends Controller {
     static targets = ['dialog'];
 
     connect() {
         if (this.hasDialogTarget) {
-            // Re-parent the dialog to document.body. The launcher button is
-            // usually rendered inside the host app's edit form (Sylius,
-            // EasyAdmin, …), which would make every <form> inside the builder
-            // (block edit, section settings) a nested form. HTML forbids
-            // nesting forms: the browser flattens them, so Enter/submit in an
-            // inner input triggers the OUTER form, and Live Component action
-            // POSTs lose the form data attached via the (collapsed) inner
-            // <form>. Lifting the dialog out of the host form keeps the HTML
-            // valid no matter where the launcher is rendered.
-            //
-            // We cache a direct reference because Stimulus targets are
-            // resolved by querying within this.element — once the dialog
-            // moves out, hasDialogTarget would flip to false.
+            // HTML forbids nested forms; the browser flattens them and
+            // Enter would hit the host's own.
             this._dialog = this.dialogTarget;
             if (this._dialog.parentElement !== document.body) {
                 document.body.appendChild(this._dialog);

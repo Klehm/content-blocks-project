@@ -1,22 +1,8 @@
 /**
- * Translation workbench.
+ * Translation workbench — a self-contained ES module, since the host's Stimulus
+ * application is never loaded on this page.
  *
- * A self-contained ES module rather than a Stimulus controller: the workbench is
- * a standalone page this package renders in full, so the host's JavaScript
- * bundle — and with it the Stimulus application — is never loaded. See
- * AssetController for the reasoning.
- *
- * Three behaviours are worth reading the code for, because they are the ones the
- * design brief pinned:
- *
- *  1. **Scroll-to-field.** The preview is same-origin (it is the host's own
- *     page), so following the focused field is a direct `scrollIntoView` on the
- *     iframe's document — no postMessage protocol, no handshake.
- *  2. **Inline reload only.** After a save, exactly one block is re-fetched and
- *     its `outerHTML` swapped. The iframe never reloads, so scroll position,
- *     carousels and anything else stateful survive an edit.
- *  3. **Hideable preview.** Collapsing stops the fetches as well as the pixels,
- *     and the choice is remembered.
+ * @see docs/internals/i18n.md#why-no-stimulus-controller
  */
 
 const SAVE_DEBOUNCE_MS = 600;
@@ -34,7 +20,7 @@ class Workbench {
         this.toast = root.querySelector('[data-target="toast"]');
         this.providerInput = root.querySelector('[data-target="provider"]');
 
-        /** @type {Map<string, {values: Object, timer: number}>} pending saves, keyed by block id */
+        /** @type {Map<string, {values: Object, timer: number}>} by block id */
         this.pending = new Map();
         this.filter = 'all';
 
@@ -92,12 +78,10 @@ class Workbench {
     }
 
     /**
-     * Endpoint URLs come from the DOM, never from string concatenation here.
+     * From the DOM, never concatenated here: where the routes are mounted is
+     * the host's call, and Twig already generated each one.
      *
-     * The routes are the package's, but where they are *mounted* is the host's
-     * call — under `/admin`, behind a firewall, anywhere. Twig generated each
-     * one on the block it belongs to, so this file has no idea what the paths
-     * look like and cannot go stale when they move.
+     * @see docs/internals/i18n.md#config-and-mounting
      */
     _url(blockId, name) {
         return this.root.querySelector(`[data-cb-block="${blockId}"]`)?.dataset[name] ?? null;
@@ -106,11 +90,8 @@ class Workbench {
     // ---- editing ----------------------------------------------------------
 
     /**
-     * Queues a value for its block, debounced.
-     *
-     * Batched per block rather than per field because the save endpoint takes a
-     * batch: a translator tabbing through the four fields of a card produces one
-     * request, not four.
+     * Batched per block, not per field: tabbing through a card's four fields
+     * produces one request rather than four.
      */
     edit(row, value) {
         if (!row) return;
@@ -127,12 +108,9 @@ class Workbench {
     }
 
     /**
-     * Clears a translation so the field falls back to its source.
+     * Sends `null`, not `""` — a different thing.
      *
-     * Sends `null`, which is a different thing from an empty string: `""` stores
-     * a deliberate blank ("this card has no subtitle in German"), `null` removes
-     * the translation entirely. Collapsing the two would make it impossible to
-     * say the first without the source leaking onto the page.
+     * @see docs/internals/i18n.md#null-clears-empty-string-stores
      */
     reset(row) {
         if (!row) return;
@@ -181,7 +159,7 @@ class Workbench {
         this._refreshBlockPreview(blockId);
     }
 
-    /** Best-effort save on unload; `keepalive` is what lets it outlive the page. */
+    /** Best-effort on unload; `keepalive` outlives the page. */
     _flushAll(sync = false) {
         for (const [blockId, entry] of this.pending) {
             window.clearTimeout(entry.timer);
@@ -258,12 +236,8 @@ class Workbench {
     // ---- preview ----------------------------------------------------------
 
     /**
-     * Scrolls the preview to the block being edited and highlights it.
-     *
-     * Deliberately one-way: the preview follows the list, never the reverse.
-     * Linking both scroll positions sounds symmetrical and is not — the panes
-     * have unrelated heights, the feedback loop needs damping, and a
-     * translator's attention is in the list.
+     * One-way: the preview follows the list, never the reverse. Linking both
+     * sounds symmetrical and is not — the panes have unrelated heights.
      */
     focusField(row) {
         if (!row || this._previewHidden()) return;
@@ -280,12 +254,9 @@ class Workbench {
     }
 
     /**
-     * Re-renders exactly one block in the preview.
+     * One block, no iframe reload — so scroll and JS state survive an edit.
      *
-     * This is the requirement that shaped the endpoint: no iframe reload, so
-     * scroll position and any JS state in the preview survive an edit. A block
-     * type whose view needs its script to re-run answers `hotReload: false`, and
-     * only then does the whole frame reload.
+     * @see docs/internals/blocks.md#preview-hot-reload-is-opt-in
      */
     async _refreshBlockPreview(blockId) {
         if (this._previewHidden()) return;
@@ -353,14 +324,10 @@ class Workbench {
     }
 
     /**
-     * Injects the one style the preview needs of its own: the ring marking the
-     * block being edited.
+     * Only the ring marking the edited block. Chrome is not hidden here —
+     * `cb_chrome=0` means the core never renders it in the first place.
      *
-     * The builder's toolbars and click-to-edit are **not** hidden from here —
-     * the frame is loaded with `cb_chrome=0`, so the core never renders them.
-     * Suppressing chrome in CSS was the earlier approach and it was the wrong
-     * one: the overlay script still ran, still bound hover handlers, and still
-     * posted messages at a window with no builder listening.
+     * @see docs/internals/i18n.md#the-preview-pane
      */
     _dressPreview() {
         const doc = this._previewDocument();
@@ -430,11 +397,8 @@ class Workbench {
     }
 
     /**
-     * Recomputes the counters from the DOM.
-     *
-     * From the rows rather than from a server total on purpose: the bar and the
-     * list are then the same number by construction, and cannot disagree the way
-     * they would if each had its own source.
+     * From the rows, not a server total, so the bar and the list are the same
+     * number by construction.
      */
     _recount() {
         const rows = [...this.root.querySelectorAll('[data-target="row"]')];
@@ -467,9 +431,8 @@ class Workbench {
     // ---- plumbing ---------------------------------------------------------
 
     async _post(url, body, failureKey = 'save_failed') {
-        // A missing URL means the row's block left the list (or the markup
-        // changed): report it like any other failed save rather than throwing
-        // a TypeError into an event handler nobody is watching.
+        // The row's block left the list. Report it like any failed save
+        // rather than throwing into an unwatched handler.
         if (!url) {
             this._toast(this._message(failureKey), true);
             return null;

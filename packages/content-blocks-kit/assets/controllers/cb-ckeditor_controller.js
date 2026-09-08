@@ -10,29 +10,15 @@ import {
 } from '../lib/rich_text.js';
 
 /**
- * CKEditor 5 adapter for the `rich_text` block.
+ * CKEditor 5 adapter. Same contract as the TinyMCE one, plus a stylesheet and
+ * a custom upload adapter, since CKEditor has no built-in endpoint upload.
  *
- * Same contract as the TinyMCE adapter — the textarea stays in the DOM and
- * keeps holding the HTML, the wrapper is `data-live-ignore`, the UI CKEditor
- * appends to <body> is re-parented into the builder's modal dialog — with the
- * two differences CKEditor brings:
- *
- *  - it needs a stylesheet next to its script (`style-url`);
- *  - it has no built-in endpoint upload: images go through a custom upload
- *    adapter (see `createUploadAdapter`) pointed at the builder's endpoint.
- *
- * Values are written by the PHP adapter (see CkEditor): `script-url`,
- * `style-url`, `upload-url`, `config`, `palette`.
- *
- * Events: `cb-rich-text:configure` fires on the wrapper (bubbling) once the
- * config is merged and before the editor is created. `event.detail.config` is
- * the live object — mutate it to add what JSON cannot express.
+ * @see docs/internals/kit.md#rich-text-one-payload-several-editors
  */
 
 /**
- * How long after the last keystroke the value is pushed into the Live model.
- * Deliberately shorter than cb-autosave's own input debounce (250 ms), so the
- * model is fresh by the time autosave decides to save.
+ * Shorter than cb-autosave's own 250 ms debounce, so the model is fresh by the
+ * time autosave decides to save.
  */
 const CHANGE_FLUSH_MS = 150;
 
@@ -52,13 +38,8 @@ export function debounce(fn, wait) {
 }
 
 /**
- * Which factory signature to call.
- *
- * CKEditor 48 replaced `create(element, config)` with
- * `create({ attachTo: element, ...config })` and deprecated the old form. The
- * kit pins a 48+ CDN build, so an unknown version means "the modern one";
- * only a host self-hosting an older build takes the legacy branch.
- * Exported for unit tests.
+ * CKEditor 48 replaced `create(element, config)`. An unknown version means the
+ * modern signature; only an older self-hosted build takes the legacy branch.
  */
 export function usesAttachToSignature(version) {
     const major = Number.parseInt(String(version ?? '').split('.')[0], 10);
@@ -73,9 +54,8 @@ export function createEditor(ClassicEditor, element, config, version) {
 }
 
 /**
- * Resolve plugin constructors by name off the CKEDITOR global, skipping any
- * the loaded build does not ship. A host bundling a trimmed build loses the
- * corresponding button rather than a boot error. Exported for unit tests.
+ * Skips any plugin the loaded build does not ship, so a trimmed build loses
+ * the button rather than failing to boot.
  */
 export function pickPlugins(ckeditor, names) {
     return names.map((name) => ckeditor[name]).filter(Boolean);
@@ -140,12 +120,8 @@ export function buildCkEditorConfig(ckeditor, { palette, uploads }) {
 }
 
 /**
- * CKEditor's upload contract: a class with `upload()` resolving to
- * `{ default: url }` and `abort()`. Ours delegates to the same endpoint (and
- * the same CSRF + MIME + size validation) every other kit upload uses, and
- * maps the endpoint's `{ url }` onto the shape CKEditor wants.
- *
- * Exported as a factory so a test can drive it without an editor instance.
+ * Delegates to the same endpoint — and the same CSRF, MIME and size checks —
+ * as every other kit upload, mapping its `{ url }` onto CKEditor's shape.
  */
 export function createUploadAdapter({ uploadUrl, csrfToken }) {
     return (loader) => ({
@@ -162,10 +138,8 @@ export function createUploadAdapter({ uploadUrl, csrfToken }) {
 }
 
 /**
- * The adapter above, packaged as a CKEditor plugin so it is installed during
- * `create()` rather than bolted on afterwards — that is the documented seam,
- * and it means the first upload cannot race an editor that has not been told
- * where to send files yet.
+ * Packaged as a plugin so it installs during `create()`, which is the
+ * documented seam and stops the first upload racing the editor.
  */
 export function uploadAdapterPlugin(target) {
     return function ContentBlocksUploadAdapter(editor) {
@@ -203,17 +177,15 @@ export default class extends Controller {
                 parseJsonValue(this.configValue, {}),
             );
 
-            // Last word on the config, and the only way to pass anything JSON
-            // cannot carry — a plugin function, a custom upload adapter, URLs
-            // only a bundler knows. Listeners mutate `detail.config` in place.
+            // The only way to pass what JSON cannot carry. Listeners mutate
+            // `detail.config` in place. See kit.md#assets-and-the-asset-prefix
             this.dispatch('configure', {
                 prefix: 'cb-rich-text',
                 detail: { config, editor: 'ckeditor', element: this.element },
             });
 
-            // Appended after the merge, so a host replacing `plugins` to trim
-            // the build does not silently lose its image uploads — that is
-            // what `options.uploads: false` is for.
+            // After the merge, so trimming `plugins` does not silently lose
+            // uploads — `options.uploads: false` is for that.
             if (uploads) {
                 config.plugins = [
                     ...(config.plugins ?? []),
@@ -231,18 +203,8 @@ export default class extends Controller {
                 window.CKEDITOR_VERSION,
             );
 
-            // Write back on every change, before the event bubbles, for the
-            // same reason TinyMCE does: cb-autosave must never read a stale
-            // textarea.
-            //
-            // Both events are needed, and for different consumers. `input`
-            // keeps the textarea and the autosave debounce in step. `change`
-            // is what pushes the value into the Live Component's model — a
-            // save fired without it POSTs the value from *before* the edit,
-            // and the block persists empty. TinyMCE gets this for free
-            // because it emits `change` per undo level; CKEditor reports every
-            // keystroke, so the `change` is trailing-debounced instead —
-            // otherwise each character would trigger its own save.
+            // `input` keeps autosave in step, `change` pushes into the Live
+            // model — without it a save POSTs the pre-edit value.
             const sync = (eventName) => {
                 textarea.value = editor.getData();
                 textarea.dispatchEvent(new Event(eventName, { bubbles: true }));

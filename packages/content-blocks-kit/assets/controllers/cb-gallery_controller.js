@@ -1,12 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 
 /*
- * Front-end slider for the gallery block's "slider" layout.
- *
- * Tile sizing and horizontal scroll-snap are pure CSS; JS only does what CSS
- * can't: scroll by ~one tile per arrow click, hide the arrows when the track
- * doesn't overflow, and disable the arrow that can't scroll further. Stimulus
- * (re)connects when the builder hot-swaps the block in, so no manual re-init.
+ * Front-end slider for the gallery block. Sizing and snap are pure CSS; JS
+ * only scrolls by a tile and manages the arrows.
  */
 export default class extends Controller {
     static targets = ['track', 'prev', 'next'];

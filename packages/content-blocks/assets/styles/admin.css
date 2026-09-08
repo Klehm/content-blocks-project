@@ -4,16 +4,11 @@
    than a literal, so the chrome is restyled by overriding tokens. */
 @import "./tokens.css";
 
-/* Form widgets — scoped under .cb-shell, pairs with @ContentBlocks/form/cb_form_theme.html.twig. */
+/* Form widgets, scoped under .cb-shell. Pairs with cb_form_theme.html.twig. */
 @import "./forms.css";
 
 /* ---- Launcher (form widget area) ----
- *
- * Lives on the host's edit page OUTSIDE the cb-shell scope, so the
- * button can't rely on the form-theme tokens defined in forms.css.
- * Keep these rules self-contained — same blue / radii / typography
- * as the rest of the builder so the launcher reads as part of the
- * same product. */
+   OUTSIDE cb-shell, so no form-theme tokens: keep these self-contained. */
 
 .cb-launcher {
   display: inline-flex;
@@ -94,9 +89,8 @@
   color: var(--cb-text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow: hidden;
-  /* Drives the sidebar grid column width below. JS updates this on
-       resize / collapsed-state changes; descendants must NOT redeclare
-       it or they'd shadow the live value back to the default. */
+  /* Drives the grid column below. A descendant must NOT redeclare it, or
+     it shadows the live value JS writes here. */
   --cb-sidebar-width: 340px;
   --cb-sidebar-collapsed-width: 32px;
 }
@@ -115,10 +109,8 @@
 
 /* ---- Top-bar progress indicator ---- */
 
-/* Thin indeterminate progress bar pinned to the very top of the shell, above
-   the topbar. Visible only while the controller has an AJAX request in flight
-   or the iframe is reloading; idle the bar is collapsed to zero height so it
-   doesn't take any space. */
+/* Pinned above the topbar while a request is in flight; collapsed to zero
+   height when idle so it takes no space. */
 .cb-shell__progress {
   position: absolute;
   top: 0;
@@ -181,13 +173,7 @@
 }
 
 /* ---- Topbar "Actions" menu ----
- *
- * Everything that acts on the area as a whole lives behind one button, so the
- * topbar carries only what an editor reaches for constantly (close, viewport,
- * discard, publish). A row of ghost buttons made the rare and the constant
- * look equally important, and every host action the package grew added another
- * one.
- */
+   A row of ghost buttons made the rare and the constant look equal. */
 
 .cb-shell__actions {
   position: relative;
@@ -279,13 +265,7 @@
 }
 
 /* ---- Modal pickers ----
- *
- * Replace / section library / import-export are centered dialogs over a
- * backdrop rather than panels pinned under the topbar. They were anchored to
- * the button that opened them, which put a 360px column in the top-left corner
- * of a 1600px screen and left the rest of the builder looking live while it
- * was not. Centering them says "this is modal"; the backdrop makes it true.
- */
+   Anchoring put a 360px column in the corner of a 1600px screen. */
 
 .cb-modal-backdrop {
   position: absolute;
@@ -357,10 +337,7 @@
 }
 
 /* ---- Section library, in the empty sidebar ----
- *
- * Not a modal: with nothing selected, the list of saved sections *is* what the
- * panel is for. It keeps the picker's row classes (`cb-template-picker__*`)
- * because the rows are identical — only the container moved. */
+ * Not a modal: with nothing selected, the list *is* what the panel is for. */
 .cb-sidebar-library {
   display: flex;
   flex-direction: column;
@@ -454,13 +431,8 @@
   display: none;
 }
 
-/* Section-template library picker: shares the replace picker's shell +
-   item classes, adds a per-row delete affordance, a disabled state for
-   incompatible templates, and a "load more" pagination control.
-   Unlike the replace picker's rows, these are cards: a thumbnail drawn from
-   the stored payload sits above the name (see .cb-template-poster below). */
-/* Declared after the shared list rule above, which sets the replace picker's
-   denser 0.125rem — cards need air between them, dense rows do not. */
+/* Shares the replace picker's shell, but these rows are cards. Declared
+   after it, whose denser gap suits rows and not cards. */
 .cb-template-picker__list {
   gap: 0.5rem;
 }
@@ -484,9 +456,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* These three matched `.cb-replace-picker__item-btn` until now — a class the
-   library's rows never carry, so an incompatible template looked exactly like
-   an insertable one. */
+/* These matched a class the library's rows never carry, so an incompatible
+   template looked exactly like an insertable one. */
 .cb-template-picker__item--disabled .cb-template-picker__item-btn {
   color: var(--cb-faint);
   cursor: not-allowed;
@@ -495,9 +466,8 @@
   background: transparent;
   border-color: transparent;
 }
-/* Partially usable: some of its blocks will be skipped. Still clickable — the
-   marker warns without taking the useful insert away (the button's title spells
-   out which types). */
+/* Some blocks will be skipped. Still clickable: the marker warns without
+   taking the useful insert away. */
 .cb-template-picker__item--partial .cb-template-picker__item-name::after {
   content: "!";
   display: inline-flex;
@@ -514,9 +484,8 @@
   vertical-align: middle;
 }
 .cb-template-picker__delete {
-  /* Floats over the thumbnail's corner. Kept permanently visible rather than
-     revealed on hover: it is already in the tab order, and a control you can
-     focus but not see is worse than one that is simply there. */
+  /* Permanently visible rather than on hover: it is already in the tab
+     order, and a control you can focus but not see is worse. */
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
@@ -556,21 +525,12 @@
 }
 
 /* ---- Section-template thumbnail ("poster") ----
- *
- * Not a screenshot: a small diagram of the saved section, built from the
- * payload by SectionPosterBuilder and drawn as DOM by the builder controller.
- * Pictures are real <img> elements and headings real text, which is what lets
- * it work on any host (no rasterizer, no CSS inlining, nothing to store) and
- * on templates saved long before the feature existed.
- *
- * It reads as a *sketch*, deliberately: every tile is a flat neutral shape at
- * a size where no one could mistake it for the rendered section. */
+   See docs/internals/section-templates.md#why-the-poster-is-a-spec */
 .cb-template-poster {
   display: flex;
   gap: 3px;
-  /* Height follows the content, within bounds. A fixed frame left a short
-     section floating in dead space, which reads as a thumbnail that failed to
-     load rather than as a short section. */
+  /* Within bounds, since a fixed frame left a short section floating in
+     dead space — which reads as a thumbnail that failed to load. */
   min-height: 3.5rem;
   max-height: 12rem;
   padding: 4px;
@@ -618,9 +578,8 @@
   line-clamp: 2;
 }
 .cb-template-poster__tile--image {
-  /* The one tile that claims leftover height: a picture is what the eye uses
-     to recognise a section, so it gets the room the text tiles don't need —
-     and, in a column of nothing but text tiles, sets the poster's height. */
+  /* A picture is what the eye recognises a section by, so it claims the
+     room the text tiles do not need. */
   flex: 1 1 auto;
   min-height: 3.25rem;
   padding: 0;
@@ -678,16 +637,7 @@
 }
 
 /* ---- Poster on a coloured section ----
- *
- * The section's own background (or its style preset's) is painted on the
- * frame, so a saved dark hero reads as a dark hero in the library rather than
- * as the same grey sketch as everything else.
- *
- * The tiles then have to give way: their default panel fill is opaque and
- * would tile white rectangles over the colour. Translucent white/black lets
- * the section's colour carry through while keeping each block legible as a
- * shape — and `--dark` flips the copy so it survives its own ground (the
- * server decided which, from the colour's luminance). */
+   Tiles turn translucent, or an opaque fill tiles white over the colour. */
 .cb-template-poster--tinted {
   border-color: rgba(var(--cb-shadow-rgb), 0.18);
 }
@@ -724,10 +674,8 @@
 .cb-template-poster--dark .cb-template-poster__tile--blank {
   background: rgba(255, 255, 255, 0.28);
 }
-/* A tile with its own stored colour keeps it — the inline background beats
-   both rule sets above, which is the intent: the block said so explicitly.
-   Its copy then has to answer for itself, since a red card can be dark ground
-   inside a light section. Declared last so it wins over the --dark block. */
+/* A tile's own stored colour wins, and its copy then answers for itself: a
+   red card is dark ground inside a light section. Declared last. */
 .cb-template-poster .cb-template-poster__tile--on-dark,
 .cb-template-poster--dark .cb-template-poster__tile--on-dark {
   color: #fff;
@@ -738,9 +686,7 @@
 }
 
 /* ---- Import / Export topbar button + picker overlay ----
-   Visually consistent with the Replace button & picker so the topbar
-   reads as one cohesive toolbar. The picker sits in the same overlay
-   stack (z-index 30) and is anchored to the topbar's left edge. */
+   Same look and overlay stack as Replace, so the topbar reads as one. */
 
 .cb-import-export-picker {
   position: absolute;
@@ -883,11 +829,8 @@
   color: var(--cb-text);
   box-shadow: 0 1px 2px rgba(var(--cb-shadow-rgb), 0.08);
 }
-/* Hairline in the gutter between the viewport switcher and the
-   discard/publish pair — they share the right cluster but not the same job:
-   one changes what you look at, the others commit what you changed. Drawn as
-   a pseudo-element so the separator needs no node of its own; `right` is half
-   the 1rem gutter (0.5rem flex gap + 0.5rem margin) so it lands centred. */
+/* Separates looking at the page from committing to it. A pseudo-element, so
+   it needs no node; `right` is half the 1rem gutter, to land centred. */
 .cb-shell__topbar-right .cb-shell__viewport {
   position: relative;
   margin-right: 0.5rem;
@@ -904,12 +847,7 @@
 }
 
 /* ---- Save-failure banner (topbar) ----
- *
- * Persistent (unlike the transient sidebar "Saved" flash): it appears
- * when any save path fails — structural AJAX op, Live block form,
- * section settings POST — and only disappears once a later save
- * succeeds. Red chip sitting left of the Discard / Publish buttons.
- */
+   Persistent: it goes only once a later save succeeds. */
 .cb-shell__save-error {
   display: inline-flex;
   align-items: center;
@@ -934,11 +872,7 @@
 }
 
 /* ---- Undo snackbar ----
- *
- * Floating chip at the bottom-center of the shell, shown for a few
- * seconds after a block/section delete. Dark (inverse) styling so it
- * reads as transient system feedback, not part of the page.
- */
+   Inverse, so it reads as transient feedback rather than part of the page. */
 .cb-shell__undo {
   position: absolute;
   bottom: 1.25rem;
@@ -1005,9 +939,8 @@
 .cb-shell__discard[hidden] {
   display: none;
 }
-/* The topbar's primary action, so it takes the chrome accent rather than the
-   success green: green is reserved for reporting an outcome (the "saved" pill
-   below, upload status), not for offering an action. */
+/* The chrome accent, not the success green: green reports an outcome, it
+   does not offer an action. */
 .cb-shell__publish {
   background: var(--cb-accent);
   border: 1px solid var(--cb-accent);
@@ -1034,10 +967,8 @@
 
 /* ---- Mobile tightening ---- */
 @media (max-width: 768px) {
-  /* Drop the grid on mobile and switch to flex with space-between. The grid
-       was forcing the right column to a fixed 1fr share, so when discard+
-       publish were wider than that share the buttons spilled past the
-       topbar. Flex lets each cluster take its natural width. */
+  /* The grid forced the right column to a fixed share, so wide buttons
+     spilled past the topbar. Flex gives each cluster its natural width. */
   .cb-shell__topbar {
     display: flex;
     justify-content: space-between;
@@ -1057,9 +988,8 @@
   .cb-shell__topbar-right .cb-shell__viewport::after {
     display: none;
   }
-  /* Discard collapses to icon-only — the long "Annuler les modifications"
-       label was wrapping on narrow screens and pushing Publish out of the
-       topbar row. */
+  /* Icon-only: the long label wrapped on narrow screens and pushed
+     Publish out of the row. */
   .cb-shell__discard {
     padding: 0.375rem 0.5rem;
   }
@@ -1093,22 +1023,15 @@
   }
 }
 
-/* ---- Main area: 2-column grid (sidebar left, iframe right) ----
- *
- * The sidebar is permanent: it always claims a column rather than
- * floating over the iframe. A collapsed state shrinks the column to
- * a fly-out handle width so the iframe can expand to the full main
- * width when the user wants a wide preview. Width is CSS-variable
- * driven so the resize handle can update one knob without touching
- * the grid template directly. */
+/* ---- Main area: 2-column grid ----
+   The sidebar claims a column rather than floating over the iframe. */
 
 .cb-shell__main {
   display: grid;
   grid-template-columns: var(--cb-sidebar-width) 1fr;
   overflow: hidden;
-  /* Dot grid on the canvas. Only ever visible in the gutters either side of
-     the iframe — i.e. when the viewport switcher narrows it to tablet or
-     mobile — where it reads as "this is the stage, not the page". */
+  /* Only ever visible in the gutters, when the viewport switcher narrows
+     the iframe — where it reads as "the stage, not the page". */
   background:
     radial-gradient(circle at 1px 1px, var(--cb-line-strong) 1px, transparent 0) 0 0 / 24px 24px,
     var(--cb-surface);
@@ -1125,10 +1048,8 @@
   width: 100%;
   height: 100%;
   display: block;
-  /* Smooth resize when the viewport switcher changes max-width — the
-       transition gives the iframe content time to reflow with media
-       queries, instead of flashing a horizontal scrollbar at the moment
-       the size jumps. */
+  /* Gives the content time to reflow with its media queries, instead of
+     flashing a horizontal scrollbar as the size jumps. */
   transition:
     max-width 0.2s ease,
     margin 0.2s ease;
@@ -1146,13 +1067,8 @@
     inset 0 3px 0 var(--cb-accent),
     2px 0 12px rgba(var(--cb-shadow-rgb), 0.04);
   min-width: 0;
-  /* min-height:0 stops this grid item from growing past its track when the
-       form is tall — without it the implicit row expands to fit the content
-       and .cb-shell__main's overflow:hidden clips the bottom, so the
-       sidebar-content's overflow-y:auto never engages and lower fields
-       become unreachable.
-     No overflow:hidden here — the toggle button is absolute-positioned and
-       deliberately overhangs the right edge; the content child scrolls. */
+  /* Without min-height:0 a tall form grows past its track and lower fields
+     become unreachable. No overflow:hidden: the toggle overhangs. */
   min-height: 0;
 }
 
@@ -1179,10 +1095,8 @@
   background-color: rgba(var(--cb-accent-rgb), 0.35);
 }
 
-/* Floating toggle chip on the sidebar's right edge, vertically centered.
-   Translates half its width past the sidebar so it overhangs the iframe
-   gutter — still entirely clickable, and visible even when the sidebar
-   is collapsed to its 32px stub. */
+/* Overhangs the gutter by half its width, so it stays clickable and visible
+   even when the sidebar is collapsed to its stub. */
 .cb-shell__sidebar-toggle {
   position: absolute;
   top: 50%;
@@ -1216,18 +1130,8 @@
   transform: rotate(180deg);
 }
 
-/* Mobile: the sidebar becomes a bottom sheet that floats above the
-   iframe instead of stealing a row from the main grid. The iframe gets
-   the full main area and the sidebar slides in from the bottom edge,
-   overlaying the lower portion of the preview. When collapsed it
-   translates down to leave just a 32px strip visible, holding the
-   toggle that pulls it back up. cb-builder also scrolls the iframe
-   so the focused element's bottom isn't hidden under the sheet.
-
-   This block lives AFTER the desktop sidebar/toggle rules on purpose:
-   media queries don't bump specificity, so the cascade still picks the
-   last matching declaration — putting mobile last lets it win at
-   <=768px without resorting to !important. */
+/* Mobile: the sidebar becomes a bottom sheet collapsing to a 32px strip.
+   AFTER the desktop rules: a media query does not bump specificity. */
 @media (max-width: 768px) {
   .cb-shell__main {
     position: relative;
@@ -1251,27 +1155,23 @@
     transition: transform 0.22s ease-out;
   }
   .cb-shell--sidebar-collapsed .cb-shell__sidebar {
-    /* Slide the sheet down so only the 32px strip carrying the toggle
-       remains visible above the bottom edge. The translate keeps the
-       layout height intact so getBoundingClientRect reports the visual
-       (transformed) position — handy when we measure for auto-scroll. */
+    /* A translate, so the layout height stays intact and
+       getBoundingClientRect still reports the visual position. */
     transform: translateY(calc(100% - 32px));
   }
   .cb-shell__sidebar-resize {
     display: none;
   }
-  /* Toggle pinned to the top edge of the sheet, centered horizontally,
-     overhanging upward so it reads as a "grab handle" on a bottom
-     sheet — same chip in both states, just moves with the sheet. */
+  /* Overhangs upward so it reads as a grab handle — the same chip as on
+     desktop, just moved with the sheet. */
   .cb-shell__sidebar-toggle {
     top: 0;
     right: auto;
     left: 50%;
     transform: translate(-50%, -50%);
   }
-  /* The chevron is a left-arrow at rest; rotate it so it reads as
-     "down" when expanded (close direction) and "up" when collapsed
-     (pull-up affordance). */
+  /* A left-arrow at rest, rotated so it reads as down when expanded and
+     up when collapsed. */
   .cb-shell__sidebar-toggle-icon {
     transform: rotate(-90deg);
   }
@@ -1280,10 +1180,8 @@
   }
 }
 
-/* Transient "✓ Saved" pill pinned to the sidebar's top-right corner,
-   fired by autosave. role="status" + aria-live="polite" handles the
-   screen-reader announcement; the visible pill fades in/out via a
-   transition. */
+/* Transient "Saved" pill fired by autosave. role="status" carries the
+   screen-reader announcement; this is only the visible half. */
 .cb-shell__sidebar-saved {
   position: absolute;
   top: 0.5rem;
@@ -1310,18 +1208,15 @@
 
 .cb-shell__sidebar-content {
   flex: 1 1 auto;
-  /* min-height: 0 lets the flex child shrink past its content size
-       so overflow-y: auto can scroll inside the sidebar. Without it the
-       child would expand to fit content and push past the sidebar. */
+  /* Lets the flex child shrink past its content, so overflow-y can
+     actually scroll inside the sidebar. */
   min-height: 0;
   overflow-y: auto;
   padding: 1rem;
 }
 
-/* Empty state shown when no block/section is focused. Keeps the
-   sidebar useful even before the user clicks anything: a one-liner
-   hint plus the three add-section buttons (mirror of the iframe's
-   own empty tray). */
+/* Keeps the sidebar useful before anything is clicked: a hint plus the
+   add-section buttons, mirroring the iframe's own empty tray. */
 .cb-sidebar-empty {
   display: flex;
   flex-direction: column;
@@ -1376,11 +1271,7 @@
    .cb-add-section-tray.) */
 
 /* ---- Sidebar groups (General + Styling stacked) ----
- *
- * Replaces the old tab pattern: both blocks are always visible and the
- * sidebar content scrolls when they overflow. Each group is introduced
- * by a small uppercase label and separated by a thin divider so the
- * eye can still scan the two clusters at a glance. */
+   Both always visible; a label and a divider keep them scannable. */
 
 .cb-sidebar__group {
   margin-top: 1.25rem;
@@ -1395,10 +1286,8 @@
 
 .cb-sidebar__group-title {
   margin: 0 0 0.75rem;
-  /* Same family, case and size as the field labels below it — a group title
-     outranks them by weight and color, not by a third size in the scale.
-     Going lighter (as a "caption" would) inverted the hierarchy: the heading
-     read as the least important text in its own group. */
+  /* Outranks the field labels by weight and colour, not by a third size.
+     Going lighter inverted the hierarchy. */
   color: var(--cb-text-2);
   font-family: var(--cb-font-mono);
   font-size: var(--cb-caption-size);
@@ -1412,9 +1301,7 @@
 }
 
 /* ---- Block edit form: heading ----
- *
- * Lightweight title above the fields, showing which block is being edited.
- * Icon (block-author SVG) sits in a soft accent-tinted chip. */
+   Which block is being edited; its SVG sits in a tinted chip. */
 
 .cb-block__heading {
   display: flex;
@@ -1448,24 +1335,15 @@
 }
 
 /* ---- Block edit form: tabbed field groups ----
- *
- * Block fields are bucketed into tabs by their `data-cb-group` attribute
- * (rendered in components/Block.html.twig). A horizontal tablist sits above
- * the panels; only the active panel is shown. All panels stay in the DOM so
- * autosave and validation keep working across hidden tabs. */
+   Bucketed by `data-cb-group`; all panels stay in the DOM for autosave. */
 
 .cb-block__tabs {
   display: flex;
   flex-direction: column;
 }
 
-/* The tablist stays visible while the (now scrollable) sidebar scrolls a
-   tall form, so the user can switch tabs from anywhere. It sticks to the
-   top of the scroll container (.cb-shell__sidebar-content); the negative
-   top + matching padding swallow the container's 1rem padding so no field
-   peeks above it, and the white background hides rows scrolling underneath.
-   Reachability itself is handled by .cb-shell__sidebar { min-height: 0 },
-   which lets sidebar-content's overflow-y:auto engage on tall content. */
+/* Sticky, so tabs stay reachable on a tall form. The negative top and
+   matching padding swallow the container's own, so no field peeks above. */
 .cb-block__tablist {
   position: sticky;
   top: -1rem;
@@ -1479,18 +1357,8 @@
   border-bottom: 1px solid var(--cb-line);
 }
 
-/* Folder tabs rather than an underlined word.
- *
- * These switch the whole panel, so they have to read as a control at a glance
- * — an underline on body text does not, least of all above a column of mono
- * captions that outshouts it. Giving them a shape also keeps the segmented
- * pill (.cb-viewport-tabs, .cb-align-group) meaning one thing only: pick a
- * value inside a field, never navigate away from one.
- *
- * The active tab is the only one filled with the panel color and it paints
- * over the strip's bottom line, so it reads as continuous with the fields
- * below it. Its top edge carries the accent — the same gesture that marks the
- * top of the sidebar. */
+/* Folder tabs, not an underlined word: these switch the whole panel, and a
+   shape keeps the segmented pill meaning "pick a value" only. */
 .cb-block__tab {
   appearance: none;
   padding: 6px 12px;

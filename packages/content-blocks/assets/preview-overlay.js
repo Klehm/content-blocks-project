@@ -1,27 +1,8 @@
 /**
- * preview-overlay.js — runs INSIDE the iframe rendered by BlockRenderer in
- * PREVIEW mode.
+ * Runs INSIDE the preview iframe. Plain JS, no AJAX: it signals intents and
+ * the parent's cb-builder controller acts on them.
  *
- * Plain JS (no Stimulus) so the host app's front theme doesn't have to
- * carry our Stimulus loader. The script is auto-injected by BlockRenderer
- * via the @ContentBlocks/render/content_area.html.twig template; the
- * matching builder.css stylesheet is loaded via <link>.
- *
- * Responsibilities (logic only — all styling lives in builder.css):
- *  - Signal cb:ready to the parent admin window once the DOM is up.
- *  - Show a floating action toolbar when hovering an entity carrying a
- *    data-cb-block-id, data-cb-column-id or data-cb-section-id marker.
- *  - Forward toolbar clicks to the parent as typed postMessage events.
- *  - Block intra-iframe navigation (link clicks + form submits) so the
- *    user can't accidentally leave the page being edited.
- *
- * No AJAX here — this script only dispatches intents. The parent's
- * cb-builder Stimulus controller handles them.
- *
- * Of the `cb:*` events crossing this boundary, only `cb:ready` is public
- * API. The rest are internal choreography and may change in any minor
- * release — the contract is listed in cb-builder_controller.js and in
- * FREEZE-AUDIT.md.
+ * @see docs/internals/frontend.md#two-documents-one-editor
  */
 (function () {
     'use strict';
@@ -41,9 +22,7 @@
         }
     }
 
-    // Style sheet: see assets/styles/builder.css, served at
-    // /_content-blocks/builder.css and <link>-ed by the render template
-    // when in PREVIEW mode.
+    // Styling lives in builder.css, <link>-ed by the render template.
 
     // ---------- Toolbar (single reusable element) ----------
 
@@ -52,21 +31,16 @@
     toolbar.setAttribute('role', 'toolbar');
     document.body.appendChild(toolbar);
 
-    // hoveredEl: element currently under the mouse (transient, follows cursor).
-    // focusedEl: element pinned by an explicit click — its toolbar stays
-    // visible and hover events stop moving the toolbar elsewhere. Cleared
-    // when the user clicks empty space inside the iframe.
+    // hoveredEl follows the cursor; focusedEl is pinned by a click.
+    // See docs/internals/frontend.md#focus-and-the-sidebar
     let hoveredEl = null;
     let hoveredKind = null;
     let focusedEl = null;
     let focusedKind = null;
     let hideTimer = null;
 
-    // Labels translated server-side and injected by the render template (see
-    // content_area.html.twig). The English fallbacks keep the overlay usable if
-    // the object is missing — a host rendering the preview through a custom
-    // template, say — but they are a safety net, not the source: a string that
-    // only exists here can never be translated.
+    // Injected server-side. The English fallbacks are a safety net, not the
+    // source: a string that only exists here can never be translated.
     const LABELS = (window.__cbOverlayLabels && typeof window.__cbOverlayLabels === 'object')
         ? window.__cbOverlayLabels
         : {};
@@ -170,10 +144,8 @@
     function buildToolbarFor(el, kind) {
         toolbar.innerHTML = '';
 
-        // Edit / Settings buttons are intentionally absent — clicking the
-        // section or block itself opens the sidebar editor (see the
-        // document click handler below). The toolbar only carries the
-        // structural actions (drag, move, duplicate, delete).
+        // No Edit button: clicking the element itself opens the sidebar, so
+        // the toolbar carries only structural actions.
         if (kind === 'block') {
             const blockId = parseInt(el.dataset.cbBlockId, 10);
             toolbar.appendChild(makeDragHandle('block', blockId, el));
@@ -206,13 +178,8 @@
         b.title = dragLabel;
         b.setAttribute('aria-label', dragLabel);
         b.dataset.cbAction = 'drag';
-        // Not a click action — `pointerdown` enters drag mode. We use
-        // pointer events instead of mouse-only so touch + pen + mouse all
-        // share the same code path, with `touch-action: none` on the handle
-        // so a touch-drag doesn't get hijacked by the page's scroll
-        // gesture. We swallow click so the global click handler doesn't
-        // interpret a drag-start as an outside-click that closes the
-        // sidebar.
+        // `pointerdown`, not click, so touch/pen/mouse share one path.
+        // See docs/internals/frontend.md#smaller-decisions-worth-keeping
         b.style.touchAction = 'none';
         b.addEventListener('pointerdown', (event) => {
             // Only react to the primary pointer (left mouse / first touch);
@@ -230,10 +197,8 @@
     }
 
     function positionToolbarFor(el, _kind) {
-        // Toolbar reads as a "header chip" pinned to the element by overlapping
-        // its top border by half the toolbar height. Clamp against the
-        // viewport so an element flush with the top of the iframe doesn't
-        // push the chip off-screen.
+        // A header chip overlapping the top border by half its height,
+        // clamped so an element flush with the top stays on screen.
         toolbar.classList.add('is-visible');
         const rect = el.getBoundingClientRect();
         const overlap = rect.top + window.scrollY - toolbar.offsetHeight / 2;
@@ -244,11 +209,8 @@
     }
 
     function showHoverToolbar(el, kind) {
-        // Hover is suppressed while an element is focused — the focused
-        // toolbar stays in place even as the cursor wanders elsewhere.
-        // It's also suppressed during a drag so the toolbar doesn't pop
-        // up over sections/blocks the user is just passing across on the
-        // way to a drop target.
+        // Suppressed while focused, and during a drag so the toolbar does
+        // not pop up over everything on the way to a drop target.
         if (focusedEl || dragState) return;
         if (hoveredEl === el) {
             clearTimeout(hideTimer);
@@ -286,11 +248,7 @@
     }
 
     // ---------- Keyboard shortcuts (focused element) ----------
-    //
-    // Shortcuts act on the pinned (focused) section/block — the same target
-    // the toolbar buttons drive — so they only ever fire after an explicit
-    // click. Each maps to the exact same postToParent intent its toolbar
-    // button uses, keeping a single source of truth in the parent.
+    // They post the same intents the toolbar does. See frontend.md
 
     /** True for fields where a keystroke means "type", not "act on element". */
     function isTypingTarget(t) {
@@ -334,13 +292,10 @@
     });
 
     /**
-     * Copy / paste, relayed rather than handled: the preview is a separate
-     * document, so a Ctrl/Cmd-C pressed here never reaches the builder window.
-     * What gets copied is decided over there (the sidebar's open entity), so
-     * this only forwards the intent — no clipboard state lives in the preview.
+     * Relayed, not handled: no clipboard state lives in the preview, and a
+     * field keystroke or a real text selection must never be stolen.
      *
-     * Two things must NOT be stolen: a keystroke typed into a form field the
-     * page itself renders, and a genuine text selection someone is copying.
+     * @see docs/internals/frontend.md#keyboard-and-clipboard
      */
     document.addEventListener('keydown', (event) => {
         if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
@@ -357,18 +312,10 @@
     // ---------- Single-block hot reload ----------
 
     /**
-     * Replaces one block's markup in place with server-rendered HTML, instead
-     * of reloading the whole iframe. Used by the parent after an inline edit
-     * of a block whose type opts into hot reload (supportsPreviewHotReload).
+     * Swaps one block's markup in place, re-pinning hover/focus onto the fresh
+     * node and dispatching `cb:block:rendered` on it.
      *
-     * Preserves the editing experience across the swap: any hover/focus
-     * pinned on the old node is dropped (it's about to be detached) and
-     * re-pinned on the fresh node so the blue outline + toolbar survive.
-     *
-     * A `cb:block:rendered` event is dispatched on the new element so a
-     * JS-enhanced view can (re)initialise — this is the only place page
-     * scripts don't re-run on their own, since we inject HTML rather than
-     * reload the document.
+     * @see docs/internals/frontend.md#hot-reload-and-when-it-is-refused
      */
     function replaceBlock(blockId, html) {
         const oldEl = document.querySelector(`[data-cb-block-id="${blockId}"]`);
@@ -403,12 +350,10 @@
     }
 
     /**
-     * Hot-reloads a section's STYLE in place after a settings change: copies
-     * the freshly-rendered wrapper attributes (the <section> class + style and
-     * each column's class + style — i.e. padding/margin/bg/gap/alignment/width
-     * mode and per-column widths) onto the existing nodes, WITHOUT touching the
-     * inner blocks. Leaving the blocks in place preserves their DOM + JS state,
-     * so this is always safe (a section's settings never change its structure).
+     * Copies the freshly-rendered wrapper attributes onto the existing nodes,
+     * never touching the inner blocks — always safe.
+     *
+     * @see docs/internals/frontend.md#hot-reload-and-when-it-is-refused
      *
      * Overlay-owned classes (the focus/hover outline) are re-applied after the
      * className swap since the server markup doesn't know about them.
@@ -453,16 +398,13 @@
             if (wasColOutlined) oldCol.classList.add('cb-overlay-outline');
         });
 
-        // The focused element's box may have moved/resized — re-place its toolbar.
+        // Its box may have moved or resized — re-place the toolbar.
         if (focusedEl === oldEl) positionToolbarFor(oldEl, focusedKind);
     }
 
     /**
-     * Removes one block from the preview in place after a delete, instead of
-     * reloading the whole iframe. The block is soft-deleted on the server
-     * (Discard can still bring it back via a later full reload); visually it
-     * just disappears — same end state as a reload, where deleted blocks
-     * render hidden (`[data-cb-deleted="1"] { display: none }`).
+     * Removes a block in place. Same end state as a reload, where a
+     * soft-deleted block renders hidden.
      */
     function removeBlock(blockId) {
         const el = document.querySelector(`[data-cb-block-id="${blockId}"]`);
@@ -479,12 +421,10 @@
     }
 
     /**
-     * Inserts a freshly-rendered block at the end of its column — ahead of the
-     * permanent "+ Block" button sentinel — after a server-confirmed add,
-     * instead of reloading the iframe. Dispatches cb:block:rendered so a
-     * JS-enhanced view can initialise (page scripts don't re-run on injected
-     * HTML), then focuses the new block so its toolbar + outline appear, the
-     * same end state the old reload path produced.
+     * Inserts a rendered block at the end of its column, ahead of the "+ Block"
+     * sentinel, then dispatches cb:block:rendered and focuses it.
+     *
+     * @see docs/internals/frontend.md#hot-reload-and-when-it-is-refused
      */
     function insertBlock(columnId, html) {
         const column = document.querySelector(`[data-cb-column-id="${columnId}"]`);
@@ -516,12 +456,8 @@
     }
 
     /**
-     * Drops a freshly-rendered block duplicate into the preview in place,
-     * anchored right after its source node — the same slot the server inserted
-     * the copy at — instead of reloading the iframe. Dispatches
-     * cb:block:rendered so a JS-enhanced view can initialise (page scripts
-     * don't re-run on injected HTML). Focus is left untouched: the source stays
-     * selected, mirroring the pre-reload behaviour.
+     * Drops a duplicate right after its source, the slot the server used.
+     * Focus is left alone, so the source stays selected.
      */
     function insertBlockAfter(sourceId, html) {
         const source = document.querySelector(`[data-cb-block-id="${sourceId}"]`);
@@ -544,11 +480,8 @@
     }
 
     /**
-     * Drops a freshly-rendered section duplicate into the preview in place,
-     * anchored right after its source section. Re-fires cb:block:rendered on
-     * every inner block so JS-enhanced (but hot-reload-capable) views
-     * initialise — the duplicate endpoint only ships section markup when all of
-     * its blocks opt into hot reload, so this is always safe.
+     * Same, one level up. Re-fires cb:block:rendered on every inner block —
+     * safe, since the endpoint only ships markup when they all opt in.
      */
     function insertSectionAfter(sourceId, html) {
         const source = document.querySelector(`[data-cb-section-id="${sourceId}"]`);
@@ -572,13 +505,10 @@
     }
 
     /**
-     * Relocates an existing block node to a new column/position in place after
-     * a server-confirmed reorder, instead of reloading the iframe. Moving the
-     * live node (rather than re-rendering it) preserves the block's DOM + JS
-     * state — e.g. a rich-text editor mid-edit survives the move.
+     * Moves the **live** node, so a rich-text editor mid-edit survives.
+     * `position` indexes visible blocks only.
      *
-     * `position` is the index among VISIBLE (non-deleted) blocks in the target
-     * column — the same index the drag logic computed and the server applied.
+     * @see docs/internals/frontend.md#hot-reload-and-when-it-is-refused
      */
     function moveBlockInPlace(blockId, toColumnId, position) {
         const el = document.querySelector(`[data-cb-block-id="${blockId}"]`);
@@ -612,9 +542,8 @@
     }
 
     /**
-     * Nudges a section one slot up or down in place (the toolbar arrows). Swaps
-     * the node with its previous/next visible sibling — the same swap the
-     * server applied to the preview positions.
+     * The toolbar arrows: swaps the node with its previous or next visible
+     * sibling, as the server did to the positions.
      */
     function moveSectionByDirection(sectionId, direction) {
         const el = document.querySelector(`[data-cb-section-id="${sectionId}"]`);
@@ -634,11 +563,8 @@
     }
 
     /**
-     * Inserts `el` among a visible-only, source-excluded `siblings` list at
-     * `position`. Past the end we anchor after the last sibling (not
-     * appendChild) so the node lands ahead of any trailing sentinel — the
-     * in-column "Add block" button or the section tray. An empty list prepends
-     * into the container, again ahead of that sentinel.
+     * Anchors after the last sibling rather than appending, so the node lands
+     * ahead of any trailing sentinel — the add button or the section tray.
      */
     function placeAmong(el, container, siblings, position) {
         if (position < siblings.length) {
@@ -652,9 +578,8 @@
 
     // ---------- Drag & drop ----------
 
-    // Single reusable drop indicator (a thin blue bar). We position it at the
-    // insertion point as the user drags so they can see exactly where the
-    // entity will land. Its CSS lives in builder.css.
+    // One reusable drop indicator, positioned at the insertion point as the
+    // user drags. Its CSS lives in builder.css.
     const dropIndicator = document.createElement('div');
     dropIndicator.className = 'cb-drop-indicator';
     dropIndicator.hidden = true;
@@ -671,9 +596,8 @@
         const pointerId = event.pointerId ?? null;
         const handlers = {
             move: (e) => {
-                // Multi-pointer guard: only act on the pointer that started
-                // the drag, otherwise a second touch finger would derail
-                // the indicator math.
+                // Only the pointer that started the drag: a second finger
+                // would otherwise derail the indicator math.
                 if (pointerId !== null && e.pointerId !== pointerId) return;
                 onDragMove(e);
             },
@@ -691,10 +615,8 @@
 
         sourceEl.classList.add('cb-drag-source');
         document.body.classList.add('cb-dragging');
-        // Kind-specific class lets builder.css mute the dashed guides that
-        // aren't valid drop targets — section drags only land between
-        // sections, so column outlines are noise; block drags only land in
-        // columns, so section outlines are noise.
+        // Lets builder.css mute the guides that are not valid targets for
+        // this kind of drag.
         document.body.classList.add('cb-dragging--' + kind);
 
         document.addEventListener('pointermove', handlers.move);
@@ -776,9 +698,8 @@
     }
 
     function computeBlockDrop(x, y) {
-        // Pick whichever column is under the cursor. `cb-drag-source` carries
-        // pointer-events: none, so elementFromPoint sees through the dragged
-        // source to whatever column is below it.
+        // `cb-drag-source` carries pointer-events: none, so this sees
+        // through the dragged node to the column below it.
         const under = document.elementFromPoint(x, y);
         if (!under) return null;
         const column = under.closest?.('[data-cb-column-id]');
@@ -842,18 +763,14 @@
         }, 120);
     }
 
-    // Reposition the focused/hovered toolbar on layout shifts (window resize,
-    // section reflow). Without this, a structural change leaves the chip
-    // floating where the element used to be.
+    // On layout shifts, or the chip floats where the element used to be.
     window.addEventListener('resize', () => {
         if (focusedEl) positionToolbarFor(focusedEl, focusedKind);
         else if (hoveredEl) positionToolbarFor(hoveredEl, hoveredKind);
     });
 
-    // Hover routing — block wins over section so the most granular action
-    // available is the one offered. Columns no longer surface a toolbar:
-    // their `+ Block` action is exposed permanently at the bottom of each
-    // column instead (.cb-add-block-inline).
+    // Block wins over section, so the most granular action is offered.
+    // Columns expose `+ Block` permanently instead of on hover.
     document.addEventListener('mouseover', (event) => {
         const block = event.target.closest?.('[data-cb-block-id]');
         if (block) {
@@ -882,18 +799,8 @@
 
     // ---------- Block intra-iframe navigation ----------
 
-    // The preview is meant for read-only inspection — clicking a real link or
-    // submitting a real form would navigate the iframe away from the page
-    // we're editing, which is jarring (the parent admin loses context). We
-    // intercept those interactions in the capture phase so they never reach
-    // the front-app handlers.
-    //
-    // The same listener also drives:
-    //  - Click-to-focus (pin the toolbar on the clicked block/section).
-    //  - Permanent inline add affordances rendered in the iframe content
-    //    (`.cb-add-block-inline`, `.cb-add-section-tray__btn`).
-    //  - Outside-click forwarding so the parent admin closes its sidebar
-    //    when the user clicks empty preview space.
+    // Capture phase, so a real link or form never navigates the iframe away.
+    // Also drives click-to-focus, inline adds and outside-click forwarding.
     document.addEventListener(
         'click',
         (event) => {
@@ -929,19 +836,13 @@
                 return;
             }
 
-            // 2. Overlay UI (toolbar buttons / popover items): they already
-            //    handle their own intent in makeBtn() with stopPropagation.
-            //    Skip outside-click so we don't also tell the parent to
-            //    close the sidebar that the click is interacting with.
+            // 2. Overlay UI handles its own intent in makeBtn(); skipping
+            //    outside-click keeps it from closing the sidebar it drives.
             const onOverlay = target.closest?.('.cb-overlay-toolbar, .cb-overlay-popover');
             if (onOverlay) return;
 
-            // 3. Click on a block/section: pin focus AND ask the parent
-            //    to open the matching editor in the sidebar. The Edit /
-            //    Settings toolbar buttons were removed — clicking the
-            //    element itself is now the only way to enter the editor.
-            //    Block matching is checked first so a click on a nested
-            //    block doesn't escalate to its surrounding section.
+            // 3. Pin focus and open the sidebar. Block first, so a click
+            //    on a nested block does not escalate to its section.
             const block = target.closest?.('[data-cb-block-id]');
             const section = target.closest?.('[data-cb-section-id]');
             if (block) {
@@ -984,14 +885,8 @@
         true,
     );
 
-    // Native HTML5 drag, suppressed: links and images are draggable by
-    // default, and a mousedown that travels a few pixels on one starts a drag
-    // instead of a click — the browser then fires NO click event at all. On a
-    // block whose content IS the link (a card wrapped in <a>, a tile filling
-    // its column) that makes the block unselectable: every attempt to click it
-    // lands on the link and is swallowed. Reordering here runs on its own
-    // pointer events from the toolbar grip, so nothing in the preview needs
-    // the native drag machinery.
+    // Suppressed: a few pixels of travel on a draggable link starts a native
+    // drag and the browser fires NO click, making such a block unselectable.
     document.addEventListener(
         'dragstart',
         (event) => {
@@ -1001,12 +896,7 @@
     );
 
     // ---------- Inbound focus messages ----------
-    //
-    // The parent posts `cb:focus:block` / `cb:focus:section` after an
-    // iframe reload so the currently-edited element keeps its blue
-    // outline + pinned toolbar instead of being lost in the rebuilt
-    // DOM. The element is identified by the same data-cb-* marker used
-    // throughout the overlay.
+    // Posted after a reload so the edited element keeps its toolbar.
     window.addEventListener('message', (event) => {
         if (event.origin !== PARENT_ORIGIN) return;
         const data = event.data;
@@ -1050,7 +940,7 @@
             return;
         }
 
-        // Hot reload: patch a single section's style (wrapper + columns) in place.
+        // Hot reload: patch one section's wrapper and columns in place.
         if (data.type === 'cb:section:patch'
             && Number.isFinite(data.sectionId)
             && typeof data.html === 'string') {
@@ -1083,15 +973,13 @@
             return;
         }
 
-        // Bring a freshly-inserted section into view. Sent instead of the
-        // usual scroll-position restore, so the editor sees what they just
-        // added rather than wherever they happened to be.
+        // Sent instead of the usual scroll restore, so the editor sees
+        // what they just added.
         if (data.type === 'cb:section:scroll-into-view' && Number.isFinite(data.sectionId)) {
             const el = document.querySelector(`[data-cb-section-id="${data.sectionId}"]`);
             if (el) {
-                // `center` rather than `start`: a short section pinned to the
-                // top edge reads as clipped, and the section above it is the
-                // context that tells the editor where the new one landed.
+                // `center`: a short section pinned to the top reads as
+                // clipped, and its neighbour is the context.
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
             return;

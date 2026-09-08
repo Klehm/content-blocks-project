@@ -3,24 +3,10 @@ import { getComponent } from '@symfony/ux-live-component';
 import Sortable from 'sortablejs';
 
 /**
- * Drag-and-drop reordering for LiveCollectionType fields rendered in the
- * builder sidebar (cards, FAQ entries, tabs…).
+ * Drag-and-drop reordering for collection fields, with up/down buttons as the
+ * keyboard fallback. SortableJS is a hard dependency, pinned in the importmap.
  *
- * Attached by the cb_form_theme `live_collection_widget` block to the
- * collection's widget container. The direct `.cb-form-collection__item`
- * children are the sortable entries; each carries a drag handle plus
- * up/down buttons (keyboard-accessible fallback).
- *
- * On reorder we call the Block live action `moveCollectionItem`, passing
- * the collection field's full name and the 0-based source/target DOM
- * positions. The component reorders its form data positionally and
- * re-renders; cb-autosave then persists the new order to the draft and
- * reloads the preview — the exact same structural-edit path that
- * add/delete already use, so a reorder is a single, deduped save.
- *
- * SortableJS is a hard dependency, pinned in the host importmap (run
- * `php bin/console importmap:require sortablejs`). The up/down buttons
- * provide a keyboard-accessible alternative to dragging.
+ * @see docs/internals/forms.md#why-collection-reorder-and-duplicate-flush
  */
 export default class extends Controller {
     static values = {
@@ -76,13 +62,8 @@ export default class extends Controller {
     }
 
     /**
-     * Persist a reorder via the Block live action. SortableJS has already
-     * moved the DOM node; the live re-render reconciles the (positional)
-     * widget ids back to the new order, so the visible order stays put.
-     *
-     * getComponent() resolves only when handed the component's *root*
-     * element, so walk up to the nearest Live controller (our element is
-     * the collection widget container, nested inside it).
+     * SortableJS already moved the node; the re-render reconciles the
+     * positional ids. getComponent() only resolves on the component's *root*.
      */
     _move(from, to) {
         if (from === to || from < 0 || to < 0) return;
@@ -100,10 +81,8 @@ export default class extends Controller {
     }
 
     /**
-     * Persist a duplicate via the Block live action. The component clones the
-     * entry's form data, inserts the copy after the original and re-renders;
-     * cb-autosave then reloads the preview — same structural-edit path as
-     * add/delete/reorder. Same getComponent-on-root caveat as _move().
+     * The component clones the entry's data and inserts it after the original.
+     * Same getComponent-on-root caveat as _move().
      */
     _duplicate(index) {
         if (index < 0) return;

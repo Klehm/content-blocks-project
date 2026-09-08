@@ -1,13 +1,8 @@
 /*
- * ContentBlocks Kit — self-contained front styles for the default blocks.
+ * Self-contained front styles for the kit blocks: no framework, no reset
+ * assumed, and rethemable by overriding the `--cb-kit-*` tokens.
  *
- * Neutral, framework-agnostic: no Tailwind/Bootstrap, no CSS reset assumed.
- * Everything is namespaced under `cb-kit-*` and uses CSS custom properties so a
- * host can retheme by overriding the `--cb-kit-*` tokens (or the classes) in
- * its own stylesheet loaded after this one.
- *
- * Include once on the front layout (and it flows into the builder preview):
- *   <link rel="stylesheet" href="{{ path('content_blocks_kit_asset_css') }}">
+ * @see docs/internals/kit.md#blocks-are-autonomous
  */
 
 :where(.cb-kit-btn, .cb-kit-alert, .cb-kit-list, .cb-kit-icon) {
@@ -21,27 +16,17 @@
 }
 
 /* ---------- Editor-authored HTML ----------
- *
- * The two blocks whose content is written by an editor rather than by the kit
- * (rich text via TinyMCE, raw HTML) are the only places an <img> can arrive
- * carrying its intrinsic width and burst out of its column. The kit's own
- * pictures — image, gallery, card — cap themselves further down.
- *
- * Deliberately NOT a bare `img` selector: this stylesheet is linked on the
- * host's whole front layout, so an unscoped rule would cap the host's logo,
- * its header, its own components — everything the kit does not own. Same
- * reason it stays inside :where(), which zeroes the specificity: an editor
- * pasting a deliberately oversized image can be un-capped by the host with
- * any selector at all, no !important needed. */
+   The only blocks where an <img> can arrive at its intrinsic width. */
+
+/* NOT a bare `img`: this sheet is linked on the host's whole layout, and
+   :where() zeroes specificity so a host needs no !important. */
 :where(.cb-block-rich-text, .cb-block-html-raw) img {
     max-width: 100%;
     height: auto;
 }
 
 /* ---------- Title ---------- */
-/* Size is a class, decoupled from the element: cb-kit-title--h* sets the visual
-   scale so a semantic <h2> can look like an h1. `display:block` keeps span/p
-   titles behaving as headings. */
+/* Size is a class, so a semantic <h2> can look like an h1. */
 .cb-kit-title { margin: 0 0 .5rem; display: block; font-weight: 700; line-height: 1.2; }
 .cb-kit-title--h1 { font-size: 2.5rem; }
 .cb-kit-title--h2 { font-size: 2rem; }
@@ -151,15 +136,12 @@
 .cb-kit-accordion__content { padding: 0 1.1rem 1rem; color: #374151; }
 
 /* ---------- Tabs (CSS-only, no JS) ---------- */
-/* Markup order is radio → label → panel, repeated. The container is a wrapping
-   flex row where labels take order 1 and panels order 2 at full width, so every
-   label lands on the first row and the open panel below them. That layout is
-   what makes the whole block two static rules — `:checked + label` and
-   `:checked + label + panel` — instead of one rule per tab index keyed on the
-   instance id, which is what this block used to inline in a <style> tag and
-   which no host stylesheet could override without !important.
-   Retheme by redefining the tokens on `.cb-kit-tabs`: they are declared inside
-   :where(), so any host selector wins. */
+
+/* Markup is radio -> label -> panel, laid out by flex `order` so the whole
+   block is two static rules rather than one per tab index. */
+
+/* That is what replaced a per-instance <style> tag no host could override
+   without !important. Tokens sit in :where(), so any host selector wins. */
 :where(.cb-kit-tabs) {
     --cb-kit-tabs-line: #e5e7eb;
     --cb-kit-tabs-tab: #6b7280;
@@ -209,9 +191,9 @@
 .cb-kit-tabs__empty { color: #6b7280; }
 
 /* ---------- Image ---------- */
-/* Full-width flex column so align-items can place the image; the display width
-   is capped on the <img> (not the figure), otherwise a max-width'd figure sits
-   at the column's left edge and left/center/right all look the same. */
+
+/* Capped on the <img>, not the figure: a max-width'd figure sits at the
+   column's left edge and left/center/right all look the same. */
 .cb-kit-image { margin: 0; display: flex; flex-direction: column; }
 .cb-kit-image--start { align-items: flex-start; }
 .cb-kit-image--center { align-items: center; }

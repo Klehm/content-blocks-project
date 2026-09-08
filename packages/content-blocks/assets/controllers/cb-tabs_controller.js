@@ -1,21 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Tabbed field groups in the block edit sidebar.
- *
- * Purely a DOM concern: every field stays rendered in the DOM — inactive
- * panels are only hidden — so the cb-autosave controller still serializes
- * the whole form (hidden tabs included) and server-side validation is
- * unaffected. Mirrors cb-viewport-tabs.
- *
- * The active tab survives Live Component re-renders for free: Live's
- * external-mutation tracker records the `hidden`/class toggles made here
- * and re-applies them after each morph (same mechanism cb-viewport-tabs
- * relies on), so no render-lifecycle hook is needed.
- *
- * Targets:
- *   - tab:   each tab button; reads `data-cb-tab` (the panel index)
- *   - panel: each tab panel;  reads `data-cb-tab` (its own index)
+ * Tabbed field groups. Purely DOM — every field stays rendered, and Live's
+ * external-mutation tracker re-applies the toggles across a morph.
  */
 export default class extends Controller {
     static targets = ['tab', 'panel'];
