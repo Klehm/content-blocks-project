@@ -9,42 +9,18 @@ use ContentBlocks\Form\Type\BlockFormType;
 use Symfony\Component\Form\FormFactoryInterface;
 
 /**
- * Answers "which keys can this block type legitimately hold?" — the question
- * both restore paths ask when they replay stored data that may predate the
- * current code (section-template insert, area import).
+ * Which keys a block type can legitimately hold: the union of
+ * `getDefaultData()` and the children of its built edit form.
  *
- * Known keys are the **union** of two sources, because neither alone describes
- * what a block stores:
- *
- *  - the type's getDefaultData() — covers keys a block declares but does not
- *    expose as an editable field;
- *  - the children of the block's built edit form — covers `styling` (added by
- *    {@see BlockFormType}, deliberately absent from getDefaultData()) and every
- *    field contributed by a host
- *    {@see \ContentBlocks\Form\Extension\BlockFormExtensionInterface}.
- *
- * Reading only the first flagged `styling` on every styled block and every
- * host-added field; reading only the second would flag declared-but-not-editable
- * keys. Hence the union.
+ * @see docs/internals/clipboard.md#which-keys-a-block-type-can-hold
  */
 final class BlockDataKeys
 {
     /**
-     * Prefix this package reserves inside `Block.data` — at every level,
-     * including collection entries. A key starting with `_` belongs to
-     * ContentBlocks; **a block type must not declare one.**
+     * Reserved to ContentBlocks at every level of `Block.data`, collection
+     * entries included. **A block type must not declare one.**
      *
-     * It exists because some stored values are written by machinery rather than
-     * by the block's own form, and would otherwise be reported as unknown keys
-     * by both restore paths (area import, section-template insert). Today that
-     * is `_id` — the stable identity of a collection entry, see
-     * {@see CollectionItemIds}. Reserving the *prefix* rather than a list of
-     * names means the next such need does not reopen a frozen data contract.
-     *
-     * Note the flip side, verified rather than assumed: a POST carrying an
-     * underscore-prefixed key is *ignored* by the block form (only declared
-     * children map), so reserving the namespace opens no write path through the
-     * editor.
+     * @see docs/internals/clipboard.md#the-reserved-prefix
      */
     public const RESERVED_PREFIX = '_';
 
@@ -55,10 +31,8 @@ final class BlockDataKeys
     }
 
     /**
-     * Keys present in $data that nothing in the block's current shape can hold.
-     * An unregistered type has no shape to compare against, so nothing is
-     * reported — the caller decides what an unknown type means (the template
-     * flow refuses it, the import flow warns).
+     * Keys in $data that nothing in the block's current shape can hold. An
+     * unregistered type reports none — the caller decides what that means.
      *
      * @param array<string, mixed> $data
      *
@@ -72,10 +46,8 @@ final class BlockDataKeys
 
         $type = $this->registry->get($blockType);
 
-        // Building the form (rather than reading a static declaration) is the
-        // only definition that stays true when a host adds a field. Only the
-        // builder is created — no view, no data mapping — so this stays cheap
-        // enough for the admin-side operations that call it.
+        // Building the form is the only definition that stays true when a host
+        // adds a field. Builder only — no view, no mapping — so it stays cheap.
         $builder = $this->formFactory->createBuilder(BlockFormType::class, null, [
             'block_type' => $type,
             'block_data' => $data,

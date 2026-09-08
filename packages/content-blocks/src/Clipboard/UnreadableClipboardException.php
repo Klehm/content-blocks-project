@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Clipboard;
 
 /**
- * The clipboard entry is not something this build can read: a foreign format,
- * an unknown scope, or a payload that is not even a structure. Hand-editing
+ * A foreign format, an unknown scope, or no structure at all. Hand-edited
  * `localStorage` is the likely cause, so the message stays generic.
  */
 final class UnreadableClipboardException extends \RuntimeException

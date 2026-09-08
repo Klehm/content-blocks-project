@@ -249,6 +249,11 @@ jobs:
       - name: Coding standards
         run: vendor/bin/php-cs-fixer fix --dry-run --diff --using-cache=no
 
+      # The comment budget replaces long docblocks with pointers, so a pointer
+      # that no longer lands is the same failure as a docblock that lies.
+      - name: docs/internals pointers resolve
+        run: ./docs/scripts/check-internal-links.sh
+
   i18n-js-tests:
     name: Vitest i18n
     runs-on: ubuntu-latest

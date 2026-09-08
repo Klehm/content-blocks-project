@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Block;
 
 /**
- * Block-side mirror of {@see \ContentBlocks\Section\SectionDecoration} —
- * accumulated visual effect a {@see BlockDecoratorInterface} applies to
- * a block's outer markup.
- *
- * Immutable; combine two decorations with {@see merge()}.
+ * The accumulated effect a {@see BlockDecoratorInterface} applies to a block's
+ * outer markup. Immutable; combine with {@see merge()}.
  */
 final class BlockDecoration
 {

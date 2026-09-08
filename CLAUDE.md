@@ -98,6 +98,12 @@ Enforced by `.claude/hooks/comment-budget.sh` (PostToolUse on Write/Edit), which
 only reports blocks overlapping lines changed since HEAD — editing a file that
 predates the rule does not resurface its whole backlog.
 
+The rationale lives in **[docs/internals/](docs/internals/)**, which is excluded
+from the VitePress build (`srcExclude`): maintainer documentation, not part of
+the published site. Integrator-facing material still belongs in `docs/guide/`.
+`docs/scripts/check-internal-links.sh` runs in CI so a pointer cannot rot — a
+pointer that no longer lands is the same failure as a docblock that lies.
+
 ### Nommage
 - **Namespace PSR-4** : `ContentBlocks\` (package principal), `ContentBlocks\Kit\` (kit de blocs)
 - **Bundle** : `ContentBlocksBundle` (principal), `ContentBlocksKitBundle` (kit)

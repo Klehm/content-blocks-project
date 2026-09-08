@@ -5,14 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\Block;
 
 /**
- * Running tally of what a restore could and could not bring in, shared by the
- * two flows that replay stored content (area import, section-template insert).
+ * Running tally of what a restore could and could not bring in. Plumbing, not
+ * a seam — callers get the flow's own result object.
  *
- * Plumbing, not a seam: it exists so the two services accumulate the same facts
- * under the same names instead of threading four by-reference parameters
- * through their builders. What reaches the caller is the flow's own result
- * object ({@see \ContentBlocks\Transfer\ImportResult},
- * {@see \ContentBlocks\SectionTemplate\InstantiationResult}).
+ * @see docs/internals/forms.md#block-decorators
  */
 final class BlockRestoreTally
 {

@@ -5,20 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\Block;
 
 /**
- * Aggregates {@see BlockDataDefaultsProviderInterface} services into a
- * single defaults map and exposes helpers for the two places defaults
- * matter — block-side mirror of
- * {@see \ContentBlocks\Section\SectionSettingsDefaults}:
+ * Aggregates the defaults providers into one map: {@see get()} fills a form,
+ * {@see withoutDefaults()} strips it again before rendering.
  *
- *  - {@see get()}             — merged defaults; injected as initial
- *                               form data so widgets without an
- *                               "empty" state (color picker, range
- *                               slider…) don't show browser fallbacks.
- *  - {@see withoutDefaults()} — strips default-equal entries from a
- *                               block's data before it flows to the
- *                               decorator pipeline. Keeps the rendered
- *                               markup uncluttered when the user
- *                               saved values that match the default.
+ * @see docs/internals/forms.md#why-defaults-are-merged-on-form-load
  */
 final class BlockDataDefaults
 {

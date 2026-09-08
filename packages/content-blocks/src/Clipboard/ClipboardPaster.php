@@ -13,23 +13,10 @@ use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiatorInterface;
 
 /**
- * Replays a clipboard payload into an area and places what comes out.
+ * Replays a clipboard payload into an area and places what comes out. Attached
+ * to the parent but not flushed — persisting is the controller's job.
  *
- * Two halves, both deliberate:
- *
- *  - **Replay** reuses the section-template instantiator for the section scope
- *    (same payload format, same skip-unknown-types behavior) and adds the block
- *    scope one level down. Every block that survives then goes through
- *    {@see BlockDataReplayer}, which is what makes a `localStorage` payload safe
- *    to write.
- *  - **Placement** is the rule the editor sees: a pasted section lands right
- *    after the selected one (at the end of the area when nothing is selected),
- *    a pasted block right after the selected one (at the end of its column
- *    otherwise). Both re-index their siblings so `previewPosition` stays dense,
- *    the same convention Duplicate and Move follow.
- *
- * Entities come back attached to their parent but not flushed — persisting is
- * the controller's job, as everywhere else in the package.
+ * @see docs/internals/clipboard.md#replay-and-placement
  */
 final class ClipboardPaster
 {
@@ -41,11 +28,12 @@ final class ClipboardPaster
     }
 
     /**
-     * @param array<string, mixed> $payload untrusted `content-blocks/section-v1` snapshot
-     * @param Section|null         $after   the selected section; null appends at the end of the area
+     * @param array<string, mixed> $payload untrusted `section-v1` snapshot
+     * @param Section|null         $after   selected section; null appends
      *
-     * @throws \ContentBlocks\SectionTemplate\UnsupportedTemplateFormatException when the payload envelope is not readable
-     * @throws IncompatibleTemplateException                                     when no block of the payload survives
+     * @throws \ContentBlocks\SectionTemplate\UnsupportedTemplateFormatException
+     *                                       when the envelope is unreadable
+     * @throws IncompatibleTemplateException when no block survives
      */
     public function pasteSection(array $payload, ContentArea $area, ?Section $after): PasteResult
     {
@@ -70,13 +58,13 @@ final class ClipboardPaster
     }
 
     /**
-     * @param array<string, mixed> $payload untrusted `content-blocks/block-v1` snapshot
-     * @param Block|null           $after   the selected block; null appends at the end of the column
+     * @param array<string, mixed> $payload untrusted `block-v1` snapshot
+     * @param Block|null           $after   selected block; null appends
      *
-     * @throws UnreadableClipboardException  when the payload envelope is not readable
-     * @throws IncompatibleTemplateException when the block's type is no longer registered — same
-     *                                       meaning as in the section scope ("nothing survives"),
-     *                                       so the caller has one condition to answer, not two
+     * @throws UnreadableClipboardException  when the envelope is unreadable
+     * @throws IncompatibleTemplateException when the type is unregistered: the
+     *                                       same "nothing survives" as
+     *                                       sections, so callers see one case
      */
     public function pasteBlock(array $payload, Column $column, ?Block $after): PasteResult
     {
@@ -107,10 +95,8 @@ final class ClipboardPaster
     }
 
     /**
-     * Runs the block's stored payload through its own form and writes back what
-     * survived. A block whose type vanished between the instantiator's check and
-     * here cannot happen (the instantiator skipped those), but the guard keeps
-     * this callable on any block.
+     * Runs the stored payload through the block's own form, writing back what
+     * survived. Guarded so it stays callable on any block.
      *
      * @return list<string> the fields reset to their default
      */

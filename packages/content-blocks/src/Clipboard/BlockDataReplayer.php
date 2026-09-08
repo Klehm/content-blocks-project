@@ -16,42 +16,16 @@ use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 
 /**
- * Turns one clipboard block's `data` into data it is safe to write.
+ * Turns one clipboard block's `data` into data it is safe to write, by
+ * replaying it through the block's own form — the payload is untrusted input.
  *
- * ---- Why this exists at all ----
- *
- * The two older restore paths — section-template insert and area import — read
- * rows this application wrote itself, so they keep block data verbatim and only
- * *warn* about keys the type no longer declares. The clipboard is different in
- * one decisive way: it lives in `localStorage`, so its payload is whatever the
- * user (or anything running in their browser) put there. It is input, not
- * truth, and the package already has a whitelist-and-validator for block data —
- * the block's own form. This replays the payload through it, exactly as if an
- * editor had typed those values into the sidebar and saved.
- *
- * ---- What survives ----
- *
- *  - **A field of the block's form** — submitted, so its `constraints` decide.
- *    A field that fails validation is dropped and reset to the type's default;
- *    the block still lands (an editor would rather fix one field than recreate
- *    the block), and the dropped names are reported so the UI can say so.
- *  - **A key the type declares in getDefaultData() without exposing a field** —
- *    kept verbatim. Same union rule as {@see BlockDataKeys}: it is part of the
- *    type's own data contract, and no form child can vouch for it.
- *  - **Nothing else.** An undeclared key never reaches `data`, which is the
- *    whole point of routing a user-writable payload through here.
- *
- * Collection entry ids (`_id`) are *not* carried across: entry forms mint their
- * own data, and {@see CollectionItemIds::backfill()} gives every entry a fresh
- * id on the way out. A pasted block is a new block, so per-entry information
- * keyed on the source's ids would not apply to it anyway.
+ * @see docs/internals/clipboard.md#why-the-clipboard-needs-a-replayer
  */
 final class BlockDataReplayer
 {
     /**
-     * Safety bound on the drop-and-resubmit loop. Each pass removes at least
-     * one field, so a block would need this many independently invalid fields
-     * to reach it; the bound is only there so a pathological type cannot spin.
+     * Bound on the drop-and-resubmit loop — each pass removes a field, so this
+     * is only here so a pathological type cannot spin.
      */
     private const MAX_PASSES = 20;
 
@@ -66,9 +40,8 @@ final class BlockDataReplayer
     /**
      * @param array<string, mixed> $data raw payload data, untrusted
      *
-     * @throws \InvalidArgumentException when the type is not registered — callers
-     *                                   decide what an unknown type means, so it
-     *                                   never reaches here (see {@see ClipboardPaster})
+     * @throws \InvalidArgumentException when the type is unregistered; callers
+     *                                   decide what that means beforehand
      */
     public function replay(string $type, array $data): BlockDataReplayResult
     {
@@ -77,10 +50,8 @@ final class BlockDataReplayer
         }
 
         $blockType = $this->registry->get($type);
-        // The form is built from the *defaults*, never from the payload: a
-        // block type may size its own fields from the data it is given, and a
-        // forged payload must not get to shape the form that is meant to
-        // validate it.
+        // Built from the defaults, never the payload: a type may size its own
+        // fields from its data, and a forgery must not shape its own validator.
         $initial = array_replace_recursive($this->blockDataDefaults->get(), $blockType->getDefaultData());
 
         $form = $this->buildForm($blockType, $initial);
@@ -108,10 +79,8 @@ final class BlockDataReplayer
 
             $failing = $this->failingChildren($form);
             if ($failing === []) {
-                // Invalid with no child to blame (a form-level error): nothing
-                // in the payload can be trusted, so the block lands on defaults.
-                // Already empty and still refused means the type rejects even
-                // its own defaults — there is nothing left to strip.
+                // A form-level error blames no child, so the block lands on
+                // defaults. Already empty and still refused: nothing to strip.
                 if ($submitted === []) {
                     break;
                 }
@@ -138,29 +107,14 @@ final class BlockDataReplayer
     }
 
     /**
-     * Converts stored block data into the shape a *submit* expects.
+     * Converts stored block data into the shape a *submit* expects — the model
+     * shape and the posted shape are not the same.
      *
-     * The two are not the same, and assuming they were is the trap here.
-     * `Block.data` holds model values — `styling.backgroundColor` is the string
-     * `'#eb0540'` — while `submit()` takes what a browser would post, which for
-     * a compound field with a data mapper ({@see \ContentBlocks\Form\Type\PaletteColorType})
-     * is the array of its children's view values. Submitting the model shape
-     * would fail on every such field and quietly reset it to the default.
-     *
-     * So the form itself does the conversion: one built *on the payload* maps
-     * model → view, and reading its children back gives the post shape. That
-     * form is a converter and nothing else — the values it produces are then
-     * submitted into a form built from the defaults, which is the one that
-     * validates. A payload that shapes its own converter therefore gains
-     * nothing: whatever comes out still has to get past a clean form.
-     *
-     * A value the converter cannot even map (an array where a string belongs)
-     * costs only its own field: the whole payload is tried first, and the
-     * per-field retry isolates the offender.
+     * @see docs/internals/clipboard.md#the-view-shape-trap
      *
      * @param array<string, mixed> $initial
-     * @param array<string, mixed> $candidate already whitelisted to editable keys
-     * @param list<string>         $dropped   accumulator, passed by reference
+     * @param array<string, mixed> $candidate whitelisted to editable keys
+     * @param list<string>         $dropped   accumulator, by reference
      *
      * @return array<string, mixed>
      */
@@ -199,7 +153,7 @@ final class BlockDataReplayer
      *
      * @return array<string, mixed>
      *
-     * @throws TransformationFailedException when a value cannot be mapped into the form
+     * @throws TransformationFailedException when a value will not map in
      */
     private function postShapeOf(BlockTypeInterface $blockType, array $initial, array $values, array $keys): array
     {
@@ -213,11 +167,8 @@ final class BlockDataReplayer
             }
 
             $shape = $this->viewShape($form->get($key));
-            // A value the converter could not represent comes back empty — an
-            // out-of-list choice, say, which ChoiceType maps to ''. Submitting
-            // *that* would blank the field silently; submitting the raw value
-            // lets the clean form refuse it out loud, which is how it gets
-            // reported and reset to the type's default.
+            // An unrepresentable value comes back empty, and submitting that
+            // blanks the field silently — so submit the raw one and be refused.
             $raw = $values[$key] ?? null;
             $posted[$key] = ($shape === null || $shape === '') && $raw !== null && $raw !== ''
                 ? $raw
@@ -228,14 +179,10 @@ final class BlockDataReplayer
     }
 
     /**
-     * A form's value as it would come back from the browser: leaves give their
-     * view data, compound fields (and collections) an array keyed by child name.
-     *
-     * One compound family is *not* an array on the wire: an expanded choice
-     * (radios, checkbox list) has one child per option, but a browser posts the
-     * chosen **value**, and ChoiceType's own submit path reads it that way —
-     * handing it a per-child map makes it choke. So a choice field always
+     * A form's value as the browser would post it. A choice field always
      * answers with its view data, expanded or not.
+     *
+     * @see docs/internals/clipboard.md#the-view-shape-trap
      */
     private function viewShape(FormInterface $form): mixed
     {
@@ -278,9 +225,8 @@ final class BlockDataReplayer
     }
 
     /**
-     * Payload entries whose key is in $allowed, in payload order. Reserved-prefix
-     * keys never pass: they belong to this package's machinery, not to the
-     * editor's data, and are re-minted rather than carried.
+     * Payload entries whose key is in $allowed, in payload order.
+     * Reserved-prefix keys never pass; they are re-minted rather than carried.
      *
      * @param array<string, mixed> $data
      * @param array<int, string>   $allowed

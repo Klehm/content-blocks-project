@@ -8,22 +8,21 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Section;
 
 /**
- * Outcome of a paste: what landed, and what did not come with it.
+ * Outcome of a paste. `droppedFields`, not `unknownFields`: a template keeps an
+ * undeclared key and reports it, a clipboard entry has it thrown away.
  *
- * The vocabulary differs from {@see \ContentBlocks\SectionTemplate\InstantiationResult}
- * on purpose. A template *keeps* a stored key no type declares and reports it;
- * a clipboard entry is user-writable, so the same key is **dropped** — see
- * {@see BlockDataReplayer}. Hence `droppedFields` where the template flow says
- * `unknownFields`: one warns about what it kept, the other about what it threw
- * away.
+ * @see docs/internals/clipboard.md#why-the-clipboard-needs-a-replayer
  */
 final class PasteResult
 {
     /**
-     * @param Section|Block                                              $entity            the pasted entity, already placed and ready to persist
-     * @param int                                                        $skippedBlockCount blocks left out because their type is no longer registered
-     * @param list<string>                                               $skippedBlockTypes distinct type ids of those blocks
-     * @param list<array{blockType: string, droppedFields: list<string>}> $droppedFields     fields reset to their type's default
+     * @param Section|Block $entity            placed, ready to persist
+     * @param int           $skippedBlockCount blocks whose type is gone
+     * @param list<string>  $skippedBlockTypes distinct type ids of those
+     * @param list<array{
+     *     blockType: string,
+     *     droppedFields: list<string>,
+     * }> $droppedFields
      */
     public function __construct(
         public readonly Section|Block $entity,

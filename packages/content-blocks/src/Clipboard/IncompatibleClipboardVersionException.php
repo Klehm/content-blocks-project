@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace ContentBlocks\Clipboard;
 
 /**
- * The entry was copied under a different `content_blocks.content_version` than
- * the one this build runs. Refused rather than upgraded — see
- * {@see ClipboardEnvelope} for why the clipboard makes that trade.
+ * Copied under a different `content_version`. Refused, not upgraded.
+ *
+ * @see docs/internals/clipboard.md#the-envelope
  */
 final class IncompatibleClipboardVersionException extends \RuntimeException
 {

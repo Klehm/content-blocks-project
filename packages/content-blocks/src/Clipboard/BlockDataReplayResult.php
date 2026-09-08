@@ -11,8 +11,8 @@ namespace ContentBlocks\Clipboard;
 final class BlockDataReplayResult
 {
     /**
-     * @param array<string, mixed> $data          ready to write to the block's draft
-     * @param list<string>         $droppedFields fields reset to the type's default, in payload order
+     * @param array<string, mixed> $data          ready for the block's draft
+     * @param list<string>         $droppedFields reset to the type's default
      */
     public function __construct(
         public readonly array $data,

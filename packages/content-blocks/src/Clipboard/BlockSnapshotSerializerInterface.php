@@ -7,15 +7,10 @@ namespace ContentBlocks\Clipboard;
 use ContentBlocks\Entity\Block;
 
 /**
- * Snapshots a single Block into a self-contained array — the one-level-down
- * counterpart of {@see \ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface},
- * for the copy/paste clipboard.
+ * Snapshots one Block into a self-contained array for the clipboard. Asset
+ * references stay plain storage paths.
  *
- * Override seam: the bundle aliases this to the shipped {@see BlockSnapshotSerializer}.
- *
- * Asset references stay plain storage paths, same reasoning as the section
- * serializer: both ends of a copy live in the same app, so the pasted block
- * points at the very same stored file rather than a copy of it.
+ * @see docs/internals/clipboard.md#replay-and-placement
  */
 interface BlockSnapshotSerializerInterface
 {

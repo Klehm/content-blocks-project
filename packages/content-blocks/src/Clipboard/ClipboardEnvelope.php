@@ -5,21 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\Clipboard;
 
 /**
- * The wrapper a copy produces and a paste reads back.
+ * The wrapper a copy produces and a paste reads back — the outermost sanity
+ * check only; what is inside is still untrusted.
  *
- * The clipboard lives in the browser's `localStorage`, which is what makes it
- * useful (copy on one page, paste on another) and what makes it **input**: the
- * payload is user-writable, so nothing in it is trusted. The envelope is only
- * the outermost sanity check — is this ours, which scope, which content
- * generation. What is inside still goes through the instantiator and each
- * block's own form on the way in (see {@see BlockDataReplayer}).
- *
- * `contentVersion` stamps the host's content generation at copy time. Unlike a
- * section template — a stored row, worth migrating forward through
- * {@see \ContentBlocks\Versioning\ContentVersionUpgraderInterface} — a
- * clipboard entry is a few minutes old at most, so a mismatch is refused
- * outright rather than upgraded: the editor copies again under the current
- * generation and loses nothing.
+ * @see docs/internals/clipboard.md#the-envelope
  */
 final class ClipboardEnvelope
 {
@@ -30,7 +19,7 @@ final class ClipboardEnvelope
 
     /**
      * @param self::SCOPE_*        $scope
-     * @param array<string, mixed> $payload the scope's own snapshot, with its own `format`
+     * @param array<string, mixed> $payload the scope's snapshot, own `format`
      */
     public function __construct(
         public readonly string $scope,
@@ -55,7 +44,7 @@ final class ClipboardEnvelope
     /**
      * @param array<string, mixed> $raw
      *
-     * @throws UnreadableClipboardException when this is not a clipboard entry this build can read
+     * @throws UnreadableClipboardException when this build cannot read it
      */
     public static function fromArray(array $raw): self
     {
@@ -79,14 +68,13 @@ final class ClipboardEnvelope
     }
 
     /**
-     * @throws IncompatibleClipboardVersionException when the entry was copied under another content generation
+     * @throws IncompatibleClipboardVersionException when copied under another
+     *                                               content generation
      */
     public function assertContentVersion(int $current): void
     {
-        // NULL means "copied before the stamp existed" — same reading as an
-        // area's, and just as unhelpful here: we cannot tell which generation
-        // produced it, so it is refused like any other mismatch. A clipboard
-        // entry is cheap to recreate.
+        // NULL means "copied before the stamp existed" and names no generation,
+        // so it is refused like any other mismatch. Copying again is cheap.
         if ($this->contentVersion !== $current) {
             throw new IncompatibleClipboardVersionException($this->contentVersion, $current);
         }

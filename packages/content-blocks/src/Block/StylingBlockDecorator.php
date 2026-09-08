@@ -7,23 +7,10 @@ namespace ContentBlocks\Block;
 use ContentBlocks\Entity\Block;
 
 /**
- * Reads the `styling` sub-form (added by BlockFormType) and emits CSS
- * custom properties + utility classes that the package's `styling.css`
- * stylesheet maps to real properties — block-side mirror of
- * {@see \ContentBlocks\Section\StylingSectionDecorator}.
+ * Reads the `styling` sub-form and emits the custom properties and classes
+ * `styling.css` maps to real properties.
  *
- * Block styling covers padding, margin, backgroundColor and maxWidth.
- * Per-viewport overrides for padding/margin are routed through the same
- *
- * @media chain as sections; maxWidth and backgroundColor are not
- * responsive in this iteration.
- *
- * Data shape (under `$data['styling']`):
- *  - padding, margin: { desktop: BoxSpacing, tablet: BoxSpacing, mobile: BoxSpacing }
- *      where BoxSpacing = { top, right, bottom, left: int, linked: bool }
- *  - backgroundColor: string (#hex)
- *  - maxWidth: { value: int, unit: 'px' }
- *  - alignSelf: 'start'|'center'|'end' (only honored when maxWidth is set)
+ * @see docs/internals/forms.md#the-styling-data-shape
  */
 final class StylingBlockDecorator implements BlockDecoratorInterface
 {
@@ -46,8 +33,7 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
 
         $vars = [];
 
-        // Block vars are namespaced `--cb-b-*` so a section's `--cb-s-*`
-        // padding/margin/background never inherits into the block; see styling.css.
+        // Namespaced `--cb-b-*` so a section's `--cb-s-*` never inherits in.
         foreach (['padding' => 'b-pad', 'margin' => 'b-mar'] as $key => $short) {
             $responsive = $styling[$key] ?? null;
             if (!\is_array($responsive)) {
@@ -82,10 +68,8 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
             }
         }
 
-        // align-self is only meaningful when the block has a constrained
-        // width — otherwise the block stretches to fill the column and
-        // the cross-axis position has no visible effect. Skipping the
-        // var when maxWidth is unset keeps the output minimal.
+        // Meaningless without a constrained width: the block would stretch
+        // to fill the column anyway.
         if ($hasMaxWidth) {
             $alignSelf = $styling['alignSelf'] ?? null;
             if (\is_string($alignSelf) && isset(self::ALIGN_SELF_MAP[$alignSelf])) {
