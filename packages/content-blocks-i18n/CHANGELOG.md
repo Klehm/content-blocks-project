@@ -21,6 +21,28 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   it is registered by the bundle and picked up through the core's autoconfigured
   `AssetReferenceProviderInterface`.
 
+- **`CrossRequestStateTest`** — a guard that fails when a class in this package
+  keeps mutable state without being either resettable or declared as not
+  request-scoped. Translation is the one feature here that caches per request by
+  design (the prefetch that keeps a translated page from issuing one SELECT per
+  block), which is exactly the shape of thing that serves one page's French to
+  the next page under a worker. See the
+  [worker mode guide](https://klehm.github.io/content-blocks-project/guide/worker-mode).
+
+### Fixed
+
+- **The field-metadata cache no longer outlives the request it was built for.**
+  `FieldMetadataReader` memoizes a block type's labels, translation domains and
+  widgets so a 40-block page builds each form shape once. It reads that off a
+  *form*, and a form is allowed to vary with the ambient request — a host's
+  `BlockFormExtensionInterface` can add a field for one role and not another —
+  while the cache key deliberately ignores `$data`, pinning whichever shape it
+  saw first. Under PHP-FPM that pin lasted one request. Under a worker runtime
+  (FrankenPHP, RoadRunner) it lasted until the process was recycled, so the
+  workbench showed every editor the field set of whoever hit the page first.
+  The reader now implements `ResetInterface` and is cleared on
+  `kernel.terminate`, like `TranslationStore` already was.
+
 ## [1.0.0-RC4] - 2026-08-31
 
 Version bump only — no functional change in `klehm/content-blocks-i18n`. The tag

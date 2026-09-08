@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`CrossRequestStateTest`** — a guard that fails when a class in the kit keeps
+  mutable state without being either resettable or declared as not
+  request-scoped, plus an explicit assertion that every shipped block type is
+  stateless. That last one is the point: a block type is a **shared service**,
+  one instance answering `buildForm()` and `getDefaultData()` for every block of
+  that type on every page, so a block that remembers anything about what it last
+  rendered hands it to the next visitor under a worker runtime. The 17 shipped
+  blocks were already clean; this is what keeps the eighteenth honest. See the
+  [worker mode guide](https://klehm.github.io/content-blocks-project/guide/worker-mode).
+
 ## [1.0.0-RC4] - 2026-08-31
 
 Version bump only — no functional change in `klehm/content-blocks-kit`. The tag

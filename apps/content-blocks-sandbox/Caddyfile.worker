@@ -1,0 +1,38 @@
+# FrankenPHP worker mode for the sandbox.
+#
+#     frankenphp run --config Caddyfile.worker
+#
+# The kernel boots once and answers every request from the same process, which
+# is what turns "a service caches something request-scoped" from a harmless
+# habit into a bug served to the next visitor. `bin/worker-smoke.sh` drives this
+# config; the packages' own `CrossRequestStateTest` is the static half of the
+# same guarantee.
+#
+# `num 1` pins a single worker on purpose: with the default pool a second
+# request lands on a *different* process with a cold cache, so a state leak
+# hides behind the pool instead of showing up. One worker makes it deterministic.
+{
+	auto_https off
+	frankenphp {
+		worker {
+			file {$CB_WORKER_FILE}
+			num {$CB_WORKER_NUM:1}
+		}
+	}
+}
+
+# The `http://` scheme is not decorative: given a bare host:port, Caddy serves
+# the site over HTTPS and every plain request comes back "400 Bad Request —
+# Client sent an HTTP request to an HTTPS server".
+{$CB_WORKER_LISTEN:http://127.0.0.1:8005} {
+	root {$CB_WORKER_ROOT}
+
+	# `index` points try_files at the worker instead of index.php, so requests
+	# resolve to the script FrankenPHP is holding open. Without it the worker
+	# boots, no request ever reaches it, and the server quietly serves every
+	# request through index.php in classic mode — passing any smoke test for
+	# the wrong reason.
+	php_server {
+		index frankenphp-worker.php
+	}
+}

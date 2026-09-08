@@ -437,6 +437,47 @@ reviennent en chaîne brute, d'où `JsonPayload::decode()`. Un `is_array()` naï
 faisait rapporter *zéro* référence, ce qui en balayage veut dire « tout
 supprimer ». Doc : [docs/guide/asset-lifecycle.md](docs/guide/asset-lifecycle.md).
 
+## Worker mode (FrankenPHP, RoadRunner, Swoole)
+
+Worker mode is a supported deployment. The kernel boots once and the same
+service instances answer every request, so **a property written while serving
+one request is handed to the next visitor** — under whatever session, locale and
+permissions that one carries.
+
+The rule the three packages hold themselves to:
+
+> A class that keeps mutable state is either **resettable** (`ResetInterface`,
+> which autoconfiguration tags `kernel.reset` and `services_resetter` clears on
+> `kernel.terminate`) or explicitly **declared** as not request-scoped — a value
+> object, or an index of tagged services identical for every request.
+
+Two enforcement halves, deliberately different in kind:
+
+- **Static** — one `tests/Worker/CrossRequestStateTest.php` per package, built on
+  `ContentBlocks\Testing\CrossRequestStateScanner` (shipped in core `src/`, so a
+  host can point it at its own code). `unaccountedFor()` returns classes that
+  keep state without qualifying; `staleDeclarations()` returns entries that no
+  longer describe anything, so the allowlist cannot rot into folklore. Adding a
+  service with an undeclared cache fails the suite instead of producing a bug
+  that reproduces on the third page view in production.
+- **Runtime** — `apps/content-blocks-sandbox/bin/worker-smoke.sh` boots the
+  sandbox under a real FrankenPHP worker (`Caddyfile.worker` +
+  `public/frankenphp-worker.php`, single worker on port 8005) and asserts: the
+  request counter increases (otherwise the script silently ran in classic mode
+  and proves nothing), seven public URLs render byte-identically across three
+  interleaved passes, the builder and workbench still answer, and **a content
+  change written straight to the database is visible to the very next request**.
+  That last one is the only assertion that catches a stale cache — identical
+  bytes prove a cache is stable, not fresh. Removing `TranslationStore::reset()`
+  fails there and nowhere else.
+
+Practical consequences when writing package code or a custom block: block types,
+decorators, resolvers and providers are **shared services** (never stash the
+element being rendered on `$this`); never hold an entity in a service property
+across a request boundary (the EntityManager is cleared and the reference goes
+detached, quietly serving last request's values); read the request through
+`RequestStack` per call. Full guide: [docs/guide/worker-mode.md](docs/guide/worker-mode.md).
+
 ## Choix Techniques
 
 - **Doctrine ORM** pour la persistance
@@ -452,7 +493,8 @@ supprimer ». Doc : [docs/guide/asset-lifecycle.md](docs/guide/asset-lifecycle.m
 > (`playwright.config.js` démarre `content-blocks-sandbox` sur 8001,
 > `playwright.encore.config.js` démarre `content-blocks-encore-sandbox` sur 8002).
 > Les lancements manuels ci-dessous les évitent, sans quoi une suite de tests et
-> un serveur de dev se disputent le port.
+> un serveur de dev se disputent le port. `8005` est celui du worker FrankenPHP
+> (`bin/worker-smoke.sh`), qui refuse de démarrer sur 8001–8004.
 
 ### 1. Sandbox Symfony
 
@@ -594,6 +636,18 @@ La suite Encore reste volontairement petite : tout ce qui passerait à l'identiq
 cd packages/content-blocks
 ./vendor/bin/phpunit
 ```
+
+### Worker mode (FrankenPHP)
+
+```bash
+cd apps/content-blocks-sandbox
+./bin/worker-smoke.sh          # requires the `frankenphp` binary
+```
+
+Boots the sandbox under a real worker and checks that nothing leaks between
+requests. Not in CI (it needs the FrankenPHP binary and a database) — the static
+half, `tests/Worker/CrossRequestStateTest.php` in each package, runs with the
+normal PHPUnit suites. See the [Worker mode](#worker-mode-frankenphp-roadrunner-swoole) section.
 
 ## Workflow Claude — recompiler les assets après chaque tâche
 

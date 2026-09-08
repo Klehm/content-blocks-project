@@ -66,6 +66,7 @@ export default defineConfig({
             { text: 'Translation (i18n)', link: '/guide/translation' },
             { text: 'Content versioning', link: '/guide/content-versioning' },
             { text: 'Asset lifecycle', link: '/guide/asset-lifecycle' },
+            { text: 'Worker mode (FrankenPHP)', link: '/guide/worker-mode' },
           ],
         },
         {
