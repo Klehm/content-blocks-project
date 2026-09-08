@@ -33,7 +33,9 @@ async function seedSectionWithBlock(page, frame) {
     await page.waitForTimeout(300);
 }
 
-/** Clicks the overlay toolbar delete button for the given selector's element. */
+/**
+ * Clicks the overlay toolbar delete button for the given selector's element.
+ */
 async function deleteViaToolbar(page, frame, selector) {
     await page.locator('.cb-shell__iframe').evaluate((iframe, sel) => {
         iframe.contentDocument.querySelector(sel)

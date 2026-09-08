@@ -189,9 +189,10 @@ final class BlockFormTypeTest extends TestCase
         BlockTypeInterface $blockType,
         array $data,
     ): FormInterface {
-        // A bare factory instantiates child types (StylingType, PaletteColorType,
-        // TextType) via their no-arg / nullable constructors — same resolution
-        // TypeTestCase uses — while letting us inject a per-test collection.
+        // A bare factory instantiates child types (StylingType,
+        // PaletteColorType, TextType) via their no-arg / nullable constructors
+        // — same resolution TypeTestCase uses — while letting us inject a per-
+        // test collection.
         $factory = Forms::createFormFactoryBuilder()
             ->addType(new BlockFormType($extensions))
             ->getFormFactory();

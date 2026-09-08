@@ -66,7 +66,10 @@ final class CrossRequestStateTest extends TestCase
         }
     }
 
-    /** Guards the guard: the two request-scoped caches must be in the scan, and resettable. */
+    /**
+     * Guards the guard: the two request-scoped caches must be in the scan, and
+     * resettable.
+     */
     public function testTheRequestScopedCachesAreResettable(): void
     {
         $stateful = $this->scanner()->scan();

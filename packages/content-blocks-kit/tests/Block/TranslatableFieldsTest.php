@@ -42,7 +42,10 @@ use Symfony\Component\Validator\Validation;
 final class TranslatableFieldsTest extends TestCase
 {
     /**
-     * @return iterable<string, array{callable(FormFactoryInterface): array<string, mixed>, list<string>}>
+     * @return iterable<string, array{
+     *     callable(FormFactoryInterface): array<string, mixed>,
+     *     list<string>,
+     * }>
      */
     public static function taggedProvider(): iterable
     {

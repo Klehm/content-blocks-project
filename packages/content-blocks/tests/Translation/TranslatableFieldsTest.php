@@ -44,8 +44,9 @@ final class TranslatableFieldsTest extends TestCase
     {
         $fields = $this->fields()->forBlockType('fixture');
 
-        // `heading` and `body` are tagged; `align` (an enum) is not, and neither
-        // is the `styling` sub-form BlockFormType appends to every block.
+        // `heading` and `body` are tagged; `align` (an enum) is not, and
+        // neither is the `styling` sub-form BlockFormType appends to every
+        // block.
         $this->assertContains('heading', $fields);
         $this->assertContains('body', $fields);
         $this->assertNotContains('align', $fields);

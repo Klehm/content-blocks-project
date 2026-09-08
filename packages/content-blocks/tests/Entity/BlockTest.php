@@ -13,8 +13,8 @@ final class BlockTest extends TestCase
     {
         $block = new Block();
 
-        // Brand new block: publishedData null, draftData null, positions equal — but
-        // publishedData === null is the marker of "not yet published".
+        // Brand new block: publishedData null, draftData null, positions equal
+        // — but publishedData === null is the marker of "not yet published".
         $this->assertTrue($block->hasUnpublishedChanges());
     }
 

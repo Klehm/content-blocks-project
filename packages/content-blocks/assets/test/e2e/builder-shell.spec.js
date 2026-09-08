@@ -174,8 +174,9 @@ test.describe('builder shell — basics', () => {
         const iframe = page.locator('.cb-shell__iframe');
         await expect(iframe).toHaveAttribute('src', /\/page\/\d+\?cb_preview=1$/);
 
-        // The preview rendered and the overlay is live (the in-iframe add-section
-        // tray is injected by preview-overlay once it signals cb:ready).
+        // The preview rendered and the overlay is live (the in-iframe add-
+        // section tray is injected by preview-overlay once it signals
+        // cb:ready).
         await expect(
             page.frameLocator('.cb-shell__iframe').locator('.cb-add-section-tray__btn').first(),
         ).toBeVisible();
@@ -346,14 +347,15 @@ test.describe('builder shell — sections', () => {
         await sidebar.locator('input[name="section_settings[stylingCustom]"]').check();
         await sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]').selectOption('#4f46e5');
         // No manual Save button anymore — autosave persists each field change
-        // (fill/check/select fire input/change, which the cb-autosave controller
-        // debounces into a save). The section hot-reloads with the new draft.
-        // The sidebar stays on screen (permanent-sidebar model).
+        // (fill/check/select fire input/change, which the cb-autosave
+        // controller debounces into a save). The section hot-reloads with the
+        // new draft. The sidebar stays on screen (permanent-sidebar model).
         const section = frame.locator('[data-cb-section-id]').first();
         await expect.poll(async () => section.getAttribute('class')).toContain('e2e-decorated');
         await expect.poll(async () => section.getAttribute('class')).toContain('cb-section--centered');
         // The decorators emit CSS custom properties (responsive-friendly), not
-        // raw properties: maxWidth → --cb-row-max-w, backgroundColor → --cb-s-bg.
+        // raw properties: maxWidth → --cb-row-max-w, backgroundColor → --cb-s-
+        // bg.
         await expect.poll(async () => section.getAttribute('style')).toContain('--cb-row-max-w:900px');
         await expect.poll(async () => section.getAttribute('style')).toContain('--cb-s-bg:#4f46e5');
     });
@@ -814,7 +816,8 @@ test.describe('builder shell — feedback', () => {
         const flash = page.locator('[data-cb-builder-target="savedFlash"]');
         await expect(flash).toBeHidden();
 
-        // Autosave: typing into the title field persists it and flashes the pill.
+        // Autosave: typing into the title field persists it and flashes the
+        // pill.
         await sidebar.locator('.cb-block__edit-form input[type="text"]').first().fill('e2e-pill');
 
         // Visible briefly, then auto-hidden — assert the visible window only.
@@ -900,7 +903,8 @@ test.describe('builder shell — focus + permanent affordances', () => {
         expect(observed.buttons.map((b) => b.action)).toEqual(Object.keys(expected));
         for (const button of observed.buttons) {
             expect(button.title).toBe(expected[button.action]);
-            // The accessible name has to move with the tooltip, not lag behind it.
+            // The accessible name has to move with the tooltip, not lag behind
+            // it.
             expect(button.ariaLabel).toBe(expected[button.action]);
         }
 
@@ -1006,7 +1010,8 @@ test.describe('builder shell — publish / discard', () => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
         await addFirstBlock(page, frame);
-        // Snapshot current block id, publish so it's now part of the public state.
+        // Snapshot current block id, publish so it's now part of the public
+        // state.
         await page.locator('.cb-shell__publish').click();
         await expect(page.locator('.cb-shell__discard')).toBeHidden();
 
@@ -1031,9 +1036,9 @@ test.describe('builder shell — keyboard shortcuts', () => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
 
-        // Click the section's top strip to pin focus on it (not a column/block),
-        // then press Delete — the overlay forwards the same delete intent as
-        // the toolbar × button.
+        // Click the section's top strip to pin focus on it (not a
+        // column/block), then press Delete — the overlay forwards the same
+        // delete intent as the toolbar × button.
         await clickInPreview(page, '[data-cb-section-id]');
         await pressInPreview(page, 'Delete');
 
@@ -1100,7 +1105,8 @@ test.describe('builder shell — selection affordances', () => {
         await section.hover();
         await section.locator('.cb-section-handle').click();
 
-        // The section settings sidebar opens (its width radios are unique to it).
+        // The section settings sidebar opens (its width radios are unique to
+        // it).
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar.locator('input[name="section_settings[widthMode]"][value="full"]')).toBeAttached();
     });

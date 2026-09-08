@@ -28,7 +28,7 @@ use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
  * boot failure for every Encore host — most of the Sylius 1.x install base.
  *
  * This suite runs in exactly that shape: the package's own vendor/ has
- * stimulus-bundle and no asset-mapper, so `testTheBundleBootsWithoutAssetMapper`
+ * stimulus-bundle and no asset-mapper, so the boot test
  * is a real reproduction rather than a simulation. It stays honest if
  * asset-mapper is ever added to require-dev — the assertions follow
  * class_exists() rather than assuming an answer.

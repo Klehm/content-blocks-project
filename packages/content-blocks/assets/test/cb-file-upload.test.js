@@ -77,11 +77,12 @@ describe('cb-file-upload', () => {
         expect(url).toBe('/_content-blocks/upload');
         expect(options.headers['X-CSRF-Token']).toBe('tok-123');
         expect(options.body.get('file')).toBeInstanceOf(File);
-        // Same post-upload wiring as the picker: preview shown, hidden input set.
+        // Same post-upload wiring as the picker: preview shown, hidden input
+        // set.
         expect(document.getElementById('hidden').value).toBe('/uploads/dropped.png');
         expect(document.getElementById('preview').hidden).toBe(false);
-        // The frame itself never hides — it is the drop zone and the empty-state
-        // placeholder; only the <img> inside it comes and goes.
+        // The frame itself never hides — it is the drop zone and the empty-
+        // state placeholder; only the <img> inside it comes and goes.
         expect(element.querySelector('.cb-image-upload__preview').hasAttribute('hidden')).toBe(false);
     });
 

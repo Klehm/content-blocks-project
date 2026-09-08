@@ -36,8 +36,8 @@ test('adding/focusing a block does not trigger a spurious save', async ({ page }
     await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);
     await page.waitForTimeout(300);
 
-    // Add an Image block — its edit form (with the box-spacing styling sub-form)
-    // mounts and auto-focuses. No user edit happens.
+    // Add an Image block — its edit form (with the box-spacing styling sub-
+    // form) mounts and auto-focuses. No user edit happens.
     await frame.locator('.cb-add-block-inline').first().click();
     await frame.locator('.cb-overlay-popover button', { hasText: /^Image$/ }).click();
     await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);

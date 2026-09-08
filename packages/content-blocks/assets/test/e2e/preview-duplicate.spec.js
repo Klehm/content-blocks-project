@@ -73,7 +73,8 @@ test.describe('preview duplicate — in place', () => {
         // Inserted in place — the iframe was never fully reloaded.
         expect(await reloadSentinelSurvived(page)).toBe(true);
 
-        // The copy landed right after the source, both ahead of the +Block button.
+        // The copy landed right after the source, both ahead of the +Block
+        // button.
         const ids = await frame.locator('[data-cb-block-id]').evaluateAll(
             (els) => els.map((el) => el.getAttribute('data-cb-block-id')),
         );
@@ -84,7 +85,8 @@ test.describe('preview duplicate — in place', () => {
         );
         expect(lastChildIsAddBtn).toBe(true);
 
-        // The duplicate was written to the draft: both blocks survive a real reload.
+        // The duplicate was written to the draft: both blocks survive a real
+        // reload.
         await page.reload();
         await page.locator('.cb-launcher__button').click();
         await expect(page.locator('.cb-shell')).toBeVisible();
@@ -121,7 +123,8 @@ test.describe('preview duplicate — in place', () => {
         // The cloned section carries its own (copied) block.
         await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(2);
 
-        // The duplicate was written to the draft: both sections survive a real reload.
+        // The duplicate was written to the draft: both sections survive a real
+        // reload.
         await page.reload();
         await page.locator('.cb-launcher__button').click();
         await expect(page.locator('.cb-shell')).toBeVisible();

@@ -6,10 +6,10 @@ import { Workbench, start } from '../workbench.js';
  *
  * The workbench is deliberately not a Stimulus controller (see AssetController
  * for why), so it is driven the plain way: build the markup the Twig template
- * emits, hand the root to `new Workbench(...)`, and assert on what it sends and
- * what it repaints. `fetch` is stubbed — the endpoints have their own PHP tests;
- * what matters here is the payload shape, which is where the design's load-
- * bearing distinctions live (`null` vs `""` above all).
+ * emits, hand the root to `new Workbench(...)`, and assert on what it sends
+ * and what it repaints. `fetch` is stubbed — the endpoints have their own PHP
+ * tests; what matters here is the payload shape, which is where the design's
+ * load- bearing distinctions live (`null` vs `""` above all).
  */
 
 const SAVE_DEBOUNCE_MS = 600;

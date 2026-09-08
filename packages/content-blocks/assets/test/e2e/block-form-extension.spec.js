@@ -73,7 +73,10 @@ async function fieldNamesOfFirstTab(sidebar) {
         .filter((name, i, all) => name && all.indexOf(name) === i); // checkboxes can repeat
 }
 
-/** Extension fields sit in the "SEO" tab (data-cb-group), hidden until selected. */
+/**
+ * Extension fields sit in the "SEO" tab (data-cb-group), hidden until
+ * selected.
+ */
 async function openSeoTab(sidebar) {
     const tab = sidebar.locator('.cb-block__tab', { hasText: 'SEO' });
     await expect(tab).toHaveCount(1);

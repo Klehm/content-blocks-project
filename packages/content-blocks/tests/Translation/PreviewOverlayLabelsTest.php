@@ -10,7 +10,8 @@ use PHPUnit\Framework\TestCase;
  * The preview overlay is the one piece of UI with no Stimulus element to hang
  * `data-i18n-*` attributes off: it runs as a plain module inside the preview
  * iframe, so every string it renders has to be translated in
- * `render/content_area.html.twig` and handed over on `window.__cbOverlayLabels`.
+ * `render/content_area.html.twig` and handed over on
+ * `window.__cbOverlayLabels`.
  *
  * That indirection is exactly what let "Duplicate", "Delete", "Move up", "Move
  * down" and "Save as template" sit hardcoded in the overlay for as long as they
@@ -35,7 +36,9 @@ final class PreviewOverlayLabelsTest extends TestCase
         return array_values(array_unique($m[1]));
     }
 
-    /** @return array<string, string> label key => translation key emitted by the template */
+    /**
+     * @return array<string, string> label key => key the template emits
+     */
     private function keysEmittedByTemplate(): array
     {
         $twig = (string) file_get_contents(self::TEMPLATE);

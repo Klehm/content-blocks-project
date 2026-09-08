@@ -55,7 +55,8 @@ test.describe('preview add block — in place', () => {
 
         await stampReloadSentinel(page);
 
-        // Title is a static / CSS-only block → it ships markup and inserts in place.
+        // Title is a static / CSS-only block → it ships markup and inserts in
+        // place.
         await frame.locator('.cb-add-block-inline').first().click();
         await frame.locator('.cb-overlay-popover button', { hasText: /^Titre$|^Title$/ }).click();
 

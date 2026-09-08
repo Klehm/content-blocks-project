@@ -122,11 +122,14 @@ final class TranslationPublisherTest extends TestCase
     }
 
     /**
-     * @param array<string, string>              $drafts    locale => draft title
-     * @param array<string, array<string, mixed>> $published locale => published values
-     * @param list<object>                       $removed   collects em->remove() arguments
+     * @param array<string, string>               $drafts    locale => title
+     * @param array<string, array<string, mixed>> $published locale => values
+     * @param list<object>                        $removed   em->remove() args
      *
-     * @return array{0: TranslationPublisher, 1: array<string, BlockTranslation>}
+     * @return array{
+     *     0: TranslationPublisher,
+     *     1: array<string, BlockTranslation>,
+     * }
      */
     private function publisher(
         Block $block,

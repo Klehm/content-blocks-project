@@ -334,7 +334,7 @@ final class BlockComponentTest extends TestCase
             }
         });
 
-        // Capture the data passed to FormFactory::create — that's the assertion.
+        // The data passed to FormFactory::create *is* the assertion.
         $expectedData = $block->getDraftData() ?? $block->getPublishedData() ?? [];
         $factory = $this->createMock(FormFactoryInterface::class);
         $factory->expects($this->once())
@@ -379,7 +379,9 @@ final class BlockComponentTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{0: list<string>, 1: int, 2: int, 3: list<string>|null}>
+     * @return iterable<string, array{
+     *     0: list<string>, 1: int, 2: int, 3: list<string>|null,
+     * }>
      */
     public static function reorderCollectionProvider(): iterable
     {
@@ -428,7 +430,9 @@ final class BlockComponentTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{0: list<string>, 1: int, 2: list<string>|null}>
+     * @return iterable<string, array{
+     *     0: list<string>, 1: int, 2: list<string>|null,
+     * }>
      */
     public static function duplicateInCollectionProvider(): iterable
     {

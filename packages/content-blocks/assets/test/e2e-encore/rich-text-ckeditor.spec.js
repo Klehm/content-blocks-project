@@ -58,7 +58,8 @@ test.describe('rich text on a host-bundled CKEditor', () => {
 
         const wrapper = sidebar.locator('[data-controller="cb-ckeditor"]');
         await expect(wrapper).toHaveCount(1);
-        // `cdn: false` renders an empty script URL — the "you bundled it" signal.
+        // `cdn: false` renders an empty script URL — the "you bundled it"
+        // signal.
         await expect(wrapper).toHaveAttribute('data-cb-ckeditor-script-url-value', '');
         await expect(wrapper).toHaveAttribute('data-cb-ckeditor-style-url-value', '');
 

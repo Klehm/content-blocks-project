@@ -37,10 +37,10 @@ final class ContentAreaImporterTest extends TestCase
     }
 
     /**
-     * Importer wired against a registry holding the `text` and `image` fixtures
-     * the payloads below use. A type absent from the registry comes back as a
-     * `missingBlockTypes` warning rather than aborting — pass `withTypes: false`
-     * to exercise that.
+     * Importer wired against a registry holding the `text` and `image`
+     * fixtures the payloads below use. A type absent from the registry comes
+     * back as a `missingBlockTypes` warning rather than aborting — pass
+     * `withTypes: false` to exercise that.
      */
     private function importer(?AssetResolverInterface $resolver = null, bool $withTypes = true): ContentAreaImporter
     {

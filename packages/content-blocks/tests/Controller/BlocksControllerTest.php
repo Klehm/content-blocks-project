@@ -30,7 +30,9 @@ final class BlocksControllerTest extends ControllerTestCase
         );
     }
 
-    /** A column wired into a full area graph (area #1, section #2, column #3). */
+    /**
+     * A column wired into a full area graph (area #1, section #2, column #3).
+     */
     private function makeGraph(): Column
     {
         $area = $this->makeArea(1);
@@ -176,8 +178,9 @@ final class BlocksControllerTest extends ControllerTestCase
 
         $controller->move(10, $this->makeJsonRequest(['toColumnId' => 4, 'position' => 0]));
 
-        // The survivors keep their draft order (B before A), densely reindexed —
-        // not reset to the published/insertion order, which would put A first.
+        // The survivors keep their draft order (B before A), densely reindexed
+        // — not reset to the published/insertion order, which would put A
+        // first.
         $this->assertSame(0, $b->getPreviewPosition());
         $this->assertSame(1, $a->getPreviewPosition());
     }

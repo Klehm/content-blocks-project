@@ -12,8 +12,9 @@ use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
- * The half of the preview pane that lives in the request: the workbench appends
- * `?cb_locale=` to the host's own URL, and this turns it into the request locale.
+ * The half of the preview pane that lives in the request: the workbench
+ * appends `?cb_locale=` to the host's own URL, and this turns it into the
+ * request locale.
  *
  * Its guards are the interesting part. The parameter is public and forgeable,
  * so what it may *not* do matters more than what it does.

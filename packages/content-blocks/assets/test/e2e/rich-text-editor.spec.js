@@ -66,7 +66,8 @@ test('rich text — the selected editor is wired onto the field', async ({ page 
     // The morpher must leave the editor's injected DOM alone.
     await expect(wrapper).toHaveAttribute('data-live-ignore', '');
 
-    // Uploads point at the builder's own endpoint, not at anything editor-specific.
+    // Uploads point at the builder's own endpoint, not at anything editor-
+    // specific.
     await expect(wrapper).toHaveAttribute('data-cb-tinymce-upload-url-value', '/_content-blocks/upload');
     // The palette reaches the editor's swatches.
     const palette = await wrapper.getAttribute('data-cb-tinymce-palette-value');

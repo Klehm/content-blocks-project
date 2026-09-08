@@ -64,14 +64,15 @@ final class BlockContractTest extends TestCase
     }
 
     /**
-     * Every kit view is self-contained static markup (or CSS-only, or a Stimulus
-     * controller that auto-connects on DOM insertion), so it may hot-reload in
-     * place. The one exception is html_raw: its `{{ html|raw }}` can carry inline
-     * <script> tags, which a hot innerHTML swap would NOT execute — only a full
-     * iframe reload runs them — so it must decline hot reload.
+     * Every kit view is self-contained static markup (or CSS-only, or a
+     * Stimulus controller that auto-connects on DOM insertion), so it may hot-
+     * reload in place. The one exception is html_raw: its `{{ html|raw }}` can
+     * carry inline <script> tags, which a hot innerHTML swap would NOT execute
+     * — only a full iframe reload runs them — so it must decline hot reload.
      *
-     * Pinned per type so adding a JS-dependent block (or forgetting the opt-in on
-     * a static one) fails loudly rather than silently degrading the preview.
+     * Pinned per type so adding a JS-dependent block (or forgetting the opt-in
+     * on a static one) fails loudly rather than silently degrading the
+     * preview.
      *
      * @return array<string, bool>
      */

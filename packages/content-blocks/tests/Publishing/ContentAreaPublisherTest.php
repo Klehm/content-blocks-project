@@ -249,9 +249,9 @@ final class ContentAreaPublisherTest extends TestCase
         $area->addSection($section);
 
         if ($published) {
-            // Test fixtures default to "previously published" so discard reverts
-            // them rather than removing them. Pass published: false to simulate
-            // a brand-new section.
+            // Test fixtures default to "previously published" so discard
+            // reverts them rather than removing them. Pass published: false to
+            // simulate a brand-new section.
             $this->markPublished($section);
         }
 

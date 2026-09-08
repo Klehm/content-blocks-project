@@ -64,7 +64,9 @@ final class FieldMetadataReaderResetTest extends TestCase
     }
 }
 
-/** A host extension whose contribution depends on something outside the block. */
+/**
+ * A host extension whose contribution depends on something outside the block.
+ */
 final class ToggleableExtension implements BlockFormExtensionInterface
 {
     public bool $enabled = false;

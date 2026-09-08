@@ -33,6 +33,17 @@ case "$file" in
   *) exit 0 ;;
 esac
 
+# Tests keep the column limit but not the prose budget. A comment on a test
+# usually names the case it pins, which is that comment's whole job — the
+# duplication the budget exists to stop lives in the code it exercises.
+BUDGET="max $MAX_LINES prose lines per block, max $MAX_COLS columns"
+case "$file" in
+  */tests/*|*/test/*|*.spec.js|*.test.js)
+    MAX_LINES=999
+    BUDGET="max $MAX_COLS columns; tests are exempt from the prose budget"
+    ;;
+esac
+
 # Violating blocks, one per line: "<start> <end> <reason>"
 violations=$(awk -v mode="$mode" -v maxl="$MAX_LINES" -v maxc="$MAX_COLS" '
 # Character width, not byte length: mawk has no multibyte support, and this
@@ -114,7 +125,7 @@ fi
 
 rel=${file#"${repo:-}/"}
 {
-  echo "Comment budget exceeded in $rel (max $MAX_LINES prose lines per block, max $MAX_COLS columns):"
+  echo "Comment budget exceeded in $rel ($BUDGET):"
   echo "$violations" | head -n "$MAX_REPORTED" | while read -r start end reason; do
     echo "  lines $start-$end: $reason"
   done

@@ -104,7 +104,8 @@ test.describe('translation workbench', () => {
         await expect(preview.locator('.cb-section-handle')).toHaveCount(0);
         await expect(preview.locator('.cb-add-block-inline')).toHaveCount(0);
 
-        // Hovering a block used to reveal the toolbar; there is nothing to reveal.
+        // Hovering a block used to reveal the toolbar; there is nothing to
+        // reveal.
         await preview.locator('[data-cb-block-id]').first().hover();
         await workbench.waitForTimeout(200);
         await expect(preview.locator('.cb-overlay-toolbar')).toHaveCount(0);
@@ -145,9 +146,9 @@ test.describe('translation workbench', () => {
      *
      * `.cb-wb__btn:hover` is a class plus a pseudo-class, so it outranks the
      * plain `--accent` rule and used to repaint the button pale while its
-     * `color: #fff` stayed — white text on a near-white ground. A computed-style
-     * assertion is the only kind that catches this: the markup is unchanged and
-     * the button is still perfectly clickable.
+     * `color: #fff` stayed — white text on a near-white ground. A computed-
+     * style assertion is the only kind that catches this: the markup is
+     * unchanged and the button is still perfectly clickable.
      */
     test('the translate-all button stays readable while hovered', async ({ page }) => {
         await buildPageWithTranslatableText(page);

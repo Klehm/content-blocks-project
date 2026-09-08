@@ -94,6 +94,12 @@ else.
 An inline comment earns its line only where the code reads as wrong without it.
 Never paraphrase the next statement.
 
+**Tests keep the 80 columns but not the two prose lines.** A comment on a test
+usually names the case it pins, and that is the comment's whole job — the
+duplication the budget exists to stop lives in the code under test, not in the
+sentence saying which behaviour is being held. Rationale that belongs to the
+implementation still belongs in `docs/internals/`, not restated in a test.
+
 Enforced by `.claude/hooks/comment-budget.sh` (PostToolUse on Write/Edit), which
 only reports blocks overlapping lines changed since HEAD — editing a file that
 predates the rule does not resurface its whole backlog.

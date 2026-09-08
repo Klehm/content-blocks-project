@@ -34,7 +34,14 @@ use PHPUnit\Framework\TestCase;
  */
 final class PreviewHintTest extends TestCase
 {
-    /** @return iterable<string, array{BlockPreviewHintInterface, array<string, mixed>, string, string|null}> */
+    /**
+     * @return iterable<string, array{
+     *     BlockPreviewHintInterface,
+     *     array<string, mixed>,
+     *     string,
+     *     string|null,
+     * }>
+     */
     public static function hints(): iterable
     {
         yield 'title shows its heading' => [

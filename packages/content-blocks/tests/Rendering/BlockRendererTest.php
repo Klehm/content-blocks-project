@@ -11,6 +11,7 @@ use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Rendering\BlockDataResolverCollection;
+use ContentBlocks\Rendering\BlockDataResolverInterface;
 use ContentBlocks\Rendering\BlockRenderer;
 use ContentBlocks\Rendering\CoreBlockDataResolver;
 use ContentBlocks\Rendering\RenderContext;
@@ -159,8 +160,8 @@ final class BlockRendererTest extends TestCase
      *
      * The distinction this pins is between the two things preview mode used to
      * mean at once: *which data* is rendered (draft) and *what is rendered
-     * around it* (toolbars, tray, handles). A reader of a draft — a reviewer, an
-     * approver, the translation workbench's preview pane — wants the first
+     * around it* (toolbars, tray, handles). A reader of a draft — a reviewer,
+     * an approver, the translation workbench's preview pane — wants the first
      * without the second, and hiding the chrome in CSS afterwards does not
      * count: the overlay script would still load, bind and post messages.
      */
@@ -198,7 +199,10 @@ final class BlockRendererTest extends TestCase
         $this->assertStringContainsString('data-cb-block-id', $html);
     }
 
-    /** The chrome is opt-out, so every preview URL that predates it is unchanged. */
+    /**
+     * The chrome is opt-out, so every preview URL that predates it is
+     * unchanged.
+     */
     public function testPreviewKeepsItsChromeUnlessAskedOtherwise(): void
     {
         $area = $this->makeArea();
@@ -666,7 +670,7 @@ final class BlockRendererTest extends TestCase
         );
         $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Hello']);
 
-        $localeAware = new class () implements \ContentBlocks\Rendering\BlockDataResolverInterface {
+        $localeAware = new class () implements BlockDataResolverInterface {
             public function resolve(Block $block, RenderContext $context, array $data): array
             {
                 if ($context->locale === 'fr') {
@@ -704,7 +708,7 @@ final class BlockRendererTest extends TestCase
         );
         $this->makeBlock($column, type: 'text', publishedData: ['title' => 'a']);
 
-        $append = fn (string $suffix) => new class ($suffix) implements \ContentBlocks\Rendering\BlockDataResolverInterface {
+        $append = fn (string $suffix) => new class ($suffix) implements BlockDataResolverInterface {
             public function __construct(private readonly string $suffix)
             {
             }
@@ -737,7 +741,7 @@ final class BlockRendererTest extends TestCase
         );
         $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Pub']);
 
-        $spy = new class () implements \ContentBlocks\Rendering\BlockDataResolverInterface {
+        $spy = new class () implements BlockDataResolverInterface {
             /** @var list<?RenderMode> */
             public array $seen = [];
 
@@ -758,7 +762,7 @@ final class BlockRendererTest extends TestCase
     // -------- Test factories below --------
 
     /**
-     * @param list<\ContentBlocks\Rendering\BlockDataResolverInterface> $extraResolvers
+     * @param list<BlockDataResolverInterface> $extraResolvers
      *        appended after CoreBlockDataResolver, as a host's would be
      */
     private function makeRenderer(RenderMode $mode = RenderMode::PUBLIC, array $extraResolvers = [], array $query = []): BlockRenderer
@@ -786,7 +790,8 @@ final class BlockRendererTest extends TestCase
     }
 
     /**
-     * Generic "text" block type used by most rendering tests; renders {{ data.title }}.
+     * Generic "text" block type used by most rendering tests; renders {{
+     * data.title }}.
      */
     private function textBlockType(): AbstractBlockType
     {
@@ -855,7 +860,8 @@ final class BlockRendererTest extends TestCase
             }
             public function generate(string $name, array $parameters = [], int $referenceType = self::ABSOLUTE_PATH): string
             {
-                // Stable, deterministic URL for assertions; mirrors the real route shape.
+                // Stable, deterministic URL for assertions; mirrors the real
+                // route shape.
                 return '/_route/' . $name;
             }
         };

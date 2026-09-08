@@ -129,7 +129,8 @@ final class DataKeysFixtureBlock extends AbstractBlockType
 
     public function getDefaultData(): array
     {
-        // `internalRef` is declared but has no form field — stored, not editable.
+        // `internalRef` is declared but has no form field — stored, not
+        // editable.
         return ['title' => '', 'internalRef' => ''];
     }
 }

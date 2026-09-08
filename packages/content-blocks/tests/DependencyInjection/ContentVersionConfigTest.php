@@ -18,9 +18,9 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 
 /**
- * The host-owned content version is only useful if what a host writes in YAML is
- * what ends up stamped on their content. This walks that whole path: config →
- * parameter → the listener's constructor argument.
+ * The host-owned content version is only useful if what a host writes in YAML
+ * is what ends up stamped on their content. This walks that whole path: config
+ * → parameter → the listener's constructor argument.
  */
 final class ContentVersionConfigTest extends TestCase
 {

@@ -78,7 +78,10 @@ final class BuilderShellFragmentCollectionTest extends TestCase
         );
     }
 
-    /** Fragments carry no key, so two identical ones are two renders, not a conflict. */
+    /**
+     * Fragments carry no key, so two identical ones are two renders, not a
+     * conflict.
+     */
     public function testTheSameTemplateFromTwoExtensionsIsNotDeduplicated(): void
     {
         $collection = new BuilderShellFragmentCollection([

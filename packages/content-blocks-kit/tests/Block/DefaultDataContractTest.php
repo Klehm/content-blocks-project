@@ -51,7 +51,9 @@ final class DefaultDataContractTest extends TestCase
         'list', 'icon', 'alert', 'divider', 'table',
     ];
 
-    /** @return iterable<string, array{string, class-string<AbstractKitBlock>}> */
+    /**
+     * @return iterable<string, array{string, class-string<AbstractKitBlock>}>
+     */
     public static function blocks(): iterable
     {
         foreach (ContentBlocksKitBundle::BLOCKS as $type => $class) {

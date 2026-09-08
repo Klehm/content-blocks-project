@@ -3,10 +3,11 @@ import { test, expect } from '@playwright/test';
 /**
  * The published page does not move until Publish is pressed.
  *
- * The unit-level guarantee lives in `tests/Rendering/PublishedRenderImmutabilityTest.php`;
- * this is the same contract observed the way an editor's visitors observe it —
- * a real browser, a real database, the sandbox's own public route, and the
- * builder driven through its actual buttons.
+ * The unit-level guarantee lives in
+ * `tests/Rendering/PublishedRenderImmutabilityTest.php`; this is the same
+ * contract observed the way an editor's visitors observe it — a real browser,
+ * a real database, the sandbox's own public route, and the builder driven
+ * through its actual buttons.
  *
  * The bug this pins down was reported from a live site: an editor rearranged a
  * page without publishing and the public page changed under them, into
@@ -53,7 +54,9 @@ async function addBlock(page, frame, pillIndex) {
     await page.waitForTimeout(250);
 }
 
-/** Clicks the overlay toolbar's delete button for the first matching element. */
+/**
+ * Clicks the overlay toolbar's delete button for the first matching element.
+ */
 async function deleteViaToolbar(page, frame, selector) {
     await page.locator('.cb-shell__iframe').evaluate((iframe, sel) => {
         iframe.contentDocument.querySelector(sel)

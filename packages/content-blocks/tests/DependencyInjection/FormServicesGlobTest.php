@@ -16,7 +16,7 @@ use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
  * Guards what the `ContentBlocks\Form\` glob in config/services.php registers.
  *
  * The subtlety worth a test: {@see AsBlockFormExtension} lives under
- * `src/Form/Extension/` but is an attribute, not a service — a marker class read
+ * `src/Form/Extension/` but is an attribute, not a service — a marker read
  * by reflection, never instantiated by the container. Its constructor arguments
  * all have defaults, so leaving it in the glob compiles fine and merely puts a
  * meaningless service in every host's container (and would hard-fail the day

@@ -76,7 +76,8 @@ describe('cb-range', () => {
     it('typing a precise value moves the slider thumb', () => {
         const { controller, number, slider } = setup({ value: '100' });
 
-        // 345 is off the slider's step grid (step=10) — only possible by typing.
+        // 345 is off the slider's step grid (step=10) — only possible by
+        // typing.
         number.value = '345';
         controller.fromNumber();
 
@@ -108,11 +109,13 @@ describe('cb-range', () => {
         number.value = '15';
         controller.fromNumber(new Event('input', { bubbles: true }));
 
-        // Still mid-debounce after the latest keystroke -> nothing committed yet.
+        // Still mid-debounce after the latest keystroke -> nothing committed
+        // yet.
         vi.advanceTimersByTime(399);
         expect(changes).toEqual([]);
 
-        // The idle window elapses -> exactly one change, carrying the last value.
+        // The idle window elapses -> exactly one change, carrying the last
+        // value.
         vi.advanceTimersByTime(1);
         expect(changes).toEqual(['15']);
     });
@@ -130,8 +133,9 @@ describe('cb-range', () => {
     it('does not debounce or swallow the slider-mirrored input event', () => {
         vi.useFakeTimers();
         const { controller, number, slider } = setup({ value: '100' });
-        // Mimic the Stimulus `input->cb-range#fromNumber` wiring so the mirrored
-        // event reaches the handler exactly as it does in the browser.
+        // Mimic the Stimulus `input->cb-range#fromNumber` wiring so the
+        // mirrored event reaches the handler exactly as it does in the
+        // browser.
         number.addEventListener('input', (e) => controller.fromNumber(e));
         let reachedAutosave = false; // autosave listens on an ancestor element
         controller.element.addEventListener('input', () => { reachedAutosave = true; });

@@ -231,12 +231,12 @@ describe('cb-autosave', () => {
     });
 
     it('does not save when only a box-spacing [linked] toggle flips after the snapshot', () => {
-        // Regression: cb-spacing-link engages the link on connect when the four
-        // sides are uniform (a freshly-focused block), checking a hidden
-        // [linked] checkbox AFTER cb-autosave's baseline snapshot. That flag is
-        // a UI-only convenience re-derived on load, so flipping it must not look
-        // like a user edit and trip a spurious save (which would hot-reload the
-        // block on mere focus).
+        // Regression: cb-spacing-link engages the link on connect when the
+        // four sides are uniform (a freshly-focused block), checking a hidden
+        // [linked] checkbox AFTER cb-autosave's baseline snapshot. That flag
+        // is a UI-only convenience re-derived on load, so flipping it must not
+        // look like a user edit and trip a spurious save (which would hot-
+        // reload the block on mere focus).
         document.body.innerHTML = `
             <div data-controller="cb-autosave">
                 <form>

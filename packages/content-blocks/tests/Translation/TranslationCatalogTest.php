@@ -72,8 +72,9 @@ final class TranslationCatalogTest extends TestCase
 
     /**
      * Flatten a simple nested YAML map into dotted keys. Handles the two line
-     * shapes the catalogs use: `key:` (a nested map) and `key: "value"` (a leaf).
-     * Leaf keys may themselves contain dots (e.g. `width.full:`), which are kept.
+     * shapes the catalogs use: `key:` (a nested map) and `key: "value"` (a
+     * leaf). Leaf keys may themselves contain dots (e.g. `width.full:`), which
+     * are kept.
      *
      * @return array<string, string>
      */

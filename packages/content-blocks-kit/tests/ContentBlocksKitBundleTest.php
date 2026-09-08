@@ -108,8 +108,8 @@ final class ContentBlocksKitBundleTest extends TestCase
 
     public function testEnabledBlockAlwaysHasTheThreeConfigKeys(): void
     {
-        // Every resolved block exposes options/choices/defaults so loadExtension
-        // can wire all three constructor args unconditionally.
+        // Every resolved block exposes options/choices/defaults so
+        // loadExtension can wire all three constructor args unconditionally.
         foreach (ContentBlocksKitBundle::resolveBlocks([]) as $config) {
             $this->assertArrayHasKey('options', $config);
             $this->assertArrayHasKey('choices', $config);

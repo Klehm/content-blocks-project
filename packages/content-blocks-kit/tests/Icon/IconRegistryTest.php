@@ -16,10 +16,10 @@ use Twig\Loader\FilesystemLoader;
 
 /**
  * `icon.name` was the one choice field where an unknown value cost the whole
- * block: `cb_kit_icon()` returned nothing, the view's `{% if %}` failed, and the
- * page rendered no markup at all. Widening `choices` made that state reachable
- * from configuration, so the fix is a seam that supplies the glyph alongside the
- * name — plus a fallback for the value that still slips through.
+ * block: `cb_kit_icon()` returned nothing, the view's `{% if %}` failed, and
+ * the page rendered no markup at all. Widening `choices` made that state
+ * reachable from configuration, so the fix is a seam that supplies the glyph
+ * alongside the name — plus a fallback for the value that still slips through.
  */
 final class IconRegistryTest extends TestCase
 {
@@ -56,7 +56,8 @@ final class IconRegistryTest extends TestCase
 
     public function testAProviderReplacesAShippedGlyphOfTheSameName(): void
     {
-        // The obvious way to restyle one kit icon without overriding a template.
+        // The obvious way to restyle one kit icon without overriding a
+        // template.
         $registry = new IconRegistry([$this->provider(['star' => '<path d="M1 1"/>'])]);
 
         $this->assertSame('<path d="M1 1"/>', $registry->inner('star'));

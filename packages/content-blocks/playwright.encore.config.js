@@ -1,17 +1,10 @@
 import { defineConfig } from '@playwright/test';
 
 /**
- * Second browser suite, aimed at the *install path* rather than at behaviour.
+ * The *install path* under a bundler we do not develop against daily — not
+ * behaviour, which is the main suite's job. Keep it small.
  *
- * The main suite (playwright.config.js) runs against the AssetMapper sandbox
- * and covers what the builder does. This one runs against
- * apps/content-blocks-encore-sandbox — Symfony 6.4, Doctrine ORM 2, Webpack
- * Encore, and `symfony/asset-mapper` in composer's `conflict` so it can never
- * creep in — and only asks whether the packages install, boot and run at all
- * under a bundler we do not develop against day to day.
- *
- * Keep it small. Anything that would pass identically under either bundler
- * belongs in the main suite.
+ * @see docs/internals/testing.md#two-playwright-suites-two-jobs
  */
 export default defineConfig({
     testDir: './assets/test/e2e-encore',
@@ -22,10 +15,8 @@ export default defineConfig({
         headless: true,
     },
     webServer: {
-        // Port 8002 so this suite can run alongside the AssetMapper sandbox on
-        // 8001. See the main config for why PHP_CLI_SERVER_WORKERS is needed,
-        // and why the server runs under a restart loop (it has segfaulted
-        // mid-suite there; nothing makes this sandbox immune).
+        // 8002, so this can run alongside the main sandbox on 8001. Same
+        // worker and restart-loop reasoning: docs/internals/testing.md
         command: 'while true; do PHP_CLI_SERVER_WORKERS=8 php -S 127.0.0.1:8002'
             + " -t ../../apps/content-blocks-encore-sandbox/public;"
             + " echo '[fixture] web server exited — restarting'; sleep 0.3; done",

@@ -59,11 +59,11 @@ test.describe('Webpack Encore install path', () => {
     test('stimulus-bridge registers the packaged controllers under their declared names', async ({ page }) => {
         await page.goto(await createPage(page, 'Encore — controller identity'));
 
-        // The identifiers matter as much as the code: stimulus-bridge derives a
-        // name from the package path (`klehm--content-blocks--cb-builder-launcher`)
-        // unless the package's assets/package.json declares one. Ours does, and
-        // the templates' data-controller attributes depend on it — so a
-        // regression here silently disconnects every controller.
+        // The identifiers matter as much as the code: stimulus-bridge derives
+        // a name from the package path (`klehm--content-blocks--cb-builder-
+        // launcher`) unless the package's assets/package.json declares one.
+        // Ours does, and the templates' data-controller attributes depend on
+        // it — so a regression here silently disconnects every controller.
         const launcher = page.locator('[data-controller~="cb-builder-launcher"]');
         await expect(launcher).toBeAttached();
 
@@ -116,10 +116,10 @@ test.describe('Webpack Encore install path', () => {
 
         // cb-collection-sort imports sortablejs and @symfony/ux-live-component
         // by bare specifier. Under AssetMapper those come from the importmap;
-        // under Encore they must be real npm dependencies of the host. If either
-        // failed to resolve, webpack would fail the build — but a *stale* build
-        // would still serve, so assert the controller is wired in the DOM the
-        // browser actually received.
+        // under Encore they must be real npm dependencies of the host. If
+        // either failed to resolve, webpack would fail the build — but a
+        // *stale* build would still serve, so assert the controller is wired
+        // in the DOM the browser actually received.
         await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
         await frame.locator('.cb-add-block-inline').first().click();
         await frame.locator('.cb-overlay-popover button', { hasText: /^Liste$|^List$/ }).click();

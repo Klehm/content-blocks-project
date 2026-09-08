@@ -190,7 +190,8 @@ final class RichTextEditorTest extends TestCase
     public function testUnencodableConfigDegradesInsteadOfBreakingTheSidebar(): void
     {
         $options = array_replace(RichTextBlock::defaultOptions(), [
-            // Invalid UTF-8 — JSON_THROW_ON_ERROR would take the whole form down.
+            // Invalid UTF-8 — JSON_THROW_ON_ERROR would take the whole form
+            // down.
             'config' => ['label' => "\xB1\x31"],
         ]);
 

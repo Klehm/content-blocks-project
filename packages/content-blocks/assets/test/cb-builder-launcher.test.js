@@ -37,7 +37,8 @@ function setup() {
 
 describe('cb-builder-launcher: dialog re-parenting', () => {
     it('moves the dialog out of the launcher element to document.body on connect', () => {
-        // Launcher rendered inside a host form (typical Sylius/EasyAdmin edit page).
+        // Launcher rendered inside a host form (typical Sylius/EasyAdmin edit
+        // page).
         document.body.innerHTML = `
             <form id="host-form">
                 <div data-controller="cb-builder-launcher">

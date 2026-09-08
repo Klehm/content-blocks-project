@@ -97,7 +97,8 @@ final class ListBlocksCommandTest extends TestCase
             $this->assertStringContainsString($type, $output, "Command output should mention block '$type'");
         }
 
-        // The three configurable levers are documented, and a known choice value shows up.
+        // The three configurable levers are documented, and a known choice
+        // value shows up.
         $this->assertStringContainsString('choices', $output);
         $this->assertStringContainsString('defaults', $output);
         $this->assertStringContainsString('primary', $output);
@@ -141,7 +142,8 @@ final class ListBlocksCommandTest extends TestCase
         $this->assertSame('title', $title['type']);
         $this->assertArrayHasKey('label', $title);
         $this->assertFalse($title['disabledByDefault']);
-        // Choice fields are flattened to an ordered value list + explicit default.
+        // Choice fields are flattened to an ordered value list + explicit
+        // default.
         $this->assertSame(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'], $title['choices']['size']['values']);
         $this->assertSame('h2', $title['choices']['size']['default']);
         $this->assertArrayHasKey('text', $title['defaults']);

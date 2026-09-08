@@ -70,7 +70,10 @@ function blockIds(frame) {
     );
 }
 
-/** Pins focus on a section by clicking its top strip, then fires a toolbar arrow. */
+/**
+ * Pins focus on a section by clicking its top strip, then fires a toolbar
+ * arrow.
+ */
 async function moveSectionViaToolbar(page, frame, nth, action) {
     await frame.locator('[data-cb-section-id]').nth(nth).click({ position: { x: 5, y: 5 } });
     await frame.locator(`.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="${action}"]`).click();

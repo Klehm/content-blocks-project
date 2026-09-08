@@ -12,8 +12,8 @@ use PHPUnit\Framework\TestCase;
  * why it can. See {@see CrossRequestStateScanner} for the rule and the reason
  * it exists; this test is that rule applied to `content-blocks/src`.
  *
- * A service with an undeclared cache fails here rather than producing a bug that
- * only reproduces on the third page view of a FrankenPHP deployment.
+ * A service with an undeclared cache fails here rather than producing a bug
+ * that only reproduces on the third page view of a FrankenPHP deployment.
  */
 final class CrossRequestStateTest extends TestCase
 {
@@ -37,8 +37,8 @@ final class CrossRequestStateTest extends TestCase
      * what a worker should do; resetting them would rebuild the same map.
      *
      * The bar for this list: the memoized value must derive from service
-     * definitions or configuration only. Anything touching a Request, a session,
-     * an entity or a locale belongs in ResetInterface instead.
+     * definitions or configuration only. Anything touching a Request, a
+     * session, an entity or a locale belongs in ResetInterface instead.
      *
      * @var array<class-string, string>
      */
@@ -85,7 +85,9 @@ final class CrossRequestStateTest extends TestCase
         }
     }
 
-    /** Guards the guard: a scan that silently found nothing would pass forever. */
+    /**
+     * Guards the guard: a scan that silently found nothing would pass forever.
+     */
     public function testScannerSeesThePackage(): void
     {
         $this->assertContains(\ContentBlocks\Rendering\BlockRenderer::class, $this->scanner()->classes());

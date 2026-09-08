@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * E2E for the optimistic import: a payload from "another installation" carries a
- * block type this app has never heard of. What must happen, end to end:
+ * E2E for the optimistic import: a payload from "another installation" carries
+ * a block type this app has never heard of. What must happen, end to end:
  *
  *  - the import succeeds (refusing would make cross-install transfer useless);
  *  - the unknown block does NOT come in (it would be inert here — no view
@@ -48,7 +48,10 @@ function exportPayload(blocks) {
     };
 }
 
-/** Uploads the payload through the topbar panel and accepts the overwrite confirm. */
+/**
+ * Uploads the payload through the topbar panel and accepts the overwrite
+ * confirm.
+ */
 async function importPayload(page, payload) {
     await page.locator('.cb-shell__actions-toggle').click();
     await page.locator('.cb-shell__import-export').click();

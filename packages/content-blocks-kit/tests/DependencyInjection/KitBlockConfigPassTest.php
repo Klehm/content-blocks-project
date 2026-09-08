@@ -133,7 +133,9 @@ final class KitBlockConfigPassTest extends TestCase
     }
 }
 
-/** A host subclass as the docs prescribe: same type id, kit service disabled. */
+/**
+ * A host subclass as the docs prescribe: same type id, kit service disabled.
+ */
 final class HostTitleBlock extends TitleBlock
 {
 }

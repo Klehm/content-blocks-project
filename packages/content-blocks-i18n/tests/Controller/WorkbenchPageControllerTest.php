@@ -226,7 +226,10 @@ final class WorkbenchPageControllerTest extends TestCase
     }
 }
 
-/** Registered, and covering only one target — the `supports()` gate in the flesh. */
+/**
+ * Registered, and covering only one target — the `supports()` gate in the
+ * flesh.
+ */
 final class GermanOnlyTranslationProvider implements TranslationProviderInterface
 {
     public static function getName(): string

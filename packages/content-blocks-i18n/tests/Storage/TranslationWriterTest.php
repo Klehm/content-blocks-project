@@ -110,8 +110,8 @@ final class TranslationWriterTest extends TestCase
 
     public function testRefusesTheSourceLocaleAsATarget(): void
     {
-        // The source *is* `Block.data`; a row for it would be a second, silently
-        // diverging copy of the same text.
+        // The source *is* `Block.data`; a row for it would be a second,
+        // silently diverging copy of the same text.
         $result = $this->writer()->write(Entities::block(1, draft: $this->source()), 'en', ['heading' => 'Hi']);
 
         $this->assertSame(['heading' => 'unknown_locale'], $result->rejected);

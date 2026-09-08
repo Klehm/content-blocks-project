@@ -201,8 +201,8 @@ test.describe('section-template library — round trip', () => {
 });
 
 /**
- * Stages a library entry directly, bypassing the save endpoint — the only way to
- * get a payload this build cannot fully use, since saving snapshots real,
+ * Stages a library entry directly, bypassing the save endpoint — the only way
+ * to get a payload this build cannot fully use, since saving snapshots real,
  * registered blocks. Backed by the sandbox's debug-only fixture route.
  */
 async function stageTemplate(page, {
@@ -513,8 +513,9 @@ test.describe('section-template library — thumbnails', () => {
             name,
             format: 'content-blocks/section-vX',
             blockTypes: ['title'],
-            // An unreadable envelope means the columns cannot be trusted either;
-            // the card must degrade to its name rather than frame an empty box.
+            // An unreadable envelope means the columns cannot be trusted
+            // either; the card must degrade to its name rather than frame an
+            // empty box.
             columns: [],
             blocks: [],
         });

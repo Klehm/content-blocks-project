@@ -77,7 +77,10 @@ final class CrossRequestStateTest extends TestCase
         }
     }
 
-    /** Guards the guard, and pins the claim that the shipped blocks are stateless. */
+    /**
+     * Guards the guard, and pins the claim that the shipped blocks are
+     * stateless.
+     */
     public function testEveryShippedBlockIsScannedAndStateless(): void
     {
         $classes = $this->scanner()->classes();

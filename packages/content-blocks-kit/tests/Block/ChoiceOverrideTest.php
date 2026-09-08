@@ -27,13 +27,13 @@ use Twig\RuntimeLoader\FactoryRuntimeLoader;
  * `content_blocks_kit.blocks.<type>.choices` in its two shapes.
  *
  * A **list** is an allow-list over the coded set — what the option has always
- * been, kept working. A **value:label map** replaces the set, which is what lets
- * a host add a value the kit never coded. The distinction is made on the shape
- * of the value alone, so nothing had to be flagged in config.
+ * been, kept working. A **value:label map** replaces the set, which is what
+ * lets a host add a value the kit never coded. The distinction is made on the
+ * shape of the value alone, so nothing had to be flagged in config.
  *
- * These tests follow one added value all the way through: into the picker, past
- * the validator, into the block's initial data, and out into the rendered page —
- * because it is only useful if it survives every one of those.
+ * These tests follow one added value all the way through: into the picker,
+ * past the validator, into the block's initial data, and out into the rendered
+ * page — because it is only useful if it survives every one of those.
  */
 final class ChoiceOverrideTest extends TestCase
 {
@@ -115,9 +115,9 @@ final class ChoiceOverrideTest extends TestCase
 
     public function testAConfiguredPlainLabelIsRenderedAsWritten(): void
     {
-        // Symfony returns an unknown key unchanged, so a host that does not want
-        // to add a catalogue entry can write the label inline and it survives
-        // the |trans the form theme applies to every choice label.
+        // Symfony returns an unknown key unchanged, so a host that does not
+        // want to add a catalogue entry can write the label inline and it
+        // survives the |trans the form theme applies to every choice label.
         $block = new ButtonBlock([], ['variant' => ['ghost' => 'Ghost']], []);
 
         $this->assertStringContainsString(
@@ -190,9 +190,9 @@ final class ChoiceOverrideTest extends TestCase
 
     public function testAnAddedAlertTypeRendersWithTheFallbackGlyph(): void
     {
-        // The type styles the alert (class suffix, passes through) but the glyph
-        // map only knows the kit's own icons — so an added type gets `info`'s
-        // glyph rather than a null handed to cb_kit_icon().
+        // The type styles the alert (class suffix, passes through) but the
+        // glyph map only knows the kit's own icons — so an added type gets
+        // `info`'s glyph rather than a null handed to cb_kit_icon().
         $html = $this->renderTemplate('@ContentBlocksKit/block/alert/view.html.twig', [
             'content' => 'Heads up',
             'type' => 'tip',

@@ -274,7 +274,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
     public function testInsertReportsUnknownFieldWarningsButStillInserts(): void
     {
         $area = $this->makeArea(1);
-        // FakeBlockType::getDefaultData() only declares `content`; `legacy` is stale.
+        // FakeBlockType only declares `content`; `legacy` is stale.
         $template = $this->makeTemplate(7, $this->payloadWith([
             ['type' => 'fake', 'data' => ['content' => 'ok', 'legacy' => 'v']],
         ]), ['fake']);

@@ -123,7 +123,8 @@ abstract class ControllerTestCase extends TestCase
     /**
      * The two restore flows ask BlockDataKeys which keys a block may hold, and
      * it answers by building the block's form — hence a real (bare) factory,
-     * which resolves BlockFormType's children through their no-arg constructors.
+     * which resolves BlockFormType's children through their no-arg
+     * constructors.
      */
     protected function makeDataKeys(?BlockTypeRegistry $registry = null): BlockDataKeys
     {

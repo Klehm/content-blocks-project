@@ -21,11 +21,11 @@ use Twig\Loader\FilesystemLoader;
 /**
  * Every choice field in the kit, checked end to end.
  *
- * Making `choices` able to *add* values is only half a feature: the value has to
- * survive into the rendered page, and the views do not all treat their choice
- * fields alike. Auditing that by hand once is how it silently rots — so the
- * audit lives here, and a new choice field on a kit block has to declare which
- * side of the line it falls on.
+ * Making `choices` able to *add* values is only half a feature: the value has
+ * to survive into the rendered page, and the views do not all treat their
+ * choice fields alike. Auditing that by hand once is how it silently rots — so
+ * the audit lives here, and a new choice field on a kit block has to declare
+ * which side of the line it falls on.
  *
  * Three categories, and the count assertion below makes sure none is forgotten:
  *
@@ -57,7 +57,9 @@ final class ChoiceFieldCoverageTest extends TestCase
      * once a height pins the box, which is the only case `object-fit` means
      * anything.
      *
-     * @return iterable<string, array{string, string, string, array<string, mixed>}>
+     * @return iterable<string, array{
+     *     string, string, string, array<string, mixed>,
+     * }>
      */
     public static function openFieldProvider(): iterable
     {

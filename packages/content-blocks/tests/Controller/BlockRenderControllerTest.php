@@ -47,9 +47,10 @@ final class BlockRenderControllerTest extends ControllerTestCase
     }
 
     /**
-     * No parameter, and an empty one, both mean "decide for me". The empty case
-     * is not hypothetical: a JS caller building the URL from a variable that
-     * happens to be blank would otherwise pin the render to a locale named `''`.
+     * No parameter, and an empty one, both mean "decide for me". The empty
+     * case is not hypothetical: a JS caller building the URL from a variable
+     * that happens to be blank would otherwise pin the render to a locale
+     * named `''`.
      */
     public function testAnAbsentOrEmptyLocaleLeavesTheContextUndecided(): void
     {

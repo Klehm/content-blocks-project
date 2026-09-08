@@ -15,12 +15,12 @@ use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
 /**
- * The image block is not the only place the kit renders a picture: gallery items
- * and card media do too, and a seam that covered one of the three would leave a
- * host's optimization half-applied.
+ * The image block is not the only place the kit renders a picture: gallery
+ * items and card media do too, and a seam that covered one of the three would
+ * leave a host's optimization half-applied.
  *
- * These two views are fluid — the width of a grid cell is a CSS matter — so they
- * hand the resolver the source alone and never derive `sizes` themselves.
+ * These two views are fluid — the width of a grid cell is a CSS matter — so
+ * they hand the resolver the source alone and never derive `sizes` themselves.
  */
 final class GalleryCardImageSeamTest extends TestCase
 {

@@ -154,8 +154,8 @@ final class ClipboardControllerTest extends ControllerTestCase
 
     public function testAnotherAreaSelectionIsNotAValidTarget(): void
     {
-        // The body is user-written: a section id from an area the editor may not
-        // even see must not become a placement target in this one.
+        // The body is user-written: a section id from an area the editor may
+        // not even see must not become a placement target in this one.
         $target = $this->makeArea(1);
         $foreignArea = $this->makeArea(2);
         $foreignSection = $this->makeSection($foreignArea, 20);
