@@ -1,9 +1,6 @@
 <div{{ attributes }}>
-    {# cb-condition on the form root gates block-level conditional rows
-       (fields declaring `data-cb-condition` via row_attr) the same way the
-       section sidebar does — self-contained compound types like
-       PaletteColorType carry their own nested cb-condition scope and stay
-       independent. #}
+    {# On the root, so a field can gate a sibling row. A compound type
+       carries its own nested scope and stays independent. #}
     <div class="cb-block__edit-form" data-controller="cb-autosave cb-block-styling-form cb-condition">
         {# Lightweight heading showing which block is being edited, above the
            fields. Icon is trusted block-author SVG markup, never user input. #}
@@ -13,8 +10,7 @@
             {% endif %}
             <span class="cb-block__heading-label">
                 {%- if this.blockType -%}
-                    {# getLabel() may return a TranslatableInterface (carries its
-                       own domain) or a plain string — `|trans` handles both. #}
+                    {# `|trans` handles both a string and a Translatable. #}
                     {{ this.blockType.label|trans }}
                 {%- else -%}
                     {{ this.blockTypeLabel }}
@@ -22,21 +18,11 @@
             </span>
         </header>
 
-        {# Apply the form theme inside the component so the rendering
-           doesn't depend on the host app's global twig.form_themes
-           config — the builder must look the same in every environment.
+        {# Applied here, so the builder does not depend on the host's global
+           `twig.form_themes` and looks the same everywhere. #}
 
-           Important: each `{% form_theme %}` call REPLACES the local theme
-           stack on the FormView — it does not append. We pass all themes
-           in a single call so they actually stack. Resolution order is
-           reverse of the array (last entry checked first):
-
-             1. block-author theme (highest) — overrides block's own fields
-             2. styling_widgets              — renders the styling sub-form
-             3. cb_form_theme (lowest)       — generic fallback (cb-form-*)
-
-           A block-author theme defining cb_*_widget blocks would override
-           the styling widgets too, which is the desired escape hatch. #}
+        {# One call: each `form_theme` REPLACES the local stack rather than
+           appending. Reverse-array, so a block-author theme wins. #}
         {% set _themes = [
             '@ContentBlocks/form/cb_form_theme.html.twig',
             '@ContentBlocks/form/styling_widgets.html.twig',
@@ -48,19 +34,11 @@
 
         {{ form_start(form) }}
 
-            {# Group the block's own fields into tabs by their `data-cb-group`
-               attribute (set via the field's `attr` option in buildForm).
-               Fields without the attribute fall into the default "General"
-               tab; the styling sub-form is always appended as a trailing
-               "Style" tab. Group labels are run through the content_blocks
-               translation domain, so a block can pass either a literal label
-               or a translation key as `data-cb-group`.
+            {# Grouped by `data-cb-group`, with styling always trailing.
+               Labels go through the core domain. #}
 
-               Every field stays rendered — inactive panels are only hidden —
-               so autosave still serializes hidden tabs and server-side
-               validation is unaffected. The cb-tabs Stimulus controller
-               toggles visibility; Live's external-mutation tracker re-applies
-               the active tab across morphs. #}
+            {# Every field stays rendered — panels are only hidden — so
+               autosave and validation are unaffected. #}
             {% set general_label = 'cb.block.tab.general'|trans({}, 'content_blocks') %}
             {% set style_label = 'cb.block.tab.style'|trans({}, 'content_blocks') %}
 
@@ -121,11 +99,8 @@
             </div>
         {{ form_end(form) }}
 
-        {# Hidden save trigger clicked by cb-autosave when an input event
-           is debounced or a change/focusout fires. Stays a Live Component
-           action so the framework still handles `submit + flush`; the
-           button is visually hidden because the user-facing Save header
-           button is gone (autosave replaces it). #}
+        {# Clicked by cb-autosave, and still a Live action so the framework
+           handles submit and flush. Hidden: autosave replaced it. #}
         <button type="button"
                 data-action="live#action"
                 data-live-action-param="save"

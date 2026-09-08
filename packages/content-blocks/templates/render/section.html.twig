@@ -1,6 +1,6 @@
 {# @var section \ContentBlocks\Entity\Section #}
 {# @var isPreview bool #}
-{# @var chrome bool — the builder's editing furniture; see content_area.html.twig #}
+{# @var chrome bool — see content_area.html.twig #}
 {% set chrome = chrome is defined ? chrome : isPreview %}
 <section class="cb-section cb-section--{{ section.layout }}{% if section.deleted %} cb-section--deleted{% endif %}{% if section.extraClasses %} {{ section.extraClasses }}{% endif %}"
     {% if isPreview %}data-cb-section-id="{{ section.id }}"{% endif %}
@@ -8,11 +8,8 @@
     {% if section.inlineStyle %}style="{{ section.inlineStyle }}"{% endif %}
     {% for k, v in section.extraAttributes %} {{ k }}="{{ v }}"{% endfor %}>
     {% if chrome %}
-        {# Hover-revealed handle: a reliable way to select the section even
-           when it's full of blocks (clicking inside would otherwise hit a
-           block). As a direct child of <section> — not inside .cb-row — a
-           click on it is routed as a section click by the preview overlay,
-           which pins focus and opens the section settings sidebar. #}
+        {# A direct child of <section>, not of .cb-row, so the overlay
+           routes a click on it as a section click. #}
         <button type="button"
                 class="cb-section-handle"
                 aria-label="{{ 'cb.section.select'|trans({}, 'content_blocks') }}"

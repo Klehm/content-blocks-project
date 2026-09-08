@@ -3,11 +3,8 @@
 {% import _self as gallery %}
 {% set items = data.items|default([])|filter(i => i.src|default('')|trim is not empty) %}
 {% if items|length > 0 %}
-    {# The layout is both a class suffix and a branch. It passes through to the
-       class, so a value a host added via config can be styled; the slider
-       branch stays keyed to the coded value, because it carries JS behaviour
-       (the cb-gallery controller and its nav buttons) that CSS cannot supply.
-       Anything else renders through the grid markup under its own class. #}
+    {# The slider branch stays keyed to the coded value, since it carries JS
+       behaviour CSS cannot supply; anything else renders as a grid. #}
     {% set layout = cb_kit_token(data.layout|default('grid'), 'grid') %}
     {# Cast: the value is concatenated into a style attribute, and Block.data
        can arrive from an import that never met this block's validator. #}
@@ -35,10 +32,8 @@
 
 {% macro item(item, fit) %}
     {% set link = item.url|default('')|trim %}
-    {# No display width to declare: a grid cell is fluid and a slide is sized in
-       CSS, so the resolver is asked for the source only. It may still return
-       candidates, in which case it owns `sizes` too — the view has nothing
-       truthful to derive one from. #}
+    {# Nothing truthful to derive a `sizes` from, so the resolver owns it
+       if it returns candidates at all. #}
     {% set img = cb_image(item.src) %}
     <figure class="cb-kit-gallery__item">
         {% if link is not empty %}<a href="{{ link }}">{% endif %}

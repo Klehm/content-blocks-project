@@ -36,10 +36,8 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 return static function (ContainerConfigurator $container): void {
-    // Defaults, normally overwritten by the bundle's semantic config
-    // (`content_blocks_i18n.*`) in loadExtension(). An installation that
-    // registers the bundle and configures nothing has no target locales, so
-    // every seam here is a no-op and rendered output is unchanged.
+    // Configuring nothing leaves no target locales, so every seam is a
+    // no-op and the rendered output is unchanged.
     $container->parameters()
         ->set('content_blocks_i18n.source_locale', 'en')
         ->set('content_blocks_i18n.locales', [])
@@ -78,10 +76,8 @@ return static function (ContainerConfigurator $container): void {
 
     // ---------- Render path ----------
 
-    // Tagged by hand with a priority so it lands between the core's seeding
-    // resolver (256) and whatever a host registers at the default 0 — hence
-    // autoconfigure(false), which would otherwise add the tag a second time
-    // and merge the locale payload twice.
+    // Tagged by hand for its priority, hence autoconfigure(false): it would
+    // otherwise tag twice and merge the locale payload twice.
     $services->set(TranslationBlockDataResolver::class)
         ->autoconfigure(false)
         ->autowire()
@@ -116,16 +112,14 @@ return static function (ContainerConfigurator $container): void {
 
     // ---------- Preview ----------
 
-    // Turns `?cb_locale=` on a builder-preview request into the request locale,
-    // so the workbench can preview the host's own page in the language being
-    // translated without the host implementing a second URL resolver.
+    // Lets the workbench preview the host's own page in the target language
+    // with no second URL resolver. See docs/internals/i18n.md#the-preview-pane
     $services->set(PreviewLocaleListener::class);
 
     // ---------- Assets ----------
 
-    // Tells the core's asset sweep that translated values reference files too
-    // — a rich-text image uploaded while writing the German page belongs to no
-    // block's data. Autoconfigured through AssetReferenceProviderInterface.
+    // Translated values reference files no block's data mentions. See
+    // docs/internals/i18n.md#translated-values-hold-asset-references-too
     $services->set(TranslationAssetReferenceProvider::class);
 
     // ---------- Twig ----------

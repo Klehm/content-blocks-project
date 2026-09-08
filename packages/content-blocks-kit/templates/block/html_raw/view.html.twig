@@ -1,7 +1,3 @@
-{# HtmlRawBlock view — renders stored markup verbatim (trusted editors).
-
-   The wrapper is a styling hook, not a change of contract: the stored markup
-   still comes out untouched, it just gains an element kit.css can scope to.
-   Without it this block was the one place editor-authored <img> could land
-   with nothing the kit is allowed to select on. #}
+{# Verbatim: this block trusts its editors, and is disabled by default.
+   The wrapper is what kit.css scopes an editor-authored <img> to. #}
 <div class="cb-block-html-raw">{{ data.html|default('')|raw }}</div>

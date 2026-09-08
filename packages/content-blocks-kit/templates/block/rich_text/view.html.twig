@@ -1,5 +1,4 @@
-{# RichTextBlock view — renders the editor-produced HTML as-is. The block
-   trusts whoever may edit it: the toolbar constrains what an editor writes,
+{# Renders the editor's HTML as-is: the toolbar constrains what is written,
    but the stored value is not sanitized server-side. #}
 {% if data.content|default %}
     <div class="cb-block-rich-text">{{ data.content|raw }}</div>

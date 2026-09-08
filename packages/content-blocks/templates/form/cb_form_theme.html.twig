@@ -1,39 +1,16 @@
-{# ContentBlocks — form theme (replaces bootstrap_5_layout.html.twig)
+{# Form theme: the framework-neutral `form_div_layout` with cb-* classes
+   layered on, pairing with the scoped forms.css. #}
 
-  Inherits the framework-neutral `form_div_layout.html.twig` to get the
-  base markup (containers, labels, error iteration, ...), then layers
-  our own cb-* classes on top so the rendered HTML pairs with the
-  scoped stylesheet at @klehm/content-blocks/styles/forms.css.
-
-  Class naming follows the form theme's selectors:
-    cb-form-row         row wrapper          (Bootstrap: mb-3)
-    cb-form-label       <label>              (Bootstrap: form-label)
-    cb-form-control     text/textarea/file   (Bootstrap: form-control)
-    cb-form-select      <select>             (Bootstrap: form-select)
-    cb-form-range       range slider         (Bootstrap: form-range)
-    cb-form-file        <input type=file>    (Bootstrap: form-control)
-    cb-form-check       checkbox/radio row   (Bootstrap: form-check)
-    cb-form-check__input  the input          (Bootstrap: form-check-input)
-    cb-form-check__label  the label          (Bootstrap: form-check-label)
-    cb-form-choice-list  expanded choice     (Bootstrap: implicit)
-    cb-form-input-group  prepend/append      (Bootstrap: input-group)
-    cb-form-input-group__addon                (Bootstrap: input-group-text)
-    cb-form-help        help text            (Bootstrap: form-text)
-    cb-form-errors      error list           (Bootstrap: invalid-feedback)
-
-  This theme is opt-in: it's loaded by the Block / Section components
-  via a local `{% form_theme %}` directive. It is NOT auto-prepended
-  globally, so the host's own forms are not affected. #}
+{# Opt-in — loaded by the Block and Section components through a local
+   `form_theme`, never prepended globally, so host forms are untouched. #}
 
 {% use 'form_div_layout.html.twig' %}
 
 
 {# ---- Widgets ---- #}
 
-{# SeparatorType: a non-mapped pseudo-field rendering a horizontal rule so a
-   block can visually group its fields. The parent HiddenType makes the row
-   resolve to `hidden_row` (widget only — no label / help / errors wrapper),
-   and this widget replaces the hidden <input> with an <hr>. #}
+{# The parent HiddenType makes the row resolve to `hidden_row` — widget
+   only — and this replaces the hidden input with an <hr>. #}
 {% block cb_separator_widget -%}
     <hr class="cb-form-separator" />
 {%- endblock cb_separator_widget %}
@@ -48,16 +25,14 @@
            so cb-form-control's padding/border don't sneak in. #}
         {%- set widget_class = 'cb-form-range' -%}
     {%- endif -%}
-    {# Skip the cb-form-control class for hidden inputs (no visual at all)
-       and for checkbox/radio (they're driven by the cb-form-check rules
-       set in radio_widget / checkbox_widget). #}
+    {# Skipped for hidden inputs, and for checkbox/radio, which the
+       cb-form-check rules drive instead. #}
     {%- if type|default('') not in ['hidden', 'checkbox', 'radio'] -%}
         {%- set attr = attr|merge({class: (attr.class|default('') ~ ' ' ~ widget_class)|trim}) -%}
     {%- endif -%}
     {%- if type is defined and type in ['range', 'color'] -%}
-        {# Browsers don't honor the HTML `required` attribute on these
-           inputs (Bootstrap drops it too). Suppress it to avoid a UA
-           validation that the editor can never satisfy. #}
+        {# Browsers do not honour `required` on these, so it would only
+           add a UA validation the editor can never satisfy. #}
         {%- set required = false -%}
     {%- endif -%}
     {{- parent() -}}
@@ -73,9 +48,8 @@
 
 
 {% block textarea_widget -%}
-    {# textarea inherits form_widget_simple in form_div_layout, which is
-       fine — the parent block renders <textarea> with the class from
-       attr. We only need to make sure the right class is on attr. #}
+    {# The parent already renders the <textarea> with attr's class, so
+       only the class itself needs setting. #}
     {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-control')|trim}) -%}
     {{- parent() -}}
 {%- endblock textarea_widget %}
@@ -92,9 +66,8 @@
 
 
 {% block choice_widget_expanded -%}
-    {# Render the list of options as a compact stack. The wrapper class
-       distinguishes our flex layout from the form_div_layout default
-       (a plain <div>). Inline mode is opt-in via `choice_attr.inline`. #}
+    {# A compact stack; the class marks our flex layout apart from the
+       plain <div> default. Inline is opt-in. #}
     {%- set list_class = 'cb-form-choice-list' -%}
     {%- if attr.inline|default(false) -%}
         {%- set list_class = list_class ~ ' cb-form-choice-list--inline' -%}
@@ -112,19 +85,12 @@
 {%- endblock choice_widget_expanded %}
 
 
-{# Render a single checkbox/radio: native <input> + custom-classed
-   <label>, wrapped in a `.cb-form-check` row. We don't lean on
-   form_label here because form_div_layout's form_label has no
-   widget-dispatch (that's a Bootstrap-only convention), and we want
-   the <label> to carry `cb-form-check__label` rather than
-   `cb-form-label`. Used by both block bodies below. #}
+{# Not form_label: the neutral layout's has no widget-dispatch, and this
+   <label> must carry `cb-form-check__label` instead. #}
 {% block _cb_form_check_render -%}
     {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-form-check__input')|trim}) -%}
-    {# form_div_layout emits `checked` from the radio_widget / checkbox_widget
-       blocks themselves, not from form_widget_simple. Since we route the
-       input through form_widget_simple, fold `checked` into attr so the
-       `attributes` block renders it (otherwise no radio/checkbox is ever
-       marked checked). #}
+    {# The neutral layout emits `checked` from the widget blocks, not from
+       form_widget_simple — which is what this routes through. #}
     {%- if checked|default(false) -%}
         {%- set attr = attr|merge({checked: true}) -%}
     {%- endif -%}
@@ -168,20 +134,8 @@
 {%- endblock file_widget %}
 
 
-{# Range slider rendered with min/max bounds under the track and an
-   editable numeric input positioned next to the label (the row gets a
-   `cb-form-row--range` modifier in form_row so the input can be
-   absolutely positioned on the row's top-right).
-
-   The number input — not the slider — carries the form `name`/`id` and is
-   the submitted field: a range <input> can't hold a value off its `step`
-   grid, so binding the name to the number input is what lets the editor
-   type a value finer than the slider allows. The slider keeps its own
-   (coarser) `step` for quick dragging and only mirrors the number input.
-   The cb-range Stimulus controller keeps the two in sync both ways.
-
-   The number input's step defaults to 1 (integer precision); a block can
-   override it per-field with `attr.precise_step`. #}
+{# The **number** input carries the name and is the submitted field, so an
+   editor can type a value off the slider's step grid. #}
 {% block range_widget -%}
     {%- set required = false -%}
     {%- set slider_min = attr.min|default('') -%}
@@ -380,10 +334,8 @@
         {%- set widget_attr = {attr: {'aria-describedby': id ~ "_help"}} -%}
     {%- endif -%}
     {%- set row_class = row_class|default(row_attr.class|default('cb-form-row')|trim) -%}
-    {# `type` is only set inside the widget block, not at the row level.
-       Detect range fields via block_prefixes (always available on the
-       form view) so the row can establish a positioning context for the
-       absolutely-positioned value readout. #}
+    {# `type` is only set inside the widget block, so the row detects a
+       range through block_prefixes instead. #}
     {%- if block_prefixes is defined and 'range' in block_prefixes -%}
         {%- set row_class = (row_class ~ ' cb-form-row--range')|trim -%}
     {%- endif -%}
@@ -396,14 +348,11 @@
 {%- endblock form_row %}
 
 
-{# A standalone checkbox already carries its own <label> next to the box
-   (`cb-form-check__label` — the sentence the user reads to decide), so the
-   generic form_row would print the same text twice: once as a mono caption
-   above, once beside the box. Render the widget alone.
+{# A standalone checkbox already labels itself beside the box, so the
+   generic row would print the same text twice. #}
 
-   Radio groups and expanded choices deliberately keep their row label: there
-   it names the group ("Width"), not the option. Same for a `switch`, whose
-   label is its only text. #}
+{# Radio groups keep their row label: there it names the group, not the
+   option. Same for a switch, whose label is its only text. #}
 {% block checkbox_row -%}
     {%- set widget_attr = {} -%}
     {%- if help is not empty -%}
@@ -450,23 +399,14 @@
 
 
 {# ---- Live Collection ----
-   Override the two blocks UX-Live-Component declares (live_collection_widget
-   / live_collection_entry_row) so collections render as a CSS grid of cards
-   instead of a vertical stack of fieldset + delete rows. Each entry is
-   wrapped in a single .cb-form-collection__item; the delete button is
-   absolutely positioned as a small icon-style button in the corner. #}
+   A grid of cards rather than a stack of fieldsets. #}
 
 {% block live_collection_widget -%}
-    {# Tag the widget container itself (#<id>) with the grid class so
-       the items lay out side-by-side. form_widget renders the wrapping
-       <div id="..."> from form_div_layout.
+    {# The container itself carries the grid class and becomes the
+       SortableJS list. #}
 
-       The cb-collection-sort controller turns the container into a
-       SortableJS list: dragging an entry (or using its keyboard up/down
-       buttons) calls the Block component's `moveCollectionItem` live
-       action, which reorders the form data positionally. The `name` value
-       is the collection's full_name, matching what add/delete send as
-       data-live-name-param — the action strips the root form prefix. #}
+    {# `name` is the collection's full_name, matching what add and delete
+       send — the live action strips the root form prefix. #}
     {%- set attr = attr|merge({
         class: (attr.class|default('') ~ ' cb-form-collection')|trim,
         'data-controller': ('cb-collection-sort ' ~ attr['data-controller']|default(''))|trim,
@@ -480,11 +420,8 @@
 
 {% block live_collection_entry_row -%}
     <div class="cb-form-collection__item">
-        {# Reorder controls: a drag handle (SortableJS grabs this) plus
-           up/down buttons as a keyboard-accessible fallback. The buttons
-           route to the cb-collection-sort controller on the parent
-           container via event delegation — they carry no `name`, so they
-           are never serialized into the submitted form. #}
+        {# A drag handle plus keyboard up/down. They carry no `name`, so
+           they are never serialized into the form. #}
         <div class="cb-form-collection__controls">
             <button type="button"
                     class="cb-form-collection__drag-handle"
@@ -502,9 +439,8 @@
                     data-action="cb-collection-sort#moveDown"
                     aria-label="{{ 'cb.collection.move_down'|trans({}, 'content_blocks') }}"
                     title="{{ 'cb.collection.move_down'|trans({}, 'content_blocks') }}">▼</button>
-            {# Duplicate the entry: inserts a copy right after it via the
-               Block component's duplicateCollectionItem live action. Carries
-               no `name`, so it's never serialized into the submitted form. #}
+            {# Carries no `name`, so it is never serialized.
+               See docs/internals/forms.md #}
             <button type="button"
                     class="cb-form-collection__move cb-form-collection__duplicate"
                     data-action="cb-collection-sort#duplicate"
@@ -530,20 +466,10 @@
 {%- endblock live_collection_entry_row %}
 
 {# ---------- Image upload field (ImageUploadType) ----------
-   File picker + preview around the hidden path input. The cb-file-upload
-   controller uploads to /_content-blocks/upload and writes the returned
-   URL into the hidden input (dispatching `change` for autosave).
+   The whole widget is a drop zone, and only file drags are intercepted. #}
 
-   The whole widget is a drop zone: the drag listeners sit on the root so a file
-   can be released anywhere over the field, preview included. Only drags that
-   carry files are intercepted, so dragging a collection row across the sidebar
-   still behaves. Localized strings the controller needs at runtime ride along
-   as `data-i18n-*`, the convention the builder shell already uses. #}
-{# ImageUploadType parents HiddenType, so Symfony picks `hidden_row` for it — a
-   bare widget with no row wrapper and no label. That is right for a real hidden
-   input and wrong for this one, which is a visible control: it left the field
-   nameless and butting into the next one, outside the form's vertical rhythm.
-   Route it back through the standard row. #}
+{# Routed back through the standard row: parenting HiddenType makes Symfony
+   pick `hidden_row`, which left this visible control nameless. #}
 {% block cb_image_upload_row -%}
     {{- block('form_row') -}}
 {%- endblock cb_image_upload_row %}
@@ -558,10 +484,8 @@
          data-i18n-cb-upload-network-error="{{ 'cb.upload.network_error'|trans({}, 'content_blocks') }}"
          data-i18n-cb-upload-rejected="{{ 'cb.upload.rejected'|trans({}, 'content_blocks') }}">
 
-        {# The drop zone frames the image itself, so the target an editor aims at
-           is the picture they are replacing. The hint only shows while the field
-           is empty (or during a drag) — once there is an image, the frame is the
-           affordance and the text is noise. #}
+        {# The frame is the affordance once there is an image, so the hint
+           only shows on an empty field or mid-drag. #}
         <div class="cb-image-upload__preview">
             <img data-cb-file-upload-target="preview"
                  {% if src %}src="{{ src }}"{% endif %}
@@ -572,9 +496,8 @@
         </div>
 
         <div class="cb-image-upload__actions">
-            {# The native file input is a poor button, so it is visually hidden
-               inside its label — which keeps the click, the keyboard focus and
-               the accessible name without a JS trigger. #}
+            {# Visually hidden inside its label, which keeps the click, the
+               focus and the accessible name with no JS. #}
             <label class="cb-form-btn cb-form-btn--sm cb-image-upload__choose">
                 {{ 'cb.upload.choose'|trans({}, 'content_blocks') }}
                 <input type="file"
@@ -583,8 +506,7 @@
                        data-cb-file-upload-target="file"
                        data-action="change->cb-file-upload#upload:stop">
             </label>
-            {# Hidden server-side too, not only by the controller: a Live morph
-               re-renders this markup and would otherwise bring the button back
+            {# Server-side too: a Live morph would otherwise bring it back
                on an empty field. #}
             <button type="button"
                     class="cb-form-btn cb-form-btn--sm"
@@ -599,8 +521,7 @@
                     aria-label="{{ 'cb.upload.path_toggle'|trans({}, 'content_blocks') }}">🔗</button>
         </div>
 
-        {# Paste-a-path escape hatch: same value as the hidden input, revealed on
-           demand. Nameless on purpose — only the hidden input is submitted. #}
+        {# Nameless on purpose: only the hidden input is submitted. #}
         <input type="text"
                class="cb-form-control cb-image-upload__path"
                data-cb-file-upload-target="path"

@@ -1,9 +1,5 @@
-{# ButtonBlock view. Neutral cb-kit-* classes styled by kit.css.
-
-   variant / size / align are pure class suffixes, so they are passed through
-   as-is: a value a host added via `content_blocks_kit.blocks.button.choices`
-   reaches the markup, and the matching CSS is the host's to write.
-   `cb_kit_token()` only guards the *shape* of the value — see its extension. #}
+{# Class suffixes, so a config-added value reaches the markup and the host
+   writes the CSS. See docs/internals/kit.md #}
 {% set text = data.text|default('')|trim %}
 {% if text is not empty %}
     {% set align = cb_kit_token(data.align|default('start'), 'start') %}

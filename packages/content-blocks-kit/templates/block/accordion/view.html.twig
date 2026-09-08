@@ -1,6 +1,5 @@
-{# AccordionBlock view — native <details>/<summary>, no JS.
-   `exclusive` gives every panel the same `name` so only one opens at a time
-   (native HTML behaviour). #}
+{# Native <details>/<summary>, no JS. `exclusive` shares one `name` across
+   the panels, which is what opens them one at a time. #}
 {% set items = data.items|default([])|filter(i => i.title|default('')|trim is not empty) %}
 {% if items|length > 0 %}
     {% set group = data.exclusive|default(false) ? ('cb-acc-' ~ items|length) : null %}

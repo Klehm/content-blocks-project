@@ -1,6 +1,6 @@
 {# @var column \ContentBlocks\Entity\Column #}
 {# @var isPreview bool #}
-{# @var chrome bool — the builder's editing furniture; see content_area.html.twig #}
+{# @var chrome bool — see content_area.html.twig #}
 {% set chrome = chrome is defined ? chrome : isPreview %}
 <div class="cb-col cb-col--{{ column.preset }}{% if column.width is defined and column.width %} cb-col--weighted{% endif %}{% if column.deleted %} cb-col--deleted{% endif %}"
     {% if column.width is defined and column.width %}style="--cb-col-grow: {{ column.width }};"{% endif %}

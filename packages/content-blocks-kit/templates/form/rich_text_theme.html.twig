@@ -1,23 +1,8 @@
-{# Form theme for RichTextBlock — wraps the content textarea with whichever
-   editor's Stimulus controller the selected adapter names
-   (`content_blocks_kit.blocks.rich_text.options.editor`).
+{# Knows nothing about any editor: the adapter hands over a controller name
+   and encoded values. See docs/internals/kit.md #}
 
-   The template knows nothing about any particular editor: the adapter hands
-   over a controller name and a bag of already-encoded values, so adding an
-   editor never touches this file.
-
-   Two things stay true under every editor, and both are load-bearing:
-
-   - the <textarea> remains in the DOM. It is what the Live Component binds
-     to, what the editor syncs its HTML back into, and the fallback when the
-     editor fails to load;
-   - the wrapper carries `data-live-ignore`, so the morpher leaves the DOM
-     the editor injects (toolbar, iframe, balloons) alone across re-renders. #}
-
-{# `use` (not `extends`) pulls the core theme's blocks into this template so
-   `textarea_widget` resolves here: form-theme *stacking* decides which theme
-   answers a form block name, but a `block()` call inside a template is a
-   plain Twig lookup against that template alone. #}
+{# `use`, not `extends`: theme stacking decides which theme answers a form
+   block, but `block()` is a plain lookup against this template alone. #}
 {% use '@ContentBlocks/form/cb_form_theme.html.twig' %}
 
 {% block cb_rich_text_widget -%}

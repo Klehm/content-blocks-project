@@ -1,10 +1,8 @@
 {# @var sections array #}
 {# @var mode \ContentBlocks\Rendering\RenderMode #}
 {% set isPreview = mode.value == 'preview' %}
-{# `chrome` = the builder's editing furniture. It normally tracks isPreview;
-   `?cb_chrome=0` turns it off to render draft content the way a reader will
-   see it once published. `is defined` rather than |default(): a Twig default
-   filter treats `false` as empty and would flip it back on. #}
+{# `is defined`, not |default(): the filter treats `false` as empty and
+   would flip the chrome back on. See docs/internals/rendering.md #}
 {% set chrome = chrome is defined ? chrome : isPreview %}
 <link rel="stylesheet" href="{{ path('content_blocks_asset_layout') }}">
 <link rel="stylesheet" href="{{ path('content_blocks_asset_styling') }}">
@@ -69,10 +67,8 @@
         </button>
     </aside>
     <script>window.__cbBlockTypes = {{ blockTypes|json_encode|raw }};</script>
-    {# The overlay runs inside the preview iframe as a plain module, with no
-       Stimulus element to hang `data-i18n-*` attributes off — so its labels are
-       translated here and handed over in one object. Every string it renders
-       has to come through this: anything it hardcodes ships untranslated. #}
+    {# The overlay has no Stimulus element to hang `data-i18n-*` off, so its
+       labels are translated here. Anything it hardcodes ships untranslated. #}
     <script>window.__cbOverlayLabels = {{ {
         add_block: 'cb.block.add_title'|trans({}, 'content_blocks'),
         block_drag: 'cb.block.drag'|trans({}, 'content_blocks'),

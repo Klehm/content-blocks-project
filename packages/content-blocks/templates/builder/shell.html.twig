@@ -9,14 +9,12 @@
      data-cb-builder-iframe-url-value="{{ iframeUrl }}"
      data-cb-csrf-token="{{ csrf_token('content_blocks') }}"
      data-i18n-cb-builder-discard-confirm="{{ 'cb.builder.discard_confirm'|trans({}, 'content_blocks') }}"
-     {# Save-to-library prompts: this flow starts from the in-preview section
-        toolbar, so it must be readable whatever the sidebar happens to show —
-        hence the shell root rather than the library panel. #}
+     {# On the shell root, not the library panel: this flow starts from the
+        in-preview toolbar, whatever the sidebar shows. #}
      data-i18n-cb-builder-template-name-prompt="{{ 'cb.builder.template.name_prompt'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-template-delete-confirm="{{ 'cb.builder.template.delete_confirm'|trans({}, 'content_blocks') }}"
-     {# Copy / paste is keyboard-driven (Ctrl/Cmd-C, Ctrl/Cmd-V) and its only
-        feedback is the snackbar, so every one of its messages — the
-        acknowledgement, the refusals — is read from here. #}
+     {# Copy/paste is keyboard-only and its sole feedback is the snackbar,
+        so every one of its messages is read from here. #}
      data-i18n-cb-builder-clipboard-section-copied="{{ 'cb.builder.clipboard.section_copied'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-block-copied="{{ 'cb.builder.clipboard.block_copied'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-nothing-selected="{{ 'cb.builder.clipboard.nothing_selected'|trans({}, 'content_blocks') }}"
@@ -37,15 +35,8 @@
                     aria-label="{{ 'cb.builder.close'|trans({}, 'content_blocks') }}">
                 ×
             </button>
-            {# One "Actions" menu rather than a row of buttons. What lands in it
-               is everything that acts on the *area as a whole* — replace,
-               import/export, and whatever the host or a bundle contributed.
-               The topbar keeps only what an editor reaches for constantly:
-               close, the viewport switcher, discard and publish.
-
-               Rendered even when empty is impossible: the whole block is
-               skipped if nothing would go in it (a host can switch both
-               built-ins off and register no action). #}
+            {# One menu for everything area-wide, and skipped entirely when
+               nothing would go in it. See docs/internals/frontend.md #}
             {% set hasReplace = enableReplace ?? true %}
             {% set hasImportExport = enableImportExport ?? true %}
             {% set actions = topbarActions|default([]) %}
@@ -84,13 +75,8 @@
                                 <span class="cb-shell__btn-label">{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}</span>
                             </button>
                         {% endif %}
-                        {# Contributed actions — from the `topbar_actions` form
-                           option or a BuilderActionProviderInterface; by here
-                           both are BuilderAction objects. Clicking dispatches a
-                           single generic `cb:builder:action` event carrying
-                           detail.key, so the host listens once and filters on
-                           the key. icon|raw allows an inline SVG; that markup
-                           comes from trusted code, never from user input. #}
+                        {# Both sources are BuilderAction objects by here;
+                           `icon|raw` is trusted code, never user input. #}
                         {% for action in actions %}
                             {% set actionTitle = (action.title ?? action.label)|trans %}
                             <button type="button"
@@ -111,12 +97,8 @@
         </div>
 
         <div class="cb-shell__topbar-right">
-            {# Viewport switcher. It lives in the right cluster, not in the
-               middle of the topbar: the preview frame is centred over the
-               canvas, which is itself offset by the sidebar, so a
-               topbar-centred switcher never lined up with the frame it
-               controls. Anchoring it right also keeps it still when the
-               sidebar is collapsed or resized. #}
+            {# Right cluster, not centred: the canvas is offset by the
+               sidebar, so a centred switcher never lined up with it. #}
             <div class="cb-shell__viewport" role="group">
                 <button type="button"
                         class="cb-shell__viewport-btn cb-shell__viewport-btn--active"
@@ -135,9 +117,8 @@
                         title="Mobile">▯</button>
             </div>
 
-            {# Persistent save-failure banner. Unlike the transient "Saved"
-               flash it stays visible until a later save succeeds — the
-               editor must know their latest edits are not stored. #}
+            {# Persistent until a later save succeeds: the editor must know
+               their latest edits are not stored. #}
             <span class="cb-shell__save-error"
                   data-cb-builder-target="saveError"
                   role="alert"
@@ -163,15 +144,12 @@
         </div>
     </header>
 
-    {# One backdrop for all three pickers. They are mutually exclusive, so a
-       single node cannot stack its dimming or be orphaned by a picker that
-       forgot to clean up. Clicking it dismisses whichever is open. #}
+    {# One node for all three, so the dimming cannot stack or be orphaned by
+       a picker that forgot to clean up. #}
     <div class="cb-modal-backdrop" hidden></div>
 
-    {# Replace-content picker (overlay panel rendered inside the shell). Stays
-       hidden until the user clicks the Insert content button in the topbar.
-       Skipped entirely when the feature is off (enable_replace form option),
-       mirroring the Import/Export overlay below. #}
+    {# Hidden until the topbar button is clicked, and skipped entirely when
+       the feature is off. #}
     {% if enableReplace ?? true %}
     <div class="cb-replace-picker"
          data-cb-builder-target="replacePicker"
@@ -208,17 +186,11 @@
     </div>
     {% endif %}
 
-    {# The section-template library used to be a third modal here. It now lives
-       in the empty sidebar (builder/sidebar_empty.html.twig), which is where an
-       editor with nothing selected is already looking. The prompt strings the
-       *save* flow needs are read off the shell root, since that flow starts
-       from the in-preview section toolbar and must work whatever the sidebar
-       is currently showing. #}
+    {# The section library is no longer a modal here: it lives in the empty
+       sidebar, where an editor with nothing selected is already looking. #}
 
-    {# Import / Export overlay panel — anchored to the topbar Import/Export
-       button. Identical positioning rules as the replace picker so both
-       overlays read as siblings. Skipped entirely when the feature is off
-       (enable_import_export form option). #}
+    {# Same positioning rules as the replace picker, so the two overlays
+       read as siblings. Skipped when the feature is off. #}
     {% if enableImportExport ?? true %}
     <div class="cb-import-export-picker"
          data-cb-builder-target="importExportPicker"
@@ -270,12 +242,8 @@
     </div>
     {% endif %}
 
-    {# Two-column main area: sidebar on the left, iframe on the right.
-       The sidebar is permanent — it always occupies its own grid column
-       and its content swaps based on the currently focused element
-       (block / section / nothing). The collapsed state shrinks the
-       column to a fly-out handle so the iframe can claim the full
-       width when the user doesn't need the panel. #}
+    {# The sidebar is permanent: it always occupies its column and only its
+       content swaps. See docs/internals/frontend.md #}
     <main class="cb-shell__main">
         <aside data-cb-builder-target="sidebar"
                class="cb-shell__sidebar"
@@ -288,9 +256,8 @@
             <div class="cb-shell__sidebar-content" data-cb-builder-target="sidebarContent">
                 {% include '@ContentBlocks/builder/sidebar_empty.html.twig' %}
             </div>
-            {# Toggle: floating chip vertically centered on the sidebar's
-               right edge, intentionally overhanging the iframe so it stays
-               visible / clickable in both expanded and collapsed states. #}
+            {# Overhangs the iframe, so it stays clickable in both the
+               expanded and the collapsed state. #}
             <button type="button"
                     class="cb-shell__sidebar-toggle"
                     data-cb-builder-target="sidebarToggle"
@@ -309,10 +276,8 @@
                 title="{{ 'cb.builder.preview'|trans({}, 'content_blocks') }}"></iframe>
     </main>
 
-    {# Snackbar. Two uses, one element: the undo offer after a delete (label +
-       action), and the plain acknowledgement copy/paste needs (label only, the
-       button hidden) — a copy changes nothing on screen, so without a word here
-       the editor has no way to tell it worked. #}
+    {# Two uses, one element: the undo offer, and the acknowledgement a copy
+       needs since it changes nothing on screen. #}
     <div class="cb-shell__undo"
          data-cb-builder-target="undoBar"
          data-cb-builder-undo-block-deleted="{{ 'cb.builder.undo.block_deleted'|trans({}, 'content_blocks') }}"
@@ -329,17 +294,11 @@
         </button>
     </div>
 
-    {# Contributed shell fragments — a bundle's own UI inside the builder
-       (BuilderShellExtensionInterface). Rendered last so a fragment's
-       overlay stacks above the chrome, and inside the shell so its script can
-       reach the CSRF token and the area id off the root element, listen for
-       its own `cb:builder:action` key, and ask the builder to catch up with a
-       `cb:area:changed` event once it has changed the area server-side.
+    {# Last, so a fragment's overlay stacks above the chrome, and inside the
+       shell so its script can reach the token and the area id. #}
 
-       Each fragment is rendered in isolation (`with_context = false`): it sees
-       its own context plus `area`, never the shell's variables — those are
-       internal and may change. `area` is merged on top so the core's value is
-       guaranteed; the value object refuses a fragment that declares its own. #}
+    {# Rendered in isolation: a fragment sees its own context plus `area`,
+       never the shell's. See docs/internals/builder-extensions.md #}
     {% for fragment in cb_shell_fragments(area) %}
         {{ include(fragment.template, fragment.context|merge({ area: area }), with_context = false) }}
     {% endfor %}

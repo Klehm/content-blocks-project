@@ -1,18 +1,12 @@
-{# ImageBlock view — plain <img> sized by a preset / custom width+height, with
-   object-fit, alignment, an optional link and caption, and per-corner radius.
-   No image-processing dependency: the stored src goes through the core's
-   `cb_image()` seam, whose default resolver returns it untouched; only the
-   *display* box is controlled here. A host that aliases
-   ImageUrlResolverInterface gets srcset/sizes out of the same markup. #}
+{# A plain <img>, no image-processing dependency: only the display box is
+   controlled here. See docs/internals/assets.md #}
 {% set src = data.src|default('')|trim %}
 {% if src is not empty %}
     {% set size = data.size|default('md') %}
     {% set align = cb_kit_token(data.align|default('center'), 'center') %}
 
-    {# Target display width. Presets are fixed; 'custom' reads the field;
-       'full' → fluid (max-width:100%). A size a host added through config has
-       no preset entry, so it lands on the same fluid path as 'full' — the only
-       honest answer, since only this template knows what a pixel width means. #}
+    {# A size added through config has no preset entry, so it goes fluid
+       like 'full' — the only honest answer available here. #}
     {% set preset_width = { sm: 400, md: 800, lg: 1200 }[size]|default(null) %}
     {% set width = size == 'custom' ? (data.customWidth|default(null)) : preset_width %}
     {% set width = width ? width|abs : null %}
@@ -28,25 +22,19 @@
     {% set has_radius = (br.top ?? null) is not null or (br.right ?? null) is not null or (br.bottom ?? null) is not null or (br.left ?? null) is not null %}
     {% set radius = has_radius ? (br.top ?? 0) ~ 'px ' ~ (br.right ?? 0) ~ 'px ' ~ (br.bottom ?? 0) ~ 'px ' ~ (br.left ?? 0) ~ 'px' : null %}
 
-    {# Width caps the <img>, not the <figure>: the figure stays a full-width flex
-       column so `align-items` (via cb-kit-image--{{ align }}) can place the image
-       left/center/right. max-width:100% (kit.css) keeps it responsive. #}
+    {# Caps the <img>, not the <figure>, which stays a full-width flex
+       column so `align-items` can place the image. #}
     {% set img_style = (width ? 'width:' ~ width ~ 'px;' : '')
         ~ (height ? 'height:' ~ height ~ 'px;object-fit:' ~ fit ~ ';' : '')
         ~ (radius ? 'border-radius:' ~ radius ~ ';' : '') %}
 
-    {# The display width/height computed above is exactly the input a resizing
-       resolver needs. With none wired, `img` is the stored src and nothing else.
-       When a resolver returns candidates but no `sizes`, derive one from the
-       display width — an unqualified srcset would otherwise be read as 100vw,
-       making the browser pick a wider file than the box it lands in. #}
+    {# With candidates but no `sizes`, one is derived from the display
+       width: an unqualified srcset reads as 100vw and over-picks. #}
     {% set img = cb_image(src, width, height) %}
     {% set sizes = img.sizes ?? (img.srcset and width ? '(max-width: ' ~ width ~ 'px) 100vw, ' ~ width ~ 'px' : null) %}
 
-    {# The size also lands on a class. Without it a value a host added through
-       config would be entirely inert here — it maps to no preset width, so the
-       image goes fluid and nothing in the markup says which size was chosen.
-       Additive: the coded sizes gain a class they did not have. #}
+    {# Also a class, or a config-added size would be entirely inert: fluid,
+       with nothing in the markup naming it. #}
     <figure class="cb-kit-image cb-kit-image--{{ align }} cb-kit-image--size-{{ cb_kit_token(size, 'md') }}">
         {% if data.url|default('')|trim is not empty %}<a href="{{ data.url }}">{% endif %}
         <img class="cb-kit-image__img" src="{{ img.src }}" alt="{{ data.alt|default('') }}"

@@ -64,7 +64,7 @@
         <div class="cb-form-row__header">
             <label class="cb-form-label">{{ form.vars.label|trans({}, 'content_blocks') }}</label>
             <div class="cb-viewport-tabs" data-controller="cb-viewport-tabs" data-cb-viewport-tabs-active-value="desktop">
-                {# Match the topbar viewport switcher in builder/shell.html.twig. #}
+                {# Matches the topbar viewport switcher. #}
                 {% set viewports = [
                     { key: 'desktop', icon: '▭', label: 'cb.styling.viewport.desktop' },
                     { key: 'tablet', icon: '▢', label: 'cb.styling.viewport.tablet' },
@@ -131,11 +131,8 @@
             <div class="cb-responsive-length__viewport" data-viewport="{{ vp }}">
                 <span class="cb-length cb-form-input-group">
                     {{ form_widget(form[vp], { attr: { class: 'cb-responsive-length__input' } }) }}
-                    {# The sibling cb_length widget puts a <select> here, so
-                       .cb-length__unit only carries a width cap. A bare span
-                       needs the input-group addon treatment of its own —
-                       otherwise it has no box and its text is not centred
-                       against the input it belongs to. #}
+                    {# The unit class is only a width cap, so a bare span
+                       needs the addon treatment too. #}
                     <span class="cb-length__unit cb-responsive-length__unit cb-form-input-group__addon">px</span>
                 </span>
             </div>
@@ -143,10 +140,8 @@
     </div>
 {% endblock %}
 
-{# Alignment radios rendered as an icon button-group. The native radios
-   are visually hidden but kept in the DOM so they submit normally and
-   stay keyboard-accessible. CSS targets `:checked + .cb-align-btn__face`
-   to highlight the active option. #}
+{# An icon button-group. The native radios stay in the DOM so they submit
+   and remain keyboard-accessible. #}
 
 {% macro align_icon(value) %}
     {# Items rendered inside an implicit 16x16 frame; the bars stand in
@@ -163,11 +158,8 @@
     {{ _self.render_align(form, 'v') }}
 {% endblock %}
 
-{# Horizontal-align icons: three bars of varying widths, all flushed
-   to the same edge (text-align metaphor). The full-width bar stays put;
-   the two shorter bars shift to whichever edge corresponds to the
-   alignment, producing a visibly different silhouette per choice.
-   This is the standard word-processor iconography for left/center/right. #}
+{# The word-processor metaphor: the full-width bar stays put and the two
+   shorter ones shift, giving each choice its own silhouette. #}
 {% macro halign_icon(value) %}
     <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
         {% if value == 'start' %}
@@ -192,11 +184,8 @@
 
 {# axis: 'v' (vertical) or 'h' (horizontal) — picks the icon style. #}
 {% macro render_align(form, axis) %}
-    {# Each choice is a label wrapping a raw radio input + its icon.
-       Going through form_widget(child) would invoke Bootstrap's radio
-       theme which adds its own .form-check wrapper and a visible label —
-       not what we want here. We render the input by hand so the only
-       visible element is the icon. #}
+    {# The input is rendered by hand: form_widget(child) would add its own
+       wrapper and a visible label, leaving more than the icon. #}
     <div class="cb-align-group" role="radiogroup">
         {% for child in form %}
             {% set val = child.vars.value %}

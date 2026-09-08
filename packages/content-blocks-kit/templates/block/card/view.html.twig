@@ -1,10 +1,8 @@
 {# CardBlock view — grid (N columns) or stacked list. #}
 {% set items = data.items|default([]) %}
 {% if items|length > 0 %}
-    {# Passed through to the class so a layout added via config can be styled.
-       The column count is only emitted for the coded `grid` layout, which is
-       the one whose CSS reads --cb-kit-cols; a host's own layout declares
-       whatever it needs in its own rules. #}
+    {# The column count is only emitted for the coded `grid` layout, whose
+       CSS reads it; a host's own layout declares what it needs. #}
     {% set layout = cb_kit_token(data.layout|default('grid'), 'grid') %}
     {# Cast, for the same reason as gallery: it lands in a style attribute. #}
     {% set columns = data.columns|default(3)|abs %}
@@ -12,9 +10,8 @@
         {% for item in items %}
             <article class="cb-kit-card">
                 {% if item.src|default('')|trim is not empty %}
-                    {# Card media is fluid (the grid decides its width), so the
-                       resolver gets the source alone and owns `sizes` if it
-                       returns candidates. #}
+                    {# Fluid: the grid decides the width, so the resolver
+                       gets the source alone and owns `sizes`. #}
                     {% set img = cb_image(item.src) %}
                     <div class="cb-kit-card__media"><img src="{{ img.src }}" alt="{{ item.title|default('') }}"
                         {%- if img.srcset %} srcset="{{ img.srcset }}"{% endif %}{% if img.sizes %} sizes="{{ img.sizes }}"{% endif %} loading="lazy" decoding="async"></div>

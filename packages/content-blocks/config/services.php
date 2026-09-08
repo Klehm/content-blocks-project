@@ -44,18 +44,10 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 return static function (ContainerConfigurator $container): void {
-    // Section-level defaults. These parameters are shared by
-    // BuiltInSectionDecorator, CoreSectionDefaults and SectionSettingsType
-    // so a host can override them in one place and have the form pre-fill,
-    // the placeholder, and the rendered fallback all move together.
-    // `default_width_mode` is the width every new section starts in
-    // ('full' or 'centered'); `default_max_width` is the cap applied once
-    // a section is centered.
+    // Shared by the decorator, the defaults provider and the form type, so
+    // one override moves the pre-fill, the placeholder and the fallback.
     $container->parameters()
-        // Schema generation of the host's block data; normally fed by the
-        // bundle's semantic config (`content_blocks.content_version`). Stamped
-        // onto content as it is written so hosts can target what predates a
-        // change of their own making.
+        // See docs/internals/versioning.md#the-content-version
         ->set('content_blocks.content_version', 1)
         ->set('content_blocks.section.default_width_mode', 'full')
         ->set('content_blocks.section.default_max_width', 1320)
@@ -83,15 +75,11 @@ return static function (ContainerConfigurator $container): void {
         ->defaults()
         ->autowire()
         ->autoconfigure()
-        // Targeted bindings: only services whose constructor literally
-        // declares `int $defaultMaxWidth` / `string $defaultWidthMode` pick
-        // these up — currently BuiltInSectionDecorator, CoreSectionDefaults,
-        // and SectionSettingsType.
+        // Targeted: only a constructor literally declaring these names
+        // picks them up.
         ->bind('int $defaultMaxWidth', '%content_blocks.section.default_max_width%')
         ->bind('string $defaultWidthMode', '%content_blocks.section.default_width_mode%')
-        // Host-owned schema generation of block data: consumed by the exporter
-        // (stamps the payload) and by SectionTemplateController (stamps a
-        // snapshot). ContentAreaTouchListener takes it positionally.
+        // ContentAreaTouchListener takes this one positionally.
         ->bind('int $contentVersion', '%content_blocks.content_version%')
         // Upload limits: consumed by UploadController.
         ->bind('int $uploadMaxSize', '%content_blocks.upload.max_size%')
@@ -100,39 +88,33 @@ return static function (ContainerConfigurator $container): void {
     $services->set(BlockTypeRegistry::class)
         ->public();
 
-    // Default: deny all access. Host app must override with its own implementation.
+    // Deny all: the host must override this. See docs/guide/host-services.md
     $services->set(DenyAllAccessChecker::class);
     $services->alias(AccessCheckerInterface::class, DenyAllAccessChecker::class);
 
-    // Default: throws on resolve. Host app must override with its own implementation.
+    // Throws: the host must override this too.
     $services->set(NullContentAreaUrlResolver::class);
     $services->alias(ContentAreaUrlResolverInterface::class, NullContentAreaUrlResolver::class);
 
     // ---------- File storage / uploads ----------
 
-    // Default: null storage (throws on upload). Hosts opt in via the
-    // `content_blocks.upload.directory` config (→ LocalFileStorage) or alias
-    // FileStorageInterface to their own implementation (S3, Flysystem…).
+    // Throws on upload. A host opts in through `upload.directory`, or by
+    // aliasing the interface to its own storage.
     $services->set(\ContentBlocks\Storage\NullFileStorage::class);
     $services->alias(\ContentBlocks\Storage\FileStorageInterface::class, \ContentBlocks\Storage\NullFileStorage::class);
 
-    // Asset resolver bridges the export/import flow to FileStorageInterface.
-    // With the default NullFileStorage behind it, exports see zero assets
-    // and imports throw if the payload references any (the old
-    // NullAssetResolver behavior).
+    // Bridges export/import to FileStorageInterface, so with the null
+    // storage behind it an export simply sees no assets.
     $services->set(NullAssetResolver::class);
     $services->set(\ContentBlocks\Asset\FileStorageAssetResolver::class);
     $services->alias(AssetResolverInterface::class, \ContentBlocks\Asset\FileStorageAssetResolver::class);
 
-    // The single definition of "this string references a stored file", shared
-    // by the exporter and the garbage collector so the two cannot disagree —
-    // a collector that sees fewer references than the exporter would sweep
-    // away a file that is still on a page.
+    // The single definition of "this references a stored file".
+    // See docs/internals/assets.md#one-definition-of-a-reference
     $services->set(\ContentBlocks\Asset\AssetReferenceCollector::class);
 
-    // Mark phase. The package's own two sources are registered here and reach
-    // the collector through the same autoconfigured interface a host uses, so
-    // there is no privileged internal path.
+    // The package's own sources go through the same autoconfigured
+    // interface a host uses — no privileged internal path.
     $services->set(\ContentBlocks\Asset\ContentAreaAssetReferenceProvider::class);
     $services->set(\ContentBlocks\Asset\SectionTemplateAssetReferenceProvider::class);
 
@@ -143,20 +125,16 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(\ContentBlocks\Command\CollectAssetsCommand::class);
 
-    // Read-only operator report at `/_content-blocks/assets/report`. Denied by
-    // default — it spans every area in the install, so it gets its own
-    // capability (same shape as SectionTemplateManagerInterface) and the route
-    // 404s until a host aliases it.
+    // Denied by default, and the route 404s until a host aliases it.
+    // See docs/internals/assets.md#asset-routes-are-public-on-purpose
     $services->set(\ContentBlocks\Asset\DenyAllAssetReportViewer::class);
     $services->alias(
         \ContentBlocks\Asset\AssetReportViewerInterface::class,
         \ContentBlocks\Asset\DenyAllAssetReportViewer::class,
     );
 
-    // Image optimization seam. Default: passthrough — the stored source is
-    // rendered as-is, no srcset, exactly the markup that predates the seam.
-    // Hosts alias ImageUrlResolverInterface to a CDN/LiipImagine implementation
-    // to get responsive candidates in every kit image view.
+    // Passthrough by default — byte-for-byte the markup that predates it.
+    // See docs/internals/assets.md#the-image-seam-ships-a-passthrough
     $services->set(\ContentBlocks\Image\PassthroughImageUrlResolver::class);
     $services->alias(\ContentBlocks\Image\ImageUrlResolverInterface::class, \ContentBlocks\Image\PassthroughImageUrlResolver::class);
 
@@ -173,17 +151,13 @@ return static function (ContainerConfigurator $container): void {
     // Rendering override seam: host decorates/replaces via the interface.
     $services->alias(\ContentBlocks\Rendering\BlockRendererInterface::class, \ContentBlocks\Rendering\BlockRenderer::class);
 
-    // Draft lifecycle, clone, transfer and section-template services. Each is
-    // registered as its concrete class and aliased to its interface: consumers
-    // type-hint the interface, so a host overrides or decorates any of them
-    // without touching the package.
+    // Each registered as its class and aliased to its interface, so a host
+    // can decorate any of them without touching the package.
     $services->set(\ContentBlocks\Publishing\ContentAreaPublisher::class);
     $services->alias(ContentAreaPublisherInterface::class, \ContentBlocks\Publishing\ContentAreaPublisher::class);
 
-    // Notified of every source→copy pair a deep clone produces, so a satellite
-    // package can duplicate whatever it stores beside a block. Empty by
-    // default: with no observer registered, cloning is byte-for-byte what it
-    // was before the seam existed.
+    // Empty by default; cloning is unchanged without an observer. See
+    // docs/internals/rendering.md#why-the-clone-notification-is-an-observer
     $services->set(\ContentBlocks\Section\BlockCloneObserverCollection::class)
         ->args([tagged_iterator('content_blocks.block_clone_observer')])
         ->public();
@@ -196,84 +170,61 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ContentAreaImporter::class);
     $services->alias(ContentAreaImporterInterface::class, ContentAreaImporter::class);
 
-    // Section-template library: snapshot a section, re-insert it anywhere.
-    // Saving/inserting is gated by AccessCheckerInterface on the area at hand;
-    // managing the shared library (rename/delete) has no area to key off, so it
-    // gets its own capability — deny by default, hosts alias their own.
+    // Saving and inserting gate on the area; managing the library has none
+    // to key off. See docs/internals/section-templates.md#managing-the-library
     $services->set(SectionTemplateSerializer::class);
     $services->alias(SectionTemplateSerializerInterface::class, SectionTemplateSerializer::class);
     $services->set(SectionTemplateInstantiator::class);
     $services->alias(SectionTemplateInstantiatorInterface::class, SectionTemplateInstantiator::class);
     $services->set(DenyAllSectionTemplateManager::class);
     $services->alias(SectionTemplateManagerInterface::class, DenyAllSectionTemplateManager::class);
-    // Draws the library's thumbnails from the stored payload. Nothing to
-    // configure: block types opt into richer tiles by implementing
-    // BlockPreviewHintInterface, and the ones that don't get a labelled tile.
+    // Nothing to configure: a block type opts into a richer tile by
+    // implementing BlockPreviewHintInterface.
     $services->set(SectionPosterBuilder::class);
 
-    // Copy / paste. Nothing here stores a clipboard: it lives in the editor's
-    // localStorage, which is what lets a copy survive a page change — and what
-    // makes the payload untrusted on the way back in. The serializers snapshot
-    // what was copied (the section one is the library's, reused as-is), the
-    // paster replays it and places the result, and BlockDataReplayer is the
-    // part that makes a browser-writable payload safe to write.
+    // Nothing here stores a clipboard: it lives in localStorage, which is
+    // what makes the payload untrusted. See docs/internals/clipboard.md
     $services->set(BlockSnapshotSerializer::class);
     $services->alias(BlockSnapshotSerializerInterface::class, BlockSnapshotSerializer::class);
     $services->set(BlockDataReplayer::class);
     $services->set(ClipboardPaster::class);
 
-    // Content-version seam: what to do with stored content from another schema
-    // generation of the *host's* own making. The package cannot know what
-    // changed between two host versions, so the default refuses a known
-    // mismatch (and accepts null, which only means "predates versioning").
-    // Hosts alias this to migrate on read, or to be stricter.
+    // The host's own schema generations, which the package cannot reason
+    // about. See docs/internals/versioning.md#the-content-version
     $services->set(DenyOnMismatchUpgrader::class);
     $services->alias(ContentVersionUpgraderInterface::class, DenyOnMismatchUpgrader::class);
 
-    // Envelope upgrade chain: the *package's* side of versioning, migrating a
-    // stored payload's structure forward when this package changes it. Ships
-    // empty — only one format of each kind exists so far — but must exist
-    // before the first bump, since the alternative is condemning every stored
-    // payload. Steps are autoconfigured via EnvelopeUpgraderInterface.
+    // The package's own side of versioning. Ships empty, and must exist
+    // before the first bump. See docs/internals/versioning.md
     $services->set(EnvelopeUpgradeChain::class)
         ->args([tagged_iterator('content_blocks.envelope_upgrader')]);
 
-    // Replace flow: default provider is usable out of the box; hosts
-    // override by aliasing ContentAreaProviderInterface to their own
-    // implementation in services.yaml.
+    // Usable out of the box; a host aliases its own for real labels.
     $services->set(DefaultContentAreaProvider::class);
     $services->alias(ContentAreaProviderInterface::class, DefaultContentAreaProvider::class);
 
-    // Doctrine onFlush listener that bubbles child writes up to
-    // ContentArea::updatedAt. Tagged explicitly so the package doesn't
-    // depend on DoctrineBundle's #[AsDoctrineListener] attribute at the
-    // composer level (DoctrineBundle is a host concern).
+    // Tagged rather than attributed, so the package needs no DoctrineBundle
+    // dependency. See docs/internals/publishing.md
     $services->set(ContentAreaTouchListener::class)
         ->args(['%content_blocks.content_version%'])
         ->tag('doctrine.event_listener', ['event' => 'onFlush']);
 
     // ---------- Section settings extension hooks ----------
 
-    // Note: SectionStyleProviderInterface + SectionDecoratorInterface are
-    // auto-tagged globally via registerForAutoconfiguration() in the
-    // bundle's build(); host-app implementations don't need any explicit
-    // tag.
+    // Note: the section provider and decorator interfaces are auto-tagged in
+    // the bundle's build(), so a host needs no explicit tag.
 
     $services->set(SectionStyleRegistry::class)
         ->args([tagged_iterator('content_blocks.section_style_provider')])
         ->public();
 
-    // Config-declared section style presets (`content_blocks.styles`).
-    // Registered before any host provider, so a PHP provider re-using a
-    // name wins in the registry (last provider wins per name).
+    // Before any host provider, so a PHP provider re-using a name wins.
     $services->set(\ContentBlocks\Section\ConfigSectionStyleProvider::class)
         ->args(['%content_blocks.section_styles%']);
 
     // ---------- Color palette ----------
 
-    // Config-declared palette colors (`content_blocks.palette`). Hosts can
-    // add more colors by implementing ColorPaletteProviderInterface
-    // (auto-tagged, see ContentBlocksBundle::build()).
+    // A host adds more through ColorPaletteProviderInterface, autoconfigured.
     $services->set(ConfigColorPaletteProvider::class)
         ->args(['%content_blocks.palette%']);
 
@@ -289,15 +240,12 @@ return static function (ContainerConfigurator $container): void {
     // classes consumed by styling.css.
     $services->set(\ContentBlocks\Section\StylingSectionDecorator::class);
 
-    // Pre-populates the styling sub-form with sane defaults — notably
-    // `backgroundColor=#ffffff` to avoid the <input type="color"> black
-    // default. Tagged via SectionSettingsDefaultsProviderInterface auto-
-    // configuration.
+    // Pre-populates the styling sub-form; `backgroundColor` is `''`. See
+    // docs/internals/forms.md#the-transparent-background-default
     $services->set(\ContentBlocks\Section\CoreStylingDefaults::class);
 
-    // Top-level section defaults (mirror of CoreStylingDefaults for the
-    // root settings array). Currently provides `maxWidth` so a centered
-    // section without an explicit value still picks a sensible cap.
+    // The root-level mirror of CoreStylingDefaults, so a centered section
+    // with no explicit value still picks a cap.
     $services->set(\ContentBlocks\Section\CoreSectionDefaults::class);
 
     $services->set(SectionDecoratorCollection::class)
@@ -318,10 +266,8 @@ return static function (ContainerConfigurator $container): void {
         ->args([tagged_iterator('content_blocks.block_decorator')])
         ->public();
 
-    // Pre-populates the block's styling sub-form with sane defaults —
-    // notably `backgroundColor=#ffffff` (mirror of CoreStylingDefaults
-    // on the section side). Tagged via BlockDataDefaultsProviderInterface
-    // auto-configuration.
+    // The block-side mirror; `backgroundColor` is `''` here too. See
+    // docs/internals/forms.md#the-transparent-background-default
     $services->set(\ContentBlocks\Block\CoreBlockStylingDefaults::class);
 
     $services->set(\ContentBlocks\Block\BlockDataDefaults::class)
@@ -330,10 +276,8 @@ return static function (ContainerConfigurator $container): void {
 
     // ---------- Block data resolution (render payload) ----------
 
-    // Seeds the payload from the entity's draft/published slots. Tagged by
-    // hand — with a priority, so it runs ahead of anything a host registers —
-    // hence autoconfigure(false): autoconfiguration would add the same tag a
-    // second time and the resolver would run twice.
+    // Tagged by hand for its priority, hence autoconfigure(false):
+    // autoconfiguration would tag it twice and it would run twice.
     $services->set(\ContentBlocks\Rendering\CoreBlockDataResolver::class)
         ->autoconfigure(false)
         ->tag('content_blocks.block_data_resolver', ['priority' => 256]);
@@ -342,14 +286,12 @@ return static function (ContainerConfigurator $container): void {
         ->args([tagged_iterator('content_blocks.block_data_resolver')])
         ->public();
 
-    // "Which keys can this block type hold?" — shared by the two restore paths
-    // (section-template insert, area import) so the union rule it encodes lives
-    // in exactly one place.
+    // Shared by both restore paths, so the union rule lives in one place.
+    // See docs/internals/clipboard.md#which-keys-a-block-type-can-hold
     $services->set(\ContentBlocks\Block\BlockDataKeys::class);
 
-    // Stable `_id` on every collection entry. Minted on the draft-write path
-    // (BlockComponent::persistDraft) so a reorder, duplicate or delete never
-    // shifts what per-entry information points at.
+    // Minted on the draft-write path, so a reorder never shifts what
+    // per-entry information points at. See docs/internals/clipboard.md
     $services->set(\ContentBlocks\Block\CollectionItemIds::class);
 
     // One-off normalization of content stored before `_id` existed. The
@@ -358,18 +300,14 @@ return static function (ContainerConfigurator $container): void {
 
     // ---------- Builder topbar actions ----------
 
-    // The Actions menu. A bundle contributes through
-    // BuilderActionProviderInterface (autoconfigured); a single form still
-    // declares one-offs through the `topbar_actions` option, and the collection
-    // merges both into one ordered list.
+    // Merges provider contributions and a form's own `topbar_actions`.
+    // See docs/internals/builder-extensions.md#ordering-and-collisions
     $services->set(\ContentBlocks\Builder\BuilderActionCollection::class)
         ->args([tagged_iterator('content_blocks.builder_action_provider')])
         ->public();
 
-    // Fragments rendered inside the shell, contributed by a bundle through
-    // BuilderShellExtensionInterface (autoconfigured). The shell template
-    // reads them through `cb_shell_fragments(area)` so they appear wherever
-    // the shell is rendered, not only through ContentAreaType.
+    // Read by the shell template itself, so they appear wherever it renders.
+    // See docs/internals/builder-extensions.md#two-halves-of-one-seam
     $services->set(\ContentBlocks\Builder\BuilderShellFragmentCollection::class)
         ->args([tagged_iterator('content_blocks.builder_shell_extension')])
         ->public();
@@ -379,10 +317,8 @@ return static function (ContainerConfigurator $container): void {
 
     // ---------- Content translation (convention only) ----------
 
-    // Declares the `cb_translatable` form option, and reads the tags back.
-    // Neither has a consumer in this package: the core ships the convention so
-    // it freezes with the 1.0 contract, a satellite package ships the storage,
-    // the UI and the locale-aware resolver. See TRANSLATION-SPIKE.md.
+    // Neither has a consumer here: the core ships the convention so it
+    // freezes with 1.0. See docs/internals/forms.md
     $services->set(\ContentBlocks\Form\Extension\TranslatableFieldTypeExtension::class)
         ->tag('form.type_extension');
 
@@ -392,13 +328,8 @@ return static function (ContainerConfigurator $container): void {
         \ContentBlocks\Translation\TranslatableFields::class,
     );
 
-    // Form types + the per-block form-extension collection. The collection's
-    // `$extensions` argument (the [extension, target block type ids] pairs) is
-    // populated by BlockFormExtensionPass; empty until a host tags an extension.
-    // The attribute is a marker class read by reflection, never instantiated by
-    // the container, so it is excluded from the glob — registering it would put
-    // a meaningless service in every host's container (and would hard-fail the
-    // day its constructor arguments stop having defaults).
+    // The attribute is a marker read by reflection, never instantiated,
+    // hence the exclude. Its pairs come from BlockFormExtensionPass.
     $services->load('ContentBlocks\\Form\\', '../src/Form/')
         ->exclude('../src/Form/Extension/AsBlockFormExtension.php');
 

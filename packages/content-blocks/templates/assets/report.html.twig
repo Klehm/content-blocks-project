@@ -1,7 +1,5 @@
-{# Standalone operator page — rendered by the package, deliberately not part of
-   the builder chrome: it is a whole-install report, and it costs a directory
-   walk plus a pass over the content tables to produce. Read-only by design;
-   see AssetReportController. #}
+{# A whole-install report costing a directory walk, deliberately outside the
+   builder chrome and read-only. See docs/internals/assets.md #}
 {% macro bytes(value) -%}
     {%- if value >= 1024 ** 3 -%}
         {{- (value / 1024 ** 3)|number_format(1) }} GB

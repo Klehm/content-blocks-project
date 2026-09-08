@@ -1,10 +1,5 @@
-{# The translation workbench.
-
-   A standalone page rather than a panel inside the builder: the unit of work
-   here is *the page*, not a block, and the point is to never leave the list.
-   The rows are rendered server-side (see WorkbenchPageController) so a
-   translator can read and start typing on first paint, with no spinner between
-   the click and the first field.
+{# A standalone page, rendered server-side so a translator can start typing
+   on first paint. See docs/internals/i18n.md
 
    @var area  \ContentBlocks\Entity\ContentArea
    @var blocks    array
@@ -96,9 +91,8 @@
             <span class="cb-wb__chip cb-wb__chip--missing"><b data-target="countMissing">{{ progress.missing }}</b> {{ 'cb_i18n.status.missing'|trans }}</span>
         </div>
 
-        {# The filters double as the job list: "translate the 19 missing fields"
-           is one click plus one Tab pass, because filtering narrows tab order
-           too (see _applyFilter). #}
+        {# The filters double as the job list, because filtering narrows the
+           tab order too. #}
         <div class="cb-wb__filters" role="group" aria-label="{{ 'cb_i18n.workbench.filter'|trans }}">
             <button type="button" class="cb-wb__filter is-active" data-act="filter" data-filter-value="all">{{ 'cb_i18n.workbench.filter_all'|trans }}</button>
             <button type="button" class="cb-wb__filter" data-act="filter" data-filter-value="missing">{{ 'cb_i18n.status.missing'|trans }}</button>
@@ -112,11 +106,8 @@
                 <p class="cb-wb__empty">{{ 'cb_i18n.workbench.nothing'|trans }}</p>
             {% endif %}
 
-            {# Every URL the script calls is generated here, per block, rather
-               than assembled from a hardcoded prefix in JavaScript. That is
-               what lets a host mount these routes wherever it likes — under
-               `/admin`, behind its own firewall — without the workbench
-               fetching a 404. #}
+            {# Generated here, per block, so a host can mount these routes
+               anywhere. See docs/internals/i18n.md#config-and-mounting #}
             {% for block in blocks %}
                 <article class="cb-wb__block"
                          data-cb-block="{{ block.blockId }}"
@@ -157,13 +148,10 @@
                                         <button type="button" class="cb-wb__icon" data-act="translateField"
                                                 title="{{ 'cb_i18n.workbench.translate_field'|trans }}">⚡</button>
                                     {% endif %}
-                                    {# "Still current" — re-stamps the source digest without retyping.
-                                       A staleness flag that can only be cleared by redoing finished
-                                       work is a flag people learn to ignore. #}
+                                    {# Re-stamps the digest without retyping. #}
                                     <button type="button" class="cb-wb__icon cb-wb__icon--approve" data-act="approve"
                                             title="{{ 'cb_i18n.workbench.mark_current'|trans }}">✓</button>
-                                    {# Distinct from clearing the text box: this sends null, so the
-                                       field falls back to its source instead of rendering blank. #}
+                                    {# Sends null, not "". #}
                                     <button type="button" class="cb-wb__icon" data-act="reset"
                                             title="{{ 'cb_i18n.workbench.reset'|trans }}">⨯</button>
                                 </div>

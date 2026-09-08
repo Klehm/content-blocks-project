@@ -1,15 +1,8 @@
-{# Default sidebar content when no element (section / block) is focused.
-   Invites the user to click an element in the iframe, seed the area with
-   one of the three section layouts (mirrors the iframe's empty tray), or
-   pick a saved section straight from the library.
+{# The sidebar with nothing focused: a hint, the three section layouts, and
+   the saved-section library. #}
 
-   The library is rendered *here* rather than behind a modal: it is the
-   panel's whole reason to exist when nothing is selected, and hiding a list
-   behind a button cost a click for no gain. The Stimulus targets are the same
-   ones the modal used, so the load / search / paginate / delete logic is
-   untouched — only where it paints moved. The `data-i18n-*` attributes ride
-   along on this root for the same reason (the controller reads them off any
-   element carrying them). #}
+{# The library is here rather than behind a modal — it is the panel's whole
+   reason to exist when nothing is selected. #}
 <div class="cb-sidebar-empty">
     <p class="cb-sidebar-empty__hint">
         {{ 'cb.builder.sidebar.empty'|trans({}, 'content_blocks') }}

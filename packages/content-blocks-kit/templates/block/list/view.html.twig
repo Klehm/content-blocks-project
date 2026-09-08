@@ -1,8 +1,5 @@
-{# ListBlock view. Style: bullet | check | numbered, plus anything a host adds
-   through config — the value is a class suffix and passes through. Only the two
-   behaviours the kit itself implements stay keyed to their coded value: an
-   ordered list for `numbered`, the check glyph for `check`. An added style is a
-   `<ul>` carrying its own class, which is what CSS alone can restyle. #}
+{# The style is a class suffix; only the ordered list and the check glyph
+   stay keyed to their coded value. #}
 {% set items = data.items|default([])|map(i => i.text|default(''))|filter(t => t|trim is not empty) %}
 {% if items|length > 0 %}
     {% set style = cb_kit_token(data.style|default('bullet'), 'bullet') %}

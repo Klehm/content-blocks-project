@@ -1,19 +1,11 @@
-{# TabsBlock — CSS-only tabs (no JS dependency).
-
-   A radio per tab, its label right after it, its panel right after the label.
-   Flex ordering puts every label on the first row and every panel below, so
-   the active state is two static rules in kit.css (`:checked + label`,
-   `:checked + label + panel`) — no per-tab rule, no id selector, and no
-   inline <style>. The ids below only pair a label with its input; nothing
-   styles them, so a host retheming the block never fights their specificity.
-#}
+{# CSS-only tabs: a radio, its label, its panel, ordered by flex so the
+   active state is two static rules rather than one per tab. #}
 {% if data.items is defined and data.items is iterable and data.items|length > 0 %}
     {% set uid = 'cb-kit-tabs-' ~ random() %}
     <div class="cb-kit-tabs">
         {% for tab in data.items %}
-            {# Native radios, kept focusable (offscreen, not `display:none`):
-               a radio group already gives arrow-key navigation for free, and
-               the visible focus ring is drawn on the label next to it. #}
+            {# Offscreen, not `display:none`: a radio group gives arrow-key
+               navigation free, and the ring is drawn on the label. #}
             <input type="radio"
                    name="{{ uid }}"
                    id="{{ uid }}-{{ loop.index0 }}"
@@ -23,9 +15,8 @@
             <label for="{{ uid }}-{{ loop.index0 }}"
                    id="{{ uid }}-{{ loop.index0 }}-label"
                    class="cb-kit-tabs__tab">{{ tab.title|default('Untitled') }}</label>
-            {# `region` + aria-labelledby rather than a half-built tab/tablist
-               set: the panel is honestly a labelled region, and the radios
-               keep their native semantics. #}
+            {# A labelled region rather than a half-built tablist, so the
+               radios keep their native semantics. #}
             <div class="cb-kit-tabs__panel"
                  id="{{ uid }}-{{ loop.index0 }}-panel"
                  role="region"
