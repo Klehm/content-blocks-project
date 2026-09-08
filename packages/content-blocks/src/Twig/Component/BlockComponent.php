@@ -26,13 +26,12 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\LiveComponent\LiveCollectionTrait;
 
 /**
- * Live Component for editing a single Block. Designed to be mounted in the
- * builder sidebar — always rendered in edit mode (no inline preview/edit
- * toggle). On save / cancel, dispatches a browser CustomEvent that bubbles
- * up to the parent admin window's `cb-builder` Stimulus controller, which is
- * responsible for closing the sidebar and reloading the iframe.
+ * Live Component editing one Block in the builder sidebar. Save and cancel
+ * dispatch a bubbling CustomEvent that `cb-builder` acts on.
  *
- * @internal Driven by the builder templates; not a host extension point. See FREEZE-AUDIT.md.
+ * @see docs/internals/forms.md#the-block-form-is-the-whitelist
+ *
+ * @internal driven by the builder templates, not a host extension point
  */
 #[AsLiveComponent('ContentBlocks:Block', template: '@ContentBlocks/components/Block.html.twig')]
 final class BlockComponent
@@ -94,10 +93,8 @@ final class BlockComponent
         $blockType = $this->getBlockType();
         $data = $block->getDraftData() ?? $block->getPublishedData() ?? [];
 
-        // Backfill defaults so widgets without an "empty" state
-        // (notably <input type="color">) open with a sane value rather
-        // than the browser's black fallback. Recursive merge keeps the
-        // existing data untouched and only fills holes.
+        // Recursive, so it only fills holes. See
+        // forms.md#why-defaults-are-merged-on-form-load
         $initial = array_replace_recursive($this->blockDataDefaults->get(), $data);
 
         return $this->formFactory->create(
@@ -118,17 +115,10 @@ final class BlockComponent
     }
 
     /**
-     * Reorder the items of a LiveCollectionType field by moving the entry at
-     * position $from to position $to. Driven by the cb-collection-sort Stimulus
-     * controller on drop (or its keyboard up/down fallback).
+     * Moves a collection entry from one 0-based DOM position to another, and
+     * persists the draft itself because autosave cannot see the change.
      *
-     * Unlike add/delete — which add/remove a DOM node that the cb-autosave
-     * MutationObserver picks up — a reorder re-renders the *same* positional
-     * widget ids with swapped values, i.e. an in-place value change with no
-     * childList mutation. The observer would never see it, so this action
-     * persists the draft itself (same path as save) and dispatches
-     * cb:block:saved to reload the preview. $from / $to are 0-based DOM
-     * positions, which is why reorderCollection() works on a positional view.
+     * @see docs/internals/forms.md#why-collection-reorder-and-duplicate-flush
      */
     #[LiveAction]
     public function moveCollectionItem(
@@ -156,15 +146,10 @@ final class BlockComponent
     }
 
     /**
-     * Duplicate the entry at position $index of a LiveCollectionType field,
-     * inserting the copy right after the original. Driven by the duplicate
-     * button rendered by the cb_form_theme on each collection card, routed
-     * through the cb-collection-sort Stimulus controller.
+     * Inserts a copy right after the entry at 0-based position $index, and
+     * persists the draft itself for the same reason as the reorder above.
      *
-     * Like moveCollectionItem, this is an in-place value change with no
-     * childList mutation the cb-autosave observer could catch (the copy reuses
-     * the next positional widget id), so it persists the draft itself and
-     * dispatches cb:block:saved. $index is the 0-based DOM position.
+     * @see docs/internals/forms.md#why-collection-reorder-and-duplicate-flush
      */
     #[LiveAction]
     public function duplicateCollectionItem(
@@ -191,10 +176,10 @@ final class BlockComponent
     }
 
     /**
-     * Submit the live form and commit its data to the block's draft, then tell
-     * the admin window to reload the preview iframe. Shared by save() and
-     * moveCollectionItem(). A no-op (returns early) when the block type is gone
-     * or the form fails validation — the form re-renders with errors instead.
+     * The single funnel for every draft write. A no-op when the block type is
+     * gone or the form fails validation, which re-renders with errors.
+     *
+     * @see docs/internals/forms.md#the-block-form-is-the-whitelist
      */
     private function persistDraft(): void
     {
@@ -211,9 +196,8 @@ final class BlockComponent
         }
 
         $block = $this->getBlock();
-        // Every write of a block's draft passes through here, which makes it
-        // the one place that has to guarantee collection entries carry their
-        // stable id — including entries the editor just added or duplicated.
+        // The one place that can guarantee every collection entry carries its
+        // stable id, including ones just added or duplicated.
         $form = $this->getForm();
         $block->setDraftData($this->collectionItemIds->backfill($form, $form->getData()));
         $this->em->flush();
@@ -222,11 +206,10 @@ final class BlockComponent
     }
 
     /**
-     * Move the item at index $from to index $to within a positional list.
-     * Returns null when the move is a no-op or out of range, so the caller can
-     * skip the write. Keys are normalized to a contiguous 0..n list — the live
-     * collection re-renders positionally, so sparse keys left over from a prior
-     * deletion are irrelevant.
+     * Null when the move is a no-op or out of range, so the caller can skip
+     * the write. Keys are normalized to a contiguous 0..n list.
+     *
+     * @see docs/internals/forms.md#why-collection-reorder-and-duplicate-flush
      *
      * @param array<int|string, mixed> $data
      *
@@ -247,10 +230,10 @@ final class BlockComponent
     }
 
     /**
-     * Insert a copy of the item at $index immediately after it within a
-     * positional list. Returns null when $index is out of range, so the caller
-     * can skip the write. Keys are normalized to a contiguous 0..n list — the
-     * live collection re-renders positionally.
+     * Null when $index is out of range, so the caller can skip the write.
+     * Keys are normalized to a contiguous 0..n list.
+     *
+     * @see docs/internals/forms.md#why-collection-reorder-and-duplicate-flush
      *
      * @param array<int|string, mixed> $data
      *
@@ -265,10 +248,8 @@ final class BlockComponent
         }
 
         $copy = $values[$index];
-        // Strip the source entry's stable id: the copy is a new entry and must
-        // not share an identity with the original, or anything keyed per entry
-        // (translations first) would address both at once. persistDraft() mints
-        // a fresh one through CollectionItemIds.
+        // A copy is a new entry: sharing the source's id would make anything
+        // keyed per entry address both at once. persistDraft() mints a fresh.
         if (\is_array($copy)) {
             unset($copy[CollectionItemIds::KEY]);
         }
@@ -279,10 +260,8 @@ final class BlockComponent
     }
 
     /**
-     * Resolve a live-collection field's full name (as emitted in
-     * data-live-name-param, e.g. "content_block[tabs]") to a PropertyAccessor
-     * path into $formValues. Mirrors LiveCollectionTrait::fieldNameToPropertyPath,
-     * which is private to the trait.
+     * `content_block[tabs]` to a PropertyAccessor path. Mirrors
+     * LiveCollectionTrait::fieldNameToPropertyPath, private to the trait.
      */
     private function collectionPropertyPath(string $name): string
     {

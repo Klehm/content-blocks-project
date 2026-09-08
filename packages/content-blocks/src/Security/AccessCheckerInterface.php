@@ -7,11 +7,10 @@ namespace ContentBlocks\Security;
 use ContentBlocks\Entity\ContentArea;
 
 /**
- * Implement this interface in your application to control access to ContentArea editing.
+ * Authorization for ContentArea editing — **required** from the host, since
+ * nothing here knows its auth model. Denied by default.
  *
- * ContentBlocks does not know your authentication model. Your app must provide
- * an implementation and register it as a service. Without one, the default
- * DenyAllAccessChecker rejects every mutation.
+ * @see docs/guide/host-services.md
  */
 interface AccessCheckerInterface
 {

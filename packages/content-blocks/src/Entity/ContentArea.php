@@ -18,27 +18,19 @@ class ContentArea
     private ?int $id = null;
 
     /**
-     * Touched by the Doctrine onFlush listener whenever any Section / Column /
-     * Block in this area is created, updated, or removed. Nullable for
-     * back-compat with rows created before the column was added; new rows get
-     * a non-null value the first time the listener runs.
+     * Touched by the onFlush listener on any descendant change. Nullable only
+     * for rows written before the column existed.
+     *
+     * @see docs/internals/publishing.md#why-the-touch-listener-hooks-onflush
      */
     #[ORM\Column(name: 'updated_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
     /**
-     * Schema generation this area's content was last **written** under — the
-     * host-owned `content_blocks.content_version`, stamped by the same onFlush
-     * listener as `updatedAt`.
+     * "Last written under version N", **not** "conforms to N" — a targeting
+     * index for migrations, never a guarantee. `null` means unknown, not 0.
      *
-     * Read it as "last written under version N", not "conforms to version N".
-     * Editing one block re-stamps the whole area while its other blocks keep
-     * whatever shape they had, so the value is a targeting index for migrations
-     * (`WHERE content_version < N` finds what certainly predates a change), not
-     * a guarantee. Migrate before letting editors work on a new version.
-     *
-     * `null` means the row predates versioning — treat it as "unknown", never
-     * as 0.
+     * @see docs/internals/versioning.md#the-content-version
      */
     #[ORM\Column(name: 'content_version', type: 'integer', nullable: true)]
     private ?int $contentVersion = null;

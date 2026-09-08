@@ -10,15 +10,10 @@ use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 /**
- * Exposes the image seam to view templates as `cb_image()`.
+ * Exposes the image seam to view templates as `cb_image()`. Kept apart from
+ * {@see ContentBlocksExtension} so a block-view test can register it alone.
  *
- * Kept apart from {@see ContentBlocksExtension} on purpose: this one depends on
- * a single resolver, so a block-view test can register it standalone without
- * standing up the renderer, the URL resolver and the palette.
- *
- *     {% set img = cb_image(data.src, 800) %}
- *     <img src="{{ img.src }}"
- *          {%- if img.srcset %} srcset="{{ img.srcset }}"{% endif %}>
+ * @see docs/internals/builder-extensions.md#why-the-twig-extensions-are-split
  */
 final class ImageExtension extends AbstractExtension
 {
@@ -38,18 +33,15 @@ final class ImageExtension extends AbstractExtension
     }
 
     /**
-     * `{{ cb_image(src, width, height) }}` → a {@see ResolvedImage}.
-     *
-     * Width/height are the *display* box the template intends to use, which is
-     * exactly the input a resizing resolver needs; pass null when the view does
-     * not pin one (a fluid grid cell, say) and let the resolver decide.
+     * Width and height are the *display* box the template intends to use. Pass
+     * null where the view pins none and let the resolver decide.
      */
     public function image(?string $src, ?int $width = null, ?int $height = null): ResolvedImage
     {
         $src = trim($src ?? '');
 
-        // Nothing to resolve — spare implementations from having to special-case
-        // the empty source, which templates guard against anyway.
+        // Spares implementations from special-casing the empty source, which
+        // templates guard against anyway.
         if ($src === '') {
             return new ResolvedImage('');
         }

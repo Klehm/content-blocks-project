@@ -5,21 +5,14 @@ declare(strict_types=1);
 namespace ContentBlocks\BlockType;
 
 /**
- * What a block looks like, reduced to the least a thumbnail needs to know.
+ * What a block looks like, reduced to the least a thumbnail needs. Six kinds,
+ * a line of text, an image path — resist growing it any further.
  *
- * The core owns no opinion about the shape of a block's `data` — only the
- * block type does — so a block that wants to show up meaningfully in the
- * section library says so here, in terms the poster renderer understands
- * without knowing anything about the block ({@see BlockPreviewHintInterface}).
- *
- * Deliberately tiny: six kinds, an optional line of text, an optional image
- * path. It describes a *tile in a thumbnail*, not the block — resist growing
- * it into a second rendering pipeline. Anything a hint cannot express is a
- * sign the poster should stay generic and let the real preview do its job.
+ * @see docs/internals/blocks.md#preview-hints-and-why-they-stay-tiny
  */
 final class BlockPreviewHint
 {
-    /** A picture: `image` carries a storage path the admin can load directly. */
+    /** A picture: `image` carries a storage path the admin can load. */
     public const KIND_IMAGE = 'image';
     /** A title line — rendered emphasised, on one line. */
     public const KIND_HEADING = 'heading';
@@ -33,9 +26,9 @@ final class BlockPreviewHint
     public const KIND_GENERIC = 'generic';
 
     /**
-     * Text is capped rather than rejected: a tile shows a line or two, and a
-     * block has no way of knowing that. Cutting here keeps every caller
-     * honest and the list payload small (10 templates × their blocks).
+     * Capped rather than rejected: a block cannot know a tile shows two lines.
+     *
+     * @see docs/internals/blocks.md#preview-hints-and-why-they-stay-tiny
      */
     private const MAX_TEXT = 120;
 

@@ -7,17 +7,10 @@ namespace ContentBlocks\Builder;
 use ContentBlocks\Entity\ContentArea;
 
 /**
- * Gathers the topbar's Actions menu: every registered provider's contribution,
- * plus whatever the form declared inline, as one ordered list.
+ * Gathers the topbar's Actions menu — every provider's contribution plus the
+ * form's own — into one ordered, key-deduplicated list.
  *
- * Ordering is by descending priority, and ties keep the order the actions came
- * in — providers first (in service order), then the form's own entries. A
- * bundle that wants to sit above or below the host's actions says so with a
- * priority rather than by hoping about registration order.
- *
- * Duplicate keys collapse to the first occurrence: a form-level action cannot
- * silently shadow a provider's, and two providers claiming the same key is a
- * wiring mistake that should not render twice.
+ * @see docs/internals/builder-extensions.md#ordering-and-collisions
  */
 final class BuilderActionCollection
 {
@@ -30,7 +23,7 @@ final class BuilderActionCollection
     }
 
     /**
-     * @param array<int, array<string, mixed>|BuilderAction> $formActions the `topbar_actions` form option
+     * @param array<int, array<string, mixed>|BuilderAction> $formActions
      *
      * @return list<BuilderAction>
      */

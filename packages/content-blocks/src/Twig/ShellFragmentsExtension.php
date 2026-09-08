@@ -11,17 +11,10 @@ use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 /**
- * Exposes the shell fragments a bundle contributes to the builder as
- * `cb_shell_fragments(area)`.
+ * Exposes a bundle's shell fragments as `cb_shell_fragments(area)`, which the
+ * shell template calls itself rather than receiving as a variable.
  *
- * The shell template calls it itself rather than having the list threaded in
- * as a variable the way `topbarActions` is: a fragment must appear wherever the
- * shell is rendered — through `ContentAreaType` *or* a host's direct include of
- * the launcher — since the whole point is that the host wires nothing.
- *
- * Its own extension rather than a fourth function on {@see ContentBlocksExtension},
- * for the reason {@see ImageExtension} is: it stays instantiable alone in a
- * test, with no renderer or URL resolver to stub.
+ * @see docs/internals/builder-extensions.md#why-the-twig-extensions-are-split
  */
 final class ShellFragmentsExtension extends AbstractExtension
 {

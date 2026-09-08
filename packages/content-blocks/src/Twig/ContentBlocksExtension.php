@@ -44,9 +44,8 @@ final class ContentBlocksExtension extends AbstractExtension
     }
 
     /**
-     * The configured color palette as a list of `{label, color}` maps —
-     * handy for surfacing the same named colors a `PaletteColorType`
-     * offers to a JS widget (e.g. a rich-text editor's color swatches).
+     * The configured palette, for handing the same named colors to a JS widget
+     * — a rich-text editor's swatches, say.
      *
      * @return list<array{label: string, color: string}>
      */
@@ -61,15 +60,10 @@ final class ContentBlocksExtension extends AbstractExtension
     }
 
     /**
-     * `{{ cb_render_content_area(page.contentArea) }}` — mode is auto-detected
-     * from the request (preview for an editor with access, public otherwise).
+     * Mode is auto-detected from the request. `$locale` pins the language only
+     * — mode detection is unaffected, and with no i18n package it is inert.
      *
-     * Pass `locale` to pin the language a locale-aware
-     * {@see \ContentBlocks\Rendering\BlockDataResolverInterface} should serve —
-     * `{{ cb_render_content_area(page.contentArea, 'fr') }}`. It only sets the
-     * language; mode detection is unaffected, so an editor previewing a
-     * pinned-locale page still sees their draft. With no translation package
-     * installed the argument is inert.
+     * @see docs/internals/rendering.md#why-the-pipeline-takes-a-context-object
      */
     public function renderContentArea(?ContentArea $area, ?string $locale = null): string
     {
@@ -81,9 +75,8 @@ final class ContentBlocksExtension extends AbstractExtension
     }
 
     /**
-     * Iframe-ready URL for previewing this ContentArea: the public URL the
-     * host app exposes for the owning page, with `?cb_preview=1` appended so
-     * BlockRenderer renders draft state.
+     * The host's public URL for the owning page, with `?cb_preview=1` appended
+     * so the renderer serves draft state.
      */
     public function previewUrl(ContentArea $area): string
     {

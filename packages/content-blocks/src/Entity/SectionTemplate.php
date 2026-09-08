@@ -7,22 +7,10 @@ namespace ContentBlocks\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * A reusable, named snapshot of a single Section (layout + settings +
- * columns + blocks + their data), stored in a global library so editors can
- * re-insert it into any ContentArea.
+ * A named **snapshot** of one Section, not a live template: inserting clones
+ * the payload, and neither side propagates to the other afterwards.
  *
- * This is a *snapshot*, not a live template: inserting clones the payload:
- * later edits to the inserted section never propagate back, and editing the
- * template never touches areas already built from it.
- *
- * Asset references inside `payload` are kept as plain storage paths (not
- * embedded binaries) — the library lives inside a single app, so duplicating
- * files would be wasteful. The trade-off: deleting the original upload breaks
- * templates that reference it.
- *
- * `blockTypes` caches the set of block-type identifiers used by the payload
- * so the library can flag a template as incompatible (a block type is no
- * longer registered) without deserializing the whole payload.
+ * @see docs/internals/section-templates.md#what-a-snapshot-holds
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'cb_section_template')]
@@ -45,12 +33,10 @@ class SectionTemplate
     private array $blockTypes = [];
 
     /**
-     * Schema generation of the block data inside `payload` — the host-owned
-     * `content_blocks.content_version` at the moment the snapshot was taken.
+     * Unlike a ContentArea's, this stamp never moves: a snapshot is frozen, so
+     * it really does describe its payload. `null` means unknown, not 0.
      *
-     * Unlike a ContentArea's, this one never moves: a snapshot is frozen by
-     * definition, so the value really does describe its payload. `null` means
-     * the row predates versioning — "unknown", never 0.
+     * @see docs/internals/versioning.md#the-content-version
      */
     #[ORM\Column(name: 'content_version', type: 'integer', nullable: true)]
     private ?int $contentVersion = null;

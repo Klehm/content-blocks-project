@@ -26,6 +26,10 @@ annotations in the code; the budget that keeps them short is in
 | [clipboard.md](clipboard.md) | Copy / paste, the untrusted payload, `BlockDataReplayer` |
 | [assets.md](assets.md) | Upload, storage, reference detection, the GC |
 | [forms.md](forms.md) | Block forms as the whitelist, form extensions, styling types |
+| [blocks.md](blocks.md) | `BlockTypeInterface`, view templates, hot reload, preview hints |
+| [versioning.md](versioning.md) | Content version vs envelope format, and who owns which |
+| [builder-extensions.md](builder-extensions.md) | Topbar actions and shell fragments |
+| [bundle-boot.md](bundle-boot.md) | Prepends, autoconfiguration, compiler passes |
 | [section-templates.md](section-templates.md) | The section library, snapshots, posters |
 | [transfer.md](transfer.md) | Area export / import, the payload format, embedded assets |
 | [worker-mode.md](worker-mode.md) | Cross-request state, what may be cached on a service |

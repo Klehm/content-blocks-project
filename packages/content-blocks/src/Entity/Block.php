@@ -20,18 +20,10 @@ class Block
     private ?Column $column = null;
 
     /**
-     * The column this block is published in, when a draft move took it
-     * somewhere else — null the rest of the time, which is nearly always.
+     * Where the block is published, when a draft move took it elsewhere. A
+     * plain id: an association would fight a removed column at publish time.
      *
-     * Dragging a block into another column writes {@see $column} straight
-     * away, because that FK is what the builder, the preview and Doctrine's
-     * cascades all navigate. That makes it the *draft* location, and leaves
-     * the published render with no way to keep the block where it was — hence
-     * this. A plain id, deliberately: an association would give a removed
-     * column a live reference to fight over at publish time, and nothing here
-     * needs to navigate it — {@see \ContentBlocks\Rendering\BlockRenderer}
-     * buckets by id, and the publisher resolves it against the area it is
-     * already walking.
+     * @see docs/internals/publishing.md#the-rule-the-whole-design-rests-on
      */
     #[ORM\Column(name: 'published_column_id', nullable: true)]
     private ?int $publishedColumnId = null;
@@ -86,10 +78,10 @@ class Block
     }
 
     /**
-     * Draft move into another column: records where the block is published on
-     * the way out, so the public page can keep showing it there until Publish.
-     * Nothing to record for a block that was never published — the public page
-     * doesn't show it at all — nor for a move that lands it back home.
+     * Draft move into another column, recording where the block is published
+     * on the way out. Nothing to record for one that never was.
+     *
+     * @see docs/internals/publishing.md#the-rule-the-whole-design-rests-on
      */
     public function moveTo(Column $target): self
     {
@@ -102,9 +94,8 @@ class Block
     }
 
     /**
-     * Undo of {@see moveTo()} — puts the block back in the column it is
-     * published in and forgets the move. Called by the publisher on discard,
-     * which is the only place that can resolve the id back to a Column.
+     * Undo of {@see moveTo()}. Called by the publisher on discard, the only
+     * place that can resolve the id back to a Column.
      */
     public function restoreTo(Column $publishedColumn): self
     {
@@ -114,14 +105,10 @@ class Block
     }
 
     /**
-     * Moves the block between two columns on *both* sides of the association.
+     * Both sides of the association, in this order: `removeElement` schedules
+     * an orphan removal that the `add` then cancels.
      *
-     * Writing the FK alone would leave the old column's collection holding a
-     * block that is no longer its own — which matters, because Doctrine
-     * cascades a Column/Section removal through that collection and would take
-     * the block down with it. Doing it in this order is also what keeps the
-     * block alive: `removeElement` schedules an orphan removal, and the `add`
-     * on the new collection cancels it.
+     * @see docs/internals/publishing.md#the-rule-the-whole-design-rests-on
      */
     private function attachTo(Column $target): self
     {
@@ -229,12 +216,10 @@ class Block
     }
 
     /**
-     * Revert draft state to match the published one.
+     * Reverts draft state, but **not** a draft move: only the caller can
+     * resolve {@see $publishedColumnId} back to a Column.
      *
-     * A draft move is *not* undone here: putting the block back means writing
-     * the column FK, and only the caller knows the Column object behind
-     * {@see $publishedColumnId}. {@see \ContentBlocks\Publishing\ContentAreaPublisher::discardDraft()}
-     * does it, walking the area it already holds.
+     * @see docs/internals/publishing.md#publish-and-discard-semantics
      */
     public function revertDraft(): void
     {

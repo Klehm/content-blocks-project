@@ -10,15 +10,12 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 
 /**
- * Collects services tagged `content_blocks.block_form_extension` (via
- * {@see \ContentBlocks\Form\Extension\AsBlockFormExtension}) and wires them —
- * paired with the block type ids they target, priority-ordered — into the
- * {@see BlockFormExtensionCollection}.
+ * Pairs each block form extension with the type ids it targets, in priority
+ * order, and feeds {@see BlockFormExtensionCollection}.
  *
- * The target ids live in the tag rather than the interface so a host writes a
- * single `#[AsBlockFormExtension('button')]` and implements only buildForm().
+ * @see docs/internals/bundle-boot.md#autoconfiguration
  *
- * @internal Wiring detail of the bundle. See FREEZE-AUDIT.md.
+ * @internal wiring detail of the bundle
  */
 final class BlockFormExtensionPass implements CompilerPassInterface
 {
@@ -43,8 +40,7 @@ final class BlockFormExtensionPass implements CompilerPassInterface
             }
         }
 
-        // Higher priority first; usort is stable on PHP 8, so extensions sharing
-        // a priority keep their service-discovery order.
+        // usort is stable on PHP 8, so a shared priority keeps discovery order.
         usort($registrations, static fn (array $a, array $b): int => $b['priority'] <=> $a['priority']);
 
         $container->findDefinition(BlockFormExtensionCollection::class)

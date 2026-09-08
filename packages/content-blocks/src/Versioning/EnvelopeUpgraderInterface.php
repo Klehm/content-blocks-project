@@ -5,24 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\Versioning;
 
 /**
- * One step in migrating a stored payload's **envelope** — the structure this
- * package owns (`{format, contentArea: {sections: […]}, assets}` for a transfer,
- * `{format, layout, settings, columns}` for a section template).
+ * One step in migrating a payload's **envelope** — the structure this package
+ * owns, as opposed to the content the host owns. Autoconfigured.
  *
- * This is the counterpart of {@see ContentVersionUpgraderInterface}, on the other
- * side of the ownership line: the *content* inside a payload belongs to the block
- * types, so migrating it is the host's job; the envelope around it belongs to
- * this package, so migrating it is ours.
- *
- * Without such steps, bumping an envelope format would condemn every stored
- * section template and every exported file — which in practice means the format
- * could never be bumped at all. A step ships alongside the change that makes it
- * necessary, and old payloads keep working.
- *
- * Implementations are autoconfigured (tag `content_blocks.envelope_upgrader`) and
- * chained by {@see EnvelopeUpgradeChain}, which walks from a payload's declared
- * format to the one the code reads today. Steps are ordinary services, so a host
- * may add its own for a format it invented.
+ * @see docs/internals/versioning.md#the-ownership-line
  */
 interface EnvelopeUpgraderInterface
 {
@@ -33,8 +19,8 @@ interface EnvelopeUpgraderInterface
     public function upgradesTo(): string;
 
     /**
-     * Restructure the payload. Only the envelope is this step's business — block
-     * data inside it belongs to the block types and must be carried over as-is.
+     * Only the envelope is this step's business — the block data inside it
+     * must be carried over as-is.
      *
      * @param array<string, mixed> $payload
      *

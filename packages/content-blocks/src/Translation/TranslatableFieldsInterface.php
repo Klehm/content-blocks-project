@@ -5,37 +5,21 @@ declare(strict_types=1);
 namespace ContentBlocks\Translation;
 
 /**
- * Answers "which of this block type's fields may be translated?" by reading the
- * `cb_translatable` tags off its built edit form
- * (see {@see \ContentBlocks\Form\Extension\TranslatableFieldTypeExtension}).
+ * Which of a block type's fields may be translated, read off its **built** edit
+ * form. Override seam; the core ships no consumer for it.
  *
- * Reading the built form rather than a static declaration is the same rule
- * {@see \ContentBlocks\Block\BlockDataKeys} follows, and for the same reason:
- * it stays true when a host adds fields through
- * {@see \ContentBlocks\Form\Extension\BlockFormExtensionInterface}. A host that
- * adds a translatable field to someone else's block gets it picked up for free.
- *
- * The core ships no consumer for this — it is the allow-list a translation
- * package builds its per-field UI from, and the filter it applies when merging
- * a locale payload. It lives in the core so the *convention* is frozen with the
- * 1.0 contract.
- *
- * Override seam: the bundle aliases this to the shipped {@see TranslatableFields}.
+ * @see docs/internals/forms.md#which-fields-are-translatable
  */
 interface TranslatableFieldsInterface
 {
     /**
-     * Paths of the translatable fields of $blockType, in form-declaration
-     * order. Nesting is dotted and collection entries are marked `[]`:
+     * Dotted paths in form-declaration order, collection entries marked `[]`.
+     * An unregistered type yields an empty list.
      *
-     *     ['title', 'items[].label', 'items[].description']
+     * @see docs/internals/forms.md#which-fields-are-translatable
      *
-     * An unregistered block type yields an empty list — same "no shape to
-     * inspect, so nothing to report" rule the restore paths use.
-     *
-     * @param array<string, mixed> $data current block data; passed to the form
-     *                                    builder because a block may declare
-     *                                    fields conditionally on its own values
+     * @param array<string, mixed> $data passed to the builder, since a block
+     *                                   may declare fields conditionally
      *
      * @return list<string>
      */

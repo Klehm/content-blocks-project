@@ -5,25 +5,14 @@ declare(strict_types=1);
 namespace ContentBlocks\Versioning;
 
 /**
- * Walks a stored payload from the envelope format it declares to the one the
- * code reads today, one {@see EnvelopeUpgraderInterface} at a time.
+ * Walks a payload from the envelope format it declares to today's, one
+ * {@see EnvelopeUpgraderInterface} at a time. Ships empty, on purpose.
  *
- * **The chain ships empty.** Only one envelope format of each kind exists so
- * far, so there is nothing to walk and every call is a no-op. That is the point:
- * the mechanism has to exist *before* the first bump, because the alternative —
- * refusing every payload written under the old format — is what makes a format
- * bump unthinkable in the first place. The day a step is added, old templates
- * and old export files keep working with no further plumbing.
- *
- * Steps form a linear path (v1 → v2 → v3): each declares one source and one
- * target, so the walk is a lookup by source format, not a graph search. A cycle
- * or a missing link simply means "no path", which callers turn into their own
- * refusal — {@see \ContentBlocks\SectionTemplate\UnsupportedTemplateFormatException}
- * for a template, an `InvalidArgumentException` for an import.
+ * @see docs/internals/versioning.md#the-envelope-chain
  */
 final class EnvelopeUpgradeChain
 {
-    /** Guards against a cycle in host-supplied steps turning into an endless walk. */
+    /** Guards against a cycle in host steps becoming an endless walk. */
     private const MAX_STEPS = 20;
 
     /** @var array<string, EnvelopeUpgraderInterface> keyed by source format */
@@ -42,9 +31,8 @@ final class EnvelopeUpgradeChain
     }
 
     /**
-     * Cheap predicate: is $from readable as $to? Called per row when listing the
-     * section-template library, so the picker can rule a payload out before an
-     * editor clicks it.
+     * Cheap predicate, called per row when listing the library so the picker
+     * can rule a payload out before an editor clicks it.
      */
     public function supports(string $from, string $to): bool
     {
@@ -56,9 +44,8 @@ final class EnvelopeUpgradeChain
      *
      * @return array<string, mixed>
      *
-     * @throws \LogicException when no path exists — callers are expected to have
-     *                         asked {@see supports()} first and to raise their own
-     *                         domain error instead
+     * @throws \LogicException when no path exists; callers ask
+     *                         {@see supports()} first and raise their own
      */
     public function upgrade(array $payload, string $from, string $to): array
     {

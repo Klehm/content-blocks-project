@@ -9,11 +9,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 
 /**
- * Default provider — usable without host configuration.
+ * Default provider, usable without host configuration: filters by area id and
+ * labels rows "#<id> — <updatedAt>".
  *
- * Filters by the area id (numeric prefix match) and labels rows as
- * "#<id> — <updatedAt|created>". Hosts override this service to filter
- * by user-meaningful fields (title, slug…) and produce richer labels.
+ * @see docs/guide/host-services.md
  */
 final class DefaultContentAreaProvider implements ContentAreaProviderInterface
 {
@@ -30,10 +29,8 @@ final class DefaultContentAreaProvider implements ContentAreaProviderInterface
 
         $filter = $filter === null ? '' : trim($filter);
         if ($filter !== '' && ctype_digit($filter)) {
-            // Default impl only knows about the id; a numeric input is the
-            // only thing it can match portably. Text search lives in host
-            // implementations that can join through the owning entity
-            // (Page, Product…).
+            // A numeric input is the only thing this can match portably; text
+            // search needs a join through the host's own owning entity.
             $qb->andWhere('a.id = :id')->setParameter('id', (int) $filter);
         }
 

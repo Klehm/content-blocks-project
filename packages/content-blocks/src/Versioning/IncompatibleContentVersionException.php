@@ -5,16 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\Versioning;
 
 /**
- * Thrown when stored content carries a schema generation the app cannot use and
- * no {@see ContentVersionUpgraderInterface} knows how to bridge.
+ * The payload is readable and its blocks exist, but their data belongs to
+ * another generation of the host's schema. One of three distinct hard stops.
  *
- * Distinct from the two other hard stops on a section template, which are about
- * different things: {@see \ContentBlocks\SectionTemplate\UnsupportedTemplateFormatException}
- * means the *envelope* structure (owned by this package) is unreadable, and
- * {@see \ContentBlocks\SectionTemplate\IncompatibleTemplateException} means every
- * block it references is gone. This one means the payload is readable and its
- * blocks exist, but the shape of their data belongs to another generation of the
- * host's own schema.
+ * @see docs/internals/versioning.md#three-hard-stops-three-different-meanings
  */
 final class IncompatibleContentVersionException extends \RuntimeException
 {

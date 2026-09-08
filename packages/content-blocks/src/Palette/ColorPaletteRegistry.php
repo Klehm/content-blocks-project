@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Palette;
 
 /**
- * Aggregates {@see ColorPaletteProviderInterface} services into a single
- * palette. Wired with a `tagged_iterator` so config-declared colors and
- * host-registered providers surface together.
+ * Aggregates {@see ColorPaletteProviderInterface} services into one palette,
+ * so config-declared colors and host providers surface together.
  */
 final class ColorPaletteRegistry
 {

@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\BlockType;
 
 /**
- * Attribute to auto-register a block in the BlockTypeRegistry via the CompilerPass.
+ * Auto-registers a block in the BlockTypeRegistry. Its `priority` decides
+ * where the block sits in the picker grid.
+ *
+ * @see docs/internals/blocks.md#registration-order-is-the-picker-order
  */
 #[\Attribute(\Attribute::TARGET_CLASS)]
 final class AsContentBlock

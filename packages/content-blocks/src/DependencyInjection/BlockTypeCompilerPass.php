@@ -24,9 +24,8 @@ final class BlockTypeCompilerPass implements CompilerPassInterface
 
         $definition = $container->findDefinition(BlockTypeRegistry::class);
 
-        // findAndSortTaggedServices honours the `priority` tag attribute set by
-        // #[AsContentBlock] — higher priority first. The registry's insertion
-        // order is what the block-picker grid renders, so this controls it.
+        // Honours #[AsContentBlock]'s `priority`, and the registry's insertion
+        // order is what the picker grid renders — so this controls it.
         $refs = $this->findAndSortTaggedServices('content_blocks.block_type', $container);
 
         foreach ($refs as $ref) {

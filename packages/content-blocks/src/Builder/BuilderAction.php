@@ -7,23 +7,21 @@ namespace ContentBlocks\Builder;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
- * One entry in the builder topbar's Actions menu.
+ * One entry in the builder topbar's Actions menu. Clicking it dispatches a
+ * `cb:builder:action` event carrying {@see $key}; the rest is the host's.
  *
- * The package renders the entry and nothing else: clicking it dispatches a
- * single `cb:builder:action` DOM event carrying this action's {@see $key}.
- * What the action *does* is the host's business — it listens once on the shell
- * and switches on the key. That keeps the package free of any opinion about
- * what an editor might want to do with an area.
+ * @see docs/internals/builder-extensions.md#what-the-package-renders
  */
 final class BuilderAction
 {
     /**
-     * @param string                           $key      Stable identifier carried by the `cb:builder:action` event
-     * @param string|TranslatableInterface     $label    Menu text; a TranslatableInterface is translated at render
-     * @param string|null                      $icon     Optional inline SVG or a single glyph. Rendered raw, so it
-     *                                                   must come from trusted code — never interpolate user input
-     * @param string|TranslatableInterface|null $title   Tooltip; falls back to the label
-     * @param int                              $priority Higher sorts first; ties keep registration order
+     * @param string                            $key      carried by the event
+     * @param string|TranslatableInterface      $label    translated at render
+     * @param string|null                       $icon     inline SVG or a glyph,
+     *                                                    rendered raw — trusted
+     *                                                    code only
+     * @param string|TranslatableInterface|null $title    falls back to $label
+     * @param int                               $priority higher sorts first
      */
     public function __construct(
         public readonly string $key,
@@ -35,9 +33,8 @@ final class BuilderAction
     }
 
     /**
-     * Builds an action from the associative-array shape accepted by the
-     * `topbar_actions` form option, so a per-form action and a bundle-provided
-     * one end up as the same thing by the time the template sees them.
+     * Normalises the `topbar_actions` array shape, so a per-form action and a
+     * bundle-provided one are the same thing by the time a template sees them.
      *
      * @param array<string, mixed> $definition
      */

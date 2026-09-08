@@ -160,6 +160,25 @@ copy is stripped of the original's id first). Everything else round-trips,
 because a key no form child declares is preserved by the compound form — which is
 what makes this work with no `_id` field in any item type.
 
+### Why the backfill is a command
+
+Giving pre-`_id` entries their identity is a console command rather than a
+Doctrine migration, and that is not a convenience.
+
+Which JSON keys hold a *collection* is knowledge that lives in the block types'
+forms, and SQL cannot ask them. A migration would have to hard-code a list of
+block type / field pairs — exactly the drift this package avoids everywhere else
+— and it would be wrong the moment a host ships its own collection block.
+
+It is idempotent: an entry that already carries an id keeps it, so running twice
+is harmless and a partial run can simply be repeated. Blocks whose type is no
+longer registered are skipped and reported, because there is no form to ask and
+minting ids blind would guess at the shape.
+
+Work is streamed and flushed in batches. Clearing matters as much as flushing: a
+dry run writes nothing but would still accumulate every block in the identity
+map, so both modes clear.
+
 Backfill is driven by the **form**, not by the shape of the data: only a form
 knows which of a block's array values is a collection of entries rather than an
 ordinary nested array the type happens to store. A row with no matching entry

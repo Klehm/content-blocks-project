@@ -15,22 +15,18 @@ interface BlockTypeInterface
     public static function getType(): string;
 
     /**
-     * Label displayed in the UI. Return a plain string for
-     * already-translated labels, or a TranslatableInterface (typically
-     * Symfony's TranslatableMessage) when the label key lives in a custom
-     * translation domain — the renderer will translate it at the boundary
-     * before exposing it to the front (popover, JSON endpoints).
+     * A plain string when already translated, or a TranslatableInterface when
+     * the key lives in a custom domain.
+     *
+     * @see docs/internals/blocks.md#labels-and-icons-cross-a-trust-boundary
      */
     public static function getLabel(): string|TranslatableInterface;
 
     /**
-     * Icon shown next to the label in the block-type picker (the "+Bloc"
-     * popover in the preview). Return self-contained inline SVG markup —
-     * use `currentColor` for strokes/fills so the icon inherits the
-     * picker's theme color. Return null to fall back to a generic icon.
+     * Self-contained inline SVG using `currentColor`, or null for a generic
+     * icon. **Injected as-is into the picker DOM** — trusted code only.
      *
-     * The markup is injected as-is into the picker DOM, so it must come
-     * from trusted block-author code (never interpolate user input).
+     * @see docs/internals/blocks.md#labels-and-icons-cross-a-trust-boundary
      */
     public static function getIcon(): ?string;
 
@@ -56,39 +52,18 @@ interface BlockTypeInterface
     public function getFormTheme(): ?string;
 
     /**
-     * Twig template rendering this block's markup — the block's *view*, used
-     * for the public page and for the builder's preview alike (the wrapper
-     * around it differs, the view does not).
+     * The block's view, for the public page and the preview alike. Null
+     * renders nothing; there is no generic fallback.
      *
-     * Returning null renders **nothing**: the block's wrapper `<div>` comes out
-     * empty. There is no generic fallback rendering, so a block meant to be
-     * seen has to name a template.
-     *
-     * The template is included with `with_context = false` and receives exactly
-     * one variable, `data` — the block's payload, after every registered
-     * {@see \ContentBlocks\Rendering\BlockDataResolverInterface} has had its
-     * say. The block entity and the block type are deliberately out of reach:
-     * a view renders stored values, it does not query the model.
-     *
-     * Return a plain-namespace path (`@ContentBlocksKit/block/alert/view.html.twig`)
-     * so a host can override it from `templates/bundles/`.
+     * @see docs/internals/blocks.md#the-view-template-contract
      */
     public function getViewTemplate(): ?string;
 
     /**
-     * Whether the builder may refresh this block's preview in place (hot
-     * reload) instead of reloading the whole iframe after an edit.
+     * Whether the builder may refresh this block's preview in place. About the
+     * rendered view, not the edit form.
      *
-     * This is about the *rendered view*, not the edit form: return true only
-     * when the view template produces self-contained markup that works as
-     * soon as it is inserted into the DOM (static HTML, CSS-only behaviour).
-     * Return false when the view needs a JavaScript init pass to function
-     * (a carousel, a map, a third-party widget bootstrapped on load) — the
-     * builder will fall back to a full iframe reload so that init runs again.
-     *
-     * Blocks that ship a little view JS but want hot reload can return true
-     * and (re)initialise idempotently from the `cb:block:rendered` DOM event
-     * the overlay dispatches on the freshly-swapped element.
+     * @see docs/internals/blocks.md#preview-hot-reload-is-opt-in
      */
     public function supportsPreviewHotReload(): bool;
 }

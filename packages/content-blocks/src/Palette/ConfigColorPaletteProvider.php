@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Palette;
 
 /**
- * Palette provider fed by the bundle's semantic config
- * (`content_blocks.palette`). Registered unconditionally; an empty config
- * simply contributes no colors.
+ * Palette fed by `content_blocks.palette`. Registered unconditionally; an
+ * empty config contributes no colors.
  */
 final class ConfigColorPaletteProvider implements ColorPaletteProviderInterface
 {

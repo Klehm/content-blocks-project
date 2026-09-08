@@ -151,9 +151,8 @@ class Section
     }
 
     /**
-     * Promote draft layout state (position + settings) to published. Caller
-     * is responsible for handling deleted sections separately (em->remove
-     * instead of publish).
+     * Promote draft position and settings to published. A deleted section is
+     * the caller's problem — `em->remove()` rather than this.
      */
     public function publish(): void
     {
@@ -224,8 +223,8 @@ class Section
     }
 
     /**
-     * Settings to apply when rendering: drafts override published if set,
-     * mirroring the convention used for Block::getDraftData() ?? Block::getPublishedData().
+     * Draft overrides published when set, the same convention as
+     * {@see Block::getDraftData()} falling back to the published payload.
      *
      * @return array<string, mixed>
      */

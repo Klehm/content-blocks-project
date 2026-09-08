@@ -7,9 +7,8 @@ namespace ContentBlocks\Preview;
 use ContentBlocks\Entity\ContentArea;
 
 /**
- * Default resolver that always throws. The host app must override the
- * {@see ContentAreaUrlResolverInterface} alias in services config with its
- * own implementation.
+ * Default resolver that always throws, forcing the host to alias
+ * {@see ContentAreaUrlResolverInterface} to its own implementation.
  */
 final class NullContentAreaUrlResolver implements ContentAreaUrlResolverInterface
 {

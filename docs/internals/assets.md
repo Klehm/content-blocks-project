@@ -163,3 +163,33 @@ resolve against `/_content-blocks/public/`, where no route serves them.
   `AccessCheckerInterface`. Same shape as `SectionTemplateManagerInterface`. The
   report lists file paths and sizes across every area, so `DenyAllAssetReportViewer`
   is the default and the page 404s until a host opts in.
+
+## The image seam ships a passthrough
+
+ContentBlocks deliberately ships **no image processing**. An uploaded file is
+served as-is and only its *display box* is controlled by CSS. That covers the
+free wins — no layout shift, lazy loading — but never reduces byte size, which
+inherently needs an image-processing library (LiipImagine, Glide, GD, Imagick) or
+a transforming CDN. Neither belongs in this package's `require`.
+
+So `ImageUrlResolverInterface` follows the same pattern as `FileStorageInterface`
+and `AccessCheckerInterface`: an interface with a default that changes nothing.
+`PassthroughImageUrlResolver` returns the stored source untouched with no
+responsive candidates, so a fresh install renders byte-for-byte the markup it did
+before the seam existed. A host aliasing its own implementation gets
+`srcset`/`sizes` everywhere the kit renders an image, without touching a template.
+
+**An implementation must be safe on any input.** `$src` is whatever an editor
+stored — a local path, an absolute URL, a leftover from a previous storage
+backend — and `new ResolvedImage($src)` is always a valid answer. A resolver that
+cannot transform a given source says so by passing it through, never by throwing.
+
+`srcset` and `sizes` are null when the resolver has nothing to offer, and a
+template renders them only when non-null: an empty `srcset=""` is not the same
+thing to a browser as no attribute at all.
+
+Width and height are the *display* box the view intends to use, which is exactly
+the input a resizing resolver needs. A fluid view passes null and lets the
+resolver decide.
+
+Worked example: [../guide/recipes/liip-imagine.md](../guide/recipes/liip-imagine.md).

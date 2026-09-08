@@ -148,6 +148,63 @@ locale is an asset-management decision, not a text translation. Tagging one late
 is purely additive, so a host that wants it can add the tag through a block form
 extension.
 
+## Why collection reorder and duplicate flush
+
+Autosave is driven by a `MutationObserver` watching for **childList** changes.
+Add and delete work with it: each adds or removes a DOM node the observer sees.
+
+Reorder and duplicate do not. A reorder re-renders the *same positional widget
+ids* with swapped values, and a duplicate reuses the next positional id — both
+are in-place value changes with no childList mutation, so the observer never
+fires and the edit would be silently lost. That is why
+`moveCollectionItem()` and `duplicateCollectionItem()` persist the draft
+themselves, on the same path as `save()`, and dispatch `cb:block:saved` to
+reload the preview.
+
+`$from`, `$to` and `$index` are 0-based **DOM** positions, which is why the
+helpers work on a positional view and normalise keys to a contiguous `0..n` list
+— the live collection re-renders positionally, so sparse keys left from an
+earlier deletion are irrelevant. Both helpers return null on a no-op or an
+out-of-range index, so the caller can skip the write entirely.
+
+A duplicated entry is **stripped of the source's `_id`** before insertion. The
+copy is a new entry and must not share an identity with the original, or anything
+keyed per entry — translations first — would address both at once.
+`persistDraft()` then mints a fresh one.
+
+`persistDraft()` is the single funnel for every draft write, which is what makes
+it the one place that can guarantee every collection entry carries a stable id,
+including the ones just added or duplicated.
+
+`collectionPropertyPath()` mirrors `LiveCollectionTrait::fieldNameToPropertyPath`,
+which is private to the trait — hence the copy rather than a call.
+
+## Which fields are translatable
+
+`TranslatableFieldsInterface` answers *which of this block type's fields may be
+translated?* by reading the `cb_translatable` tags off its **built edit form**,
+not off a static declaration.
+
+That is the same rule `BlockDataKeys` follows, for the same reason: it stays true
+when a host adds fields through a form extension. A host adding a translatable
+field to someone else's block gets it picked up for free.
+
+Paths come back in form-declaration order, nesting dotted and collection entries
+marked `[]` — `['title', 'items[].label']`. An unregistered block type yields an
+empty list, the same *no shape to inspect, so nothing to report* rule the restore
+paths use. `$data` is passed through to the builder because a block may declare
+fields conditionally on its own values.
+
+A collection has no children until it is bound to data, so its shape lives in
+`entry_type`; the walk descends into a throwaway prototype of one entry and marks
+the segment as repeating. Only the builder is created — no view, no data mapping
+— the same cheap path `BlockDataKeys` takes.
+
+**The core ships no consumer for this.** It is the allow-list a translation
+package builds its per-field UI from, and the filter it applies when merging a
+locale payload. It lives in the core so the *convention* is frozen with the 1.0
+contract.
+
 ## PaletteColorType and its empty state
 
 A dropdown of the project palette plus a *Custom…* option revealing a free

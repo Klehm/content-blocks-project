@@ -25,29 +25,10 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 final class ContentBlocksBundle extends AbstractBundle
 {
     /**
-     * Semantic bundle config — the declarative shortcut for what the
-     * provider interfaces do in PHP:
+     * Semantic config — the declarative shortcut for what the provider
+     * interfaces do in PHP. Both merge together in the registries.
      *
-     *     content_blocks:
-     *         section:
-     *             default_width_mode: centered   # 'full'|'centered'
-     *             default_max_width: 1320
-     *         palette:                           # PaletteColorType dropdown
-     *             - { label: 'Primary', color: '#eb0540' }
-     *         styles:                            # section style presets
-     *             - name: boxed
-     *               label: 'Boxed'
-     *               css_class: 'my-section--boxed'
-     *               settings: { styling: { padding: { desktop: { top: 40, bottom: 40 } } } }
-     *         upload:
-     *             directory: '%kernel.project_dir%/public/uploads/content-blocks'
-     *             public_prefix: '/uploads/content-blocks'
-     *             max_size: 10485760             # bytes
-     *             allowed_mime_types: ['image/jpeg', 'image/png']
-     *
-     * Interfaces stay the power-user path (ColorPaletteProviderInterface,
-     * SectionStyleProviderInterface, FileStorageInterface…); config and PHP
-     * providers merge together in the registries.
+     * @see docs/guide/host-services.md
      */
     public function configure(DefinitionConfigurator $definition): void
     {
@@ -117,13 +98,10 @@ final class ContentBlocksBundle extends AbstractBundle
     }
 
     /**
-     * Typed `section_styles[].settings` node — a subset of a section's own
-     * settings that a preset applies underneath the section (explicit user
-     * values win key-by-key at render time, see BlockRenderer::applyPresetSettings).
+     * Typed rather than a free-form variableNode, so preset YAML is validated
+     * and self-documenting. Mirrors what the forms persist.
      *
-     * Typed (rather than a free-form variableNode) so preset YAML is validated
-     * and self-documenting; the shape mirrors what SectionSettingsType / StylingType
-     * persist to `draft_settings`.
+     * @see docs/internals/rendering.md#style-presets-as-a-base-layer
      */
     private function presetSettingsNode(): ArrayNodeDefinition
     {
@@ -144,10 +122,10 @@ final class ContentBlocksBundle extends AbstractBundle
     }
 
     /**
-     * The `styling` sub-tree (padding/margin/gap responsive boxes, background,
-     * min-height, vertical alignment). Keys are spelled out
-     * (`desktop`/`tablet`/`mobile`); leaves are left without defaults so a preset
-     * carries only the keys it explicitly sets.
+     * The `styling` sub-tree. Leaves carry no defaults, so a preset holds only
+     * the keys it explicitly sets.
+     *
+     * @see docs/internals/forms.md#the-styling-data-shape
      */
     private function stylingNode(): ArrayNodeDefinition
     {
@@ -171,9 +149,10 @@ final class ContentBlocksBundle extends AbstractBundle
     }
 
     /**
-     * A responsive box (`desktop`/`tablet`/`mobile` → {top,right,bottom,left: int,
-     * linked: bool}). `linked` is UI state (the "link sides" toggle); the render
-     * decorators ignore it but it is persisted so the editor can restore the toggle.
+     * `linked` is UI state the decorators ignore, persisted only so the editor
+     * can restore the toggle.
+     *
+     * @see docs/internals/forms.md#the-responsive-styling-sub-types
      */
     private function responsiveBoxNode(string $name): ArrayNodeDefinition
     {
@@ -195,7 +174,7 @@ final class ContentBlocksBundle extends AbstractBundle
         return $node;
     }
 
-    /** A responsive single length (`desktop`/`tablet`/`mobile` → int px), used for the column gap. */
+    /** A responsive single length in px, used for the column gap. */
     private function responsiveGapNode(): ArrayNodeDefinition
     {
         $node = new ArrayNodeDefinition('gap');
@@ -214,10 +193,8 @@ final class ContentBlocksBundle extends AbstractBundle
     {
         $container->import('../config/services.php');
 
-        // Project the processed semantic config onto the container
-        // parameters consumed by services.php. App-level parameter overrides
-        // still win: MergeExtensionConfigurationPass re-applies the app's
-        // parameters on top of extension-set ones.
+        // App-level parameter overrides still win: the merge pass re-applies
+        // the app's parameters on top of extension-set ones.
         $container->parameters()
             ->set('content_blocks.content_version', $config['content_version'])
             ->set('content_blocks.section.default_width_mode', $config['section']['default_width_mode'])
@@ -241,14 +218,8 @@ final class ContentBlocksBundle extends AbstractBundle
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        // Register the assets path so AssetMapper + StimulusBundle can discover the
-        // controllers. Guarded: `framework.asset_mapper` is declared with
-        // canBeEnabled(), whose normalization turns any non-empty array into
-        // `enabled: true` — so prepending `paths` on a host that builds with Webpack
-        // Encore (no symfony/asset-mapper installed, and we do not require it) would
-        // *enable* the component and make FrameworkExtension throw at boot. Encore
-        // hosts read the same controllers out of assets/package.json through
-        // @symfony/stimulus-bridge instead; see docs/guide/installation.md.
+        // Not optional: prepending `paths` without AssetMapper installed
+        // enables it and throws. See bundle-boot.md#the-assetmapper-prepend
         if (class_exists(AssetMapper::class)) {
             $builder->prependExtensionConfig('framework', [
                 'asset_mapper' => [
@@ -259,18 +230,16 @@ final class ContentBlocksBundle extends AbstractBundle
             ]);
         }
 
-        // Auto-register the form theme so `form_row(form.contentArea)` renders the builder out of the box.
-        // The @ContentBlocks namespace itself is auto-detected by AbstractBundle from <BundleRoot>/templates/,
-        // which also gives `templates/bundles/ContentBlocksBundle/` priority for host overrides.
+        // So `form_row(form.contentArea)` renders the builder out of the box.
+        // See docs/internals/bundle-boot.md#the-other-two-prepends
         $builder->prependExtensionConfig('twig', [
             'form_themes' => [
                 '@ContentBlocks/form/content_area_widget.html.twig',
             ],
         ]);
 
-        // Map Twig Components shipped by this bundle so cache:clear doesn't fail
-        // on a missing namespace right after composer require. ux-twig-component
-        // is a hard dependency of this package, so the extension is always loaded.
+        // So cache:clear does not fail on a missing namespace right after
+        // composer require. ux-twig-component is a hard dependency.
         $builder->prependExtensionConfig('twig_component', [
             'defaults' => [
                 'ContentBlocks\\Twig\\Component\\' => '@ContentBlocks/components/',
@@ -292,9 +261,8 @@ final class ContentBlocksBundle extends AbstractBundle
             },
         );
 
-        // Per-block form extensions: the attribute carries the targeted block
-        // type ids + priority; BlockFormExtensionPass pairs each service with
-        // its ids and feeds the collection (see BlockFormType).
+        // The attribute carries the targeted type ids and a priority;
+        // BlockFormExtensionPass pairs each service with its ids.
         $container->registerAttributeForAutoconfiguration(
             AsBlockFormExtension::class,
             static function (ChildDefinition $definition, AsBlockFormExtension $attribute, \Reflector $reflector): void {
@@ -305,9 +273,8 @@ final class ContentBlocksBundle extends AbstractBundle
             },
         );
 
-        // Globally auto-tag host implementations of the section extension
-        // points so they don't need any wiring beyond `autoconfigure: true`
-        // on the host's services.yaml.
+        // Auto-tagged, so a host needs nothing beyond `autoconfigure: true`.
+        // See docs/internals/bundle-boot.md#autoconfiguration
         $container->registerForAutoconfiguration(SectionStyleProviderInterface::class)
             ->addTag('content_blocks.section_style_provider');
         $container->registerForAutoconfiguration(ColorPaletteProviderInterface::class)
@@ -324,10 +291,8 @@ final class ContentBlocksBundle extends AbstractBundle
         $container->registerForAutoconfiguration(BlockDataDefaultsProviderInterface::class)
             ->addTag('content_blocks.block_data_defaults');
 
-        // What a block renders, as opposed to how its wrapper looks. Priority
-        // matters here — the chain threads one payload through every resolver —
-        // so an implementation that must run before the shipped seeding step
-        // declares `priority` on the tag explicitly.
+        // Priority is load-bearing here: the chain threads one payload
+        // through every resolver. See bundle-boot.md#autoconfiguration
         $container->registerForAutoconfiguration(Rendering\BlockDataResolverInterface::class)
             ->addTag('content_blocks.block_data_resolver');
 
@@ -336,9 +301,8 @@ final class ContentBlocksBundle extends AbstractBundle
         $container->registerForAutoconfiguration(Builder\BuilderActionProviderInterface::class)
             ->addTag('content_blocks.builder_action_provider');
 
-        // Markup a bundle renders inside the builder shell — the UI half of
-        // the seam above, so a bundle's dialog and script land in the builder
-        // without a Stimulus controller or any host wiring.
+        // The UI half of the seam above, so a bundle's dialog and script land
+        // in the builder without a Stimulus controller or any host wiring.
         $container->registerForAutoconfiguration(Builder\BuilderShellExtensionInterface::class)
             ->addTag('content_blocks.builder_shell_extension');
 
@@ -347,9 +311,8 @@ final class ContentBlocksBundle extends AbstractBundle
         $container->registerForAutoconfiguration(Section\BlockCloneObserverInterface::class)
             ->addTag('content_blocks.block_clone_observer');
 
-        // "These uploaded files are still referenced." A host that keeps its
-        // own images in the upload directory registers one of these; without
-        // it, the asset sweep would correctly find no *block* pointing at them.
+        // "These uploaded files are still referenced" — for a host keeping its
+        // own images in the upload directory. See assets.md.
         $container->registerForAutoconfiguration(Asset\AssetReferenceProviderInterface::class)
             ->addTag('content_blocks.asset_reference_provider');
     }

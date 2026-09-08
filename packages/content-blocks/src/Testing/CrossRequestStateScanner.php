@@ -7,46 +7,18 @@ namespace ContentBlocks\Testing;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
- * Finds classes that keep mutable state — the thing that turns into a bug the
- * day an application is served by a worker runtime (FrankenPHP, RoadRunner,
- * Swoole) instead of PHP-FPM.
+ * Finds classes keeping mutable state, which under a worker runtime is handed
+ * to the next visitor. Reflects over classes, never instantiates them.
  *
- * Under a worker the container is booted once and every service instance is
- * reused by every subsequent request, so a property written during one request
- * is still there for the next, under whatever session and locale that one
- * happens to carry. The rule the packages hold themselves to, and that a host
- * can hold its own services to with this scanner, is:
- *
- * > a class that keeps mutable state is either resettable or explicitly
- * > declared as not request-scoped.
- *
- * Resettable means {@see ResetInterface}: autoconfiguration tags it
- * `kernel.reset` and Symfony's `services_resetter` clears it on
- * `kernel.terminate`, the one hook every worker runtime calls. Declared means
- * listed by the caller with the reason it cannot leak — a value object, a
- * compile-time-only bundle class, an index of tagged services that is identical
- * for every request. Writing that reason down is most of the value: it is where
- * "this cache is fine" has to become a sentence someone can disagree with.
- *
- * Usage in a test:
- *
- * ```php
- * $scanner = new CrossRequestStateScanner(__DIR__ . '/../../src', 'App\\');
- * self::assertSame([], $scanner->unaccountedFor([
- *     Foo::class => 'Value object, never a shared service.',
- * ]));
- * ```
- *
- * It reflects over classes; it does not instantiate them.
+ * @see docs/internals/worker-mode.md#the-scanner
  */
 final class CrossRequestStateScanner
 {
     /**
-     * @param string       $srcRoot         directory to scan, PSR-4 root of $namespacePrefix
-     * @param string       $namespacePrefix namespace $srcRoot maps to, e.g. `App\`
-     * @param list<string> $skipDirectories paths under $srcRoot excluded from the scan, relative
-     *                                      and slash-separated. Doctrine entities are skipped by
-     *                                      default: they are hydrated per request and never shared.
+     * @param string       $srcRoot         PSR-4 root of $namespacePrefix
+     * @param string       $namespacePrefix namespace it maps to, e.g. `App\`
+     * @param list<string> $skipDirectories relative, slash-separated; entities
+     *                                      are skipped by default
      */
     public function __construct(
         private readonly string $srcRoot,
@@ -56,11 +28,8 @@ final class CrossRequestStateScanner
     }
 
     /**
-     * Every scanned class that declares at least one mutable property, mapped to
-     * those property names.
-     *
-     * Static properties count: they are worse than instance state, not better.
-     * Inherited properties are reported against the class that declares them.
+     * Every class declaring a mutable property, mapped to those names. Static
+     * properties count — they are worse than instance state, not better.
      *
      * @return array<class-string, list<string>>
      */
@@ -82,11 +51,11 @@ final class CrossRequestStateScanner
     }
 
     /**
-     * Stateful classes that are neither resettable nor declared — the failures.
+     * Stateful classes neither resettable nor declared — the failures.
      *
-     * @param array<class-string, string> $declared class => why its state cannot leak
+     * @param array<class-string, string> $declared why its state cannot leak
      *
-     * @return array<class-string, list<string>> class => offending properties
+     * @return array<class-string, list<string>> offending properties
      */
     public function unaccountedFor(array $declared): array
     {
@@ -104,11 +73,10 @@ final class CrossRequestStateScanner
     }
 
     /**
-     * Declarations that no longer describe anything: a class that was deleted,
-     * renamed, or has since lost its mutable state. Dropping them is what keeps
-     * the list from turning into folklore.
+     * Declarations that no longer describe anything. Dropping them is what
+     * keeps the list from turning into folklore.
      *
-     * @param array<class-string, string> $declared class => why its state cannot leak
+     * @param array<class-string, string> $declared why its state cannot leak
      *
      * @return list<class-string>
      */

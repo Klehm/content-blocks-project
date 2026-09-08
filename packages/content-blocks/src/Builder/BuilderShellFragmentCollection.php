@@ -7,18 +7,10 @@ namespace ContentBlocks\Builder;
 use ContentBlocks\Entity\ContentArea;
 
 /**
- * Gathers every registered {@see BuilderShellExtensionInterface}'s fragments
- * for one area, as one ordered list.
+ * Every {@see BuilderShellExtensionInterface}'s fragments for one area, as one
+ * ordered list. Nothing is deduplicated — fragments carry no key.
  *
- * Ordering is by descending priority, and ties keep the order the fragments
- * came in (extensions in service order, each one's fragments in the order it
- * yielded them). Same rule as {@see BuilderActionCollection}: a bundle that
- * needs to render before another says so with a priority rather than by hoping
- * about registration order.
- *
- * Nothing is deduplicated. Fragments carry no key — two extensions rendering
- * the same template is unusual but not a conflict the way two menu entries
- * sharing a key would be.
+ * @see docs/internals/builder-extensions.md#ordering-and-collisions
  */
 final class BuilderShellFragmentCollection
 {

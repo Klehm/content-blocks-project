@@ -19,18 +19,9 @@ use Symfony\Component\Form\FormFactoryInterface;
 
 /**
  * Gives collection entries written before `_id` existed their stable identity.
+ * Idempotent, so a partial run can simply be repeated.
  *
- * A console command rather than a Doctrine migration on purpose: which JSON
- * keys hold a *collection* is knowledge that lives in the block types' forms,
- * and SQL cannot ask them. A migration would have to hard-code a list of block
- * type / field pairs — exactly the drift this package avoids everywhere else,
- * and it would be wrong the moment a host ships its own collection block.
- *
- * It is idempotent: an entry that already carries an id keeps it, so running
- * twice is harmless and a partial run can simply be repeated.
- *
- * Blocks whose type is no longer registered are skipped and reported — there is
- * no form to ask, and minting ids blind would guess at the shape.
+ * @see docs/internals/clipboard.md#why-the-backfill-is-a-command
  */
 #[AsCommand(
     name: 'content-blocks:backfill-collection-ids',
@@ -38,7 +29,7 @@ use Symfony\Component\Form\FormFactoryInterface;
 )]
 final class BackfillCollectionIdsCommand extends Command
 {
-    /** Flush every N blocks so a large install does not build one giant unit of work. */
+    /** Flush every N blocks, rather than one giant unit of work. */
     private const BATCH = 100;
 
     public function __construct(
@@ -69,9 +60,8 @@ final class BackfillCollectionIdsCommand extends Command
             'SELECT COUNT(b.id) FROM ' . Block::class . ' b',
         )->getSingleScalarResult();
 
-        // Streamed and cleared in batches: a real install has six figures of
-        // blocks, and findAll() would hold every one of them in the identity
-        // map for the whole run.
+        // Streamed: a real install has six figures of blocks, and findAll()
+        // would hold every one in the identity map for the whole run.
         $blocks = $this->em->createQuery('SELECT b FROM ' . Block::class . ' b')->toIterable();
 
         $changed = 0;
@@ -137,9 +127,8 @@ final class BackfillCollectionIdsCommand extends Command
     }
 
     /**
-     * Commits and releases a batch. Clearing matters as much as flushing: a
-     * dry run writes nothing but would still accumulate every block in the
-     * identity map, so both modes clear.
+     * Commits and releases a batch. Both modes clear — a dry run writes
+     * nothing but would still fill the identity map.
      */
     private function flushBatch(int $processed, bool $dryRun): void
     {

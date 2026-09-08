@@ -140,9 +140,8 @@ class Column
     }
 
     /**
-     * Promote draft layout state (position) to published. Caller is
-     * responsible for handling deleted columns separately (em->remove
-     * instead of publish).
+     * Promote draft position to published. A deleted column is the caller's
+     * problem — `em->remove()` rather than this.
      */
     public function publish(): void
     {

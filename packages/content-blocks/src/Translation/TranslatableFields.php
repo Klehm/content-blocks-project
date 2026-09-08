@@ -11,11 +11,8 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 
 /**
- * Default {@see TranslatableFieldsInterface} — see it for the contract.
- *
- * Walks the block's form builder tree. Only the builder is created (no view, no
- * data mapping), the same cheap path {@see \ContentBlocks\Block\BlockDataKeys}
- * takes.
+ * Default {@see TranslatableFieldsInterface} — see it for the contract. Walks
+ * the form builder tree only, never a view.
  */
 final class TranslatableFields implements TranslatableFieldsInterface
 {
@@ -60,9 +57,8 @@ final class TranslatableFields implements TranslatableFieldsInterface
         foreach ($builder->all() as $name => $child) {
             $path = $prefix === '' ? $name : $prefix . '.' . $name;
 
-            // A collection has no children until it is bound to data, so its
-            // shape lives in `entry_type`. Descend into a throwaway prototype
-            // of one entry and mark the segment as repeating.
+            // A collection has no children until bound to data, so its shape
+            // lives in `entry_type`. Descend into a throwaway prototype.
             $entryType = $child->hasOption('entry_type') ? $child->getOption('entry_type') : null;
             if (\is_string($entryType) && $entryType !== '') {
                 $entryOptions = $child->hasOption('entry_options') ? $child->getOption('entry_options') : [];
