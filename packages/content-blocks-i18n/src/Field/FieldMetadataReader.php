@@ -11,6 +11,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Reads the *presentation* of a block's fields off its edit form: label,
@@ -26,8 +27,15 @@ use Symfony\Component\Form\FormFactoryInterface;
  * Reading the built form also means a field a host added through
  * {@see \ContentBlocks\Form\Extension\BlockFormExtensionInterface} arrives with
  * its label already correct, without the host registering anything here.
+ *
+ * The cache below is per-request ({@see ResetInterface}). It memoizes what a
+ * *form* produced, and a form is allowed to vary with the ambient request — a
+ * host extension can add a field for one role and not another, and the shape
+ * pinned by the first `$data` seen would otherwise stay pinned for the life of
+ * the process. Clearing it between requests is what makes a worker behave like
+ * PHP-FPM instead of like whoever hit the page first.
  */
-final class FieldMetadataReader
+final class FieldMetadataReader implements ResetInterface
 {
     /** Matches the core walker's guard against a form type that nests itself. */
     private const MAX_DEPTH = 10;
@@ -84,6 +92,11 @@ final class FieldMetadataReader
         $this->collect($builder, '', $out, 0);
 
         return $this->cache[$blockType] = $out;
+    }
+
+    public function reset(): void
+    {
+        $this->cache = [];
     }
 
     /**

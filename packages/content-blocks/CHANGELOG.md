@@ -40,6 +40,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a read-only report page at `/_content-blocks/assets/report` — 404 by default,
   no delete button by design. See [Asset lifecycle](https://klehm.github.io/content-blocks/guide/asset-lifecycle).
 
+- **Worker mode (FrankenPHP, RoadRunner, Swoole) is a supported deployment, and
+  is now enforced rather than assumed.** Under a worker the kernel boots once
+  and the same service instances answer every request, so a property written
+  while serving one request is handed to the next visitor. The rule the packages
+  hold themselves to: a class that keeps mutable state is either resettable
+  (`ResetInterface`, cleared on `kernel.terminate`) or explicitly declared as
+  not request-scoped — a value object, or an index of tagged services identical
+  for every request.
+
+  `ContentBlocks\Testing\CrossRequestStateScanner` is that check, shipped so a
+  host can point it at its own `src/`: `unaccountedFor()` returns the classes
+  that keep state without qualifying, `staleDeclarations()` returns entries that
+  no longer describe anything. It reflects over classes and never instantiates
+  them. Each package now carries a `CrossRequestStateTest` built on it, and the
+  sandbox carries `bin/worker-smoke.sh`, which boots a real FrankenPHP worker
+  and — among other things — changes content directly in the database behind the
+  worker's back to prove the next request sees it. Full rationale in the
+  [worker mode guide](https://klehm.github.io/content-blocks-project/guide/worker-mode).
+
+  No behaviour change in this package: the audit found its services already
+  clean. The one real fix is in `klehm/content-blocks-i18n`.
+
 - **A bundle can render its own UI inside the builder shell.**
   `BuilderActionProviderInterface` gave a bundle a menu entry and a
   `cb:builder:action` event, and stopped there: what happened on the click was
