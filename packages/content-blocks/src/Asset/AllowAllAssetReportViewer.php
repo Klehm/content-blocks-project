@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Asset;
 
 /**
- * Grants the unreferenced-assets report to anyone who can reach the route.
- * For development and sandboxes — in production the host's own implementation
- * should ask its authorization layer, exactly as it does for
- * {@see \ContentBlocks\Security\AccessCheckerInterface}.
+ * Grants the report to anyone who can reach the route — development and
+ * sandboxes only; production asks its own authorization layer.
  */
 final class AllowAllAssetReportViewer implements AssetReportViewerInterface
 {

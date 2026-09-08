@@ -11,19 +11,9 @@ use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * Asset references held by content itself: every block's data and every
- * section's settings.
+ * section's settings — both twins, soft-deleted rows included, streamed.
  *
- * Three deliberate choices, each of which would cost a live page if reversed:
- *
- * - **Both twins.** `publishedData` *and* `draftData` count. A file only
- *   referenced by the published side is on the public page right now; a file
- *   only referenced by the draft side is one Publish away from being on it.
- * - **Soft-deleted rows included.** `deleted` is a draft flag, not a delete —
- *   the public page still renders that block, and Discard brings it back.
- *   There is no WHERE clause here on purpose.
- * - **Scalar hydration, streamed.** An established install has six figures of
- *   blocks; hydrating entities to read two JSON columns would load the whole
- *   table into the identity map.
+ * @see docs/internals/assets.md#what-the-core-providers-count
  */
 final class ContentAreaAssetReferenceProvider implements AssetReferenceProviderInterface
 {

@@ -12,15 +12,10 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
- * AJAX upload endpoint backing the `cb-file-upload` Stimulus controller
- * (and any host UI that POSTs a `file` field with the builder's CSRF
- * token).
+ * AJAX upload endpoint behind `cb-file-upload`. Size cap and MIME allow-list
+ * come from `content_blocks.upload.*`, storage from FileStorageInterface.
  *
- * Size cap and MIME allow-list come from the bundle config
- * (`content_blocks.upload.max_size` / `.allowed_mime_types`); the storage
- * backend is whatever FileStorageInterface resolves to — NullFileStorage
- * (throws) until the host opts in via `content_blocks.upload.directory` or its
- * own alias.
+ * @see docs/guide/security.md#file-upload
  *
  * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */

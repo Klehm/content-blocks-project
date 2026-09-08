@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Asset;
 
 /**
- * Bridge between the export/import flow and the host's file storage. The
- * main package does not depend on the kit (where FileStorageInterface lives)
- * so it talks to assets through this interface. The kit provides a default
- * bridge (FileStorageAssetResolver) that delegates to FileStorageInterface.
+ * How the export/import flow recognizes, reads and writes an asset, without
+ * naming a storage. Default: {@see FileStorageAssetResolver}.
  */
 interface AssetResolverInterface
 {
@@ -25,9 +23,8 @@ interface AssetResolverInterface
     public function read(string $publicPath): ?string;
 
     /**
-     * Stores raw binary contents and returns the new public path. The
-     * extension is provided by the caller (sourced from the exported
-     * metadata, not guessed from contents).
+     * Stores raw contents and returns the new public path. The extension comes
+     * from the exported metadata, never guessed from the bytes.
      */
     public function store(string $contents, string $extension): string;
 }

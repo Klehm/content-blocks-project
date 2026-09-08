@@ -7,16 +7,14 @@ namespace ContentBlocks\Asset;
 use ContentBlocks\Storage\StoredAsset;
 
 /**
- * What one {@see AssetGarbageCollector} run saw and did. Immutable, and the
- * same shape whether the run was a dry run or not — the command renders it,
- * `--format=json` serializes it, and a host can build its own report page on
- * it without re-deriving anything.
+ * What one {@see AssetGarbageCollector} run saw and did — same shape dry or
+ * not, so the command, the JSON output and a host page all read one thing.
  */
 final class AssetGarbageReport
 {
     /**
-     * @param list<StoredAsset> $swept    unreferenced, past the retention window — deleted unless $dryRun
-     * @param list<StoredAsset> $withheld unreferenced but younger than the retention window
+     * @param list<StoredAsset> $swept    past retention; deleted unless $dryRun
+     * @param list<StoredAsset> $withheld unreferenced, still within retention
      * @param list<string>      $failed   paths the storage refused to delete
      */
     public function __construct(

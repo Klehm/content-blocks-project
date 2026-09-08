@@ -8,25 +8,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Serves the package's front + builder assets at stable URLs the render
- * template can reference via <link>/<script> tags.
+ * Serves the package's CSS/JS under `/_content-blocks/public/*` — outside the
+ * admin namespace, and without file extensions. Both are deliberate.
  *
- * These routes live under `/_content-blocks/public/*` (rather than the
- * `/_content-blocks/*` admin namespace) so a host that locks down the
- * admin endpoints behind ROLE_ADMIN does not accidentally 404 the CSS
- * loaded inside the public preview iframe. Hosts should keep this prefix
- * publicly accessible.
- *
- * Note on URLs: extensions (.css, .js) are intentionally omitted because
- * PHP's built-in dev server treats those paths as static files and 404s
- * before Symfony's router can pick them up. Content-Type headers cover
- * the actual MIME negotiation.
- *
- * Four assets:
- *  - /public/layout           → text/css     (PUBLIC + PREVIEW)
- *  - /public/styling          → text/css     (PUBLIC + PREVIEW)
- *  - /public/builder          → text/css     (PREVIEW only)
- *  - /public/preview-overlay  → application/javascript (PREVIEW only)
+ * @see docs/internals/assets.md#asset-routes-are-public-on-purpose
  *
  * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
@@ -61,11 +46,8 @@ final class AssetController
     )]
     public function builderCss(): Response
     {
-        // Prepended rather than @import-ed: this file is served raw (no
-        // bundler), and an @import would resolve against
-        // /_content-blocks/public/, where no route serves the tokens.
-        // Concatenating keeps one source of truth for the palette across the
-        // admin document and this one.
+        // Prepended, not @import-ed: served raw, and an @import would resolve
+        // against /_content-blocks/public/, where no route serves the tokens.
         return $this->asset(
             '/styles/builder.css',
             'text/css; charset=UTF-8',

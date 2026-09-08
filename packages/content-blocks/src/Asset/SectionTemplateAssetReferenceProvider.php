@@ -9,13 +9,10 @@ use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Asset references held by the section-template library.
+ * Asset references held by the section-template library, whose payload keeps
+ * them as plain storage paths.
  *
- * A saved template is the clearest case for sweeping rather than deleting on
- * unlink: its payload keeps asset references as **plain storage paths** (see
- * {@see SectionTemplate}), so deleting the last block that used an image would
- * silently empty every card in the library that shows it — the file is gone,
- * but the reference to it is not.
+ * @see docs/internals/assets.md#nothing-deletes-on-delete
  */
 final class SectionTemplateAssetReferenceProvider implements AssetReferenceProviderInterface
 {

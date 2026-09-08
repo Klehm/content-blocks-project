@@ -7,12 +7,8 @@ namespace ContentBlocks\Storage;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
- * Simple local filesystem storage. Suitable for development and simple deployments.
- * For production, consider using Flysystem or S3-backed implementations.
- *
- * Also the reference {@see AssetInventoryInterface}: a directory walk is the
- * cheapest possible enumeration, so the garbage collector works out of the box
- * for any host that opted into `content_blocks.upload.directory`.
+ * Local filesystem storage, and the reference {@see AssetInventoryInterface}:
+ * a directory walk, so the GC works out of the box for hosts using it.
  */
 final class LocalFileStorage implements FileStorageInterface, AssetInventoryInterface
 {
@@ -73,13 +69,8 @@ final class LocalFileStorage implements FileStorageInterface, AssetInventoryInte
     }
 
     /**
-     * Walks the upload directory and yields one {@see StoredAsset} per file,
-     * spelled exactly as {@see self::buildPublicPath()} would have spelled it —
-     * the comparison against references stored in block data is a string
-     * comparison, so the two have to be produced the same way.
-     *
-     * A missing directory is not an error: it only means nothing was ever
-     * uploaded.
+     * One {@see StoredAsset} per file, spelled as
+     * {@see self::buildPublicPath()} spells it — marking compares strings.
      *
      * @return iterable<StoredAsset>
      */

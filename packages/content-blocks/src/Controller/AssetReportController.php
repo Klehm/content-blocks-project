@@ -14,24 +14,10 @@ use Symfony\Component\Routing\Attribute\Route;
 use Twig\Environment;
 
 /**
- * A read-only view of what the sweep would reclaim, for operators who do not
- * live in a terminal.
+ * Read-only view of what the sweep would reclaim. No delete button, ever, and
+ * a 404 rather than a 403 until a host opts in.
  *
- * **Read-only on purpose.** There is no delete button and there will not be
- * one: deletion is irreversible, and reference detection is a heuristic over
- * host-shaped JSON. Seeing the list in a browser and acting on it are two
- * different levels of deliberateness, and the second one belongs to
- * `content-blocks:assets:gc --force`, where an operator has a shell, a backup
- * and an audit trail. The page says so, and prints the command.
- *
- * Denied by default: the report spans every area in the install, so it is
- * gated by its own capability (see {@see AssetReportViewerInterface}) and 404s
- * — not 403 — until a host opts in, so an install that never wired it does not
- * advertise the route's existence.
- *
- * Cost: one full directory walk plus one pass over the content tables per
- * view. That is the same work the command does, and the reason this is an
- * operator page rather than something linked from the builder chrome.
+ * @see docs/internals/assets.md#why-the-sweep-is-a-command
  *
  * @internal The route is the contract, not this class. See FREEZE-AUDIT.md.
  */

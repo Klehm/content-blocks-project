@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Asset;
 
 /**
- * Default implementation: denies the unreferenced-assets report. Forces the
- * host to opt in by aliasing {@see AssetReportViewerInterface} to its own
- * implementation.
+ * Denies the unreferenced-assets report, so a host opts in by aliasing
+ * {@see AssetReportViewerInterface} to its own.
  */
 final class DenyAllAssetReportViewer implements AssetReportViewerInterface
 {

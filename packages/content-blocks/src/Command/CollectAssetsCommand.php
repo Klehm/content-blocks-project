@@ -15,20 +15,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Reports — and, with `--force`, deletes — uploaded files that no stored
- * content references any more.
+ * Reports — and with `--force` deletes — uploaded files nothing references.
+ * Dry run is the default, and that inversion is the safety design.
  *
- * A command rather than anything automatic, for two reasons that are not going
- * to change:
- *
- * - The upload directory is not necessarily the package's alone. A host that
- *   points `content_blocks.upload.directory` at a shared folder, or that
- *   stores its own entities' images there, needs to have registered an
- *   {@see \ContentBlocks\Asset\AssetReferenceProviderInterface} first. Nothing
- *   should be deleting files on a schedule the operator never chose.
- * - Deletion is irreversible and reference detection is a heuristic on
- *   host-shaped JSON. `--dry-run` being the *default* — and `--force` the
- *   opt-in — is the whole safety design; do not invert it.
+ * @see docs/internals/assets.md#why-the-sweep-is-a-command
  *
  * @internal The command name and its options are the contract, not this class.
  *           See FREEZE-AUDIT.md.

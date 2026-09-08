@@ -7,8 +7,8 @@ namespace ContentBlocks\Storage;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
- * No-op storage. Used as the default when no FileStorageInterface is configured.
- * Any upload attempt will throw, forcing the app to register a real implementation.
+ * The default when no storage is configured: any upload throws, forcing the
+ * host to register a real implementation.
  */
 final class NullFileStorage implements FileStorageInterface
 {

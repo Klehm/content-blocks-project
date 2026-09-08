@@ -5,18 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\Asset;
 
 /**
- * Normalizes a `json` column read through scalar hydration.
+ * Normalizes a `json` column read through scalar hydration, which returns it
+ * as a raw string — an `is_array()` check there reports zero references.
  *
- * The trap this exists for, found by running the sweep against a real
- * database: `SELECT b.publishedData AS published FROM Block b` hydrated with
- * `HYDRATE_SCALAR` returns the column **as its raw JSON string**, not as the
- * array the entity getter would hand back — the type conversion that
- * `getPublishedData()` benefits from does not run on an aliased scalar.
- *
- * A reference provider that simply checked `is_array()` therefore skipped
- * every row and reported *no* references at all, which in a sweep means
- * "delete everything". The failure is silent and it points the wrong way, so
- * the decoding lives here, once, rather than in each provider.
+ * @see docs/internals/assets.md#the-scalar-hydration-trap
  */
 final class JsonPayload
 {

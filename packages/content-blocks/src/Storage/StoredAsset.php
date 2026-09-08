@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace ContentBlocks\Storage;
 
 /**
- * One file as the storage backend sees it. The `lastModifiedAt` is not
- * decoration: it is what the garbage collector's retention window is measured
- * against, and the only thing standing between a sweep and a file uploaded
- * seconds ago whose block has not been saved yet.
+ * One file as the storage sees it. `lastModifiedAt` carries the retention
+ * window — the only guard against sweeping a just-uploaded file.
  *
  * @see AssetInventoryInterface
+ * @see docs/internals/assets.md#the-order-of-operations-is-the-safety-property
  */
 final class StoredAsset
 {

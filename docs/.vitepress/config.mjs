@@ -22,6 +22,11 @@ export default defineConfig({
   cleanUrls: true,
   ignoreDeadLinks: false,
 
+  // internals/ is maintainer documentation — the rationale that used to sit in
+  // long source docblocks. Read on GitHub, never published: it would otherwise
+  // double the site with implementation detail no integrator needs.
+  srcExclude: ['internals/**'],
+
   head: [
     ['meta', { name: 'theme-color', content: '#eb0540' }],
     ['meta', { property: 'og:title', content: 'ContentBlocks — Page builder for Symfony' }],

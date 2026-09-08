@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Asset;
 
 /**
- * Default no-op resolver. Detects no asset paths, reads nothing, and refuses
- * to store. Exports succeed (no assets are embedded), imports fail loudly if
- * the payload contains binaries — which is the expected behavior when the
- * host has not configured file storage.
+ * No-op resolver: detects nothing, stores nothing. Exports succeed with no
+ * assets embedded; an import carrying binaries fails loudly.
  */
 final class NullAssetResolver implements AssetResolverInterface
 {

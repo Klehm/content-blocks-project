@@ -7,12 +7,8 @@ namespace ContentBlocks\Asset;
 use ContentBlocks\Storage\FileStorageInterface;
 
 /**
- * Adapts FileStorageInterface to AssetResolverInterface so the export/
- * import flow can locate, read, and write asset binaries through whatever
- * storage backend the host configured. This is the default alias for
- * AssetResolverInterface; with the default NullFileStorage behind it,
- * exports simply see no assets and imports throw on asset payloads —
- * the same net behavior NullAssetResolver used to provide.
+ * Adapts {@see FileStorageInterface} to {@see AssetResolverInterface}, and is
+ * the default alias. Over NullFileStorage: exports see no assets.
  */
 final class FileStorageAssetResolver implements AssetResolverInterface
 {
