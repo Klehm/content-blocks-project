@@ -69,7 +69,8 @@ Les contributeurs clonent le monorepo et ont tout (packages + sandboxes + tests)
 ## Conventions
 
 ### Language
-- **All code comments must be written in English** (inline comments, PHPDoc, JSDoc, Twig comments, etc.)
+- **Everything written on this repo is in English**: commit messages, pull request titles and bodies, documentation, CHANGELOG entries, and code comments (inline, PHPDoc, JSDoc, Twig).
+- Files written in French before this rule stay as they are — it applies to what gets written from now on, not to a retro-translation of the repo.
 
 ### Nommage
 - **Namespace PSR-4** : `ContentBlocks\` (package principal), `ContentBlocks\Kit\` (kit de blocs)
