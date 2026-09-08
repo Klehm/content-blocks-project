@@ -344,6 +344,12 @@ final class ContentBlocksBundle extends AbstractBundle
         // seam for anything stored beside a block rather than inside its data.
         $container->registerForAutoconfiguration(\ContentBlocks\Section\BlockCloneObserverInterface::class)
             ->addTag('content_blocks.block_clone_observer');
+
+        // "These uploaded files are still referenced." A host that keeps its
+        // own images in the upload directory registers one of these; without
+        // it, the asset sweep would correctly find no *block* pointing at them.
+        $container->registerForAutoconfiguration(\ContentBlocks\Asset\AssetReferenceProviderInterface::class)
+            ->addTag('content_blocks.asset_reference_provider');
     }
 
     public function getPath(): string

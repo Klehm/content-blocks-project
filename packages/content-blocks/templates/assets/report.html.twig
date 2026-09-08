@@ -1,0 +1,187 @@
+{# Standalone operator page — rendered by the package, deliberately not part of
+   the builder chrome: it is a whole-install report, and it costs a directory
+   walk plus a pass over the content tables to produce. Read-only by design;
+   see AssetReportController. #}
+{% macro bytes(value) -%}
+    {%- if value >= 1024 ** 3 -%}
+        {{- (value / 1024 ** 3)|number_format(1) }} GB
+    {%- elseif value >= 1024 ** 2 -%}
+        {{- (value / 1024 ** 2)|number_format(1) }} MB
+    {%- elseif value >= 1024 -%}
+        {{- (value / 1024)|number_format(1) }} kB
+    {%- else -%}
+        {{- value }} B
+    {%- endif -%}
+{%- endmacro %}
+{% import _self as fmt %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Unreferenced assets — ContentBlocks</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --report-bg: #f7f8fa;
+            --report-surface: #fff;
+            --report-border: #e2e5ea;
+            --report-text: #1b1f26;
+            --report-muted: #6b7280;
+            --report-accent: #0f766e;
+            --report-warn-bg: #fff8e6;
+            --report-warn-border: #f0d089;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --report-bg: #14171c;
+                --report-surface: #1c2027;
+                --report-border: #2c323b;
+                --report-text: #e8eaed;
+                --report-muted: #9aa3af;
+                --report-accent: #5eead4;
+                --report-warn-bg: #2a2415;
+                --report-warn-border: #5c4a1e;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 2rem 1.5rem 4rem;
+            background: var(--report-bg);
+            color: var(--report-text);
+            font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        }
+        .cb-wrap { max-width: 62rem; margin: 0 auto; }
+        h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+        .cb-sub { color: var(--report-muted); margin: 0 0 1.5rem; }
+        .cb-cards { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); margin-bottom: 1.5rem; }
+        .cb-card { background: var(--report-surface); border: 1px solid var(--report-border); border-radius: .6rem; padding: .9rem 1rem; }
+        .cb-card dt { color: var(--report-muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 .3rem; }
+        .cb-card dd { margin: 0; font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .cb-note {
+            background: var(--report-warn-bg);
+            border: 1px solid var(--report-warn-border);
+            border-radius: .6rem;
+            padding: .9rem 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .cb-note p { margin: 0 0 .5rem; }
+        .cb-note p:last-child { margin-bottom: 0; }
+        code, pre {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: .85em;
+        }
+        pre {
+            background: var(--report-surface);
+            border: 1px solid var(--report-border);
+            border-radius: .4rem;
+            padding: .6rem .8rem;
+            overflow-x: auto;
+            margin: .5rem 0 0;
+        }
+        .cb-table-wrap { overflow-x: auto; background: var(--report-surface); border: 1px solid var(--report-border); border-radius: .6rem; }
+        table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+        th, td { text-align: left; padding: .55rem .9rem; border-bottom: 1px solid var(--report-border); white-space: nowrap; }
+        th { color: var(--report-muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+        tr:last-child td { border-bottom: 0; }
+        td.cb-num { text-align: right; font-variant-numeric: tabular-nums; }
+        h2 { font-size: 1rem; margin: 2rem 0 .5rem; }
+        .cb-empty { color: var(--report-muted); font-style: italic; }
+        a { color: var(--report-accent); }
+    </style>
+</head>
+<body>
+<div class="cb-wrap">
+    <h1>Unreferenced assets</h1>
+    <p class="cb-sub">Files in the configured upload storage that no stored content points at.</p>
+
+    {% if not supported %}
+        <div class="cb-note">
+            <p><strong>The configured file storage cannot list its files.</strong></p>
+            <p>
+                Unreferenced assets cannot be identified without enumeration. Implement
+                <code>ContentBlocks\Storage\AssetInventoryInterface</code> on your storage
+                (<code>LocalFileStorage</code> does), or sweep with your storage provider's own tooling.
+            </p>
+        </div>
+    {% else %}
+        <div class="cb-cards">
+            <dl class="cb-card">
+                <dt>Files scanned</dt>
+                <dd>{{ report.scanned }}</dd>
+            </dl>
+            <dl class="cb-card">
+                <dt>Referenced paths</dt>
+                <dd>{{ report.referencedPaths }}</dd>
+            </dl>
+            <dl class="cb-card">
+                <dt>Reclaimable</dt>
+                <dd>{{ fmt.bytes(report.reclaimedBytes) }}</dd>
+            </dl>
+            <dl class="cb-card">
+                <dt>Held by retention</dt>
+                <dd>{{ fmt.bytes(report.withheldBytes) }}</dd>
+            </dl>
+        </div>
+
+        <div class="cb-note">
+            <p>
+                This page never deletes anything. Deletion is irreversible and reference detection is a
+                heuristic over your own block data, so reclaiming happens from a shell, where you have a
+                backup and an audit trail:
+            </p>
+            <pre>php bin/console content-blocks:assets:gc --retention={{ retention }} --force</pre>
+        </div>
+
+        <h2>Unreferenced, past the {{ retention }}-day retention window ({{ report.swept|length }})</h2>
+        {% if report.swept is empty %}
+            <p class="cb-empty">Nothing to reclaim.</p>
+        {% else %}
+            <div class="cb-table-wrap">
+                <table>
+                    <thead>
+                    <tr><th>Path</th><th class="cb-num">Size</th><th>Last modified</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for asset in report.swept %}
+                        <tr>
+                            <td>{{ asset.publicPath }}</td>
+                            <td class="cb-num">{{ fmt.bytes(asset.size) }}</td>
+                            <td>{{ asset.lastModifiedAt|date('Y-m-d H:i') }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        <h2>Held back — younger than {{ retention }} days ({{ report.withheld|length }})</h2>
+        <p class="cb-sub">
+            The upload endpoint writes a file the moment an editor picks it, minutes before the block
+            referencing it is saved. The retention window is what keeps that file alive.
+        </p>
+        {% if report.withheld is empty %}
+            <p class="cb-empty">Nothing held back.</p>
+        {% else %}
+            <div class="cb-table-wrap">
+                <table>
+                    <thead>
+                    <tr><th>Path</th><th class="cb-num">Size</th><th>Last modified</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for asset in report.withheld %}
+                        <tr>
+                            <td>{{ asset.publicPath }}</td>
+                            <td class="cb-num">{{ fmt.bytes(asset.size) }}</td>
+                            <td>{{ asset.lastModifiedAt|date('Y-m-d H:i') }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+</body>
+</html>

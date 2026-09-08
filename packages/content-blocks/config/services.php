@@ -124,6 +124,35 @@ return static function (ContainerConfigurator $container): void {
     $services->set(\ContentBlocks\Asset\FileStorageAssetResolver::class);
     $services->alias(AssetResolverInterface::class, \ContentBlocks\Asset\FileStorageAssetResolver::class);
 
+    // The single definition of "this string references a stored file", shared
+    // by the exporter and the garbage collector so the two cannot disagree —
+    // a collector that sees fewer references than the exporter would sweep
+    // away a file that is still on a page.
+    $services->set(\ContentBlocks\Asset\AssetReferenceCollector::class);
+
+    // Mark phase. The package's own two sources are registered here and reach
+    // the collector through the same autoconfigured interface a host uses, so
+    // there is no privileged internal path.
+    $services->set(\ContentBlocks\Asset\ContentAreaAssetReferenceProvider::class);
+    $services->set(\ContentBlocks\Asset\SectionTemplateAssetReferenceProvider::class);
+
+    // Sweep phase. Never runs on its own: the only caller is the console
+    // command, and even that reports unless given --force.
+    $services->set(\ContentBlocks\Asset\AssetGarbageCollector::class)
+        ->arg('$referenceProviders', tagged_iterator('content_blocks.asset_reference_provider'));
+
+    $services->set(\ContentBlocks\Command\CollectAssetsCommand::class);
+
+    // Read-only operator report at `/_content-blocks/assets/report`. Denied by
+    // default — it spans every area in the install, so it gets its own
+    // capability (same shape as SectionTemplateManagerInterface) and the route
+    // 404s until a host aliases it.
+    $services->set(\ContentBlocks\Asset\DenyAllAssetReportViewer::class);
+    $services->alias(
+        \ContentBlocks\Asset\AssetReportViewerInterface::class,
+        \ContentBlocks\Asset\DenyAllAssetReportViewer::class,
+    );
+
     // Image optimization seam. Default: passthrough — the stored source is
     // rendered as-is, no srcset, exactly the markup that predates the seam.
     // Hosts alias ImageUrlResolverInterface to a CDN/LiipImagine implementation

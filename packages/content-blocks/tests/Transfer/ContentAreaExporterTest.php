@@ -195,4 +195,60 @@ final class ContentAreaExporterTest extends TestCase
         $data = $payload['contentArea']['sections'][0]['columns'][0]['blocks'][0]['data'];
         $this->assertSame('asset://' . $hash, $data['tabs'][0]['image']);
     }
+
+    /**
+     * Regression: an image uploaded from the rich-text editor lives inside the
+     * HTML, and the whole-string prefix test never saw it — every rich-text
+     * image silently fell out of exports. Now the token replaces the path in
+     * place and the surrounding markup is untouched.
+     */
+    public function testExportEmbedsAnImageReferencedFromInsideRichTextMarkup(): void
+    {
+        $binary = 'inline-bytes';
+        $hash = hash('sha256', $binary);
+        $resolver = $this->makeResolver(['/uploads/hero.png' => $binary]);
+
+        $area = $this->makeArea();
+        $column = $this->makeColumn($this->makeSection($area));
+        $this->makeBlock($column, 'rich_text', draft: [
+            'html' => '<p>Intro</p><figure><img src="/uploads/hero.png" alt="Hero"></figure>',
+        ]);
+
+        $payload = (new ContentAreaExporter($resolver))->export($area);
+
+        $data = $payload['contentArea']['sections'][0]['columns'][0]['blocks'][0]['data'];
+        $this->assertSame(
+            '<p>Intro</p><figure><img src="asset://' . $hash . '" alt="Hero"></figure>',
+            $data['html'],
+        );
+        $this->assertCount(1, $payload['assets']);
+        $this->assertSame(base64_encode($binary), $payload['assets'][$hash]['data']);
+        $this->assertSame('png', $payload['assets'][$hash]['extension']);
+    }
+
+    /**
+     * An inline image and a field image pointing at the same binary still
+     * dedupe to one entry — the hash, not the reference shape, is the key.
+     */
+    public function testAnInlineAndAFieldReferenceToTheSameBinaryShareOneAssetEntry(): void
+    {
+        $binary = 'shared-bytes';
+        $hash = hash('sha256', $binary);
+        $resolver = $this->makeResolver([
+            '/uploads/a.png' => $binary,
+            '/uploads/b.png' => $binary,
+        ]);
+
+        $area = $this->makeArea();
+        $column = $this->makeColumn($this->makeSection($area));
+        $this->makeBlock($column, 'image', draft: ['src' => '/uploads/a.png']);
+        $this->makeBlock($column, 'rich_text', draft: ['html' => '<img src="/uploads/b.png">'], previewPosition: 1);
+
+        $payload = (new ContentAreaExporter($resolver))->export($area);
+
+        $blocks = $payload['contentArea']['sections'][0]['columns'][0]['blocks'];
+        $this->assertSame('asset://' . $hash, $blocks[0]['data']['src']);
+        $this->assertSame('<img src="asset://' . $hash . '">', $blocks[1]['data']['html']);
+        $this->assertCount(1, $payload['assets']);
+    }
 }

@@ -234,9 +234,13 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * Recursively rewrites every `asset://{hash}` string to its
-     * newly-uploaded public path. Unknown hashes are left as-is so the
-     * problem surfaces in the UI rather than vanishing silently.
+     * Recursively rewrites every `asset://{hash}` token to its newly-uploaded
+     * public path. Unknown hashes are left as-is so the problem surfaces in
+     * the UI rather than vanishing silently.
+     *
+     * A token can be the whole value (an image field) or sit inside markup
+     * (`<img src="asset://…">`, what the exporter now produces for rich text),
+     * so both are handled — the second by substitution in place.
      *
      * @param array<string, string> $assetMap
      */
@@ -246,6 +250,14 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
             $hash = substr($value, \strlen(self::ASSET_TOKEN_PREFIX));
 
             return $assetMap[$hash] ?? $value;
+        }
+
+        if (is_string($value) && str_contains($value, self::ASSET_TOKEN_PREFIX)) {
+            return preg_replace_callback(
+                '#' . preg_quote(self::ASSET_TOKEN_PREFIX, '#') . '([A-Za-z0-9_-]+)#',
+                static fn (array $m) => $assetMap[$m[1]] ?? $m[0],
+                $value,
+            ) ?? $value;
         }
 
         if (is_array($value)) {

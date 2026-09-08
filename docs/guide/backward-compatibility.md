@@ -8,7 +8,7 @@ That second half is the part worth reading. In PHP almost everything is reachabl
 
 ### PHP
 
-- **The 31 core interfaces**, plus the kit's `RichTextEditorInterface` and `IconProviderInterface`, and i18n's `TranslationProviderInterface` and `RenderLocaleResolverInterface`. These are the extension surface — implement them, alias them, decorate them.
+- **The 34 core interfaces**, plus the kit's `RichTextEditorInterface` and `IconProviderInterface`, and i18n's `TranslationProviderInterface` and `RenderLocaleResolverInterface`. These are the extension surface — implement them, alias them, decorate them.
 - **`AbstractBlockType`, `AbstractKitBlock`, `AbstractRichTextEditor`** and their documented extension points.
 - **The 17 kit block classes, as subclassable** — see [extending a kit block](../kit/#extending-a-kit-block).
 - **The `#[AsContentBlock]` attribute.**
@@ -23,7 +23,9 @@ Every key of the three semantic config trees (`content_blocks`, `content_blocks_
 
 Route **names**, their methods, payload shapes and CSRF requirement. Mount *paths* belong to the host — the i18n package ships `config/routes/bare.php` precisely so a host can mount its routes wherever its firewall covers — so the names are the contract, not the URLs.
 
-The four console commands, their names and their options: `content-blocks:backfill-collection-ids`, `content-blocks-kit:blocks`, `content-blocks:i18n:status`, `content-blocks:i18n:translate`.
+The five console commands, their names and their options: `content-blocks:assets:gc`, `content-blocks:backfill-collection-ids`, `content-blocks-kit:blocks`, `content-blocks:i18n:status`, `content-blocks:i18n:translate`.
+
+For `content-blocks:assets:gc`, the *shape* of the safety design is part of the promise too: reporting is the default and `--force` is the opt-in. Inverting that would silently turn an existing habit into a deletion, so it will not be inverted.
 
 ### Twig
 
@@ -49,7 +51,8 @@ Three conventions in stored data, which are contracts even though they are not c
 
 Some defaults are load-bearing enough to be API:
 
-- `AccessCheckerInterface` defaults to `DenyAllAccessChecker`, and `ContentAreaUrlResolverInterface` to a resolver that throws. Secure by default, and both stay that way.
+- `AccessCheckerInterface` defaults to `DenyAllAccessChecker`, `ContentAreaUrlResolverInterface` to a resolver that throws, and `AssetReportViewerInterface` to a viewer that denies (the report route 404s rather than 403s). Secure by default, and they stay that way.
+- **No uploaded file is ever deleted as a side effect of a builder action** — not on block delete, not on publish, not on discard. Reclaiming storage is an explicit, separate act; see [Asset lifecycle](./asset-lifecycle.md).
 - The kit's `html_raw` block ships disabled.
 - `ContentAreaType::buildView()` writes nothing to the database on a GET.
 

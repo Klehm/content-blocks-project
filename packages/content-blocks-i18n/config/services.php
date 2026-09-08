@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use ContentBlocks\I18n\Asset\TranslationAssetReferenceProvider;
 use ContentBlocks\I18n\Command\TranslateAreaCommand;
 use ContentBlocks\I18n\Command\TranslationStatusCommand;
 use ContentBlocks\I18n\Controller\AssetController;
@@ -119,6 +120,13 @@ return static function (ContainerConfigurator $container): void {
     // so the workbench can preview the host's own page in the language being
     // translated without the host implementing a second URL resolver.
     $services->set(PreviewLocaleListener::class);
+
+    // ---------- Assets ----------
+
+    // Tells the core's asset sweep that translated values reference files too
+    // — a rich-text image uploaded while writing the German page belongs to no
+    // block's data. Autoconfigured through AssetReferenceProviderInterface.
+    $services->set(TranslationAssetReferenceProvider::class);
 
     // ---------- Twig ----------
 

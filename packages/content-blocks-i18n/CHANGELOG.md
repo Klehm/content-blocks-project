@@ -7,6 +7,20 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Translated values now count as asset references.** The core's new asset
+  sweep (`content-blocks:assets:gc`) deletes uploaded files nothing points at,
+  and a translated rich-text value is a row in a *separate table* carrying its
+  own `<img src="/uploads/…">`. An image uploaded while writing the German
+  version of a page is referenced by no block's data anywhere, so without this
+  the sweep would have deleted it and emptied the German page.
+
+  `TranslationAssetReferenceProvider` reports both slots — published values are
+  on the public site now, draft values are one Publish away. Nothing to wire:
+  it is registered by the bundle and picked up through the core's autoconfigured
+  `AssetReferenceProviderInterface`.
+
 ## [1.0.0-RC4] - 2026-08-31
 
 Version bump only — no functional change in `klehm/content-blocks-i18n`. The tag

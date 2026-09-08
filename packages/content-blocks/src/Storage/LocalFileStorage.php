@@ -9,8 +9,12 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 /**
  * Simple local filesystem storage. Suitable for development and simple deployments.
  * For production, consider using Flysystem or S3-backed implementations.
+ *
+ * Also the reference {@see AssetInventoryInterface}: a directory walk is the
+ * cheapest possible enumeration, so the garbage collector works out of the box
+ * for any host that opted into `content_blocks.upload.directory`.
  */
-final class LocalFileStorage implements FileStorageInterface
+final class LocalFileStorage implements FileStorageInterface, AssetInventoryInterface
 {
     public function __construct(
         private readonly string $uploadDir,
@@ -66,6 +70,48 @@ final class LocalFileStorage implements FileStorageInterface
         }
 
         return $this->buildPublicPath($directory, $filename);
+    }
+
+    /**
+     * Walks the upload directory and yields one {@see StoredAsset} per file,
+     * spelled exactly as {@see self::buildPublicPath()} would have spelled it —
+     * the comparison against references stored in block data is a string
+     * comparison, so the two have to be produced the same way.
+     *
+     * A missing directory is not an error: it only means nothing was ever
+     * uploaded.
+     *
+     * @return iterable<StoredAsset>
+     */
+    public function listAssets(): iterable
+    {
+        $root = rtrim($this->uploadDir, '/');
+        if (!is_dir($root)) {
+            return;
+        }
+
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
+        );
+
+        $prefix = rtrim($this->publicPrefix, '/');
+
+        /** @var \SplFileInfo $file */
+        foreach ($files as $file) {
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            $absolute = $file->getPathname();
+            // Not str_replace: a path component could repeat the root string.
+            $relative = ltrim(substr($absolute, \strlen($root)), '/');
+
+            yield new StoredAsset(
+                $prefix . '/' . $relative,
+                (int) $file->getSize(),
+                (new \DateTimeImmutable())->setTimestamp((int) $file->getMTime()),
+            );
+        }
     }
 
     private function ensureTargetDir(string $directory): string
