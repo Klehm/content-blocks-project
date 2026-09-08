@@ -334,6 +334,12 @@ final class ContentBlocksBundle extends AbstractBundle
         $container->registerForAutoconfiguration(\ContentBlocks\Builder\BuilderActionProviderInterface::class)
             ->addTag('content_blocks.builder_action_provider');
 
+        // Markup a bundle renders inside the builder shell — the UI half of
+        // the seam above, so a bundle's dialog and script land in the builder
+        // without a Stimulus controller or any host wiring.
+        $container->registerForAutoconfiguration(\ContentBlocks\Builder\BuilderShellExtensionInterface::class)
+            ->addTag('content_blocks.builder_shell_extension');
+
         // Told which copy came from which source during a deep clone — the
         // seam for anything stored beside a block rather than inside its data.
         $container->registerForAutoconfiguration(\ContentBlocks\Section\BlockCloneObserverInterface::class)

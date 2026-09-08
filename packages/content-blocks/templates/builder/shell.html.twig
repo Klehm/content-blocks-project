@@ -328,4 +328,19 @@
             {{ 'cb.builder.undo.action'|trans({}, 'content_blocks') }}
         </button>
     </div>
+
+    {# Contributed shell fragments — a bundle's own UI inside the builder
+       (BuilderShellExtensionInterface). Rendered last so a fragment's
+       overlay stacks above the chrome, and inside the shell so its script can
+       reach the CSRF token and the area id off the root element, listen for
+       its own `cb:builder:action` key, and ask the builder to catch up with a
+       `cb:area:changed` event once it has changed the area server-side.
+
+       Each fragment is rendered in isolation (`with_context = false`): it sees
+       its own context plus `area`, never the shell's variables — those are
+       internal and may change. `area` is merged on top so the core's value is
+       guaranteed; the value object refuses a fragment that declares its own. #}
+    {% for fragment in cb_shell_fragments(area) %}
+        {{ include(fragment.template, fragment.context|merge({ area: area }), with_context = false) }}
+    {% endfor %}
 </div>

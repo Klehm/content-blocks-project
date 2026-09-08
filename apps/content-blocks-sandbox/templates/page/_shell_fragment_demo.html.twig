@@ -1,0 +1,41 @@
+{# @var area \ContentBlocks\Entity\ContentArea #}
+{# @var label string #}
+{#
+   Rendered inside `.cb-shell` by the package (see DemoShellExtension). The
+   fragment sees only its own context plus `area`; everything else it needs —
+   the CSRF token, the area id — it reads off the shell root with `closest()`,
+   which is the contract a bundle's own script relies on.
+#}
+<div class="sandbox-shell-fragment" data-sandbox-shell-fragment data-area-id="{{ area.id }}">
+    <button type="button" class="sandbox-shell-fragment__btn" data-sandbox-shell-fragment-btn>{{ label }}</button>
+    <span class="sandbox-shell-fragment__status" data-sandbox-shell-fragment-status role="status" aria-live="polite"></span>
+</div>
+<script type="module">
+    // An inline module here; a real bundle would point a `<script src>` at a
+    // route it serves itself. Same mechanism: the fragment brings its script.
+    const root = document.querySelector('[data-sandbox-shell-fragment][data-area-id="{{ area.id }}"]');
+    const shell = root.closest('[data-cb-csrf-token]');
+    const button = root.querySelector('[data-sandbox-shell-fragment-btn]');
+    const status = root.querySelector('[data-sandbox-shell-fragment-status]');
+
+    button.addEventListener('click', async () => {
+        status.textContent = 'Adding…';
+        const response = await fetch(`/_content-blocks/area/${root.dataset.areaId}/sections`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': shell.dataset.cbCsrfToken,
+                Accept: 'application/json',
+            },
+            body: JSON.stringify({ layout: 'full' }),
+        });
+        if (!response.ok) {
+            status.textContent = 'Failed';
+            return;
+        }
+        status.textContent = 'Added';
+        // The area changed behind the builder's back: ask it to catch up.
+        root.dispatchEvent(new CustomEvent('cb:area:changed', { bubbles: true }));
+    });
+</script>

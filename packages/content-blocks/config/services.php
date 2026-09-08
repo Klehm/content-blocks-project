@@ -337,6 +337,17 @@ return static function (ContainerConfigurator $container): void {
         ->args([tagged_iterator('content_blocks.builder_action_provider')])
         ->public();
 
+    // Fragments rendered inside the shell, contributed by a bundle through
+    // BuilderShellExtensionInterface (autoconfigured). The shell template
+    // reads them through `cb_shell_fragments(area)` so they appear wherever
+    // the shell is rendered, not only through ContentAreaType.
+    $services->set(\ContentBlocks\Builder\BuilderShellFragmentCollection::class)
+        ->args([tagged_iterator('content_blocks.builder_shell_extension')])
+        ->public();
+
+    $services->set(\ContentBlocks\Twig\ShellFragmentsExtension::class)
+        ->tag('twig.extension');
+
     // ---------- Content translation (convention only) ----------
 
     // Declares the `cb_translatable` form option, and reads the tags back.
