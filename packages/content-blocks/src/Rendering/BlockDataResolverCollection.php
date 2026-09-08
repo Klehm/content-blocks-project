@@ -7,15 +7,10 @@ namespace ContentBlocks\Rendering;
 use ContentBlocks\Entity\Block;
 
 /**
- * Runs the registered {@see BlockDataResolverInterface} services in tag
- * priority order, threading each one's output into the next — block-side
- * counterpart of {@see \ContentBlocks\Block\BlockDecoratorCollection}, but a
- * pipeline rather than an accumulator, because the payload is one value the
- * resolvers refine in turn.
+ * Threads each {@see BlockDataResolverInterface} output into the next. An empty
+ * chain yields an empty payload; {@see CoreBlockDataResolver} is always there.
  *
- * An empty chain yields an empty payload; the package always registers
- * {@see CoreBlockDataResolver}, so in practice the seed is the block's own
- * draft-or-published data.
+ * @see docs/internals/rendering.md#resolving-what-a-block-renders
  */
 final class BlockDataResolverCollection
 {

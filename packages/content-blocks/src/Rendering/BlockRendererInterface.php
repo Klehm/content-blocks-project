@@ -9,22 +9,10 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 
 /**
- * Renders a {@see ContentArea} (and its sub-trees) to front-end HTML.
+ * Renders a {@see ContentArea} to front-end HTML. Override seam for rendering;
+ * to change what a block renders, prefer {@see BlockDataResolverInterface}.
  *
- * This is the override seam for rendering: the bundle aliases it to the shipped
- * {@see BlockRenderer}. A host that needs to customize rendering (wrap output,
- * swap the mode heuristic, add caching…) re-aliases the interface to its own
- * implementation — typically decorating the default via
- * `#[AsDecorator(BlockRendererInterface::class)]`.
- *
- * Every entry point takes a {@see RenderContext} rather than a bare
- * {@see RenderMode}, so the pipeline can gain inputs (locale today, whatever
- * comes next) without another breaking signature change. Pass null to keep the
- * historical behaviour.
- *
- * To change *what* a block renders rather than how the tree is walked, prefer
- * {@see BlockDataResolverInterface} — a far smaller surface to own than a
- * renderer replacement.
+ * @see docs/internals/rendering.md#replacing-the-renderer-itself
  */
 interface BlockRendererInterface
 {
@@ -36,18 +24,9 @@ interface BlockRendererInterface
 
     /**
      * Set to `0` alongside {@see self::QUERY_PARAM} to render draft content
-     * **without the builder's editing chrome** — no `builder.css`, no add
-     * tray, no section handle, no overlay script, and soft-deleted sections /
-     * columns / blocks left out.
+     * without the editing chrome. Any other value keeps it.
      *
-     * The result is what the page will look like once published, drawn from
-     * unpublished data. It exists for readers of a draft rather than editors
-     * of one: a review link, an approval step, or the translation workbench's
-     * preview pane, where the builder's toolbars would be dead ends because
-     * there is no builder around them.
-     *
-     * Absent or any other value keeps the chrome, so every existing preview
-     * URL renders exactly as before.
+     * @see docs/internals/rendering.md#why-chrome-is-a-separate-flag-from-mode
      */
     public const CHROME_QUERY_PARAM = 'cb_chrome';
 

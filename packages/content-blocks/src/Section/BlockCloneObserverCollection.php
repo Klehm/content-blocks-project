@@ -7,12 +7,8 @@ namespace ContentBlocks\Section;
 use ContentBlocks\Entity\Block;
 
 /**
- * Fans a clone notification out to every registered
- * {@see BlockCloneObserverInterface}.
- *
- * An empty collection — the default, since the package registers no observer of
- * its own — makes {@see SectionCloner} behave exactly as it did before the seam
- * existed.
+ * Fans a clone notification out to every {@see BlockCloneObserverInterface}.
+ * The package registers none of its own, so it is empty by default.
  */
 final class BlockCloneObserverCollection
 {

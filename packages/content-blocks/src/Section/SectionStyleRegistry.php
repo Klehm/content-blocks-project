@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Section;
 
 /**
- * Aggregates {@see SectionStyleProviderInterface} services into a single
- * lookup. Wired with a `tagged_iterator` so all providers — host-app +
- * package-internal — surface together.
+ * Aggregates {@see SectionStyleProviderInterface} services into one lookup,
+ * through a `tagged_iterator` so host and package providers surface together.
  */
 final class SectionStyleRegistry
 {

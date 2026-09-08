@@ -12,9 +12,8 @@ enum RenderMode: string
     case PUBLIC = 'public';
 
     /**
-     * Preview render: includes draft data, soft-deleted blocks (with marker),
-     * ordered by previewPosition. Markers are emitted for the overlay JS to
-     * latch on.
+     * Draft data, soft-deleted blocks kept with a marker for the overlay JS,
+     * ordered by previewPosition.
      */
     case PREVIEW = 'preview';
 }

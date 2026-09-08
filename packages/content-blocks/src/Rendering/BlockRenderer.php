@@ -19,23 +19,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
 
 /**
- * Renders a ContentArea for the front-end.
+ * Renders a ContentArea for the front-end. PUBLIC serves the published state
+ * and nothing else; PREVIEW merges the draft in.
  *
- * In PUBLIC mode: the last published state and nothing else — published
- * entities only (a Section/Column with a publishedAt, a Block with
- * publishedData), published payloads, published positions, published column
- * membership. Draft state is invisible here *including the draft `deleted`
- * flag*: soft-deleting is an intent to remove at the next Publish, not a
- * removal, so the public page keeps serving the block until then. This is what
- * makes the published render immutable across a whole builder session.
- *
- * In PREVIEW mode: draft data merged in, soft-deleted entities included with a
- * marker, ordered by previewPosition. The PREVIEW HTML also embeds the overlay
- * JS bridge so the parent admin window can react to user interactions.
- *
- * Mode is auto-detected from the current request: query `cb_preview=1`
- * combined with the AccessChecker's canEdit() granting access switches to
- * PREVIEW. Anything else falls through to PUBLIC.
+ * @see docs/internals/rendering.md#what-each-mode-renders
  */
 final class BlockRenderer implements BlockRendererInterface
 {
@@ -89,11 +76,10 @@ final class BlockRenderer implements BlockRendererInterface
     }
 
     /**
-     * Whether this render carries the builder's editing chrome.
+     * Only ever true in PREVIEW, where it is opt-out via
+     * {@see BlockRendererInterface::CHROME_QUERY_PARAM}.
      *
-     * Only ever true in PREVIEW — public pages have never had it. Within
-     * preview it is opt-out, via {@see BlockRendererInterface::CHROME_QUERY_PARAM},
-     * so every URL that worked before this existed still renders identically.
+     * @see docs/internals/rendering.md#why-chrome-is-a-separate-flag-from-mode
      */
     private function chromeEnabled(?RenderMode $mode): bool
     {
@@ -124,11 +110,10 @@ final class BlockRenderer implements BlockRendererInterface
     }
 
     /**
-     * Pins the context's mode so everything downstream — the private walk and
-     * every {@see BlockDataResolverInterface} — sees a concrete value rather
-     * than "decide for me". $fallback is only invoked when the caller left the
-     * mode open, which keeps the request-inspecting heuristic off the hot path
-     * of the single-block and single-section entry points.
+     * Pins the mode so everything downstream sees a concrete value. $fallback
+     * runs only when the caller left it open.
+     *
+     * @see docs/internals/rendering.md#why-the-pipeline-takes-a-context-object
      */
     private function materialize(?RenderContext $context, callable $fallback): RenderContext
     {
@@ -138,11 +123,10 @@ final class BlockRenderer implements BlockRendererInterface
     }
 
     /**
-     * Renders a single block's markup in isolation — the same
-     * `block.html.twig` wrapper used inside a full area render, so the
-     * fragment keeps its data-cb-block-id marker, decorators and view
-     * template. Used by the builder to hot-swap one block in the preview
-     * iframe without reloading the whole page.
+     * One block in isolation, through the same wrapper a full area render
+     * uses, so the builder can hot-swap it byte-for-byte.
+     *
+     * @see docs/internals/rendering.md#replacing-the-renderer-itself
      */
     public function renderBlock(Block $block, ?RenderContext $context = null): string
     {
@@ -155,12 +139,10 @@ final class BlockRenderer implements BlockRendererInterface
     }
 
     /**
-     * Renders a single section's markup in isolation — the same
-     * `section.html.twig` wrapper used inside a full area render. The builder
-     * uses it to hot-reload a section's style (wrapper class/style + column
-     * widths) after a settings change without reloading the whole page; it
-     * only copies the wrapper attributes from this output, leaving the inner
-     * blocks (and their JS state) untouched.
+     * One section in isolation. The builder copies only the wrapper
+     * attributes back, leaving the inner blocks and their JS state alone.
+     *
+     * @see docs/internals/rendering.md#replacing-the-renderer-itself
      */
     public function renderSection(Section $section, ?RenderContext $context = null): string
     {
@@ -174,7 +156,12 @@ final class BlockRenderer implements BlockRendererInterface
     }
 
     /**
-     * @return list<array{id: ?int, layout: string, deleted: bool, columns: list<array<string, mixed>>}>
+     * @return list<array{
+     *     id: ?int,
+     *     layout: string,
+     *     deleted: bool,
+     *     columns: list<array<string, mixed>>,
+     * }>
      */
     private function buildSectionTree(ContentArea $area, RenderContext $context): array
     {
@@ -198,14 +185,10 @@ final class BlockRenderer implements BlockRendererInterface
     }
 
     /**
-     * Where the public page puts each block, keyed by column id.
+     * Where the public page puts each block, keyed by column id. `[]` when no
+     * block carries a published column, the common case.
      *
-     * A cross-column drag writes the block's column FK straight away — it is
-     * the draft location. `publishedColumnId` remembers the column the block
-     * was published in, so the public page can keep showing it there until
-     * Publish. Returns `[]` when no block in the area carries one, which is
-     * the overwhelmingly common case: callers then read each column's own
-     * collection, exactly as before this existed.
+     * @see docs/internals/rendering.md#the-deleted-flag-is-draft-only
      *
      * @return array<int, list<Block>>
      */
@@ -263,20 +246,14 @@ final class BlockRenderer implements BlockRendererInterface
             $buckets = $area !== null ? $this->publishedColumnBuckets($area) : [];
         }
 
-        // `deleted` is a draft flag, and the templates leave a flagged
-        // subtree out whenever they render without the chrome. In PUBLIC that
-        // would be the leak all over again: the block is still published, so
-        // it is still on the page until Publish commits the removal.
+        // `deleted` is a draft flag and the templates prune a flagged subtree
+        // whenever they render chromeless — in PUBLIC that would be the leak.
         $sectionDeleted = $context->mode === RenderMode::PREVIEW && $section->isDeleted();
         $settings = $section->getEffectiveSettings(preferDraft: $context->mode === RenderMode::PREVIEW);
-        // Style presets can carry settings values (padding, background…):
-        // they apply as the base layer, the section's own saved settings win
-        // key-by-key. With "Customize styling" off the saved settings hold
-        // no styling subtree at all, so the preset applies untouched.
+        // Preset settings are the base layer; the section's own win key by
+        // key. See docs/internals/rendering.md#style-presets-as-a-base-layer
         $settings = $this->applyPresetSettings($settings);
-        // Strip default-equal entries so the rendered markup stays clean: a
-        // section saved with a framework-provided default won't get an
-        // inline style for it, only user-overridden values do.
+        // Only real overrides reach the markup.
         $settings = $this->settingsDefaults->withoutDefaults($settings);
         $decoration = $this->sectionDecorators->decorate($settings, $section);
 
@@ -357,10 +334,8 @@ final class BlockRenderer implements BlockRendererInterface
     }
 
     /**
-     * Parse the `columnWidths` setting into a positional list of integer
-     * weights. Returns null (→ equal widths) unless the value is a CSV of
-     * exactly $expected positive integers, so malformed or stale data falls
-     * back to the clean preset-based layout.
+     * Null (→ equal widths) unless the value is a CSV of exactly $expected
+     * positive integers, so stale data falls back to the preset layout.
      *
      * @return list<int>|null
      */
@@ -425,11 +400,19 @@ final class BlockRenderer implements BlockRendererInterface
     }
 
     /**
-     * Builds the template view-model for a single block. Shared by the full
-     * area render (buildBlockList) and the single-block render (renderBlock)
-     * so a hot-swapped block is byte-for-byte identical to its in-page form.
+     * Shared by the full area render and the single-block one, so a
+     * hot-swapped block is byte-for-byte its in-page form.
      *
-     * @return array{id: ?int, type: string, data: array<string, mixed>, viewTemplate: ?string, deleted: bool, extraClasses: string, inlineStyle: string, extraAttributes: array<string, string>}
+     * @return array{
+     *     id: ?int,
+     *     type: string,
+     *     data: array<string, mixed>,
+     *     viewTemplate: ?string,
+     *     deleted: bool,
+     *     extraClasses: string,
+     *     inlineStyle: string,
+     *     extraAttributes: array<string, string>,
+     * }
      */
     private function buildBlockViewModel(Block $block, RenderContext $context, bool $parentDeleted): array
     {
@@ -438,18 +421,11 @@ final class BlockRenderer implements BlockRendererInterface
             : null;
 
         // The draft-or-published rule lives in CoreBlockDataResolver, first in
-        // the pipeline; anything a host registers afterwards refines what it
-        // produced (translation being the motivating case). With no host
-        // resolver the payload is exactly what this method used to compute
-        // inline.
+        // the pipeline; a host resolver refines what it produced.
         $data = $this->blockDataResolvers->resolve($block, $context);
 
-        // Strip default-equal entries so the rendered markup stays
-        // clean: a block saved with the framework-provided default
-        // (e.g. styling.backgroundColor=#ffffff) won't get an inline
-        // style for it, only user-overridden values do. Decoration
-        // sees the trimmed payload; the block type's view template
-        // still receives the original $data.
+        // Decoration sees the trimmed payload; the block type's view
+        // template still receives the original $data.
         $decorationData = $this->blockDataDefaults->withoutDefaults($data);
         $decoration = $this->blockDecorators->decorate($decorationData, $block);
 

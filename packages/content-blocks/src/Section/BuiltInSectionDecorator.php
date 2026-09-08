@@ -10,20 +10,7 @@ use ContentBlocks\Entity\Section;
  * Maps the built-in section settings — `classes`, `widthMode`, `maxWidth`,
  * `styleName` — to a {@see SectionDecoration}. Always registered first.
  *
- * Settings shape:
- *  - classes:    string  free-form whitespace-separated CSS classes
- *  - widthMode:  'full'|'centered'  defaults to $defaultWidthMode (host-configurable, ships 'full')
- *  - maxWidth:   int|null           when widthMode==='centered', emits `--cb-row-max-w:Npx` so the inner
- *                                   `.cb-row` is capped + centered while the section background stays
- *                                   full-width; missing or 0 falls back to $defaultMaxWidth so a centered
- *                                   section is never uncapped. Type 0 explicitly is treated as "no cap".
- *  - styleName:  string|null        a name registered via SectionStyleRegistry
- *
- * The default cap is bound to the parameter
- * `content_blocks.section.default_max_width` and shared with
- * {@see CoreSectionDefaults} so the form pre-fill and the rendered output
- * read the same number — a host overrides the parameter (or registers its
- * own defaults provider) and both surfaces update in lock-step.
+ * @see docs/internals/rendering.md#section-decorators-emit-variables
  */
 final class BuiltInSectionDecorator implements SectionDecoratorInterface
 {
@@ -57,12 +44,8 @@ final class BuiltInSectionDecorator implements SectionDecoratorInterface
                 ? $settings['maxWidth']
                 : $this->defaultMaxWidth;
             if (\is_int($maxWidth) && $maxWidth > 0) {
-                // Constrain the inner `.cb-row`, not the `<section>` itself,
-                // so the section's background still spans the full viewport
-                // width while its content stays centered. The var is read by
-                // `.cb-section--centered > .cb-row` in layout.css; emitting it
-                // as an inline custom property keeps the decorator writing to
-                // the section element only (it has no handle on the row).
+                // Constrains the inner `.cb-row`, not the `<section>`, so the
+                // background still spans the viewport. Read by layout.css.
                 $styles['--cb-row-max-w'] = $maxWidth . 'px';
             }
         }

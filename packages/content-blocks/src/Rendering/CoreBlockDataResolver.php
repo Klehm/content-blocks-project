@@ -7,18 +7,10 @@ namespace ContentBlocks\Rendering;
 use ContentBlocks\Entity\Block;
 
 /**
- * Seeds the render payload from the entity's own slots — the rule that used to
- * live inline in {@see BlockRenderer}:
+ * Seeds the render payload from the entity slots, at priority 256 so it runs
+ * before any host resolver.
  *
- *  - PREVIEW shows the in-flight edit, falling back to the published value
- *    (a block edited since the last publish, or never published at all);
- *  - PUBLIC shows only what was published; a block with no published payload
- *    renders empty (it is filtered out upstream anyway).
- *
- * Registered at priority 256 so it runs before any host resolver: everything
- * else in the chain transforms a payload rather than producing one. A host that
- * wants a different seeding rule registers a resolver at a higher priority and
- * ignores the incoming `$data`.
+ * @see docs/internals/rendering.md#resolving-what-a-block-renders
  */
 final class CoreBlockDataResolver implements BlockDataResolverInterface
 {

@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Section;
 
 /**
- * The accumulated visual effect a {@see SectionDecoratorInterface} applies
- * to a section's outer markup: extra CSS classes, HTML attributes and
- * inline style declarations.
- *
- * Immutable; merge two decorations into a new one with {@see merge()}.
+ * Extra classes, attributes and inline styles a decorator applies to a
+ * section's outer markup. Immutable; combine two with {@see merge()}.
  */
 final class SectionDecoration
 {

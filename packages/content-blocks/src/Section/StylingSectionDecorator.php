@@ -7,22 +7,10 @@ namespace ContentBlocks\Section;
 use ContentBlocks\Entity\Section;
 
 /**
- * Reads the `styling` sub-form (added by SectionSettingsType) and emits
- * CSS custom properties + utility classes that the package's
- * `styling.css` stylesheet maps to actual properties — including per-
- * viewport overrides via `@media`.
+ * Reads the `styling` sub-form and emits the CSS custom properties and classes
+ * that `styling.css` maps to real declarations, media queries included.
  *
- * Inline style would not support media queries, so the indirection
- * (decorator emits vars, stylesheet emits responsive rules) is the only
- * clean path to responsive section styling. The stylesheet is shipped
- * with the package and loaded by render/content_area.html.twig.
- *
- * Settings shape (under `$settings['styling']`):
- *  - padding, margin: { desktop: BoxSpacing, tablet: BoxSpacing, mobile: BoxSpacing }
- *      where BoxSpacing = { top, right, bottom, left: int, linked: bool }
- *  - backgroundColor: string (#hex)
- *  - minHeight: { value: int, unit: 'px'|'vh' }
- *  - verticalAlign: 'start'|'center'|'end'
+ * @see docs/internals/rendering.md#section-decorators-emit-variables
  */
 final class StylingSectionDecorator implements SectionDecoratorInterface
 {
@@ -46,9 +34,8 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
         $vars = [];
         $classes = [];
 
-        // Padding and margin: responsive (D/T/M) × 4 sides. Section vars are
-        // namespaced `--cb-s-*` so they don't inherit into descendant blocks
-        // (which read `--cb-b-*`); see styling.css.
+        // Section vars are namespaced `--cb-s-*` so they do not inherit into
+        // descendant blocks, which read `--cb-b-*`.
         foreach (['padding' => 's-pad', 'margin' => 's-mar'] as $key => $short) {
             $responsive = $styling[$key] ?? null;
             if (!\is_array($responsive)) {
@@ -68,9 +55,7 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
             }
         }
 
-        // Column gap: responsive single px value (D/T/M). The var is set on
-        // the section and inherited by the inner .cb-row; styling.css maps it
-        // with the usual D→T→M fallback cascade.
+        // Set on the section, inherited by the inner .cb-row.
         $gap = $styling['gap'] ?? null;
         if (\is_array($gap)) {
             foreach (self::VIEWPORT_SHORT as $viewport => $vpShort) {

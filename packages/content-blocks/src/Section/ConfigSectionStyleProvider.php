@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace ContentBlocks\Section;
 
 /**
- * Section style presets fed by the bundle's semantic config
- * (`content_blocks.styles`). Registered unconditionally; an empty config
- * simply contributes no styles.
+ * Section style presets fed by `content_blocks.styles`. Registered
+ * unconditionally; an empty config contributes no styles.
  */
 final class ConfigSectionStyleProvider implements SectionStyleProviderInterface
 {
     /**
-     * @param list<array{name: string, label: string, css_class?: string, settings?: array<string, mixed>}> $styles
+     * @param list<array{
+     *     name: string,
+     *     label: string,
+     *     css_class?: string,
+     *     settings?: array<string, mixed>,
+     * }> $styles
      */
     public function __construct(
         private readonly array $styles = [],

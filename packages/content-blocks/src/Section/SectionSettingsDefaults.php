@@ -5,19 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\Section;
 
 /**
- * Aggregates {@see SectionSettingsDefaultsProviderInterface} services into
- * a single defaults map and exposes helpers for the two places defaults
- * matter:
+ * Aggregates the defaults providers: {@see get()} feeds the form on load,
+ * {@see withoutDefaults()} strips default-equal entries before render.
  *
- *  - {@see get()}                 — merged defaults; injected as initial
- *                                   form data so widgets without an
- *                                   "empty" state (color picker, range
- *                                   slider…) don't show browser fallbacks.
- *  - {@see withoutDefaults()}     — strips default-equal entries from a
- *                                   settings array before it flows to the
- *                                   decorator pipeline. Keeps the rendered
- *                                   markup uncluttered when the user
- *                                   saved values that match the default.
+ * @see docs/internals/rendering.md#defaults-and-why-they-are-stripped
  */
 final class SectionSettingsDefaults
 {
@@ -53,9 +44,7 @@ final class SectionSettingsDefaults
     }
 
     /**
-     * Recursively strip values equal to the default. When a nested array
-     * becomes empty after stripping, the key itself is removed too — the
-     * rendered markup only carries the user's actual overrides.
+     * A nested array left empty by the stripping loses its key too.
      *
      * @param array<string, mixed> $settings
      * @param array<string, mixed> $defaults

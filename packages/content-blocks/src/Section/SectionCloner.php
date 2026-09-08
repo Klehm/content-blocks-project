@@ -11,16 +11,11 @@ use ContentBlocks\Entity\Section;
 /**
  * Default {@see SectionClonerInterface} — see it for the contract.
  *
- * Rationale for the draft-wins rule: the user's in-flight edit is more
- * representative of intent than the last published value.
+ * @see docs/internals/rendering.md#cloning-a-section
  */
 final class SectionCloner implements SectionClonerInterface
 {
-    /**
-     * The observer collection is optional so that constructing a cloner by
-     * hand — which tests and a host's own scripts do — stays a no-argument
-     * call. The container always injects the real collection.
-     */
+    /** Optional so building a cloner by hand stays a no-argument call. */
     private readonly BlockCloneObserverCollection $observers;
 
     public function __construct(?BlockCloneObserverCollection $observers = null)
@@ -57,10 +52,8 @@ final class SectionCloner implements SectionClonerInterface
                 $blockCopy->setPreviewPosition($block->getPreviewPosition());
                 $columnCopy->addBlock($blockCopy);
 
-                // Everything inside `data` is already copied above; this is how
-                // anything stored *beside* the block (a satellite package's own
-                // table) learns that a copy exists. See
-                // BlockCloneObserverInterface — the copy has no id yet.
+                // How anything stored *beside* the block learns of the copy;
+                // `data` was copied above. The copy has no id yet.
                 $this->observers->blockCloned($block, $blockCopy);
             }
 
