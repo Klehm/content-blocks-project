@@ -17,20 +17,13 @@ use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * Symfony FormType that manages a ContentArea entity.
+ * FormType managing a ContentArea: `$builder->add('contentArea', self::class)`
+ * renders a hidden id field, and the builder supplies the editing UI.
  *
- * Usage in any form:
- *     $builder->add('contentArea', ContentAreaType::class);
+ * @see docs/guide/concepts.md#contentareatype-lifecycle for the GET/submit
+ *      contract — no DB write on GET, transient area on submit
  *
- * This renders a hidden field holding the ContentArea ID. The Live Component
- * (ContentAreaBuilder) provides the actual editing UI.
- *
- * Lifecycle:
- * - On a GET request, no DB writes happen. If the parent entity has no
- *   ContentArea yet, the widget renders a "save first" placeholder.
- * - On submit, reverseTransform() persists a new ContentArea (without flush);
- *   the host controller's flush — or the parent's `cascade: ['persist']` —
- *   commits everything together.
+ * @implements DataTransformerInterface<mixed, mixed>
  */
 final class ContentAreaType extends AbstractType implements DataTransformerInterface
 {

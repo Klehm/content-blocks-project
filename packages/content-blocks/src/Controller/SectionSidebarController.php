@@ -150,6 +150,7 @@ final class SectionSidebarController
      * no preset is selected / the preset is class-only.
      *
      * @param array<string, mixed> $current
+     *
      * @return array<string, mixed>
      */
     private function presetSettings(array $current): array
@@ -159,7 +160,7 @@ final class SectionSidebarController
             return [];
         }
 
-        return $this->styleRegistry->get($styleName)?->settings ?? [];
+        return $this->styleRegistry->get($styleName)->settings ?? [];
     }
 
     /**
@@ -215,6 +216,7 @@ final class SectionSidebarController
      * settings are consumed.
      *
      * @param array<string, mixed> $data
+     *
      * @return array<string, mixed>
      */
     private function normalize(array $data): array

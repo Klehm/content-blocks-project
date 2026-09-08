@@ -14,8 +14,9 @@ use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
-use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
+use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
@@ -55,7 +56,8 @@ final class BlockComponent
 
     public function getBlock(): Block
     {
-        return $this->em->find(Block::class, $this->blockId);
+        return $this->em->find(Block::class, $this->blockId)
+            ?? throw new NotFoundHttpException(sprintf('Block %s no longer exists.', $this->blockId));
     }
 
     public function getBlockType(): ?BlockTypeInterface
@@ -71,12 +73,19 @@ final class BlockComponent
     public function getBlockTypeLabel(): string
     {
         $blockType = $this->getBlockType();
+        if ($blockType === null) {
+            return $this->getBlock()->getType();
+        }
 
-        // BlockType::getLabel() may now return a TranslatableInterface; cast
-        // to string so this method's contract stays unchanged. Templates that
-        // need the localized label should pipe the result through `|trans`
-        // with the block type's domain, or call `getLabel()` directly.
-        return $blockType ? (string) $blockType::getLabel() : $this->getBlock()->getType();
+        // getLabel() may return a TranslatableInterface, which is not itself
+        // castable — templates localize the result with |trans.
+        $label = $blockType::getLabel();
+
+        return match (true) {
+            is_string($label) => $label,
+            $label instanceof \Stringable => (string) $label,
+            default => $this->getBlock()->getType(),
+        };
     }
 
     protected function instantiateForm(): FormInterface
@@ -293,8 +302,10 @@ final class BlockComponent
 
     private function denyUnlessCanEdit(): void
     {
-        $contentArea = $this->getBlock()->getColumn()->getSection()->getContentArea();
-        if (!$this->accessChecker->canEdit($contentArea)) {
+        // A broken column/section/area chain leaves nothing to authorize
+        // against, so the guard denies rather than crashing on a null.
+        $contentArea = $this->getBlock()->getColumn()?->getSection()?->getContentArea();
+        if ($contentArea === null || !$this->accessChecker->canEdit($contentArea)) {
             throw new ContentBlocksAccessDeniedException();
         }
     }

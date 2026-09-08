@@ -115,7 +115,7 @@ final class SectionPosterBuilder
 
         $styleName = $settings['styleName'] ?? null;
         if (is_string($styleName) && $styleName !== '') {
-            $preset = $this->styleRegistry->get($styleName)?->settings ?? [];
+            $preset = $this->styleRegistry->get($styleName)->settings ?? [];
             if ($preset !== []) {
                 $settings = array_replace_recursive($preset, $settings);
             }

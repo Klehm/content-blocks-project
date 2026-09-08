@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\I18n\Tests\Machine;
 
+use ContentBlocks\Entity\Block;
 use ContentBlocks\I18n\Entity\BlockTranslation;
 use ContentBlocks\I18n\Field\SourceDigest;
 use ContentBlocks\I18n\Locale\TranslationLocales;
@@ -259,5 +260,35 @@ final class MachineTranslatorTest extends TestCase
 
         $this->assertSame(1, $provider->calls);
         $this->assertSame(8, $result->getTranslatedCount());
+    }
+
+    public function testAnUnpersistedBlockIsNotSentToTheProvider(): void
+    {
+        // Translations are keyed by block id, and a never-flushed block has
+        // none — so it has no rows to write and nothing to ask for.
+        $provider = new RecordingProvider();
+        $block = new Block();
+        $block->setType('fixture');
+        $block->setDraftData($this->source());
+
+        $result = $this->translator($provider)->translateBlock($block, 'fr');
+
+        $this->assertSame(0, $provider->calls);
+        $this->assertSame(0, $result->getTranslatedCount());
+    }
+
+    public function testAnUnpersistedBlockIsSkippedWhenTranslatingAnArea(): void
+    {
+        $provider = new RecordingProvider();
+        $orphan = new Block();
+        $orphan->setType('fixture');
+        $orphan->setDraftData($this->source());
+
+        $area = Entities::area(7, Entities::block(1, draft: $this->source(), position: 0));
+        $area->getSections()[0]->getColumns()[0]->addBlock($orphan);
+
+        $result = $this->translator($provider)->translateArea($area, 'fr');
+
+        $this->assertSame(4, $result->getTranslatedCount());
     }
 }

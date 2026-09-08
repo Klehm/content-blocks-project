@@ -40,7 +40,9 @@ final class ColorPaletteRegistry
             }
         }
 
-        return $out;
+        // Overwriting an earlier index above keeps the keys contiguous, but
+        // only array_values() makes that a list the type system can see.
+        return array_values($out);
     }
 
     public function isEmpty(): bool

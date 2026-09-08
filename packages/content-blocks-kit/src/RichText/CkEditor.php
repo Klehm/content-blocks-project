@@ -39,7 +39,7 @@ final class CkEditor extends AbstractRichTextEditor
         return sprintf('https://cdn.ckeditor.com/ckeditor5/%s/ckeditor5.umd.js', self::CDN_VERSION);
     }
 
-    public static function getDefaultStyleUrl(): ?string
+    public static function getDefaultStyleUrl(): string
     {
         return sprintf('https://cdn.ckeditor.com/ckeditor5/%s/ckeditor5.css', self::CDN_VERSION);
     }

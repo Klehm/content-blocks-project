@@ -64,6 +64,9 @@ final class IconSet
         return $out;
     }
 
+    /**
+     * @return list<string>
+     */
     public static function names(): array
     {
         return array_keys(self::ICONS);

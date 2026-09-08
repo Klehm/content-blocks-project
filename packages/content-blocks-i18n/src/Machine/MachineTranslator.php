@@ -61,12 +61,14 @@ final class MachineTranslator
         ?string $providerName = null,
     ): TranslationRunResult {
         $view = $this->inspector->inspectBlock($block, $locale);
+        $blockId = $block->getId();
 
-        if ($view === null) {
+        // An unpersisted block has no id to key translations by, and no rows.
+        if ($view === null || $blockId === null) {
             return new TranslationRunResult($locale, $providerName ?? '');
         }
 
-        return $this->run([$block->getId() => ['block' => $block, 'fields' => $view->fields]], $locale, $paths, $overwrite, $providerName);
+        return $this->run([$blockId => ['block' => $block, 'fields' => $view->fields]], $locale, $paths, $overwrite, $providerName);
     }
 
     public function translateArea(
@@ -78,7 +80,12 @@ final class MachineTranslator
         $blocks = [];
 
         foreach (AreaWalker::blocks($area) as $ref) {
-            $blocks[$ref->block->getId()] = ['block' => $ref->block, 'fields' => []];
+            $blockId = $ref->block->getId();
+            if ($blockId === null) {
+                continue;
+            }
+
+            $blocks[$blockId] = ['block' => $ref->block, 'fields' => []];
         }
 
         foreach ($this->inspector->inspectArea($area, $locale) as $view) {

@@ -98,7 +98,10 @@ final class MachineTranslationController
         }
 
         $payload = $this->payload($request);
-        $paths = \is_array($payload['paths'] ?? null) ? array_map(strval(...), $payload['paths']) : null;
+        // array_values: a JSON object would otherwise arrive keyed, not a list.
+        $paths = \is_array($payload['paths'] ?? null)
+            ? array_values(array_map(strval(...), $payload['paths']))
+            : null;
 
         $result = $this->translator->translateBlock(
             $block,

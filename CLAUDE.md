@@ -75,8 +75,11 @@ Les contributeurs clonent le monorepo et ont tout (packages + sandboxes + tests)
 ### Comments — a budget, and one home per rationale
 
 **Max 2 prose lines per comment block, max 80 columns.** Applies to PHP, JS,
-Twig and CSS under `packages/`. Type annotations (`@param`, `@return`, `@see`,
-`@internal`, `@deprecated`) are not prose and are exempt from the line count.
+Twig and CSS under `packages/`. Prose is what precedes the first `@tag`;
+everything from there on is annotation and is exempt from the line count — the
+continuation lines of a wrapped `array{…}` shape included. The 80 columns apply
+to every comment line, annotations too, which is why long array shapes are
+written multi-line (PHPStan parses them either way).
 
 A class docblock says what the class is and for whom, in two lines. The long
 *why* — the bug it prevents, the trap the next reader will step in — goes to
@@ -659,6 +662,34 @@ La suite Encore reste volontairement petite : tout ce qui passerait à l'identiq
 cd packages/content-blocks
 ./vendor/bin/phpunit
 ```
+
+### Analyse statique (PHPStan + php-cs-fixer)
+
+L'outillage vit **à la racine** du monorepo, pas dans chaque package : le
+`composer.json` racine path-requiert les trois packages, donc une seule install
+donne toutes les dépendances et un seul autoloader pour les trois `src/`.
+
+```bash
+composer install                                   # à la racine
+vendor/bin/phpstan analyse                         # niveau 8, doit être vert
+vendor/bin/php-cs-fixer fix --dry-run --diff       # style, doit être vert
+```
+
+- **PHPStan niveau 8**, avec `phpstan-doctrine`. Deux réglages assumés dans
+  [phpstan.dist.neon](phpstan.dist.neon) : `treatPhpDocTypesAsCertain: false`,
+  parce que `block.data` est du JSON d'âge inconnu lu défensivement et qu'un type
+  déclaré dit ce que l'écrivain a promis, pas ce que la ligne contient ; et un
+  `ignoreErrors` sur le décalage association nullable / FK NOT NULL, qui est le
+  motif Doctrine normal (l'entité existe avant d'être rattachée).
+- **Le niveau 9 n'est pas visé** : il durcit `mixed`, ce qui est structurellement
+  hostile à un page builder dont le domaine *est* du JSON libre (198 erreurs au
+  niveau 10 contre 0 au niveau 8).
+- **php-cs-fixer** est en ruleset restreint (PSR-12 + une poignée de règles), et
+  **pas** `@Symfony` : celui-ci réécrit 204 fichiers dont ~90 % de `yoda_style`
+  et `concat_space` — du goût, payé en `git blame`.
+- Un `@throws` sur une méthode privée n'est pas décoratif : c'est ce qui a fait
+  disparaître un faux « Dead catch » sur une branche bien vivante de
+  [ClipboardController](packages/content-blocks/src/Controller/ClipboardController.php).
 
 ### Worker mode (FrankenPHP)
 

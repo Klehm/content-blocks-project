@@ -195,7 +195,8 @@ final class WorkbenchController
             return new JsonResponse(['error' => 'missing_paths'], Response::HTTP_BAD_REQUEST);
         }
 
-        $result = $this->writer->markUpToDate($block, $locale, array_map(strval(...), $paths));
+        // array_values: a JSON object would otherwise arrive keyed, not a list.
+        $result = $this->writer->markUpToDate($block, $locale, array_values(array_map(strval(...), $paths)));
         $this->em->flush();
 
         return new JsonResponse([

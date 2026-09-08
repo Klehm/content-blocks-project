@@ -24,7 +24,8 @@ final class TranslationLocales
     private readonly array $targets;
 
     /**
-     * @param array<string, string> $labels locale => display label, for the ones the host named
+     * @param list<string>          $locales
+     * @param array<string, string> $labels  locale => host-supplied label
      */
     public function __construct(
         private readonly string $sourceLocale,
@@ -50,7 +51,11 @@ final class TranslationLocales
         return $this->targets;
     }
 
-    /** Source first, then the targets in configured order. @return list<string> */
+    /**
+     * Source first, then the targets in configured order.
+     *
+     * @return list<string>
+     */
     public function getAllLocales(): array
     {
         return [$this->sourceLocale, ...$this->targets];

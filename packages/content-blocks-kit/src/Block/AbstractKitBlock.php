@@ -62,12 +62,13 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
-     * Coded choice maps keyed by field name: `['field' => ['label' => 'value']]`.
-     * Instance-level so dynamic choices (icon set, column counts derived from
-     * options) can be computed. Blocks with ChoiceType fields override this and
-     * consume it via {@see choices()} / {@see choiceConstraint()} in buildForm().
+     * Coded choice maps by field: `['field' => ['label' => 'value']]`,
+     * instance-level so dynamic sets (icons, column counts) can be computed.
      *
-     * @return array<string, array<string, string>>
+     * @see choices()
+     * @see choiceConstraint()
+     *
+     * @return array<string, array<array-key, string|int>>
      */
     protected function choiceFields(): array
     {
@@ -91,33 +92,13 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
-     * Resolved choices for a ChoiceType field. The host's `choices.<field>`
-     * override is read in one of two shapes, told apart by whether it is a list:
+     * Resolved choices for a ChoiceType field: a list override restricts the
+     * coded map, a map override replaces it.
      *
-     *  - **a list of values** — an *allow-list*: the coded map ({@see choiceFields()})
-     *    filtered and reordered to it. Values the block does not code are ignored,
-     *    and an empty or all-invalid list falls back to the full coded map so the
-     *    select is never empty.
+     * @see docs/kit/configuration.md for both shapes, and for how far an added
+     *      value travels into the rendered markup
      *
-     *        choices: { variant: [outline, primary] }
-     *
-     *  - **a map of `value: label`** — a *replacement*: this becomes the field's
-     *    entire choice set, so it can add values the kit never coded, relabel
-     *    them, and order them freely.
-     *
-     *        choices: { variant: { ghost: 'Ghost', primary: 'cb_kit.block.button.variant.primary' } }
-     *
-     *    Labels go through the field's `translation_domain`, so a translation key
-     *    is translated and a plain string comes out as written — Symfony returns
-     *    an unknown key unchanged.
-     *
-     * Adding a value only reaches the picker and the stored data. Whether it
-     * *renders* is the templates' business: the kit's views pass a choice value
-     * through as a CSS class token, so a new one needs the matching CSS on the
-     * host's side, and a value that drives a branch (a gallery layout, an alert
-     * glyph) lands on that branch's fallback until the view is overridden.
-     *
-     * @return array<string, string> label => value, ready for ChoiceType `choices`
+     * @return array<array-key, string|int> label => value, for `choices`
      */
     protected function choices(string $field): array
     {
@@ -256,12 +237,12 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
-     * Reads a string field out of stored block data.
+     * Reads a string field out of stored block data, defensively: the row may
+     * predate the current shape of the block.
      *
-     * Every {@see \ContentBlocks\BlockType\BlockPreviewHintInterface::previewHint()}
-     * in the kit goes through this: the data it receives is whatever was
-     * persisted, possibly by an older version of the block, so a field that is
-     * a string today may be absent or another type entirely in an old row.
+     * @see \ContentBlocks\BlockType\BlockPreviewHintInterface::previewHint()
+     *
+     * @param array<string, mixed> $data
      */
     protected static function previewString(array $data, string $key): ?string
     {
@@ -273,6 +254,8 @@ abstract class AbstractKitBlock extends AbstractBlockType
     /**
      * Entries of a collection field, keeping only the well-formed ones — same
      * defensive contract as {@see previewString()}.
+     *
+     * @param array<string, mixed> $data
      *
      * @return list<array<string, mixed>>
      */
@@ -286,6 +269,8 @@ abstract class AbstractKitBlock extends AbstractBlockType
     /**
      * First non-empty value of `$key` across a collection's entries — the
      * cover image of a gallery, the heading of the first card, and so on.
+     *
+     * @param array<string, mixed> $data
      */
     protected static function previewFirst(array $data, string $itemsKey, string $key): ?string
     {
@@ -300,11 +285,14 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
-     * Machine-readable description of this block's host-configurable surface,
-     * for tooling (see the `content-blocks-kit:blocks` command). Reads the same
-     * coded schema `buildForm()` consumes, so it never drifts from reality.
+     * The block's host-configurable surface as shipped, for the
+     * `content-blocks-kit:blocks` command. Reads the schema `buildForm()` uses.
      *
-     * @return array{options: array<string, mixed>, choices: array<string, array<string, string>>, defaults: array<string, mixed>}
+     * @return array{
+     *     options: array<string, mixed>,
+     *     choices: array<string, array<array-key, string|int>>,
+     *     defaults: array<string, mixed>,
+     * }
      */
     public function describe(): array
     {
@@ -316,16 +304,14 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
-     * The same shape as {@see describe()}, but as this instance was actually
-     * built — host config applied.
+     * Same shape as {@see describe()}, but with host config applied — what an
+     * operator debugging their own `choices` needs, not the coded set.
      *
-     * The two are deliberately separate. `describe()` documents the kit *as
-     * shipped*, which is what the generated reference pages must show; this one
-     * documents one installation, which is what an operator debugging their own
-     * `choices` needs to see. Reporting the coded set to someone who has just
-     * replaced it is how a config lands in the "it does nothing" bucket.
-     *
-     * @return array{options: array<string, mixed>, choices: array<string, array<string, string>>, defaults: array<string, mixed>}
+     * @return array{
+     *     options: array<string, mixed>,
+     *     choices: array<string, array<array-key, string|int>>,
+     *     defaults: array<string, mixed>,
+     * }
      */
     public function describeConfigured(): array
     {

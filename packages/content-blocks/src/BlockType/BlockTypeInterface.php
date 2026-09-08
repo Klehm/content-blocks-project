@@ -37,6 +37,8 @@ interface BlockTypeInterface
     /**
      * Builds the Symfony Form for this block type.
      * Called by BlockFormType to render the edit form.
+     *
+     * @param array<string, mixed> $data
      */
     public function buildForm(FormBuilderInterface $builder, array $data): void;
 

@@ -216,11 +216,17 @@ final class BlockRenderer implements BlockRendererInterface
 
         foreach ($area->getSections() as $section) {
             foreach ($section->getColumns() as $column) {
-                $buckets[$column->getId()] ??= [];
+                $columnId = $column->getId();
+                if ($columnId === null) {
+                    // Not persisted, so nothing published can live there.
+                    continue;
+                }
+
+                $buckets[$columnId] ??= [];
                 foreach ($column->getBlocks() as $block) {
                     $home = $block->getPublishedColumnId();
                     if ($home === null) {
-                        $home = $column->getId();
+                        $home = $columnId;
                     } else {
                         $moved = true;
                     }
@@ -233,12 +239,20 @@ final class BlockRenderer implements BlockRendererInterface
     }
 
     /**
-     * Builds the template view-model for a single section. Shared by the full
-     * area render (buildSectionTree) and the single-section render
-     * (renderSection) so a hot-reloaded section is byte-for-byte identical to
-     * its in-page form.
+     * Builds the template view-model for a single section, shared by the area
+     * render and renderSection so a hot-reloaded section is byte-identical.
      *
-     * @return array{id: ?int, layout: string, deleted: bool, extraClasses: string, inlineStyle: string, extraAttributes: array<string, string>, columns: list<array<string, mixed>>}
+     * @param array<int, list<Block>>|null $buckets
+     *
+     * @return array{
+     *     id: ?int,
+     *     layout: string,
+     *     deleted: bool,
+     *     extraClasses: string,
+     *     inlineStyle: string,
+     *     extraAttributes: array<string, string>,
+     *     columns: list<array<string, mixed>>,
+     * }
      */
     private function buildSectionViewModel(Section $section, RenderContext $context, ?array $buckets = null): array
     {
@@ -282,6 +296,7 @@ final class BlockRenderer implements BlockRendererInterface
      * section's own settings — rightmost wins per key.
      *
      * @param array<string, mixed> $settings
+     *
      * @return array<string, mixed>
      */
     private function applyPresetSettings(array $settings): array
@@ -291,7 +306,7 @@ final class BlockRenderer implements BlockRendererInterface
             return $settings;
         }
 
-        $preset = $this->styleRegistry->get($styleName)?->settings ?? [];
+        $preset = $this->styleRegistry->get($styleName)->settings ?? [];
         if ($preset === []) {
             return $settings;
         }
@@ -300,13 +315,18 @@ final class BlockRenderer implements BlockRendererInterface
     }
 
     /**
-     * @param mixed $columnWidths Raw `columnWidths` section setting (a CSV
-     *                            string like "40,60"), or null for equal
-     *                            widths. Applied as per-column flex weights
-     *                            only when it parses to exactly one positive
-     *                            integer per column.
+     * @param mixed                  $columnWidths Raw `columnWidths` setting: a
+     *      CSV like "40,60", or null for equal widths. Applied as flex weights
+     *      only when it parses to one positive integer per column.
+     * @param array<int, list<Block>> $buckets
      *
-     * @return list<array{id: ?int, preset: string, deleted: bool, width: ?int, blocks: list<array<string, mixed>>}>
+     * @return list<array{
+     *     id: ?int,
+     *     preset: string,
+     *     deleted: bool,
+     *     width: ?int,
+     *     blocks: list<array<string, mixed>>,
+     * }>
      */
     private function buildColumnTree(Section $section, RenderContext $context, bool $parentDeleted, mixed $columnWidths = null, array $buckets = []): array
     {
@@ -372,7 +392,15 @@ final class BlockRenderer implements BlockRendererInterface
     }
 
     /**
-     * @return list<array{id: ?int, type: string, data: array<string, mixed>, viewTemplate: ?string, deleted: bool}>
+     * @param array<int, list<Block>> $buckets
+     *
+     * @return list<array{
+     *     id: ?int,
+     *     type: string,
+     *     data: array<string, mixed>,
+     *     viewTemplate: ?string,
+     *     deleted: bool,
+     * }>
      */
     private function buildBlockList(Column $column, RenderContext $context, bool $parentDeleted, array $buckets = []): array
     {

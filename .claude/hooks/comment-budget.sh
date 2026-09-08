@@ -41,7 +41,7 @@ function flush(  reason) {
   if (prose > maxl) reason = prose " prose lines (max " maxl ")"
   if (longest > maxc) reason = reason (reason ? ", " : "") "line of " longest " cols (max " maxc ")"
   if (reason != "") print blk_start " " blk_end " " reason
-  blk_start = 0; prose = 0; longest = 0
+  blk_start = 0; prose = 0; longest = 0; in_tags = 0
 }
 {
   is_comment = 0; text = ""; t = $0
@@ -83,8 +83,11 @@ function flush(  reason) {
   if (length($0) > longest) longest = length($0)
 
   sub(/[ \t]+$/, "", text)
-  # Annotations (@param, @return, @see, @internal) carry types, not prose.
-  if (text != "" && text !~ /^@/) prose++
+  # Prose is what precedes the first @tag. From there on the block is
+  # annotation — including the continuation lines of a wrapped array shape,
+  # which carry no leading @ of their own.
+  if (text ~ /^@/) in_tags = 1
+  if (!in_tags && text != "") prose++
 }
 END { flush() }
 ' "$file")

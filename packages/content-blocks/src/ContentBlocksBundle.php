@@ -51,7 +51,6 @@ final class ContentBlocksBundle extends AbstractBundle
      */
     public function configure(DefinitionConfigurator $definition): void
     {
-        // @phpstan-ignore-next-line method.notFound (ArrayNodeDefinition is the concrete root)
         $definition->rootNode()
             ->children()
                 ->integerNode('content_version')
@@ -208,6 +207,9 @@ final class ContentBlocksBundle extends AbstractBundle
         return $node;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
         $container->import('../config/services.php');
@@ -230,10 +232,10 @@ final class ContentBlocksBundle extends AbstractBundle
         // default NullFileStorage to a LocalFileStorage rooted there.
         if ($config['upload']['directory'] !== null) {
             $container->services()
-                ->set(\ContentBlocks\Storage\LocalFileStorage::class)
+                ->set(Storage\LocalFileStorage::class)
                 ->args([$config['upload']['directory'], $config['upload']['public_prefix']]);
             $container->services()
-                ->alias(\ContentBlocks\Storage\FileStorageInterface::class, \ContentBlocks\Storage\LocalFileStorage::class);
+                ->alias(Storage\FileStorageInterface::class, Storage\LocalFileStorage::class);
         }
     }
 
@@ -316,7 +318,7 @@ final class ContentBlocksBundle extends AbstractBundle
             ->addTag('content_blocks.section_settings_defaults');
         $container->registerForAutoconfiguration(BlockDecoratorInterface::class)
             ->addTag('content_blocks.block_decorator');
-        $container->registerForAutoconfiguration(\ContentBlocks\Versioning\EnvelopeUpgraderInterface::class)
+        $container->registerForAutoconfiguration(Versioning\EnvelopeUpgraderInterface::class)
             ->addTag('content_blocks.envelope_upgrader');
 
         $container->registerForAutoconfiguration(BlockDataDefaultsProviderInterface::class)
@@ -326,29 +328,29 @@ final class ContentBlocksBundle extends AbstractBundle
         // matters here — the chain threads one payload through every resolver —
         // so an implementation that must run before the shipped seeding step
         // declares `priority` on the tag explicitly.
-        $container->registerForAutoconfiguration(\ContentBlocks\Rendering\BlockDataResolverInterface::class)
+        $container->registerForAutoconfiguration(Rendering\BlockDataResolverInterface::class)
             ->addTag('content_blocks.block_data_resolver');
 
         // Entries in the topbar's Actions menu, contributed by a bundle rather
         // than declared form by form.
-        $container->registerForAutoconfiguration(\ContentBlocks\Builder\BuilderActionProviderInterface::class)
+        $container->registerForAutoconfiguration(Builder\BuilderActionProviderInterface::class)
             ->addTag('content_blocks.builder_action_provider');
 
         // Markup a bundle renders inside the builder shell — the UI half of
         // the seam above, so a bundle's dialog and script land in the builder
         // without a Stimulus controller or any host wiring.
-        $container->registerForAutoconfiguration(\ContentBlocks\Builder\BuilderShellExtensionInterface::class)
+        $container->registerForAutoconfiguration(Builder\BuilderShellExtensionInterface::class)
             ->addTag('content_blocks.builder_shell_extension');
 
         // Told which copy came from which source during a deep clone — the
         // seam for anything stored beside a block rather than inside its data.
-        $container->registerForAutoconfiguration(\ContentBlocks\Section\BlockCloneObserverInterface::class)
+        $container->registerForAutoconfiguration(Section\BlockCloneObserverInterface::class)
             ->addTag('content_blocks.block_clone_observer');
 
         // "These uploaded files are still referenced." A host that keeps its
         // own images in the upload directory registers one of these; without
         // it, the asset sweep would correctly find no *block* pointing at them.
-        $container->registerForAutoconfiguration(\ContentBlocks\Asset\AssetReferenceProviderInterface::class)
+        $container->registerForAutoconfiguration(Asset\AssetReferenceProviderInterface::class)
             ->addTag('content_blocks.asset_reference_provider');
     }
 

@@ -17,8 +17,8 @@ use ContentBlocks\Kit\Block\HtmlRawBlock;
 use ContentBlocks\Kit\Block\IconBlock;
 use ContentBlocks\Kit\Block\ImageBlock;
 use ContentBlocks\Kit\Block\ListBlock;
-use ContentBlocks\Kit\Block\TableBlock;
 use ContentBlocks\Kit\Block\RichTextBlock;
+use ContentBlocks\Kit\Block\TableBlock;
 use ContentBlocks\Kit\Block\TabsBlock;
 use ContentBlocks\Kit\Block\TextBlock;
 use ContentBlocks\Kit\Block\TitleBlock;
@@ -102,7 +102,6 @@ final class ContentBlocksKitBundle extends AbstractBundle
      */
     public function configure(DefinitionConfigurator $definition): void
     {
-        // @phpstan-ignore-next-line method.notFound (ArrayNodeDefinition is the concrete root)
         $definition->rootNode()
             ->children()
                 ->arrayNode('blocks')
@@ -155,6 +154,9 @@ final class ContentBlocksKitBundle extends AbstractBundle
         $container->addCompilerPass(new KitBlockConfigPass(fn (): array => $this->blocksConfig));
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
         // Shared services (form types); block services are registered
@@ -181,6 +183,7 @@ final class ContentBlocksKitBundle extends AbstractBundle
      * gating + option-merge logic is unit-testable.
      *
      * @param array{blocks?: array<string, array{enabled?: bool, options?: array<string, mixed>, choices?: array<string, list<string>>, defaults?: array<string, mixed>}>} $config
+     *
      * @return array<class-string<AbstractKitBlock>, array{options: array<string, mixed>, choices: array<string, list<string>>, defaults: array<string, mixed>}>
      *         Enabled block class => resolved options + raw choice/default overrides.
      */

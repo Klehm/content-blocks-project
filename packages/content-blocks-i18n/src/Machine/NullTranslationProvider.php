@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ContentBlocks\I18n\Machine;
 
-use Symfony\Contracts\Translation\TranslatableInterface;
-
 /**
  * The provider you get when none is configured: every request comes back as a
  * failure carrying `no_provider_configured`.
@@ -28,7 +26,7 @@ final class NullTranslationProvider implements TranslationProviderInterface
         return self::NAME;
     }
 
-    public function getLabel(): string|TranslatableInterface
+    public function getLabel(): string
     {
         return 'No machine translation configured';
     }

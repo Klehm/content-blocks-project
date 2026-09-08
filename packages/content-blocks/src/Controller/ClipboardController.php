@@ -15,11 +15,11 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
-use ContentBlocks\Security\AccessCheckerInterface;
-use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
 use ContentBlocks\SectionTemplate\UnsupportedTemplateFormatException;
+use ContentBlocks\Security\AccessCheckerInterface;
+use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -211,6 +211,13 @@ final class ClipboardController
      *
      * @throws NoPasteTargetException when nothing is selected
      */
+    /**
+     * @param array<string, mixed> $payload
+     *
+     * @throws NoPasteTargetException        when the selection has no column
+     * @throws UnreadableClipboardException  when the payload is not a snapshot
+     * @throws IncompatibleTemplateException when the block's type is gone
+     */
     private function pasteBlock(array $payload, ?Section $section, ?Block $after): PasteResult
     {
         $column = $after?->getColumn() ?? $this->firstColumn($section);
@@ -260,7 +267,8 @@ final class ClipboardController
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param ClipboardEnvelope::SCOPE_* $scope
+     * @param array<string, mixed>       $payload
      *
      * @return array<string, mixed>
      */

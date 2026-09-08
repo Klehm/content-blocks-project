@@ -53,9 +53,24 @@ final class ColorPaletteRegistryTest extends TestCase
         $this->assertSame(['#eb0540'], $registry->getHexes());
     }
 
+    public function testAllStaysAContiguousListAcrossACollision(): void
+    {
+        // A collision overwrites an earlier index rather than appending, so the
+        // keys must still come back 0..n-1 for callers that index positionally.
+        $registry = new ColorPaletteRegistry([
+            $this->provider(
+                new PaletteColor('First', '#111111'),
+                new PaletteColor('Second', '#222222'),
+            ),
+            $this->provider(new PaletteColor('First again', '#111111')),
+        ]);
+
+        $this->assertSame([0, 1], array_keys($registry->all()));
+    }
+
     private function provider(PaletteColor ...$colors): ColorPaletteProviderInterface
     {
-        return new class($colors) implements ColorPaletteProviderInterface {
+        return new class ($colors) implements ColorPaletteProviderInterface {
             /** @param list<PaletteColor> $colors */
             public function __construct(private readonly array $colors)
             {

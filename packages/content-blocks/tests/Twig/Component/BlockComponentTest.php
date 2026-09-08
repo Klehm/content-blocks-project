@@ -9,6 +9,7 @@ use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Form\Type\BlockFormType;
 use ContentBlocks\Security\AllowAllAccessChecker;
+use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Twig\Component\BlockComponent;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -16,6 +17,9 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Contracts\Translation\TranslatableInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Unit tests for BlockComponent::instantiateForm() — the data fallback chain.
@@ -68,7 +72,7 @@ final class BlockComponentTest extends TestCase
     public function testInstantiateFormBackfillsBlockDataDefaultsIntoInitialFormData(): void
     {
         $defaults = new \ContentBlocks\Block\BlockDataDefaults([
-            new class implements \ContentBlocks\Block\BlockDataDefaultsProviderInterface {
+            new class () implements \ContentBlocks\Block\BlockDataDefaultsProviderInterface {
                 public function getDefaults(): array
                 {
                     return ['styling' => ['backgroundColor' => '#ffffff']];
@@ -100,11 +104,22 @@ final class BlockComponentTest extends TestCase
         $em->method('find')->willReturn($block);
 
         $registry = new BlockTypeRegistry();
-        $registry->register(new class extends AbstractBlockType {
-            public static function getType(): string { return 'test'; }
-            public static function getLabel(): string { return 'Test'; }
-            public function buildForm(FormBuilderInterface $builder, array $data): void {}
-            public function getDefaultData(): array { return []; }
+        $registry->register(new class () extends AbstractBlockType {
+            public static function getType(): string
+            {
+                return 'test';
+            }
+            public static function getLabel(): string
+            {
+                return 'Test';
+            }
+            public function buildForm(FormBuilderInterface $builder, array $data): void
+            {
+            }
+            public function getDefaultData(): array
+            {
+                return [];
+            }
         });
 
         $component = new BlockComponent(
@@ -123,7 +138,7 @@ final class BlockComponentTest extends TestCase
     public function testInstantiateFormPreservesExistingDataOverDefaults(): void
     {
         $defaults = new \ContentBlocks\Block\BlockDataDefaults([
-            new class implements \ContentBlocks\Block\BlockDataDefaultsProviderInterface {
+            new class () implements \ContentBlocks\Block\BlockDataDefaultsProviderInterface {
                 public function getDefaults(): array
                 {
                     return ['styling' => ['backgroundColor' => '#ffffff']];
@@ -149,11 +164,22 @@ final class BlockComponentTest extends TestCase
         $em->method('find')->willReturn($block);
 
         $registry = new BlockTypeRegistry();
-        $registry->register(new class extends AbstractBlockType {
-            public static function getType(): string { return 'test'; }
-            public static function getLabel(): string { return 'Test'; }
-            public function buildForm(FormBuilderInterface $builder, array $data): void {}
-            public function getDefaultData(): array { return []; }
+        $registry->register(new class () extends AbstractBlockType {
+            public static function getType(): string
+            {
+                return 'test';
+            }
+            public static function getLabel(): string
+            {
+                return 'Test';
+            }
+            public function buildForm(FormBuilderInterface $builder, array $data): void
+            {
+            }
+            public function getDefaultData(): array
+            {
+                return [];
+            }
         });
 
         $component = new BlockComponent(
@@ -196,17 +222,116 @@ final class BlockComponentTest extends TestCase
         return $form;
     }
 
+    public function testGetBlockThrowsNotFoundWhenTheRowIsGone(): void
+    {
+        $component = $this->makeBareComponent(null);
+
+        $this->expectException(NotFoundHttpException::class);
+        $component->getBlock();
+    }
+
+    public function testSaveDeniesWhenTheBlockHasNoColumnToAuthorizeAgainst(): void
+    {
+        // A block detached from its column/section/area chain has no area to
+        // check, so the guard denies instead of dereferencing null.
+        $component = $this->makeBareComponent($this->makeBlock(null, null));
+
+        $this->expectException(ContentBlocksAccessDeniedException::class);
+        $component->save();
+    }
+
+    public function testGetBlockTypeLabelUnwrapsATranslatableLabel(): void
+    {
+        $registry = new BlockTypeRegistry();
+        $registry->register(new class () extends AbstractBlockType {
+            public static function getType(): string
+            {
+                return 'test';
+            }
+
+            public static function getLabel(): string|TranslatableInterface
+            {
+                // symfony/translation is not a core dependency, so stand in for
+                // TranslatableMessage: translatable and Stringable, as it is.
+                return new class () implements TranslatableInterface, \Stringable {
+                    public function trans(TranslatorInterface $translator, ?string $locale = null): string
+                    {
+                        return 'translated';
+                    }
+
+                    public function __toString(): string
+                    {
+                        return 'cb.block.test';
+                    }
+                };
+            }
+
+            public function buildForm(FormBuilderInterface $builder, array $data): void
+            {
+            }
+
+            public function getDefaultData(): array
+            {
+                return [];
+            }
+        });
+
+        $component = $this->makeBareComponent($this->makeBlock(null, null), $registry);
+
+        self::assertSame('cb.block.test', $component->getBlockTypeLabel());
+    }
+
+    public function testGetBlockTypeLabelFallsBackToTheTypeWhenTheTypeIsGone(): void
+    {
+        $component = $this->makeBareComponent($this->makeBlock(null, null));
+
+        self::assertSame('test', $component->getBlockTypeLabel());
+    }
+
+    /**
+     * A component wired to whatever `find()` should return, with no form
+     * expectations — for the paths that never reach the form factory.
+     */
+    private function makeBareComponent(?Block $block, ?BlockTypeRegistry $registry = null): BlockComponent
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('find')->willReturn($block);
+
+        $component = new BlockComponent(
+            $em,
+            $registry ?? new BlockTypeRegistry(),
+            $this->createMock(FormFactoryInterface::class),
+            new AllowAllAccessChecker(),
+            new \ContentBlocks\Block\BlockDataDefaults(),
+            new \ContentBlocks\Block\CollectionItemIds(),
+        );
+        $component->blockId = 1;
+
+        return $component;
+    }
+
     private function makeComponent(Block $block, FormInterface $form): BlockComponent
     {
         $em = $this->createMock(EntityManagerInterface::class);
         $em->method('find')->willReturn($block);
 
         $registry = new BlockTypeRegistry();
-        $registry->register(new class extends AbstractBlockType {
-            public static function getType(): string { return 'test'; }
-            public static function getLabel(): string { return 'Test'; }
-            public function buildForm(FormBuilderInterface $builder, array $data): void {}
-            public function getDefaultData(): array { return []; }
+        $registry->register(new class () extends AbstractBlockType {
+            public static function getType(): string
+            {
+                return 'test';
+            }
+            public static function getLabel(): string
+            {
+                return 'Test';
+            }
+            public function buildForm(FormBuilderInterface $builder, array $data): void
+            {
+            }
+            public function getDefaultData(): array
+            {
+                return [];
+            }
         });
 
         // Capture the data passed to FormFactory::create — that's the assertion.
