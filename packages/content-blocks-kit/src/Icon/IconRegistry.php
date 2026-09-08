@@ -5,17 +5,14 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Icon;
 
 /**
- * The icons available at runtime: the kit's shipped {@see IconSet} plus
- * whatever {@see IconProviderInterface} services the host registered.
+ * The icons available at runtime — one resolved set feeding both the picker and
+ * `cb_kit_icon()`, so a choosable name is always a drawable one.
  *
- * One resolved set feeds both ends — the `icon` block's picker and
- * `cb_kit_icon()` — so a name that can be chosen is always a name that can be
- * drawn. `IconSet`'s static API is untouched and still describes the shipped
- * glyphs; this is what anything runtime should read.
+ * @see docs/internals/kit.md#icons-are-added-not-filtered
  */
 final class IconRegistry
 {
-    /** @var array<string, string>|null name => inner SVG markup, resolved once */
+    /** @var array<string, string>|null name => inner SVG, resolved once */
     private ?array $icons = null;
 
     /**
@@ -36,9 +33,8 @@ final class IconRegistry
 
         $icons = IconSet::all();
         foreach ($this->providers as $provider) {
-            // Providers are merged over the shipped set, so naming a kit icon
-            // replaces its glyph rather than being ignored — the obvious way
-            // to restyle one without overriding the block's template.
+            // Merged over the shipped set, so naming a kit icon replaces
+            // its glyph rather than being ignored.
             foreach ($provider->icons() as $name => $inner) {
                 if (\is_string($name) && \is_string($inner) && $name !== '') {
                     $icons[$name] = $inner;
@@ -77,9 +73,8 @@ final class IconRegistry
     }
 
     /**
-     * Full `<svg>` markup for a name, or null when unknown. Stroke style with
-     * `currentColor`, sized via width/height attributes — the wrapper is the
-     * kit's so every glyph, shipped or contributed, looks like one family.
+     * Full `<svg>` for a name, null when unknown. The wrapper is the kit's, so
+     * every glyph — shipped or contributed — looks like one family.
      */
     public function svg(string $name, int $size = 24): ?string
     {

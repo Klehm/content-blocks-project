@@ -8,11 +8,8 @@ use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 /**
- * Normalizes a YouTube / Vimeo page URL (or bare video id) into its embeddable
- * player URL, for the `embed` block's view template.
- *
- * Returns null for anything it doesn't recognize, so the template can show a
- * "unsupported URL" hint instead of an empty iframe.
+ * Normalizes a YouTube or Vimeo URL into its player URL. Null for anything
+ * unrecognized, so the view shows a hint rather than an empty iframe.
  */
 final class EmbedExtension extends AbstractExtension
 {

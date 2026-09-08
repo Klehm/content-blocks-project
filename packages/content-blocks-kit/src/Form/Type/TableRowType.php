@@ -10,7 +10,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
 
-/** One row (a collection of cells) of a {@see \ContentBlocks\Kit\Block\TableBlock}. */
+/** One row, a collection of cells, of a table block. */
 final class TableRowType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void

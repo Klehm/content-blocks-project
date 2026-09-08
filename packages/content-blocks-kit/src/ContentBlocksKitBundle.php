@@ -34,10 +34,15 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 final class ContentBlocksKitBundle extends AbstractBundle
 {
     /**
-     * Raw `blocks` config, kept for {@see KitBlockConfigPass} — which is
-     * registered in `build()`, long before there is any configuration to read.
+     * Raw `blocks` config, kept for {@see KitBlockConfigPass}, registered in
+     * `build()` long before there is configuration to read.
      *
-     * @var array<string, array{enabled?: bool, options?: array<string, mixed>, choices?: array<string, mixed>, defaults?: array<string, mixed>}>
+     * @var array<string, array{
+     *     enabled?: bool,
+     *     options?: array<string, mixed>,
+     *     choices?: array<string, mixed>,
+     *     defaults?: array<string, mixed>,
+     * }>
      */
     private array $blocksConfig = [];
 
@@ -68,37 +73,19 @@ final class ContentBlocksKitBundle extends AbstractBundle
     ];
 
     /**
-     * Blocks shipped but OFF by default — the host must opt in explicitly.
-     * `html_raw` renders unescaped markup (`{{ html|raw }}`), so it trusts its
-     * editors; keeping it out of the picker until a host consciously enables it
-     * (`content_blocks_kit.blocks.html_raw.enabled: true`) is the safe default.
+     * Shipped but OFF until a host opts in explicitly.
+     *
+     * @see docs/internals/kit.md#disabling-and-why-html_raw-is-off
      *
      * @var list<string>
      */
     public const DEFAULT_DISABLED = ['html_raw'];
 
     /**
-     * Semantic config: enable/disable each block and pass per-block options.
+     * Semantic config: enable or disable each block, and pass it `options`,
+     * `choices` and `defaults`.
      *
-     *     content_blocks_kit:
-     *         blocks:
-     *             tabs: { enabled: false }               # drop a block entirely
-     *             html_raw: { enabled: true }            # opt into a DEFAULT_DISABLED block
-     *             gallery:
-     *                 options: { max_columns: 6 }        # block-level knobs
-     *             button:
-     *                 choices:  { variant: [primary, secondary] }  # restrict/reorder a ChoiceType
-     *                 defaults: { align: center }                  # override initial field values
-     *             alert:
-     *                 # A value:label map replaces the set instead of filtering
-     *                 # it, so it can add values the kit never coded. Labels go
-     *                 # through the field's translation domain.
-     *                 choices:  { type: { info: 'cb_kit.block.alert.type.info', tip: 'Astuce' } }
-     *
-     * Blocks omitted from config default to enabled with their coded option
-     * defaults — except {@see self::DEFAULT_DISABLED} blocks, which stay off
-     * until explicitly enabled. Disabling a block un-registers its service, so
-     * it never reaches the BlockTypeRegistry / picker.
+     * @see docs/internals/kit.md#three-levers-one-source-of-truth
      */
     public function configure(DefinitionConfigurator $definition): void
     {
@@ -130,10 +117,8 @@ final class ContentBlocksKitBundle extends AbstractBundle
     }
 
     /**
-     * Auto-tag host-registered rich-text editors, so wiring a third editor
-     * (Quill, Trix, an in-house one) is a service declaration and nothing
-     * else — the same deal the core gives palette and section-style
-     * providers.
+     * Auto-tags host-registered rich-text editors and icon providers, so
+     * wiring either is a service declaration and nothing else.
      */
     public function build(ContainerBuilder $container): void
     {
@@ -142,15 +127,13 @@ final class ContentBlocksKitBundle extends AbstractBundle
         $container->registerForAutoconfiguration(RichTextEditorInterface::class)
             ->addTag('content_blocks_kit.rich_text_editor');
 
-        // Same deal for icons: contributing a glyph is a service declaration.
-        // It is also the only way to *add* to the icon block's picker — see
-        // IconProviderInterface on why `choices` cannot do that job alone.
+        // The only way to *add* to the icon picker: `choices` filters a set
+        // rather than extending one.
         $container->registerForAutoconfiguration(IconProviderInterface::class)
             ->addTag('content_blocks_kit.icon_provider');
 
-        // The loop in loadExtension() reaches the blocks this bundle registers;
-        // this reaches the ones a host subclassed, which are precisely the ones
-        // that had to switch the kit's service off to exist.
+        // Reaches the blocks a host subclassed, which loadExtension() cannot.
+        // See kit.md#disabling-and-why-html_raw-is-off
         $container->addCompilerPass(new KitBlockConfigPass(fn (): array => $this->blocksConfig));
     }
 
@@ -178,14 +161,21 @@ final class ContentBlocksKitBundle extends AbstractBundle
     }
 
     /**
-     * Resolve which block services to register and with what options, from
-     * the processed `content_blocks_kit` config. Pure (no container) so the
-     * gating + option-merge logic is unit-testable.
+     * Which block services to register, and with what. Pure — no container —
+     * so the gating and merge logic is unit-testable.
      *
-     * @param array{blocks?: array<string, array{enabled?: bool, options?: array<string, mixed>, choices?: array<string, list<string>>, defaults?: array<string, mixed>}>} $config
+     * @param array{blocks?: array<string, array{
+     *     enabled?: bool,
+     *     options?: array<string, mixed>,
+     *     choices?: array<string, list<string>>,
+     *     defaults?: array<string, mixed>,
+     * }>} $config
      *
-     * @return array<class-string<AbstractKitBlock>, array{options: array<string, mixed>, choices: array<string, list<string>>, defaults: array<string, mixed>}>
-     *         Enabled block class => resolved options + raw choice/default overrides.
+     * @return array<class-string<AbstractKitBlock>, array{
+     *     options: array<string, mixed>,
+     *     choices: array<string, list<string>>,
+     *     defaults: array<string, mixed>,
+     * }>
      */
     public static function resolveBlocks(array $config): array
     {
@@ -203,8 +193,8 @@ final class ContentBlocksKitBundle extends AbstractBundle
                 // Merge coded defaults with host overrides so the block always
                 // receives a fully-populated option set.
                 'options' => array_replace($class::defaultOptions(), $blockConfig['options'] ?? []),
-                // Choice/default overrides are consumed inside the block (against
-                // its coded schema), so they pass through raw here.
+                // Consumed inside the block against its coded schema, so
+                // they pass through raw here.
                 'choices' => $blockConfig['choices'] ?? [],
                 'defaults' => $blockConfig['defaults'] ?? [],
             ];
@@ -215,11 +205,8 @@ final class ContentBlocksKitBundle extends AbstractBundle
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        // Register the assets path so AssetMapper + StimulusBundle can discover the
-        // controllers. Guarded for Webpack Encore hosts — same reason as the core
-        // bundle: prepending `paths` would enable a component that is not installed.
-        // The @ContentBlocksKit Twig namespace is auto-detected by AbstractBundle from <BundleRoot>/templates/,
-        // which also gives `templates/bundles/ContentBlocksKitBundle/` priority for host overrides.
+        // Guarded for the same reason as the core bundle. See
+        // docs/internals/bundle-boot.md#the-assetmapper-prepend
         if (class_exists(AssetMapper::class)) {
             $builder->prependExtensionConfig('framework', [
                 'asset_mapper' => [

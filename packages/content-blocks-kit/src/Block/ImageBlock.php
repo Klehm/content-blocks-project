@@ -20,16 +20,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
- * A single image with sizing controls: a width preset (small/medium/large),
- * full width, or a custom width + optional exact height (with an object-fit
- * choice), plus alignment, an optional link, caption and rounded corners.
+ * One image with sizing, alignment, link, caption and rounded corners. A plain
+ * `<img>` at the chosen display size, with no image-processing dependency.
  *
- * The kit renders a plain <img> at the chosen display size — no image-processing
- * dependency. A host that wants server-side resizing can override the view
- * template and pipe `src` through its own filter.
- *
- * The custom width/height fields reveal only for the "custom" size, driven by
- * the generic cb-condition controller.
+ * @see docs/internals/kit.md#blocks-are-autonomous
  */
 #[AsContentBlock(priority: 70)]
 class ImageBlock extends AbstractKitBlock implements BlockPreviewHintInterface
@@ -69,10 +63,8 @@ class ImageBlock extends AbstractKitBlock implements BlockPreviewHintInterface
                 'required' => false,
                 'constraints' => [new Assert\Length(max: 255)],
             ])
-            // The custom width/height rows reveal only for the "custom" size,
-            // gated by the block edit form's cb-condition scope (see
-            // Block.html.twig). The height field additionally hides when
-            // "auto height" is on — the two clauses are ANDed via `;`.
+            // Revealed only for the "custom" size, and the height also
+            // hides under "auto height" — two cb-condition clauses ANDed.
             ->add('size', ChoiceType::class, [
                 'label' => 'cb_kit.block.image.field.size',
                 'translation_domain' => 'content_blocks_kit',
@@ -169,10 +161,9 @@ class ImageBlock extends AbstractKitBlock implements BlockPreviewHintInterface
     }
 
     /**
-     * `src` is a storage path, so the tile shows the actual picture — the
-     * single biggest win of drawing the poster in the DOM rather than
-     * rasterising it. An image still being uploaded has none, and
-     * BlockPreviewHint::image() degrades that to a labelled tile.
+     * `src` is a storage path, so the tile shows the actual picture.
+     *
+     * @see docs/internals/kit.md#preview-hints-in-the-kit
      */
     public function previewHint(array $data): ?BlockPreviewHint
     {

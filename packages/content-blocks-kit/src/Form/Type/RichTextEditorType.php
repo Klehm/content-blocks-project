@@ -12,20 +12,10 @@ use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * A textarea mounted by whichever WYSIWYG editor the host selected.
+ * A textarea mounted by whichever editor the host selected, resolved here at
+ * view-building time so `RichTextBlock` stays constructible with no arguments.
  *
- * The block hands over its resolved options and nothing else; picking the
- * adapter out of the registry and asking it what the browser needs happens
- * here, at view-building time, because "how is this field rendered" is a view
- * concern — and because it keeps `RichTextBlock` constructible with no
- * arguments, the way every other kit block is.
- *
- * The rendered markup lives in `@ContentBlocksKit/form/rich_text_theme.html.twig`
- * (`cb_rich_text_widget`), the same split the core uses for
- * `ImageUploadType`/`cb_image_upload_widget`.
- *
- * The textarea itself stays in the DOM under every editor — it is what the
- * Live Component binds to, and what a failed editor load falls back to.
+ * @see docs/internals/kit.md#rich-text-one-payload-several-editors
  */
 final class RichTextEditorType extends AbstractType
 {

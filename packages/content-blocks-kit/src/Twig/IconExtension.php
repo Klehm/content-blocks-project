@@ -9,14 +9,10 @@ use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 /**
- * Exposes the resolved {@see IconRegistry} to templates as `cb_kit_icon()` —
- * the kit's shipped glyphs plus any the host contributed through
- * {@see \ContentBlocks\Kit\Icon\IconProviderInterface}.
+ * Exposes the resolved {@see IconRegistry} as `cb_kit_icon()`. The markup is
+ * emitted as safe HTML, which is a claim about its sources.
  *
- * The markup is emitted as safe HTML. That is a statement about the *wrapper*,
- * which this code writes, and about the shipped glyphs, which are kit-authored;
- * the inner markup of a contributed icon is trusted the same way a host's own
- * template is — it comes from their PHP, not from an editor's input.
+ * @see docs/internals/kit.md#why-views-check-a-token-shape-not-a-value-list
  */
 final class IconExtension extends AbstractExtension
 {

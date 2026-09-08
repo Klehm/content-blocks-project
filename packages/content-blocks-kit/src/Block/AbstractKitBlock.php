@@ -8,30 +8,17 @@ use ContentBlocks\BlockType\AbstractBlockType;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Base class for kit blocks. On top of the core {@see AbstractBlockType} it
- * gives the host three levers, all wired from `content_blocks_kit.blocks.<type>`:
+ * Base class for kit blocks, giving a host three levers — `options`, `choices`
+ * and `defaults` — all wired from `content_blocks_kit.blocks.<type>`.
  *
- *  - `options`  — block-level knobs (e.g. `max_columns`), merged over
- *                 {@see defaultOptions()} and read at runtime via {@see option()}.
- *  - `choices`  — a per-field allow-list restricting/reordering a ChoiceType's
- *                 options. Declared once per block in {@see choiceFields()} and
- *                 consumed in `buildForm()` via {@see choices()} — a single
- *                 source of truth the doc command can introspect too.
- *  - `defaults` — per-field overrides of {@see defaults()} (the block's coded
- *                 initial data), applied by the final {@see getDefaultData()}.
- *
- * The bundle injects the merged option set and the raw choice/default overrides
- * as constructor arguments at registration time, so at runtime a block reads a
- * fully-resolved surface — no null-coalescing against defaults needed. All three
- * arguments default to empty, so `new SomeBlock()` still works (unit tests, the
- * doc command) and yields the coded surface.
+ * @see docs/internals/kit.md#three-levers-one-source-of-truth
  */
 abstract class AbstractKitBlock extends AbstractBlockType
 {
     /**
-     * @param array<string, mixed>              $options         Merged option set (defaults + host overrides).
-     * @param array<string, list<string>>       $choiceOverrides Host `choices.<field>` allow-lists.
-     * @param array<string, mixed>              $defaultOverrides Host `defaults.<field>` value overrides.
+     * @param array<string, mixed>        $options          coded + host
+     * @param array<string, list<string>> $choiceOverrides  `choices.<field>`
+     * @param array<string, mixed>        $defaultOverrides `defaults.<field>`
      */
     public function __construct(
         protected readonly array $options = [],
@@ -52,9 +39,8 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
-     * Read a resolved option, falling back to the coded default (so the
-     * block is robust even if constructed without the bundle's merge, e.g.
-     * in a unit test).
+     * Falls back to the coded default, so a block built without the bundle's
+     * merge still works.
      */
     protected function option(string $key): mixed
     {
@@ -76,9 +62,8 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
-     * The shared horizontal-alignment choice map (start / center / end). Several
-     * blocks expose an identical "align" field; centralizing it here keeps the
-     * values and their translation keys in sync across the kit.
+     * The shared align map, centralized so its values and translation keys stay
+     * in sync across every block exposing one.
      *
      * @return array<string, string>
      */
@@ -129,12 +114,10 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
-     * Turns a host's `value: label` map into ChoiceType's `label => value`.
+     * A loop rather than `array_flip()`, because the host's map is arbitrary
+     * input and two values sharing a label would collapse.
      *
-     * Written as a loop rather than `array_flip()` because the host's map is
-     * arbitrary input: values are cast to string (YAML happily hands over
-     * integers), and two values sharing a label would silently collapse — so
-     * the second one is disambiguated instead of lost.
+     * @see docs/internals/kit.md#why-the-constraint-is-a-union
      *
      * @param array<array-key, mixed> $map
      *
@@ -159,14 +142,10 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
-     * An {@see Assert\Choice} over the **union** of the coded value set and the
-     * resolved one.
+     * Over the **union** of the coded and resolved value sets. Both halves earn
+     * their place.
      *
-     * Both halves earn their place. The coded set is kept so narrowing the
-     * picker never invalidates content already stored with a now-hidden value.
-     * The resolved set is added so a value the host introduced through config
-     * survives its own form — without it, `choices` could offer a value the
-     * validator would then reject.
+     * @see docs/internals/kit.md#why-the-constraint-is-a-union
      */
     protected function choiceConstraint(string $field): Assert\Choice
     {
@@ -177,19 +156,18 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
-     * Coded per-field default values (the block's initial data). Override this
-     * instead of {@see getDefaultData()}; the host's `defaults.<field>` are
-     * merged over it by {@see getDefaultData()}.
+     * Coded initial data. Override this, not {@see getDefaultData()}, which
+     * merges the host's `defaults.<field>` over it.
      *
      * @return array<string, mixed>
      */
     abstract protected function defaults(): array;
 
     /**
-     * Final default data: coded {@see defaults()} with the host's `defaults.<field>`
-     * merged over them, then reconciled with the resolved choice sets. Overrides
-     * are restricted to keys the block declares, so a typo in host config never
-     * leaks a stray key into stored block data.
+     * Coded defaults, host overrides merged over them, reconciled with the
+     * resolved choice sets. Only declared keys survive.
+     *
+     * @see docs/internals/kit.md#three-levers-one-source-of-truth
      *
      * @return array<string, mixed>
      */
@@ -202,17 +180,10 @@ abstract class AbstractKitBlock extends AbstractBlockType
     }
 
     /**
-     * Pulls each choice field's default back into the set the picker actually
-     * offers.
+     * Pulls each default back into the set the picker offers — and only when it
+     * is not already on offer.
      *
-     * A host that replaces `variant` without also setting `defaults.variant`
-     * would otherwise have every new button start on the kit's coded default —
-     * a value their config just removed, absent from the dropdown and unstyled
-     * on the page. Falling back to the first offered value makes the two halves
-     * of the config agree on their own.
-     *
-     * Only ever moves a default that is *not* on offer, so a block whose config
-     * still contains its default is untouched.
+     * @see docs/internals/kit.md#defaults-are-pulled-back-into-the-offered-set
      *
      * @param array<string, mixed> $data
      *

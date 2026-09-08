@@ -44,8 +44,7 @@ class TextBlock extends AbstractKitBlock implements BlockPreviewHintInterface
                 'required' => false,
                 'attr' => ['rows' => 5],
             ])
-            // Reuses the core palette — same named colors as the title block and
-            // the TinyMCE swatches. Stores a plain '#hex' ('' = inherit).
+            // The core palette, as everywhere in the kit. '' = inherit.
             ->add('color', PaletteColorType::class, [
                 'label' => 'cb_kit.block.field.text_color',
                 'translation_domain' => 'content_blocks_kit',

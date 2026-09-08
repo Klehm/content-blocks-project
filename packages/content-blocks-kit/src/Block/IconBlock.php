@@ -84,10 +84,8 @@ class IconBlock extends AbstractKitBlock
     protected function choiceFields(): array
     {
         return [
-            // Labels are the icon names themselves (choice_translation_domain
-            // is false on the field). The set comes from the registry, so a
-            // host's IconProviderInterface shows up here with no config at
-            // all; `choices` then restricts or reorders what it produced.
+            // From the registry, so a host's IconProviderInterface shows up
+            // with no config. See kit.md#blocks-are-autonomous
             'name' => $this->icons->choices(),
             'align' => $this->alignChoices(),
         ];

@@ -45,7 +45,7 @@ class DividerBlock extends AbstractKitBlock implements BlockPreviewHintInterface
                 'choices' => $this->choices('style'),
                 'constraints' => [$this->choiceConstraint('style')],
             ])
-            // Stores a plain '#hex' ('' = the stylesheet's default border color).
+            // Plain '#hex'; '' means the stylesheet's border color.
             ->add('color', PaletteColorType::class, [
                 'label' => 'cb_kit.block.divider.field.color',
                 'translation_domain' => 'content_blocks_kit',

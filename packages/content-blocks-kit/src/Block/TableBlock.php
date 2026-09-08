@@ -15,9 +15,8 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
 
 /**
- * A simple data table: columns (label + alignment) and rows of cells. Cells are
- * mapped to columns by position at render time, so the table stays rectangular
- * even if a row has fewer/more cells than columns.
+ * Columns and rows of cells, mapped by position at render time so the table
+ * stays rectangular whatever a row holds.
  */
 #[AsContentBlock(priority: 15)]
 class TableBlock extends AbstractKitBlock
@@ -90,9 +89,8 @@ class TableBlock extends AbstractKitBlock
         return [
             'striped' => true,
             'columns' => [
-                // `start`/`end`, not `left`/`right`: the RC1 rename covered
-                // TableColumnType and the view, and left these two behind — so a
-                // fresh table opened with a column its own form rejects.
+                // `start`/`end`, not `left`/`right`: the RC1 rename left
+                // these two behind, and the form rejected its own default.
                 ['label' => 'Name', 'align' => 'start'],
                 ['label' => 'Value', 'align' => 'end'],
             ],

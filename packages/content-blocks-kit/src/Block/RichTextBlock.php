@@ -21,9 +21,10 @@ class RichTextBlock extends AbstractKitBlock implements BlockPreviewHintInterfac
     }
 
     /**
-     * Which editor mounts the field, and how it is loaded and configured.
-     * The stored payload is the same HTML under every editor, so `editor` is
-     * a display-time choice: flipping it does not touch a single row.
+     * The stored payload is the same HTML under every editor, so `editor` is a
+     * display-time choice: flipping it touches no row.
+     *
+     * @see docs/internals/kit.md#rich-text-one-payload-several-editors
      */
     public static function defaultOptions(): array
     {
@@ -34,13 +35,11 @@ class RichTextBlock extends AbstractKitBlock implements BlockPreviewHintInterfac
             // false → the kit loads no editor JS; the host bundles it and the
             // editor's global must be present when the form opens.
             'cdn' => true,
-            // Override to self-host the same build (air-gapped admin, strict
-            // CSP). `asset:<path>` resolves through the host's asset packages,
-            // which is what a versioned filename needs.
+            // Override to self-host the same build. `asset:<path>` resolves
+            // through the host's asset packages.
             'script_url' => null,
             'style_url' => null,
-            // The names these two replaced, still honoured: they read as "another
-            // CDN", which is not what self-hosting is.
+            // Still honoured, but they read as "another CDN".
             'cdn_url' => null,
             'cdn_style_url' => null,
             // Wires the editor's image button to the builder's upload endpoint.
@@ -66,17 +65,14 @@ class RichTextBlock extends AbstractKitBlock implements BlockPreviewHintInterfac
 
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
-        // The textarea is enhanced client-side by whichever editor's Stimulus
-        // controller the adapter names. With JS disabled — or an editor that
-        // fails to load — the user still gets a plain textarea holding the
-        // same HTML.
+        // Enhanced client-side; with JS off, or an editor that fails to
+        // load, the user still gets a textarea holding the same HTML.
         $builder->add('content', RichTextEditorType::class, [
             'cb_translatable' => true,
             'label' => 'cb_kit.block.rich_text.field.content',
             'translation_domain' => 'content_blocks_kit',
-            // Resolved rather than raw: a block built outside the bundle's
-            // merge (a unit test, a host instantiating it directly) still
-            // hands the adapter a complete option set.
+            // Resolved, so a block built outside the bundle's merge still
+            // hands the adapter a complete set.
             'editor_options' => array_replace(static::defaultOptions(), $this->options),
         ]);
     }
@@ -92,9 +88,10 @@ class RichTextBlock extends AbstractKitBlock implements BlockPreviewHintInterfac
     }
 
     /**
-     * The stored content is HTML. Tags are stripped rather than rendered: a
-     * thumbnail tile shows a line of plain copy, and injecting editor markup
-     * into the admin's DOM is not something a preview should ever do.
+     * Tags are stripped, not rendered: injecting editor markup into the admin
+     * DOM is not something a preview should do.
+     *
+     * @see docs/internals/kit.md#preview-hints-in-the-kit
      */
     public function previewHint(array $data): ?BlockPreviewHint
     {

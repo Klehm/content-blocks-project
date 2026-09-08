@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\RichText;
 
 /**
- * Indexes the available {@see RichTextEditorInterface} implementations by
- * name, so the `rich_text` block can resolve `options.editor` to an adapter.
+ * Indexes the editors by name. A later service wins a collision, which lets a
+ * host replace a shipped adapter without renaming it.
  *
- * Wired with a `tagged_iterator`, like the core's palette and section-style
- * registries: a host-registered editor is auto-tagged and shows up here with
- * no further wiring. A later service wins a name collision, which is what
- * lets a host replace a shipped editor's adapter without renaming it.
+ * @see docs/internals/kit.md#rich-text-one-payload-several-editors
  */
 final class RichTextEditorRegistry
 {
@@ -27,8 +24,7 @@ final class RichTextEditorRegistry
     }
 
     /**
-     * @throws \InvalidArgumentException when no editor answers to that name —
-     *                                   a config typo, or an adapter the host meant to register and did not
+     * @throws \InvalidArgumentException when no editor answers to that name
      */
     public function get(string $name): RichTextEditorInterface
     {

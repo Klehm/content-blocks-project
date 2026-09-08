@@ -15,9 +15,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
- * Responsive video embed (YouTube / Vimeo). The stored URL is normalized to an
- * embeddable player URL at render time by `cb_embed_url()`. iframes need a full
- * (re)load to init, so this block does not opt into preview hot reload.
+ * Responsive video embed. The stored URL is normalized to a player URL at
+ * render time by `cb_embed_url()`.
  */
 #[AsContentBlock(priority: 30)]
 class EmbedBlock extends AbstractKitBlock implements BlockPreviewHintInterface
@@ -65,9 +64,8 @@ class EmbedBlock extends AbstractKitBlock implements BlockPreviewHintInterface
     }
 
     /**
-     * No thumbnail without calling the provider, which a list endpoint has no
-     * business doing — so the tile stays generic and carries the title when
-     * the editor gave one.
+     * Generic: a thumbnail would mean calling the provider, which a list
+     * endpoint has no business doing.
      */
     public function previewHint(array $data): ?BlockPreviewHint
     {
@@ -79,9 +77,8 @@ class EmbedBlock extends AbstractKitBlock implements BlockPreviewHintInterface
         return '@ContentBlocksKit/block/embed/view.html.twig';
     }
 
-    // Self-contained <iframe> markup: the third-party player boots inside the
-    // frame, not on our page, so the swapped-in view needs no init pass — hot
-    // reload is safe and spares a full preview-iframe reload on every edit.
+    // The player boots inside the frame, not on our page, so the swapped-in
+    // view needs no init pass. See kit.md#preview-hints-in-the-kit
     public function supportsPreviewHotReload(): bool
     {
         return true;

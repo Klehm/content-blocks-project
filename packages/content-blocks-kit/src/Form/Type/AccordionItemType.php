@@ -12,8 +12,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * One panel (title + content) inside a {@see \ContentBlocks\Kit\Block\AccordionBlock}.
- * Content is plain text (rendered with line breaks preserved).
+ * One panel of an accordion. Content is plain text, rendered with line breaks
+ * preserved.
  */
 final class AccordionItemType extends AbstractType
 {

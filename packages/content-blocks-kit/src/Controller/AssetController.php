@@ -8,18 +8,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Serves the kit's self-contained front stylesheet at a stable, public URL.
+ * Serves `kit.css` at a stable **public** route, so a host locking down admin
+ * endpoints does not 404 its own front page.
  *
- * Kit blocks render on the host's front page (and inside the builder preview
- * iframe) with neutral `cb-kit-*` classes; this stylesheet gives them their
- * look with zero framework dependency. Include it once in the host layout:
- *
- *     <link rel="stylesheet" href="{{ path('content_blocks_kit_asset_css') }}">
- *
- * The route lives under `/_content-blocks-kit/public/*` (not the admin
- * namespace) so hosts that lock down admin endpoints don't 404 the CSS in the
- * public preview. The `.css` extension is omitted so PHP's built-in dev server
- * doesn't shortcut the router; the Content-Type header carries the MIME type.
+ * @see docs/internals/kit.md#blocks-are-autonomous
  */
 final class AssetController
 {

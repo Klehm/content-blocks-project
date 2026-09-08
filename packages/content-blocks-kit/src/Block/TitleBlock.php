@@ -45,9 +45,8 @@ class TitleBlock extends AbstractKitBlock implements BlockPreviewHintInterface
                 'translation_domain' => 'content_blocks_kit',
                 'constraints' => [new Assert\Length(max: 255)],
             ])
-            // Visual size, decoupled from the semantic element below: an editor
-            // can emit a semantically-correct <h2> that *looks* like an h1. The
-            // size drives a cb-kit-title--h* class; the tag drives the element.
+            // Decoupled from the tag below, so a correct <h2> can look like
+            // an h1. See kit.md#blocks-are-autonomous
             ->add('size', ChoiceType::class, [
                 'label' => 'cb_kit.block.title.field.size',
                 'translation_domain' => 'content_blocks_kit',
@@ -62,9 +61,7 @@ class TitleBlock extends AbstractKitBlock implements BlockPreviewHintInterface
                 'choices' => $this->choices('tag'),
                 'constraints' => [$this->choiceConstraint('tag')],
             ])
-            // Reuses the core palette (content_blocks.palette) — the same named
-            // colors as section/block backgrounds and the TinyMCE swatches.
-            // Stores a plain '#hex' ('' = inherit the theme's text color).
+            // The core palette, as everywhere in the kit. '' = inherit.
             ->add('color', PaletteColorType::class, [
                 'label' => 'cb_kit.block.field.text_color',
                 'translation_domain' => 'content_blocks_kit',

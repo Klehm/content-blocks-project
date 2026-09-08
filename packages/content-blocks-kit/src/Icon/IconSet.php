@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Icon;
 
 /**
- * A small, self-contained set of inline SVG icons shipped with the kit, so the
- * `icon` block (and the alert block's per-type glyphs) need no external icon
- * library. All paths use `currentColor` so they inherit the element's color.
+ * The inline SVGs shipped with the kit, using `currentColor`. Authored here and
+ * never user input, so they are safe to render raw.
  *
- * The SVGs are authored here (never user input), so they are safe to render raw.
+ * @see docs/internals/kit.md#icons-are-added-not-filtered
  */
 final class IconSet
 {

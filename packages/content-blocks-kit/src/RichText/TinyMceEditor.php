@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\RichText;
 
 /**
- * TinyMCE 7 — the kit's default rich-text editor, and the one the block has
- * shipped with since the beginning.
+ * TinyMCE 7, the kit's default editor. Loaded from jsDelivr under the GPL
+ * license key; a host with no CDN self-hosts or bundles it.
  *
- * Loaded from jsDelivr by default and initialized under the GPL license key.
- * A host that cannot reach a CDN either self-hosts the same build
- * (`options.cdn_url`) or bundles TinyMCE itself (`options.cdn: false`) — see
- * the kit configuration guide.
+ * @see docs/internals/kit.md#assets-and-the-asset-prefix
  */
 final class TinyMceEditor extends AbstractRichTextEditor
 {

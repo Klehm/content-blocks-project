@@ -5,22 +5,16 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\RichText;
 
 /**
- * CKEditor 5 (classic build), selected with
- * `content_blocks_kit.blocks.rich_text.options.editor: ckeditor`.
+ * CKEditor 5 classic, selected with `…rich_text.options.editor: ckeditor`. It
+ * needs a stylesheet next to its script, which TinyMCE does not.
  *
- * Unlike TinyMCE, CKEditor 5 needs a stylesheet next to its script — the CDN
- * ships `ckeditor5.css` separately — hence the second asset URL. Both are
- * pinned to one version: the editor's factory signature changed in 48
- * (`create({attachTo})` supersedes the now-deprecated `create(element)`), and
- * the controller picks its call shape from `window.CKEDITOR_VERSION`, so an
- * older self-hosted build still boots.
+ * @see docs/internals/kit.md#assets-and-the-asset-prefix
  */
 final class CkEditor extends AbstractRichTextEditor
 {
     /**
-     * The CDN version both default URLs point at. Bumping it is a
-     * one-constant change; hosts pin their own via `options.cdn_url` /
-     * `options.cdn_style_url`.
+     * The version both default URLs point at — bumping it is a one-constant
+     * change, and a host pins its own through `options`.
      */
     public const CDN_VERSION = '48.3.1';
 

@@ -17,12 +17,8 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
 
 /**
- * A gallery of images shown as a responsive grid (N columns) or a one-row
- * horizontal slider (arrows via the cb-gallery controller). Each image has an
- * optional caption and click-through link; a common object-fit and per-corner
- * radius apply to all tiles.
- *
- * Option `max_columns` (config) caps the column choices offered.
+ * Images as a responsive grid or a one-row slider, each with an optional
+ * caption and link. The `max_columns` option caps the columns offered.
  */
 #[AsContentBlock(priority: 60)]
 class GalleryBlock extends AbstractKitBlock implements BlockPreviewHintInterface

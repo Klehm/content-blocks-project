@@ -16,10 +16,8 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
 
 /**
- * A set of cards (image, title, text, optional button) laid out as a grid of N
- * columns or a stacked list. Great for feature/service tiles.
- *
- * The column-count field reveals only for the grid layout (cb-condition).
+ * Cards (image, title, text, optional button) as a grid of N columns or a
+ * stacked list. The column-count field reveals only for the grid.
  */
 #[AsContentBlock(priority: 65)]
 class CardBlock extends AbstractKitBlock implements BlockPreviewHintInterface

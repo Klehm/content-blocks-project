@@ -18,12 +18,10 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Documents the kit's block library and its host-configurable surface, read
- * straight from each block's coded schema ({@see AbstractKitBlock::describe()}),
- * so the output can never drift from what `buildForm()` actually offers.
+ * Documents the kit's library straight from each block's coded schema, so the
+ * output cannot drift from what `buildForm()` offers.
  *
- * For every block it prints the three levers a host can set under
- * `content_blocks_kit.blocks.<type>`: `options`, `choices` and `defaults`.
+ * @see docs/internals/kit.md#the-doc-command-reads-the-code
  */
 #[AsCommand(
     name: 'content-blocks-kit:blocks',
@@ -31,7 +29,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 )]
 final class ListBlocksCommand extends Command
 {
-    /** Above this, a choice list is truncated in the table to stay readable (e.g. the icon set). */
+    /** Above this a choice list is truncated, e.g. the icon set. */
     private const MAX_CHOICES_SHOWN = 15;
 
     public function __construct(
@@ -85,9 +83,8 @@ final class ListBlocksCommand extends Command
         ]);
 
         foreach ($blocks as $blockType => $class) {
-            // The registered instance carries this app's config; the bare one
-            // is the kit as shipped. Preferring the former is what makes the
-            // command usable for checking an override actually took.
+            // The registered instance carries this app's config, which is
+            // what makes the command usable for checking an override took.
             $registered = $this->registry->has($blockType) ? $this->registry->get($blockType) : null;
             $this->renderBlock($io, $blockType, $registered instanceof AbstractKitBlock ? $registered : new $class(), $locale);
         }
@@ -96,13 +93,10 @@ final class ListBlocksCommand extends Command
     }
 
     /**
-     * Machine-readable description of the whole library, keyed by block type.
-     * Consumed by the docs generator so the per-block reference pages never
-     * drift from the code. Each entry carries the block's label, its
-     * disabled-by-default flag, and the same `options` / `choices` / `defaults`
-     * surface {@see AbstractKitBlock::describe()} exposes —
-     * with each choice field flattened to its ordered value list plus the
-     * default value (the `*` marker of the text output, made explicit).
+     * The whole library keyed by block type, for the docs generator. Choice
+     * fields are flattened to an ordered value list plus the default.
+     *
+     * @see docs/internals/kit.md#the-doc-command-reads-the-code
      *
      * @param array<string, class-string> $blocks
      */
@@ -147,8 +141,7 @@ final class ListBlocksCommand extends Command
         $suffix = \in_array($type, ContentBlocksKitBundle::DEFAULT_DISABLED, true) ? '  (disabled by default — opt in with enabled: true)' : '';
         $io->section(sprintf('%s — %s%s', $type, $labelStr, $suffix));
 
-        // Named explicitly rather than left to be inferred: the whole reason a
-        // host runs this command after editing config is to find out whether
+        // Named rather than inferred: a host runs this to find out whether
         // what they wrote took effect.
         $overridden = array_keys(array_filter(
             $desc['choices'],

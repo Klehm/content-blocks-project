@@ -9,30 +9,10 @@ use Symfony\Component\Asset\Packages;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * Shared option handling for the shipped editors: where the editor's JS comes
- * from, whether uploads are wired, the host's init overrides, and the color
- * palette. Subclasses only declare their identity (name, controller, default
- * asset URLs) and may add values of their own.
+ * Shared option handling for the shipped editors. A subclass declares only its
+ * identity — name, controller, default asset URLs — and may add its own values.
  *
- * The knobs live under `content_blocks_kit.blocks.rich_text.options`:
- *
- *     cdn: true          # false → the kit loads nothing; the host bundles the editor
- *     script_url: null   # null → the adapter's default URL (self-host by overriding it)
- *     style_url: null    # idem for the stylesheet an editor needs alongside
- *     uploads: true      # false → no image upload button wired
- *     config: {}         # merged over the adapter's coded init config, in the browser
- *
- * Any string in there may be written `asset:<path>` and is resolved through the
- * host's asset packages — the only way a static YAML file can name a versioned
- * asset, whose URL carries a digest nobody can spell out by hand:
- *
- *     script_url: 'asset:vendor/tinymce/tinymce.min.js'
- *     config:
- *         content_css: 'asset:styles/wysiwyg.css'
- *
- * What cannot travel this way is code — `setup`, a custom button's `onAction`.
- * JSON has no function type, so those belong to the `cb-rich-text:configure`
- * event the controllers fire before init (see the kit's rich-text guide).
+ * @see docs/internals/kit.md#assets-and-the-asset-prefix
  */
 abstract class AbstractRichTextEditor implements RichTextEditorInterface
 {
@@ -60,9 +40,8 @@ abstract class AbstractRichTextEditor implements RichTextEditorInterface
     abstract public static function getDefaultScriptUrl(): string;
 
     /**
-     * Stylesheet the editor needs alongside its script, if any. CKEditor 5
-     * ships its UI CSS separately; TinyMCE bundles its own skin, so it has
-     * none.
+     * Stylesheet the editor needs alongside its script, if any. TinyMCE
+     * bundles its own skin and has none.
      */
     public static function getDefaultStyleUrl(): ?string
     {
@@ -81,9 +60,8 @@ abstract class AbstractRichTextEditor implements RichTextEditorInterface
      */
     protected function buildValues(array $options): array
     {
-        // `cdn: false` empties both asset URLs rather than dropping them:
-        // the controller reads "no URL" as "the host bundled the editor,
-        // expect the global to be there already".
+        // Emptied rather than dropped: the controller reads "no URL" as
+        // "the host bundled the editor, expect the global".
         $cdn = (bool) ($options['cdn'] ?? true);
 
         return [
@@ -92,19 +70,17 @@ abstract class AbstractRichTextEditor implements RichTextEditorInterface
             // Empty upload URL is how the controller learns uploads are off —
             // one value carrying both the flag and its target.
             'upload-url' => ($options['uploads'] ?? true) ? $this->urlGenerator->generate('content_blocks_upload') : '',
-            // Cast at the top level only, so an empty config reads as `{}`
-            // rather than `[]` — nested lists (a spelled-out toolbar) keep
-            // their array shape.
+            // Top level only, so `{}` rather than `[]` while a nested
+            // toolbar list keeps its array shape.
             'config' => $this->encode((object) $this->resolveAssets($options['config'] ?? [])),
             'palette' => $this->encode($this->paletteColors()),
         ];
     }
 
     /**
-     * The URL under `$key`, or under the legacy `$legacyKey` it replaced, or
-     * the adapter's default. `cdn_url` / `cdn_style_url` came from a time when
-     * the only override was another CDN; they still work, and they are the
-     * wrong name for the self-hosted case that motivated them.
+     * `$key`, else the legacy `$legacyKey` it replaced, else the default.
+     *
+     * @see docs/internals/kit.md#assets-and-the-asset-prefix
      *
      * @param array<string, mixed> $options
      */
@@ -122,14 +98,10 @@ abstract class AbstractRichTextEditor implements RichTextEditorInterface
     }
 
     /**
-     * Rewrites every `asset:<path>` string into the URL the host's asset
-     * packages give it, at any depth — TinyMCE's `content_css` takes a list as
-     * readily as a single file, and an editor's config is free-form beyond
-     * that.
+     * Rewrites `asset:<path>` at any depth. A missing resolver throws rather
+     * than shipping a 404 into the editor chrome.
      *
-     * A missing resolver throws rather than emitting the path untouched: a
-     * silent passthrough would ship a 404 into the editor chrome, where it
-     * reads as "my styles are ignored" and not as "this needs configuring".
+     * @see docs/internals/kit.md#assets-and-the-asset-prefix
      */
     private function resolveAssets(mixed $value): mixed
     {
@@ -151,9 +123,8 @@ abstract class AbstractRichTextEditor implements RichTextEditorInterface
     }
 
     /**
-     * The host palette as `[{label, color}]` — the same named colors
-     * `PaletteColorType` offers, so an editor's swatches and a block's color
-     * field cannot drift apart.
+     * The same named colors `PaletteColorType` offers, so swatches and colour
+     * fields cannot drift apart.
      *
      * @return list<array{label: string, color: string}>
      */
@@ -168,9 +139,8 @@ abstract class AbstractRichTextEditor implements RichTextEditorInterface
     }
 
     /**
-     * JSON for a `data-*-value` attribute. Twig escapes it on output; an
-     * unencodable value would otherwise blow up rendering the whole sidebar,
-     * so it degrades to an empty payload the controller can still parse.
+     * JSON for a `data-*-value` attribute, degrading to an empty payload the
+     * controller can still parse rather than breaking the sidebar.
      */
     protected function encode(mixed $value): string
     {
