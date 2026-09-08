@@ -9,13 +9,10 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * Per-viewport BoxSpacingType: holds desktop / tablet / mobile values
- * under fixed keys (`desktop`, `tablet`, `mobile`). The viewport switcher (cb-viewport-tabs
- * Stimulus controller) shows one set at a time in the sidebar — the form
- * always submits all three.
+ * Per-viewport {@see BoxSpacingType} under fixed `desktop` / `tablet` /
+ * `mobile` keys. An empty viewport is not a bug — it inherits at render.
  *
- * Tablet / mobile inherit from the next-wider unset value via CSS var
- * cascading at render time (PR 2), so empty viewports are not a bug.
+ * @see docs/internals/forms.md#the-responsive-styling-sub-types
  */
 final class ResponsiveBoxSpacingType extends AbstractType
 {

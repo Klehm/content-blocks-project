@@ -18,17 +18,12 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
- * Endpoints for exporting / importing a ContentArea as a self-contained
- * JSON document (sections + columns + blocks + base64-encoded assets).
+ * Exports a ContentArea as a self-contained JSON document, and imports one
+ * back with the usual draft-replace semantics.
  *
- *  - GET  /area/{id}/export   Streams a JSON download
- *  - POST /area/{id}/import   Replaces the draft with the uploaded JSON
+ * @see docs/internals/transfer.md#import-is-a-replace-and-does-not-flush
  *
- * Import follows the same "draft replace" semantics as ReplaceController:
- * existing sections are soft-deleted, imported sections are added as
- * never-published drafts. Publish commits the swap, Discard reverts it.
- *
- * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
+ * @internal the routes are the contract, not this class
  */
 #[Route('/_content-blocks')]
 final class ImportExportController

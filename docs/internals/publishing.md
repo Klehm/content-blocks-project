@@ -60,6 +60,37 @@ lifecycle, so committing is part of what they mean; the services that *build*
 rather than commit (`SectionClonerInterface`, `ContentAreaImporterInterface`,
 `SectionTemplateInstantiatorInterface`) leave the flush to their caller.
 
+## Every structural op writes to draft
+
+The AJAX controllers under `/_content-blocks/*` all share one shape, which is
+why their individual docblocks say so little: a write lands in draft state
+(`draftData`, `previewPosition`, `column`, `deleted`), **never** in
+`publishedData` or `position`, and promotion happens only through
+`ContentAreaPublisher`. Publish commits, Discard reverts.
+
+That covers replace-content, import, template insert and paste alike: each
+soft-deletes what it displaces and adds its new sections as never-published
+drafts, so the editor can preview the result and still back out.
+
+Two consequences worth knowing before touching one of them:
+
+- **A cross-column move calls `moveTo()`, not `setColumn()`.** The FK is the
+  draft location, so a published block has to leave a note saying which column
+  the public page keeps showing it in until Publish.
+- **Sort by `previewPosition` before re-indexing.** `getBlocks()` is ordered by
+  the *published* position through the collection's `#[OrderBy]`, so a source
+  column carrying an unpublished reorder would otherwise be re-indexed back into
+  published order, silently reverting the draft order of the blocks left behind.
+
+Deleted siblings are dropped from the position math because the frontend's drag
+logic ignores them too — they are `display:none` — so the index the iframe agreed
+on is one in the *visible-only* list.
+
+A soft-delete undo (`restore`) is only valid while the deletion is still a
+draft. Once Publish ran, the row was physically removed and the endpoint 404s.
+
+`@internal` on these classes means the **routes** are the contract, not the PHP.
+
 ## Why publish() takes a context object
 
 `PublishContext` exists for the same reason `RenderContext` does: the publish

@@ -43,23 +43,12 @@ final class ContentAreaType extends AbstractType implements DataTransformerInter
         $resolver->setDefaults([
             'compound' => false,
             'data_class' => null,
-            // Whether the builder topbar shows the "Insert content" (replace)
-            // button and its overlay. UI-only: the replace endpoints stay
-            // reachable (and AccessChecker-protected) regardless. Defaults to
-            // true so existing integrations keep the button.
+            // UI-only, both of these: the endpoints stay reachable and
+            // AccessChecker-protected whatever the topbar shows.
             'enable_replace' => true,
-            // Whether the builder topbar shows the Import/Export button and its
-            // overlay. UI-only as well: the export/import endpoints stay
-            // reachable (AccessChecker + CSRF protected). The host wires its own
-            // strategy (per-form here, or a firewall/AccessChecker server-side).
             'enable_import_export' => true,
-            // Host-provided extra topbar buttons. Each entry is an associative
-            // array: ['key' => 'save-as-model', 'label' => 'Save as model',
-            // 'icon' => '💾' (optional, may be inline SVG), 'title' => '…'
-            // (optional, defaults to label)]. Clicking a button dispatches a
-            // single generic `cb:builder:action` event carrying detail.key — the
-            // host listens once and filters on the key. Labels/icons are the
-            // host's responsibility (already translated, trusted markup).
+            // Entries of ['key', 'label', 'icon'?, 'title'?]; clicking one
+            // dispatches `cb:builder:action` carrying detail.key.
             'topbar_actions' => [],
         ]);
         $resolver->setAllowedTypes('enable_replace', 'bool');
@@ -88,9 +77,8 @@ final class ContentAreaType extends AbstractType implements DataTransformerInter
         $view->vars['is_pending'] = !$isPersisted;
         $view->vars['enable_replace'] = $options['enable_replace'];
         $view->vars['enable_import_export'] = $options['enable_import_export'];
-        // Providers only have something to say about an area that exists; on
-        // the "save first" placeholder there is no builder to hang a menu off
-        // anyway, so the form's own entries are all that survive.
+        // Providers only speak about an area that exists, and the "save first"
+        // placeholder has no builder to hang a menu off anyway.
         $view->vars['topbar_actions'] = $isPersisted && $this->builderActions !== null
             ? $this->builderActions->forArea($contentArea, $options['topbar_actions'])
             : array_map(

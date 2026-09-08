@@ -33,7 +33,7 @@ The clipboard deliberately does *not* follow this rule; see
 [clipboard.md](clipboard.md#why-the-clipboard-needs-a-replayer) for why an
 untrusted payload gets a stricter one.
 
-## Two ways a template fails to read
+## Two unreadable-template cases
 
 `IncompatibleTemplateException` means *the blocks this template references are
 gone*, and carries the missing type ids.

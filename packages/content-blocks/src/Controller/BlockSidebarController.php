@@ -13,16 +13,10 @@ use Symfony\Component\Routing\Attribute\Route;
 use Twig\Environment;
 
 /**
- * Renders the BlockComponent Live wrapper for a given block. The parent
- * cb-builder Stimulus controller fetches this URL when the iframe asks
- * to edit a block (cb:block:edit postMessage), and injects the response
- * HTML into the sidebar.
+ * Renders the BlockComponent Live wrapper that cb-builder injects into the
+ * sidebar. Live Components handles the form, save and cancel from there.
  *
- * Live Components handles the rest: form rendering, validation, save
- * and cancel actions, which dispatch cb:block:saved / cb:block:cancel
- * browser events caught by cb-builder.
- *
- * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
+ * @internal the routes are the contract, not this class
  */
 final class BlockSidebarController
 {

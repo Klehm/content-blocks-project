@@ -14,24 +14,10 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * Palette-aware color field: a dropdown of the project palette (declared via
- * bundle config or {@see \ContentBlocks\Palette\ColorPaletteProviderInterface})
- * plus a "Custom…" option that reveals a free color picker.
+ * Palette dropdown plus a "Custom…" picker, storing a single `#hex` ('' for
+ * none). A drop-in {@see ColorType} replacement with a real empty state.
  *
- * It stores a single `#hex` string ('' for none), so it is a drop-in
- * replacement for Symfony's plain {@see ColorType} — decorators and view
- * templates keep reading a `#hex` unchanged. Crucially, unlike a raw
- * `<input type="color">` (which always carries a value), this type has a
- * real empty state ("None"), which is what lets the styling defaults be
- * transparent instead of the historical `#ffffff` hack.
- *
- * With an empty palette the dropdown still renders None / Custom…, i.e. the
- * type degrades to "a ColorType with an off switch".
- *
- * Show/hide of the custom picker is driven by the generic `cb-condition`
- * Stimulus controller attached to the compound root — no custom form-theme
- * block is needed, so the type renders correctly in the section sidebar and
- * the block edit form alike.
+ * @see docs/internals/forms.md#palettecolortype-and-its-empty-state
  */
 final class PaletteColorType extends AbstractType implements DataMapperInterface
 {
@@ -57,16 +43,8 @@ final class PaletteColorType extends AbstractType implements DataMapperInterface
                 'label' => false,
                 'placeholder' => false,
                 'choices' => $choices,
-                // The None / Custom… option labels are core translation keys
-                // (cb.styling.palette.*), so they must resolve in the core
-                // `content_blocks` domain — NOT the field's translation_domain,
-                // which a host/kit block may set to its own catalog (e.g. a kit
-                // block passes 'content_blocks_kit', where those keys don't
-                // exist → they'd render as raw keys). Palette entry labels are
-                // literal strings, so trans() passes them through untouched.
-                // (A child form doesn't inherit translation_domain when
-                // ChoiceType resolves choice_translation_domain — left to its
-                // null default the labels fall back to the `messages` domain.)
+                // Pinned to the core domain, not the field's: a kit block
+                // points elsewhere and these keys would render raw.
                 'choice_translation_domain' => 'content_blocks',
                 // Expose each palette hex on its <option> so themes can
                 // paint a swatch; empty for None / Custom.
@@ -80,9 +58,8 @@ final class PaletteColorType extends AbstractType implements DataMapperInterface
                 'row_attr' => ['data-cb-condition' => 'palette:' . self::CUSTOM],
             ])
             ->setDataMapper($this)
-            // Without a view transformer Form::viewToNorm() collapses '' to
-            // null; pin the empty state to '' so consumers always deal with
-            // a string ('' = no color), never null.
+            // Without this Form::viewToNorm() collapses '' to null, and
+            // consumers would have to handle both.
             ->addViewTransformer(new CallbackTransformer(
                 static fn (mixed $value): mixed => $value,
                 static fn (mixed $value): string => \is_string($value) ? $value : '',
@@ -94,8 +71,7 @@ final class PaletteColorType extends AbstractType implements DataMapperInterface
         $resolver->setDefaults([
             'data_class' => null,
             // When every child is empty Symfony bypasses the data mapper and
-            // uses empty_data — pin it to '' so the stored empty state is
-            // always the empty string, never null.
+            // uses this instead.
             'empty_data' => '',
             'attr' => ['data-controller' => 'cb-condition'],
             'translation_domain' => 'content_blocks',

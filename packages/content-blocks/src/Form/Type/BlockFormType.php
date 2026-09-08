@@ -12,10 +12,10 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * Dynamic FormType that delegates field building to a BlockTypeInterface.
+ * Wraps a BlockTypeInterface's own buildForm() in a real Symfony form, so it
+ * gets validation and theming. One form type serves every block.
  *
- * Each block type defines its own fields via buildForm(). This FormType
- * wraps that call so we get a real Symfony Form with validation, theming, etc.
+ * @see docs/internals/forms.md#the-block-form-is-the-whitelist
  */
 final class BlockFormType extends AbstractType
 {
@@ -31,15 +31,12 @@ final class BlockFormType extends AbstractType
 
         $blockType->buildForm($builder, $options['block_data']);
 
-        // Host per-block form extensions run after the block's own fields (so
-        // they can reference/override them) and before the styling tab. Keyed
-        // by block type id — see BlockFormExtensionInterface / AsBlockFormExtension.
+        // After the block's own fields, so they can reference or override
+        // them; before the styling tab, which stays last.
         $this->extensions->applyTo($builder, $options['block_data'], $blockType::getType());
 
-        // Styling sub-form: rendered under a "Styling" tab in the block
-        // sidebar (mirror of SectionSettingsType). Data lands under the
-        // `styling` key of Block.data — block types' getDefaultData()
-        // doesn't need to declare it.
+        // Lands under the `styling` key of Block.data, which is why a block
+        // type's getDefaultData() never declares it.
         $builder->add('styling', StylingType::class, [
             'include_max_width' => true,
             'include_align_self' => true,
@@ -51,16 +48,8 @@ final class BlockFormType extends AbstractType
         $resolver->setDefaults([
             'data_class' => null,
             'block_data' => [],
-            // Form-level CSRF disabled: this form is only ever submitted through
-            // BlockComponent (Live Component), whose own CSRF defense applies —
-            // the action endpoint requires the Accept: application/vnd.live-component+html
-            // header, which a cross-origin <form> cannot send (CORS blocks it),
-            // and LiveProp values are signed with kernel.secret (HMAC checksum).
-            // Authorization is enforced by canEdit() in BlockComponent::save().
-            // Reason for disabling: Symfony 7.2 stateless CSRF (token id 'submit')
-            // and Live Component's hydrate/dehydrate cycle do not align — the
-            // double-submit cookie/field token mismatches on every save.
-            // Revisit if the form is ever rendered outside a Live Component.
+            // Safe only because this form is submitted through a Live
+            // Component. See forms.md, "disables form-level CSRF".
             'csrf_protection' => false,
         ]);
 

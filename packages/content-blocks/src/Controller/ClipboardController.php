@@ -28,26 +28,12 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
- * Copy / paste of a section or a block:
+ * Copy and paste of a section or a block. Copy is a plain read; paste treats
+ * its body as untrusted input and is gated on the **target** area.
  *
- *  - GET  /section/{id}/copy   Envelope for the editor's clipboard
- *  - GET  /block/{id}/copy     Idem, one level down
- *  - POST /area/{id}/paste     Replay an envelope into this area, as draft
+ * @see docs/internals/clipboard.md#why-the-clipboard-needs-a-replayer
  *
- * The clipboard itself is **not** here: it lives in the editor's `localStorage`,
- * which is what makes a copy survive a page change. Copying therefore reads
- * nothing more than a snapshot, and pasting receives that snapshot back from the
- * browser — user-writable by construction. Hence the asymmetry in trust: copy is
- * a plain read gated by canEdit() on the source, while paste treats its body as
- * input and routes every block through its own form (see
- * {@see \ContentBlocks\Clipboard\BlockDataReplayer}).
- *
- * Paste writes to *draft* state on the target area, like every other structural
- * op: Publish commits it, Discard reverts it. Authorization is canEdit() on the
- * **target** area — the area the content lands in, which for a cross-area paste
- * is not the one it came from.
- *
- * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
+ * @internal the routes are the contract, not this class
  */
 #[Route('/_content-blocks')]
 final class ClipboardController
@@ -117,14 +103,10 @@ final class ClipboardController
     }
 
     /**
-     * Body: `{ payload: <envelope>, targetSectionId?: int, targetBlockId?: int }`.
+     * Body: `{ payload, targetSectionId?, targetBlockId? }` — the ids being
+     * whatever the sidebar had selected, which is what answers *where*.
      *
-     * The target ids are what the editor had selected — the builder's sidebar is
-     * the single source of that — and they answer *where*. A section lands after
-     * the selected section (or at the end of the area); a block lands after the
-     * selected block, or at the end of the selected section's first column. A
-     * block paste with no selection at all has no answer and is refused with
-     * `no_target` rather than guessing.
+     * @see docs/internals/clipboard.md#replay-and-placement
      */
     #[Route(
         '/area/{id}/paste',
@@ -165,8 +147,8 @@ final class ClipboardController
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        // Both ids are resolved against the target area, so a hand-crafted body
-        // cannot use an area it may edit to place content inside one it may not.
+        // Resolved against the target area, so a forged body cannot use an
+        // area it may edit to place content inside one it may not.
         $targetBlock = $this->resolveBlock($body['targetBlockId'] ?? null, $area);
         $targetSection = $targetBlock?->getColumn()?->getSection()
             ?? $this->resolveSection($body['targetSectionId'] ?? null, $area);

@@ -15,15 +15,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Renders a single section's preview markup so the builder can hot-reload its
- * style (wrapper class/style + column widths) in the iframe after a settings
- * change, instead of reloading the whole page.
+ * Renders one section so the builder can hot-reload its style. Always safe:
+ * only the wrapper attributes are copied back, never the inner blocks.
  *
- * The builder only copies the wrapper attributes from this HTML onto the
- * existing nodes — the inner blocks (and their JS state) are left in place —
- * so a section style change is always safe to hot-reload.
- *
- * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
+ * @internal the routes are the contract, not this class
  */
 final class SectionRenderController
 {

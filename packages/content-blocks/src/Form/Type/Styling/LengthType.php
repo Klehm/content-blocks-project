@@ -11,10 +11,8 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * A value paired with a unit (e.g. 400 px, 100 vh). Used by minHeight,
- * maxWidth, and any future scalar length input.
- *
- * Data shape: ['value' => int|null, 'unit' => string].
+ * A value paired with a unit — 400 px, 100 vh. Shape:
+ * `['value' => int|null, 'unit' => string]`.
  */
 final class LengthType extends AbstractType
 {

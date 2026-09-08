@@ -8,7 +8,7 @@ namespace ContentBlocks\SectionTemplate;
  * Thrown when a template had blocks and none of their types is registered any
  * more, so there is nothing left to insert.
  *
- * @see docs/internals/section-templates.md#two-ways-a-template-fails-to-read
+ * @see docs/internals/section-templates.md#two-unreadable-template-cases
  */
 final class IncompatibleTemplateException extends \RuntimeException
 {

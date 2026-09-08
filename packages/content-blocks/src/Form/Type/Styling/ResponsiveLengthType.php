@@ -10,13 +10,10 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * Per-viewport single length (px): desktop / tablet / mobile values under
- * fixed keys (`desktop`, `tablet`, `mobile`). Like ResponsiveBoxSpacingType but a single
- * integer per viewport instead of a 4-side box — used for the section gap.
+ * {@see ResponsiveBoxSpacingType} with one integer per viewport instead of a
+ * four-side box. Used for the section gap.
  *
- * The viewport switcher (cb-viewport-tabs) shows one at a time in the
- * sidebar; the form always submits all three. Unset tablet/mobile inherit
- * from the next-wider value via CSS var cascading at render time.
+ * @see docs/internals/forms.md#the-responsive-styling-sub-types
  */
 final class ResponsiveLengthType extends AbstractType
 {

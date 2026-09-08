@@ -21,11 +21,11 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * AJAX endpoints for structural operations on Blocks. All writes go to the
- * draft state (draftData / previewPosition / column / deleted) — never to
- * publishedData / position. Promotion runs through ContentAreaPublisher.
+ * AJAX endpoints for structural operations on Blocks.
  *
- * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
+ * @see docs/internals/publishing.md#every-structural-op-writes-to-draft
+ *
+ * @internal the routes are the contract, not this class
  */
 #[Route('/_content-blocks')]
 final class BlocksController
@@ -98,10 +98,8 @@ final class BlocksController
         $this->em->persist($block);
         $this->em->flush();
 
-        // Mirror BlockRenderController's policy: a static / CSS-only block can
-        // be inserted into the preview in place (no full reload), so ship its
-        // rendered markup. A JS-dependent block opts out and the builder falls
-        // back to a full reload so its scripts run.
+        // A static block ships its markup for in-place insertion; a
+        // JS-dependent one opts out and the builder reloads the iframe.
         if ($blockType->supportsPreviewHotReload()) {
             return new JsonResponse([
                 'id' => $block->getId(),
@@ -154,25 +152,20 @@ final class BlocksController
         $source = $block->getColumn();
         $crossColumn = $source !== null && $source->getId() !== $target->getId();
 
-        // Drop deleted siblings from the position math: the frontend's drag
-        // logic ignores them too (they're display:none), so the position
-        // index agreed on by the iframe is one in the *visible-only* list.
+        // The iframe's index is one in the visible-only list; its drag logic
+        // ignores deleted siblings too.
         if ($crossColumn) {
             $sourceBlocks = array_values(array_filter(
                 $source->getBlocks()->toArray(),
                 fn (Block $b) => $b->getId() !== $block->getId() && !$b->isDeleted(),
             ));
-            // Sort by previewPosition before re-indexing: getBlocks() is ordered
-            // by the *published* position (the collection's #[OrderBy]), so a
-            // source column carrying an unpublished reorder would otherwise be
-            // re-indexed back into published order — reverting the draft order of
-            // the blocks left behind. The target branch below already sorts first.
+            // getBlocks() is ordered by the *published* position, so skipping
+            // this would re-index an unpublished reorder back into it.
             usort($sourceBlocks, fn (Block $a, Block $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
             $this->reindexPreview($sourceBlocks);
 
             // moveTo(), not setColumn(): the FK is the *draft* location, so a
-            // published block has to leave a note saying which column the
-            // public page should keep showing it in until Publish.
+            // published block must note the column PUBLIC keeps showing it in.
             $block->moveTo($target);
         }
 
@@ -209,9 +202,8 @@ final class BlocksController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        // Copy ends up as a draft-only block (publishedData null) inserted
-        // immediately after the source. Re-index sibling positions so the
-        // ordering stays dense.
+        // A draft-only block inserted right after the source; siblings are
+        // re-indexed so the ordering stays dense.
         $copy = new Block();
         $copy->setColumn($column);
         $copy->setType($block->getType());
@@ -232,11 +224,8 @@ final class BlocksController
         $this->em->persist($copy);
         $this->em->flush();
 
-        // Mirror create()'s policy: a static / CSS-only copy ships its rendered
-        // markup so the overlay can drop it in place (right after the source),
-        // no full reload. A JS-dependent block opts out and the builder reloads
-        // the whole iframe so its scripts run. `sourceId` tells the overlay
-        // which node to anchor the copy after.
+        // Same policy as create(); `sourceId` tells the overlay which node to
+        // anchor the copy after.
         $response = ['id' => $copy->getId(), 'sourceId' => $block->getId()];
 
         $blockType = $this->blockTypeRegistry->has($copy->getType())
@@ -270,9 +259,8 @@ final class BlocksController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        // Soft-delete in draft. Real removal happens at publish time, OR
-        // immediately if the block was never published (publishedData null
-        // and discardDraft fires).
+        // Real removal happens at Publish, or at Discard if the block was
+        // never published.
         $block->setDeleted(true);
         $this->em->flush();
 
@@ -280,10 +268,9 @@ final class BlocksController
     }
 
     /**
-     * Undo of a soft-delete: flips the draft `deleted` flag back. Only valid
-     * while the deletion is still a draft — once publish ran, the row was
-     * physically removed and this endpoint 404s (the builder then surfaces
-     * its save-error banner).
+     * Undo of a soft-delete. 404s once Publish has physically removed the row.
+     *
+     * @see docs/internals/publishing.md#every-structural-op-writes-to-draft
      */
     #[Route('/block/{id}/restore', name: 'content_blocks_block_restore', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function restore(int $id, Request $request): JsonResponse

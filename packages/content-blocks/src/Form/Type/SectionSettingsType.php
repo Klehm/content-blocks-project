@@ -16,24 +16,10 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * Built-in form for the section settings sidebar.
+ * Built-in form for the section settings sidebar, extended the standard
+ * Symfony way. Extra fields land in `draft_settings` unchanged.
  *
- * Devs extend it the standard Symfony way — register a FormTypeExtension
- * for SectionSettingsType and add fields:
- *
- *     final class MySettingsExtension extends AbstractTypeExtension {
- *         public static function getExtendedTypes(): iterable {
- *             return [SectionSettingsType::class];
- *         }
- *         public function buildForm(FormBuilderInterface $builder, array $options): void {
- *             $builder->add('backgroundColor', ColorType::class, ['required' => false]);
- *         }
- *     }
- *
- * The extra field's value lands in the section's draft_settings JSON
- * unchanged. To act on it at render time, register a
- * SectionDecoratorInterface that reads $settings['backgroundColor'] and
- * returns inline styles or extra classes.
+ * @see docs/internals/forms.md#where-an-extension-lands-in-the-sidebar
  */
 final class SectionSettingsType extends AbstractType
 {
@@ -65,18 +51,13 @@ final class SectionSettingsType extends AbstractType
             ->add('maxWidth', IntegerType::class, [
                 'required' => false,
                 'label' => 'cb.section.settings.max_width',
-                // The form is normally pre-filled by CoreSectionDefaults so
-                // this placeholder is only seen when the user clears the
-                // field; we still keep it in sync with the configured
-                // default so the hint never lies.
+                // Only seen once the user clears the field, but kept in sync
+                // with the configured default so the hint never lies.
                 'attr' => ['placeholder' => (string) $this->defaultMaxWidth],
             ]);
 
-        // Multi-column sections can carry per-column widths as a CSV string
-        // of percentages summing to 100 (e.g. "40,60"). Stored as a single
-        // hidden field; the visible presets + number inputs are rendered by
-        // sidebar_section.html.twig and driven by the cb-section-settings-form
-        // Stimulus controller, which keeps this field's value canonical.
+        // A CSV of percentages summing to 100 ("40,60"), kept canonical by
+        // cb-section-settings-form. The visible inputs live in the template.
         if ($options['column_count'] >= 2) {
             $builder->add('columnWidths', HiddenType::class, [
                 'required' => false,
@@ -94,21 +75,16 @@ final class SectionSettingsType extends AbstractType
             ]);
         }
 
-        // Progressive disclosure switch for the styling sub-form: presets
-        // keep the everyday UX to a single dropdown; flipping the switch
-        // reveals the full styling fields. Off → the styling subtree is
-        // dropped on save (SectionSidebarController), so switching presets
-        // never fights stale field values; on → the fields refine the
-        // preset (user values win key-by-key at render time).
+        // Off drops the styling subtree on save, so switching presets never
+        // fights stale field values. See forms.md.
         $builder->add('stylingCustom', CheckboxType::class, [
             'required' => false,
             'label' => 'cb.section.settings.styling_custom',
             'help' => 'cb.section.settings.styling_custom_help',
         ]);
 
-        // Styling sub-form: rendered under the "Styling" sidebar tab.
-        // Extensions targeting SectionSettingsType land in "General"; to
-        // inject fields into "Styling" extend StylingType instead.
+        // Extensions targeting this type land in "General"; to reach
+        // "Styling", extend StylingType instead.
         $builder->add('styling', StylingType::class, [
             'include_min_height' => true,
             'include_alignment' => true,
@@ -121,8 +97,7 @@ final class SectionSettingsType extends AbstractType
         $resolver->setDefaults([
             'data_class' => null,
             'translation_domain' => 'content_blocks',
-            // Number of columns in the section being edited; drives whether
-            // the column-widths control is offered. Set by SectionSidebarController.
+            // Drives whether the column-widths control is offered at all.
             'column_count' => 1,
         ]);
         $resolver->setAllowedTypes('column_count', 'int');

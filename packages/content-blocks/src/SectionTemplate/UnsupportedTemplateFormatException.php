@@ -8,7 +8,7 @@ namespace ContentBlocks\SectionTemplate;
  * Thrown when a stored payload does not carry an envelope format this
  * instantiator can read. Distinct from {@see IncompatibleTemplateException}.
  *
- * @see docs/internals/section-templates.md#two-ways-a-template-fails-to-read
+ * @see docs/internals/section-templates.md#two-unreadable-template-cases
  */
 final class UnsupportedTemplateFormatException extends \RuntimeException
 {

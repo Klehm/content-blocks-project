@@ -5,28 +5,21 @@ declare(strict_types=1);
 namespace ContentBlocks\Form\Extension;
 
 /**
- * Auto-registers a {@see BlockFormExtensionInterface} and declares which block
- * types it targets, via the {@see \ContentBlocks\DependencyInjection\BlockFormExtensionPass}.
+ * Auto-registers a {@see BlockFormExtensionInterface} and declares the block
+ * type **ids** it targets — ids, not classes, so subclassing does not break it.
  *
- * Keyed by block type **id** (string), not class — so it survives block
- * subclassing and matches the config keys (`content_blocks_kit.blocks.<type>`).
- *
- *     #[AsBlockFormExtension('button')]           // one block
- *     #[AsBlockFormExtension('button', 'card')]   // several blocks
- *     #[AsBlockFormExtension]                      // every block (global)
- *     #[AsBlockFormExtension('button', priority: 10)]
+ * @see docs/internals/forms.md#why-form-extensions-are-a-package-seam
  */
 #[\Attribute(\Attribute::TARGET_CLASS)]
 final class AsBlockFormExtension
 {
-    /** @var list<string> Targeted block type ids, or `['*']` for every block. */
+    /** @var list<string> targeted type ids, or `['*']` for every block */
     public readonly array $blockTypes;
 
     /**
-     * @param string|list<string> $blockTypes One or more block type ids to target;
-     *                                         omit (or pass none) to target every block.
-     * @param int                 $priority   Higher runs first (fields appear earlier).
-     *                                         Extensions sharing a priority keep discovery order.
+     * @param string|list<string> $blockTypes type ids; omit to target all
+     * @param int                 $priority   higher runs first, ties keep
+     *                                        discovery order
      */
     public function __construct(
         string|array $blockTypes = [],
@@ -34,7 +27,7 @@ final class AsBlockFormExtension
     ) {
         $normalized = \is_string($blockTypes) ? [$blockTypes] : array_values($blockTypes);
 
-        // No explicit target = global. `'*'` is the wildcard the collection matches on.
+        // No explicit target = global; `'*'` is the collection's wildcard.
         $this->blockTypes = [] === $normalized ? ['*'] : $normalized;
     }
 }

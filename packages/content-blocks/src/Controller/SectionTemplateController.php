@@ -27,25 +27,12 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
- * Endpoints for the global "section template" library — save a section as a
- * reusable snapshot and re-insert it into any area:
+ * The global section-template library: snapshot a section, list, insert,
+ * rename, delete. Save and insert gate on canEdit(), management on canManage().
  *
- *  - POST   /section/{sectionId}/save-as-template     Snapshot a section
- *  - GET    /area/{id}/section-templates              Paginated/filtered library
- *  - POST   /area/{id}/insert-template/{templateId}   Insert a snapshot as draft
- *  - PATCH  /section-templates/{templateId}           Rename (management)
- *  - DELETE /section-templates/{templateId}           Delete (management)
+ * @see docs/internals/section-templates.md#managing-the-library
  *
- * Save and insert are gated by AccessCheckerInterface::canEdit() on the area
- * at hand (you may only capture/drop content where you can already edit).
- * Rename/delete touch the shared library with no area to key off, so they use
- * the dedicated SectionTemplateManagerInterface::canManage() capability.
- *
- * Insert writes to *draft* state on the target (a new section appended at the
- * end in previewPosition order), mirroring every other structural op: Publish
- * commits it, Discard reverts it.
- *
- * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
+ * @internal the routes are the contract, not this class
  */
 #[Route('/_content-blocks')]
 final class SectionTemplateController
@@ -125,14 +112,10 @@ final class SectionTemplateController
     }
 
     /**
-     * Paginated, name-filtered list of library templates. Each entry is scored
-     * against the current registry so the picker can warn (or refuse) up front
-     * rather than surprising the editor on insert:
-     *  - `skippedTypes` — block types this build no longer has. The template is
-     *    still insertable, minus those blocks; the UI says so before the click.
-     *  - `insertable` — false only when nothing would come in: an unreadable
-     *    payload envelope, every one of its block types gone, or a schema
-     *    generation the ContentVersionUpgrader will not accept.
+     * Each entry is scored against the current registry — `skippedTypes` and
+     * `insertable` — so the picker warns before the click, not after it.
+     *
+     * @see docs/internals/section-templates.md#skipped-blocks-versus-kept-keys
      */
     #[Route(
         '/area/{id}/section-templates',
@@ -188,10 +171,8 @@ final class SectionTemplateController
                 'staleVersion' => !$versionOk,
                 'canManage' => $this->templateManager->canManage(),
                 'createdAt' => $template->getCreatedAt()->format(\DateTimeInterface::ATOM),
-                // Thumbnail spec, derived from the payload on every read rather
-                // than stored: no column to migrate, and rows saved before this
-                // existed get one too. Null when the payload holds no drawable
-                // structure — the card then renders without a thumbnail.
+                // Derived on every read rather than stored, so rows saved
+                // before it existed get one too. Null = no thumbnail.
                 'poster' => $this->posterBuilder->build($template->getPayload()),
             ];
         }
@@ -204,10 +185,10 @@ final class SectionTemplateController
     }
 
     /**
-     * Instantiates a template into the target area as a new draft section
-     * appended at the end. Blocks whose type is gone are skipped and reported;
-     * the insert only aborts with 422 when nothing survives, or when the
-     * payload envelope is unreadable.
+     * Appends the template to the target area as a new draft section. 422 only
+     * when nothing survives, or the envelope is unreadable.
+     *
+     * @see docs/internals/section-templates.md#two-unreadable-template-cases
      */
     #[Route(
         '/area/{id}/insert-template/{templateId}',
@@ -257,8 +238,8 @@ final class SectionTemplateController
                 'missingTypes' => $e->getMissingTypes(),
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (UnsupportedTemplateFormatException $e) {
-            // Backstop: list() already greys these out, so reaching here means a
-            // stale picker or a hand-crafted request.
+            // Backstop: list() greys these out, so reaching here means a stale
+            // picker or a hand-crafted request.
             return new JsonResponse([
                 'error' => 'unsupported_template_format',
                 'found' => $e->getFound(),
@@ -351,18 +332,17 @@ final class SectionTemplateController
     }
 
     /**
-     * Whether the stored payload's envelope is one this build can read. Checked
-     * here as well as in the instantiator so the picker greys the row out up
-     * front instead of letting the editor click into a 422 — same treatment as
-     * a missing block type.
+     * Checked here as well as in the instantiator, so the picker greys the row
+     * out rather than letting the editor click into a 422.
+     *
+     * @see docs/internals/section-templates.md#versioning-the-envelope
      */
     private function hasReadableFormat(SectionTemplate $template): bool
     {
         $format = $template->getPayload()['format'] ?? null;
 
-        // "Readable" includes formats the envelope chain can migrate forward,
-        // not just today's — otherwise a format bump would grey out the whole
-        // library even where a step exists to bridge it.
+        // Includes formats the chain can migrate forward, not just today's,
+        // or a format bump would grey out the whole library.
         return is_string($format)
             && $this->envelopes->supports($format, SectionTemplateSerializerInterface::FORMAT);
     }

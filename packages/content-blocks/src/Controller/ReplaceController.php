@@ -17,19 +17,12 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
- * Endpoints for the "replace this area's content with another area's
- * content" flow:
+ * The "replace this area's content with another area's" flow: candidates, then
+ * deep clones of the source inserted as drafts.
  *
- *  - GET  /area/{id}/replace-candidates   List filterable candidate areas
- *  - POST /area/{id}/replace-with/{src}   Replace target's content with source's
+ * @see docs/internals/publishing.md#every-structural-op-writes-to-draft
  *
- * The replace writes to *draft* state on the target: existing sections are
- * soft-deleted (Section::deleted = true) and clones of the source's
- * sections are inserted as never-published drafts. The user can preview the
- * result and either Publish (commits the swap) or Discard (restores the
- * original content). This mirrors how every other structural op behaves.
- *
- * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
+ * @internal the routes are the contract, not this class
  */
 #[Route('/_content-blocks')]
 final class ReplaceController
@@ -54,12 +47,8 @@ final class ReplaceController
     }
 
     /**
-     * Returns a paginated, filtered list of candidate ContentAreas.
-     *
-     * The target area is excluded so users can't accidentally "replace
-     * with itself" (which would soft-delete then re-clone). The host's
-     * provider supplies the query + label; this controller only adds the
-     * exclusion, sort, and LIMIT/OFFSET.
+     * The target is excluded, since replacing an area with itself would
+     * soft-delete then re-clone it. The host's provider does the rest.
      */
     #[Route(
         '/area/{id}/replace-candidates',
@@ -118,10 +107,9 @@ final class ReplaceController
     }
 
     /**
-     * Replaces target area's sections with deep-clones of source area's
-     * sections, all written to draft state. Existing sections are
-     * soft-deleted (committed at next Publish), clones land at
-     * previewPosition 0..N preserving the source's order.
+     * Clones land at previewPosition 0..N, preserving the source's order.
+     *
+     * @see docs/internals/publishing.md#every-structural-op-writes-to-draft
      */
     #[Route(
         '/area/{id}/replace-with/{sourceId}',
@@ -151,9 +139,8 @@ final class ReplaceController
         if (!$source) {
             return new JsonResponse(['error' => 'Source ContentArea not found'], Response::HTTP_NOT_FOUND);
         }
-        // Source must be readable by the current user — otherwise the
-        // replace flow becomes an IDOR vector to copy private content
-        // out of unauthorized areas.
+        // Without this the replace flow is an IDOR vector for copying private
+        // content out of areas the user cannot read.
         if (!$this->accessChecker->canView($source)) {
             throw new ContentBlocksAccessDeniedException();
         }
@@ -164,10 +151,8 @@ final class ReplaceController
             $existing->setDeleted(true);
         }
 
-        // Filter the source's sections the same way the rendering code does:
-        // skip soft-deleted entries, walk in previewPosition order so the
-        // clone preserves the source's draft order rather than its public
-        // order (the user's most recent intent is what they want to copy).
+        // previewPosition order, skipping soft-deleted: the copy follows the
+        // source's draft order, which is the intent the user can see.
         $sourceSections = array_values(array_filter(
             $source->getSections()->toArray(),
             fn ($section) => !$section->isDeleted(),

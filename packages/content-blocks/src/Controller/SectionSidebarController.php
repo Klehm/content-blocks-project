@@ -19,17 +19,12 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 
 /**
- * Renders + handles the section settings form in the builder sidebar.
+ * The section settings form: GET renders it, POST saves to `draft_settings`
+ * and answers 204, or re-renders with errors and 422.
  *
- * GET  → rendered HTML form (mounted by cb-builder into <aside>).
- * POST → submits form data; on success the section's draft_settings is
- *        updated and the response is empty 204 (the cb-section-settings-form
- *        Stimulus controller fires cb:section:saved on 2xx so the parent
- *        unmounts the sidebar + reloads the iframe). On validation error,
- *        re-renders the form HTML with errors and returns 422 so the
- *        Stimulus controller swaps the sidebar content.
+ * @see docs/internals/forms.md#why-untouched-fields-are-pruned-on-save
  *
- * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
+ * @internal the routes are the contract, not this class
  */
 #[Route('/_content-blocks')]
 final class SectionSidebarController
@@ -70,12 +65,8 @@ final class SectionSidebarController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        // Initial form data, three layers (rightmost wins per key):
-        //   defaults ← preset settings ← the section's saved settings.
-        // Defaults backfill keys so widgets without an "empty" state get a
-        // sane starting value; the selected preset's settings backfill next,
-        // so flipping "Customize styling" on presents the preset's values as
-        // the starting point instead of blank fields.
+        // Three layers, rightmost winning per key:
+        //   defaults <- preset settings <- the section's saved settings.
         $current = $section->getEffectiveSettings(preferDraft: true);
         $initial = array_replace_recursive(
             $this->settingsDefaults->get(),
@@ -83,9 +74,8 @@ final class SectionSidebarController
             $current,
         );
 
-        // Sections saved before the stylingCustom switch existed carry
-        // styling values but no flag: treat them as customized so their
-        // values stay visible (and survive the next save).
+        // Sections predating the switch carry styling but no flag; treat them
+        // as customized so their values survive the next save.
         $initial['stylingCustom'] ??= ($current['styling'] ?? []) !== [];
 
         // Number of (live) columns: drives whether the column-widths control
@@ -113,11 +103,8 @@ final class SectionSidebarController
                 /** @var array<string, mixed> $data */
                 $data = $form->getData() ?? [];
                 $data['columnWidths'] = $this->sanitizeColumnWidths($data['columnWidths'] ?? null, $columnCount);
-                // Customize-styling switch off → drop the styling subtree
-                // entirely: the preset (if any) applies untouched, and a
-                // later preset change never fights values persisted while
-                // the fields were hidden. The false flag itself is pruned by
-                // normalize(); its absence reads as "off" on the next GET.
+                // Off drops the subtree, so a later preset change never fights
+                // values persisted while the fields were hidden.
                 if (($data['stylingCustom'] ?? false) !== true) {
                     unset($data['styling']);
                 }
@@ -164,10 +151,8 @@ final class SectionSidebarController
     }
 
     /**
-     * Keep a column-widths CSV only when it's exactly $columnCount positive
-     * integers summing to 100; otherwise drop it (→ equal widths). The
-     * Stimulus controller already commits valid values, so this just guards
-     * against direct/forged posts and keeps the stored JSON trustworthy.
+     * Kept only when it is exactly $columnCount positive integers summing to
+     * 100; anything else drops to equal widths. Guards against forged posts.
      */
     private function sanitizeColumnWidths(mixed $value, int $columnCount): ?string
     {
@@ -203,17 +188,10 @@ final class SectionSidebarController
     }
 
     /**
-     * Normalize the form payload before persisting: recursively drop empty
-     * or default-off leaves (null, '', false, and arrays left empty after
-     * pruning) so the JSON column only carries values the user actually
-     * set. 0 is meaningful (zero padding) and is kept.
+     * Recursively drops empty and default-off leaves so the JSON carries only
+     * what the user set. `0` is meaningful (zero padding) and survives.
      *
-     * Untouched styling fields submit as nulls; persisting them would mask
-     * a preset's values on the next sidebar prefill (an explicit null would
-     * "win" over the preset in the defaults ← preset ← current merge).
-     * Unchecked checkboxes (stylingCustom, the spacing "linked" toggles)
-     * prune the same way: their absence reads as false everywhere the
-     * settings are consumed.
+     * @see docs/internals/forms.md#why-untouched-fields-are-pruned-on-save
      *
      * @param array<string, mixed> $data
      *

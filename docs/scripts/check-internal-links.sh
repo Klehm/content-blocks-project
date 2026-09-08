@@ -6,14 +6,16 @@
 # cost that the reader now has nowhere to go. Run in CI beside PHPStan.
 #
 # Anchors are derived the way GitHub derives them: lowercase, apostrophes
-# dropped, remaining punctuation dropped, spaces to hyphens.
+# dropped, remaining punctuation dropped, spaces to hyphens. Underscores and
+# hyphens survive — GitHub keeps word characters, and `cb_translatable` is a
+# heading here.
 
 set -uo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$root" || exit 1
 
-refs=$(grep -rhno 'docs/internals/[a-z0-9-]*\.md\(#[a-z0-9-]*\)\?' \
+refs=$(grep -rhno 'docs/internals/[a-z0-9-]*\.md\(#[a-z0-9_-]*\)\?' \
   packages/*/src packages/*/assets packages/*/templates packages/*/tests packages/*/config \
   2>/dev/null | sed 's/.*://' | sort -u)
 
@@ -35,7 +37,7 @@ while read -r ref; do
   esac
 
   if ! grep -E '^#{2,4} ' "$file" \
-    | sed -E "s/^#+ //; s/'//g; s/[^a-zA-Z0-9 -]//g; s/ +/-/g" \
+    | sed -E "s/^#+ //; s/'//g; s/[^a-zA-Z0-9 _-]//g; s/ +/-/g" \
     | tr 'A-Z' 'a-z' \
     | grep -qx "$anchor"; then
     echo "broken anchor   $ref"

@@ -11,13 +11,10 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * Four-sided box spacing (padding or margin) with an optional link toggle
- * that ties all four sides together in the UI.
+ * Four sides plus a `linked` flag, persisted so reopening the sidebar
+ * restores the UX state. The sync itself is a Stimulus concern.
  *
- * Data shape: ['top'=>int|null, 'right'=>int|null, 'bottom'=>int|null,
- * 'left'=>int|null, 'linked'=>bool]. The `linked` flag is persisted so
- * reopening the sidebar restores the UX state — the link sync itself is
- * a Stimulus concern (cb-spacing-link), not a server one.
+ * @see docs/internals/forms.md#the-responsive-styling-sub-types
  */
 final class BoxSpacingType extends AbstractType
 {

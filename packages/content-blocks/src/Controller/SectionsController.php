@@ -21,11 +21,11 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
- * AJAX endpoints for structural operations on Sections. All writes go to
- * the *draft* state (previewPosition / deleted) — never to the public
- * position. Promotion happens via ContentAreaPublisher::publish().
+ * AJAX endpoints for structural operations on Sections.
  *
- * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
+ * @see docs/internals/publishing.md#every-structural-op-writes-to-draft
+ *
+ * @internal the routes are the contract, not this class
  */
 #[Route('/_content-blocks')]
 final class SectionsController
@@ -122,11 +122,8 @@ final class SectionsController
         usort($sections, fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
         $index = array_search($section, $sections, true);
 
-        // The endpoint speaks two dialects:
-        //  - direction=up|down (legacy, used by the toolbar arrows we're
-        //    keeping for keyboard-/no-pointer flows)
-        //  - position=<int> (used by drag & drop, where the target index is
-        //    known up front)
+        // Two dialects: `direction=up|down` for the toolbar arrows (kept for
+        // keyboard and no-pointer flows), `position=<int>` for drag & drop.
         if (\is_int($rawPosition)) {
             if ($index === false) {
                 return new JsonResponse(['moved' => false]);
@@ -182,10 +179,8 @@ final class SectionsController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        // Deep-copy via SectionCloner — same logic is reused by the
-        // area-level "replace with" flow. The copy is then inserted
-        // immediately after the source by re-indexing sibling sections so
-        // positions stay dense.
+        // Inserted right after the source, siblings re-indexed so positions
+        // stay dense. The cloner is shared with the replace-content flow.
         $copy = $this->sectionCloner->cloneSection($section);
 
         $siblings = array_values(array_filter(
@@ -205,10 +200,7 @@ final class SectionsController
         $this->em->persist($copy);
         $this->em->flush();
 
-        // A section can be dropped into the preview in place (right after the
-        // source) only when every one of its blocks renders without a JS init
-        // pass; otherwise the builder falls back to a full reload so those
-        // scripts run. `sourceId` tells the overlay which node to anchor after.
+        // `sourceId` tells the overlay which node to anchor the copy after.
         $response = ['id' => $copy->getId(), 'sourceId' => $section->getId()];
 
         if ($this->sectionSupportsHotReload($copy)) {
@@ -222,10 +214,8 @@ final class SectionsController
     }
 
     /**
-     * A section is safe to hot-insert only when every one of its (non-deleted)
-     * blocks opts into preview hot reload. A single JS-dependent block forces a
-     * full iframe reload so its init pass runs. An empty section trivially
-     * qualifies.
+     * One JS-dependent block forces a full iframe reload so its init pass
+     * runs. An empty section trivially qualifies.
      */
     private function sectionSupportsHotReload(Section $section): bool
     {
@@ -270,10 +260,9 @@ final class SectionsController
     }
 
     /**
-     * Undo of a soft-delete: flips the draft `deleted` flag back. Only valid
-     * while the deletion is still a draft — once publish ran, the row was
-     * physically removed and this endpoint 404s (the builder then surfaces
-     * its save-error banner).
+     * Undo of a soft-delete. 404s once Publish has physically removed the row.
+     *
+     * @see docs/internals/publishing.md#every-structural-op-writes-to-draft
      */
     #[Route('/section/{id}/restore', name: 'content_blocks_section_restore', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function restore(int $id, Request $request): JsonResponse

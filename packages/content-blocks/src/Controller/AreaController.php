@@ -16,11 +16,12 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
- * Whole-area operations: publish (promote drafts to public), discard
- * (revert drafts), and state inquiry (used by the cb-builder controller
- * to update the topbar badge / Discard button after a structural op).
+ * Whole-area operations: publish, discard, and the state inquiry the topbar
+ * badge reads after a structural op.
  *
- * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
+ * @see docs/internals/publishing.md#publish-and-discard-semantics
+ *
+ * @internal the routes are the contract, not this class
  */
 #[Route('/_content-blocks')]
 final class AreaController
