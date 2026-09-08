@@ -408,3 +408,58 @@ The third is the trap: it renders fine in the language you typed it in, and stay
 
 `icon` is rendered raw so it can be inline SVG. It must therefore come from trusted code; never interpolate user input into it.
 :::
+
+## Adding your own UI to the builder shell
+
+An action gets a bundle a menu entry and an event. It does not get it anywhere to *put* anything — a dialog, a status line, the script that reacts to the event. A host has the page the builder is mounted in for that; a bundle owns no page. `BuilderShellExtensionInterface` is the other half: it lets a bundle render its own templates **inside the builder shell**, wherever the shell is rendered, with nothing for the host to wire.
+
+It is autoconfigured — declare the service and you are done:
+
+```php
+use ContentBlocks\Builder\BuilderShellExtensionInterface;
+use ContentBlocks\Builder\BuilderShellFragment;
+use ContentBlocks\Entity\ContentArea;
+
+final class HistoryShellExtension implements BuilderShellExtensionInterface
+{
+    public function getFragments(ContentArea $area): iterable
+    {
+        // Returning nothing is how a fragment hides itself.
+        yield new BuilderShellFragment(
+            template: '@MyBundle/builder/history.html.twig',
+            context: ['revisionCount' => 3],
+            priority: 0,   // higher renders first
+        );
+    }
+}
+```
+
+The template is rendered as the last thing inside `.cb-shell`, after the builder's own chrome, so an overlay stacks above it. It is rendered in **isolation**: it sees its own `context` plus `area` (the `ContentArea` being edited) and nothing of the shell's variables, which are internal. `area` is reserved — a fragment declaring it is refused at construction.
+
+Everything else a fragment needs is on the shell root, which it can reach with `closest()`: the CSRF token (`data-cb-csrf-token`, token id `content_blocks`) and the area id. So a fragment carries its own script, served from a route the bundle owns — no Stimulus controller, no `controllers.json` entry, no asset build, and the same under AssetMapper and Webpack Encore:
+
+```twig
+{# @MyBundle/builder/history.html.twig #}
+<dialog class="my-history" data-my-history data-area-id="{{ area.id }}">…</dialog>
+<script type="module" src="{{ path('my_bundle_history_js') }}"></script>
+```
+
+```js
+// Served by the bundle. Pair it with a BuilderActionProviderInterface
+// contributing the `history` key: the click arrives as cb:builder:action.
+document.addEventListener('cb:builder:action', async (event) => {
+    if (event.detail.key !== 'history') return;
+    const shell = event.detail.button.closest('[data-cb-csrf-token]');
+    const dialog = shell.querySelector('[data-my-history]');
+    dialog.showModal();
+    // … the user picks a revision; the bundle's endpoint writes it to the draft …
+    // The area changed behind the builder's back: ask it to catch up.
+    dialog.dispatchEvent(new CustomEvent('cb:area:changed', { bubbles: true }));
+});
+```
+
+`cb:area:changed` is the one **inbound** public event: dispatched at the builder from the shell element or anything inside it, it makes the builder reload the preview and re-sync Publish / Discard — the same landing as an import or an "Insert content". `detail.hasUnpublishedChanges` is optional and defaults to `true`, which is what a draft write means.
+
+::: tip Where fragments show up
+The shell asks for its fragments itself (the `cb_shell_fragments(area)` Twig function), so a fragment renders whether the builder came from `ContentAreaType` or from a direct `{% include '@ContentBlocks/builder/launcher.html.twig' %}`. That differs from `BuilderActionProviderInterface`, whose actions are gathered by `ContentAreaType` and, on a direct include, have to be passed as `topbarActions` by the host.
+:::

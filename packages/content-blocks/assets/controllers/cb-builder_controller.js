@@ -18,13 +18,22 @@ import { Controller } from '@hotwired/stimulus';
  *
  * ## The `cb:*` event contract
  *
- * Four events are public API and stable across 1.x — a host may listen to
- * them on the builder element:
+ * Five events are public API and stable across 1.x. Four are *outbound* — a
+ * host may listen to them on the builder element:
  *
  *  - `cb:ready`          the preview iframe has mounted and is interactive
  *  - `cb:block:saved`    a block's draft was persisted
  *  - `cb:section:saved`  a section's draft was persisted
  *  - `cb:builder:action` a host-contributed topbar action was invoked
+ *
+ * One is *inbound* — dispatched *at* the builder, from the shell element or
+ * anything inside it (a shell fragment, see BuilderShellExtensionInterface):
+ *
+ *  - `cb:area:changed`   the area was changed server-side behind the builder's
+ *                        back (restored, replaced, mass-edited…); the builder
+ *                        reloads the preview and re-syncs Publish / Discard.
+ *                        `detail.hasUnpublishedChanges` is optional and
+ *                        defaults to true — such a change is a draft write.
  *
  * Every other `cb:*` event in this file and in preview-overlay.js is
  * **internal choreography** between the overlay, the iframe and this
@@ -125,6 +134,7 @@ export default class extends Controller {
         this._onWindowResize = this._onWindowResize.bind(this);
         this._onLiveConnect = this._onLiveConnect.bind(this);
         this._onSaveError = this._onSaveError.bind(this);
+        this._onAreaChanged = this._onAreaChanged.bind(this);
         this._onDocumentPointerDown = this._onDocumentPointerDown.bind(this);
         this._onDocumentKeydown = this._onDocumentKeydown.bind(this);
 
@@ -146,6 +156,9 @@ export default class extends Controller {
         // hooks below; both end in the persistent topbar error banner.
         this.element.addEventListener('live:connect', this._onLiveConnect);
         this.element.addEventListener('cb:save:error', this._onSaveError);
+        // Inbound: a shell fragment (or the host) changed the area through
+        // its own endpoints and asks the builder to catch up.
+        this.element.addEventListener('cb:area:changed', this._onAreaChanged);
 
         this._restoreSidebarWidth();
         this._restoreSidebarCollapsed();
@@ -171,6 +184,7 @@ export default class extends Controller {
         this.element.removeEventListener('cb:section:saved', this._onSectionSaved);
         this.element.removeEventListener('live:connect', this._onLiveConnect);
         this.element.removeEventListener('cb:save:error', this._onSaveError);
+        this.element.removeEventListener('cb:area:changed', this._onAreaChanged);
         document.removeEventListener('mousemove', this._onResizeMove);
         document.removeEventListener('mouseup', this._onResizeEnd);
         document.removeEventListener('pointerdown', this._onDocumentPointerDown);
@@ -460,6 +474,27 @@ export default class extends Controller {
      * parent admin page reflects the latest draft state without a full
      * reload.
      */
+    /**
+     * Inbound `cb:area:changed` (public API, see the file header). Something
+     * outside this controller — a shell fragment restoring a revision, the
+     * host running a bulk edit — wrote to the area through its own endpoint,
+     * so the preview and the Publish / Discard pair are stale. Same landing
+     * as the import and replace flows: re-sync the buttons, then reload.
+     *
+     * A pending debounced reload from an earlier save is superseded rather
+     * than coalesced with: the area just changed wholesale, and waiting out
+     * the quiet period would show the stale preview for that much longer.
+     */
+    _onAreaChanged(event) {
+        const detail = event?.detail;
+        const hasUnpublishedChanges = detail && detail.hasUnpublishedChanges !== undefined
+            ? Boolean(detail.hasUnpublishedChanges)
+            : true;
+        this._applyDraftState(hasUnpublishedChanges);
+        clearTimeout(this._reloadTimer);
+        this.reload();
+    }
+
     _applyDraftState(hasUnpublishedChanges) {
         // Discard is irrelevant when nothing is pending — hide it entirely
         // rather than rendering a disabled button. The user only sees it

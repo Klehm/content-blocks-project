@@ -989,6 +989,77 @@ describe('cb-builder: publish/discard', () => {
     });
 });
 
+/**
+ * `cb:area:changed` is the one *inbound* public event: a shell fragment (see
+ * BuilderShellExtensionInterface) or the host changed the area through its
+ * own endpoint and asks the builder to catch up.
+ */
+describe('cb-builder: cb:area:changed (inbound)', () => {
+    let controller, reloadSpy, applySpy;
+
+    beforeEach(() => {
+        ({ controller } = setupController({ areaId: 99 }));
+        const discard = document.createElement('button');
+        discard.className = 'cb-shell__discard';
+        discard.hidden = true;
+        controller.element.appendChild(discard);
+        const publish = document.createElement('button');
+        publish.className = 'cb-shell__publish';
+        publish.disabled = true;
+        controller.element.appendChild(publish);
+
+        reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+        applySpy = vi.spyOn(controller, '_applyDraftState');
+        // Bind the listener the way connect() does, without the rest of it.
+        controller._onAreaChanged = controller._onAreaChanged.bind(controller);
+        controller.element.addEventListener('cb:area:changed', controller._onAreaChanged);
+    });
+
+    afterEach(() => {
+        controller.element.removeEventListener('cb:area:changed', controller._onAreaChanged);
+        vi.useRealTimers();
+    });
+
+    it('reloads the preview at once and marks the area dirty by default', () => {
+        // Dispatched from a descendant, as a fragment rendered inside the
+        // shell would — it must bubble up to the controller element.
+        const fragment = document.createElement('div');
+        controller.element.appendChild(fragment);
+
+        fragment.dispatchEvent(new CustomEvent('cb:area:changed', { bubbles: true }));
+
+        expect(applySpy).toHaveBeenCalledWith(true);
+        expect(controller.element.querySelector('.cb-shell__discard').hidden).toBe(false);
+        expect(controller.element.querySelector('.cb-shell__publish').disabled).toBe(false);
+        // Not debounced: the area changed wholesale, nothing to coalesce.
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('honours an explicit hasUnpublishedChanges in the detail', () => {
+        controller.element.dispatchEvent(new CustomEvent('cb:area:changed', {
+            bubbles: true,
+            detail: { hasUnpublishedChanges: false },
+        }));
+
+        expect(applySpy).toHaveBeenCalledWith(false);
+        expect(controller.element.querySelector('.cb-shell__publish').disabled).toBe(true);
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('supersedes a pending debounced reload rather than reloading twice', () => {
+        vi.useFakeTimers();
+        controller._onSectionSaved({ detail: { sectionId: 7 } });
+        expect(reloadSpy).not.toHaveBeenCalled();
+
+        controller.element.dispatchEvent(new CustomEvent('cb:area:changed', { bubbles: true }));
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+
+        // The earlier timer must not fire a second, now-pointless reload.
+        vi.advanceTimersByTime(Controller.SAVE_RELOAD_DEBOUNCE_MS + 10);
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+    });
+});
+
 describe('cb-builder: _jsonRequest', () => {
     let controller;
 

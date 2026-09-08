@@ -69,7 +69,8 @@ Les contributeurs clonent le monorepo et ont tout (packages + sandboxes + tests)
 ## Conventions
 
 ### Language
-- **All code comments must be written in English** (inline comments, PHPDoc, JSDoc, Twig comments, etc.)
+- **Everything written on this repo is in English**: commit messages, pull request titles and bodies, documentation, CHANGELOG entries, and code comments (inline, PHPDoc, JSDoc, Twig).
+- Files written in French before this rule stay as they are — it applies to what gets written from now on, not to a retro-translation of the repo.
 
 ### Nommage
 - **Namespace PSR-4** : `ContentBlocks\` (package principal), `ContentBlocks\Kit\` (kit de blocs)
@@ -187,7 +188,8 @@ Les composants `ContentAreaBuilder`, `Column` et `Section` n'existent plus : tou
 ### Stimulus Controllers (contrôle DOM)
 Les 12 controllers livrés (source unique : `assets/package.json`) :
 - `cb-builder-launcher` : ouvre le `<dialog>` du builder depuis le widget hôte
-- `cb-builder` : orchestration de la fenêtre builder (sidebar, postMessage iframe, sauvegarde). Porte aussi le **contrat d'événements `cb:*`** : quatre sont publics (`cb:ready`, `cb:block:saved`, `cb:section:saved`, `cb:builder:action`), les 33 autres sont de la chorégraphie interne
+- `cb-builder` : orchestration de la fenêtre builder (sidebar, postMessage iframe, sauvegarde). Porte aussi le **contrat d'événements `cb:*`** : cinq sont publics — quatre sortants (`cb:ready`, `cb:block:saved`, `cb:section:saved`, `cb:builder:action`) et un **entrant**, `cb:area:changed`, qu'un fragment de shell ou l'hôte dispatche vers le builder après avoir modifié la zone côté serveur (le builder recharge la preview et resynchronise Publier/Annuler) — les 33 autres sont de la chorégraphie interne
+- **Fragments de shell** (`BuilderShellExtensionInterface`, autoconfiguré, fonction Twig `cb_shell_fragments(area)`) : la moitié UI de `BuilderActionProviderInterface`. Un bundle rend ses propres templates **dans** `.cb-shell` (après le chrome, contexte isolé + `area`), donc son `<dialog>` et un `<script type="module">` servi par sa propre route — sans controller Stimulus, sans `controllers.json`, sans recompilation. Le shell appelle la fonction lui-même, donc un fragment apparaît aussi quand l'hôte inclut `launcher.html.twig` directement. Précédent : `DemoShellExtension` dans la sandbox, `assets/test/e2e/shell-fragments.spec.js`
 - `cb-autosave` : sauvegarde debouncée des forms de sidebar
 - `cb-section-settings-form` : sync live de la sidebar de settings de section
 - `cb-block-styling-form` : idem pour le styling de bloc

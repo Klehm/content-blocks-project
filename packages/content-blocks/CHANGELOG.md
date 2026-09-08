@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A bundle can render its own UI inside the builder shell.**
+  `BuilderActionProviderInterface` gave a bundle a menu entry and a
+  `cb:builder:action` event, and stopped there: what happened on the click was
+  "the host's business", which is right for a host and a dead end for a bundle
+  that owns no page. Its only ways into the builder window were a Stimulus
+  controller every host had to enable by hand, or asking the host to write the
+  listener.
+
+  `BuilderShellExtensionInterface` (autoconfigured) is the missing half. It
+  yields `BuilderShellFragment`s — a Twig template, a context, a priority —
+  which the shell renders inside `.cb-shell`, after its own chrome, in an
+  isolated context plus the `area` being edited. A bundle ships its `<dialog>`
+  and a `<script type="module">` pointing at a route it serves, and the host
+  wires nothing: no `controllers.json` entry, no asset build, the same under
+  AssetMapper and Encore. The shell reads the fragments itself through the new
+  `cb_shell_fragments(area)` Twig function, so they appear wherever the shell
+  is rendered — through `ContentAreaType` or a direct include of the launcher.
+
+- **`cb:area:changed`, the first inbound public event.** A fragment (or the
+  host) that changed the area through its own endpoint dispatches it at the
+  builder, from the shell element or anything inside it; the builder reloads
+  the preview and re-syncs Publish / Discard, exactly as it does after an
+  import or an "Insert content". `detail.hasUnpublishedChanges` is optional
+  and defaults to `true`. The public `cb:*` contract is now five events.
+
 ## [1.0.0-RC4] - 2026-08-31
 
 ### Fixed
