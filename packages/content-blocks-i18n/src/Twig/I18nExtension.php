@@ -12,11 +12,8 @@ use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 /**
- * Twig helpers for linking into the workbench from wherever a host keeps its
- * admin UI — a page list, a builder view, a custom dashboard.
- *
- * Deliberately separate from any core extension so it stays instantiable on its
- * own in a test, the same split {@see \ContentBlocks\Twig\ImageExtension} makes.
+ * Twig helpers for linking into the workbench from a host's own admin UI. Its
+ * own extension so it stays instantiable alone in a test.
  */
 final class I18nExtension extends AbstractExtension
 {

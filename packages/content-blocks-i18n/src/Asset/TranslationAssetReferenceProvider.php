@@ -12,18 +12,10 @@ use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Asset references held by translated values.
+ * Asset references held by translated values — a file no block's data mentions
+ * anywhere. Both slots are read, as in the core provider.
  *
- * This package is exactly why the sweep needs a seam rather than a hard-coded
- * list of tables: a translated rich-text value is a *separate row in a
- * separate table*, and it carries its own `<img src="/uploads/…">`. An editor
- * who uploads an illustration while writing the German version of a page
- * creates a file that no block's data mentions anywhere. Without this
- * provider the sweep would delete it and empty the German page.
- *
- * Both slots are read, for the same reason the core provider reads both:
- * published values are on the public site now, draft values are one Publish
- * away.
+ * @see docs/internals/i18n.md#translated-values-hold-asset-references-too
  */
 final class TranslationAssetReferenceProvider implements AssetReferenceProviderInterface
 {

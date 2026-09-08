@@ -11,41 +11,20 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
 /**
- * Content translation for ContentBlocks — one shared layout, per-locale field
- * values.
+ * Content translation — one shared layout, per-locale field values. Installing
+ * it changes nothing until a translation row exists.
  *
- * The structure of an area (sections, columns, block order, styling) is
- * language-agnostic and stays shared; only fields a block type tagged
- * `cb_translatable` are swapped per locale. That is the compromise the roadmap
- * set, and it is what makes a translated page impossible to drift structurally
- * from its source.
- *
- * Installing this bundle changes nothing about existing output: with no
- * translation rows and no locale resolved, the render pipeline returns the
- * block's own data untouched.
+ * @see docs/internals/i18n.md#one-layout-per-locale-values
  */
 final class ContentBlocksI18nBundle extends AbstractBundle
 {
     protected string $extensionAlias = 'content_blocks_i18n';
 
     /**
-     * ```yaml
-     * content_blocks_i18n:
-     *     source_locale: en              # the language block data itself is written in
-     *     locales:                       # everything editors can translate into
-     *         - fr
-     *         - { code: de, label: 'Deutsch' }
-     *     machine:
-     *         default: my_engine         # provider used when the caller names none
-     * ```
+     * Semantic config: `source_locale`, `locales`, and a default machine
+     * provider. No engine adapter ships here.
      *
-     * Machine translation is a **seam, not an integration**: this package ships
-     * {@see TranslationProviderInterface} and no adapter for any engine. Which
-     * service to send content to — and whether to send it anywhere at all — is
-     * the host's decision, and it should not arrive as a transitive dependency
-     * of a page builder. Implement the interface (it is autoconfigured) and the
-     * workbench picks it up; with none registered, the machine-translation
-     * affordances simply do not render.
+     * @see docs/internals/i18n.md#config-and-mounting
      */
     public function configure(DefinitionConfigurator $definition): void
     {
@@ -59,10 +38,8 @@ final class ContentBlocksI18nBundle extends AbstractBundle
                 ->arrayNode('locales')
                     ->info('Locales editors can translate into. Accepts bare codes or { code, label } maps; the source locale is ignored if listed.')
                     ->beforeNormalization()
-                        // Both spellings are natural — a flat list of codes for
-                        // the common case, a map when a display label needs
-                        // overriding — so accept either rather than making
-                        // every host write the verbose form.
+                        // A flat list of codes or a map with labels: both
+                        // spellings are natural, so accept either.
                         ->always(static function ($locales): array {
                             if (!\is_array($locales)) {
                                 return [];
@@ -121,19 +98,16 @@ final class ContentBlocksI18nBundle extends AbstractBundle
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        // The workbench is a standalone page this bundle renders in full, so it
-        // needs its own Twig namespace. Registered here rather than asking the
-        // host to declare a path it never authors templates in.
+        // The workbench is a page this bundle renders in full, so it needs its
+        // own namespace — not one the host declares but never authors in.
         if (isset($builder->getExtensions()['twig'])) {
             $builder->prependExtensionConfig('twig', [
                 'paths' => [$this->getPath() . '/templates' => 'ContentBlocksI18n'],
             ]);
         }
 
-        // Map the bundle's own entity so a host does not have to add a
-        // `doctrine.orm.mappings` entry by hand for a table it never touches
-        // directly. Guarded on the extension being present so the bundle can
-        // still boot in a non-Doctrine context (a unit test kernel).
+        // So a host hand-writes no mapping for a table it never touches.
+        // Guarded so the bundle still boots without Doctrine, as in a test.
         if (!isset($builder->getExtensions()['doctrine'])) {
             return;
         }

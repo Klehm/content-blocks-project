@@ -7,43 +7,13 @@ namespace ContentBlocks\I18n\Machine;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 /**
- * A machine-translation backend — a translation API, an LLM, a self-hosted
- * engine, an in-house service, a human-translation vendor's queue.
+ * A machine-translation backend. Autoconfigured, batch-shaped, and shipped
+ * without an adapter for any engine — that choice belongs to the host.
  *
- * **This package ships no adapter for any of them, deliberately.** Which
- * service a page's text is sent to is a decision about cost, quality and where
- * the content is allowed to travel; it belongs to the host, and it should not
- * arrive as a transitive dependency of a page builder. What ships here is the
- * seam and everything around it — batching, the write gate, staleness, the
- * workbench — so that an adapter is a single small class.
+ * @see docs/internals/i18n.md#machine-translation-is-a-seam
  *
- * Tag with `content_blocks_i18n.translation_provider`, or just implement the
- * interface: it is autoconfigured. Registering one is the *whole* integration —
- * the workbench's per-field button and its "translate the page" button both go
- * through {@see MachineTranslator}, which goes through here.
- *
- * ---- Why the contract is a batch ----
- *
- * `translate()` takes a list, not a string, and that is the single most
- * important decision in this interface. Translating a page means 50–200 short
- * strings; done one HTTP call at a time it is slow enough that editors stop
- * using it, and on metered APIs it multiplies the per-request overhead by 200.
- * A per-field click simply passes a list of one, so there is no second code path
- * to maintain and no way for the two to drift.
- *
- * ---- Contract ----
- *
- *  - **Return one outcome per request, matched by `path`.** Order is not
- *    trusted; the caller reads `path`. A request you cannot handle gets a
- *    failure outcome, not a missing entry.
- *  - **Throw only for whole-batch failures** — bad credentials, unreachable
- *    host. Per-string trouble is a {@see TranslationOutcome::failure()}, so the
- *    rest of the page still gets translated.
- *  - **Respect `format`.** A request marked HTML holds markup; returning
- *    escaped or tag-stripped text corrupts the block.
- *  - **Never write anything.** Persistence, the allow-list and the digests are
- *    {@see \ContentBlocks\I18n\Storage\TranslationWriter}'s job; a provider that
- *    also stored results would bypass every check.
+ * Contract: one outcome per request matched by `path` (order is not trusted);
+ * throw only for whole-batch failures; respect `format`; never write anything.
  */
 interface TranslationProviderInterface
 {

@@ -22,17 +22,10 @@ use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
- * The read/write API the translation workbench runs on.
+ * The read/write API the workbench runs on. The payload is flat and
+ * UI-agnostic, so it backs a script as readily as the shipped layout.
  *
- * Same conventions as every other builder endpoint: the `/_content-blocks`
- * prefix (so a host firewall pattern covering the builder covers this too),
- * `canEdit()` on the area before anything, and the `content_blocks` CSRF token
- * on every write.
- *
- * The payload is deliberately flat and UI-agnostic — a list of blocks, each a
- * list of fields with source, value and status. Nothing here assumes the
- * workbench layout, so the same endpoints back a side-by-side editor, a
- * per-block sidebar, or a script.
+ * @see docs/internals/i18n.md#the-workbench-is-a-page-not-a-panel
  */
 final class WorkbenchController
 {
@@ -75,16 +68,13 @@ final class WorkbenchController
     }
 
     /**
-     * Every translatable field of the area in reading order, for one locale.
+     * The whole workbench in one request, so the editor tabs from field to
+     * field with no round trip per row.
      *
-     * This is the whole workbench in one request. A page of 40 blocks is a few
-     * hundred fields — small next to the block payloads the builder already
-     * moves — and having it arrive at once is what lets the editor tab from
-     * field to field without a round trip per row.
+     * @see docs/internals/i18n.md#the-workbench-is-a-page-not-a-panel
      */
-    // `/fields/` in the path rather than `/area/{id}/{locale}`: the latter is
-    // ambiguous with `/area/{id}/locales` above and would resolve only by
-    // declaration order, which is a trap for whoever reorders the methods.
+    // `/fields/` in the path: `/area/{id}/{locale}` would be ambiguous with
+    // `/area/{id}/locales` and resolve only by declaration order.
     #[Route('/area/{id}/fields/{locale}', name: 'content_blocks_i18n_area_fields', methods: ['GET'], requirements: ['id' => '\d+', 'locale' => '[A-Za-z0-9_-]+'])]
     public function areaFields(int $id, string $locale): JsonResponse
     {
@@ -114,15 +104,10 @@ final class WorkbenchController
     }
 
     /**
-     * Saves a batch of field values for one block.
+     * Body: `{"values": {"<path>": "<text>|null"}}`. **`null` clears**, `""`
+     * stores a deliberate blank. Writes to the draft.
      *
-     * Body: `{"values": {"<path>": "<text>|null"}}`. **`null` clears** a
-     * translation (the field falls back to the source); `""` stores a
-     * deliberate blank. See {@see TranslationWriter} — the distinction is
-     * load-bearing, not pedantry.
-     *
-     * Writes to the draft, so Publish commits and Discard reverts, exactly like
-     * every other builder edit.
+     * @see docs/internals/i18n.md#null-clears-empty-string-stores
      */
     #[Route('/block/{id}/{locale}', name: 'content_blocks_i18n_block_save', methods: ['POST'], requirements: ['id' => '\d+', 'locale' => '[A-Za-z0-9_-]+'])]
     public function saveBlock(int $id, string $locale, Request $request): JsonResponse
@@ -146,9 +131,8 @@ final class WorkbenchController
             return new JsonResponse(['error' => 'missing_values'], Response::HTTP_BAD_REQUEST);
         }
 
-        // Anything that is neither a string nor null is refused before it
-        // reaches the writer: the shape is the API's contract, and coercing an
-        // array or a number into text would store nonsense under a valid path.
+        // Refused before the writer: coercing an array or a number into text
+        // would store nonsense under a valid path.
         $clean = [];
 
         foreach ($values as $path => $value) {
@@ -169,9 +153,10 @@ final class WorkbenchController
     }
 
     /**
-     * Re-stamps the source digest of fields whose translation is still correct
-     * — the "the English changed but the German still says the right thing"
-     * action. Body: `{"paths": ["<path>", …]}`.
+     * Re-stamps the source digest where the translation still says the right
+     * thing. Body: `{"paths": [...]}`.
+     *
+     * @see docs/internals/i18n.md#the-digest-is-the-whole-mechanism
      */
     #[Route('/block/{id}/{locale}/approve', name: 'content_blocks_i18n_block_approve', methods: ['POST'], requirements: ['id' => '\d+', 'locale' => '[A-Za-z0-9_-]+'])]
     public function approve(int $id, string $locale, Request $request): JsonResponse
@@ -221,9 +206,8 @@ final class WorkbenchController
     }
 
     /**
-     * Resolves a block and authorizes against **its own** area — not one named
-     * in the request. A forged block id therefore fails the host's `canEdit()`
-     * rather than writing into a page the editor has no rights to.
+     * Authorizes against the block's **own** area, not one named in the
+     * request, so a forged id fails `canEdit()` instead of writing elsewhere.
      */
     private function blockForWrite(int $id): Block|JsonResponse
     {

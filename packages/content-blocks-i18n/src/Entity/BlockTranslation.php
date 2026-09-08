@@ -9,49 +9,10 @@ use ContentBlocks\I18n\Repository\BlockTranslationRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
- * One block's values in one target locale.
+ * One block's values in one target locale: a flat path → value map, with a
+ * digest of the source beside each, and draft/published mirroring {@see Block}.
  *
- * ---- Why a side table ----
- *
- * The alternative was a locale envelope inside `Block.data`, which rides along
- * every clone/export/import for free. It was rejected in the schema spike for
- * one reason: an envelope is opaque. "Which pages are missing German?" would
- * mean deserializing every block's JSON, so there could be no progress view and
- * no filtering — and a multilingual site is run from exactly that view.
- *
- * The cost is the mirror image: every flow that *duplicates* a block has to be
- * taught to duplicate its rows (see
- * {@see \ContentBlocks\I18n\Lifecycle\TranslationCloneObserver}), and the render
- * path needs a prefetch to avoid an N+1.
- *
- * ---- Shape ----
- *
- * Values are a **flat map of {@see \ContentBlocks\I18n\Field\FieldPath} → value**,
- * not a mirror of the block's data tree:
- *
- *     {"title": "Bienvenue", "items[9f2c1a].label": "Livraison rapide"}
- *
- * Flat means counting translated fields is `count()`, and a per-field merge is a
- * loop rather than a recursive diff. Collection entries are addressed by their
- * `_id`, so reordering the cards in the source locale does not shuffle the
- * French.
- *
- * ---- Draft / published ----
- *
- * Mirrors {@see Block} exactly: `draftValues === null` means "no pending
- * translation edit", and the effective payload is draft-or-published in PREVIEW,
- * published-only in PUBLIC. Translations therefore go live through the same
- * Publish button as the content they translate — which is the point. A French
- * heading must not appear on the public site while the English heading it was
- * written against is still an unpublished draft.
- *
- * ---- Digests ----
- *
- * Next to each value sits a digest of the **source** text it was translated
- * from. That is the whole staleness mechanism: re-hash the source today, compare,
- * and a mismatch means "the English changed after this French was written".
- * Kept per state so a published translation can still be reported as stale after
- * its draft has been cleared by a publish.
+ * @see docs/internals/i18n.md#why-a-side-table-not-an-envelope-in-blockdata
  */
 #[ORM\Entity(repositoryClass: BlockTranslationRepository::class)]
 #[ORM\Table(name: 'cb_block_translation')]
@@ -65,15 +26,14 @@ class BlockTranslation
     private ?int $id = null;
 
     /**
-     * CASCADE rather than a lifecycle listener: a deleted block has no
-     * translations by definition, and the database is the only place that can
+     * CASCADE rather than a listener: the database is the only place that can
      * guarantee it without every delete path opting in.
      */
     #[ORM\ManyToOne(targetEntity: Block::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Block $block = null;
 
-    /** BCP 47 tag as the host spells it — `fr`, `pt_BR`, `zh-Hant`. Stored verbatim. */
+    /** BCP 47 as the host spells it — `fr`, `pt_BR`. Stored verbatim. */
     #[ORM\Column(length: 16)]
     private string $locale = '';
 
@@ -157,9 +117,7 @@ class BlockTranslation
     }
 
     /**
-     * The payload a reader should use: the in-flight edit if there is one,
-     * otherwise what was published. Same rule as
-     * {@see \ContentBlocks\Rendering\CoreBlockDataResolver} applies to
+     * Draft-or-published, the same rule `CoreBlockDataResolver` applies to
      * `Block.data`, so a translation never lags a mode behind its source.
      *
      * @return array<string, mixed>
@@ -178,15 +136,10 @@ class BlockTranslation
     }
 
     /**
-     * Writes one field, together with the digest of the source text it was
-     * translated from.
+     * Value and digest move together — a drifting digest is worse than none.
+     * The first write copies the published payload into the draft.
      *
-     * Value and digest move together in a single call because a digest that
-     * drifts from its value is worse than no digest at all: it would report a
-     * fresh translation as stale, or hide a genuinely outdated one.
-     *
-     * The first write copies the published payload into the draft, so a partial
-     * edit does not silently unpublish every other field of the block.
+     * @see docs/internals/i18n.md#the-digest-is-the-whole-mechanism
      */
     public function setDraftValue(string $path, mixed $value, string $sourceDigest): self
     {
@@ -201,9 +154,8 @@ class BlockTranslation
     }
 
     /**
-     * Drops one field from the draft payload — "this locale has no translation
-     * for this field", which renders as a fallback to the source rather than as
-     * an empty string.
+     * Drops a field from the draft, which renders as a fallback to the source
+     * rather than as an empty string.
      */
     public function removeDraftValue(string $path): self
     {
@@ -242,7 +194,7 @@ class BlockTranslation
         return $this;
     }
 
-    /** Promote the pending translation edit to published. Mirrors {@see Block::publish()}. */
+    /** Promote the pending edit. Mirrors {@see Block::publish()}. */
     public function publish(): void
     {
         if ($this->draftValues === null) {
@@ -256,7 +208,7 @@ class BlockTranslation
         $this->touch();
     }
 
-    /** Throw away the pending translation edit. Mirrors {@see Block::revertDraft()}. */
+    /** Drop the pending edit. Mirrors {@see Block::revertDraft()}. */
     public function revertDraft(): void
     {
         $this->draftValues = null;

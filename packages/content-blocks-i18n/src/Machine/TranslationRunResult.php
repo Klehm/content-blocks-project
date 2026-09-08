@@ -5,18 +5,15 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Machine;
 
 /**
- * What a machine-translation run did — per field, not as a single verdict.
- *
- * A page translation touches dozens of independent strings and some of them
- * will fail: a rate limit halfway through, one string the engine refuses. The
- * editor needs to know which, so the report is a list and not a boolean.
+ * What a run did, per field rather than as one verdict — the editor needs to
+ * know *which* strings failed.
  */
 final class TranslationRunResult
 {
     /**
      * @param list<string>          $translated field refs written
      * @param array<string, string> $failed     field ref => error
-     * @param int                   $skipped    fields already translated and up to date
+     * @param int                   $skipped    already up to date
      */
     public function __construct(
         public readonly string $locale,

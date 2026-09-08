@@ -15,29 +15,10 @@ use ContentBlocks\I18n\Storage\TranslationWriter;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Drives a machine-translation provider over a block or a whole page, and
- * writes what comes back through the ordinary write path.
+ * Drives a provider over a block or a page. Missing and outdated fields only,
+ * and everything it returns goes through the ordinary writer.
  *
- * ---- One code path for both buttons ----
- *
- * "Translate this field" and "translate the page" are the same call with a
- * different work list. That is the point of the batch-shaped
- * {@see TranslationProviderInterface}: no second implementation to keep in step,
- * and translating a page is one provider call rather than 200.
- *
- * ---- What gets translated ----
- *
- * Missing and outdated fields, never the ones already correct — re-translating
- * a field an editor has hand-corrected is the fastest way to make a team turn
- * the feature off. `$overwrite` opts into it explicitly.
- *
- * ---- Results still go through the writer ----
- *
- * A provider's output is untrusted input like any other: it goes through
- * {@see TranslationWriter}, so the translatable-field allow-list, the
- * path-exists check and the source digests all apply. A provider cannot write
- * to a field that is not tagged, and cannot stamp a digest that does not match
- * the text it translated.
+ * @see docs/internals/i18n.md#machine-translation-is-a-seam
  */
 final class MachineTranslator
 {
@@ -51,7 +32,7 @@ final class MachineTranslator
     }
 
     /**
-     * @param list<string>|null $paths limit to these fields; null means every eligible one
+     * @param list<string>|null $paths null means every eligible field
      */
     public function translateBlock(
         Block $block,
@@ -98,8 +79,11 @@ final class MachineTranslator
     }
 
     /**
-     * @param array<int, array{block: Block, fields: list<TranslatableField>}> $blocks
-     * @param list<string>|null                                                $paths
+     * @param array<int, array{
+     *     block: Block,
+     *     fields: list<TranslatableField>,
+     * }> $blocks
+     * @param list<string>|null $paths
      */
     private function run(array $blocks, string $locale, ?array $paths, bool $overwrite, ?string $providerName): TranslationRunResult
     {
@@ -204,9 +188,8 @@ final class MachineTranslator
     }
 
     /**
-     * The field's label as a human would read it — kit labels are translation
-     * keys, and "cb_kit.block.card.field.title" is worse context for an engine
-     * than no context at all.
+     * Kit labels are translation keys, and `cb_kit.block.card.field.title` is
+     * worse context for an engine than none.
      */
     private function labelOf(TranslatableField $field): ?string
     {

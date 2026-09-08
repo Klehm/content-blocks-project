@@ -17,12 +17,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Translation progress, per area and locale, on the command line.
+ * Translation progress per area and locale. `--incomplete` exits non-zero, so
+ * a release pipeline can gate on it.
  *
- * The reason to have it beyond the UI: this is the view that answers "are we
- * ready to launch the German site?" across every page at once, and it is
- * scriptable — `--incomplete` exits non-zero when anything is missing or
- * outdated, so a release pipeline can gate on it.
+ * @see docs/internals/i18n.md#machine-translation-is-a-seam
  */
 #[AsCommand(
     name: 'content-blocks:i18n:status',

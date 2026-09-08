@@ -8,17 +8,10 @@ use ContentBlocks\I18n\Field\FieldStatus;
 use ContentBlocks\I18n\Field\TranslatableField;
 
 /**
- * How far one locale has got, over whatever scope was counted — a block, a
- * section, a page.
+ * How far one locale has got. `percent` counts only fields both present and
+ * current, so a rewritten source drops the page back below 100%.
  *
- * Outdated is tracked separately from translated and missing rather than folded
- * into either, because the three prompt different work: missing needs a
- * translator, outdated needs a reviewer, translated needs nobody. A single
- * percentage would hide the middle one, which is the category that quietly rots.
- *
- * `percent` counts only fields that are both present and current, so a page
- * whose source was rewritten drops back below 100% — which is the honest
- * reading, and the one that gets the revision noticed.
+ * @see docs/internals/i18n.md#three-states-not-two
  */
 final class TranslationProgress
 {

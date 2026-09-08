@@ -5,20 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Machine;
 
 /**
- * One piece of text handed to a machine-translation provider.
+ * One piece of text for a provider. It carries `format` and `label` because
+ * both are knowable here and unknowable from the string alone.
  *
- * It carries more than the string because the two things that most often make
- * machine output unusable are both knowable here and unknowable from the text
- * alone:
- *
- *  - **format** — a rich-text field is HTML. Sent as plain text, the tags come
- *    back translated, escaped or dropped. Every serious engine has a markup mode
- *    and needs to be told.
- *  - **label** — "Home" as a *button label* and "Home" as a *heading* translate
- *    differently in German, and a field's own form label is the cheapest
- *    disambiguating context available. Engines that accept context (LLMs
- *    especially) get measurably better output from it; those that do not simply
- *    ignore it.
+ * @see docs/internals/i18n.md#machine-translation-is-a-seam
  */
 final class TranslationRequest
 {
@@ -26,13 +16,13 @@ final class TranslationRequest
     public const FORMAT_HTML = 'html';
 
     public function __construct(
-        /** Echoed back on the outcome — the only thing tying a result to a field. */
+        /** Echoed back — the only thing tying a result to a field. */
         public readonly string $path,
         public readonly string $text,
         public readonly string $format = self::FORMAT_TEXT,
-        /** Human label of the field, already translated into the editor's language. */
+        /** Field label, already in the editor's language. */
         public readonly ?string $label = null,
-        /** Block type id (`title`, `card`…), further context for engines that take it. */
+        /** Block type id, further context for engines that take it. */
         public readonly ?string $blockType = null,
     ) {
     }
@@ -42,7 +32,7 @@ final class TranslationRequest
         return $this->format === self::FORMAT_HTML;
     }
 
-    /** A request for the same text in a different slot — used when batching by format. */
+    /** The same request with other text, for batching by format. */
     public function withText(string $text): self
     {
         return new self($this->path, $text, $this->format, $this->label, $this->blockType);

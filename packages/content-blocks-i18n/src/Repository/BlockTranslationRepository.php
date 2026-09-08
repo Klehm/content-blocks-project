@@ -28,13 +28,8 @@ class BlockTranslationRepository extends ServiceEntityRepository
     }
 
     /**
-     * Every translation row of an area, for one locale or all of them.
-     *
-     * This is the query that keeps rendering a translated page O(1) instead of
-     * O(blocks): one join down to the area, loaded once, and the resolver reads
-     * from the resulting map. Without it every block on the page would issue its
-     * own SELECT — the classic N+1 that a side table invites and that the
-     * envelope schema would not have had.
+     * Every translation row of an area — the one query that keeps rendering a
+     * translated page O(1) rather than O(blocks).
      *
      * @return list<BlockTranslation>
      */

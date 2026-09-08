@@ -14,18 +14,10 @@ use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Rendering\RenderMode;
 
 /**
- * Decorates the renderer to load an area's translations in one query before the
- * resolver pipeline starts asking for them block by block.
+ * Loads an area's translations in one query before the pipeline asks block by
+ * block. It only **warms a cache** — correctness never depends on it.
  *
- * A decorator rather than a hook in the core: the spike deliberately did not add
- * a prefetch seam, because `BlockRendererInterface` is already aliased and
- * decorating it is the idiom. The core stays unaware that anything needs warming.
- *
- * It only *warms a cache* — correctness never depends on it. Every method here
- * could be reduced to a bare delegation and the page would still render
- * correctly, just with one SELECT per block. That is the property that makes it
- * safe for a host to re-decorate or replace the renderer without knowing this
- * class exists.
+ * @see docs/internals/i18n.md#why-a-side-table-not-an-envelope-in-blockdata
  */
 final class PrefetchingBlockRenderer implements BlockRendererInterface
 {
@@ -50,9 +42,8 @@ final class PrefetchingBlockRenderer implements BlockRendererInterface
 
     public function renderBlock(Block $block, ?RenderContext $context = null): string
     {
-        // One block, one lookup — warming its whole area here would load dozens
-        // of rows to use one. This is the builder's hot-swap path after an
-        // inline edit, so it runs often and touches little.
+        // One block, one lookup: this is the hot-swap path, so it runs often
+        // and warming the whole area would load dozens of rows to use one.
         return $this->inner->renderBlock($block, $context);
     }
 

@@ -14,36 +14,10 @@ use ContentBlocks\Rendering\RenderMode;
 use ContentBlocks\Translation\TranslatableFieldsInterface;
 
 /**
- * Merges the target locale's field values over the block's source payload.
+ * The package's entire render-time footprint: one resolver merging the locale's
+ * values over the source payload, per field, at priority 128.
  *
- * This is the entire render-time footprint of the package: one resolver in the
- * core's pipeline, registered by autoconfiguration. With no locale resolved it
- * returns `$data` untouched, so an installation that has not translated
- * anything renders byte-for-byte what it did before the package was installed.
- *
- * ---- Fallback is per field, not per block ----
- *
- * A field with no stored value keeps its source text. The alternative — falling
- * back to the source for the whole block as soon as one field is untranslated —
- * makes a half-translated page look broken rather than incomplete, and it makes
- * incremental translation pointless, since nothing shows until everything is
- * done.
- *
- * ---- The allow-list runs again here ----
- *
- * {@see \ContentBlocks\I18n\Storage\TranslationWriter} already refuses to store
- * a value for an untagged field, so re-checking looks redundant. It is not: tags
- * are code and rows are data, and code changes. A field that was translatable
- * last release and is not any more has rows sitting in the table; without this
- * check they would keep overriding a field the block no longer considers
- * translatable. The tags are the current truth, so the tags win.
- *
- * ---- Priority ----
- *
- * 128: below the core's seeding resolver (256), above the default 0. Translation
- * is closer to "what the payload *is*" than to a transformation of it, so a host
- * resolver that substitutes tokens or injects computed values at the default
- * priority sees text already in the right language.
+ * @see docs/internals/i18n.md#the-allow-list-runs-again-at-render
  */
 final class TranslationBlockDataResolver implements BlockDataResolverInterface
 {
@@ -77,9 +51,8 @@ final class TranslationBlockDataResolver implements BlockDataResolverInterface
                 continue;
             }
 
-            // FieldPath::write only touches structure that already exists, so a
-            // row left over from a deleted collection entry is a no-op rather
-            // than a resurrection.
+            // write() only touches existing structure, so a row left from a
+            // deleted entry is a no-op rather than a resurrection.
             $data = FieldPath::write($data, $path, $value);
         }
 

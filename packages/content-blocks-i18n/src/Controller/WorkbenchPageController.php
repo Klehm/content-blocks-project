@@ -25,15 +25,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
 
 /**
- * Serves the translation workbench: every translatable field of a page in one
- * list, with the page preview beside it.
+ * Serves the workbench, rendered server-side with its field list already in
+ * it. The JSON endpoints next door remain the API.
  *
- * The page is rendered **server-side with its field list already in it** rather
- * than as an empty shell the controller fills over XHR. A translator's first
- * action is to read and start typing, and a spinner between the click and the
- * first field is exactly the latency the whole design is trying to remove. The
- * JSON endpoints next door remain the API — for saves, for machine translation,
- * and for anything else that wants the same data.
+ * @see docs/internals/i18n.md#the-workbench-is-a-page-not-a-panel
  */
 final class WorkbenchPageController
 {
@@ -95,16 +90,10 @@ final class WorkbenchPageController
     }
 
     /**
-     * The host's own public URL for this area, showing draft content in the
-     * language being translated, with the builder's editing chrome switched off.
+     * The host's own URL, draft content, target language, chrome off.
+     * {@see PreviewLocaleListener} is the other half.
      *
-     * Reusing the host resolver rather than asking for a second, locale-aware
-     * one is what keeps this working on any host regardless of how it spells a
-     * locale in its routes — see {@see PreviewLocaleListener} for the other half.
-     *
-     * `cb_chrome=0` is what makes the pane readable: preview mode otherwise
-     * injects the builder's toolbars and click-to-edit, which are dead ends
-     * here because this page has no builder sidebar to open.
+     * @see docs/internals/i18n.md#the-preview-pane
      */
     private function previewUrl(ContentArea $area, string $locale): string
     {
@@ -119,20 +108,9 @@ final class WorkbenchPageController
     }
 
     /**
-     * The machine-translation engines actually usable for *this* page.
+     * Engines usable for *this* page. Empty is the normal state, not an error.
      *
-     * Empty is the normal state, not an error: this package ships no adapter,
-     * so an installation where the host wired none has nothing to offer — and
-     * the template renders no ⚡ button and no "translate the page" button at
-     * all rather than showing affordances that could only fail. A button that
-     * always errors teaches editors to distrust the ones that work.
-     *
-     * Two things are filtered out, for the same reason:
-     *
-     *  - {@see NullTranslationProvider}, the "nothing configured" placeholder;
-     *  - any provider whose `supports()` says no to this source/target pair —
-     *    an engine that covers European languages has no business offering a
-     *    button on the Japanese column.
+     * @see docs/internals/i18n.md#machine-translation-is-a-seam
      *
      * @return list<array{name: string, label: string}>
      */

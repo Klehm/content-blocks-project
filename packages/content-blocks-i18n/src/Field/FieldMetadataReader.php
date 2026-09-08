@@ -14,36 +14,19 @@ use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
- * Reads the *presentation* of a block's fields off its edit form: label,
- * translation domain, and which widget the workbench should render.
+ * Reads the *presentation* of a block's fields — label, domain, widget. Not the
+ * authority on which are translatable; the core keeps that.
  *
- * Deliberately **not** the authority on which fields are translatable — that is
- * {@see \ContentBlocks\Translation\TranslatableFieldsInterface} in the core,
- * where the `cb_translatable` convention is frozen. Two readers of the same tag
- * would eventually disagree; here there is one reader of the tag and one reader
- * of everything else, joined by path pattern. (`FieldCatalogMatchesCoreTest`
- * pins that the join covers every tagged field of every kit block.)
- *
- * Reading the built form also means a field a host added through
- * {@see \ContentBlocks\Form\Extension\BlockFormExtensionInterface} arrives with
- * its label already correct, without the host registering anything here.
- *
- * The cache below is per-request ({@see ResetInterface}). It memoizes what a
- * *form* produced, and a form is allowed to vary with the ambient request — a
- * host extension can add a field for one role and not another, and the shape
- * pinned by the first `$data` seen would otherwise stay pinned for the life of
- * the process. Clearing it between requests is what makes a worker behave like
- * PHP-FPM instead of like whoever hit the page first.
+ * @see docs/internals/i18n.md#two-readers-of-the-form-one-reader-of-the-tag
  */
 final class FieldMetadataReader implements ResetInterface
 {
-    /** Matches the core walker's guard against a form type that nests itself. */
+    /** Matches the core walker's guard against a self-nesting type. */
     private const MAX_DEPTH = 10;
 
     /**
-     * How a form type presents as a workbench input. Anything unlisted is a
-     * single-line text field, which is the safe default: it renders every value
-     * and mangles none.
+     * Anything unlisted is a single-line text field — the safe default, since
+     * it renders every value and mangles none.
      *
      * @var array<class-string, string>
      */
@@ -53,7 +36,13 @@ final class FieldMetadataReader implements ResetInterface
         EmailType::class => 'email',
     ];
 
-    /** @var array<string, array<string, array{label: string, labelDomain: string|null, widget: string}>> */
+    /**
+     * @var array<string, array<string, array{
+     *     label: string,
+     *     labelDomain: string|null,
+     *     widget: string,
+     * }>>
+     */
     private array $cache = [];
 
     public function __construct(
@@ -67,14 +56,16 @@ final class FieldMetadataReader implements ResetInterface
      *
      * @param array<string, mixed> $data
      *
-     * @return array<string, array{label: string, labelDomain: string|null, widget: string}>
+     * @return array<string, array{
+     *     label: string,
+     *     labelDomain: string|null,
+     *     widget: string,
+     * }>
      */
     public function forBlockType(string $blockType, array $data = []): array
     {
-        // Two blocks of the same type on a page have the same form shape, and a
-        // page can hold dozens. The cache key ignores $data because it only
-        // affects conditionally-declared fields, and a miss there costs a
-        // humanized label rather than a wrong one.
+        // The key ignores $data: it only affects conditionally-declared
+        // fields, where a miss costs a humanized label, not a wrong one.
         if (isset($this->cache[$blockType])) {
             return $this->cache[$blockType];
         }
@@ -100,7 +91,11 @@ final class FieldMetadataReader implements ResetInterface
     }
 
     /**
-     * @param array<string, array{label: string, labelDomain: string|null, widget: string}> $out
+     * @param array<string, array{
+     *     label: string,
+     *     labelDomain: string|null,
+     *     widget: string,
+     * }> $out
      */
     private function collect(FormBuilderInterface $builder, string $prefix, array &$out, int $depth): void
     {
@@ -114,9 +109,7 @@ final class FieldMetadataReader implements ResetInterface
             $name = (string) $name;
             $path = $prefix === '' ? $name : $prefix . '.' . $name;
 
-            // A collection has no children until it is bound to data; its shape
-            // lives in `entry_type`. Same descent the core walker makes, so the
-            // patterns the two produce line up.
+            // Same descent the core walker makes, so the patterns line up.
             $entryType = $child->hasOption('entry_type') ? $child->getOption('entry_type') : null;
             if (\is_string($entryType) && $entryType !== '') {
                 $entryOptions = $child->hasOption('entry_options') ? $child->getOption('entry_options') : [];
@@ -146,10 +139,8 @@ final class FieldMetadataReader implements ResetInterface
             return $label;
         }
 
-        // Symfony's own fallback when a field declares no label: humanize the
-        // field name. Reproduced rather than reached for because we never build
-        // a FormView here — a view would mean instantiating data mappers for
-        // every block on the page.
+        // Symfony's humanize fallback, reproduced because building a FormView
+        // would instantiate data mappers for every block on the page.
         return ucfirst(trim(strtolower((string) preg_replace('/(?<!^)[A-Z]|_/', ' $0', $name))));
     }
 
@@ -170,10 +161,8 @@ final class FieldMetadataReader implements ResetInterface
             }
         }
 
-        // The kit's rich-text field is a custom type wrapping a textarea that a
-        // JS editor takes over, and there are as many such types as there are
-        // editors a host might wire. Matching the name rather than a class keeps
-        // this from depending on the kit, which this package does not require.
+        // Matched by prefix, not class: there are as many rich-text types as
+        // editors a host might wire, and the kit is not a dependency here.
         if (str_contains($type->getBlockPrefix(), 'rich_text')) {
             return 'html';
         }

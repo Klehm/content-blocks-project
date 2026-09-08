@@ -7,29 +7,10 @@ namespace ContentBlocks\I18n\Field;
 use ContentBlocks\Block\CollectionItemIds;
 
 /**
- * The address of one translatable value inside a block's `data`.
+ * The address of one translatable value inside a block's `data`. A grammar,
+ * not a service: every method is pure and static.
  *
- * Two spellings, and the difference matters:
- *
- *  - a **pattern**, which is what the core's
- *    {@see \ContentBlocks\Translation\TranslatableFieldsInterface} reports —
- *    `title`, `items[].label`, `rows[].cells[].text`. It describes a *shape*:
- *    the `[]` says "a collection lives here" without saying which entry.
- *  - a **path**, which is what a stored translation is keyed by —
- *    `title`, `items[9f2c1a].label`. Every `[]` has been filled in with the
- *    entry's `_id`.
- *
- * Keying translations by `_id` rather than by position is the whole reason
- * `_id` exists (see {@see CollectionItemIds}): an editor who reorders, deletes
- * or duplicates a card must not find the German title of card 1 attached to
- * card 3. Positions move; ids do not.
- *
- * An entry that carries no `_id` is **skipped**, not guessed at. That happens
- * for content written before the ids shipped; `content-blocks:backfill-collection-ids`
- * is the fix, and skipping means such an entry shows up as "not translatable
- * yet" rather than silently binding a translation to a position.
- *
- * All methods are pure and static — this is a grammar, not a service.
+ * @see docs/internals/i18n.md#paths-and-patterns
  */
 final class FieldPath
 {
@@ -41,14 +22,9 @@ final class FieldPath
 
     /**
      * Every concrete path this pattern reaches in $data, in document order.
+     * Driven by the data, so fields that do not exist yield nothing.
      *
-     * The expansion is driven by the *data*, so a collection with three entries
-     * yields three paths and an empty one yields none — which is exactly what a
-     * progress count wants: fields that do not exist are not untranslated work.
-     *
-     * A pattern segment whose key is absent from $data yields nothing. That is
-     * deliberate: a block whose stored payload predates a field simply has no
-     * value to translate there yet.
+     * @see docs/internals/i18n.md#paths-and-patterns
      *
      * @param array<string, mixed> $data
      *
@@ -69,10 +45,8 @@ final class FieldPath
     }
 
     /**
-     * Value at $path, or null when any step of the walk is missing.
-     *
-     * Null is also a legitimate stored value, so callers that must tell
-     * "absent" from "null" use {@see self::has()} instead.
+     * Value at $path, or null when a step is missing. Null is also a legitimate
+     * value, so telling absent from null needs {@see self::has()}.
      *
      * @param array<string, mixed> $data
      */
@@ -110,9 +84,8 @@ final class FieldPath
     }
 
     /**
-     * Whether $path resolves to a key that exists — including one holding null
-     * or `''`. An empty string is a translation ("this heading is blank in
-     * German"), so merging keys on truthiness would lose deliberate blanks.
+     * Whether the key exists, including one holding null or `''` — merging on
+     * truthiness would lose a deliberate blank.
      *
      * @param array<string, mixed> $data
      */
@@ -150,13 +123,10 @@ final class FieldPath
     }
 
     /**
-     * $data with $value written at $path.
+     * **Only writes into structure that already exists**, so a stale
+     * translation cannot resurrect a dropped field or invent a card.
      *
-     * **Only writes into structure that already exists.** A missing key, or a
-     * collection with no entry of that id, leaves $data untouched. The
-     * alternative — creating the missing branch — would let a stale translation
-     * resurrect a field the source has since dropped, or invent a card that no
-     * longer exists.
+     * @see docs/internals/i18n.md#paths-and-patterns
      *
      * @param array<string, mixed> $data
      *
@@ -176,11 +146,8 @@ final class FieldPath
     }
 
     /**
-     * The pattern a concrete path belongs to: `items[9f2c].label` → `items[].label`.
-     *
-     * This is how a stored translation is checked against the allow-list —
-     * the tags say which *shapes* may be translated, the stored key names an
-     * instance of one.
+     * `items[9f2c].label` to `items[].label` — how a stored translation is
+     * checked against the allow-list, which names shapes rather than instances.
      */
     public static function patternOf(string $path): string
     {
@@ -206,13 +173,8 @@ final class FieldPath
     }
 
     /**
-     * 1-based position of the innermost collection entry $path points into, or
-     * null when the path touches no collection.
-     *
-     * Purely for labelling: "Card 2 · Title" reads better in a translation list
-     * than `items[9f2c1a].title`. It is derived at display time rather than
-     * stored, precisely because it is the thing that moves when an editor
-     * reorders — the stored key stays the id.
+     * 1-based position of the innermost entry, purely for labelling. Derived at
+     * display time because it is the thing reordering moves.
      *
      * @param array<string, mixed> $data
      */
@@ -265,11 +227,8 @@ final class FieldPath
     }
 
     /**
-     * Splits a pattern or a path into segments.
-     *
-     * Returns `[]` for anything that is not wholly consumed by the grammar,
-     * which makes a malformed key from an untrusted payload a no-op everywhere
-     * rather than a partial match somewhere.
+     * `[]` for anything the grammar does not wholly consume, so a malformed key
+     * is a no-op everywhere rather than a partial match somewhere.
      *
      * @return list<array{name: string, id: string|null}>
      */
@@ -279,9 +238,8 @@ final class FieldPath
             return [];
         }
 
-        // The `(?=.)` after the separator is what rejects a trailing dot:
-        // without it `title.` would parse as `title`, quietly aliasing two
-        // spellings of the same key.
+        // `(?=.)` rejects a trailing dot: without it `title.` would parse as
+        // `title`, aliasing two spellings of one key.
         $matched = preg_match_all(
             '/' . self::SEGMENT . '(?:\.(?=.)|$)/A',
             $path,
@@ -351,9 +309,8 @@ final class FieldPath
             return;
         }
 
-        // A collection segment. `[]` in a pattern fans out over the entries;
-        // a pattern never ends on one (the tag is on a field *inside* the
-        // entry), so an id-bearing last segment is malformed and yields nothing.
+        // A pattern never ends on a collection — the tag sits on a field
+        // inside the entry — so an id-bearing last segment is malformed.
         if (!\is_array($value) || $isLast) {
             return;
         }

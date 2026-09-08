@@ -11,34 +11,10 @@ use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\Translation\TranslatableFieldsInterface;
 
 /**
- * The only way a translation value gets written.
+ * The only way a translation value gets written, and therefore the allow-list.
+ * Three gates: configured locale, tagged pattern, path exists in the source.
  *
- * Every input here is untrusted — an HTTP payload from the workbench, or text a
- * remote machine-translation service produced — so this class is the allow-list,
- * on the same principle that makes a block's own form the whitelist for
- * `Block.data`. Three gates, in order:
- *
- *  1. **the locale must be a configured target.** Not a target, not writable —
- *     that keeps rows from accumulating for locales nobody renders, and stops a
- *     forged payload from seeding one.
- *  2. **the path must address a tagged field**, checked as a *pattern* so
- *     `items[9f2c1a].label` is validated against `items[].label`. An untagged
- *     field is refused at write, not merely ignored at render, so the refusal
- *     reaches the editor instead of quietly doing nothing.
- *  3. **the path must exist in the source data.** A translation for a card that
- *     was deleted, or a field the block type dropped, has nothing to attach to.
- *
- * ---- Empty string vs null ----
- *
- * They mean different things and both are needed:
- *
- *  - `null` **clears** the translation — the field falls back to the source.
- *  - `''` **stores a blank** — the field renders empty in this locale.
- *
- * The difference is not pedantry. A card carrying an optional subtitle in
- * English and none in German needs the blank: clearing would fall back and print
- * the English subtitle on the German page, which is the exact failure a
- * translation feature exists to prevent.
+ * @see docs/internals/i18n.md#null-clears-empty-string-stores
  */
 final class TranslationWriter
 {
@@ -50,13 +26,10 @@ final class TranslationWriter
     }
 
     /**
-     * Writes a batch of values for one block in one locale, into the draft.
+     * Into the draft, always — translations ride the area's own Publish and
+     * Discard.
      *
-     * Draft, always — never straight to published. Translations ride the area's
-     * existing Publish/Discard buttons, so an editor reviews a translated page
-     * the same way they review any other change, and Discard reverts it.
-     *
-     * @param array<string, string|null> $values path => text, or null to clear
+     * @param array<string, string|null> $values path => text, null to clear
      */
     public function write(Block $block, string $locale, array $values): TranslationWriteResult
     {
@@ -106,13 +79,8 @@ final class TranslationWriter
     }
 
     /**
-     * Re-stamps the source digest of fields whose translation the editor judges
-     * still correct — the "the English changed but the German still says the
-     * right thing" action.
-     *
-     * Without it, staleness would be a flag an editor can only clear by
-     * retyping a translation that was already fine, and a signal that costs
-     * busywork to dismiss is a signal people learn to ignore.
+     * Re-stamps the digest where the translation is still right. Without it,
+     * a signal that costs busywork to dismiss is one people learn to ignore.
      *
      * @param list<string> $paths
      */
@@ -145,9 +113,8 @@ final class TranslationWriter
     }
 
     /**
-     * Drops every translation of this block in this locale, by emptying the
-     * draft payload rather than deleting the row — so Discard can still bring
-     * it back, exactly like any other unpublished change.
+     * Empties the draft payload rather than deleting the row, so Discard can
+     * still bring it back like any other unpublished change.
      */
     public function clear(Block $block, string $locale): void
     {

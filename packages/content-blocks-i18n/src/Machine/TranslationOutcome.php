@@ -5,14 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Machine;
 
 /**
- * What a provider produced for one request.
+ * What a provider produced for one request. **Failure is a value**, so one
+ * refused string does not discard the fifty that succeeded.
  *
- * Failure is a value, not an exception. Translating a page is a batch of
- * dozens of independent strings, and one that trips a rate limit or a content
- * filter must not discard the fifty that succeeded — the editor would have no
- * way to tell which half to redo. A provider that fails *entirely* (bad
- * credentials, unreachable host) is free to throw; per-item trouble belongs
- * here.
+ * @see docs/internals/i18n.md#machine-translation-is-a-seam
  */
 final class TranslationOutcome
 {

@@ -15,16 +15,10 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Answers "where does this content stand, per locale" — the read model behind
- * the progress bars, the workbench rows, and the bulk translator's work list.
+ * The read model behind progress bars, workbench rows and the bulk work list —
+ * one service so they cannot disagree. Always the **draft** view.
  *
- * One service for all three so they cannot disagree. A progress bar computed by
- * different code from the list it summarizes is a bug generator: the bar says
- * 100%, the list still shows four empty rows, and neither is obviously wrong.
- *
- * Everything reported here is the **draft** view — draft-or-published source,
- * draft-or-published translations. That is what an editor is working on; a
- * published-state report would tell them their unsaved page is incomplete.
+ * @see docs/internals/i18n.md#one-walk-one-order
  */
 final class TranslationInspector
 {
@@ -38,11 +32,8 @@ final class TranslationInspector
     }
 
     /**
-     * Every block of the area that has something to translate, in reading order.
-     *
-     * Blocks with no translatable field are dropped rather than listed as
-     * complete: a divider does not belong in a translation list, and leaving it
-     * in would bury the rows that need work.
+     * Every block with something to translate, in reading order. Blocks with
+     * no translatable field are dropped, not listed as complete.
      *
      * @return list<BlockTranslationView>
      */
@@ -80,17 +71,15 @@ final class TranslationInspector
     }
 
     /**
-     * Progress for every configured target locale — the matrix a language
-     * switcher decorates itself with, so an editor sees "DE 40%" before
-     * choosing to open it.
+     * Progress for every target locale, so a switcher can show "DE 40%" before
+     * the editor opens it.
      *
      * @return array<string, TranslationProgress>
      */
     public function progressMatrix(ContentArea $area): array
     {
-        // One query for all locales, then the per-locale passes read from
-        // memory; the alternative is one query per locale on every page of an
-        // admin list.
+        // One query for all locales; the alternative is one per locale on
+        // every page of an admin list.
         $this->store->prefetchArea($area);
 
         $out = [];

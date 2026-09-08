@@ -7,19 +7,10 @@ namespace ContentBlocks\I18n\Field;
 use ContentBlocks\Translation\TranslatableFieldsInterface;
 
 /**
- * Turns "a block type, its source data, and what is stored for a locale" into
- * the flat list of translatable fields with their status.
+ * Joins the three inputs the design keeps separate — which fields, how they
+ * look, what is stored — into a flat list. Pure: no entity, no database.
  *
- * This is the join point of the three inputs the design keeps separate:
- *
- *  - **which** fields may be translated — the core's `cb_translatable` tags,
- *    read through {@see TranslatableFieldsInterface}, the frozen convention;
- *  - **how** they look — {@see FieldMetadataReader}, labels and widgets;
- *  - **what** is stored — the locale's value and digest maps.
- *
- * Pure: no entity, no database, no request. The store hands it maps and it hands
- * back value objects, which is what makes the status rules testable in isolation
- * — and they are the rules most likely to be argued about.
+ * @see docs/internals/i18n.md#three-states-not-two
  */
 final class TranslatableFieldCatalog
 {
@@ -30,9 +21,9 @@ final class TranslatableFieldCatalog
     }
 
     /**
-     * @param array<string, mixed>  $sourceData the block's own data — the source locale
-     * @param array<string, mixed>  $values     stored translations, path => value
-     * @param array<string, string> $digests    source fingerprints, path => digest
+     * @param array<string, mixed>  $sourceData the block's own, source locale
+     * @param array<string, mixed>  $values     stored, path => value
+     * @param array<string, string> $digests    fingerprints, path => digest
      *
      * @return list<TranslatableField>
      */
@@ -53,12 +44,8 @@ final class TranslatableFieldCatalog
             foreach (FieldPath::expand($pattern, $sourceData) as $path) {
                 $source = FieldPath::read($sourceData, $path);
 
-                // Only text is offered for translation, and only text that
-                // exists. A blank optional caption is not untranslated work, and
-                // counting it as such would park every page short of 100% for
-                // reasons no editor can act on. A non-string value under a
-                // translatable tag is a host mis-tagging something structural;
-                // skipping is the conservative reading.
+                // A blank optional caption is not untranslated work, and
+                // counting it would park every page short of 100%.
                 if (!\is_string($source) || trim($source) === '') {
                     continue;
                 }
@@ -96,9 +83,8 @@ final class TranslatableFieldCatalog
      */
     private function statusAt(array $values, array $digests, string $path, string $source): FieldStatus
     {
-        // array_key_exists, not isset, and not a truthiness check: `''` is a
-        // deliberate translation ("this label is empty in German") and must not
-        // read as missing, which would make the render fall back to the English.
+        // array_key_exists, not isset: `''` is a deliberate translation and
+        // must not read as missing, which would fall back to the source.
         if (!\array_key_exists($path, $values) || !\is_string($values[$path])) {
             return FieldStatus::MISSING;
         }

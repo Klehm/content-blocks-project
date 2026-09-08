@@ -5,13 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Machine;
 
 /**
- * The registered {@see TranslationProviderInterface} services, keyed by name.
- *
- * Same shape as the core's block-type and palette registries: an autoconfigured
- * tagged collection, indexed lazily. A host can therefore wire two engines side
- * by side and let the editor pick — which is the realistic setup, since they
- * are good at different things (a glossary-bound translation engine for product
- * copy, a model for marketing prose).
+ * The registered providers, keyed by name, so a host can wire two engines side
+ * by side and let the editor pick.
  */
 final class TranslationProviderRegistry
 {
@@ -44,18 +39,10 @@ final class TranslationProviderRegistry
     }
 
     /**
-     * The provider to use when the caller named none: the configured default,
-     * else the only registered one, else {@see NullTranslationProvider}.
+     * The configured default, else the only one, else the null provider — so
+     * the API and CLI state a reason rather than 500.
      *
-     * Falling through to the null provider rather than throwing is what keeps
-     * the *API and the CLI* answering with a stated reason instead of a 500 on
-     * an installation with nothing wired — `content-blocks:i18n:translate` says
-     * it has no engine rather than crashing.
-     *
-     * The workbench does not rely on it: it filters the null provider out and
-     * renders no machine-translation affordance at all when nothing usable is
-     * registered. An unconfigured feature is better absent than present and
-     * failing.
+     * @see docs/internals/i18n.md#machine-translation-is-a-seam
      */
     public function getDefault(): TranslationProviderInterface
     {

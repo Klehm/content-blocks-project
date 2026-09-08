@@ -5,29 +5,22 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Field;
 
 /**
- * One translatable value of one block, in one target locale — the unit the
- * workbench renders as a row, the progress calculator counts, and the machine
- * translator sends off.
- *
- * Everything downstream works on these rather than on raw block data, so the
- * shape of `Block.data` stops mattering past this point.
+ * One translatable value of one block in one locale. Everything downstream
+ * works on these, so the shape of `Block.data` stops mattering here.
  */
 final class TranslatableField
 {
     /**
-     * @param string      $path        concrete address, ids filled in: `items[9f2c1a].label`
+     * @param string      $path        ids filled in: `items[9f2c1a].label`
      * @param string      $pattern     the shape it came from: `items[].label`
-     * @param string      $label       the field's form label — a translation key for kit blocks,
-     *                                 hence $labelDomain; may be a humanized fallback
-     * @param string|null $labelDomain translation domain the label belongs to
-     * @param string      $widget      `text` | `textarea` | `html` | `url` | `email` — what the
-     *                                 workbench should render, and the hint a machine translator
-     *                                 needs to know whether it is handling markup
-     * @param string      $source      the source-locale text (never blank — blank fields are not
-     *                                 collected, there is nothing to translate)
-     * @param string|null $value       the stored translation, or null when missing
-     * @param int|null    $entryIndex  1-based position of the collection entry this field belongs
-     *                                 to, for labelling ("Card 2"); null outside collections
+     * @param string      $label       form label, possibly a humanized fallback
+     * @param string|null $labelDomain domain the label belongs to
+     * @param string      $widget      text|textarea|html|url|email — also tells
+     *                                 a translator whether this is markup
+     * @param string      $source      never blank; blank fields are not
+     *                                 collected
+     * @param string|null $value       stored translation, null when missing
+     * @param int|null    $entryIndex  1-based, for labelling ("Card 2")
      */
     public function __construct(
         public readonly string $path,

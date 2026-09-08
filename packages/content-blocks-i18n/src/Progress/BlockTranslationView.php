@@ -7,13 +7,8 @@ namespace ContentBlocks\I18n\Progress;
 use ContentBlocks\I18n\Field\TranslatableField;
 
 /**
- * One block's translatable fields in one locale, with the labels a list needs
- * to place them — the row group the workbench renders, and the unit the bulk
- * translator batches.
- *
- * Deliberately flat and serializable: the whole point of the catalog layer is
- * that nothing past it has to know the shape of `Block.data`, so this carries
- * strings and value objects rather than entities.
+ * One block's translatable fields in one locale. Flat and serializable, so
+ * nothing past the catalog layer knows the shape of `Block.data`.
  */
 final class BlockTranslationView
 {

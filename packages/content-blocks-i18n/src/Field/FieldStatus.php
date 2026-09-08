@@ -5,26 +5,22 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Field;
 
 /**
- * Where one translatable field stands in one locale.
+ * Where one translatable field stands in one locale. Three states, because two
+ * would hide the expensive one.
  *
- * Three states, because two would hide the expensive one. "Translated vs not"
- * is easy to compute and useless to an editorial team: the field that costs
- * money is the one that *was* translated and whose source has since been
- * rewritten, because nothing about the page looks wrong — the German is there,
- * it is simply describing last month's offer.
+ * @see docs/internals/i18n.md#three-states-not-two
  */
 enum FieldStatus: string
 {
     /** No value stored for this locale; the render falls back to the source. */
     case MISSING = 'missing';
 
-    /** Stored, and the source still hashes to what it did when it was written. */
+    /** Stored, and the source still hashes to what it did. */
     case TRANSLATED = 'translated';
 
     /**
-     * Stored, but the source text changed afterwards. Still rendered — a stale
-     * translation beats an English paragraph on a German page — and flagged so
-     * an editor can decide.
+     * Stored, but the source changed afterwards. Still rendered — a stale
+     * translation beats an English paragraph on a German page.
      */
     case OUTDATED = 'outdated';
 

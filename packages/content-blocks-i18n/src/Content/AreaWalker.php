@@ -10,22 +10,10 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 
 /**
- * Walks an area's live blocks in the order an editor reads them.
+ * Walks an area's live blocks in the order an editor reads them — the one walk
+ * every consumer in this package shares.
  *
- * Every consumer in this package — progress, the workbench, the bulk
- * translator — needs the same walk, and two of them producing different orders
- * would be visible as a workbench whose rows do not line up with its own
- * progress bar. So the walk lives once, here.
- *
- * Two rules it encodes:
- *
- *  - **soft-deleted entities are skipped.** A block in the trash is not
- *    untranslated work; counting it would make a page that reads as complete
- *    report 94%.
- *  - **ordering is by `previewPosition`, not by the collections' own
- *    `OrderBy(position)`.** `position` is the *published* order; the builder,
- *    and therefore anyone translating, sees the draft order. Sorting has to be
- *    explicit because the Doctrine mapping cannot do it.
+ * @see docs/internals/i18n.md#one-walk-one-order
  */
 final class AreaWalker
 {

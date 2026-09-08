@@ -13,28 +13,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
- * Read side of the translation rows, plus the prefetch that keeps a translated
- * page from turning into an N+1.
+ * Read side of the translation rows, plus the prefetch that keeps a page from
+ * becoming an N+1. The cold path still works; the cache is per-request.
  *
- * ---- The prefetch ----
- *
- * A side table buys queryability at the cost of a join per block. Rendering a
- * 40-block page in French would issue 40 SELECTs if each
- * {@see \ContentBlocks\I18n\Rendering\TranslationBlockDataResolver} call went to
- * the database on its own. So the renderer decorator warms this store with one
- * query for the whole area before the pipeline runs
- * (see {@see \ContentBlocks\I18n\Rendering\PrefetchingBlockRenderer}), and the
- * resolver reads from memory.
- *
- * The cold path still works — a block rendered outside a warmed area falls back
- * to a single lookup — because a seam that only works when someone remembered to
- * warm it is a seam that breaks in the one flow nobody tested.
- *
- * ---- Lifetime ----
- *
- * The cache is per-request: {@see ResetInterface} clears it between requests of
- * a long-running worker, where a stale entry would otherwise serve one page's
- * translations to the next.
+ * @see docs/internals/i18n.md#why-a-side-table-not-an-envelope-in-blockdata
  */
 final class TranslationStore implements ResetInterface
 {
@@ -51,10 +33,8 @@ final class TranslationStore implements ResetInterface
     }
 
     /**
-     * Loads every translation row of an area in one query.
-     *
-     * Passing null for $locale warms all locales at once — what the workbench
-     * and the progress view want, since both report on the whole matrix.
+     * Every row of an area in one query. Null warms all locales at once, which
+     * is what the workbench and the progress matrix want.
      */
     public function prefetchArea(ContentArea $area, ?string $locale = null): void
     {
@@ -80,9 +60,8 @@ final class TranslationStore implements ResetInterface
 
         $this->warmed[$key] = true;
 
-        // Blocks with no row must be remembered as *known absent*, otherwise
-        // every untranslated block on the page — the common case early in a
-        // translation project — still costs a query.
+        // Blocks with no row are remembered as *known absent*, or every
+        // untranslated block still costs a query.
         if ($locale === null) {
             return;
         }
@@ -142,16 +121,15 @@ final class TranslationStore implements ResetInterface
     }
 
     /**
-     * The values/digests a given render mode should see.
+     * PREVIEW takes draft-or-published, PUBLIC published-only — the same rule
+     * the core applies to the block's own data. Any other pairing is a bug.
      *
-     * PREVIEW takes draft-or-published and PUBLIC takes published-only —
-     * deliberately the same rule {@see \ContentBlocks\Rendering\CoreBlockDataResolver}
-     * applies to the block's own data. Any other pairing produces the two bugs
-     * this design exists to avoid: a French heading going public against an
-     * English source that is still an unpublished draft, or the builder preview
-     * showing a translation the editor cannot see themselves editing.
+     * @see docs/internals/i18n.md#draft-and-published-mirror-block-exactly
      *
-     * @return array{values: array<string, mixed>, digests: array<string, string>}
+     * @return array{
+     *     values: array<string, mixed>,
+     *     digests: array<string, string>,
+     * }
      */
     public function payloadFor(Block $block, string $locale, RenderMode $mode): array
     {
@@ -172,12 +150,8 @@ final class TranslationStore implements ResetInterface
     }
 
     /**
-     * What the editor is translating *from*: the in-flight edit if there is one.
-     *
-     * Same draft-wins rule {@see \ContentBlocks\Section\SectionCloner} uses, and
-     * for the same reason — an editor's unsaved intent is more representative
-     * than the last published value. It also keeps the digest honest: the
-     * staleness flag is measured against the text the translator was shown.
+     * What the editor translates *from* — draft-wins, which also keeps the
+     * digest measured against the text the translator was actually shown.
      *
      * @return array<string, mixed>
      */

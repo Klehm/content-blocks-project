@@ -5,18 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Locale;
 
 /**
- * The set of locales this installation translates into, and which one the
- * blocks' own `data` is written in.
+ * The locales this installation translates into, and the one `data` is written
+ * in. **The source locale is not a target** — that asymmetry lives here only.
  *
- * The **source locale is not a target**. A block's `data` *is* the source text —
- * there is no translation row for it, nothing to fall back to, and asking for a
- * progress percentage on it is meaningless. Keeping that asymmetry in one object
- * stops it from being re-derived (differently) in the resolver, the progress
- * calculator and the workbench.
- *
- * Built from `content_blocks_i18n.source_locale` / `.locales`; injected as a
- * value object rather than read from parameters at each call site so tests can
- * hand over a set without a container.
+ * @see docs/internals/i18n.md#config-and-mounting
  */
 final class TranslationLocales
 {
@@ -77,10 +69,8 @@ final class TranslationLocales
     }
 
     /**
-     * Display name: the host's configured label, else whatever ext-intl knows,
-     * else the raw tag. The last fallback matters — the extension is optional in
-     * this package's `require`, and a locale picker that renders `de` is worse
-     * than one that renders "Deutsch" but far better than a fatal error.
+     * Configured label, else ext-intl, else the raw tag — the extension is
+     * optional here, and `de` beats a fatal error.
      */
     public function getLabel(string $locale): string
     {

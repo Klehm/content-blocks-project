@@ -12,40 +12,10 @@ use ContentBlocks\Publishing\PublishContext;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Makes Publish and Discard cover translations too.
+ * Makes Publish and Discard cover translations too, as a decorator so it
+ * composes with a host's own rather than competing with it.
  *
- * ---- Why translations must not have their own buttons ----
- *
- * A translation is written against a specific source text. Publishing the two
- * independently allows the failure this feature exists to prevent: a French
- * heading live on the public site describing an English heading that is still
- * an unpublished draft. Riding the area's existing Publish means the source and
- * its translations always go live together, and Discard reverts both.
- *
- * ---- Per-locale scoping ----
- *
- * That default is what a bare `publish($area)` still does. A caller that passes
- * a {@see PublishContext} narrows which locales ride along: `withLocales('fr')`
- * takes French live and leaves German on its published values, `sourceOnly()`
- * publishes the source and holds every translation back.
- *
- * The dangerous direction stays inexpressible by construction — the context
- * scopes translations, never the area's own draft, so a locale can be held back
- * but never pushed ahead of the source text it was written against. No UI
- * exposes this yet; it is API surface, frozen with 1.0 because the alternative
- * was widening a published signature afterwards.
- *
- * ---- Ordering ----
- *
- * Translations are promoted **before** delegating, because the inner publisher
- * both mutates and flushes. Rows belonging to soft-deleted blocks are removed
- * in the same pass: the database's `ON DELETE CASCADE` would clear them anyway,
- * but only after Doctrine had already tried to UPDATE rows it still believed
- * were live.
- *
- * A decorator rather than a fork of the publisher: the core aliases
- * {@see ContentAreaPublisherInterface}, so this composes with a host's own
- * decorator (audit trail, cache invalidation) instead of competing with it.
+ * @see docs/internals/publishing.md#the-invariant-the-shape-enforces
  */
 final class TranslationPublisher implements ContentAreaPublisherInterface
 {
@@ -68,19 +38,16 @@ final class TranslationPublisher implements ContentAreaPublisherInterface
                 continue;
             }
 
-            // Out of scope: this locale keeps whatever it has published, and
-            // its draft survives for a later publish. Removing an orphaned row
-            // above is unconditional either way — the block is gone, so there
-            // is no locale left to hold back.
+            // Out of scope: this locale keeps what it has published and its
+            // draft survives. Orphan removal above is unconditional.
             if ($context !== null && !$context->coversLocale($row->getLocale())) {
                 continue;
             }
 
             $row->publish();
 
-            // A row emptied by the editor ("this block has no German") has
-            // served its purpose once published; keeping it would leave the
-            // table growing with rows that mean nothing.
+            // An emptied row has served its purpose once published; keeping
+            // it would grow the table with rows that mean nothing.
             if ($row->isEmpty()) {
                 $this->em->remove($row);
             }
@@ -95,9 +62,8 @@ final class TranslationPublisher implements ContentAreaPublisherInterface
         foreach ($this->repository->findForArea($area) as $row) {
             $block = $row->getBlock();
 
-            // A block that was never published is a brand-new addition the
-            // inner publisher is about to remove — same rule it applies to
-            // blocks, applied to their translations.
+            // A never-published block is about to be removed by the inner
+            // publisher; same rule, applied to its translations.
             if ($block === null || $block->getPublishedData() === null) {
                 $this->em->remove($row);
 

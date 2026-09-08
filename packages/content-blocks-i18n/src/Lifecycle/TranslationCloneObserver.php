@@ -11,33 +11,10 @@ use ContentBlocks\Section\BlockCloneObserverInterface;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Carries a block's translations onto its copies.
+ * Carries a block's translations onto its copies — the cost the side-table
+ * schema pays for its queryability. Everything lands in the copy's draft.
  *
- * This is the cost the side-table schema pays for its queryability: values that
- * lived inside `Block.data` would ride along with every duplicate for free.
- * Here every duplication flow — section duplicate, paste, replace-content,
- * "save as model" — has to be taught, which is exactly what the core's
- * {@see BlockCloneObserverInterface} seam makes possible without any of those
- * flows knowing this package exists.
- *
- * ---- Everything is copied into the draft ----
- *
- * A cloned section is born as an unpublished change, and its translations must
- * match: the copy's draft holds what the source showed the editor (draft-or-
- * published, the cloner's own rule), and nothing lands in the copy's published
- * slot. Publish then commits section and translations together; Discard drops
- * both.
- *
- * ---- Ids ----
- *
- * `$copy` has no id yet — it is persisted by the caller after the walk. So the
- * new rows are persisted here against the *object*, and Doctrine resolves the
- * foreign key when the caller flushes. Rows are never flushed here, matching
- * the cloner's contract that building and committing are separate.
- *
- * Collection entry `_id`s are copied verbatim by the cloner, which is what
- * makes the value keys valid against the copy: `items[9f2c1a].label` addresses
- * the same card in both.
+ * @see docs/internals/i18n.md#why-a-side-table-not-an-envelope-in-blockdata
  */
 final class TranslationCloneObserver implements BlockCloneObserverInterface
 {

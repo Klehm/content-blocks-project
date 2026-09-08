@@ -8,18 +8,10 @@ use ContentBlocks\Rendering\RenderContext;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Default {@see RenderLocaleResolverInterface}: an explicit context locale wins,
- * otherwise the current request's.
+ * Default resolver: an explicit context locale wins, else the request's. An
+ * unknown locale resolves to null, so a typo renders the source text.
  *
- * The precedence is the important part. A language switcher, a sitemap job and a
- * transactional email all pass a locale explicitly and must get it regardless of
- * what the ambient request says; everything else — an ordinary page render —
- * should simply follow `_locale`, which is what Symfony's locale listener has
- * already negotiated by the time a template renders a content area.
- *
- * An unknown locale (not in `content_blocks_i18n.locales`) resolves to null
- * rather than to itself: a typo'd `_locale` then renders the source text instead
- * of hunting for translation rows that cannot exist.
+ * @see docs/internals/i18n.md#config-and-mounting
  */
 final class RequestRenderLocaleResolver implements RenderLocaleResolverInterface
 {

@@ -22,16 +22,10 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Machine translation, at both scopes the editor asks for: one field (or a few)
- * and the whole page.
+ * Machine translation at both scopes the editor asks for, batched into one
+ * provider call each and written to the draft.
  *
- * Both land on {@see MachineTranslator}, which batches either into a single
- * provider call — so "translate the page" is one API round trip, not one per
- * string, and the two buttons cannot drift apart in behaviour.
- *
- * Results are written to the **draft**, through the same writer the manual
- * editor uses. Nothing a provider returns bypasses the translatable-field
- * allow-list, and nothing goes public without a Publish.
+ * @see docs/internals/i18n.md#machine-translation-is-a-seam
  */
 final class MachineTranslationController
 {
@@ -69,12 +63,10 @@ final class MachineTranslationController
     }
 
     /**
-     * Translate one block. Body (all optional):
-     * `{"paths": [...], "overwrite": false, "provider": "my_engine"}`.
+     * Body, all optional: `{"paths", "overwrite", "provider"}`. Omitting
+     * `paths` translates every missing or outdated field of the block.
      *
-     * Omitting `paths` translates every field of the block that is missing or
-     * outdated — which is what the per-block button does. Passing a single path
-     * is the per-field button; same endpoint, same code path.
+     * @see docs/internals/i18n.md#machine-translation-is-a-seam
      */
     #[Route('/block/{id}/{locale}/translate', name: 'content_blocks_i18n_block_translate', methods: ['POST'], requirements: ['id' => '\d+', 'locale' => '[A-Za-z0-9_-]+'])]
     public function translateBlock(int $id, string $locale, Request $request): JsonResponse
@@ -120,13 +112,10 @@ final class MachineTranslationController
     }
 
     /**
-     * Translate the whole page. Body: `{"overwrite": false, "provider": "my_engine"}`.
+     * Translate the whole page, synchronously: one batched call is seconds,
+     * and the editor wants the result rather than a job id.
      *
-     * Synchronous on purpose: one batched provider call for a page is seconds,
-     * not minutes, and an editor who pressed the button wants to see the result
-     * rather than a job id. A host translating hundreds of pages at once should
-     * drive {@see MachineTranslator} from a worker instead — the console command
-     * does exactly that.
+     * @see docs/internals/i18n.md#machine-translation-is-a-seam
      */
     #[Route('/area/{id}/{locale}/translate', name: 'content_blocks_i18n_area_translate', methods: ['POST'], requirements: ['id' => '\d+', 'locale' => '[A-Za-z0-9_-]+'])]
     public function translateArea(int $id, string $locale, Request $request): JsonResponse

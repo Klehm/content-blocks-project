@@ -17,16 +17,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Machine-translate one area, or every area, into one or more locales.
+ * Machine-translate one area, or every area. Bulk counterpart of the workbench
+ * button, on the same translator and the same draft-only writes.
  *
- * The bulk counterpart of the workbench button: same {@see MachineTranslator},
- * so the same allow-list, the same digests, the same draft-only writes. It
- * exists because the realistic way to start a translation project is not
- * clicking through 200 pages — it is one command, then editors reviewing what
- * came back.
- *
- * Writes to the **draft**, so nothing goes live until each area is published.
- * That is deliberate: a bulk machine pass is a first draft, not a release.
+ * @see docs/internals/i18n.md#machine-translation-is-a-seam
  */
 #[AsCommand(
     name: 'content-blocks:i18n:translate',
@@ -105,11 +99,8 @@ final class TranslateAreaCommand extends Command
         $translated = 0;
         $failed = 0;
 
-        // Ids rather than entities, re-fetched after every clear. A bulk run
-        // over a large site must not hold one enormous unit of work, but
-        // clearing detaches the blocks — and a translation row created against
-        // a detached block is a "new entity found through the relationship"
-        // error at the next flush.
+        // Ids, re-fetched after every clear: a row created against a detached
+        // block is a "new entity found through the relationship" at flush.
         foreach ($areaIds as $areaId) {
             foreach ($targets as $locale) {
                 $area = $this->em->find(ContentArea::class, $areaId);

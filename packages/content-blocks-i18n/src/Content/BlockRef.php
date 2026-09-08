@@ -9,13 +9,10 @@ use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
 
 /**
- * A block together with where it sits in the area.
+ * A block plus where it sits, so a translation list can name its rows. 1-based
+ * and computed at walk time, since reordering moves them.
  *
- * The position numbers exist for one reason: a translation list has to name its
- * rows, and "Section 2 · Column 1 · Block 3" is the only name available that
- * does not require understanding the block's contents. They are 1-based because
- * they are shown to humans, and they are computed at walk time rather than
- * stored, since they change whenever anything is reordered.
+ * @see docs/internals/i18n.md#one-walk-one-order
  */
 final class BlockRef
 {
