@@ -48,7 +48,7 @@ final class SectionTemplateInstantiatorTest extends TestCase
     {
         // The registry keys by the *static* getType(), so each fake type needs
         // its own class rather than a constructor-parameterized factory.
-        $text = new class extends AbstractBlockType {
+        $text = new class () extends AbstractBlockType {
             public static function getType(): string
             {
                 return 'text';
@@ -69,7 +69,7 @@ final class SectionTemplateInstantiatorTest extends TestCase
             }
         };
 
-        $title = new class extends AbstractBlockType {
+        $title = new class () extends AbstractBlockType {
             public static function getType(): string
             {
                 return 'title';
@@ -292,7 +292,7 @@ final class SectionTemplateInstantiatorTest extends TestCase
      */
     public function testHostExtensionFieldIsNotReportedAsAnUnknownField(): void
     {
-        $anchor = new class implements BlockFormExtensionInterface {
+        $anchor = new class () implements BlockFormExtensionInterface {
             public function buildForm(FormBuilderInterface $builder, array $data, string $blockType): void
             {
                 $builder->add('anchorId', TextType::class, [

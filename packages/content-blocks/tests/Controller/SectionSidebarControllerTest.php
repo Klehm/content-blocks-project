@@ -136,7 +136,7 @@ final class SectionSidebarControllerTest extends ControllerTestCase
     private function makeController(array $entities): SectionSidebarController
     {
         $styleRegistry = new SectionStyleRegistry([
-            new class implements SectionStyleProviderInterface {
+            new class () implements SectionStyleProviderInterface {
                 public function getStyles(): array
                 {
                     return [new SectionStyle('airy', 'Airy', '', [

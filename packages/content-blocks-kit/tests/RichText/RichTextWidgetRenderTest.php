@@ -15,8 +15,8 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\FormExtension;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Bridge\Twig\Form\TwigRendererEngine;
-use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
+use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\FormRenderer;
 use Symfony\Component\Form\Forms;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -157,7 +157,7 @@ final class RichTextWidgetRenderTest extends TestCase
 
     private function translator(): TranslatorInterface
     {
-        return new class implements TranslatorInterface {
+        return new class () implements TranslatorInterface {
             use TranslatorTrait;
         };
     }

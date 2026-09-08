@@ -19,7 +19,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Documents the kit's block library and its host-configurable surface, read
- * straight from each block's coded schema ({@see \ContentBlocks\Kit\Block\AbstractKitBlock::describe()}),
+ * straight from each block's coded schema ({@see AbstractKitBlock::describe()}),
  * so the output can never drift from what `buildForm()` actually offers.
  *
  * For every block it prints the three levers a host can set under
@@ -100,7 +100,7 @@ final class ListBlocksCommand extends Command
      * Consumed by the docs generator so the per-block reference pages never
      * drift from the code. Each entry carries the block's label, its
      * disabled-by-default flag, and the same `options` / `choices` / `defaults`
-     * surface {@see \ContentBlocks\Kit\Block\AbstractKitBlock::describe()} exposes —
+     * surface {@see AbstractKitBlock::describe()} exposes —
      * with each choice field flattened to its ordered value list plus the
      * default value (the `*` marker of the text output, made explicit).
      *
@@ -110,7 +110,7 @@ final class ListBlocksCommand extends Command
     {
         $out = [];
         foreach ($blocks as $type => $class) {
-            /** @var \ContentBlocks\Kit\Block\AbstractKitBlock $block */
+            /** @var AbstractKitBlock $block */
             $block = new $class();
             $desc = $block->describe();
             $label = $block::getLabel();
@@ -138,7 +138,7 @@ final class ListBlocksCommand extends Command
 
     private function renderBlock(SymfonyStyle $io, string $type, object $block, string $locale): void
     {
-        /** @var \ContentBlocks\Kit\Block\AbstractKitBlock $block */
+        /** @var AbstractKitBlock $block */
         $coded = $block->describe();
         $desc = $block->describeConfigured();
         $label = $block::getLabel();

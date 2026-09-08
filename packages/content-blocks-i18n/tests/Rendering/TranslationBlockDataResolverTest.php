@@ -39,7 +39,7 @@ final class TranslationBlockDataResolverTest extends TestCase
         $repository = $this->createMock(BlockTranslationRepository::class);
         $repository->method('findOneFor')->willReturn($row);
 
-        $localeResolver = new class($locale) implements RenderLocaleResolverInterface {
+        $localeResolver = new class ($locale) implements RenderLocaleResolverInterface {
             public function __construct(private readonly ?string $locale)
             {
             }

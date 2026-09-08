@@ -6,12 +6,12 @@ namespace ContentBlocks\I18n\Controller;
 
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\I18n\Locale\TranslationLocales;
+use ContentBlocks\I18n\Machine\NullTranslationProvider;
+use ContentBlocks\I18n\Machine\TranslationProviderRegistry;
 use ContentBlocks\I18n\Preview\PreviewLocaleListener;
 use ContentBlocks\I18n\Progress\BlockTranslationView;
 use ContentBlocks\I18n\Progress\TranslationInspector;
 use ContentBlocks\I18n\Progress\TranslationProgress;
-use ContentBlocks\I18n\Machine\NullTranslationProvider;
-use ContentBlocks\I18n\Machine\TranslationProviderRegistry;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Security\AccessCheckerInterface;

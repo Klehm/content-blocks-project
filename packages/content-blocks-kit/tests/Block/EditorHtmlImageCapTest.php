@@ -102,7 +102,7 @@ final class EditorHtmlImageCapTest extends TestCase
         // Kit views pass choice values through cb_kit_token() instead of
         // re-listing them inline; see ChoiceTokenExtension.
         $env->addExtension(new ChoiceTokenExtension());
-        $env->addExtension(new TranslationExtension(new class implements TranslatorInterface {
+        $env->addExtension(new TranslationExtension(new class () implements TranslatorInterface {
             use TranslatorTrait;
         }));
 

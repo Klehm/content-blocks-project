@@ -69,7 +69,7 @@ final class EnvelopeUpgradeIntegrationTest extends TestCase
 
     public function testTheImportFlowGoesThroughTheSameChain(): void
     {
-        $step = new class implements EnvelopeUpgraderInterface {
+        $step = new class () implements EnvelopeUpgraderInterface {
             public function upgradesFrom(): string
             {
                 return 'content-blocks/v0';

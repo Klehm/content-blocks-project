@@ -31,7 +31,7 @@ final class ImageUrlResolverTest extends TestCase
 
     public function testTwigFunctionForwardsTheDisplayBoxToTheResolver(): void
     {
-        $spy = new class implements ImageUrlResolverInterface {
+        $spy = new class () implements ImageUrlResolverInterface {
             /** @var list<array{string, int|null, int|null}> */
             public array $calls = [];
 
@@ -57,7 +57,7 @@ final class ImageUrlResolverTest extends TestCase
      */
     public function testEmptySourceShortCircuitsBeforeTheResolver(): void
     {
-        $exploding = new class implements ImageUrlResolverInterface {
+        $exploding = new class () implements ImageUrlResolverInterface {
             public function resolve(string $src, ?int $width = null, ?int $height = null): ResolvedImage
             {
                 throw new \LogicException('should not be called');
@@ -71,7 +71,7 @@ final class ImageUrlResolverTest extends TestCase
 
     public function testResolverCandidatesReachTheTemplate(): void
     {
-        $cdn = new class implements ImageUrlResolverInterface {
+        $cdn = new class () implements ImageUrlResolverInterface {
             public function resolve(string $src, ?int $width = null, ?int $height = null): ResolvedImage
             {
                 return new ResolvedImage(

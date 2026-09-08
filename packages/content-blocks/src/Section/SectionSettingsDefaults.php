@@ -44,6 +44,7 @@ final class SectionSettingsDefaults
 
     /**
      * @param array<string, mixed> $settings
+     *
      * @return array<string, mixed>
      */
     public function withoutDefaults(array $settings): array
@@ -58,6 +59,7 @@ final class SectionSettingsDefaults
      *
      * @param array<string, mixed> $settings
      * @param array<string, mixed> $defaults
+     *
      * @return array<string, mixed>
      */
     private function stripDefaults(array $settings, array $defaults): array

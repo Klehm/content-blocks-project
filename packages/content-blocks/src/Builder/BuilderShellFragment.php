@@ -36,10 +36,7 @@ final class BuilderShellFragment
         // Silently overwriting it at render would be worse than refusing it
         // here: the fragment author would see their own value ignored.
         if (\array_key_exists('area', $context)) {
-            throw new \InvalidArgumentException(sprintf(
-                'Builder shell fragment "%s" declares an "area" context variable; that name is reserved for the ContentArea being edited.',
-                $template,
-            ));
+            throw new \InvalidArgumentException(sprintf('Builder shell fragment "%s" declares an "area" context variable; that name is reserved for the ContentArea being edited.', $template, ));
         }
     }
 }

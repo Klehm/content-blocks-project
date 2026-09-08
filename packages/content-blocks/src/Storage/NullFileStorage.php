@@ -14,10 +14,7 @@ final class NullFileStorage implements FileStorageInterface
 {
     public function upload(UploadedFile $file, string $directory = ''): string
     {
-        throw new \LogicException(
-            'No FileStorageInterface configured. Set content_blocks.upload.directory or register an implementation '
-            . '(e.g. LocalFileStorage) in your services to enable file uploads.'
-        );
+        throw new \LogicException('No FileStorageInterface configured. Set content_blocks.upload.directory or register an implementation (e.g. LocalFileStorage) in your services to enable file uploads.');
     }
 
     public function remove(string $path): void
@@ -37,9 +34,6 @@ final class NullFileStorage implements FileStorageInterface
 
     public function uploadFromString(string $contents, string $extension, string $directory = ''): string
     {
-        throw new \LogicException(
-            'No FileStorageInterface configured. Set content_blocks.upload.directory or register an implementation '
-            . '(e.g. LocalFileStorage) in your services to enable file uploads.'
-        );
+        throw new \LogicException('No FileStorageInterface configured. Set content_blocks.upload.directory or register an implementation (e.g. LocalFileStorage) in your services to enable file uploads.');
     }
 }

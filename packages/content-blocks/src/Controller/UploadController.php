@@ -27,6 +27,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[Route('/_content-blocks')]
 final class UploadController
 {
+    use CsrfProtectedTrait;
     /**
      * @param list<string> $uploadAllowedMimeTypes
      */
@@ -44,8 +45,6 @@ final class UploadController
         ],
     ) {
     }
-
-    use CsrfProtectedTrait;
 
     private function getCsrfTokenManager(): CsrfTokenManagerInterface
     {

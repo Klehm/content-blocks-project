@@ -37,11 +37,7 @@ final class TranslationProviderRegistry
         $providers = $this->all();
 
         if (!isset($providers[$name])) {
-            throw new \InvalidArgumentException(sprintf(
-                'Unknown translation provider "%s". Registered: %s.',
-                $name,
-                $providers === [] ? '(none)' : implode(', ', array_keys($providers)),
-            ));
+            throw new \InvalidArgumentException(sprintf('Unknown translation provider "%s". Registered: %s.', $name, $providers === [] ? '(none)' : implode(', ', array_keys($providers)), ));
         }
 
         return $providers[$name];

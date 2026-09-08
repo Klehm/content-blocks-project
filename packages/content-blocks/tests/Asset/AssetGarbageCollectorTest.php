@@ -29,7 +29,7 @@ final class AssetGarbageCollectorTest extends TestCase
         $this->removed = [];
         $now = new \DateTimeImmutable();
 
-        return new class($files, $now, $this->removed, $failsOn) implements FileStorageInterface, AssetInventoryInterface {
+        return new class ($files, $now, $this->removed, $failsOn) implements FileStorageInterface, AssetInventoryInterface {
             /** @param array<string, int> $files */
             public function __construct(
                 private array $files,

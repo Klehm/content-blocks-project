@@ -25,7 +25,7 @@ final class IconRegistryTest extends TestCase
 {
     private function provider(array $icons): IconProviderInterface
     {
-        return new class($icons) implements IconProviderInterface {
+        return new class ($icons) implements IconProviderInterface {
             public function __construct(private readonly array $icons)
             {
             }

@@ -32,7 +32,7 @@ final class SectionPosterBuilderTest extends TestCase
 
     private function makeStyleRegistry(): SectionStyleRegistry
     {
-        return new SectionStyleRegistry([new class implements SectionStyleProviderInterface {
+        return new SectionStyleRegistry([new class () implements SectionStyleProviderInterface {
             public function getStyles(): array
             {
                 return [

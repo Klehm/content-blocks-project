@@ -35,12 +35,7 @@ final class RichTextEditorRegistry
         $editors = $this->all();
 
         if (!isset($editors[$name])) {
-            throw new \InvalidArgumentException(sprintf(
-                'Unknown rich-text editor "%s". Available: %s. Add one by registering a service implementing %s.',
-                $name,
-                $editors === [] ? '(none)' : implode(', ', array_keys($editors)),
-                RichTextEditorInterface::class,
-            ));
+            throw new \InvalidArgumentException(sprintf('Unknown rich-text editor "%s". Available: %s. Add one by registering a service implementing %s.', $name, $editors === [] ? '(none)' : implode(', ', array_keys($editors)), RichTextEditorInterface::class, ));
         }
 
         return $editors[$name];

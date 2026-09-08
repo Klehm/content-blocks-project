@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Controller\AreaController;
+use ContentBlocks\Publishing\ContentAreaPublisher;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
-use ContentBlocks\Publishing\ContentAreaPublisher;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 

@@ -16,7 +16,7 @@ final class BuilderActionCollectionTest extends TestCase
 {
     private function provider(BuilderAction ...$actions): BuilderActionProviderInterface
     {
-        return new class($actions) implements BuilderActionProviderInterface {
+        return new class ($actions) implements BuilderActionProviderInterface {
             /** @param list<BuilderAction> $actions */
             public function __construct(private readonly array $actions)
             {
@@ -95,7 +95,7 @@ final class BuilderActionCollectionTest extends TestCase
     public function testAProviderCanHideItselfForAGivenArea(): void
     {
         $collection = new BuilderActionCollection([
-            new class implements BuilderActionProviderInterface {
+            new class () implements BuilderActionProviderInterface {
                 public function getActions(ContentArea $area): iterable
                 {
                     return [];
@@ -112,7 +112,7 @@ final class BuilderActionCollectionTest extends TestCase
         // template, at the render boundary, the way block labels do.
         // Hand-rolled rather than a TranslatableMessage — this package depends
         // on translation-contracts, not on symfony/translation.
-        $label = new class implements TranslatableInterface {
+        $label = new class () implements TranslatableInterface {
             public function trans(TranslatorInterface $translator, ?string $locale = null): string
             {
                 return 'translated';

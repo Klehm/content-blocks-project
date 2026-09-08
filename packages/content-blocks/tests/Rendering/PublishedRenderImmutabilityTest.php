@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Rendering;
 
-use Doctrine\Common\Collections\ArrayCollection;
 use ContentBlocks\Block\BlockDataDefaults;
 use ContentBlocks\Block\BlockDecoratorCollection;
 use ContentBlocks\BlockType\AbstractBlockType;
@@ -28,6 +27,7 @@ use ContentBlocks\Section\SectionDecoratorCollection;
 use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AllowAllAccessChecker;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\RoutingExtension;
@@ -537,12 +537,26 @@ final class PublishedRenderImmutabilityTest extends TestCase
     private function registry(): BlockTypeRegistry
     {
         $registry = new BlockTypeRegistry();
-        $registry->register(new class extends AbstractBlockType {
-            public static function getType(): string { return 'text'; }
-            public static function getLabel(): string { return 'Text'; }
-            public function buildForm(FormBuilderInterface $builder, array $data): void {}
-            public function getDefaultData(): array { return ['title' => '']; }
-            public function getViewTemplate(): ?string { return '@TestRender/text_view.html.twig'; }
+        $registry->register(new class () extends AbstractBlockType {
+            public static function getType(): string
+            {
+                return 'text';
+            }
+            public static function getLabel(): string
+            {
+                return 'Text';
+            }
+            public function buildForm(FormBuilderInterface $builder, array $data): void
+            {
+            }
+            public function getDefaultData(): array
+            {
+                return ['title' => ''];
+            }
+            public function getViewTemplate(): ?string
+            {
+                return '@TestRender/text_view.html.twig';
+            }
         });
 
         return $registry;
@@ -550,18 +564,27 @@ final class PublishedRenderImmutabilityTest extends TestCase
 
     private function translator(): TranslatorInterface
     {
-        return new class implements TranslatorInterface {
+        return new class () implements TranslatorInterface {
             use TranslatorTrait;
         };
     }
 
     private function urlGenerator(): UrlGeneratorInterface
     {
-        return new class implements UrlGeneratorInterface {
+        return new class () implements UrlGeneratorInterface {
             private RequestContext $context;
-            public function __construct() { $this->context = new RequestContext(); }
-            public function setContext(RequestContext $context): void { $this->context = $context; }
-            public function getContext(): RequestContext { return $this->context; }
+            public function __construct()
+            {
+                $this->context = new RequestContext();
+            }
+            public function setContext(RequestContext $context): void
+            {
+                $this->context = $context;
+            }
+            public function getContext(): RequestContext
+            {
+                return $this->context;
+            }
             public function generate(string $name, array $parameters = [], int $referenceType = self::ABSOLUTE_PATH): string
             {
                 return '/_route/' . $name;

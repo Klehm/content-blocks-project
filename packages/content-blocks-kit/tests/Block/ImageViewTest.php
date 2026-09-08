@@ -95,7 +95,7 @@ final class ImageViewTest extends TestCase
      */
     public function testWiredResolverEmitsSrcsetAndReceivesTheDisplayBox(): void
     {
-        $resolver = new class implements ImageUrlResolverInterface {
+        $resolver = new class () implements ImageUrlResolverInterface {
             /** @var list<array{string, int|null, int|null}> */
             public array $calls = [];
 
@@ -130,7 +130,7 @@ final class ImageViewTest extends TestCase
     /** A resolver that does supply `sizes` is never second-guessed. */
     public function testResolverSizesWins(): void
     {
-        $resolver = new class implements ImageUrlResolverInterface {
+        $resolver = new class () implements ImageUrlResolverInterface {
             public function resolve(string $src, ?int $width = null, ?int $height = null): ResolvedImage
             {
                 return new ResolvedImage($src, $src . ' 800w', '50vw');
@@ -158,7 +158,7 @@ final class ImageViewTest extends TestCase
 
     private function srcsetOnlyResolver(): ImageUrlResolverInterface
     {
-        return new class implements ImageUrlResolverInterface {
+        return new class () implements ImageUrlResolverInterface {
             public function resolve(string $src, ?int $width = null, ?int $height = null): ResolvedImage
             {
                 return new ResolvedImage($src, $src . ' 800w');
@@ -191,7 +191,7 @@ final class ImageViewTest extends TestCase
 
     private function makeTranslator(): TranslatorInterface
     {
-        return new class implements TranslatorInterface {
+        return new class () implements TranslatorInterface {
             use TranslatorTrait;
         };
     }

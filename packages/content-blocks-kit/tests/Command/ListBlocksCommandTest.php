@@ -18,7 +18,7 @@ final class ListBlocksCommandTest extends TestCase
 {
     private function tester(): CommandTester
     {
-        $translator = new class implements TranslatorInterface {
+        $translator = new class () implements TranslatorInterface {
             public function trans(string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string
             {
                 return $id; // echo the message id — enough for output assertions
@@ -42,7 +42,7 @@ final class ListBlocksCommandTest extends TestCase
      */
     public function testConfiguredChoicesAreShownAndFlagged(): void
     {
-        $translator = new class implements TranslatorInterface {
+        $translator = new class () implements TranslatorInterface {
             use TranslatorTrait;
         };
         $registry = new BlockTypeRegistry();
@@ -67,7 +67,7 @@ final class ListBlocksCommandTest extends TestCase
      */
     public function testJsonIgnoresHostConfigAndReportsTheCodedSet(): void
     {
-        $translator = new class implements TranslatorInterface {
+        $translator = new class () implements TranslatorInterface {
             use TranslatorTrait;
         };
         $registry = new BlockTypeRegistry();

@@ -121,7 +121,7 @@ final class BuilderShellFragmentsTemplateTest extends TestCase
 
     private function makeTranslator(): TranslatorInterface
     {
-        return new class implements TranslatorInterface {
+        return new class () implements TranslatorInterface {
             use TranslatorTrait;
         };
     }

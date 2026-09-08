@@ -53,7 +53,7 @@ final class UploadControllerTest extends ControllerTestCase
 
     public function testStoresTheFileAndReturnsItsUrl(): void
     {
-        $storage = new class implements FileStorageInterface {
+        $storage = new class () implements FileStorageInterface {
             public ?string $uploadedDir = null;
 
             public function upload(UploadedFile $file, string $directory = ''): string

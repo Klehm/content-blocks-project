@@ -148,7 +148,7 @@ final class AssetOptionResolutionTest extends TestCase
     /** Stands in for AssetMapper: a digest injected before the extension. */
     private function packages(): Packages
     {
-        return new Packages(new Package(new class implements VersionStrategyInterface {
+        return new Packages(new Package(new class () implements VersionStrategyInterface {
             public function getVersion(string $path): string
             {
                 return 'd1g3st';

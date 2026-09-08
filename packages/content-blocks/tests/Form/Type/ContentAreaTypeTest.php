@@ -66,7 +66,7 @@ final class ContentAreaTypeTest extends TestCase
      */
     public function testProvidersContributeOnlyForAPersistedArea(): void
     {
-        $provider = new class implements BuilderActionProviderInterface {
+        $provider = new class () implements BuilderActionProviderInterface {
             public function getActions(ContentArea $area): iterable
             {
                 yield new BuilderAction('from-bundle', 'From a bundle');

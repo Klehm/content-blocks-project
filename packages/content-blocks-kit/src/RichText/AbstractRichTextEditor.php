@@ -144,11 +144,7 @@ abstract class AbstractRichTextEditor implements RichTextEditorInterface
         $path = substr($value, \strlen(self::ASSET_PREFIX));
 
         if ($this->assets === null) {
-            throw new \LogicException(sprintf(
-                'Cannot resolve "%s" in the rich-text editor options: no asset packages are available. '
-                . 'Install symfony/asset and enable the "framework.assets" configuration, or give a plain URL.',
-                $value,
-            ));
+            throw new \LogicException(sprintf('Cannot resolve "%s" in the rich-text editor options: no asset packages are available. Install symfony/asset and enable the "framework.assets" configuration, or give a plain URL.', $value, ));
         }
 
         return $this->assets->getUrl($path);

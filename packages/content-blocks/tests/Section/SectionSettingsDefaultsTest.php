@@ -131,7 +131,7 @@ final class SectionSettingsDefaultsTest extends TestCase
     /** @param array<string, mixed> $values */
     private function provider(array $values): SectionSettingsDefaultsProviderInterface
     {
-        return new class($values) implements SectionSettingsDefaultsProviderInterface {
+        return new class ($values) implements SectionSettingsDefaultsProviderInterface {
             /** @param array<string, mixed> $values */
             public function __construct(private readonly array $values)
             {

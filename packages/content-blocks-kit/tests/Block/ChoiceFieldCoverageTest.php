@@ -187,7 +187,7 @@ final class ChoiceFieldCoverageTest extends TestCase
         $env->addExtension(new ChoiceTokenExtension());
         $env->addExtension(new IconExtension(new IconRegistry()));
         $env->addExtension(new ImageExtension(new PassthroughImageUrlResolver()));
-        $env->addExtension(new TranslationExtension(new class implements TranslatorInterface {
+        $env->addExtension(new TranslationExtension(new class () implements TranslatorInterface {
             use TranslatorTrait;
         }));
 

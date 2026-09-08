@@ -24,10 +24,6 @@ final class NullAssetResolver implements AssetResolverInterface
 
     public function store(string $contents, string $extension): string
     {
-        throw new \LogicException(
-            'No AssetResolverInterface configured. The kit ships a default '
-            . 'bridge (FileStorageAssetResolver) — register a FileStorageInterface '
-            . 'implementation (e.g. LocalFileStorage) to enable asset import.'
-        );
+        throw new \LogicException('No AssetResolverInterface configured. The kit ships a default bridge (FileStorageAssetResolver) — register a FileStorageInterface implementation (e.g. LocalFileStorage) to enable asset import.');
     }
 }

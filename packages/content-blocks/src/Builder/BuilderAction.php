@@ -50,10 +50,7 @@ final class BuilderAction
 
         $label = $definition['label'] ?? null;
         if (!is_string($label) && !$label instanceof TranslatableInterface) {
-            throw new \InvalidArgumentException(sprintf(
-                'Builder action "%s" needs a "label" (string or TranslatableInterface).',
-                $key,
-            ));
+            throw new \InvalidArgumentException(sprintf('Builder action "%s" needs a "label" (string or TranslatableInterface).', $key, ));
         }
 
         $icon = $definition['icon'] ?? null;

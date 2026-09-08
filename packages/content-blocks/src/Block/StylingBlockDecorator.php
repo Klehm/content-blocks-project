@@ -14,6 +14,7 @@ use ContentBlocks\Entity\Block;
  *
  * Block styling covers padding, margin, backgroundColor and maxWidth.
  * Per-viewport overrides for padding/margin are routed through the same
+ *
  * @media chain as sections; maxWidth and backgroundColor are not
  * responsive in this iteration.
  *

@@ -63,7 +63,7 @@ final class BlockFormTypeTest extends TestCase
 
     public function testGlobalExtensionReceivesTheBlockTypeId(): void
     {
-        $global = new class implements BlockFormExtensionInterface {
+        $global = new class () implements BlockFormExtensionInterface {
             /** @var list<string> */
             public array $seen = [];
 
@@ -83,7 +83,7 @@ final class BlockFormTypeTest extends TestCase
         // The builder handed to an extension is the block's own form builder,
         // so `remove()` is part of the seam's contract: a host can drop a field
         // its design system doesn't allow.
-        $remover = new class implements BlockFormExtensionInterface {
+        $remover = new class () implements BlockFormExtensionInterface {
             public function buildForm(FormBuilderInterface $builder, array $data, string $blockType): void
             {
                 $builder->remove('fullWidth');
@@ -102,7 +102,7 @@ final class BlockFormTypeTest extends TestCase
 
     public function testRemovedFieldKeepsItsStoredValueAndIgnoresPostedOnes(): void
     {
-        $remover = new class implements BlockFormExtensionInterface {
+        $remover = new class () implements BlockFormExtensionInterface {
             public function buildForm(FormBuilderInterface $builder, array $data, string $blockType): void
             {
                 $builder->remove('fullWidth');
@@ -134,7 +134,7 @@ final class BlockFormTypeTest extends TestCase
         // Reordering = re-adding the existing child builders in the wanted
         // order (children render in insertion order). Capturing the child
         // builder keeps its type and options.
-        $reorder = new class implements BlockFormExtensionInterface {
+        $reorder = new class () implements BlockFormExtensionInterface {
             public function buildForm(FormBuilderInterface $builder, array $data, string $blockType): void
             {
                 foreach (['url', 'text', 'fullWidth'] as $name) {
@@ -159,7 +159,7 @@ final class BlockFormTypeTest extends TestCase
 
     public function testReorderKeepsTheFieldTypeAndOptions(): void
     {
-        $reorder = new class implements BlockFormExtensionInterface {
+        $reorder = new class () implements BlockFormExtensionInterface {
             public function buildForm(FormBuilderInterface $builder, array $data, string $blockType): void
             {
                 $child = $builder->get('fullWidth');
@@ -204,7 +204,7 @@ final class BlockFormTypeTest extends TestCase
 
     private function relExtension(): BlockFormExtensionInterface
     {
-        return new class implements BlockFormExtensionInterface {
+        return new class () implements BlockFormExtensionInterface {
             public function buildForm(FormBuilderInterface $builder, array $data, string $blockType): void
             {
                 $builder->add('rel', TextType::class, [
@@ -217,7 +217,7 @@ final class BlockFormTypeTest extends TestCase
 
     private function buttonBlock(): BlockTypeInterface
     {
-        return new class extends AbstractBlockType {
+        return new class () extends AbstractBlockType {
             public static function getType(): string
             {
                 return 'button';
@@ -243,7 +243,7 @@ final class BlockFormTypeTest extends TestCase
     /** A `button` block with several fields, for the remove / reorder cases. */
     private function multiFieldBlock(): BlockTypeInterface
     {
-        return new class extends AbstractBlockType {
+        return new class () extends AbstractBlockType {
             public static function getType(): string
             {
                 return 'button';
@@ -271,7 +271,7 @@ final class BlockFormTypeTest extends TestCase
 
     private function textBlock(): BlockTypeInterface
     {
-        return new class extends AbstractBlockType {
+        return new class () extends AbstractBlockType {
             public static function getType(): string
             {
                 return 'text';

@@ -156,10 +156,7 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
         $format = $payload['format'] ?? null;
 
         if (!is_string($format) || !$this->envelopes->supports($format, $target)) {
-            throw new UnsupportedTemplateFormatException(
-                is_string($format) ? $format : null,
-                $target,
-            );
+            throw new UnsupportedTemplateFormatException(is_string($format) ? $format : null, $target, );
         }
 
         return $this->envelopes->upgrade($payload, $format, $target);

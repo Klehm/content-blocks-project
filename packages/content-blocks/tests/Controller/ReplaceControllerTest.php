@@ -6,9 +6,9 @@ namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Controller\ReplaceController;
 use ContentBlocks\Replace\ContentAreaProviderInterface;
+use ContentBlocks\Section\SectionCloner;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
-use ContentBlocks\Section\SectionCloner;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 

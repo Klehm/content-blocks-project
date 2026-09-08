@@ -19,7 +19,7 @@ final class SectionDecoratorTest extends TestCase
     public function testStyleRegistryMergesProviders(): void
     {
         $registry = new SectionStyleRegistry([
-            new class implements SectionStyleProviderInterface {
+            new class () implements SectionStyleProviderInterface {
                 public function getStyles(): array
                 {
                     return [
@@ -28,7 +28,7 @@ final class SectionDecoratorTest extends TestCase
                     ];
                 }
             },
-            new class implements SectionStyleProviderInterface {
+            new class () implements SectionStyleProviderInterface {
                 public function getStyles(): array
                 {
                     return [new SectionStyle('hero', 'Hero (overridden)', 'override-hero')];
@@ -136,7 +136,7 @@ final class SectionDecoratorTest extends TestCase
     public function testBuiltInDecoratorAppliesNamedStylePreset(): void
     {
         $registry = new SectionStyleRegistry([
-            new class implements SectionStyleProviderInterface {
+            new class () implements SectionStyleProviderInterface {
                 public function getStyles(): array
                 {
                     return [new SectionStyle('hero', 'Hero', 'cb-style-hero')];
@@ -164,7 +164,7 @@ final class SectionDecoratorTest extends TestCase
 
     public function testCollectionMergesDecoratorsInOrder(): void
     {
-        $first = new class implements SectionDecoratorInterface {
+        $first = new class () implements SectionDecoratorInterface {
             public function decorate(array $settings, Section $section): SectionDecoration
             {
                 return new SectionDecoration(
@@ -174,7 +174,7 @@ final class SectionDecoratorTest extends TestCase
                 );
             }
         };
-        $second = new class implements SectionDecoratorInterface {
+        $second = new class () implements SectionDecoratorInterface {
             public function decorate(array $settings, Section $section): SectionDecoration
             {
                 return new SectionDecoration(classes: ['b'], inlineStyles: ['color' => 'blue']);
@@ -195,7 +195,7 @@ final class SectionDecoratorTest extends TestCase
         // Sketches the host-extension contract: a custom decorator reads a
         // free-form setting key and returns a decoration. The framework
         // doesn't need to know the key in advance.
-        $bgColor = new class implements SectionDecoratorInterface {
+        $bgColor = new class () implements SectionDecoratorInterface {
             public function decorate(array $settings, Section $section): SectionDecoration
             {
                 $color = $settings['backgroundColor'] ?? null;
@@ -230,7 +230,7 @@ final class SectionDecoratorTest extends TestCase
      */
     public function testHostFormExtensionAddsCustomFieldToSectionSettingsType(): void
     {
-        $extension = new class extends \Symfony\Component\Form\AbstractTypeExtension {
+        $extension = new class () extends \Symfony\Component\Form\AbstractTypeExtension {
             public static function getExtendedTypes(): iterable
             {
                 return [\ContentBlocks\Form\Type\SectionSettingsType::class];

@@ -37,7 +37,7 @@ final class RichTextEditorTest extends TestCase
 
     private function palette(PaletteColor ...$colors): ColorPaletteRegistry
     {
-        $provider = new class($colors) implements ColorPaletteProviderInterface {
+        $provider = new class ($colors) implements ColorPaletteProviderInterface {
             /** @param list<PaletteColor> $colors */
             public function __construct(private readonly array $colors)
             {
@@ -230,7 +230,7 @@ final class RichTextEditorTest extends TestCase
 
     public function testAHostEditorRegistersLikeAShippedOne(): void
     {
-        $custom = new class($this->palette(), $this->urlGenerator()) extends AbstractRichTextEditor {
+        $custom = new class ($this->palette(), $this->urlGenerator()) extends AbstractRichTextEditor {
             public static function getName(): string
             {
                 return 'quill';
@@ -257,7 +257,7 @@ final class RichTextEditorTest extends TestCase
 
     public function testALaterEditorWinsItsName(): void
     {
-        $replacement = new class($this->palette(), $this->urlGenerator()) extends AbstractRichTextEditor {
+        $replacement = new class ($this->palette(), $this->urlGenerator()) extends AbstractRichTextEditor {
             public static function getName(): string
             {
                 return 'tinymce';

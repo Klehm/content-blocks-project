@@ -27,7 +27,7 @@ final class ShellFragmentsExtensionTest extends TestCase
     public function testTheFunctionReturnsTheCollectionsOrderedList(): void
     {
         $extension = new ShellFragmentsExtension(new BuilderShellFragmentCollection([
-            new class implements BuilderShellExtensionInterface {
+            new class () implements BuilderShellExtensionInterface {
                 public function getFragments(ContentArea $area): iterable
                 {
                     yield new BuilderShellFragment('late.html.twig', priority: -1);

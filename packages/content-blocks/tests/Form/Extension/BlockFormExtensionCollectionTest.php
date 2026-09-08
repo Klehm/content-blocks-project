@@ -101,7 +101,7 @@ final class BlockFormExtensionCollectionTest extends TestCase
 
     private function recordingExtension(?\Closure $onBuild = null): BlockFormExtensionInterface
     {
-        return new class($onBuild) implements BlockFormExtensionInterface {
+        return new class ($onBuild) implements BlockFormExtensionInterface {
             /** @var list<string> */
             public array $seen = [];
             /** @var array{0: array<string,mixed>, 1: string}|null */

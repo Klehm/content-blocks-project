@@ -31,7 +31,6 @@ interface SectionTemplateSerializerInterface
      * Alongside the payload, the distinct block-type identifiers used are
      * returned so the library can flag an incompatible template cheaply,
      * without deserializing it.
-     *
      */
     public function serialize(Section $section): SectionTemplateSnapshot;
 }

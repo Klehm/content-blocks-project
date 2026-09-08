@@ -14,7 +14,7 @@ final class BuilderShellFragmentCollectionTest extends TestCase
 {
     private function extension(BuilderShellFragment ...$fragments): BuilderShellExtensionInterface
     {
-        return new class($fragments) implements BuilderShellExtensionInterface {
+        return new class ($fragments) implements BuilderShellExtensionInterface {
             /** @param list<BuilderShellFragment> $fragments */
             public function __construct(private readonly array $fragments)
             {
@@ -95,7 +95,7 @@ final class BuilderShellFragmentCollectionTest extends TestCase
     public function testAnExtensionCanHideItselfForAGivenArea(): void
     {
         $collection = new BuilderShellFragmentCollection([
-            new class implements BuilderShellExtensionInterface {
+            new class () implements BuilderShellExtensionInterface {
                 public function getFragments(ContentArea $area): iterable
                 {
                     return [];
@@ -110,7 +110,7 @@ final class BuilderShellFragmentCollectionTest extends TestCase
     public function testAGeneratorIsConsumedLikeAnArray(): void
     {
         $collection = new BuilderShellFragmentCollection([
-            new class implements BuilderShellExtensionInterface {
+            new class () implements BuilderShellExtensionInterface {
                 public function getFragments(ContentArea $area): iterable
                 {
                     yield new BuilderShellFragment('one.html.twig');
@@ -126,7 +126,7 @@ final class BuilderShellFragmentCollectionTest extends TestCase
     {
         $seen = null;
         $collection = new BuilderShellFragmentCollection([
-            new class($seen) implements BuilderShellExtensionInterface {
+            new class ($seen) implements BuilderShellExtensionInterface {
                 public function __construct(private mixed &$seen)
                 {
                 }

@@ -106,7 +106,7 @@ final class BlockFormExtensionPassTest extends TestCase
 
     private function extensionClass(): string
     {
-        $extension = new class implements BlockFormExtensionInterface {
+        $extension = new class () implements BlockFormExtensionInterface {
             public function buildForm(FormBuilderInterface $builder, array $data, string $blockType): void
             {
             }

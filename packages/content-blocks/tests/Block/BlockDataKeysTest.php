@@ -53,7 +53,7 @@ final class BlockDataKeysTest extends TestCase
 
     public function testAFieldContributedByAHostExtensionIsKnown(): void
     {
-        $extension = new class implements BlockFormExtensionInterface {
+        $extension = new class () implements BlockFormExtensionInterface {
             public function buildForm(FormBuilderInterface $builder, array $data, string $blockType): void
             {
                 $builder->add('anchorId', TextType::class, ['required' => false]);

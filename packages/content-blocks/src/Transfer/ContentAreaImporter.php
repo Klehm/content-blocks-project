@@ -87,11 +87,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         $format = $payload['format'] ?? null;
 
         if (!is_string($format) || !$this->envelopes->supports($format, $target)) {
-            throw new \InvalidArgumentException(sprintf(
-                'Unsupported format: %s (expected %s).',
-                is_scalar($format) ? (string) $format : '(invalid)',
-                $target,
-            ));
+            throw new \InvalidArgumentException(sprintf('Unsupported format: %s (expected %s).', is_scalar($format) ? (string) $format : '(invalid)', $target, ));
         }
 
         return $this->envelopes->upgrade($payload, $format, $target);

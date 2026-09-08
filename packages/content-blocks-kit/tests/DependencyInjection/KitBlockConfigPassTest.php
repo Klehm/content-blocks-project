@@ -176,4 +176,3 @@ final class PlainHostBlock extends \ContentBlocks\BlockType\AbstractBlockType
         return [];
     }
 }
-

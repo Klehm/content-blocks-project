@@ -17,7 +17,7 @@ final class EnvelopeUpgradeChainTest extends TestCase
 {
     private function step(string $from, string $to, ?\Closure $transform = null): EnvelopeUpgraderInterface
     {
-        return new class($from, $to, $transform) implements EnvelopeUpgraderInterface {
+        return new class ($from, $to, $transform) implements EnvelopeUpgraderInterface {
             public function __construct(
                 private readonly string $from,
                 private readonly string $to,

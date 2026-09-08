@@ -45,6 +45,7 @@ final class BlockDataDefaults
 
     /**
      * @param array<string, mixed> $data
+     *
      * @return array<string, mixed>
      */
     public function withoutDefaults(array $data): array
@@ -55,6 +56,7 @@ final class BlockDataDefaults
     /**
      * @param array<string, mixed> $data
      * @param array<string, mixed> $defaults
+     *
      * @return array<string, mixed>
      */
     private function stripDefaults(array $data, array $defaults): array

@@ -111,7 +111,7 @@ final class BlockDataDefaultsTest extends TestCase
     /** @param array<string, mixed> $values */
     private function provider(array $values): BlockDataDefaultsProviderInterface
     {
-        return new class($values) implements BlockDataDefaultsProviderInterface {
+        return new class ($values) implements BlockDataDefaultsProviderInterface {
             /** @param array<string, mixed> $values */
             public function __construct(private readonly array $values)
             {

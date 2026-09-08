@@ -6,16 +6,16 @@ namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Controller\SectionTemplateController;
 use ContentBlocks\Entity\SectionTemplate;
-use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Section\SectionStyleRegistry;
-use ContentBlocks\Security\ContentBlocksAccessDeniedException;
-use ContentBlocks\Tests\Fixtures\EchoTranslator;
 use ContentBlocks\SectionTemplate\AllowAllSectionTemplateManager;
 use ContentBlocks\SectionTemplate\DenyAllSectionTemplateManager;
 use ContentBlocks\SectionTemplate\SectionPosterBuilder;
-use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
+use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
+use ContentBlocks\Security\AccessCheckerInterface;
+use ContentBlocks\Security\ContentBlocksAccessDeniedException;
+use ContentBlocks\Tests\Fixtures\EchoTranslator;
 use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
 use ContentBlocks\Versioning\DenyOnMismatchUpgrader;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
@@ -215,7 +215,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
         $template = $this->makeTemplate(7, $stored, ['fake']);
         $template->setContentVersion(3);
 
-        $upgrader = new class implements ContentVersionUpgraderInterface {
+        $upgrader = new class () implements ContentVersionUpgraderInterface {
             public function supports(?int $stored, int $current): bool
             {
                 return true;

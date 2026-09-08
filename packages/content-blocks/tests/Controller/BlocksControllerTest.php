@@ -7,11 +7,9 @@ namespace ContentBlocks\Tests\Controller;
 use ContentBlocks\Controller\BlocksController;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
-use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\Translation\TranslatorInterface;
 

@@ -15,9 +15,6 @@ final class NullContentAreaUrlResolver implements ContentAreaUrlResolverInterfac
 {
     public function resolve(ContentArea $area): string
     {
-        throw new \LogicException(sprintf(
-            'No %s implementation registered. The host app must alias this interface to a concrete service that knows how to map a ContentArea to its public URL.',
-            ContentAreaUrlResolverInterface::class,
-        ));
+        throw new \LogicException(sprintf('No %s implementation registered. The host app must alias this interface to a concrete service that knows how to map a ContentArea to its public URL.', ContentAreaUrlResolverInterface::class, ));
     }
 }

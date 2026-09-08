@@ -68,13 +68,7 @@ final class AssetGarbageCollector
         ?\DateTimeImmutable $now = null,
     ): AssetGarbageReport {
         if (!$this->storage instanceof AssetInventoryInterface) {
-            throw new \LogicException(sprintf(
-                'Storage "%s" cannot enumerate its files, so unreferenced assets cannot be identified. '
-                . 'Implement %s on it (see %s) or run the sweep with your storage provider\'s own tooling.',
-                $this->storage::class,
-                AssetInventoryInterface::class,
-                \ContentBlocks\Storage\LocalFileStorage::class,
-            ));
+            throw new \LogicException(sprintf('Storage "%s" cannot enumerate its files, so unreferenced assets cannot be identified. Implement %s on it (see %s) or run the sweep with your storage provider\'s own tooling.', $this->storage::class, AssetInventoryInterface::class, \ContentBlocks\Storage\LocalFileStorage::class, ));
         }
 
         if ($retentionDays < 0) {

@@ -72,7 +72,7 @@ final class TranslatableFieldsTest extends TestCase
         // Same rule BlockDataKeys follows: read the built form, not a static
         // declaration, so a host adding a translatable field to someone else's
         // block gets it for free.
-        $extension = new class implements BlockFormExtensionInterface {
+        $extension = new class () implements BlockFormExtensionInterface {
             public function buildForm(FormBuilderInterface $builder, array $data, string $blockType): void
             {
                 $builder->add('subtitle', TextType::class, [

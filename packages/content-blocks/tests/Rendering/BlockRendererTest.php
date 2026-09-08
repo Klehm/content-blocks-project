@@ -19,9 +19,9 @@ use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\AllowAllAccessChecker;
 use ContentBlocks\Security\DenyAllAccessChecker;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Bridge\Twig\Extension\RoutingExtension;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
+use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -333,7 +333,7 @@ final class BlockRendererTest extends TestCase
         $registry = new BlockTypeRegistry();
         $registry->register($this->textBlockType());
 
-        $bgDecorator = new class implements \ContentBlocks\Section\SectionDecoratorInterface {
+        $bgDecorator = new class () implements \ContentBlocks\Section\SectionDecoratorInterface {
             public function decorate(array $settings, Section $section): \ContentBlocks\Section\SectionDecoration
             {
                 $color = $settings['backgroundColor'] ?? null;
@@ -345,8 +345,11 @@ final class BlockRendererTest extends TestCase
         };
 
         $defaults = new \ContentBlocks\Section\SectionSettingsDefaults([
-            new class implements \ContentBlocks\Section\SectionSettingsDefaultsProviderInterface {
-                public function getDefaults(): array { return ['backgroundColor' => '#ffffff']; }
+            new class () implements \ContentBlocks\Section\SectionSettingsDefaultsProviderInterface {
+                public function getDefaults(): array
+                {
+                    return ['backgroundColor' => '#ffffff'];
+                }
             },
         ]);
 
@@ -382,7 +385,7 @@ final class BlockRendererTest extends TestCase
         $registry = new BlockTypeRegistry();
         $registry->register($this->textBlockType());
 
-        $bgDecorator = new class implements \ContentBlocks\Section\SectionDecoratorInterface {
+        $bgDecorator = new class () implements \ContentBlocks\Section\SectionDecoratorInterface {
             public function decorate(array $settings, Section $section): \ContentBlocks\Section\SectionDecoration
             {
                 $color = $settings['backgroundColor'] ?? null;
@@ -400,8 +403,11 @@ final class BlockRendererTest extends TestCase
             $registry,
             new \ContentBlocks\Section\SectionDecoratorCollection([$bgDecorator]),
             new \ContentBlocks\Section\SectionSettingsDefaults([
-                new class implements \ContentBlocks\Section\SectionSettingsDefaultsProviderInterface {
-                    public function getDefaults(): array { return ['backgroundColor' => '#ffffff']; }
+                new class () implements \ContentBlocks\Section\SectionSettingsDefaultsProviderInterface {
+                    public function getDefaults(): array
+                    {
+                        return ['backgroundColor' => '#ffffff'];
+                    }
                 },
             ]),
             new \ContentBlocks\Section\SectionStyleRegistry([]),
@@ -424,7 +430,7 @@ final class BlockRendererTest extends TestCase
     public function testPresetSettingsMergeUnderneathSectionSettings(): void
     {
         $styleRegistry = new \ContentBlocks\Section\SectionStyleRegistry([
-            new class implements \ContentBlocks\Section\SectionStyleProviderInterface {
+            new class () implements \ContentBlocks\Section\SectionStyleProviderInterface {
                 public function getStyles(): array
                 {
                     return [new \ContentBlocks\Section\SectionStyle(
@@ -437,7 +443,7 @@ final class BlockRendererTest extends TestCase
             },
         ]);
 
-        $bgDecorator = new class implements \ContentBlocks\Section\SectionDecoratorInterface {
+        $bgDecorator = new class () implements \ContentBlocks\Section\SectionDecoratorInterface {
             public function decorate(array $settings, Section $section): \ContentBlocks\Section\SectionDecoration
             {
                 $color = $settings['backgroundColor'] ?? null;
@@ -556,12 +562,26 @@ final class BlockRendererTest extends TestCase
         $block = $this->makeBlock($column, type: 'custom', publishedData: ['title' => 'Hello'], position: 0, previewPosition: 0);
 
         $registry = new BlockTypeRegistry();
-        $registry->register(new class extends AbstractBlockType {
-            public static function getType(): string { return 'custom'; }
-            public static function getLabel(): string { return 'Custom'; }
-            public function buildForm(FormBuilderInterface $builder, array $data): void {}
-            public function getDefaultData(): array { return []; }
-            public function getViewTemplate(): ?string { return '@TestRender/custom_block.html.twig'; }
+        $registry->register(new class () extends AbstractBlockType {
+            public static function getType(): string
+            {
+                return 'custom';
+            }
+            public static function getLabel(): string
+            {
+                return 'Custom';
+            }
+            public function buildForm(FormBuilderInterface $builder, array $data): void
+            {
+            }
+            public function getDefaultData(): array
+            {
+                return [];
+            }
+            public function getViewTemplate(): ?string
+            {
+                return '@TestRender/custom_block.html.twig';
+            }
         });
 
         $renderer = new BlockRenderer(
@@ -646,7 +666,7 @@ final class BlockRendererTest extends TestCase
         );
         $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Hello']);
 
-        $localeAware = new class implements \ContentBlocks\Rendering\BlockDataResolverInterface {
+        $localeAware = new class () implements \ContentBlocks\Rendering\BlockDataResolverInterface {
             public function resolve(Block $block, RenderContext $context, array $data): array
             {
                 if ($context->locale === 'fr') {
@@ -684,7 +704,7 @@ final class BlockRendererTest extends TestCase
         );
         $this->makeBlock($column, type: 'text', publishedData: ['title' => 'a']);
 
-        $append = fn (string $suffix) => new class($suffix) implements \ContentBlocks\Rendering\BlockDataResolverInterface {
+        $append = fn (string $suffix) => new class ($suffix) implements \ContentBlocks\Rendering\BlockDataResolverInterface {
             public function __construct(private readonly string $suffix)
             {
             }
@@ -717,7 +737,7 @@ final class BlockRendererTest extends TestCase
         );
         $this->makeBlock($column, type: 'text', publishedData: ['title' => 'Pub']);
 
-        $spy = new class implements \ContentBlocks\Rendering\BlockDataResolverInterface {
+        $spy = new class () implements \ContentBlocks\Rendering\BlockDataResolverInterface {
             /** @var list<?RenderMode> */
             public array $seen = [];
 
@@ -770,12 +790,26 @@ final class BlockRendererTest extends TestCase
      */
     private function textBlockType(): AbstractBlockType
     {
-        return new class extends AbstractBlockType {
-            public static function getType(): string { return 'text'; }
-            public static function getLabel(): string { return 'Text'; }
-            public function buildForm(FormBuilderInterface $builder, array $data): void {}
-            public function getDefaultData(): array { return ['title' => '']; }
-            public function getViewTemplate(): ?string { return '@TestRender/text_view.html.twig'; }
+        return new class () extends AbstractBlockType {
+            public static function getType(): string
+            {
+                return 'text';
+            }
+            public static function getLabel(): string
+            {
+                return 'Text';
+            }
+            public function buildForm(FormBuilderInterface $builder, array $data): void
+            {
+            }
+            public function getDefaultData(): array
+            {
+                return ['title' => ''];
+            }
+            public function getViewTemplate(): ?string
+            {
+                return '@TestRender/text_view.html.twig';
+            }
         };
     }
 
@@ -798,18 +832,27 @@ final class BlockRendererTest extends TestCase
 
     private function makeTranslator(): TranslatorInterface
     {
-        return new class implements TranslatorInterface {
+        return new class () implements TranslatorInterface {
             use TranslatorTrait;
         };
     }
 
     private function makeUrlGenerator(): UrlGeneratorInterface
     {
-        return new class implements UrlGeneratorInterface {
+        return new class () implements UrlGeneratorInterface {
             private RequestContext $context;
-            public function __construct() { $this->context = new RequestContext(); }
-            public function setContext(RequestContext $context): void { $this->context = $context; }
-            public function getContext(): RequestContext { return $this->context; }
+            public function __construct()
+            {
+                $this->context = new RequestContext();
+            }
+            public function setContext(RequestContext $context): void
+            {
+                $this->context = $context;
+            }
+            public function getContext(): RequestContext
+            {
+                return $this->context;
+            }
             public function generate(string $name, array $parameters = [], int $referenceType = self::ABSOLUTE_PATH): string
             {
                 // Stable, deterministic URL for assertions; mirrors the real route shape.
