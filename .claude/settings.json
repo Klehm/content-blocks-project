@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/comment-budget.sh\"",
+            "timeout": 10,
+            "statusMessage": "Checking comment budget"
+          }
+        ]
+      }
+    ]
+  }
+}

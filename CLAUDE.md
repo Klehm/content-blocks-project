@@ -72,6 +72,29 @@ Les contributeurs clonent le monorepo et ont tout (packages + sandboxes + tests)
 - **Everything written on this repo is in English**: commit messages, pull request titles and bodies, documentation, CHANGELOG entries, and code comments (inline, PHPDoc, JSDoc, Twig).
 - Files written in French before this rule stay as they are — it applies to what gets written from now on, not to a retro-translation of the repo.
 
+### Comments — a budget, and one home per rationale
+
+**Max 2 prose lines per comment block, max 80 columns.** Applies to PHP, JS,
+Twig and CSS under `packages/`. Type annotations (`@param`, `@return`, `@see`,
+`@internal`, `@deprecated`) are not prose and are exempt from the line count.
+
+A class docblock says what the class is and for whom, in two lines. The long
+*why* — the bug it prevents, the trap the next reader will step in — goes to
+`docs/guide/`, and the docblock carries a `@see docs/guide/x.md` pointer to it.
+
+The rule exists because the rationale was being written four or five times over
+(source docblock, `docs/guide/`, `CLAUDE.md`, CHANGELOG, test names), and the
+source copy was always the longest of them. Five copies drift, and a docblock
+that lies is worse than one that is absent. One home, pointers from everywhere
+else.
+
+An inline comment earns its line only where the code reads as wrong without it.
+Never paraphrase the next statement.
+
+Enforced by `.claude/hooks/comment-budget.sh` (PostToolUse on Write/Edit), which
+only reports blocks overlapping lines changed since HEAD — editing a file that
+predates the rule does not resurface its whole backlog.
+
 ### Nommage
 - **Namespace PSR-4** : `ContentBlocks\` (package principal), `ContentBlocks\Kit\` (kit de blocs)
 - **Bundle** : `ContentBlocksBundle` (principal), `ContentBlocksKitBundle` (kit)
