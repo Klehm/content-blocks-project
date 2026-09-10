@@ -160,6 +160,41 @@ Open design questions, worth settling before coding:
 
 ---
 
+## Publication history — every publish is a revision 🅿️ (post-1.0)
+
+**Context.** Publish is a one-way door. Discard rescues an unpublished draft and the snackbar rescues one delete, but once an editor has published there is no way back to what the page said last week — not to read it, not to compare it, not to bring it back. The answer today is "restore the database", which is not an answer an editor can act on.
+
+**Direction.** Each publish writes a **revision**: a snapshot of the area's published state at that moment, in its own table. A new topbar action opens the history, newest first, and every row carries one button that **loads that revision back into the draft**.
+
+Restoring deliberately does *not* touch the live page. It fills the draft the way Insert content does, so the editor reviews the restore in the builder, Publish is still the gesture that makes it public and Discard still the one that walks away. That keeps the feature inside the rule RC4 was cut to establish — no builder action changes the published page — and it means the dangerous version of this feature (a button that silently republishes an old page) is never built.
+
+Three pieces already exist:
+
+- **Recording**: `ContentAreaPublisherInterface` is the chokepoint, is already decorated in practice (`TranslationPublisher` does exactly this), and its own docblock names audit trails as the reason a host decorates it.
+- **The payload**: `SectionTemplateSerializer` already snapshots a subtree as JSON with plain storage paths, and `cb_section_template` already stamps `content_version`. A revision wants *that* shape, not the exporter's — `ContentAreaExporter` is draft-wins and embeds asset bytes as base64, and one publish's worth of inlined images per row would be enormous.
+- **Restoring**: `ReplaceController`'s replace-with already soft-deletes the target's sections and inserts deep clones into the draft. Restoring is the same walk with a serialized payload as the source instead of a live area.
+
+Open design questions, worth settling before coding:
+
+- **What a revision costs.** One row per publish per area, kept forever, is a table that only grows — on the host with real editorial volume, fastest. Needs a retention story (keep N, keep 90 days, keep the ones somebody named) and a decision on whether the host configures it.
+- **Assets.** A revision payload holds plain paths, so it makes files reachable — and `content-blocks:assets:gc` sweeps whatever no provider claims. This ships with an `AssetReferenceProviderInterface` for revisions or a restored revision comes back with holes where its images were. Exactly the failure mode section templates have a provider for.
+- **Translations.** They ride the publish today, so a revision carrying the layout but not the translated values restores a page into its source language. Likely the same treatment the cloner got: i18n contributes to the snapshot through an observer.
+- **Content versions.** A revision written under an older `content_version` is the case section templates already answer with `ContentVersionUpgraderInterface` — reuse it rather than the clipboard's flat refusal. The distinction that decided the clipboard's rule applies here in reverse: a copy costs seconds to redo, a revision cannot be recreated at all.
+- **What restoring does to a dirty draft** — refuse, or warn and overwrite. Overwriting quietly destroys work that Discard would have kept.
+- **How a revision is labelled** in the list: automatic (`published by X at T`) or editor-named. A poster per row via `SectionPosterBuilder` would make the list scannable without any screenshot pipeline, the way the section library's cards already are.
+
+**Rough scope when picked up:**
+- [ ] `cb_content_area_revision` + migration: area, payload, `content_version`, author, timestamp, label
+- [ ] Recording decorator on `ContentAreaPublisherInterface`, snapshotting the published state *after* the inner publish (so it sees what the i18n decorator committed)
+- [ ] `GET /_content-blocks/area/{id}/revisions` (paginated) and `POST /_content-blocks/area/{id}/revisions/{revisionId}/restore` — CSRF + `canEdit`, draft-only write
+- [ ] Topbar "History" action + dialog, beside Insert content
+- [ ] An `AssetReferenceProviderInterface` over revision payloads
+- [ ] Translation snapshot + restore through the i18n observer seam
+- [ ] Retention policy and pruning
+- [ ] Tests: PHPUnit on record + restore and on the published render staying untouched across a restore (`PublishedRenderImmutabilityTest`), Vitest on the dialog, Playwright on publish → edit → publish → restore → publish
+
+---
+
 ## Tree view — the whole area as an outline 🅿️ (post-1.0)
 
 **Context.** The builder shows content as it renders, which is the right default and a poor way to see a long page. There is no view that answers "what is in this area, in order" — and no way to move a block from the top of the page to the bottom without dragging past everything in between.
