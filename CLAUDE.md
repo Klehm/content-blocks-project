@@ -224,7 +224,7 @@ Le core ignore la forme de `block.data` : un type de bloc déclare ce qu'il vaut
 Les composants `ContentAreaBuilder`, `Column` et `Section` n'existent plus : tout le CRUD structurel (sections, colonnes, réordonnancement) est passé aux controllers AJAX sous `/_content-blocks/*`, pilotés côté client par `cb-builder`. La règle d'architecture ci-dessous vaut toujours pour ce qui reste et pour les blocs custom, mais le builder lui-même n'a plus qu'un Live Component.
 
 ### Stimulus Controllers (contrôle DOM)
-Les 12 controllers livrés (source unique : `assets/package.json`) :
+Les 13 controllers livrés (source unique : `assets/package.json`) :
 - `cb-builder-launcher` : ouvre le `<dialog>` du builder depuis le widget hôte
 - `cb-builder` : orchestration de la fenêtre builder (sidebar, postMessage iframe, sauvegarde). Porte aussi le **contrat d'événements `cb:*`** : cinq sont publics — quatre sortants (`cb:ready`, `cb:block:saved`, `cb:section:saved`, `cb:builder:action`) et un **entrant**, `cb:area:changed`, qu'un fragment de shell ou l'hôte dispatche vers le builder après avoir modifié la zone côté serveur (le builder recharge la preview et resynchronise Publier/Annuler) — les 33 autres sont de la chorégraphie interne
 - **Fragments de shell** (`BuilderShellExtensionInterface`, autoconfiguré, fonction Twig `cb_shell_fragments(area)`) : la moitié UI de `BuilderActionProviderInterface`. Un bundle rend ses propres templates **dans** `.cb-shell` (après le chrome, contexte isolé + `area`), donc son `<dialog>` et un `<script type="module">` servi par sa propre route — sans controller Stimulus, sans `controllers.json`, sans recompilation. Le shell appelle la fonction lui-même, donc un fragment apparaît aussi quand l'hôte inclut `launcher.html.twig` directement. Précédent : `DemoShellExtension` dans la sandbox, `assets/test/e2e/shell-fragments.spec.js`
@@ -238,8 +238,17 @@ Les 12 controllers livrés (source unique : `assets/package.json`) :
 - `cb-collection-sort` : réordonnancement des entrées de collection
 - `cb-condition` : affichage conditionnel générique de champs (`data-cb-condition="field:value1|value2"` sur une row ; checkbox → `true`/`false` ; `field` seul → non-vide). Plusieurs clauses se combinent en **ET** via `;` (ex. `size:custom;customHeightAuto:false`), chaque clause gardant son **OU** via `|`. Les instances s'imbriquent (scope = plus proche ancêtre) ; le controller est aussi posé sur la **racine du form d'édition de bloc** ([Block.html.twig]) pour qu'un `<select>` puisse gater des rows sœurs (resize image). Utilisé par le switch « Personnaliser le style » et `PaletteColorType` ; réutilisable dans les forms de blocs custom
 - `cb-file-upload` : upload AJAX vers `/_content-blocks/upload` (preview + status), utilisé par `ImageUploadType`
+- `cb-tree` : le **navigateur** de la zone (voir plus bas)
 
 Ces controllers doivent être déclarés dans `assets/controllers.json` côté host — Flex l'écrit tout seul à l'install (mot-clé `symfony-ux` + `assets/package.json`), à la main sinon. Voir `packages/content-blocks/README.md`.
+
+### Navigateur — la zone en arborescence
+
+Le bouton **Navigateur** de la topbar (à gauche du sélecteur de viewport) ouvre l'arborescence : sections → colonnes → blocs, avec glisser-déposer, dupliquer et supprimer sur chaque section et chaque bloc. **Panneau flottant au-dessus de la preview**, pas un mode de sidebar : la sidebar reste l'endroit où l'on édite le nœud sélectionné, donc les deux servent ensemble (d'où : pas de backdrop, et Échap ne l'atteint qu'après toutes les vraies modales). **Il se déplace où l'on veut** — l'en-tête est la poignée (pointer events, donc souris/stylet/tactile), la position est bornée à la fenêtre du builder pour qu'il reste toujours attrapable, et re-bornée au redimensionnement. État ouvert/fermé et position sont retenus (`localStorage`).
+
+**Le plan ne détient aucun état du contenu.** La sélection reste les marqueurs de la sidebar — le panneau surligne ce que la sidebar a d'ouvert, que le clic vienne de l'arbre ou de la preview, exactement comme le presse-papier lit sa sélection. Les mutations sont les endpoints qui existaient déjà (`move`, `duplicate`, `delete`) : le panneau signale, `cb-builder` exécute, donc tout passe encore par la file sérialisée unique. `GET /_content-blocks/area/{id}/tree` (`TreeController` + `AreaTreeBuilder`, canEdit) rend l'ordre draft, sous-arbres supprimés élagués ; `_applyDraftState()` est le point de passage qui prévient le panneau que la zone a bougé — aucun appelant ne peut l'oublier.
+
+Une ligne de bloc, c'est **une icône plus une ligne de texte** : le texte vient de `BlockPreviewHintInterface` (le seam des vignettes de la bibliothèque) et retombe sur le label du type, l'icône est le `getIcon()` du type — le même glyphe que le picker d'ajout. Nommer le type *à côté* de ce label faisait doublon, un bloc sans rien à résumer lisant déjà son type comme label. **Les colonnes sont des nœuds en lecture seule** : dérivées du layout de la section, elles n'ont pas de CRUD propre. Le panneau vit à côté de `<main>` (c'est `.cb-shell` qu'il lui faut comme contexte de positionnement, pas une topbar de 56px), donc son bouton de topbar est hors de sa portée Stimulus : les deux se parlent par `cb:tree:toggle` / `cb:tree:state`. Détails : [docs/internals/frontend.md](docs/internals/frontend.md).
 
 ### ContentAreaType (FormType)
 Un FormType Symfony prêt à l'emploi pour intégrer un ContentArea dans n'importe quel formulaire :
@@ -368,7 +377,7 @@ final class PageAccessChecker implements AccessCheckerInterface
 }
 ```
 
-Every AJAX controller under `/_content-blocks/*` (`AreaController`, `BlocksController`, `SectionsController`, `BlockSidebarController`, `SectionSidebarController`, `ClipboardController`, `ReplaceController`, `ImportExportController`, `SectionTemplateController`, `UploadController`) and the `BlockComponent` Live Component call `canEdit()` before any mutation. For a cross-area paste, the check runs on the **target** area, not the source.
+Every AJAX controller under `/_content-blocks/*` (`AreaController`, `BlocksController`, `SectionsController`, `BlockSidebarController`, `SectionSidebarController`, `ClipboardController`, `ReplaceController`, `ImportExportController`, `SectionTemplateController`, `TreeController`, `UploadController`) and the `BlockComponent` Live Component call `canEdit()` before any mutation. For a cross-area paste, the check runs on the **target** area, not the source.
 
 ### CSRF Protection
 
@@ -663,7 +672,7 @@ npm test
 
 | Config | Fixture | Couvre |
 |---|---|---|
-| `playwright.config.js` | `content-blocks-sandbox` — Symfony 7/8, AssetMapper | le **comportement** du builder (105 specs) |
+| `playwright.config.js` | `content-blocks-sandbox` — Symfony 7/8, AssetMapper | le **comportement** du builder (138 specs) |
 | `playwright.encore.config.js` | `content-blocks-encore-sandbox` — Symfony 6.4, ORM 2, Webpack Encore | le **chemin d'installation** sous un bundler qu'on ne développe pas au quotidien, + l'éditeur rich-text bundlé par l'hôte (7 specs) |
 
 La suite Encore reste volontairement petite : tout ce qui passerait à l'identique sous les deux bundlers appartient à la suite principale. Elle existe parce qu'un bug de boot (le prepend `asset_mapper` inconditionnel) a pu vivre longtemps sans qu'aucun test ne le voie — la sandbox met `symfony/asset-mapper` dans son `conflict` Composer pour que la jambe ne puisse jamais redériver vers le chemin déjà couvert.

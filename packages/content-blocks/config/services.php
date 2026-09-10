@@ -181,6 +181,8 @@ return static function (ContainerConfigurator $container): void {
     // Nothing to configure: a block type opts into a richer tile by
     // implementing BlockPreviewHintInterface.
     $services->set(SectionPosterBuilder::class);
+    // Same seam, one level up: the tree's block rows read the same hint.
+    $services->set(\ContentBlocks\Builder\AreaTreeBuilder::class);
 
     // Nothing here stores a clipboard: it lives in localStorage, which is
     // what makes the payload untrusted. See docs/internals/clipboard.md

@@ -50,6 +50,14 @@ The admin UI deliberately mixes two technologies, each for what it does best:
 Do **not** use a LiveAction for operations that reorder child Live Components. Morphdom/Idiomorph cannot reconcile the reorder of child Live Components that use `data-live-preserve` — reordering must go through Stimulus/DOM, not a server round-trip morph.
 :::
 
+### Editor gestures: the navigator
+
+The topbar's **Navigator** button opens a floating panel listing the area as sections → columns → blocks, with drag-to-reorder, duplicate and delete on every section and block. The panel itself is draggable by its header — it floats over the content it describes, so it has to be movable off whatever it is hiding — and remembers where it was parked. It exists for the two things the render-faithful preview is bad at: seeing a long page at a glance, and moving a block from its top to its bottom without dragging past everything in between.
+
+It is a second **way in**, not a second state. Selecting a row opens the same sidebar a click in the preview opens and brings the preview to that element; the panel highlights whatever the sidebar has open, whichever side the click came from — the same "the sidebar *is* the selection" rule copy/paste follows below. Every action it offers is an endpoint the builder already had, so it writes to the **draft** and Publish / Discard behave exactly as before.
+
+A block row is its **icon plus a line of text**: the text comes from `BlockPreviewHintInterface` (the seam the section-library thumbnails use) and falls back to the type's label, while the icon is the block type's own `getIcon()` — the same glyph the add-block picker shows. Naming the type beside that label read as noise, since a block with nothing to summarise already reads its type as its label. **Columns appear as read-only nodes**: they are derived from the section's layout and have no operations of their own, so showing them keeps the outline honest without inventing CRUD the model does not have.
+
 ### Editor gestures: copy / paste
 
 Editors can copy a section or a block and paste it elsewhere — another section, another area, another page. It is deliberately **keyboard-only**: `Ctrl/Cmd-C` and `Ctrl/Cmd-V`, no toolbar button, no menu entry. The shortcut works from inside the preview iframe too (the overlay relays it), and it stands back whenever the keystroke belongs to the editor's own text — focus in a field, or a live text selection.

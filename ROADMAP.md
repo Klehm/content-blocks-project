@@ -195,30 +195,6 @@ Open design questions, worth settling before coding:
 
 ---
 
-## Tree view — the whole area as an outline 🅿️ (post-1.0)
-
-**Context.** The builder shows content as it renders, which is the right default and a poor way to see a long page. There is no view that answers "what is in this area, in order" — and no way to move a block from the top of the page to the bottom without dragging past everything in between.
-
-**Direction.** A topbar toggle opening the full outline — sections → columns → blocks — with drag-to-reorder, duplicate and delete on every node. Selecting a node opens the same sidebar a click in the preview opens, so the tree is a second way to reach existing state, not a second state to keep in sync.
-
-Two placements to choose between: a **floating panel over the preview** (fast to open and dismiss, overlaps the content it describes) or a **sidebar mode** (permanent, costs preview width, composes badly with the edit sidebar that already lives there). The floating panel looks likelier; worth a mockup before committing.
-
-Most of the backend already exists: section and block `move`, `duplicate` and `delete` are endpoints today, and the poster builder (`SectionPosterBuilder`) already proves the payload can describe an area's structure without knowing any block's data shape. Two gaps:
-
-- **A tree payload**: one `GET` returning the area's structure with a per-node label. Block labels want the same seam the section-library thumbnails use — `BlockPreviewHintInterface` already yields a heading/text/image summary, and a type that does not implement it falls back to its label.
-- **Columns are not first-class**: they are derived from the section's layout and column widths, with no CRUD of their own. Reordering columns is plausible (swap presets + reassign blocks); duplicating or deleting one means deciding what happens to the section's layout. Possibly the tree exposes columns as read-only nodes in v1 and only blocks and sections are actionable.
-
-**Rough scope when picked up:**
-- [ ] Placement decision (floating panel vs sidebar) — mockup first
-- [ ] `GET /_content-blocks/area/{id}/tree` + per-node labels via `BlockPreviewHintInterface`
-- [ ] `cb-tree` Stimulus controller (declare in `assets/package.json` + the three sandboxes' `controllers.json`)
-- [ ] Reorder / duplicate / delete wired to the existing endpoints, through `_mutationQueue`
-- [ ] Decide the column story (read-only nodes vs real column operations)
-- [ ] Selection sync both ways: tree → sidebar, preview click → highlighted node
-- [ ] Tests: Vitest on the controller, Playwright on reorder + duplicate + delete from the tree
-
----
-
 ## Adding to this roadmap
 
 Keep entries outcome-oriented: what problem, what direction, and (for larger ones) a rough scope checklist. Move an item to the relevant package `CHANGELOG.md` when it ships, and delete it here.

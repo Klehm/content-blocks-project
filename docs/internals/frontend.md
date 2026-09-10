@@ -44,8 +44,8 @@ anything inside it — a [shell fragment](builder-extensions.md), say:
   true**, since such a change is a draft write.
 
 Every other `cb:*` event across these two files is **internal choreography** —
-the `…-requested`, `…:apply`, `…:patch` and `…:desync` families in particular.
-They may be renamed, split or removed in any minor release.
+the `…-requested`, `…:apply`, `…:patch`, `…:desync` and `cb:tree:*` families in
+particular. They may be renamed, split or removed in any minor release.
 
 A `cb:area:changed` **supersedes** a pending debounced reload rather than
 coalescing with it: the area just changed wholesale, and waiting out the quiet
@@ -131,6 +131,65 @@ overlay replies `cb:focus:not-found` and the parent clears the stale form.
 A newly inserted section wins over the restored scroll position: it lands at the
 end of the area, often below the fold, and restoring the old scroll would hide
 the one thing the editor wants to see.
+
+## The tree is a second view, not a second state
+
+The outline panel (`cb-tree`) answers "what is in this area, in order" and lets
+an editor move a block from the top of a long page to the bottom without
+dragging past everything in between. It owns **no** state of the content:
+
+- **Selection** is still the sidebar's mount markers. The panel highlights
+  whatever the sidebar has open, whether the click landed in the tree or in the
+  preview, and it never records a selection of its own. Same reason the
+  clipboard reads its selection there.
+- **Mutations** are the endpoints that already existed — `move`, `duplicate`,
+  `delete` on sections and blocks. The panel signals; `cb-builder` performs, so
+  everything still funnels through the one serialized queue.
+- **The outline** is re-fetched from `GET /_content-blocks/area/{id}/tree`, and
+  `_applyDraftState()` is where the panel is told the area moved under it —
+  every mutation path passes through it, so no call site can forget.
+
+The panel is **not a modal**: the sidebar is where a selected node is edited, so
+the two are used together. Hence a floating panel over the preview rather than a
+second sidebar mode, no backdrop, and Escape reaching it only after every real
+modal has had its turn.
+
+Its DOM home is beside `<main>`, not in the topbar: `.cb-shell` is the
+positioning context it needs, and the topbar is 56px tall. (Anchored inside the
+topbar, `max-height: calc(100% - 84px)` resolves against 56px and the panel
+collapses to nothing.) The toggle button stays in the topbar and therefore
+outside the panel's Stimulus scope, so the two talk through `cb:tree:toggle` and
+`cb:tree:state` like everything else here.
+
+**The panel is movable, and that is not a nicety.** It floats over the very
+content it describes, so it has to be draggable off whatever it is hiding — by
+its header, on pointer events so mouse, pen and touch share one path. Two rules
+keep it usable: the position is **clamped** to the shell on every move, on open,
+and on window resize (a panel dragged fully out has no way back), and it is only
+written as an inline `left`/`top` **once the editor has moved it** — until then
+the CSS default applies, which follows the sidebar's width and its collapsed
+state. That is also why `max-width` stopped being derived from
+`--cb-sidebar-width`: after a drag, `left` is a pixel value and the sidebar has
+nothing to do with how wide the panel may be.
+
+**A block row is a glyph plus a line of text.** The text comes from
+`BlockPreviewHintInterface` — the same seam the section library's thumbnails
+read — and falls back to the type's label when the block has nothing to
+summarise. The glyph is `BlockTypeInterface::getIcon()`, trusted block-author
+SVG injected as-is, exactly as the in-preview block picker does it.
+
+Naming the type *beside* that label was the first cut, and it read as noise: a
+gallery with no caption showed "Galerie" twice over. The icon says the type
+without spending a word on it, and it is the same glyph the picker used when the
+block was added — so the row is recognisable rather than merely labelled. A type
+shipping no icon gets a generic square; `cb-tree` carries its own copy of that
+fallback because the overlay is a separate document and the two share no module
+graph.
+
+**Columns are read-only nodes.** They are derived from the section's layout and
+have no CRUD of their own; deleting or duplicating one would mean deciding what
+happens to the layout. Showing them keeps the outline structurally honest
+without inventing operations the model does not have.
 
 ### Keyboard and clipboard
 

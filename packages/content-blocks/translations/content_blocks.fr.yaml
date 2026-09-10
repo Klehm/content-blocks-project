@@ -94,6 +94,20 @@ cb:
         toggle_sidebar: "Afficher / masquer la sidebar"
         sidebar:
             empty: "Cliquez sur un élément de l'aperçu pour le modifier."
+        tree:
+            open: "Navigateur"
+            title: "Navigateur de contenu"
+            close: "Fermer le navigateur"
+            move: "Glisser pour déplacer ce panneau"
+            column: "Colonne %index%"
+            empty: "Rien pour l'instant — ajoutez une section pour commencer."
+            loading: "Chargement…"
+            error: "Impossible de charger le navigateur."
+            duplicate: "Dupliquer"
+            delete: "Supprimer"
+            drag: "Glisser pour déplacer"
+            collapse: "Replier"
+            expand: "Déplier"
         replace:
             open: "Insérer du contenu"
             title: "Remplacer par un autre contenu"

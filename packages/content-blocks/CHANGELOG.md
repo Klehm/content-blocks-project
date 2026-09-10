@@ -5,6 +5,40 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Navigator — the whole area as an outline.** A topbar button, beside the
+  viewport switcher, opens a floating panel listing sections → columns → blocks,
+  with drag-to-reorder, duplicate and delete on every section and block. It
+  answers "what is in this area, in order", and it is how a block moves from the
+  top of a long page to the bottom without being dragged past everything in
+  between. The panel is draggable by its header — it floats over the content it
+  describes, so it must be movable off whatever it is hiding — kept inside the
+  builder window, and it remembers both its open state and where it was parked.
+
+  It deliberately holds **no** state of its own. Selection is still the sidebar's
+  mount markers — the panel highlights whatever the sidebar has open, whether the
+  click landed in the tree or in the preview — and every action is an endpoint
+  that already existed (`move`, `duplicate`, `delete`), signalled to `cb-builder`
+  so it still goes through the one serialized mutation queue. The outline itself
+  comes from one new read-only endpoint, `GET /_content-blocks/area/{id}/tree`
+  (`TreeController`, `canEdit`), built by `AreaTreeBuilder` in draft order with
+  soft-deleted subtrees pruned.
+
+  A block row is its icon plus a line of text: the text from
+  `BlockPreviewHintInterface` (the same seam the section library's thumbnails
+  read), falling back to the type's label, and the icon from the type's own
+  `getIcon()` — the same glyph the add-block picker shows. Columns appear as
+  **read-only** nodes: they are derived from the section's layout and have no
+  CRUD of their own.
+
+  A floating panel rather than a second sidebar mode, because the sidebar is where
+  a selected node is edited — the two are used together. New Stimulus controller
+  `cb-tree`, to declare in the host's `assets/controllers.json` (Flex writes it at
+  install).
+
 ## [1.0.0-RC5] - 2026-09-10
 
 ### Added

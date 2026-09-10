@@ -51,6 +51,10 @@
             "cb-file-upload": {
                 "enabled": true,
                 "fetch": "eager"
+            },
+            "cb-tree": {
+                "enabled": true,
+                "fetch": "eager"
             }
         },
         "@klehm/content-blocks-kit": {

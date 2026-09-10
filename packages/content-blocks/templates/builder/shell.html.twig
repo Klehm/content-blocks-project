@@ -97,6 +97,16 @@
         </div>
 
         <div class="cb-shell__topbar-right">
+            {# The panel it drives lives beside <main>, not here: floating
+               over the preview needs the shell as containing block. #}
+            <button type="button"
+                    class="cb-shell__tree-toggle"
+                    data-action="cb-builder#toggleTree"
+                    aria-haspopup="dialog"
+                    aria-expanded="false">
+                <span class="cb-shell__btn-icon" aria-hidden="true">☰</span>
+                <span class="cb-shell__btn-label">{{ 'cb.builder.tree.open'|trans({}, 'content_blocks') }}</span>
+            </button>
             {# Right cluster, not centred: the canvas is offset by the
                sidebar, so a centred switcher never lined up with it. #}
             <div class="cb-shell__viewport" role="group">
@@ -275,6 +285,43 @@
                 class="cb-shell__iframe"
                 title="{{ 'cb.builder.preview'|trans({}, 'content_blocks') }}"></iframe>
     </main>
+
+    {# Floats over the preview, so it sits where the undo snackbar does —
+       absolute against the shell, not inside a topbar 56px tall. #}
+    <div class="cb-tree"
+         data-controller="cb-tree"
+         data-cb-tree-area-id-value="{{ area.id }}"
+         role="dialog"
+         aria-label="{{ 'cb.builder.tree.title'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-tree-empty="{{ 'cb.builder.tree.empty'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-tree-loading="{{ 'cb.builder.tree.loading'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-tree-error="{{ 'cb.builder.tree.error'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-tree-duplicate="{{ 'cb.builder.tree.duplicate'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-tree-delete="{{ 'cb.builder.tree.delete'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-tree-drag="{{ 'cb.builder.tree.drag'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-tree-collapse="{{ 'cb.builder.tree.collapse'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-tree-expand="{{ 'cb.builder.tree.expand'|trans({}, 'content_blocks') }}"
+         hidden>
+        {# The header is the drag handle: a panel that floats over the content
+           it describes has to be movable off whatever it is hiding. #}
+        <header class="cb-tree__header"
+                data-cb-tree-target="handle"
+                data-action="pointerdown->cb-tree#startDrag"
+                title="{{ 'cb.builder.tree.move'|trans({}, 'content_blocks') }}">
+            <h3 class="cb-tree__title">{{ 'cb.builder.tree.title'|trans({}, 'content_blocks') }}</h3>
+            <button type="button"
+                    class="cb-tree__close"
+                    data-action="cb-tree#close"
+                    aria-label="{{ 'cb.builder.tree.close'|trans({}, 'content_blocks') }}">×</button>
+        </header>
+        <div class="cb-tree__body">
+            <ul class="cb-tree__list" data-cb-tree-target="list"></ul>
+            <p class="cb-tree__status"
+               data-cb-tree-target="status"
+               role="status"
+               aria-live="polite"></p>
+        </div>
+    </div>
 
     {# Two uses, one element: the undo offer, and the acknowledgement a copy
        needs since it changes nothing on screen. #}

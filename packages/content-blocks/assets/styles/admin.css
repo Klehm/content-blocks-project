@@ -264,6 +264,260 @@
   color: inherit;
 }
 
+/* ---- Tree panel ----
+   Floats over the preview: the edit sidebar already owns the left track. */
+
+.cb-shell__tree-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.375rem 0.75rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--cb-radius-sm);
+  color: var(--cb-accent);
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+}
+.cb-shell__tree-toggle:hover,
+.cb-shell__tree-toggle--open {
+  background: rgba(var(--cb-accent-rgb), 0.08);
+  border-color: rgba(var(--cb-accent-rgb), 0.25);
+}
+
+/* Absolute against .cb-shell — hence its place beside <main> in the markup —
+   so it clears the sidebar whatever width it has been dragged to. */
+.cb-tree {
+  position: absolute;
+  top: 68px;
+  left: calc(var(--cb-sidebar-width) + 16px);
+  z-index: 28;
+  width: 320px;
+  /* Not derived from the sidebar's width: once the editor drags the panel,
+     `left` is an inline pixel value and that constraint no longer holds. */
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 84px);
+  display: flex;
+  flex-direction: column;
+  background: var(--cb-panel);
+  border: 1px solid var(--cb-line);
+  border-radius: var(--cb-radius);
+  box-shadow: 0 12px 32px rgba(var(--cb-shadow-rgb), 0.18);
+  overflow: hidden;
+}
+.cb-shell--sidebar-collapsed .cb-tree {
+  left: calc(var(--cb-sidebar-collapsed-width) + 16px);
+}
+.cb-tree[hidden] {
+  display: none;
+}
+
+/* The whole header is the drag handle, so the panel can be moved off
+   whatever it is covering. `touch-action` keeps a touch-drag from scrolling. */
+.cb-tree__header {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--cb-panel-2);
+  background: var(--cb-panel-3);
+}
+.cb-tree__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--cb-text);
+}
+.cb-tree__close {
+  background: transparent;
+  border: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0.15rem 0.35rem;
+  cursor: pointer;
+  color: var(--cb-muted);
+}
+.cb-tree__close:hover {
+  color: var(--cb-text);
+}
+/* Lifted while moving, so it reads as picked up rather than redrawn. */
+.cb-tree--dragging {
+  box-shadow: 0 20px 48px rgba(var(--cb-shadow-rgb), 0.28);
+}
+.cb-tree--dragging .cb-tree__header {
+  cursor: grabbing;
+}
+
+.cb-tree__body {
+  padding: 0.5rem;
+  overflow-y: auto;
+}
+.cb-tree__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cb-tree__status {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--cb-muted);
+}
+.cb-tree__status:empty {
+  display: none;
+}
+
+.cb-tree__section + .cb-tree__section {
+  margin-top: 2px;
+}
+.cb-tree__children {
+  margin-left: 0.75rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--cb-line);
+}
+.cb-tree__blocks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* Dropping into an empty column needs a target with height. */
+  min-height: 18px;
+}
+
+/* The row owns the scale and the name inherits it, so the column rule below
+   can drop its own subtree back to caption size. */
+.cb-tree__row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.25rem;
+  border-radius: var(--cb-radius-xs);
+  min-width: 0;
+  font-size: 0.8125rem;
+}
+.cb-tree__row:hover {
+  background: var(--cb-panel-3);
+}
+.cb-tree__row--section {
+  font-weight: 600;
+}
+.cb-tree__row--column {
+  color: var(--cb-faint);
+  font-size: var(--cb-caption-size);
+  letter-spacing: var(--cb-caption-tracking);
+  text-transform: uppercase;
+}
+.cb-tree__row--column:hover {
+  background: transparent;
+}
+.cb-tree__row--selected,
+.cb-tree__row--selected:hover {
+  background: var(--cb-accent-bg);
+  color: var(--cb-accent-darker);
+}
+
+.cb-tree__drag {
+  flex: none;
+  color: var(--cb-faint);
+  cursor: grab;
+  /* Or a touch-drag on the handle is hijacked by the panel's scroll. */
+  touch-action: none;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+.cb-tree__twisty {
+  flex: none;
+  width: 1rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--cb-muted);
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.cb-tree__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  /* Resets the button's own font; the row above decides the size. */
+  font: inherit;
+  text-align: left;
+}
+.cb-tree__name--action {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+/* The column preset (`col-6`), which has no glyph to stand for it. */
+.cb-tree__chip {
+  flex: none;
+  padding: 0.05rem 0.3rem;
+  border-radius: var(--cb-radius-xs);
+  background: var(--cb-panel-2);
+  color: var(--cb-muted);
+  font-family: var(--cb-font-mono);
+  font-size: var(--cb-caption-size);
+  font-weight: 400;
+}
+
+/* A block says its type as a glyph: repeating the type as a word beside a
+   label that is often the type itself read as noise. */
+.cb-tree__icon {
+  flex: none;
+  display: inline-flex;
+  color: var(--cb-muted);
+}
+.cb-tree__icon svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+.cb-tree__icon--missing {
+  color: var(--cb-danger);
+}
+.cb-tree__row--selected .cb-tree__icon {
+  color: inherit;
+}
+
+/* Revealed on hover or keyboard focus: two glyphs per row, on every row,
+   read as clutter in a list this dense. */
+.cb-tree__actions {
+  flex: none;
+  display: flex;
+  gap: 1px;
+  opacity: 0;
+}
+.cb-tree__row:hover .cb-tree__actions,
+.cb-tree__row:focus-within .cb-tree__actions {
+  opacity: 1;
+}
+.cb-tree__act {
+  padding: 0 0.2rem;
+  background: transparent;
+  border: 0;
+  color: var(--cb-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.cb-tree__act:hover {
+  color: var(--cb-text);
+}
+
 /* ---- Modal pickers ----
    Anchoring put a 360px column in the corner of a 1600px screen. */
 
@@ -1013,6 +1267,22 @@
   .cb-import-export-picker {
     width: calc(100% - 16px);
     max-height: calc(100% - 32px);
+  }
+  /* Icon-only, like Discard: the word does not fit beside it here. */
+  .cb-shell__tree-toggle {
+    padding: 0.375rem 0.5rem;
+  }
+  .cb-shell__tree-toggle .cb-shell__btn-label {
+    display: none;
+  }
+  /* The sidebar is a bottom sheet here, so the panel takes the full width
+     instead of clearing a left column that no longer exists. */
+  .cb-tree,
+  .cb-shell--sidebar-collapsed .cb-tree {
+    left: 8px;
+    width: calc(100% - 16px);
+    max-width: calc(100% - 16px);
+    max-height: calc(100% - 96px);
   }
   .cb-shell__publish {
     padding: 0.375rem 0.65rem;

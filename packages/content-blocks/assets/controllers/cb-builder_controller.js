@@ -97,6 +97,12 @@ export default class extends Controller {
         this._onAreaChanged = this._onAreaChanged.bind(this);
         this._onDocumentPointerDown = this._onDocumentPointerDown.bind(this);
         this._onDocumentKeydown = this._onDocumentKeydown.bind(this);
+        this._onTreeSelect = this._onTreeSelect.bind(this);
+        this._onTreeDuplicate = this._onTreeDuplicate.bind(this);
+        this._onTreeDelete = this._onTreeDelete.bind(this);
+        this._onTreeSectionMove = this._onTreeSectionMove.bind(this);
+        this._onTreeBlockMove = this._onTreeBlockMove.bind(this);
+        this._onTreeState = this._onTreeState.bind(this);
 
         window.addEventListener('message', this._onMessage);
         window.addEventListener('resize', this._onWindowResize);
@@ -115,6 +121,14 @@ export default class extends Controller {
         // Inbound: a shell fragment (or the host) changed the area through
         // its own endpoints and asks the builder to catch up.
         this.element.addEventListener('cb:area:changed', this._onAreaChanged);
+        // The tree panel signals; this controller acts, so every mutation
+        // still goes through one queue. See docs/internals/frontend.md
+        this.element.addEventListener('cb:tree:select', this._onTreeSelect);
+        this.element.addEventListener('cb:tree:duplicate', this._onTreeDuplicate);
+        this.element.addEventListener('cb:tree:delete', this._onTreeDelete);
+        this.element.addEventListener('cb:tree:section:move', this._onTreeSectionMove);
+        this.element.addEventListener('cb:tree:block:move', this._onTreeBlockMove);
+        this.element.addEventListener('cb:tree:state', this._onTreeState);
 
         this._restoreSidebarWidth();
         this._restoreSidebarCollapsed();
@@ -140,6 +154,12 @@ export default class extends Controller {
         this.element.removeEventListener('live:connect', this._onLiveConnect);
         this.element.removeEventListener('cb:save:error', this._onSaveError);
         this.element.removeEventListener('cb:area:changed', this._onAreaChanged);
+        this.element.removeEventListener('cb:tree:select', this._onTreeSelect);
+        this.element.removeEventListener('cb:tree:duplicate', this._onTreeDuplicate);
+        this.element.removeEventListener('cb:tree:delete', this._onTreeDelete);
+        this.element.removeEventListener('cb:tree:section:move', this._onTreeSectionMove);
+        this.element.removeEventListener('cb:tree:block:move', this._onTreeBlockMove);
+        this.element.removeEventListener('cb:tree:state', this._onTreeState);
         document.removeEventListener('mousemove', this._onResizeMove);
         document.removeEventListener('mouseup', this._onResizeEnd);
         document.removeEventListener('pointerdown', this._onDocumentPointerDown);
@@ -229,6 +249,13 @@ export default class extends Controller {
         }
         if (this.hasImportExportPickerTarget && !this.importExportPickerTarget.hidden) {
             this.closeImportExport();
+            return true;
+        }
+        // Last: the tree is a panel the editor works alongside, so it yields
+        // to any real modal.
+        const tree = this.element.querySelector('.cb-tree');
+        if (tree && !tree.hidden) {
+            this._signalTree('cb:tree:close');
             return true;
         }
 
@@ -420,6 +447,99 @@ export default class extends Controller {
         this.reload();
     }
 
+    // ---------- Tree panel ----------
+
+    /**
+     * Action: the topbar button. The panel sits beside `<main>` so it can
+     * float over the preview, which puts it outside this button's scope.
+     */
+    toggleTree(event) {
+        if (event) event.preventDefault();
+        this.closeActions();
+        this._signalTree('cb:tree:toggle');
+    }
+
+    /** Keeps the topbar button in step with a panel it cannot see. */
+    _onTreeState(event) {
+        const open = event.detail?.open === true;
+        const toggle = this.element.querySelector('.cb-shell__tree-toggle');
+        if (!toggle) return;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.classList.toggle('cb-shell__tree-toggle--open', open);
+        // Or focus falls to <body> and the next Tab restarts from the top
+        // of the shell.
+        if (!open) toggle.focus({ preventScroll: true });
+    }
+
+    _signalTree(type) {
+        this.element.dispatchEvent(new CustomEvent(type, {
+            bubbles: true,
+            detail: { areaId: this.areaIdValue },
+        }));
+    }
+
+    /**
+     * Selecting a row does what clicking the element does — opens its sidebar
+     * — and brings the preview to it, since the row may be a page away.
+     */
+    _onTreeSelect(event) {
+        const { kind, id } = event.detail ?? {};
+        if (!Number.isFinite(id)) return;
+        if (kind === 'block') {
+            this._mountSidebar(id);
+            this._postToPreview({ type: 'cb:focus:block', blockId: id });
+            this._postToPreview({ type: 'cb:block:scroll-into-view', blockId: id });
+        } else if (kind === 'section') {
+            this._mountSectionSettings(id);
+            this._postToPreview({ type: 'cb:focus:section', sectionId: id });
+            this._postToPreview({ type: 'cb:section:scroll-into-view', sectionId: id });
+        }
+    }
+
+    _onTreeDuplicate(event) {
+        const { kind, id } = event.detail ?? {};
+        if (!Number.isFinite(id)) return;
+        if (kind === 'block') this._duplicateBlock(id);
+        else if (kind === 'section') this._duplicateSection(id);
+    }
+
+    _onTreeDelete(event) {
+        const { kind, id } = event.detail ?? {};
+        if (!Number.isFinite(id)) return;
+        if (kind === 'block') this._deleteBlock(id);
+        else if (kind === 'section') this._deleteSection(id);
+    }
+
+    _onTreeSectionMove(event) {
+        const { sectionId, position } = event.detail ?? {};
+        this._reorderSection(sectionId, position);
+    }
+
+    _onTreeBlockMove(event) {
+        const { blockId, toColumnId, position } = event.detail ?? {};
+        this._moveBlock(blockId, toColumnId, position);
+    }
+
+    /** Tells the tree its outline is stale. A closed panel just notes it. */
+    _invalidateTree() {
+        this.element.dispatchEvent(new CustomEvent('cb:tree:invalidate', {
+            bubbles: true,
+            detail: { areaId: this.areaIdValue },
+        }));
+    }
+
+    /**
+     * The sidebar *is* the selection, so the tree's highlight follows its
+     * mount markers rather than tracking a second state.
+     */
+    _broadcastSelection() {
+        const { blockId, sectionId } = this._selectionIds();
+        this.element.dispatchEvent(new CustomEvent('cb:tree:selection', {
+            bubbles: true,
+            detail: { areaId: this.areaIdValue, blockId, sectionId },
+        }));
+    }
+
     _applyDraftState(hasUnpublishedChanges) {
         // Hidden rather than disabled, so it is only ever seen when it is
         // actionable.
@@ -443,6 +563,11 @@ export default class extends Controller {
         } else if (!hasUnpublishedChanges && badge) {
             badge.remove();
         }
+
+        // Last, and every mutation path passes through here: this is the one
+        // place the tree has to be told the area moved under it. A listener
+        // that throws must not cost the buttons above their sync.
+        this._invalidateTree();
     }
 
     async addSection(event) {
@@ -1173,6 +1298,7 @@ export default class extends Controller {
             for (const [k, v] of Object.entries(dataAttrs)) {
                 this.sidebarTarget.setAttribute(k, v);
             }
+            this._broadcastSelection();
             // So the focused element is not covered by the mobile sheet.
             this._ensureFocusedVisible();
         } catch (e) {
@@ -1197,6 +1323,7 @@ export default class extends Controller {
         if (typeof this._sidebarEmptyHtml !== 'string') return;
         this.sidebarContentTarget.innerHTML = this._sidebarEmptyHtml;
         this._clearSidebarDataAttrs();
+        this._broadcastSelection();
         // The snapshot's library list is empty and only this controller
         // knows what was in it, so repaint from cache.
         this._showTemplates();
