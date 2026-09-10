@@ -78,6 +78,12 @@
                 "name": "cb-file-upload",
                 "fetch": "eager",
                 "enabled": true
+            },
+            "cb-tree": {
+                "main": "controllers/cb-tree_controller.js",
+                "name": "cb-tree",
+                "fetch": "eager",
+                "enabled": true
             }
         },
         "importmap": {

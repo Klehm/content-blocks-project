@@ -71,7 +71,8 @@ Flex writes that block for you: both packages carry the `symfony-ux` keyword, so
             "cb-viewport-tabs":         { "enabled": true, "fetch": "eager" },
             "cb-collection-sort":       { "enabled": true, "fetch": "eager" },
             "cb-condition":             { "enabled": true, "fetch": "eager" },
-            "cb-file-upload":           { "enabled": true, "fetch": "eager" }
+            "cb-file-upload":           { "enabled": true, "fetch": "eager" },
+            "cb-tree":                  { "enabled": true, "fetch": "eager" }
         }
     },
     "entrypoints": []
@@ -82,7 +83,7 @@ That file is the same under either bundler — `assets/controllers.json` is Symf
 UX's format, not AssetMapper's.
 
 **With AssetMapper**, nothing else to declare. `cb-collection-sort` (drag-and-drop
-reordering of collection fields) depends on
+reordering of collection fields) and `cb-tree` (the navigator panel) depend on
 [SortableJS](https://github.com/SortableJS/Sortable) — pin it in your importmap once:
 
 ```bash
@@ -246,6 +247,37 @@ Background colours need no hint: the `styling` sub-tree is the package's own sch
 **Implementing it is optional.** A block type that doesn't still appears in the thumbnail — as a tile bearing its label — so nothing breaks and no existing block needs touching. The kit implements it on the fourteen blocks that have something to show; `icon`, `table` and `html_raw` deliberately stay labelled tiles.
 
 Two things to keep in mind when writing one: the `$data` you receive is **raw stored data of unknown age** (an older version of your block may have written a different shape, so null-coalesce and check types rather than assume), and **no `BlockDataResolverInterface` has run on it** — a hint sees stored values, not resolved ones. Returning `null` is always safe and means "nothing to show here".
+
+### Navigator — the area as an outline
+
+The topbar's **Navigator** button, beside the viewport switcher, opens a floating
+panel listing the area as sections → columns → blocks, with drag-to-reorder,
+duplicate and delete on every section and block. It is how an editor sees a long
+page at a glance, and how a block gets from the top of one to the bottom without
+being dragged past everything in between.
+
+The panel is **draggable by its header**: it floats over the content it
+describes, so it has to be movable off whatever it is hiding. It is kept inside
+the builder window (a panel dragged fully out has no way back) and remembers both
+its open state and where it was parked.
+
+Selecting a row opens the same sidebar a click in the preview opens, and brings
+the preview to that element — the tree is a second *way in*, not a second state:
+the panel highlights whatever the sidebar has open, whichever side the click came
+from. Every action it offers is an endpoint the builder already had, so
+everything still writes to the **draft** and Publish / Discard behave exactly as
+before, snackbar undo included.
+
+Nothing to configure. Two things worth knowing:
+
+- **A block row is its icon plus a line of text.** The text comes from
+  `BlockPreviewHintInterface` — the same seam the section-library thumbnails read
+  (above) — falling back to the type's label when the block has nothing to
+  summarise. The icon is the block type's own `getIcon()`, the same glyph the
+  add-block picker shows; a type shipping neither still gets a readable row.
+- **Columns are read-only nodes.** They are derived from the section's layout and
+  have no operations of their own; they appear so the outline stays structurally
+  honest, but only sections and blocks are actionable.
 
 ### Copy / paste (`Ctrl/Cmd-C`, `Ctrl/Cmd-V`)
 

@@ -91,7 +91,8 @@ The block, for reference (and to add by hand on a Flex-less install):
             "cb-viewport-tabs":         { "enabled": true, "fetch": "eager" },
             "cb-collection-sort":       { "enabled": true, "fetch": "eager" },
             "cb-condition":             { "enabled": true, "fetch": "eager" },
-            "cb-file-upload":           { "enabled": true, "fetch": "eager" }
+            "cb-file-upload":           { "enabled": true, "fetch": "eager" },
+            "cb-tree":                  { "enabled": true, "fetch": "eager" }
         }
     },
     "entrypoints": []
@@ -106,7 +107,7 @@ The `autoimport` block on `cb-builder-launcher` pulls in `admin.css` (styles for
 
 Nothing to declare: the bundles register their `assets/` directory under the `@klehm/content-blocks` and `@klehm/content-blocks-kit` namespaces, so Stimulus Bundle finds the controllers referenced above.
 
-`cb-collection-sort` (drag-and-drop reordering of collection fields) depends on [SortableJS](https://github.com/SortableJS/Sortable). Pin it in your importmap once:
+`cb-collection-sort` (drag-and-drop reordering of collection fields) and `cb-tree` (the navigator panel) depend on [SortableJS](https://github.com/SortableJS/Sortable). Pin it in your importmap once:
 
 ```bash
 php bin/console importmap:require sortablejs

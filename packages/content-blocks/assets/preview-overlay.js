@@ -985,6 +985,14 @@
             return;
         }
 
+        // The tree's counterpart: a selected row can be a page away from
+        // whatever the preview is currently showing.
+        if (data.type === 'cb:block:scroll-into-view' && Number.isFinite(data.blockId)) {
+            const el = document.querySelector(`[data-cb-block-id="${data.blockId}"]`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
         if (!data.type.startsWith('cb:focus:')) return;
 
         if (data.type === 'cb:focus:block' && Number.isFinite(data.blockId)) {

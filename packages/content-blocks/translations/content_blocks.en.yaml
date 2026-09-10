@@ -94,6 +94,20 @@ cb:
         toggle_sidebar: "Toggle sidebar"
         sidebar:
             empty: "Click an element in the preview to edit it."
+        tree:
+            open: "Navigator"
+            title: "Content navigator"
+            close: "Close the navigator"
+            move: "Drag to move this panel"
+            column: "Column %index%"
+            empty: "Nothing here yet — add a section to start."
+            loading: "Loading…"
+            error: "Failed to load the navigator."
+            duplicate: "Duplicate"
+            delete: "Delete"
+            drag: "Drag to move"
+            collapse: "Collapse"
+            expand: "Expand"
         replace:
             open: "Insert content"
             title: "Replace with another content"
