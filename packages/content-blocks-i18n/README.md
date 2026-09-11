@@ -351,9 +351,17 @@ Two decisions are worth knowing about:
 along every clone and export for free; it is also opaque, so "which pages are
 missing German?" would mean deserializing every block's JSON. A multilingual
 site is run from exactly that view. The cost is the mirror image — every flow
-that duplicates a block has to duplicate its rows, which the core's
-`BlockCloneObserverInterface` seam makes possible — and a prefetch on the render
-path so a translated page stays one query rather than one per block.
+that duplicates or serializes a block has to be taught to carry its rows, which
+the core's `BlockCloneObserverInterface` and
+`ContentAreaTransferExtensionInterface` seams make possible — and a prefetch on
+the render path so a translated page stays one query rather than one per block.
+
+Concretely, **an export carries its translations**: the payload grows an
+`extensions."content-blocks/i18n"` fragment holding, per block and per locale,
+the stored values and the staleness digests captured with them. Importing that
+file into an installation without this package simply skips the fragment; a
+block the importer skips takes its translations with it. Copy/paste and saved
+section templates do **not** carry translations yet.
 
 **Collection entries are keyed by their `_id`, never by position.** Reordering,
 duplicating or deleting a card shifts every position after it; keying per-entry

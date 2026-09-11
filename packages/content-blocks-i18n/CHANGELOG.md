@@ -5,6 +5,36 @@ All notable changes to `klehm/content-blocks-i18n` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Translations now travel with an export.** `TranslationTransferExtension`
+  rides the core's new `ContentAreaTransferExtensionInterface`, writing an
+  `extensions."content-blocks/i18n"` fragment that holds each block's values and
+  staleness digests per locale, and replaying it on import.
+
+  Until now a translated page exported to JSON came back structurally identical
+  and entirely untranslated, with no warning — the side-table schema carries its
+  rows through cloning and insert-content, but nothing had taught the transfer
+  flow. Images referenced only by a translated rich-text value were missing from
+  the export for the same reason; they are embedded now, through the core's
+  shared asset seam.
+
+  Three behaviours worth knowing:
+
+  - **Digests are carried, never recomputed.** A digest asserts "translated from
+    *this* source", which only the side that translated it can know; re-hashing
+    on arrival would report every stale field as up to date.
+  - **Every locale is imported**, configured in the target installation or not —
+    a row for an unconfigured locale renders nothing, and dropping it would
+    destroy content that one config line makes usable.
+  - **Rows land in the draft**, like every other write here: the imported page
+    and its translations go live together at the next Publish.
+
+  Nothing to wire, and nothing changes for an installation without this package:
+  the core skips a fragment no extension claims.
+
 ## [1.0.0-RC5] - 2026-09-10
 
 ### Added
