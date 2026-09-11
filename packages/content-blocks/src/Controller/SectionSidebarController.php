@@ -6,6 +6,8 @@ namespace ContentBlocks\Controller;
 
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Form\Type\SectionSettingsType;
+use ContentBlocks\History\ActionJournal;
+use ContentBlocks\History\JournalScope;
 use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
@@ -39,6 +41,7 @@ final class SectionSidebarController
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly SectionSettingsDefaults $settingsDefaults,
         private readonly SectionStyleRegistry $styleRegistry,
+        private readonly ActionJournal $journal,
     ) {
     }
 
@@ -108,8 +111,18 @@ final class SectionSidebarController
                 if (($data['stylingCustom'] ?? false) !== true) {
                     unset($data['styling']);
                 }
-                $section->setDraftSettings($this->normalize($data));
-                $this->em->flush();
+                // Coalesced per section: the sidebar autosaves, and a slider
+                // dragged across its range must not be forty undo steps.
+                $this->journal->record(
+                    $area,
+                    'section.settings',
+                    JournalScope::sectionSettings($section),
+                    function () use ($section, $data): void {
+                        $section->setDraftSettings($this->normalize($data));
+                        $this->em->flush();
+                    },
+                    'section.settings:' . $id,
+                );
 
                 return new Response('', 204);
             }

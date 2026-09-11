@@ -113,6 +113,11 @@ final class BuilderToggleTemplatesTest extends TestCase
         // The shell asks for contributed fragments; none here (see
         // BuilderShellFragmentsTemplateTest for that contract).
         $env->addFunction(new TwigFunction('cb_shell_fragments', static fn (ContentArea $area): array => []));
+        // The undo/redo pair starts from the journal; an empty stack here.
+        $env->addFunction(new TwigFunction(
+            'cb_history_state',
+            static fn (ContentArea $area): array => ['canUndo' => false, 'canRedo' => false],
+        ));
 
         return $env;
     }

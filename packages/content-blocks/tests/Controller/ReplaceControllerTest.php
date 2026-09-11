@@ -31,6 +31,7 @@ final class ReplaceControllerTest extends ControllerTestCase
             $this->createMock(ContentAreaProviderInterface::class),
             new SectionCloner(),
             $this->makeCsrfManager($csrfValid),
+            $this->makeJournal($em),
         );
     }
 

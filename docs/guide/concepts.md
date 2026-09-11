@@ -81,6 +81,20 @@ The last row is the rule that matters: pasting a block with nothing selected has
 Storing the entry in the browser is what lets a copy survive leaving the page — and what makes the payload user-writable. Every pasted block is therefore replayed through its own form before anything is written. See [Security → the clipboard goes through the same door](./security.md#the-clipboard-goes-through-the-same-door).
 :::
 
+### Editor gestures: undo / redo
+
+`Ctrl/Cmd-Z` walks back through the actions of the current builder session, one at a time; `Ctrl/Cmd-Shift-Z` (or `Ctrl-Y`) walks forward again. It covers everything the builder does — create, move, duplicate, delete, paste, insert content, import, a section's settings, a block's fields — and it follows copy/paste's rules exactly: keyboard-only, relayed from inside the preview, and standing back whenever the keystroke belongs to the editor's own text.
+
+Between the delete snackbar (one delete, six seconds) and Discard (the whole unpublished draft, irreversibly), there was nothing. This is that middle.
+
+Three things are worth knowing before you rely on it:
+
+- **It writes to the draft, like everything else.** Undoing never touches the published page; Publish is still the only gesture that does. A soft-deleted block that an undo brings back was on the live page the whole time.
+- **The stack is per HTTP session and lives in a table**, so it survives a page reload — which is exactly when an editor wants it. Publishing or discarding empties it: the draft those entries describe is gone either way.
+- **A step whose target moved under it is refused**, with a message, rather than guessed. Two people on one page will eventually undo into a world that has changed, and overwriting each other silently is the worse failure.
+
+It needs one table, `cb_action_log`. See the migration in [apps/content-blocks-sandbox/migrations](https://github.com/klehm/content-blocks-project/tree/main/apps/content-blocks-sandbox/migrations); without it the endpoints simply have nowhere to write and undo is unavailable.
+
 ### Key admin components
 
 - **ContentAreaBuilder** — the main component; manages adding/removing sections (1, 2 or 3 columns).

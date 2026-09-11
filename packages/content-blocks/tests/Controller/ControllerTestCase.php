@@ -15,6 +15,10 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Form\Extension\BlockFormExtensionCollection;
 use ContentBlocks\Form\Type\BlockFormType;
+use ContentBlocks\History\ActionJournal;
+use ContentBlocks\History\BuilderSession;
+use ContentBlocks\History\DoctrineActionLogStore;
+use ContentBlocks\History\StateApplier;
 use ContentBlocks\Rendering\BlockRenderer;
 use ContentBlocks\Section\SectionDecoratorCollection;
 use ContentBlocks\Section\SectionSettingsDefaults;
@@ -85,6 +89,19 @@ abstract class ControllerTestCase extends TestCase
     protected function makeAccessChecker(): AllowAllAccessChecker
     {
         return new AllowAllAccessChecker();
+    }
+
+    /**
+     * A journal with no HTTP session behind it, so record() runs the mutation
+     * and writes nothing. The recording itself is covered in tests/History.
+     */
+    protected function makeJournal(EntityManagerInterface $em): ActionJournal
+    {
+        return new ActionJournal(
+            new DoctrineActionLogStore($em),
+            new StateApplier($em),
+            new BuilderSession(new RequestStack()),
+        );
     }
 
     /**

@@ -27,6 +27,7 @@ final class BlocksControllerTest extends ControllerTestCase
             $this->makeCsrfManager($csrfValid),
             $this->createMock(TranslatorInterface::class),
             $this->makeUnusedRenderer(),
+            $this->makeJournal($em),
         );
     }
 
@@ -342,6 +343,7 @@ final class BlocksControllerTest extends ControllerTestCase
             $this->makeCsrfManager(),
             $translator,
             $this->makeUnusedRenderer(),
+            $this->makeJournal($this->makeEm()),
         );
 
         $response = $controller->types();

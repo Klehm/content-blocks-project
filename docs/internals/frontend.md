@@ -209,6 +209,12 @@ that second one would be worse than not having the shortcut.
 A block wins over its section — it is the more specific of the two, and what the
 editor was last looking at.
 
+`Ctrl/Cmd-Z` and `Ctrl/Cmd-Shift-Z` (plus `Ctrl-Y`) join the same table and obey
+the same two rules; the stack they walk is the server's, and what it holds is in
+[history.md](history.md). One chord table, `shortcutIntent`, answers both the
+shell's own keydown and the relayed one, so the two paths cannot drift.
+`Ctrl-Shift-V` stays the browser's paste-as-plain-text: only `z` reads Shift.
+
 The clipboard lives in `localStorage` under one key, because "copy here, paste
 over there" usually means leaving this page. The flip side is that the payload is
 user-writable, which is why the paste endpoint

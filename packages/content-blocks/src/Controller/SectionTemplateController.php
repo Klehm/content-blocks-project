@@ -8,6 +8,8 @@ use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Entity\SectionTemplate;
+use ContentBlocks\History\ActionJournal;
+use ContentBlocks\History\JournalScope;
 use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
 use ContentBlocks\SectionTemplate\SectionPosterBuilder;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiatorInterface;
@@ -54,6 +56,7 @@ final class SectionTemplateController
         private readonly SectionPosterBuilder $posterBuilder,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ContentVersionUpgraderInterface $versionUpgrader,
+        private readonly ActionJournal $journal,
         private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
         private readonly int $contentVersion = 1,
     ) {
@@ -248,10 +251,12 @@ final class SectionTemplateController
         }
 
         $section = $result->section;
-        $section->setPreviewPosition($this->nextPreviewPosition($area));
-        $area->addSection($section);
-        $this->em->persist($section);
-        $this->em->flush();
+        $this->journal->record($area, 'section.insert', JournalScope::structure(), function () use ($area, $section): void {
+            $section->setPreviewPosition($this->nextPreviewPosition($area));
+            $area->addSection($section);
+            $this->em->persist($section);
+            $this->em->flush();
+        });
 
         return new JsonResponse([
             'sectionId' => $section->getId(),

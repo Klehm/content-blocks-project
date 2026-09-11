@@ -23,7 +23,13 @@
      data-i18n-cb-builder-clipboard-stale-version="{{ 'cb.builder.clipboard.stale_version'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-unreadable="{{ 'cb.builder.clipboard.unreadable'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-skipped-blocks="{{ 'cb.builder.clipboard.skipped_blocks'|trans({}, 'content_blocks') }}"
-     data-i18n-cb-builder-clipboard-dropped-fields="{{ 'cb.builder.clipboard.dropped_fields'|trans({}, 'content_blocks') }}">
+     data-i18n-cb-builder-clipboard-dropped-fields="{{ 'cb.builder.clipboard.dropped_fields'|trans({}, 'content_blocks') }}"
+     {# Ctrl/Cmd-Z is keyboard-only too, so the snackbar carries every word
+        it has to say. See docs/internals/history.md #}
+     data-i18n-cb-builder-history-nothing-to-undo="{{ 'cb.builder.history.nothing_to_undo'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-history-nothing-to-redo="{{ 'cb.builder.history.nothing_to_redo'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-history-stale="{{ 'cb.builder.history.stale'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-history-unavailable="{{ 'cb.builder.history.unavailable'|trans({}, 'content_blocks') }}">
 
     <div class="cb-shell__progress" data-cb-builder-target="progress" aria-hidden="true"></div>
 
@@ -94,6 +100,25 @@
                     </div>
                 </div>
             {% endif %}
+
+            {# Called here rather than passed in, so a host that includes the
+               launcher directly still gets the right starting state. #}
+            {% set history = cb_history_state(area) %}
+            <div class="cb-shell__history" role="group"
+                 aria-label="{{ 'cb.builder.history.group'|trans({}, 'content_blocks') }}">
+                <button type="button"
+                        class="cb-shell__history-btn cb-shell__history-btn--undo"
+                        data-action="cb-builder#undoLastAction"
+                        title="{{ 'cb.builder.history.undo'|trans({}, 'content_blocks') }} — Ctrl+Z"
+                        aria-label="{{ 'cb.builder.history.undo'|trans({}, 'content_blocks') }}"
+                        {% if not history.canUndo %}disabled{% endif %}>↶</button>
+                <button type="button"
+                        class="cb-shell__history-btn cb-shell__history-btn--redo"
+                        data-action="cb-builder#redoLastAction"
+                        title="{{ 'cb.builder.history.redo'|trans({}, 'content_blocks') }} — Ctrl+Shift+Z"
+                        aria-label="{{ 'cb.builder.history.redo'|trans({}, 'content_blocks') }}"
+                        {% if not history.canRedo %}disabled{% endif %}>↷</button>
+            </div>
         </div>
 
         <div class="cb-shell__topbar-right">

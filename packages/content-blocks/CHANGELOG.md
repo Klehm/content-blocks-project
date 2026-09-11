@@ -9,6 +9,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Action history — `Ctrl/Cmd-Z`.** The builder now has an undo stack.
+  `Ctrl/Cmd-Z` walks back through the current session's actions one at a time,
+  `Ctrl/Cmd-Shift-Z` (or `Ctrl-Y`) walks forward. It covers everything the
+  builder does: create, move, duplicate, delete and restore of sections and
+  blocks, paste, insert content, import, a section's settings and a block's
+  fields.
+
+  Between the delete snackbar — one delete, six seconds — and Discard, which
+  throws away the entire unpublished draft, there was nothing. Editors coming
+  from any other builder expect the chord, and every action in that gap was
+  final until it was undone by hand.
+
+  It is **draft-scoped like every other builder action**: undoing writes to
+  draft fields only, so the published page does not move until Publish. The
+  suites that pin that promise — `PublishedRenderImmutabilityTest` and its
+  browser twin — cover undo and redo alongside the rest.
+
+  An entry is not a snapshot of the area. It is the pair of state assignments
+  that move the draft between before and after, obtained by reading the same
+  fields twice around the mutation and diffing them. Diffing rather than
+  declaring is what makes `paste` and `replace-with` invertible at all: their
+  inverse needs the ids they *produced*, and a diff yields those without any
+  call site opting in. The structure scope deliberately carries no payload,
+  because a creation is inverted by the draft `deleted` flag rather than by
+  removing the row.
+
+  Three behaviours worth knowing before relying on it:
+
+  - **A step whose target moved under it is refused**, with a message, rather
+    than guessed. Two editors on one area — or one editor in two tabs — will
+    eventually undo into a world that has changed, and overwriting each other
+    silently is the worse failure.
+  - **The stack survives a page reload**, which is precisely when an editor
+    wants it. It lives in a new `cb_action_log` table keyed by content area and
+    hashed HTTP session; Publish and Discard empty it, since the draft its
+    entries describe is gone either way.
+  - **Sidebar autosaves are coalesced**, so a paragraph of typing is one undo
+    step and not forty — bounded by both an idle window and a total span, so a
+    long steady run cannot grow into a single ten-minute step either.
+
+  The chord is relayed from inside the preview iframe, and every refusal is said
+  out loud in the snackbar. It stands back from a field with an undo stack of
+  its own — a textarea, a text input, a rich-text editor — but **not** from a
+  `<select>` or a colour swatch, which have none: requiring a blur first was a
+  rule nobody could guess. Because the chord can now fire mid-edit, the open
+  form is committed before the undo runs, so an edit still inside the autosave's
+  debounce window cannot be journalled after the step it was meant to be.
+
+  An **undo/redo pair sits in the topbar** (`↶ ↷`), greyed rather than hidden,
+  carrying the chord in its tooltip — a keyboard-only feature is invisible to a
+  first-time editor and unreachable on a touch device. The buttons mirror the
+  server's stack: any mutation means "undoable, no redo left", and undo and redo
+  pass the real counts back.
+
+  The open sidebar is **ruled on rather than reset**. Undoing a step three
+  sections away used to close the form the editor was working in; the server now
+  answers `keep`, `reload` or `close` for whatever the sidebar has open, so the
+  caret survives an unrelated undo and a form over a deleted row still cannot
+  autosave itself back.
+
+  Two endpoints, `POST /_content-blocks/area/{id}/undo` and `…/redo` (CSRF +
+  `canEdit`), answering 200 with a status — "nothing to undo" is an answer, not
+  a failure. New seams, all `@internal`: `ActionJournal`, `AreaStateSnapshot`,
+  `StateApplier`, `BuilderSession` and `ActionLogStoreInterface` (a store
+  interface so the journal's policy is tested without a database).
+  `JournalPruningPublisher` decorates the concrete `ContentAreaPublisher`, so a
+  host decoration of the interface still wraps it. Rationale:
+  [docs/internals/history.md](../../docs/internals/history.md).
+
+  **Needs a migration** for existing projects — one new table, nothing else
+  touched; see
+  [the sandbox migration](../../apps/content-blocks-sandbox/migrations). Without
+  it the endpoints have nowhere to write and undo reports itself unavailable.
+
 - **Navigator — the whole area as an outline.** A topbar button, beside the
   viewport switcher, opens a floating panel listing sections → columns → blocks,
   with drag-to-reorder, duplicate and delete on every section and block. It
@@ -38,6 +112,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a selected node is edited — the two are used together. New Stimulus controller
   `cb-tree`, to declare in the host's `assets/controllers.json` (Flex writes it at
   install).
+
+### Changed
+
+- **The Discard button now reads "Revert to published"** (`cb.builder.discard`
+  and `cb.builder.discard_confirm`). Beside an undo arrow, "Discard changes" was
+  the same verb for two unrelated scopes — one step of this session against
+  every unpublished change since the last publish — and read as "undo, but
+  bigger". Naming the destination is also the more honest description: it does
+  not undo anything in the stack's sense, it takes the area back to what is
+  live. Behaviour is unchanged; a host that overrides either key keeps its own
+  wording.
 
 ## [1.0.0-RC5] - 2026-09-10
 

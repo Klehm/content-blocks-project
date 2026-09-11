@@ -15,6 +15,8 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\History\ActionJournal;
+use ContentBlocks\History\JournalScope;
 use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
 use ContentBlocks\SectionTemplate\UnsupportedTemplateFormatException;
@@ -47,6 +49,7 @@ final class ClipboardController
         private readonly BlockSnapshotSerializerInterface $blockSerializer,
         private readonly ClipboardPaster $paster,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly ActionJournal $journal,
         private readonly int $contentVersion = 1,
     ) {
     }
@@ -154,9 +157,12 @@ final class ClipboardController
             ?? $this->resolveSection($body['targetSectionId'] ?? null, $area);
 
         try {
-            $result = $envelope->scope === ClipboardEnvelope::SCOPE_SECTION
-                ? $this->paster->pasteSection($envelope->payload, $area, $targetSection)
-                : $this->pasteBlock($envelope->payload, $targetSection, $targetBlock);
+            $result = $this->journal->record(
+                $area,
+                'clipboard.paste',
+                JournalScope::structure(),
+                fn (): PasteResult => $this->pasteInto($envelope, $area, $targetSection, $targetBlock),
+            );
         } catch (NoPasteTargetException) {
             return new JsonResponse(['error' => 'no_target'], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (IncompatibleTemplateException $e) {
@@ -167,9 +173,6 @@ final class ClipboardController
         } catch (UnsupportedTemplateFormatException | UnreadableClipboardException) {
             return $this->unreadable('payload');
         }
-
-        $this->em->persist($result->entity);
-        $this->em->flush();
 
         $section = $result->entity instanceof Section
             ? $result->entity
@@ -186,14 +189,34 @@ final class ClipboardController
     }
 
     /**
-     * A block needs a column to land in, which the selection has to supply: the
-     * selected block's own column, or the first column of the selected section.
+     * The write itself, wrapped by the journal so an undo knows which ids the
+     * paste produced.
      *
-     * @param array<string, mixed> $payload
-     *
-     * @throws NoPasteTargetException when nothing is selected
+     * @throws NoPasteTargetException
+     * @throws UnreadableClipboardException
+     * @throws IncompatibleTemplateException
+     * @throws UnsupportedTemplateFormatException
      */
+    private function pasteInto(
+        ClipboardEnvelope $envelope,
+        ContentArea $area,
+        ?Section $section,
+        ?Block $block,
+    ): PasteResult {
+        $result = $envelope->scope === ClipboardEnvelope::SCOPE_SECTION
+            ? $this->paster->pasteSection($envelope->payload, $area, $section)
+            : $this->pasteBlock($envelope->payload, $section, $block);
+
+        $this->em->persist($result->entity);
+        $this->em->flush();
+
+        return $result;
+    }
+
     /**
+     * A block needs a column to land in, which the selection has to supply:
+     * the selected block's column, or the first column of its section.
+     *
      * @param array<string, mixed> $payload
      *
      * @throws NoPasteTargetException        when the selection has no column

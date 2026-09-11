@@ -35,4 +35,5 @@ annotations in the code; the budget that keeps them short is in
 | [worker-mode.md](worker-mode.md) | Cross-request state, what may be cached on a service |
 | [i18n.md](i18n.md) | The translation satellite: storage, staleness, the workbench |
 | [kit.md](kit.md) | Kit block conventions, the config surface, rich-text editors |
+| [history.md](history.md) | The undo stack: the delta, the refusals, coalescing |
 | [frontend.md](frontend.md) | Stimulus controllers, the `cb:*` event contract, the preview bridge |

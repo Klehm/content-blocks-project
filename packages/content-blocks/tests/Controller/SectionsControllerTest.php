@@ -26,6 +26,7 @@ final class SectionsControllerTest extends ControllerTestCase
             new SectionCloner(),
             $this->makeUnusedRenderer(),
             $this->makeRegistry(),
+            $this->makeJournal($em),
         );
     }
 

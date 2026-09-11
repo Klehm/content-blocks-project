@@ -8,6 +8,8 @@ use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\History\ActionJournal;
+use ContentBlocks\History\JournalScope;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Section\SectionClonerInterface;
@@ -45,6 +47,7 @@ final class SectionsController
         private readonly SectionClonerInterface $sectionCloner,
         private readonly BlockRendererInterface $blockRenderer,
         private readonly BlockTypeRegistry $blockTypeRegistry,
+        private readonly ActionJournal $journal,
     ) {
     }
 
@@ -76,22 +79,24 @@ final class SectionsController
             return new JsonResponse(['error' => 'Unknown layout'], Response::HTTP_BAD_REQUEST);
         }
 
-        $section = new Section();
-        $section->setLayout($layout);
-        $section->setPreviewPosition($this->nextPreviewPosition($area));
-        $area->addSection($section);
+        return $this->journal->record($area, 'section.create', JournalScope::structure(), function () use ($area, $layout): JsonResponse {
+            $section = new Section();
+            $section->setLayout($layout);
+            $section->setPreviewPosition($this->nextPreviewPosition($area));
+            $area->addSection($section);
 
-        foreach (self::LAYOUT_PRESETS[$layout] as $i => $preset) {
-            $column = new Column();
-            $column->setPreset($preset);
-            $column->setPreviewPosition($i);
-            $section->addColumn($column);
-        }
+            foreach (self::LAYOUT_PRESETS[$layout] as $i => $preset) {
+                $column = new Column();
+                $column->setPreset($preset);
+                $column->setPreviewPosition($i);
+                $section->addColumn($column);
+            }
 
-        $this->em->persist($section);
-        $this->em->flush();
+            $this->em->persist($section);
+            $this->em->flush();
 
-        return new JsonResponse(['id' => $section->getId()]);
+            return new JsonResponse(['id' => $section->getId()]);
+        });
     }
 
     #[Route('/section/{id}/move', name: 'content_blocks_section_move', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -115,51 +120,53 @@ final class SectionsController
         $direction = $payload['direction'] ?? null;
         $rawPosition = $payload['position'] ?? null;
 
-        $sections = array_values(array_filter(
-            $area->getSections()->toArray(),
-            fn (Section $s) => !$s->isDeleted(),
-        ));
-        usort($sections, fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
-        $index = array_search($section, $sections, true);
+        return $this->journal->record($area, 'section.move', JournalScope::structure(), function () use ($area, $section, $direction, $rawPosition): JsonResponse {
+            $sections = array_values(array_filter(
+                $area->getSections()->toArray(),
+                fn (Section $s) => !$s->isDeleted(),
+            ));
+            usort($sections, fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
+            $index = array_search($section, $sections, true);
 
-        // Two dialects: `direction=up|down` for the toolbar arrows (kept for
-        // keyboard and no-pointer flows), `position=<int>` for drag & drop.
-        if (\is_int($rawPosition)) {
-            if ($index === false) {
+            // Two dialects: `direction=up|down` for the toolbar arrows (kept
+            // for keyboard flows), `position=<int>` for drag & drop.
+            if (\is_int($rawPosition)) {
+                if ($index === false) {
+                    return new JsonResponse(['moved' => false]);
+                }
+                $without = $sections;
+                array_splice($without, $index, 1);
+                $insertAt = max(0, min($rawPosition, \count($without)));
+                array_splice($without, $insertAt, 0, [$section]);
+                foreach ($without as $i => $s) {
+                    $s->setPreviewPosition($i);
+                }
+                $this->em->flush();
+
+                return new JsonResponse(['moved' => true]);
+            }
+
+            if (!\in_array($direction, ['up', 'down'], true)) {
+                return new JsonResponse(['error' => 'Invalid direction or position'], Response::HTTP_BAD_REQUEST);
+            }
+
+            $other = match ($direction) {
+                'up' => $index > 0 ? $sections[$index - 1] : null,
+                'down' => $index < \count($sections) - 1 ? $sections[$index + 1] : null,
+            };
+
+            if ($other === null) {
                 return new JsonResponse(['moved' => false]);
             }
-            $without = $sections;
-            array_splice($without, $index, 1);
-            $insertAt = max(0, min($rawPosition, \count($without)));
-            array_splice($without, $insertAt, 0, [$section]);
-            foreach ($without as $i => $s) {
-                $s->setPreviewPosition($i);
-            }
+
+            $tmp = $section->getPreviewPosition();
+            $section->setPreviewPosition($other->getPreviewPosition());
+            $other->setPreviewPosition($tmp);
+
             $this->em->flush();
 
             return new JsonResponse(['moved' => true]);
-        }
-
-        if (!\in_array($direction, ['up', 'down'], true)) {
-            return new JsonResponse(['error' => 'Invalid direction or position'], Response::HTTP_BAD_REQUEST);
-        }
-
-        $other = match ($direction) {
-            'up' => $index > 0 ? $sections[$index - 1] : null,
-            'down' => $index < \count($sections) - 1 ? $sections[$index + 1] : null,
-        };
-
-        if ($other === null) {
-            return new JsonResponse(['moved' => false]);
-        }
-
-        $tmp = $section->getPreviewPosition();
-        $section->setPreviewPosition($other->getPreviewPosition());
-        $other->setPreviewPosition($tmp);
-
-        $this->em->flush();
-
-        return new JsonResponse(['moved' => true]);
+        });
     }
 
     #[Route('/section/{id}/duplicate', name: 'content_blocks_section_duplicate', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -179,38 +186,40 @@ final class SectionsController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        // Inserted right after the source, siblings re-indexed so positions
-        // stay dense. The cloner is shared with the replace-content flow.
-        $copy = $this->sectionCloner->cloneSection($section);
+        return $this->journal->record($area, 'section.duplicate', JournalScope::structure(), function () use ($area, $section): JsonResponse {
+            // Inserted right after the source, siblings re-indexed so positions
+            // stay dense. The cloner is shared with the replace-content flow.
+            $copy = $this->sectionCloner->cloneSection($section);
 
-        $siblings = array_values(array_filter(
-            $area->getSections()->toArray(),
-            fn (Section $s) => !$s->isDeleted(),
-        ));
-        usort($siblings, fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
+            $siblings = array_values(array_filter(
+                $area->getSections()->toArray(),
+                fn (Section $s) => !$s->isDeleted(),
+            ));
+            usort($siblings, fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
 
-        $sourceIndex = array_search($section, $siblings, true);
-        $insertAt = $sourceIndex === false ? \count($siblings) : $sourceIndex + 1;
-        array_splice($siblings, $insertAt, 0, [$copy]);
-        foreach ($siblings as $i => $s) {
-            $s->setPreviewPosition($i);
-        }
+            $sourceIndex = array_search($section, $siblings, true);
+            $insertAt = $sourceIndex === false ? \count($siblings) : $sourceIndex + 1;
+            array_splice($siblings, $insertAt, 0, [$copy]);
+            foreach ($siblings as $i => $s) {
+                $s->setPreviewPosition($i);
+            }
 
-        $area->addSection($copy);
-        $this->em->persist($copy);
-        $this->em->flush();
+            $area->addSection($copy);
+            $this->em->persist($copy);
+            $this->em->flush();
 
-        // `sourceId` tells the overlay which node to anchor the copy after.
-        $response = ['id' => $copy->getId(), 'sourceId' => $section->getId()];
+            // `sourceId` tells the overlay which node to anchor the copy after.
+            $response = ['id' => $copy->getId(), 'sourceId' => $section->getId()];
 
-        if ($this->sectionSupportsHotReload($copy)) {
-            $response['hotReload'] = true;
-            $response['html'] = $this->blockRenderer->renderSection($copy, RenderContext::forPreview());
-        } else {
-            $response['hotReload'] = false;
-        }
+            if ($this->sectionSupportsHotReload($copy)) {
+                $response['hotReload'] = true;
+                $response['html'] = $this->blockRenderer->renderSection($copy, RenderContext::forPreview());
+            } else {
+                $response['hotReload'] = false;
+            }
 
-        return new JsonResponse($response);
+            return new JsonResponse($response);
+        });
     }
 
     /**
@@ -252,11 +261,13 @@ final class SectionsController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        // Soft-delete in draft. The actual em->remove() runs at publish time.
-        $section->setDeleted(true);
-        $this->em->flush();
+        return $this->journal->record($area, 'section.delete', JournalScope::structure(), function () use ($section): JsonResponse {
+            // Soft-delete in draft. The em->remove() runs at publish time.
+            $section->setDeleted(true);
+            $this->em->flush();
 
-        return new JsonResponse(['deleted' => true]);
+            return new JsonResponse(['deleted' => true]);
+        });
     }
 
     /**
@@ -281,10 +292,12 @@ final class SectionsController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        $section->setDeleted(false);
-        $this->em->flush();
+        return $this->journal->record($area, 'section.restore', JournalScope::structure(), function () use ($section): JsonResponse {
+            $section->setDeleted(false);
+            $this->em->flush();
 
-        return new JsonResponse(['restored' => true]);
+            return new JsonResponse(['restored' => true]);
+        });
     }
 
     private function nextPreviewPosition(ContentArea $area): int

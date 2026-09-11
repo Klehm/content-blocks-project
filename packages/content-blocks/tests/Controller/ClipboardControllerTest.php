@@ -289,13 +289,16 @@ final class ClipboardControllerTest extends ControllerTestCase
             new BlockDataReplayer($registry, $factory, new BlockDataDefaults(), new CollectionItemIds()),
         );
 
+        $em = $this->makeEm($entities);
+
         return new ClipboardController(
-            $this->makeEm($entities),
+            $em,
             $accessChecker ?? $this->makeAccessChecker(),
             new SectionTemplateSerializer(),
             new BlockSnapshotSerializer(),
             $paster,
             $this->makeCsrfManagerFor($csrfValid),
+            $this->makeJournal($em),
             self::CURRENT_VERSION,
         );
     }

@@ -105,16 +105,28 @@ export default class extends Controller {
         this._mutationTimer = setTimeout(() => this._saveNow(), this.debounceValue);
     }
 
+    /**
+     * Commit what is pending right now, for a caller that is about to act on
+     * the saved state. Returns whether a save was actually issued.
+     *
+     * @see docs/internals/history.md#the-open-edit-is-committed-first
+     */
+    flush() {
+        clearTimeout(this._mutationTimer);
+
+        return this._saveNow();
+    }
+
     _saveNow() {
         clearTimeout(this._timer);
-        if (this._saving) return; // Re-entrancy guard, see below.
+        if (this._saving) return false; // Re-entrancy guard, see below.
         const btn = this.element.querySelector('[data-cb-sidebar-save]');
-        if (!btn) return;
+        if (!btn) return false;
 
         // One logical edit fires both the debounce and a focusout, so
         // comparing serialized state collapses the pair into one save.
         const current = this._serializeForm();
-        if (current === this._lastSerialized) return;
+        if (current === this._lastSerialized) return false;
         this._lastSerialized = current;
 
         // Live syncs its LiveProp on `change`, so without this a mid-typing
@@ -133,6 +145,8 @@ export default class extends Controller {
         } finally {
             this._saving = false;
         }
+
+        return true;
     }
 
     /**

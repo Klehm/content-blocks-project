@@ -42,6 +42,7 @@ final class ImportExportControllerTest extends ControllerTestCase
             new ContentAreaExporter($resolver),
             new ContentAreaImporter($resolver, $this->makeRegistry(), $this->makeDataKeys()),
             $this->makeCsrfManager($csrfValid),
+            $this->makeJournal($em),
         );
     }
 

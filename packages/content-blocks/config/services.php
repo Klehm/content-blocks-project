@@ -10,6 +10,13 @@ use ContentBlocks\Clipboard\BlockSnapshotSerializer;
 use ContentBlocks\Clipboard\BlockSnapshotSerializerInterface;
 use ContentBlocks\Clipboard\ClipboardPaster;
 use ContentBlocks\Doctrine\ContentAreaTouchListener;
+use ContentBlocks\History\ActionJournal;
+use ContentBlocks\History\ActionLogStoreInterface;
+use ContentBlocks\History\BuilderSession;
+use ContentBlocks\History\DoctrineActionLogStore;
+use ContentBlocks\History\SidebarOutcome;
+use ContentBlocks\History\StateApplier;
+use ContentBlocks\Publishing\JournalPruningPublisher;
 use ContentBlocks\Palette\ColorPaletteRegistry;
 use ContentBlocks\Palette\ConfigColorPaletteProvider;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
@@ -155,6 +162,21 @@ return static function (ContainerConfigurator $container): void {
     // can decorate any of them without touching the package.
     $services->set(\ContentBlocks\Publishing\ContentAreaPublisher::class);
     $services->alias(ContentAreaPublisherInterface::class, \ContentBlocks\Publishing\ContentAreaPublisher::class);
+
+    // ---------- Action history (Ctrl/Cmd-Z) ----------
+
+    // See docs/internals/history.md
+    $services->set(BuilderSession::class);
+    $services->set(StateApplier::class);
+    $services->set(DoctrineActionLogStore::class);
+    $services->alias(ActionLogStoreInterface::class, DoctrineActionLogStore::class);
+    $services->set(ActionJournal::class);
+    $services->set(SidebarOutcome::class);
+
+    // Decorates the concrete publisher, so a host decoration of the interface
+    // (what content-blocks-i18n does) still wraps this one.
+    $services->set(JournalPruningPublisher::class)
+        ->decorate(\ContentBlocks\Publishing\ContentAreaPublisher::class);
 
     // Empty by default; cloning is unchanged without an observer. See
     // docs/internals/rendering.md#why-the-clone-notification-is-an-observer
@@ -315,6 +337,9 @@ return static function (ContainerConfigurator $container): void {
         ->public();
 
     $services->set(\ContentBlocks\Twig\ShellFragmentsExtension::class)
+        ->tag('twig.extension');
+
+    $services->set(\ContentBlocks\Twig\HistoryStateExtension::class)
         ->tag('twig.extension');
 
     // ---------- Content translation (convention only) ----------

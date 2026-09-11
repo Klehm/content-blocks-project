@@ -348,6 +348,79 @@ Deux pièges que le replayer traite explicitement, à connaître avant de le mod
 
 **Versions de contenu** : une entrée copiée sous un autre `content_version` est **refusée net** (`incompatible_content_version`) et le presse-papier est vidé — une copie coûte quelques secondes à refaire, contrairement à un modèle de section stocké, qui lui passe par `ContentVersionUpgraderInterface`.
 
+## Action history — Ctrl/Cmd-Z
+
+Between the delete snackbar (one delete, six seconds) and Discard (the whole
+unpublished draft, irreversibly) there was nothing. `Ctrl/Cmd-Z` walks back
+through the current builder session's actions one at a time;
+`Ctrl/Cmd-Shift-Z` and `Ctrl-Y` walk forward — relayed from the iframe, one chord
+table (`shortcutIntent`) for both paths, every refusal said in the snackbar.
+
+**A topbar pair (`↶ ↷`) drives the same two methods**, unlike the clipboard's
+keyboard-only rule: a greyed button answers "is there anything to undo?" before
+the gesture, and on a touch device there is no `Ctrl-Z` at all. Greyed, never
+hidden — the opposite of Discard beside it, which is hidden until actionable
+because it is destructive. State is mirrored rather than recomputed:
+`_applyDraftState` turns any mutation into "undoable, no redo left" (that *is*
+`dropUndone()`), undo/redo pass the server's real counts, and only the starting
+state comes from the server via `cb_history_state(area)` — the stack is a table,
+so a reload can legitimately open with an undo available.
+
+**Discard now reads "Revenir à la version publiée" / "Revert to published".**
+Next to an undo arrow, "Annuler les modifications" was the same verb for two
+unrelated scopes; naming the destination is also the more honest description.
+
+**Undo yields less than copy, and the difference is deliberate.** Copy stands
+back from any focused field and any live selection; undo stands back only from
+an element with an undo stack of its own (`_hasNativeUndo`: textarea, text
+input, contenteditable — which is what TinyMCE and CKEditor are). A `<select>`
+or a colour swatch has none, so the chord is the builder's there; requiring a
+blur first was a rule nobody could guess. Because the chord now fires mid-edit,
+`_runHistory` **flushes the open form first** (`cb-autosave`'s `flush()`, then
+waits for the save's event) — otherwise an edit still inside the debounce window
+would be journalled *after* the undo it was meant to be.
+
+An entry is **not an area snapshot**: it is the pair of state assignments that
+move the draft between before and after, obtained by reading the same fields
+twice around the mutation and diffing them (`AreaStateSnapshot`). Diffing rather
+than declaring is the point — `paste` and `replace-with` need the ids they
+*produced*, and a diff gets those for free. Two scopes: **structure** (every
+section/column/block: `deleted`, `previewPosition`, `layout`, `preset`, a
+block's column and its published twin) and **values** (one entity's `draft_data`
+or `draft_settings`). Structure carries **no payload** because a creation is
+inverted by the draft `deleted` flag rather than by removing the row.
+
+`ActionJournal::record()` wraps the mutation as a closure, so a controller's
+early returns need no special handling: they produce an empty diff, and **an
+empty diff records nothing**. Wrapped: `BlocksController`, `SectionsController`,
+`ClipboardController`, `ReplaceController`, `SectionTemplateController`,
+`ImportExportController`, `SectionSidebarController` and
+`BlockComponent::persistDraft()`.
+
+Three rules to know before touching it:
+- **Refused, never guessed.** Undo runs only if the draft still matches the
+  entry's after-state (`StateApplier::matches()`); a missing row counts as a
+  mismatch. That is what keeps two editors — or two tabs — from silently
+  undoing each other.
+- **The open sidebar is ruled on, not reset.** Closing it on every undo cost the
+  editor their place for a step three sections away. The builder now sends what
+  it has open and `SidebarOutcome` answers `keep` / `reload` / `close` — the
+  server's call because ancestry decides it (a section delete marks the section,
+  not its blocks) and because only some op fields are ones a form renders. No
+  verdict means close, so an older server degrades safely.
+- **The stack is the hashed HTTP session**, keyed per area, in `cb_action_log`.
+  Not a client id: the sidebar's block editor is a Live Component whose requests
+  the package does not compose, so a custom header would have missed every block
+  edit. Needs a migration for existing projects.
+- **Publish and Discard empty it** (`JournalPruningPublisher`, decorating the
+  concrete `ContentAreaPublisher` so the i18n decorator of the interface still
+  wraps it). Sidebar autosaves are coalesced per entity so a paragraph of typing
+  is one step, bounded by both an idle window and a total span.
+
+Endpoints `POST /_content-blocks/area/{id}/{undo,redo}` (CSRF + canEdit), always
+200 — "nothing to undo" is an answer, not a failure. Full rationale:
+[docs/internals/history.md](docs/internals/history.md).
+
 ## Security
 
 ### Access Control (IDOR protection)
@@ -377,7 +450,7 @@ final class PageAccessChecker implements AccessCheckerInterface
 }
 ```
 
-Every AJAX controller under `/_content-blocks/*` (`AreaController`, `BlocksController`, `SectionsController`, `BlockSidebarController`, `SectionSidebarController`, `ClipboardController`, `ReplaceController`, `ImportExportController`, `SectionTemplateController`, `TreeController`, `UploadController`) and the `BlockComponent` Live Component call `canEdit()` before any mutation. For a cross-area paste, the check runs on the **target** area, not the source.
+Every AJAX controller under `/_content-blocks/*` (`AreaController`, `BlocksController`, `SectionsController`, `BlockSidebarController`, `SectionSidebarController`, `ClipboardController`, `ReplaceController`, `ImportExportController`, `SectionTemplateController`, `TreeController`, `HistoryController`, `UploadController`) and the `BlockComponent` Live Component call `canEdit()` before any mutation. For a cross-area paste, the check runs on the **target** area, not the source.
 
 ### CSRF Protection
 
@@ -672,7 +745,7 @@ npm test
 
 | Config | Fixture | Couvre |
 |---|---|---|
-| `playwright.config.js` | `content-blocks-sandbox` — Symfony 7/8, AssetMapper | le **comportement** du builder (138 specs) |
+| `playwright.config.js` | `content-blocks-sandbox` — Symfony 7/8, AssetMapper | le **comportement** du builder (143 specs) |
 | `playwright.encore.config.js` | `content-blocks-encore-sandbox` — Symfony 6.4, ORM 2, Webpack Encore | le **chemin d'installation** sous un bundler qu'on ne développe pas au quotidien, + l'éditeur rich-text bundlé par l'hôte (7 specs) |
 
 La suite Encore reste volontairement petite : tout ce qui passerait à l'identique sous les deux bundlers appartient à la suite principale. Elle existe parce qu'un bug de boot (le prepend `asset_mapper` inconditionnel) a pu vivre longtemps sans qu'aucun test ne le voie — la sandbox met `symfony/asset-mapper` dans son `conflict` Composer pour que la jambe ne puisse jamais redériver vers le chemin déjà couvert.

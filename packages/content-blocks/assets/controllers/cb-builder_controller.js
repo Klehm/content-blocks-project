@@ -45,9 +45,9 @@ export default class extends Controller {
     /** Confirm prompt shown before applying a destructive replace. */
     static REPLACE_PICKER_CONFIRM_FALLBACK =
         'Are you sure you want to overwrite the current content with the selected one?';
-    /** Confirm prompt shown before discarding all unpublished draft changes. */
+    /** Confirm prompt shown before reverting the draft to what is live. */
     static DISCARD_CONFIRM_FALLBACK =
-        'Are you sure you want to discard all unpublished changes? This cannot be undone.';
+        'Revert to the published version? Every unpublished change will be lost, and this cannot be undone.';
     /** Prompt asking for a name when saving a section to the library. */
     static TEMPLATE_NAME_FALLBACK = 'Name this section template:';
     /** Confirm prompt shown before deleting a library template. */
@@ -71,6 +71,8 @@ export default class extends Controller {
      * refreshes only after a pause.
      */
     static SAVE_RELOAD_DEBOUNCE_MS = 500;
+    /** How long an undo waits for the edit it just committed to land. */
+    static SAVE_FLUSH_TIMEOUT_MS = 2000;
     static MOBILE_BREAKPOINT = '(max-width: 768px)';
     /**
      * The editor's only one-click recovery from a delete short of discarding
@@ -84,6 +86,28 @@ export default class extends Controller {
      * iPad-width preview on a phone screen only clips the iframe.
      */
     static VIEWPORT_MIN_WIDTHS = { desktop: 0, tablet: 768, mobile: 375 };
+
+    /**
+     * The Ctrl/Cmd chords, as the method each one calls. One table, so the
+     * shell and the relayed-from-the-iframe path can never drift apart.
+     *
+     * @see docs/internals/frontend.md#keyboard-and-clipboard
+     */
+    static shortcutIntent(key, shiftKey) {
+        if (key === 'z') return shiftKey ? 'redoLastAction' : 'undoLastAction';
+        if (shiftKey) return null;
+
+        return { c: 'copySelection', v: 'pasteClipboard', y: 'redoLastAction' }[key] ?? null;
+    }
+
+    /** The two that yield only to a real undo stack, not to any field. */
+    static HISTORY_INTENTS = new Set(['undoLastAction', 'redoLastAction']);
+
+    /** `<input>` types that take no typing, so they undo nothing natively. */
+    static UNDOLESS_INPUT_TYPES = new Set([
+        'color', 'range', 'checkbox', 'radio', 'file',
+        'button', 'submit', 'reset', 'image', 'hidden',
+    ]);
 
     connect() {
         this._onMessage = this._onMessage.bind(this);
@@ -217,11 +241,12 @@ export default class extends Controller {
      * keeps Ctrl-C/V out of a genuine text copy.
      */
     _onDocumentKeydown(event) {
-        if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey) {
+        if ((event.ctrlKey || event.metaKey) && !event.altKey) {
             const key = event.key?.toLowerCase();
-            if ((key === 'c' || key === 'v') && !this._isTextEditing()) {
+            const intent = this.constructor.shortcutIntent(key, event.shiftKey);
+            if (intent && !this._shortcutBlocked(intent)) {
                 event.preventDefault();
-                if (key === 'c') this.copySelection(); else this.pasteClipboard();
+                this[intent]();
 
                 return;
             }
@@ -540,7 +565,17 @@ export default class extends Controller {
         }));
     }
 
-    _applyDraftState(hasUnpublishedChanges) {
+    /**
+     * `history` is passed only by undo and redo; every other caller is a
+     * mutation, which always means "undoable, and no future left".
+     *
+     * @see docs/internals/history.md#the-buttons-and-their-state
+     */
+    _applyDraftState(hasUnpublishedChanges, history = null) {
+        this._applyHistoryState(history ?? {
+            canUndo: Boolean(hasUnpublishedChanges),
+            canRedo: false,
+        });
         // Hidden rather than disabled, so it is only ever seen when it is
         // actionable.
         const discardBtn = this.element.querySelector('.cb-shell__discard');
@@ -568,6 +603,18 @@ export default class extends Controller {
         // place the tree has to be told the area moved under it. A listener
         // that throws must not cost the buttons above their sync.
         this._invalidateTree();
+    }
+
+    /** @param {{canUndo: boolean, canRedo: boolean}} state */
+    _applyHistoryState(state) {
+        const buttons = {
+            '.cb-shell__history-btn--undo': state.canUndo,
+            '.cb-shell__history-btn--redo': state.canRedo,
+        };
+        for (const [selector, enabled] of Object.entries(buttons)) {
+            const button = this.element.querySelector(selector);
+            if (button) button.disabled = !enabled;
+        }
     }
 
     async addSection(event) {
@@ -1056,6 +1103,36 @@ export default class extends Controller {
     }
 
     /**
+     * Whether this chord belongs to the field under the caret rather than to
+     * the builder. Undo yields far less than copy: see `_hasNativeUndo`.
+     *
+     * @see docs/internals/frontend.md#keyboard-and-clipboard
+     */
+    _shortcutBlocked(intent) {
+        return this.constructor.HISTORY_INTENTS.has(intent)
+            ? this._hasNativeUndo()
+            : this._isTextEditing();
+    }
+
+    /**
+     * A `<select>` or a colour swatch has no undo stack of its own, so there
+     * is nothing there for Ctrl-Z to step on.
+     *
+     * @see docs/internals/frontend.md#keyboard-and-clipboard
+     */
+    _hasNativeUndo() {
+        const active = document.activeElement;
+        if (!(active instanceof HTMLElement)) return false;
+        if (active.isContentEditable || active.closest('[contenteditable="true"]')) return true;
+        if (active.tagName === 'TEXTAREA') return true;
+        if (active.tagName !== 'INPUT') return false;
+
+        // Listed the other way round: an unknown (or future) input type is
+        // assumed to take typing, so the chord stays the browser's.
+        return !this.constructor.UNDOLESS_INPUT_TYPES.has((active.type || 'text').toLowerCase());
+    }
+
+    /**
      * Whether Ctrl-C/V belongs to the editor's text. Stealing a real selection
      * would be worse than not having the shortcut.
      *
@@ -1099,6 +1176,150 @@ export default class extends Controller {
         } catch (e) {
             console.error('[cb-builder] clipboard clear failed', e);
         }
+    }
+
+    // ---------- Action history (Ctrl/Cmd-Z) ----------
+
+    /**
+     * Ctrl/Cmd-Z. The stack lives on the server, so this asks rather than
+     * replays: the client holds no shadow copy of the draft to get wrong.
+     *
+     * @see docs/internals/history.md
+     */
+    undoLastAction() {
+        return this._runHistory('undo');
+    }
+
+    /** Ctrl/Cmd-Shift-Z, and Ctrl-Y for the Windows habit. */
+    redoLastAction() {
+        return this._runHistory('redo');
+    }
+
+    async _runHistory(direction) {
+        // The chord now fires from inside a focused field, so the edit under
+        // it may not be journalled yet — undoing here would skip a step.
+        await this._flushSidebarEdits();
+
+        const open = this._openSidebarRef();
+        const result = await this._jsonRequest(
+            'POST',
+            `/_content-blocks/area/${this.areaIdValue}/${direction}`,
+            open ? { open } : {},
+        );
+        // Request failed outright — the save-error banner already says so.
+        if (result === null) return;
+
+        // A refusal still carries the counts: "nothing to undo" is exactly
+        // what the button needs to go grey.
+        const history = { canUndo: Boolean(result.canUndo), canRedo: Boolean(result.canRedo) };
+        if (result.status !== 'ok') {
+            this._applyHistoryState(history);
+            this._notify(this._historyMessage(direction, result.status));
+
+            return;
+        }
+
+        await this._settleSidebar(result.sidebar, open);
+        this._hideUndo();
+        this._applyDraftState(result.hasUnpublishedChanges, history);
+        this.reload();
+    }
+
+    /** What the sidebar has open, in the shape the endpoint reads. */
+    _openSidebarRef() {
+        const { blockId, sectionId } = this._selectionIds();
+        if (blockId) return { type: 'block', id: blockId };
+        if (sectionId) return { type: 'section', id: sectionId };
+
+        return null;
+    }
+
+    /**
+     * The server said whether the open form outlived the step. Only `reload`
+     * repaints it, so an undo elsewhere on the page costs no caret.
+     *
+     * @see docs/internals/history.md#the-sidebar-survives-an-undo-when-it-can
+     */
+    async _settleSidebar(verdict, open) {
+        if (verdict === 'keep' && open) return;
+        if (verdict !== 'reload' || !open) {
+            this._resetSidebarToEmptyState();
+
+            return;
+        }
+
+        const field = this._focusedFieldName();
+        await (open.type === 'block'
+            ? this._mountSidebar(open.id)
+            : this._mountSectionSettings(open.id));
+        this._restoreFieldFocus(field);
+    }
+
+    /**
+     * Remounting the form drops the caret, so the field is found again by
+     * name — the one thing that survives a re-render.
+     */
+    _focusedFieldName() {
+        const active = document.activeElement;
+        if (!(active instanceof HTMLElement) || !this.hasSidebarContentTarget) return null;
+
+        return this.sidebarContentTarget.contains(active) ? active.getAttribute('name') : null;
+    }
+
+    _restoreFieldFocus(name) {
+        if (!name || !this.hasSidebarContentTarget) return;
+        const selector = `[name="${window.CSS?.escape ? window.CSS.escape(name) : name}"]`;
+        const field = this.sidebarContentTarget.querySelector(selector);
+        field?.focus?.({ preventScroll: true });
+    }
+
+    /**
+     * Clicks the open form's save and waits for it to land, so the journal
+     * has the edit before the undo asks for the step before it.
+     */
+    async _flushSidebarEdits() {
+        if (!this.hasSidebarContentTarget) return;
+        const host = this.sidebarContentTarget.querySelector('[data-controller~="cb-autosave"]');
+        if (!host) return;
+
+        const autosave = this.application?.getControllerForElementAndIdentifier?.(host, 'cb-autosave');
+        if (!autosave?.flush || !autosave.flush()) return;
+
+        await this._nextSaveSettled();
+    }
+
+    /**
+     * Resolves on the save's own event, or on the timeout — a save that never
+     * answers must not cost the editor their Ctrl-Z.
+     */
+    _nextSaveSettled() {
+        return new Promise((resolve) => {
+            const done = () => {
+                clearTimeout(timer);
+                for (const name of ['cb:block:saved', 'cb:section:saved', 'cb:save:error']) {
+                    this.element.removeEventListener(name, done);
+                }
+                resolve();
+            };
+            const timer = setTimeout(done, this.constructor.SAVE_FLUSH_TIMEOUT_MS);
+            for (const name of ['cb:block:saved', 'cb:section:saved', 'cb:save:error']) {
+                this.element.addEventListener(name, done);
+            }
+        });
+    }
+
+    _historyMessage(direction, status) {
+        const messages = {
+            'undo:nothing': ['cb.builder.history.nothing_to_undo', 'Nothing to undo'],
+            'redo:nothing': ['cb.builder.history.nothing_to_redo', 'Nothing to redo'],
+            'undo:stale': ['cb.builder.history.stale', 'This step no longer matches the page — nothing was changed'],
+            'redo:stale': ['cb.builder.history.stale', 'This step no longer matches the page — nothing was changed'],
+            'undo:unavailable': ['cb.builder.history.unavailable', 'Undo is unavailable in this session'],
+            'redo:unavailable': ['cb.builder.history.unavailable', 'Undo is unavailable in this session'],
+        };
+        const [key, fallback] = messages[`${direction}:${status}`] ?? messages['undo:unavailable'];
+
+        return this._t(key, fallback);
     }
 
     // ---------- Undo delete (snackbar) ----------
@@ -1230,6 +1451,12 @@ export default class extends Controller {
                 break;
             case 'cb:clipboard:paste-requested':
                 this.pasteClipboard();
+                break;
+            case 'cb:history:undo-requested':
+                this.undoLastAction();
+                break;
+            case 'cb:history:redo-requested':
+                this.redoLastAction();
                 break;
             case 'cb:section:delete-requested':
                 this._deleteSection(data.sectionId);

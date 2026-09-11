@@ -115,6 +115,10 @@ final class BuilderShellFragmentsTemplateTest extends TestCase
         // Stand-in for ShellFragmentsExtension: this test is about the
         // template, and the extension has its own.
         $env->addFunction(new TwigFunction('cb_shell_fragments', static fn (ContentArea $area): array => $fragments));
+        $env->addFunction(new TwigFunction(
+            'cb_history_state',
+            static fn (ContentArea $area): array => ['canUndo' => false, 'canRedo' => false],
+        ));
 
         return $env;
     }
