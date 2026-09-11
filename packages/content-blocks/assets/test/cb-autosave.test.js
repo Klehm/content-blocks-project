@@ -410,3 +410,46 @@ describe('cb-autosave', () => {
         expect(clickSpy).not.toHaveBeenCalled();
     });
 });
+
+/**
+ * The seam Ctrl-Z uses: the chord now fires from inside a focused field, so
+ * the edit under it has to be committed before the undo asks for a step.
+ */
+describe('cb-autosave: flush', () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    it('commits a pending debounce at once, and says it saved', () => {
+        const { controller, input, clickSpy } = setup({ debounce: 250 });
+
+        input.value = 'not yet saved';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+
+        expect(controller.flush()).toBe(true);
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+    });
+
+    // The caller waits on a save event, which would never come.
+    it('reports no save when the form is unchanged', () => {
+        const { controller, clickSpy } = setup();
+
+        expect(controller.flush()).toBe(false);
+        expect(clickSpy).not.toHaveBeenCalled();
+    });
+
+    it('leaves no timer behind to save the same edit twice', () => {
+        const { controller, input, clickSpy } = setup({ debounce: 250 });
+
+        input.value = 'once';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        controller.flush();
+        vi.advanceTimersByTime(500);
+
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+    });
+});

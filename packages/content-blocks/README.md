@@ -312,6 +312,28 @@ Nothing to configure. Two things worth knowing:
   clipboard entry is minutes old, so a mismatch is refused outright and the
   editor copies again.
 
+### Undo / redo (`Ctrl/Cmd-Z`, `Ctrl/Cmd-Shift-Z`)
+
+Every builder action is journalled per builder session and undone by replaying an
+inverse server-side — create, move, duplicate, delete, paste, insert content,
+import, section settings and block fields. `Ctrl-Y` redoes too, for the Windows
+habit. Same rules as copy/paste: keyboard-only, relayed from inside the preview,
+and never stealing a keystroke meant for the editor's text.
+
+- **Draft-scoped.** Undo writes to draft fields only, so the published page does
+  not move until Publish — the same guarantee every other builder action carries.
+- **The stack survives a reload.** It is a table keyed by content area and hashed
+  HTTP session, which is what makes it useful at the moment an editor panics.
+  Publish and Discard empty it.
+- **A step whose target moved under it is refused**, with a message rather than a
+  guess, so two editors on one area cannot silently undo each other.
+- **Sidebar autosaves are coalesced**, so a paragraph of typing is one undo step
+  and not forty.
+
+Requires the `cb_action_log` table — see
+[the sandbox migration](../../apps/content-blocks-sandbox/migrations). Without it
+the endpoints have nowhere to write and undo reports itself unavailable.
+
 ### Lifecycle
 
 `ContentAreaType` does **not** write to the database on a `GET` request. If the host entity has no `ContentArea` yet (new entity, or legacy data), the widget renders a "save first" placeholder instead of the builder. Once the form is submitted and the host entity is persisted, the next edit shows the builder normally.

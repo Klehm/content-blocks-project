@@ -47,6 +47,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
             new SectionPosterBuilder($this->makeRegistry(), new EchoTranslator(), new SectionStyleRegistry()),
             $this->makeCsrfManager($csrfValid),
             $upgrader ?? new DenyOnMismatchUpgrader(),
+            $this->makeJournal($em),
             new EnvelopeUpgradeChain(),
             5,
         );

@@ -297,16 +297,49 @@
      *
      * @see docs/internals/frontend.md#keyboard-and-clipboard
      */
+    /** Ctrl/Cmd chord to the intent the parent answers with. */
+    const CHORDS = {
+        c: 'cb:clipboard:copy-requested',
+        v: 'cb:clipboard:paste-requested',
+        z: 'cb:history:undo-requested',
+        'shift+z': 'cb:history:redo-requested',
+        y: 'cb:history:redo-requested',
+    };
+
+    /** Input types that take no typing, so Ctrl-Z steps on nothing there. */
+    const UNDOLESS_INPUT_TYPES = [
+        'color', 'range', 'checkbox', 'radio', 'file',
+        'button', 'submit', 'reset', 'image', 'hidden',
+    ];
+
+    /** Mirrors the shell's `_hasNativeUndo`; the two rules must not drift. */
+    function hasNativeUndo(t) {
+        if (!t || t.nodeType !== 1) return false;
+        if (t.isContentEditable) return true;
+        if (t.tagName === 'TEXTAREA') return true;
+        if (t.tagName !== 'INPUT') return false;
+
+        return UNDOLESS_INPUT_TYPES.indexOf((t.type || 'text').toLowerCase()) === -1;
+    }
+
     document.addEventListener('keydown', (event) => {
-        if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
+        if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
         const key = event.key && event.key.toLowerCase();
-        if (key !== 'c' && key !== 'v') return;
-        if (isTypingTarget(event.target)) return;
-        const selection = window.getSelection && window.getSelection();
-        if (selection && !selection.isCollapsed) return;
+        const intent = CHORDS[(event.shiftKey ? 'shift+' : '') + key];
+        if (!intent) return;
+
+        // Undo yields only to a real undo stack; copy/paste to any field and
+        // to a live selection, which it would otherwise steal.
+        if (intent.indexOf('cb:history:') === 0) {
+            if (hasNativeUndo(event.target)) return;
+        } else {
+            if (isTypingTarget(event.target)) return;
+            const selection = window.getSelection && window.getSelection();
+            if (selection && !selection.isCollapsed) return;
+        }
 
         event.preventDefault();
-        postToParent(key === 'c' ? 'cb:clipboard:copy-requested' : 'cb:clipboard:paste-requested');
+        postToParent(intent);
     });
 
     // ---------- Single-block hot reload ----------

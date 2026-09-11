@@ -140,6 +140,16 @@ test('no builder action changes the published page until Publish', async ({ page
     await deleteViaToolbar(page, reopened, '[data-cb-section-id]');
     expect(await publicMarkup()).toBe(published);
 
+    // Walk the last action back, then forward again: undo replays an inverse
+    // through the same draft fields, so it is a builder action like the rest.
+    await page.keyboard.press('Control+z');
+    await page.waitForTimeout(800);
+    expect(await publicMarkup()).toBe(published);
+
+    await page.keyboard.press('Control+Shift+z');
+    await page.waitForTimeout(800);
+    expect(await publicMarkup()).toBe(published);
+
     // ---- …and now Publish ----
 
     await publish(page);

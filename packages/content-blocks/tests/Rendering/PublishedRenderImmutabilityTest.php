@@ -9,12 +9,17 @@ use ContentBlocks\Block\BlockDecoratorCollection;
 use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Controller\BlocksController;
+use ContentBlocks\Controller\HistoryController;
 use ContentBlocks\Controller\ReplaceController;
 use ContentBlocks\Controller\SectionsController;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\History\ActionJournal;
+use ContentBlocks\History\BuilderSession;
+use ContentBlocks\History\SidebarOutcome;
+use ContentBlocks\History\StateApplier;
 use ContentBlocks\Publishing\ContentAreaPublisher;
 use ContentBlocks\Rendering\BlockDataResolverCollection;
 use ContentBlocks\Rendering\BlockRenderer;
@@ -27,6 +32,7 @@ use ContentBlocks\Section\SectionDecoratorCollection;
 use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AllowAllAccessChecker;
+use ContentBlocks\Tests\History\InMemoryActionLogStore;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
@@ -35,6 +41,8 @@ use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
@@ -71,6 +79,8 @@ final class PublishedRenderImmutabilityTest extends TestCase
 
     /** Stands in for the database's auto-increment. */
     private int $nextId = 1000;
+
+    private ?ActionJournal $journal = null;
 
     // ---------------------------------------------------------------
     // Section-scoped actions
@@ -243,6 +253,35 @@ final class PublishedRenderImmutabilityTest extends TestCase
         $this->find(Section::class, 10)->setDraftSettings(['styling' => ['backgroundColor' => '#ff0000']]);
 
         $this->assertSame($before, $this->publicHtml($area));
+    }
+
+    /**
+     * Undo replays an inverse through the same draft fields every other
+     * action writes, so it is a builder action like the rest.
+     */
+    public function testUndoingAnActionDoesNotTouchThePublicRender(): void
+    {
+        $area = $this->publishedArea();
+        $before = $this->publicHtml($area);
+
+        $this->blocksController()->delete(31, $this->jsonRequest());
+        $this->historyController()->undo(1, $this->jsonRequest());
+
+        $this->assertSame($before, $this->publicHtml($area));
+        $this->assertFalse($this->find(Block::class, 31)->isDeleted(), 'guard: the undo did land in the draft');
+    }
+
+    public function testRedoingAnActionDoesNotTouchThePublicRender(): void
+    {
+        $area = $this->publishedArea();
+        $before = $this->publicHtml($area);
+
+        $this->blocksController()->move(30, $this->jsonRequest(['toColumnId' => 21, 'position' => 0]));
+        $this->historyController()->undo(1, $this->jsonRequest());
+        $this->historyController()->redo(1, $this->jsonRequest());
+
+        $this->assertSame($before, $this->publicHtml($area));
+        $this->assertSame(21, $this->find(Block::class, 30)->getColumn()?->getId(), 'guard: the redo did land');
     }
 
     // ---------------------------------------------------------------
@@ -642,6 +681,7 @@ final class PublishedRenderImmutabilityTest extends TestCase
             new SectionCloner(),
             $this->renderer(RenderMode::PREVIEW),
             $this->registry(),
+            $this->journal(),
         );
     }
 
@@ -654,6 +694,7 @@ final class PublishedRenderImmutabilityTest extends TestCase
             $this->csrf(),
             $this->translator(),
             $this->renderer(RenderMode::PREVIEW),
+            $this->journal(),
         );
     }
 
@@ -667,7 +708,43 @@ final class PublishedRenderImmutabilityTest extends TestCase
             $provider,
             new SectionCloner(),
             $this->csrf(),
+            $this->journal(),
         );
+    }
+
+    private function historyController(): HistoryController
+    {
+        return new HistoryController(
+            $this->em(),
+            new AllowAllAccessChecker(),
+            $this->journal(),
+            new SidebarOutcome($this->em()),
+            $this->csrf(),
+        );
+    }
+
+    /**
+     * One journal for the whole scenario, over a real session so entries are
+     * actually recorded — a passthrough journal would test nothing here.
+     */
+    private function journal(): ActionJournal
+    {
+        if ($this->journal === null) {
+            $session = new Session(new MockArraySessionStorage());
+            $session->start();
+            $request = new Request();
+            $request->setSession($session);
+            $stack = new RequestStack();
+            $stack->push($request);
+
+            $this->journal = new ActionJournal(
+                new InMemoryActionLogStore(),
+                new StateApplier($this->em()),
+                new BuilderSession($stack),
+            );
+        }
+
+        return $this->journal;
     }
 
     private function csrf(): CsrfTokenManagerInterface

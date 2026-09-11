@@ -153,14 +153,17 @@ final class SectionSidebarControllerTest extends ControllerTestCase
             return '<form></form>';
         });
 
+        $em = $this->makeEm($entities);
+
         return new SectionSidebarController(
-            $this->makeEm($entities),
+            $em,
             $this->makeAccessChecker(),
             $this->makeFormFactory($styleRegistry),
             $twig,
             $this->makeCsrfManager(),
             new SectionSettingsDefaults([]),
             $styleRegistry,
+            $this->makeJournal($em),
         );
     }
 

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Controller;
 
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\History\ActionJournal;
+use ContentBlocks\History\JournalScope;
 use ContentBlocks\Replace\ContentAreaProviderInterface;
 use ContentBlocks\Section\SectionClonerInterface;
 use ContentBlocks\Security\AccessCheckerInterface;
@@ -38,6 +40,7 @@ final class ReplaceController
         private readonly ContentAreaProviderInterface $provider,
         private readonly SectionClonerInterface $sectionCloner,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly ActionJournal $journal,
     ) {
     }
 
@@ -145,36 +148,38 @@ final class ReplaceController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        // Soft-delete every existing section. The actual em->remove() runs
-        // at publish time (see ContentAreaPublisher).
-        foreach ($target->getSections() as $existing) {
-            $existing->setDeleted(true);
-        }
+        return $this->journal->record($target, 'area.replace', JournalScope::structure(), function () use ($target, $source): JsonResponse {
+            // Soft-delete every existing section. The actual em->remove()
+            // runs at publish time (see ContentAreaPublisher).
+            foreach ($target->getSections() as $existing) {
+                $existing->setDeleted(true);
+            }
 
-        // previewPosition order, skipping soft-deleted: the copy follows the
-        // source's draft order, which is the intent the user can see.
-        $sourceSections = array_values(array_filter(
-            $source->getSections()->toArray(),
-            fn ($section) => !$section->isDeleted(),
-        ));
-        usort(
-            $sourceSections,
-            fn ($a, $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition(),
-        );
+            // previewPosition order, skipping soft-deleted: the copy follows
+            // the source's draft order, the intent the user can see.
+            $sourceSections = array_values(array_filter(
+                $source->getSections()->toArray(),
+                fn ($section) => !$section->isDeleted(),
+            ));
+            usort(
+                $sourceSections,
+                fn ($a, $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition(),
+            );
 
-        foreach ($sourceSections as $i => $sourceSection) {
-            $copy = $this->sectionCloner->cloneSection($sourceSection);
-            $copy->setPreviewPosition($i);
-            $target->addSection($copy);
-            $this->em->persist($copy);
-        }
+            foreach ($sourceSections as $i => $sourceSection) {
+                $copy = $this->sectionCloner->cloneSection($sourceSection);
+                $copy->setPreviewPosition($i);
+                $target->addSection($copy);
+                $this->em->persist($copy);
+            }
 
-        $this->em->flush();
+            $this->em->flush();
 
-        return new JsonResponse([
-            'replaced' => true,
-            'sectionCount' => \count($sourceSections),
-            'hasUnpublishedChanges' => $target->hasUnpublishedChanges(),
-        ]);
+            return new JsonResponse([
+                'replaced' => true,
+                'sectionCount' => \count($sourceSections),
+                'hasUnpublishedChanges' => $target->hasUnpublishedChanges(),
+            ]);
+        });
     }
 }

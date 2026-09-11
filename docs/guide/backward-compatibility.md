@@ -58,7 +58,7 @@ Some defaults are load-bearing enough to be API:
 
 ## What is not covered
 
-- The 14 HTTP controllers and `CsrfProtectedTrait`. The routes are the contract; the classes behind them are not.
+- The 15 HTTP controllers and `CsrfProtectedTrait`. The routes are the contract; the classes behind them are not.
 - `ContentBlocks\DependencyInjection\` and the block-type compiler pass.
 - `BlockComponent` — a Live Component driven by the builder's own templates.
 - `BlockTranslationRepository`.

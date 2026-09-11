@@ -9,6 +9,8 @@ use ContentBlocks\BlockType\BlockTypeInterface;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Form\Type\BlockFormType;
+use ContentBlocks\History\ActionJournal;
+use ContentBlocks\History\JournalScope;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -50,6 +52,7 @@ final class BlockComponent
         private readonly AccessCheckerInterface $accessChecker,
         private readonly \ContentBlocks\Block\BlockDataDefaults $blockDataDefaults,
         private readonly CollectionItemIds $collectionItemIds,
+        private readonly ActionJournal $journal,
     ) {
     }
 
@@ -196,11 +199,28 @@ final class BlockComponent
         }
 
         $block = $this->getBlock();
+        $area = $block->getColumn()?->getSection()?->getContentArea();
         // The one place that can guarantee every collection entry carries its
         // stable id, including ones just added or duplicated.
         $form = $this->getForm();
-        $block->setDraftData($this->collectionItemIds->backfill($form, $form->getData()));
-        $this->em->flush();
+        $write = function () use ($block, $form): void {
+            $block->setDraftData($this->collectionItemIds->backfill($form, $form->getData()));
+            $this->em->flush();
+        };
+
+        // Coalesced per block: autosave fires per keystroke burst, and one
+        // paragraph of typing must not become forty undo steps.
+        if ($area === null) {
+            $write();
+        } else {
+            $this->journal->record(
+                $area,
+                'block.data',
+                JournalScope::blockData($block),
+                $write,
+                'block.data:' . $this->blockId,
+            );
+        }
 
         $this->dispatchBrowserEvent('cb:block:saved', ['blockId' => $this->blockId]);
     }

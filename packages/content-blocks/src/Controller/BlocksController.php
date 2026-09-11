@@ -7,6 +7,8 @@ namespace ContentBlocks\Controller;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
+use ContentBlocks\History\ActionJournal;
+use ContentBlocks\History\JournalScope;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Security\AccessCheckerInterface;
@@ -39,6 +41,7 @@ final class BlocksController
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly TranslatorInterface $translator,
         private readonly BlockRendererInterface $blockRenderer,
+        private readonly ActionJournal $journal,
     ) {
     }
 
@@ -89,29 +92,31 @@ final class BlocksController
 
         $blockType = $this->blockTypeRegistry->get($type);
 
-        $block = new Block();
-        $block->setType($type);
-        $block->setDraftData($blockType->getDefaultData());
-        $block->setPreviewPosition($this->nextPreviewPosition($column));
-        $column->addBlock($block);
+        return $this->journal->record($area, 'block.create', JournalScope::structure(), function () use ($blockType, $column, $type): JsonResponse {
+            $block = new Block();
+            $block->setType($type);
+            $block->setDraftData($blockType->getDefaultData());
+            $block->setPreviewPosition($this->nextPreviewPosition($column));
+            $column->addBlock($block);
 
-        $this->em->persist($block);
-        $this->em->flush();
+            $this->em->persist($block);
+            $this->em->flush();
 
-        // A static block ships its markup for in-place insertion; a
-        // JS-dependent one opts out and the builder reloads the iframe.
-        if ($blockType->supportsPreviewHotReload()) {
+            // A static block ships its markup for in-place insertion; a
+            // JS-dependent one opts out and the builder reloads the iframe.
+            if ($blockType->supportsPreviewHotReload()) {
+                return new JsonResponse([
+                    'id' => $block->getId(),
+                    'hotReload' => true,
+                    'html' => $this->blockRenderer->renderBlock($block, RenderContext::forPreview()),
+                ]);
+            }
+
             return new JsonResponse([
                 'id' => $block->getId(),
-                'hotReload' => true,
-                'html' => $this->blockRenderer->renderBlock($block, RenderContext::forPreview()),
+                'hotReload' => false,
             ]);
-        }
-
-        return new JsonResponse([
-            'id' => $block->getId(),
-            'hotReload' => false,
-        ]);
+        });
     }
 
     #[Route('/block/{id}/move', name: 'content_blocks_block_move', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -149,39 +154,41 @@ final class BlocksController
             return new JsonResponse(['error' => 'Target column is not in this ContentArea'], Response::HTTP_FORBIDDEN);
         }
 
-        $source = $block->getColumn();
-        $crossColumn = $source !== null && $source->getId() !== $target->getId();
+        return $this->journal->record($area, 'block.move', JournalScope::structure(), function () use ($block, $target, $position): JsonResponse {
+            $source = $block->getColumn();
+            $crossColumn = $source !== null && $source->getId() !== $target->getId();
 
-        // The iframe's index is one in the visible-only list; its drag logic
-        // ignores deleted siblings too.
-        if ($crossColumn) {
-            $sourceBlocks = array_values(array_filter(
-                $source->getBlocks()->toArray(),
+            // The iframe's index is one in the visible-only list; its drag
+            // logic ignores deleted siblings too.
+            if ($crossColumn) {
+                $sourceBlocks = array_values(array_filter(
+                    $source->getBlocks()->toArray(),
+                    fn (Block $b) => $b->getId() !== $block->getId() && !$b->isDeleted(),
+                ));
+                // getBlocks() is ordered by the *published* position; skipping
+                // this would re-index an unpublished reorder back into it.
+                usort($sourceBlocks, fn (Block $a, Block $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
+                $this->reindexPreview($sourceBlocks);
+
+                // moveTo(), not setColumn(): the FK is the *draft* location, a
+                // published block noting where PUBLIC keeps showing it.
+                $block->moveTo($target);
+            }
+
+            $targetBlocks = array_values(array_filter(
+                $target->getBlocks()->toArray(),
                 fn (Block $b) => $b->getId() !== $block->getId() && !$b->isDeleted(),
             ));
-            // getBlocks() is ordered by the *published* position, so skipping
-            // this would re-index an unpublished reorder back into it.
-            usort($sourceBlocks, fn (Block $a, Block $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
-            $this->reindexPreview($sourceBlocks);
+            usort($targetBlocks, fn (Block $a, Block $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
 
-            // moveTo(), not setColumn(): the FK is the *draft* location, so a
-            // published block must note the column PUBLIC keeps showing it in.
-            $block->moveTo($target);
-        }
+            $position = max(0, min((int) $position, \count($targetBlocks)));
+            array_splice($targetBlocks, $position, 0, [$block]);
+            $this->reindexPreview($targetBlocks);
 
-        $targetBlocks = array_values(array_filter(
-            $target->getBlocks()->toArray(),
-            fn (Block $b) => $b->getId() !== $block->getId() && !$b->isDeleted(),
-        ));
-        usort($targetBlocks, fn (Block $a, Block $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
+            $this->em->flush();
 
-        $position = max(0, min((int) $position, \count($targetBlocks)));
-        array_splice($targetBlocks, $position, 0, [$block]);
-        $this->reindexPreview($targetBlocks);
-
-        $this->em->flush();
-
-        return new JsonResponse(['moved' => true]);
+            return new JsonResponse(['moved' => true]);
+        });
     }
 
     #[Route('/block/{id}/duplicate', name: 'content_blocks_block_duplicate', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -202,44 +209,46 @@ final class BlocksController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        // A draft-only block inserted right after the source; siblings are
-        // re-indexed so the ordering stays dense.
-        $copy = new Block();
-        $copy->setColumn($column);
-        $copy->setType($block->getType());
-        $copy->setDraftData($block->getDraftData() ?? $block->getPublishedData() ?? []);
+        return $this->journal->record($area, 'block.duplicate', JournalScope::structure(), function () use ($block, $column): JsonResponse {
+            // A draft-only block inserted right after the source; siblings are
+            // re-indexed so the ordering stays dense.
+            $copy = new Block();
+            $copy->setColumn($column);
+            $copy->setType($block->getType());
+            $copy->setDraftData($block->getDraftData() ?? $block->getPublishedData() ?? []);
 
-        $siblings = array_values(array_filter(
-            $column->getBlocks()->toArray(),
-            fn (Block $b) => !$b->isDeleted(),
-        ));
-        usort($siblings, fn (Block $a, Block $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
+            $siblings = array_values(array_filter(
+                $column->getBlocks()->toArray(),
+                fn (Block $b) => !$b->isDeleted(),
+            ));
+            usort($siblings, fn (Block $a, Block $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
 
-        $sourceIndex = array_search($block, $siblings, true);
-        $insertAt = $sourceIndex === false ? \count($siblings) : $sourceIndex + 1;
-        array_splice($siblings, $insertAt, 0, [$copy]);
-        $this->reindexPreview($siblings);
+            $sourceIndex = array_search($block, $siblings, true);
+            $insertAt = $sourceIndex === false ? \count($siblings) : $sourceIndex + 1;
+            array_splice($siblings, $insertAt, 0, [$copy]);
+            $this->reindexPreview($siblings);
 
-        $column->addBlock($copy);
-        $this->em->persist($copy);
-        $this->em->flush();
+            $column->addBlock($copy);
+            $this->em->persist($copy);
+            $this->em->flush();
 
-        // Same policy as create(); `sourceId` tells the overlay which node to
-        // anchor the copy after.
-        $response = ['id' => $copy->getId(), 'sourceId' => $block->getId()];
+            // Same policy as create(); `sourceId` tells the overlay which node
+            // to anchor the copy after.
+            $response = ['id' => $copy->getId(), 'sourceId' => $block->getId()];
 
-        $blockType = $this->blockTypeRegistry->has($copy->getType())
-            ? $this->blockTypeRegistry->get($copy->getType())
-            : null;
+            $blockType = $this->blockTypeRegistry->has($copy->getType())
+                ? $this->blockTypeRegistry->get($copy->getType())
+                : null;
 
-        if ($blockType !== null && $blockType->supportsPreviewHotReload()) {
-            $response['hotReload'] = true;
-            $response['html'] = $this->blockRenderer->renderBlock($copy, RenderContext::forPreview());
-        } else {
-            $response['hotReload'] = false;
-        }
+            if ($blockType !== null && $blockType->supportsPreviewHotReload()) {
+                $response['hotReload'] = true;
+                $response['html'] = $this->blockRenderer->renderBlock($copy, RenderContext::forPreview());
+            } else {
+                $response['hotReload'] = false;
+            }
 
-        return new JsonResponse($response);
+            return new JsonResponse($response);
+        });
     }
 
     #[Route('/block/{id}', name: 'content_blocks_block_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
@@ -259,12 +268,14 @@ final class BlocksController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        // Real removal happens at Publish, or at Discard if the block was
-        // never published.
-        $block->setDeleted(true);
-        $this->em->flush();
+        return $this->journal->record($area, 'block.delete', JournalScope::structure(), function () use ($block): JsonResponse {
+            // Real removal happens at Publish, or at Discard if the block was
+            // never published.
+            $block->setDeleted(true);
+            $this->em->flush();
 
-        return new JsonResponse(['deleted' => true]);
+            return new JsonResponse(['deleted' => true]);
+        });
     }
 
     /**
@@ -289,10 +300,12 @@ final class BlocksController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        $block->setDeleted(false);
-        $this->em->flush();
+        return $this->journal->record($area, 'block.restore', JournalScope::structure(), function () use ($block): JsonResponse {
+            $block->setDeleted(false);
+            $this->em->flush();
 
-        return new JsonResponse(['restored' => true]);
+            return new JsonResponse(['restored' => true]);
+        });
     }
 
     private function nextPreviewPosition(Column $column): int

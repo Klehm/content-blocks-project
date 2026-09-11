@@ -136,33 +136,9 @@ That is the value the cycle is supposed to produce, and it is worth saying plain
 
 ---
 
-## Action history — Ctrl+Z to undo the last action 🅿️ (post-1.0)
-
-**Context.** Today the only rescue is scoped: a delete offers an "Undo" snackbar for a few seconds, and Discard reverts *everything* unpublished. Between those two there is nothing — a move, a duplicate, a paste, a settings change or a block edit is final until the editor undoes it by hand. Editors coming from any other builder expect `Ctrl/Cmd-Z`.
-
-**Direction.** A per-session, draft-scoped **action journal**, undone by replaying an inverse operation server-side — not by snapshotting the whole area. Every structural mutation already funnels through a small set of endpoints (`section|block create/move/duplicate/delete/restore`, `paste`, `replace-with`, the sidebar `settings` saves) and, client-side, through the builder's `_mutationQueue`; those are the two chokepoints where an entry gets recorded and where an undo is applied, so the feature does not need every call site to opt in.
-
-Open design questions, worth settling before coding:
-
-- **Where the journal lives**: a `cb_action_log` table (survives reload, needs a migration, needs pruning) vs in-memory in the builder session (free, but lost on refresh — and refresh is exactly when an editor panics). Leaning table, keyed by content area + a builder session id, pruned on publish/discard.
-- **Granularity of a block edit**: the sidebar autosaves, so a naive journal turns one paragraph of typing into forty undo steps. Needs coalescing (same block + same field + short window = one entry).
-- **What an inverse is** for each operation — trivial for create/delete/move, less so for `replace-with` and `paste` (the inverse is a bulk delete of exactly what was inserted, so the journal must record the ids it produced).
-- **Redo**, and whether the stack survives a page reload.
-- **Concurrency**: two editors on the same area must not undo each other's work — the journal is per builder session, and an entry whose target moved under it is refused rather than guessed.
-
-**Rough scope when picked up:**
-- [ ] Design note: journal storage, entry shape, coalescing rules, inverse per operation
-- [ ] Recording seam at the mutation chokepoint (server) + `_mutationQueue` (client)
-- [ ] `POST /_content-blocks/area/{id}/undo` (and `/redo`), CSRF + `canEdit` on the target area
-- [ ] `Ctrl/Cmd-Z` binding, sharing the clipboard shortcuts' rules (relayed from the iframe, yields to text editing)
-- [ ] Pruning on publish/discard + a migration for hosts
-- [ ] Tests: PHPUnit on the inverses, Vitest on the stack, Playwright on the round trip
-
----
-
 ## Publication history — every publish is a revision 🅿️ (post-1.0)
 
-**Context.** Publish is a one-way door. Discard rescues an unpublished draft and the snackbar rescues one delete, but once an editor has published there is no way back to what the page said last week — not to read it, not to compare it, not to bring it back. The answer today is "restore the database", which is not an answer an editor can act on.
+**Context.** Publish is a one-way door. Discard rescues an unpublished draft, the snackbar rescues one delete and `Ctrl/Cmd-Z` walks back through the current session, but all three stop at the last publish: once an editor has published there is no way back to what the page said last week — not to read it, not to compare it, not to bring it back. The answer today is "restore the database", which is not an answer an editor can act on.
 
 **Direction.** Each publish writes a **revision**: a snapshot of the area's published state at that moment, in its own table. A new topbar action opens the history, newest first, and every row carries one button that **loads that revision back into the draft**.
 

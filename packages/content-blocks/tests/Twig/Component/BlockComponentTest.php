@@ -8,6 +8,10 @@ use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Form\Type\BlockFormType;
+use ContentBlocks\History\ActionJournal;
+use ContentBlocks\History\BuilderSession;
+use ContentBlocks\History\DoctrineActionLogStore;
+use ContentBlocks\History\StateApplier;
 use ContentBlocks\Security\AllowAllAccessChecker;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Twig\Component\BlockComponent;
@@ -17,6 +21,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -129,6 +134,11 @@ final class BlockComponentTest extends TestCase
             new AllowAllAccessChecker(),
             $defaults,
             new \ContentBlocks\Block\CollectionItemIds(),
+            new ActionJournal(
+                new DoctrineActionLogStore($em),
+                new StateApplier($em),
+                new BuilderSession(new RequestStack()),
+            ),
         );
         $component->blockId = 1;
 
@@ -189,6 +199,11 @@ final class BlockComponentTest extends TestCase
             new AllowAllAccessChecker(),
             $defaults,
             new \ContentBlocks\Block\CollectionItemIds(),
+            new ActionJournal(
+                new DoctrineActionLogStore($em),
+                new StateApplier($em),
+                new BuilderSession(new RequestStack()),
+            ),
         );
         $component->blockId = 1;
 
@@ -304,6 +319,11 @@ final class BlockComponentTest extends TestCase
             new AllowAllAccessChecker(),
             new \ContentBlocks\Block\BlockDataDefaults(),
             new \ContentBlocks\Block\CollectionItemIds(),
+            new ActionJournal(
+                new DoctrineActionLogStore($em),
+                new StateApplier($em),
+                new BuilderSession(new RequestStack()),
+            ),
         );
         $component->blockId = 1;
 
@@ -355,6 +375,11 @@ final class BlockComponentTest extends TestCase
             new AllowAllAccessChecker(),
             new \ContentBlocks\Block\BlockDataDefaults(),
             new \ContentBlocks\Block\CollectionItemIds(),
+            new ActionJournal(
+                new DoctrineActionLogStore($em),
+                new StateApplier($em),
+                new BuilderSession(new RequestStack()),
+            ),
         );
         $component->blockId = 1;
 

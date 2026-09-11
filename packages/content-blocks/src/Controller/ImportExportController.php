@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace ContentBlocks\Controller;
 
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\History\ActionJournal;
+use ContentBlocks\History\JournalScope;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Transfer\ContentAreaExporterInterface;
 use ContentBlocks\Transfer\ContentAreaImporterInterface;
+use ContentBlocks\Transfer\ImportResult;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -39,6 +42,7 @@ final class ImportExportController
         private readonly ContentAreaExporterInterface $exporter,
         private readonly ContentAreaImporterInterface $importer,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly ActionJournal $journal,
     ) {
     }
 
@@ -135,12 +139,15 @@ final class ImportExportController
         }
 
         try {
-            $result = $this->importer->import($target, $payload);
+            $result = $this->journal->record($target, 'area.import', JournalScope::structure(), function () use ($target, $payload): ImportResult {
+                $imported = $this->importer->import($target, $payload);
+                $this->em->flush();
+
+                return $imported;
+            });
         } catch (\InvalidArgumentException $e) {
             return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
         }
-
-        $this->em->flush();
 
         // Non-blocking by design (see ImportResult): the import succeeded, and
         // the editor is told what this app could not take in.
