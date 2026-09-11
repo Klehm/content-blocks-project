@@ -187,9 +187,13 @@ return static function (ContainerConfigurator $container): void {
     $services->set(SectionCloner::class);
     $services->alias(SectionClonerInterface::class, SectionCloner::class);
 
-    $services->set(ContentAreaExporter::class);
+    // Empty by default; an export carries the same payload it always did
+    // until a bundle stores rows beside a block. See transfer.md.
+    $services->set(ContentAreaExporter::class)
+        ->arg('$extensions', tagged_iterator('content_blocks.transfer_extension'));
     $services->alias(ContentAreaExporterInterface::class, ContentAreaExporter::class);
-    $services->set(ContentAreaImporter::class);
+    $services->set(ContentAreaImporter::class)
+        ->arg('$extensions', tagged_iterator('content_blocks.transfer_extension'));
     $services->alias(ContentAreaImporterInterface::class, ContentAreaImporter::class);
 
     // Saving and inserting gate on the area; managing the library has none

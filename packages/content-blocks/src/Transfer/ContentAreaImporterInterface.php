@@ -17,6 +17,7 @@ interface ContentAreaImporterInterface
      * strictly, the content taken optimistically.
      *
      * @see docs/internals/transfer.md#import-is-a-replace-and-does-not-flush
+     * @see docs/internals/transfer.md#what-is-stored-beside-a-block
      *
      * @param array<string, mixed> $payload
      *

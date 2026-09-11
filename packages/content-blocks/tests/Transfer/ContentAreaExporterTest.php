@@ -95,10 +95,12 @@ final class ContentAreaExporterTest extends TestCase
         $this->assertSame(['backgroundColor' => '#fff'], $sections[0]['settings']);
         $this->assertSame('col-12', $sections[0]['columns'][0]['preset']);
         $this->assertSame(
-            ['type' => 'text', 'data' => ['content' => 'hello']],
+            ['ref' => 's0.c0.b0', 'type' => 'text', 'data' => ['content' => 'hello']],
             $sections[0]['columns'][0]['blocks'][0],
         );
         $this->assertSame([], $payload['assets']);
+        // No satellite, no fragment: the payload an install without one gets.
+        $this->assertArrayNotHasKey('extensions', $payload);
     }
 
     public function testExportPrefersDraftDataOverPublished(): void
