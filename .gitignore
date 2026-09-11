@@ -14,6 +14,9 @@ blob-report/
 # IDE
 .vscode/
 *.code-workspace
+# Symfony LSP cache. Rooted: the apps ignore their own var/, and a var/
+# somewhere under packages/ would be something else entirely.
+/var/
 
 # VitePress build output & cache (generated .md block pages ARE committed)
 docs/.vitepress/dist/
