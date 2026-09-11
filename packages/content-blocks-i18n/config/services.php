@@ -26,6 +26,7 @@ use ContentBlocks\I18n\Rendering\TranslationBlockDataResolver;
 use ContentBlocks\I18n\Repository\BlockTranslationRepository;
 use ContentBlocks\I18n\Storage\TranslationStore;
 use ContentBlocks\I18n\Storage\TranslationWriter;
+use ContentBlocks\I18n\Transfer\TranslationTransferExtension;
 use ContentBlocks\I18n\Twig\I18nExtension;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Publishing\ContentAreaPublisherInterface;
@@ -96,6 +97,10 @@ return static function (ContainerConfigurator $container): void {
         ->args([service('.inner')]);
 
     $services->set(TranslationCloneObserver::class);
+
+    // The same duty for a payload that leaves the installation. See
+    // docs/internals/i18n.md#translations-in-an-export
+    $services->set(TranslationTransferExtension::class);
 
     // ---------- Machine translation ----------
 

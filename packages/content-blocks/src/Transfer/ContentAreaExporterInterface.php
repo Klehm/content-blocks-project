@@ -37,6 +37,7 @@ interface ContentAreaExporterInterface
      *         extension: string,
      *         data: string,
      *     }>,
+     *     extensions?: array<string, array<string, mixed>>,
      * }
      */
     public function export(ContentArea $area): array;

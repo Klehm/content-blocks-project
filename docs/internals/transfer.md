@@ -11,6 +11,14 @@ The constant lives on the interface rather than the implementation, so a host
 that swaps the exporter does not leave the importer validating against the
 shipped class.
 
+What has to bump the format is a change a reader can get **wrong**: a key that
+moved, a value that changed meaning, a structure that has to be walked
+differently. A key that is simply *new* — `ref`, `extensions` — is not one of
+those: an older reader ignores it and imports exactly what it always did, and a
+newer reader handles a payload that lacks it. Bumping the format for an additive
+key would buy nothing and cost every older installation the ability to read
+today's exports, which is the one thing the format exists to protect.
+
 An envelope from an older structure is migrated forward when this package ships
 a step for it, and refused otherwise — see
 [section-templates.md](section-templates.md#versioning-the-envelope),
@@ -50,6 +58,43 @@ Two failure modes are handled by leaving the value alone rather than dropping it
 
 A token can be the whole value (an image field) or sit inside markup, so the
 rewriter handles both, the second by substitution in place.
+
+## What is stored beside a block
+
+Not everything that belongs to a block lives in `Block.data`. The i18n satellite
+keeps its translations in a table of its own, deliberately —
+[i18n.md](i18n.md#why-a-side-table-not-an-envelope-in-blockdata) — and the price
+of that choice is that **no flow carries those rows for free**. Cloning was
+taught through `BlockCloneObserverInterface`; transfer is taught through
+`ContentAreaTransferExtensionInterface`, autoconfigured the same way.
+
+An extension gets a `key()`, writes a fragment under `extensions.<key>`, and is
+called back on import only when the payload carries that key. The core knows
+nothing about what is inside a fragment, and an install without the satellite
+imports the same payload minus the rows it cannot store.
+
+**A fragment addresses a block by `ref`, not by id.** Database ids mean nothing
+on the other side of a transfer, so the exporter stamps every block with a
+positional `ref` (`s0.c1.b2`) and hands extensions the same `ref => Block` map
+the payload uses. On import the ref comes back off the payload — a block the
+importer skipped is simply absent from the map, so its rows are dropped with it
+rather than landing on a neighbour.
+
+Two consequences worth knowing before writing one:
+
+- **Assets are shared.** An extension is handed the same `AssetTokenizer` on the
+  way out and the same `AssetRewriter` on the way back, so a file only a
+  translated value references travels like any other. The payload's `assets` map
+  is read *after* the extensions have run, which is what makes that true.
+- **Rows may point at blocks with no id yet.** The importer builds entities and
+  leaves flushing to the caller, so an extension persisting a row whose FK is one
+  of those blocks is persisting against an unflushed entity. Doctrine tolerates
+  it: the "new entity found through relationship" check is deferred to the end of
+  the commit, by which point the area's cascade has persisted the block.
+
+Clipboard entries and section templates go through their own serializers and do
+**not** carry fragments today — copy/paste of a translated block still loses its
+translations.
 
 ## Import is a replace and does not flush
 

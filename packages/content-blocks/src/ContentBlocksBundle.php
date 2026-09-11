@@ -315,6 +315,11 @@ final class ContentBlocksBundle extends AbstractBundle
         // own images in the upload directory. See assets.md.
         $container->registerForAutoconfiguration(Asset\AssetReferenceProviderInterface::class)
             ->addTag('content_blocks.asset_reference_provider');
+
+        // The export/import half of the clone seam above: rows a bundle keeps
+        // beside a block, carried in the payload. See transfer.md.
+        $container->registerForAutoconfiguration(Transfer\ContentAreaTransferExtensionInterface::class)
+            ->addTag('content_blocks.transfer_extension');
     }
 
     public function getPath(): string

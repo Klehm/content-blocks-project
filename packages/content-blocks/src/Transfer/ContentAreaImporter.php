@@ -20,14 +20,15 @@ use ContentBlocks\Versioning\EnvelopeUpgradeChain;
  */
 final class ContentAreaImporter implements ContentAreaImporterInterface
 {
-    /** Token prefix produced by the exporter for embedded assets. */
-    private const ASSET_TOKEN_PREFIX = 'asset://';
-
+    /**
+     * @param iterable<ContentAreaTransferExtensionInterface> $extensions
+     */
     public function __construct(
         private readonly AssetResolverInterface $assetResolver,
         private readonly BlockTypeRegistry $registry,
         private readonly BlockDataKeys $dataKeys,
         private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
+        private readonly iterable $extensions = [],
     ) {
     }
 
@@ -38,7 +39,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     {
         $payload = $this->normalizeEnvelope($payload);
 
-        $assetMap = $this->materializeAssets($payload['assets'] ?? []);
+        $assets = new AssetRewriter($this->materializeAssets($payload['assets'] ?? []));
 
         $sectionsRaw = $payload['contentArea']['sections'] ?? null;
         if (!is_array($sectionsRaw)) {
@@ -53,15 +54,19 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
 
         $count = 0;
         $tally = new BlockRestoreTally();
+        /** @var array<string, Block> $blocks */
+        $blocks = [];
         foreach (array_values($sectionsRaw) as $i => $sectionRaw) {
             if (!is_array($sectionRaw)) {
                 continue;
             }
-            $section = $this->buildSection($sectionRaw, $assetMap, $tally);
+            $section = $this->buildSection($sectionRaw, 's' . $i, $assets, $tally, $blocks);
             $section->setPreviewPosition($i);
             $target->addSection($section);
             ++$count;
         }
+
+        $this->importExtensions($target, $blocks, $payload['extensions'] ?? null, $assets);
 
         return new ImportResult(
             $count,
@@ -69,6 +74,24 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
             $tally->skippedTypes(),
             $tally->unknownFields(),
         );
+    }
+
+    /**
+     * @param array<string, Block> $blocks
+     */
+    private function importExtensions(ContentArea $target, array $blocks, mixed $fragments, AssetRewriter $assets): void
+    {
+        if (!is_array($fragments)) {
+            return;
+        }
+
+        foreach ($this->extensions as $extension) {
+            $fragment = $fragments[$extension->key()] ?? null;
+
+            if (is_array($fragment) && $fragment !== []) {
+                $extension->import($target, $blocks, $fragment, $assets);
+            }
+        }
     }
 
     /**
@@ -129,10 +152,10 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * @param array<string, mixed>  $raw
-     * @param array<string, string> $assetMap
+     * @param array<string, mixed> $raw
+     * @param array<string, Block> $blocks
      */
-    private function buildSection(array $raw, array $assetMap, BlockRestoreTally $tally): Section
+    private function buildSection(array $raw, string $ref, AssetRewriter $assets, BlockRestoreTally $tally, array &$blocks): Section
     {
         $section = new Section();
         if (isset($raw['layout']) && is_string($raw['layout'])) {
@@ -141,7 +164,9 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
 
         $settings = $raw['settings'] ?? null;
         if (is_array($settings) && $settings !== []) {
-            $section->setDraftSettings($this->rewriteAssets($settings, $assetMap));
+            /** @var array<string, mixed> $rewritten */
+            $rewritten = $assets->rewrite($settings);
+            $section->setDraftSettings($rewritten);
         }
 
         $cols = $raw['columns'] ?? null;
@@ -150,7 +175,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
                 if (!is_array($colRaw)) {
                     continue;
                 }
-                $col = $this->buildColumn($colRaw, $assetMap, $tally);
+                $col = $this->buildColumn($colRaw, $ref . '.c' . $i, $assets, $tally, $blocks);
                 $col->setPreviewPosition($i);
                 $section->addColumn($col);
             }
@@ -160,31 +185,32 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * @param array<string, mixed>  $raw
-     * @param array<string, string> $assetMap
+     * @param array<string, mixed> $raw
+     * @param array<string, Block> $blocks
      */
-    private function buildColumn(array $raw, array $assetMap, BlockRestoreTally $tally): Column
+    private function buildColumn(array $raw, string $ref, AssetRewriter $assets, BlockRestoreTally $tally, array &$blocks): Column
     {
         $col = new Column();
         if (isset($raw['preset']) && is_string($raw['preset'])) {
             $col->setPreset($raw['preset']);
         }
 
-        $blocks = $raw['blocks'] ?? null;
-        if (is_array($blocks)) {
+        $blocksRaw = $raw['blocks'] ?? null;
+        if (is_array($blocksRaw)) {
             // Positions come from the *kept* blocks so a skipped one doesn't
-            // leave a hole in the sequence.
+            // leave a hole in the sequence; refs count payload entries.
             $position = 0;
-            foreach (array_values($blocks) as $blockRaw) {
+            foreach (array_values($blocksRaw) as $i => $blockRaw) {
                 if (!is_array($blockRaw)) {
                     continue;
                 }
-                $block = $this->buildBlock($blockRaw, $assetMap, $tally);
+                $block = $this->buildBlock($blockRaw, $assets, $tally);
                 if ($block === null) {
                     continue;
                 }
                 $block->setPreviewPosition($position++);
                 $col->addBlock($block);
+                $blocks[$this->refOf($blockRaw, $ref . '.b' . $i)] = $block;
             }
         }
 
@@ -192,12 +218,24 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * @param array<string, mixed>  $raw
-     * @param array<string, string> $assetMap
+     * The payload's own ref wins; the positional fallback is what an export
+     * predating the key would have been given.
+     *
+     * @param array<string, mixed> $raw
+     */
+    private function refOf(array $raw, string $fallback): string
+    {
+        $ref = $raw['ref'] ?? null;
+
+        return is_string($ref) && $ref !== '' ? $ref : $fallback;
+    }
+
+    /**
+     * @param array<string, mixed> $raw
      *
      * @return Block|null null when the block's type is not registered here
      */
-    private function buildBlock(array $raw, array $assetMap, BlockRestoreTally $tally): ?Block
+    private function buildBlock(array $raw, AssetRewriter $assets, BlockRestoreTally $tally): ?Block
     {
         $type = $raw['type'] ?? null;
         if (is_string($type) && !$this->registry->has($type)) {
@@ -218,48 +256,14 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
             if (is_string($type)) {
                 $tally->noteUnknownKeys($type, $this->dataKeys->unknownIn($type, $data));
             }
+            /** @var array<string, mixed> $rewritten */
+            $rewritten = $assets->rewrite($data);
             // Kept verbatim, unknown keys included — those warn, never drop.
-            $block->setDraftData($this->rewriteAssets($data, $assetMap));
+            $block->setDraftData($rewritten);
         }
 
         $tally->keep();
 
         return $block;
-    }
-
-    /**
-     * Rewrites every `asset://{hash}` token to its new public path, whether it
-     * is the whole value or sits inside markup. Unknown hashes are left as-is.
-     *
-     * @see docs/internals/transfer.md#assets-travel-as-bytes-not-paths
-     *
-     * @param array<string, string> $assetMap
-     */
-    private function rewriteAssets(mixed $value, array $assetMap): mixed
-    {
-        if (is_string($value) && str_starts_with($value, self::ASSET_TOKEN_PREFIX)) {
-            $hash = substr($value, \strlen(self::ASSET_TOKEN_PREFIX));
-
-            return $assetMap[$hash] ?? $value;
-        }
-
-        if (is_string($value) && str_contains($value, self::ASSET_TOKEN_PREFIX)) {
-            return preg_replace_callback(
-                '#' . preg_quote(self::ASSET_TOKEN_PREFIX, '#') . '([A-Za-z0-9_-]+)#',
-                static fn (array $m) => $assetMap[$m[1]] ?? $m[0],
-                $value,
-            ) ?? $value;
-        }
-
-        if (is_array($value)) {
-            $out = [];
-            foreach ($value as $k => $v) {
-                $out[$k] = $this->rewriteAssets($v, $assetMap);
-            }
-
-            return $out;
-        }
-
-        return $value;
     }
 }

@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Export and import can now carry what a bundle stores *beside* a block.**
+  `ContentAreaTransferExtensionInterface` (autoconfigured) lets a bundle write a
+  fragment under the payload's new `extensions.<key>` map and read it back on
+  import. `klehm/content-blocks-i18n` is the first user: a translated page
+  exported from one installation now arrives translated in the next, instead of
+  structurally identical and silently empty of translations.
+
+  Every exported block also carries a positional `ref` (`s0.c1.b2`), which is how
+  a fragment addresses it — database ids mean nothing on the other side of a
+  transfer. A block the importer skips (a type this app does not have) is absent
+  from the map handed to extensions, so its rows are dropped with it rather than
+  landing on a neighbour.
+
+  Both additions are **additive keys, not a new format**: an older reader ignores
+  them and imports exactly what it always did, so `content-blocks/v1` still means
+  what it meant. Without an extension registered, the payload is byte-for-byte
+  what it was.
+
+  The asset seam is shared, so a file that only a fragment references travels
+  like any other — `AssetTokenizer` on the way out, `AssetRewriter` on the way
+  back, both extracted from the exporter and importer for this.
+
 - **Action history — `Ctrl/Cmd-Z`.** The builder now has an undo stack.
   `Ctrl/Cmd-Z` walks back through the current session's actions one at a time,
   `Ctrl/Cmd-Shift-Z` (or `Ctrl-Y`) walks forward. It covers everything the

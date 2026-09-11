@@ -19,10 +19,14 @@ final class ContentAreaExporter implements ContentAreaExporterInterface
 {
     private readonly AssetReferenceCollector $collector;
 
+    /**
+     * @param iterable<ContentAreaTransferExtensionInterface> $extensions
+     */
     public function __construct(
         private readonly AssetResolverInterface $assetResolver,
         private readonly int $contentVersion = 1,
         ?AssetReferenceCollector $collector = null,
+        private readonly iterable $extensions = [],
     ) {
         $this->collector = $collector ?? new AssetReferenceCollector($assetResolver);
     }
@@ -32,17 +36,21 @@ final class ContentAreaExporter implements ContentAreaExporterInterface
      */
     public function export(ContentArea $area): array
     {
-        $assets = [];
+        $assets = new AssetTokenizer($this->collector, $this->assetResolver);
         $sections = $this->collectByPreviewPosition(
             $area->getSections()->toArray(),
         );
 
+        /** @var array<string, Block> $blocks */
+        $blocks = [];
         $exportedSections = [];
-        foreach ($sections as $section) {
-            $exportedSections[] = $this->exportSection($section, $assets);
+        foreach ($sections as $i => $section) {
+            $exportedSections[] = $this->exportSection($section, 's' . $i, $assets, $blocks);
         }
 
-        return [
+        $extensions = $this->exportExtensions($area, $blocks, $assets);
+
+        $payload = [
             'format' => self::FORMAT,
             // Informative only: a content version belongs to the app that
             // issued it, so the importer on the other side ignores it.
@@ -51,103 +59,96 @@ final class ContentAreaExporter implements ContentAreaExporterInterface
             'contentArea' => [
                 'sections' => $exportedSections,
             ],
-            'assets' => $assets,
+            // Read after the extensions ran: one of them may carry a file no
+            // block's data mentions.
+            'assets' => $assets->assets(),
         ];
+
+        if ($extensions !== []) {
+            $payload['extensions'] = $extensions;
+        }
+
+        return $payload;
     }
 
     /**
-     * @param array<string, mixed> $assets
+     * @param array<string, Block> $blocks
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private function exportExtensions(ContentArea $area, array $blocks, AssetTokenizer $assets): array
+    {
+        $out = [];
+
+        foreach ($this->extensions as $extension) {
+            $fragment = $extension->export($area, $blocks, $assets);
+
+            // An empty fragment writes no key, so an install whose satellites
+            // hold nothing exports exactly what it exported before them.
+            if ($fragment !== []) {
+                $out[$extension->key()] = $fragment;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array<string, Block> $blocks
      *
      * @return array<string, mixed>
      */
-    private function exportSection(Section $section, array &$assets): array
+    private function exportSection(Section $section, string $ref, AssetTokenizer $assets, array &$blocks): array
     {
         $settings = $section->getDraftSettings() ?? $section->getPublishedSettings();
         $columns = [];
-        foreach ($this->collectByPreviewPosition($section->getColumns()->toArray()) as $column) {
-            $columns[] = $this->exportColumn($column, $assets);
+        foreach ($this->collectByPreviewPosition($section->getColumns()->toArray()) as $i => $column) {
+            $columns[] = $this->exportColumn($column, $ref . '.c' . $i, $assets, $blocks);
         }
 
         return [
             'layout' => $section->getLayout(),
             'settings' => $settings !== null && $settings !== []
-                ? $this->walkAssets($settings, $assets)
+                ? $assets->tokenize($settings)
                 : null,
             'columns' => $columns,
         ];
     }
 
     /**
-     * @param array<string, mixed> $assets
+     * @param array<string, Block> $blocks
      *
      * @return array<string, mixed>
      */
-    private function exportColumn(Column $column, array &$assets): array
+    private function exportColumn(Column $column, string $ref, AssetTokenizer $assets, array &$blocks): array
     {
-        $blocks = [];
-        foreach ($this->collectByPreviewPosition($column->getBlocks()->toArray()) as $block) {
-            $blocks[] = $this->exportBlock($block, $assets);
+        $exported = [];
+        foreach ($this->collectByPreviewPosition($column->getBlocks()->toArray()) as $i => $block) {
+            $blockRef = $ref . '.b' . $i;
+            $blocks[$blockRef] = $block;
+            $exported[] = $this->exportBlock($block, $blockRef, $assets);
         }
 
         return [
             'preset' => $column->getPreset(),
-            'blocks' => $blocks,
+            'blocks' => $exported,
         ];
     }
 
     /**
-     * @param array<string, mixed> $assets
-     *
      * @return array<string, mixed>
      */
-    private function exportBlock(Block $block, array &$assets): array
+    private function exportBlock(Block $block, string $ref, AssetTokenizer $assets): array
     {
         $data = $block->getDraftData() ?? $block->getPublishedData() ?? [];
 
         return [
+            // Positional and stable: what an extension fragment addresses.
+            // See docs/internals/transfer.md#what-is-stored-beside-a-block
+            'ref' => $ref,
             'type' => $block->getType(),
-            'data' => $this->walkAssets($data, $assets),
+            'data' => $assets->tokenize($data),
         ];
-    }
-
-    /**
-     * Replaces every asset reference with an `asset://{hash}` token and
-     * registers the binary under that hash in $assets.
-     *
-     * @see docs/internals/transfer.md#assets-travel-as-bytes-not-paths
-     *
-     * @param array<string, mixed> $assets
-     */
-    private function walkAssets(mixed $value, array &$assets): mixed
-    {
-        return $this->collector->map($value, function (string $path) use (&$assets): string {
-            $binary = $this->assetResolver->read($path);
-            if ($binary === null) {
-                // Missing on disk — keep the path so the import side sees a
-                // broken reference rather than a silently dropped field.
-                return $path;
-            }
-
-            $hash = hash('sha256', $binary);
-            if (!isset($assets[$hash])) {
-                $extension = pathinfo($path, PATHINFO_EXTENSION);
-                $assets[$hash] = [
-                    'mimeType' => $this->guessMime($binary),
-                    'extension' => is_string($extension) && $extension !== '' ? $extension : 'bin',
-                    'data' => base64_encode($binary),
-                ];
-            }
-
-            return 'asset://' . $hash;
-        });
-    }
-
-    private function guessMime(string $binary): string
-    {
-        $finfo = new \finfo(\FILEINFO_MIME_TYPE);
-        $mime = $finfo->buffer($binary);
-
-        return is_string($mime) && $mime !== '' ? $mime : 'application/octet-stream';
     }
 
     /**

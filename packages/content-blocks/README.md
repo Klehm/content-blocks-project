@@ -867,6 +867,34 @@ $builder->add('contentArea', ContentAreaType::class, [
 
 Both options are **UI-only**: they hide the topbar button and its overlay. The underlying endpoints (`…/replace-with`, `…/export`, `…/import`) stay reachable and remain protected by your `AccessCheckerInterface` (and CSRF for writes). If you need to close the endpoints server-side too, gate them with your firewall or `AccessChecker` — the form option does not, by design, since the route has no per-form context.
 
+### Carrying your own rows through export / import (`ContentAreaTransferExtensionInterface`)
+
+If your bundle stores something **beside** a block — its own table keyed by block id, the way `klehm/content-blocks-i18n` stores translations — nothing carries it through an export on its own. Implement the interface and it is autoconfigured:
+
+```php
+use ContentBlocks\Transfer\{AssetRewriter, AssetTokenizer, ContentAreaTransferExtensionInterface};
+
+final class ReviewTransferExtension implements ContentAreaTransferExtensionInterface
+{
+    public function key(): string { return 'acme/reviews'; }
+
+    /** @param array<string, Block> $blocks  payload ref => block */
+    public function export(ContentArea $area, array $blocks, AssetTokenizer $assets): array
+    {
+        // Return [] to write no key at all. $assets->tokenize() embeds any file
+        // your values reference, exactly as block data is embedded.
+    }
+
+    public function import(ContentArea $area, array $blocks, array $fragment, AssetRewriter $assets): void
+    {
+        // Called only when the payload carries your key. Persist your rows;
+        // flushing stays the caller's job.
+    }
+}
+```
+
+Blocks are addressed by the `ref` the payload gives them (`s0.c1.b2`) — database ids mean nothing on the other side of a transfer. A block the importer skipped (its type is not registered here) is absent from `$blocks`, so its rows are dropped with it instead of landing on a neighbour.
+
 ## Security notes
 
 ### CSRF
