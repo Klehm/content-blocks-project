@@ -5,6 +5,15 @@ All notable changes to `klehm/content-blocks-i18n` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`cb_block_translation`'s join column is named explicitly** (`block_id`),
+  as its unique constraint already assumed. No standard naming strategy spelled
+  it differently, so no schema changes; it only stops a custom strategy from
+  breaking the constraint the way it broke the core's `cb_action_log` index.
+
 ## [1.0.0-RC6] - 2026-09-14
 
 ### Added

@@ -22,7 +22,7 @@ class Section
     private ?int $id = null;
 
     #[ORM\ManyToOne(targetEntity: ContentArea::class, inversedBy: 'sections')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'content_area_id', nullable: false, onDelete: 'CASCADE')]
     private ?ContentArea $contentArea = null;
 
     #[ORM\Column(length: 30)]

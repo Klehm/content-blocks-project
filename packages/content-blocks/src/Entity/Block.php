@@ -16,7 +16,7 @@ class Block
     private ?int $id = null;
 
     #[ORM\ManyToOne(targetEntity: Column::class, inversedBy: 'blocks')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'column_id', nullable: false, onDelete: 'CASCADE')]
     private ?Column $column = null;
 
     /**
