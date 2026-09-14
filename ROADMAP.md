@@ -21,153 +21,77 @@ Neither blocks the release: the seam is the part that had to exist before the fr
 
 ---
 
-## New package — Translation / Multilingual ✅
+## Translation / Multilingual — what is still open 🤔
 
-**Shipped** ([#19](https://github.com/klehm/content-blocks-project/pull/19)):
-`klehm/content-blocks-i18n`, backend *and* editorial UI — 109 PHP specs, 20
-Vitest specs and 4 browser specs, verified end to end against
-`content-blocks-sandbox` (FR source + EN/DE/ES). Package docs:
-[README](packages/content-blocks-i18n/README.md) ·
-[guide](docs/guide/translation.md) ·
-[provider recipe](docs/guide/recipes/translation-provider.md).
+The package shipped in [#19](https://github.com/klehm/content-blocks-project/pull/19): `klehm/content-blocks-i18n`, backend *and* workbench, on a side table (`cb_block_translation`) with per-field fallback, staleness digests and a batch machine-translation seam with no engine shipped. Package docs: [README](packages/content-blocks-i18n/README.md) · [guide](docs/guide/translation.md) · [provider recipe](docs/guide/recipes/translation-provider.md).
 
-The schema question the spike left open is answered: **a side table**
-(`cb_block_translation`), one row per block per locale, holding a flat map of
-field path → value, with collection entries keyed by their `_id`. The envelope
-alternative was rejected for being unqueryable — a multilingual site is run from
-a progress view, and an envelope cannot produce one without reading every row.
+The cost of a side table is that nothing carries its rows for free, so every flow that moves content has to be taught about them one by one. Where that stands:
 
-What landed:
-
-- [x] Design spike → side table + per-field fallback (`TRANSLATION-SPIKE.md`, now folded into the package docs)
-- [x] Field tagging via the core's frozen `cb_translatable` convention
-- [x] Locale-aware render path (`BlockDataResolverInterface` + `RenderContext`), one query per area
-- [x] Draft/published lifecycle: translations ride the area's Publish and Discard
-- [x] Progress + **staleness** (source digests → translated / outdated / missing)
-- [x] Machine-translation seam (batch-shaped `TranslationProviderInterface`) — **no engine shipped**, adapters are the host's; offline `pseudo` demo in the sandbox
-- [x] Clone/duplicate interaction via the new core `BlockCloneObserverInterface`
-- [x] HTTP API + `content-blocks:i18n:{status,translate}`
-- [x] **The workbench UI** — full-page field list with the preview beside it,
-      scroll-to-field, inline single-block reload, collapsible preview, as
-      specced in [docs/guide/translation-ui-proposal.md](docs/guide/translation-ui-proposal.md).
-      It is **not** a Stimulus controller in the end: the workbench is a
-      standalone page that never loads the host's bundle, so a package-served
-      ES module needs no `controllers.json` entry and no recompilation in any
-      host. Its mount point is the host's choice (`config/routes/bare.php`),
-      which is what lets a firewall cover it in one pattern.
-- [x] **Two additive core seams** it turned out to need, both opt-out and
-      behaviour-preserving: `?locale=` on `GET /_content-blocks/block/{id}/render`,
-      and `?cb_chrome=0` to render draft content without the builder's editing
-      furniture. The second is the more generally useful of the two — a review
-      link or an approval step wants exactly that, and nothing else could
-      produce it from outside the package.
-
-Still open:
-
-- [ ] Export/import and section templates do **not** carry translations yet —
-      the transfer walks need the same observer treatment the cloner got.
-- [ ] Per-locale publishing — **the API now exists**: `PublishContext` scopes
-      which locales ride along with a publish or discard, and
-      `TranslationPublisher` honours it. No flow exposes it yet, deliberately.
-      Before designing one, note the constraint: the layout is shared, so a
-      per-locale publish can only hold back *values of existing fields* — a
-      newly added block appears in every locale at once and renders its source
-      text there until translated.
-
----
-
-## The kit's rich-text CDNs — a default to decide before the freeze 🤔
-
-The translation package settled a principle: **no package sends anything to a third party the host did not ask for.** That is why it ships a seam and no engine. One place in the monorepo still does the opposite by default.
-
-The kit's `rich_text` block loads its editor from a public CDN — TinyMCE from `cdn.jsdelivr.net`, CKEditor from `cdn.ckeditor.com` — because `content_blocks_kit.blocks.rich_text.options.cdn` defaults to `true`. Opening a rich-text block therefore reaches out to a third party unless the host says otherwise.
-
-It is already fully opt-out: `cdn: false` and the host bundles the editor (what `content-blocks-encore-sandbox` does), or `cdn_url` / `cdn_style_url` point at a self-hosted copy. So this is purely a question about the **default**, and defaults are exactly what a 1.0 freezes:
-
-- **Keep `cdn: true`.** Nothing works out of the box otherwise — a fresh install gets a working editor with no bundler step, which is a real part of why the kit is pleasant to try.
-- **Flip to `cdn: false`.** Consistent with the rule the translation package just set, and the safer default for the GDPR-sensitive and offline/air-gapped installs that a page builder sold to agencies actually meets. Costs every host one bundling step, and turns a quiet first-run experience into a broken-looking one.
-- **A third way**: keep the CDN but make the reach-out *loud* — a startup notice, or a config node with no default that fails fast until the host picks a side.
-
-Not obviously urgent, and deliberately not decided here. It only needs settling before the tag, because reversing a default afterwards is a breaking change for whoever relied on it.
+- [x] Clone / duplicate / insert content — through `BlockCloneObserverInterface`
+- [x] Export / import — through `ContentAreaTransferExtensionInterface` ([#36](https://github.com/klehm/content-blocks-project/pull/36)); digests are carried, never recomputed
+- [ ] **Section templates** do not carry translations yet — a template saved from a translated section instantiates untranslated
+- [ ] **Clipboard** paste does not either — same gap, smaller stakes (a copy costs seconds to redo)
+- [ ] **Per-locale publishing** — the API exists: `PublishContext` scopes which locales ride along with a publish or discard, and `TranslationPublisher` honours it. No flow exposes it yet, deliberately. Before designing one, note the constraint: the layout is shared, so a per-locale publish can only hold back *values of existing fields* — a newly added block appears in every locale at once and renders its source text there until translated.
 
 ---
 
 ## Release — the RC cycle, then 1.0 🅿️
 
-**Context.** The candidates are out: `v1.0.0-RC1` (13 Aug), `v1.0.0-RC2` (14 Aug), `v1.0.0-RC3` (24 Aug), `v1.0.0-RC4` (31 Aug). The public surface is frozen as described in the [backward compatibility page](docs/guide/backward-compatibility.md), and the work that had to land *before* the freeze did: the 1.0 seams (`RenderContext`, `BlockDataResolverInterface`, collection `_id`, the `_` reserved prefix), the `Block.data` key unification, the kit's rich-text editors, the image-optimization seam, and the translation package.
+**Context.** The candidates are out: `v1.0.0-RC1` (13 Aug), `v1.0.0-RC2` (14 Aug), `v1.0.0-RC3` (24 Aug), `v1.0.0-RC4` (31 Aug), `v1.0.0-RC5` (10 Sep), `v1.0.0-RC6` (14 Sep). The public surface is frozen as described in the [backward compatibility page](docs/guide/backward-compatibility.md), and the work that had to land *before* the freeze did: the 1.0 seams (`RenderContext`, `BlockDataResolverInterface`, collection `_id`, the `_` reserved prefix), the `Block.data` key unification, the kit's rich-text editors, the image-optimization seam, and the translation package.
 
-The translation package was deliberately sequenced last, on the theory that it was the one most likely to expose a missing core seam — and it did, twice: `RenderContext` had to grow a locale before the freeze, and the workbench needed a way to render a draft without the builder's chrome. Both landed additive, which is the outcome an RC is meant to secure *before* the promise is made rather than after. That question is now settled: the largest satellite anyone is likely to write has been written, and it needed nothing breaking.
+The translation package was deliberately sequenced last, on the theory that it was the one most likely to expose a missing core seam — and it did, twice: `RenderContext` had to grow a locale before the freeze, and the workbench needed a way to render a draft without the builder's chrome. Both landed additive, which is the outcome an RC is meant to secure *before* the promise is made rather than after.
 
-**Direction.** Every candidate so far was cut *because a host ran the previous one* — that is the whole point of the cycle, and a candidate that never gets re-tagged means nobody ran it. RC2 came out of the first two migrations (a block whose root is an `<a>` was unselectable in the builder; the bundle's own config example named a key the tree rejects). RC3 came out of the next one (a subclassed kit block received none of its configuration — and subclassing is exactly what a host does to keep a field the kit lacks, so the feature was unreachable where it mattered; plus `table` starting on an alignment its own form refuses).
+**Direction.** RC2 to RC4 were each cut *because a host ran the previous one*. RC2 came out of the first two migrations (a block whose root is an `<a>` was unselectable in the builder; the bundle's own config example named a key the tree rejects). RC3 came out of the next one (a subclassed kit block received none of its configuration; plus `table` starting on an alignment its own form refuses). RC4 came out of the third, and it is the one candidate so far that was worth the whole cycle on its own: an editor rearranged a page **without publishing** and watched the live page change under them. Three reads of draft state in the public render, there since the renderer's first commit, none caught by tests — because no test ever compared the public page across a builder action. Two suites now do.
 
-No candidate since RC1 has touched the shape of `block.data`: there is no content migration between candidates and no `content_version` bump.
+RC5 and RC6 are different in kind: they carry **additive** work rather than host findings. RC5 brought asset garbage collection, enforced worker-mode safety and shell fragments; RC6 brings undo/redo, the navigator and translations through export/import. Everything in both sits on the frozen surface without changing it, and all of it wants the same thing the earlier candidates did — to be run on a real site before the promise is made.
 
-RC4 came out of the third one, and it is the one candidate so far that was worth the whole cycle on its own. An editor rearranged a page **without publishing** and watched the live page change under them, into a shape that matched neither the published page nor the builder. Three separate reads of draft state in the public render, all of them there since the renderer's first commit in April, none of them caught by a beta line's worth of tests — because no test ever compared the public page across a builder action. Two suites now do, one per controller and one through a real browser.
+No candidate since RC1 has touched the shape of `block.data`: no content migration between candidates and no `content_version` bump. RC6 does add one **schema** migration (`cb_action_log`, a new table, nothing existing touched) and one Stimulus controller (`cb-tree`).
 
-That is the value the cycle is supposed to produce, and it is worth saying plainly: no amount of reading the renderer found this. Running it on a page somebody cared about did.
-
-**What 1.0 is now waiting on:** the rest of that third migration. Two of the three hosts are on the RC — one through both steps (core up, then house blocks swapped for kit blocks), one with the majority of its colliding types running on kit code. The third is the one with real editorial volume; it is now on RC4, with the migration to apply and the pages to re-check. Whatever it turns up next is either an RC5 or the go-ahead for the stable tag.
+**What 1.0 is now waiting on:** the rest of the third migration — the host with real editorial volume, which now has RC6 to take (the RC4 migration, the RC6 table, the pages to re-check). Whatever it turns up is either an RC7 or the go-ahead for the stable tag.
 
 **Rough scope:**
 - [x] The translation package, shipped and documented — backend, workbench, and the two core seams it needed
-- [x] Public-surface audit → freeze list + "experimental" markers — run; the outcome is the [backward compatibility page](docs/guide/backward-compatibility.md), and the markers are in the code. The audit found that **not one symbol across 222 PHP files was marked `@internal`, `@experimental` or `@deprecated`**, so tagging as-was would have frozen the 14 controllers, the DI internals, `BlockComponent` and every collaborator signature. Now marked; the four-event `cb:*` contract and all 90 `--cb-*` tokens are declared, the latter guarded by a CI drift check. (Working notes live in `FREEZE-AUDIT.md`, kept out of git via `.git/info/exclude`.)
-- [x] **`ContentAreaPublisherInterface` widened before the freeze.** `publish()` and `discardDraft()` take a nullable `PublishContext`; `null` is today's behaviour, so no call site changed. It carries a locale scope the i18n decorator reads, and its shape makes the dangerous ordering inexpressible — a locale can be held back, never pushed ahead of its source. The other seams needed nothing: the transfer walks take their translation observer by constructor injection, exactly as `SectionCloner` did
-- [x] Decide the kit's rich-text CDN default (see above) — **decided: keep it as it is.** A default is as frozen as a signature, and this one has run unchanged across all three hosts without a complaint; changing it at the freeze would be trading a known default for an unproven one
-- [x] ~~Upgrade guide (beta → stable) + verified migrations~~ — **descoped as a published document.** The package has exactly three hosts, all of them ours, and no third-party install. A public beta → stable guide would be written for nobody. The migrations still get verified — by doing them, against a migration runbook kept outside this repository: it names the hosts, their paths and their production volumes, which a public repository is no place for. Its journal is what would get published if an outside host ever appeared
-- [x] Green CI on the full supported matrix (Symfony 6.4/7.x/8.x, PHP 8.2–8.4; PHPUnit + Vitest ×3 + Playwright ×2) — **a gate re-run at every tag, not a box ticked once.** The split job `needs` all eight test jobs, so a red matrix reaches neither the mirrors nor Packagist on its own
-- [x] Tag **`v1.0.0-RC1`**, let hosts run it. The `v` is not cosmetic: `ci.yml`
-      triggers on `tags: ['v*']`, and the split job is what propagates a tag to
-      the three read-only mirrors. A tag without it runs nothing and reaches
-      neither the mirrors nor Packagist. Distribution verified end to end from a
-      host: `composer require klehm/content-blocks:^1.0@RC` resolves from
-      Packagist under `minimum-stability: stable` + the `@RC` flag
+- [x] Public-surface audit → freeze list + "experimental" markers — the outcome is the [backward compatibility page](docs/guide/backward-compatibility.md), and the markers are in the code. Not one symbol across 222 PHP files was marked `@internal`, `@experimental` or `@deprecated` before it, so tagging as-was would have frozen the controllers, the DI internals, `BlockComponent` and every collaborator signature. (Working notes live in `FREEZE-AUDIT.md`, kept out of git via `.git/info/exclude`.)
+- [x] **`ContentAreaPublisherInterface` widened before the freeze.** `publish()` and `discardDraft()` take a nullable `PublishContext`; `null` is today's behaviour. Its shape makes the dangerous ordering inexpressible — a locale can be held back, never pushed ahead of its source
+- [x] The kit's rich-text CDN default — **decided: keep `cdn: true`.** A default is as frozen as a signature, and this one has run unchanged across all three hosts without a complaint. Fully opt-out already (`cdn: false`, or `cdn_url` / `cdn_style_url` to a self-hosted copy)
+- [x] ~~Upgrade guide (beta → stable) + verified migrations~~ — **descoped as a published document.** Three hosts, all ours, no third-party install. The migrations still get verified — by doing them, against a runbook kept outside this repository
+- [x] Green CI on the full supported matrix (Symfony 6.4/7.x/8.x, PHP 8.2–8.4; PHPUnit + Vitest ×3 + Playwright ×2) — **a gate re-run at every tag.** The split job `needs` all test jobs, so a red matrix reaches neither the mirrors nor Packagist
+- [x] **`v1.0.0-RC1`** — distribution verified end to end: `composer require klehm/content-blocks:^1.0@RC` resolves from Packagist. The `v` is not cosmetic: `ci.yml` triggers on `tags: ['v*']`
 - [x] **`v1.0.0-RC2`** — the first two migrations' findings
-- [x] **`v1.0.0-RC3`** — a subclassed kit block gets its configuration; `table`'s
-      defaults are confronted with its own choice fields, so the whole family of
-      drift fails a test instead of waiting to be seen
-- [x] **`v1.0.0-RC4`** — the published render is immutable until Publish. The
-      public page was reading three kinds of draft state (the `deleted` flag,
-      sections never published, a block's dragged-to column), so a builder
-      session edited the live site. Needs a migration: a new column, and a
-      `published_at` backfill without which already-live sections vanish
-- [ ] The last host migration, finished — the go/no-go for stable, and the source of an RC5 if there is one
+- [x] **`v1.0.0-RC3`** — a subclassed kit block gets its configuration; `table`'s defaults are confronted with its own choice fields
+- [x] **`v1.0.0-RC4`** — the published render is immutable until Publish. Needs a migration: a new column, and a `published_at` backfill without which already-live sections vanish
+- [x] **`v1.0.0-RC5`** — asset GC (`content-blocks:assets:gc`), worker mode enforced, shell fragments. No migration
+- [x] **`v1.0.0-RC6`** — undo/redo, the navigator, translations through export/import. Needs a migration (`cb_action_log`) and the `cb-tree` controller in `controllers.json`
+- [ ] The last host migration, finished — the go/no-go for stable, and the source of an RC7 if there is one
 - [ ] Finalize docs site + stable release notes
 - [ ] Tag `v1.0.0`, verify Packagist split
 
 ---
 
-## Publication history — every publish is a revision 🅿️ (post-1.0)
+## Publication history — revisions of a published page 💡 (post-1.0, on demand)
 
-**Context.** Publish is a one-way door. Discard rescues an unpublished draft, the snackbar rescues one delete and `Ctrl/Cmd-Z` walks back through the current session, but all three stop at the last publish: once an editor has published there is no way back to what the page said last week — not to read it, not to compare it, not to bring it back. The answer today is "restore the database", which is not an answer an editor can act on.
+**The problem.** Publish is a one-way door. Discard rescues an unpublished draft, the snackbar one delete, `Ctrl/Cmd-Z` the current session — all three stop at the last publish. Once an editor has published there is no way back to what the page said last week short of restoring the database.
 
-**Direction.** Each publish writes a **revision**: a snapshot of the area's published state at that moment, in its own table. A new topbar action opens the history, newest first, and every row carries one button that **loads that revision back into the draft**.
+**Why this is an idea and not a plan.** No editor on any of the three hosts has asked for it. Every candidate that mattered in the RC cycle came from a host running the code, not from reasoning about it, and this feature is large enough that building it ahead of a real request is the wrong bet.
 
-Restoring deliberately does *not* touch the live page. It fills the draft the way Insert content does, so the editor reviews the restore in the builder, Publish is still the gesture that makes it public and Discard still the one that walks away. That keeps the feature inside the rule RC4 was cut to establish — no builder action changes the published page — and it means the dangerous version of this feature (a button that silently republishes an old page) is never built.
+**What it would actually cost.** Assets turn out to be the *cheap* part, not the hard one:
 
-Three pieces already exist:
+- Uploaded files are never overwritten (`LocalFileStorage` names each one with random bytes), so a path in a revision always points at the bytes it pointed at.
+- The GC is mark & sweep, not reference counting: a revision provider is the same ~45 lines as `SectionTemplateAssetReferenceProvider`, and without `assets:gc --force` nothing is ever deleted anyway.
+- The real asset consequence is that **storage stops shrinking** while a revision references a file — which makes it a retention question, not an asset question.
 
-- **Recording**: `ContentAreaPublisherInterface` is the chokepoint, is already decorated in practice (`TranslationPublisher` does exactly this), and its own docblock names audit trails as the reason a host decorates it.
-- **The payload**: `SectionTemplateSerializer` already snapshots a subtree as JSON with plain storage paths, and `cb_section_template` already stamps `content_version`. A revision wants *that* shape, not the exporter's — `ContentAreaExporter` is draft-wins and embeds asset bytes as base64, and one publish's worth of inlined images per row would be enormous.
-- **Restoring**: `ReplaceController`'s replace-with already soft-deletes the target's sections and inserts deep clones into the draft. Restoring is the same walk with a serialized payload as the source instead of a live area.
+The expensive parts are elsewhere:
 
-Open design questions, worth settling before coding:
+- **Content versions.** `DenyOnMismatchUpgrader` refuses a known version gap by default, so every revision older than a `content_version` bump becomes unrestorable unless the host writes an upgrader. "Go back to last week" would silently stop working after every schema migration.
+- **Translations** live in a side table, so each revision has to snapshot its rows too — and section templates and the clipboard do not do that yet either.
+- **Restoring over a dirty draft** needs a rule (refuse, or warn and overwrite) and UI to say it, and has to sit correctly with the undo stack.
+- **Retention** is a config node, a pruning command and a default — another default frozen once shipped.
 
-- **What a revision costs.** One row per publish per area, kept forever, is a table that only grows — on the host with real editorial volume, fastest. Needs a retention story (keep N, keep 90 days, keep the ones somebody named) and a decision on whether the host configures it.
-- **Assets.** A revision payload holds plain paths, so it makes files reachable — and `content-blocks:assets:gc` sweeps whatever no provider claims. This ships with an `AssetReferenceProviderInterface` for revisions or a restored revision comes back with holes where its images were. Exactly the failure mode section templates have a provider for.
-- **Translations.** They ride the publish today, so a revision carrying the layout but not the translated values restores a page into its source language. Likely the same treatment the cloner got: i18n contributes to the snapshot through an observer.
-- **Content versions.** A revision written under an older `content_version` is the case section templates already answer with `ContentVersionUpgraderInterface` — reuse it rather than the clipboard's flat refusal. The distinction that decided the clipboard's rule applies here in reverse: a copy costs seconds to redo, a revision cannot be recreated at all.
-- **What restoring does to a dirty draft** — refuse, or warn and overwrite. Overwriting quietly destroys work that Discard would have kept.
-- **How a revision is labelled** in the list: automatic (`published by X at T`) or editor-named. A poster per row via `SectionPosterBuilder` would make the list scannable without any screenshot pipeline, the way the section library's cards already are.
+**If it is asked for, build the smallest step that answers the request, in this order:**
 
-**Rough scope when picked up:**
-- [ ] `cb_content_area_revision` + migration: area, payload, `content_version`, author, timestamp, label
-- [ ] Recording decorator on `ContentAreaPublisherInterface`, snapshotting the published state *after* the inner publish (so it sees what the i18n decorator committed)
-- [ ] `GET /_content-blocks/area/{id}/revisions` (paginated) and `POST /_content-blocks/area/{id}/revisions/{revisionId}/restore` — CSRF + `canEdit`, draft-only write
-- [ ] Topbar "History" action + dialog, beside Insert content
-- [ ] An `AssetReferenceProviderInterface` over revision payloads
-- [ ] Translation snapshot + restore through the i18n observer seam
-- [ ] Retention policy and pruning
-- [ ] Tests: PHPUnit on record + restore and on the published render staying untouched across a restore (`PublishedRenderImmutabilityTest`), Vitest on the dialog, Playwright on publish → edit → publish → restore → publish
+1. **A recipe, no package code.** The host decorates `ContentAreaPublisherInterface` and writes an export after each publish, stored wherever it likes. The export already embeds assets as base64 and, since RC6, translations; it re-imports into the draft. A restorable backup for ~30 lines of host code and zero package debt.
+2. **"Revert to the previous publish" only.** One revision per area: a bounded table, no retention policy, a trivial asset provider. Covers the common case — "I just published a mistake".
+3. **Full history**, only if 2 proves insufficient. Recording decorator on the publisher *after* the inner publish (so it sees what the i18n decorator committed), `SectionTemplateSerializer`-shaped payload (not the exporter's base64), restore through the `ReplaceController` walk into the draft — never a button that republishes directly.
 
 ---
 

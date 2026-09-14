@@ -5,11 +5,9 @@ title: Upgrade guide (beta → 1.0)
 # Upgrade guide: `0.1.0-beta.x` → `1.0.0`
 
 ::: warning `1.0.0` is not released yet
-Nothing below is tagged. It sits on `master`, under `[Unreleased]` in both
-CHANGELOGs, waiting on the translation package, the kit's rich-text blocks and
-its image-optimization seam — then a `1.0.0-RC1`. Read this if you track
-`dev-master` or want to know what the RC will ask of you; on a tagged
-`0.1.0-beta.x` there is nothing to do yet.
+Release candidates are tagged (`composer require klehm/content-blocks:^1.0@RC`);
+the stable `1.0.0` is not. Everything below applies to the candidates, and the
+per-candidate detail lives in each package's CHANGELOG.
 :::
 
 The `1.0.0` release freezes the public surface — `Block.data` JSON keys, config
@@ -121,6 +119,18 @@ editors to Publish or Discard before you deploy.
 
 Nothing else is required: the behaviour change is in the renderer, and no host
 code, template or config refers to it.
+
+### 1f. The builder's undo stack — `Version20260910120000`
+
+Adds one table, `cb_action_log`, holding the `Ctrl/Cmd-Z` history per content
+area and per (hashed) HTTP session. It touches no existing table, so it is safe
+on a live site. Without it the builder still works, and undo reports itself
+unavailable. Rows are short-lived: Publish and Discard empty an area's stack.
+
+The same release adds the **navigator**, a new Stimulus controller `cb-tree`.
+Flex writes it to `assets/controllers.json` on `composer update`; if you manage
+that file by hand, enable `@klehm/content-blocks` → `cb-tree` there, or the
+topbar's Navigator button does nothing.
 
 ```bash
 # after copying the migration(s) into your app and fixing the namespace
@@ -445,9 +455,10 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
 
 - [ ] Copy + re-namespace `Version20260715120000` (kit data keys),
       `Version20260715130000` (styling viewports), `Version20260729120000`
-      (content-version columns) and **`Version20260831120000`** (published-render
-      immutability — skipping it hides already-live sections); run
-      `doctrine:migrations:migrate`.
+      (content-version columns), **`Version20260831120000`** (published-render
+      immutability — skipping it hides already-live sections) and
+      `Version20260910120000` (undo stack); run `doctrine:migrations:migrate`.
+- [ ] Check `assets/controllers.json` enables `cb-tree` (Flex does it for you).
 - [ ] (Pre-beta.6 only) add `cb_content_area.updated_at` via `Version20260518120000`.
 - [ ] Rename `content_blocks.styles` → `section_styles` and `upload.dir` → `upload.directory`.
 - [ ] Spell out `d`/`t`/`m` → `desktop`/`tablet`/`mobile` in any preset `settings`.
