@@ -5,6 +5,17 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-RC7] - 2026-09-14
+
+Version bump only — no functional change in `klehm/content-blocks-kit`. The tag
+is cut across the monorepo so the three packages stay installable as one set;
+this candidate's change is in `klehm/content-blocks` and
+`klehm/content-blocks-i18n`: every join column is now named explicitly, so the
+schema no longer depends on the host's Doctrine naming strategy. **Hosts on
+Doctrine's default naming strategy** get a `cb_section` column rename from
+`doctrine:migrations:diff`: see the core CHANGELOG and the
+[upgrade guide](https://klehm.github.io/content-blocks-project/guide/upgrade).
+
 ## [1.0.0-RC6] - 2026-09-14
 
 Version bump only — no functional change in `klehm/content-blocks-kit`. The tag
