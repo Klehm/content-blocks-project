@@ -5,6 +5,26 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **The schema no longer depends on the host's Doctrine naming strategy.**
+  Join columns left their name to that strategy, which under Doctrine's default
+  spells a camelCase property as-is: `cb_section.contentArea_id` instead of
+  `content_area_id`, and a `cb_action_log` whose `cb_action_log_stack` index
+  names a column that does not exist — `doctrine:schema:update` and
+  `doctrine:migrations:diff` then failed outright. Every join column is now
+  named explicitly (`content_area_id`, `section_id`, `column_id`), and a test
+  holds the generated schema identical under the default and underscore
+  strategies.
+
+  **Hosts using underscore naming** (Symfony Flex's default, and all three
+  sandboxes): nothing changes, no migration. **Hosts using Doctrine's default
+  naming**: `doctrine:migrations:diff` generates the rename of
+  `cb_section.contentArea_id` (a `CHANGE`, data kept — checked on DBAL 3 and 4);
+  see the [upgrade guide](https://klehm.github.io/content-blocks-project/guide/upgrade).
+
 ## [1.0.0-RC6] - 2026-09-14
 
 ### Added

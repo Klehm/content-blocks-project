@@ -30,7 +30,7 @@ class BlockTranslation
      * guarantee it without every delete path opting in.
      */
     #[ORM\ManyToOne(targetEntity: Block::class)]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'block_id', nullable: false, onDelete: 'CASCADE')]
     private ?Block $block = null;
 
     /** BCP 47 as the host spells it — `fr`, `pt_BR`. Stored verbatim. */

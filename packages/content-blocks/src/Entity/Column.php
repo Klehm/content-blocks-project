@@ -18,7 +18,7 @@ class Column
     private ?int $id = null;
 
     #[ORM\ManyToOne(targetEntity: Section::class, inversedBy: 'columns')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'section_id', nullable: false, onDelete: 'CASCADE')]
     private ?Section $section = null;
 
     /** Width preset: "col-12", "col-6", "col-4", etc. */

@@ -137,6 +137,36 @@ topbar's Navigator button does nothing.
 php bin/console doctrine:migrations:migrate
 ```
 
+### 1g. Join columns no longer follow your naming strategy
+
+Join columns used to take their name from the host's Doctrine naming strategy.
+Under the underscore strategy (Symfony Flex's default) that gave the documented
+`content_area_id`; under Doctrine's own `DefaultNamingStrategy` it gave
+`cb_section.contentArea_id`, and RC6's `cb_action_log` could not be created at
+all. Every join column is now named explicitly, so the schema is the same on
+every host.
+
+**Using the underscore strategy? Nothing to do** — `doctrine:migrations:diff`
+finds no change. On the default strategy it generates the rename of
+`cb_section.contentArea_id`:
+
+```sql
+ALTER TABLE cb_section DROP FOREIGN KEY FK_97D63ADCE3B7EE2F;
+DROP INDEX IDX_97D63ADCE3B7EE2F ON cb_section;
+ALTER TABLE cb_section CHANGE contentArea_id content_area_id INT NOT NULL;
+ALTER TABLE cb_section ADD CONSTRAINT FK_97D63ADC6207992F FOREIGN KEY (content_area_id) REFERENCES cb_content_area (id) ON DELETE CASCADE;
+CREATE INDEX IDX_97D63ADC6207992F ON cb_section (content_area_id);
+```
+
+Check the generated migration shows that `CHANGE` line before you run it. It is
+a rename, so every section keeps its area. A `DROP COLUMN` followed by an
+`ADD` would mean Doctrine did not detect the rename. That only happens when the
+same diff also adds or removes another `INT NOT NULL` column on `cb_section`, which makes
+the match ambiguous; generate the rename on its own.
+
+If RC6's `cb_action_log` was created through a local patch naming its column
+`content_area_id`, the table already matches: drop the patch.
+
 ---
 
 ## 2. Config renames (edit YAML by hand)
@@ -458,6 +488,9 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
       (content-version columns), **`Version20260831120000`** (published-render
       immutability — skipping it hides already-live sections) and
       `Version20260910120000` (undo stack); run `doctrine:migrations:migrate`.
+- [ ] On Doctrine's default naming strategy only: generate the
+      `cb_section.contentArea_id` rename with `doctrine:migrations:diff` and
+      check it is a `CHANGE` (§1g).
 - [ ] Check `assets/controllers.json` enables `cb-tree` (Flex does it for you).
 - [ ] (Pre-beta.6 only) add `cb_content_area.updated_at` via `Version20260518120000`.
 - [ ] Rename `content_blocks.styles` → `section_styles` and `upload.dir` → `upload.directory`.

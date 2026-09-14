@@ -23,7 +23,7 @@ class ActionLogEntry
     private ?int $id = null;
 
     #[ORM\ManyToOne(targetEntity: ContentArea::class)]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'content_area_id', nullable: false, onDelete: 'CASCADE')]
     private ?ContentArea $contentArea = null;
 
     /**
