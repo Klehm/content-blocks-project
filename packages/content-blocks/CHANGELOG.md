@@ -5,6 +5,13 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-RC10] - 2026-09-16
+
+Version bump only — no functional change in `klehm/content-blocks`. The tag is cut
+across the monorepo so the three packages stay installable as one set; this
+candidate's change is in `klehm/content-blocks-i18n`: the translation
+workbench's preview can be resized. No migration, nothing to wire.
+
 ## [1.0.0-RC9] - 2026-09-16
 
 ### Added
