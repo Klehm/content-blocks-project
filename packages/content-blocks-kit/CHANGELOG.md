@@ -5,6 +5,16 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-RC8] - 2026-09-16
+
+Version bump only — no functional change in `klehm/content-blocks-kit`. The tag
+is cut across the monorepo so the three packages stay installable as one set;
+this candidate's changes are in `klehm/content-blocks`: the host chooses where
+the routes are mounted, and adding or deleting a section no longer reloads the
+preview. No migration. A host that **overrides the core's
+`builder/shell.html.twig`** adds `data-cb-api-base`: see the core CHANGELOG and
+the [upgrade guide](https://klehm.github.io/content-blocks-project/guide/upgrade).
+
 ## [1.0.0-RC7] - 2026-09-14
 
 Version bump only — no functional change in `klehm/content-blocks-kit`. The tag

@@ -5,6 +5,14 @@ All notable changes to `klehm/content-blocks-i18n` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-RC8] - 2026-09-16
+
+Version bump only — no functional change in `klehm/content-blocks-i18n`. The
+tag is cut across the monorepo so the three packages stay installable as one
+set; this candidate's changes are in `klehm/content-blocks`. Its routes already
+had a host-chosen mount (`config/routes/bare.php`); the core now works the same
+way, see [Mounting the routes](https://klehm.github.io/content-blocks-project/guide/routing).
+
 ## [1.0.0-RC7] - 2026-09-14
 
 ### Fixed
