@@ -13,6 +13,8 @@ use ContentBlocks\I18n\Field\FieldMetadataReader;
 use ContentBlocks\I18n\Field\TranslatableFieldCatalog;
 use ContentBlocks\I18n\Lifecycle\TranslationCloneObserver;
 use ContentBlocks\I18n\Lifecycle\TranslationPublisher;
+use ContentBlocks\I18n\Locale\LocalizedPageUrlResolverInterface;
+use ContentBlocks\I18n\Locale\NullLocalizedPageUrlResolver;
 use ContentBlocks\I18n\Locale\RenderLocaleResolverInterface;
 use ContentBlocks\I18n\Locale\RequestRenderLocaleResolver;
 use ContentBlocks\I18n\Locale\TranslationLocales;
@@ -28,6 +30,8 @@ use ContentBlocks\I18n\Storage\TranslationStore;
 use ContentBlocks\I18n\Storage\TranslationWriter;
 use ContentBlocks\I18n\Transfer\TranslationTransferExtension;
 use ContentBlocks\I18n\Twig\I18nExtension;
+use ContentBlocks\I18n\Workbench\PageBackUrlResolver;
+use ContentBlocks\I18n\Workbench\WorkbenchBackUrlResolverInterface;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Publishing\ContentAreaPublisherInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -43,7 +47,8 @@ return static function (ContainerConfigurator $container): void {
         ->set('content_blocks_i18n.source_locale', 'en')
         ->set('content_blocks_i18n.locales', [])
         ->set('content_blocks_i18n.locale_labels', [])
-        ->set('content_blocks_i18n.machine.default', null);
+        ->set('content_blocks_i18n.machine.default', null)
+        ->set('content_blocks_i18n.workbench.public_links', true);
 
     $services = $container->services()
         ->defaults()
@@ -121,6 +126,20 @@ return static function (ContainerConfigurator $container): void {
     // with no second URL resolver. See docs/internals/i18n.md#the-preview-pane
     $services->set(PreviewLocaleListener::class);
 
+    // ---------- Workbench ----------
+
+    // The back arrow; a host aliases the interface to point it at its admin.
+    $services->set(PageBackUrlResolver::class);
+    $services->alias(WorkbenchBackUrlResolverInterface::class, PageBackUrlResolver::class);
+
+    // No URL for any language until the host aliases the interface.
+    $services->set(NullLocalizedPageUrlResolver::class);
+    $services->alias(LocalizedPageUrlResolverInterface::class, NullLocalizedPageUrlResolver::class);
+
+    $services->set(WorkbenchPageController::class)
+        ->arg('$publicLinks', param('content_blocks_i18n.workbench.public_links'))
+        ->tag('controller.service_arguments');
+
     // ---------- Assets ----------
 
     // Translated values reference files no block's data mentions. See
@@ -134,7 +153,6 @@ return static function (ContainerConfigurator $container): void {
     // ---------- HTTP + CLI ----------
 
     $services->set(WorkbenchController::class)->tag('controller.service_arguments');
-    $services->set(WorkbenchPageController::class)->tag('controller.service_arguments');
     $services->set(MachineTranslationController::class)->tag('controller.service_arguments');
     $services->set(AssetController::class)->tag('controller.service_arguments');
 

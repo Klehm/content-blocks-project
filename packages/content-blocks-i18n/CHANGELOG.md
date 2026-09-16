@@ -5,6 +5,36 @@ All notable changes to `klehm/content-blocks-i18n` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **The workbench's back arrow can lead to the host's admin.** A new seam,
+  `WorkbenchBackUrlResolverInterface`, decides where ← goes. The default,
+  `PageBackUrlResolver`, keeps today's target — the page URL from
+  `ContentAreaUrlResolverInterface` — so a host that aliases nothing sees no
+  change. A host whose translators start from its admin implements it in PHP
+  (`#[AsAlias]`) from the `ContentArea` to its edit URL, with no template to
+  override. See [The back arrow](https://klehm.github.io/content-blocks-project/guide/translation#the-back-arrow).
+- **Links to the published page in each language.** The workbench topbar shows
+  one link per language (`FR EN DE ES`, the open one highlighted) once the host
+  implements the new `LocalizedPageUrlResolverInterface`. The default resolver
+  returns no URL, so nothing appears until then; a language it returns `null`
+  for is skipped. `content_blocks_i18n.workbench.public_links` (default `true`)
+  hides the links even with a resolver wired. See
+  [Links to each language](https://klehm.github.io/content-blocks-project/guide/translation#links-to-each-language).
+- **Empty Twig blocks for host additions in the workbench:** `cb_wb_head`,
+  `cb_wb_topbar_left_end`, `cb_wb_topbar_right_start`, `cb_wb_topbar_right_end`
+  and `cb_wb_end`.
+
+### Fixed
+
+- **A host override of the workbench template is now used.** The bundle
+  prepended its own Twig path, which placed the package's templates in front of
+  `templates/bundles/ContentBlocksI18nBundle/`, so an override there was
+  silently ignored. The prepend is gone; TwigBundle's own registration of
+  `@ContentBlocksI18n` already provides the namespace, in the right order.
+
 ## [1.0.0-RC8] - 2026-09-16
 
 Version bump only — no functional change in `klehm/content-blocks-i18n`. The

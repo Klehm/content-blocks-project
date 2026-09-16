@@ -31,6 +31,8 @@ content_blocks_i18n:
         - fr
         - { code: de, label: 'Deutsch' }
         - es
+    workbench:
+        public_links: true   # default; see "Links to each language"
 ```
 
 The **source locale is not a target**. A block's `data` *is* the source text:
@@ -209,6 +211,99 @@ duplicating or deleting a card shifts every position after it; keying per-entry
 translations by index would attach the German title of card 1 to card 3. An entry
 predating the `_id` backfill is skipped rather than guessed at — run
 `content-blocks:backfill-collection-ids` to normalize it.
+
+## The back arrow
+
+The workbench's ← leads to the page itself by default — the URL your
+`ContentAreaUrlResolverInterface` returns. When translators start from your
+admin, send them back there instead by aliasing
+`WorkbenchBackUrlResolverInterface`:
+
+```php
+use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\I18n\Workbench\WorkbenchBackUrlResolverInterface;
+use Symfony\Component\DependencyInjection\Attribute\AsAlias;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+
+#[AsAlias(WorkbenchBackUrlResolverInterface::class)]
+final class AdminBackUrlResolver implements WorkbenchBackUrlResolverInterface
+{
+    public function __construct(
+        private readonly PageRepository $pages,
+        private readonly UrlGeneratorInterface $urls,
+    ) {}
+
+    public function resolve(ContentArea $area, string $locale): string
+    {
+        $page = $this->pages->findOneBy(['contentArea' => $area]);
+
+        return $this->urls->generate('admin_page_edit', ['id' => $page?->getId()]);
+    }
+}
+```
+
+The resolver receives the locale the workbench is open on, so it can return to a
+per-language tab. It is the same shape as the preview resolver, and nothing in
+the template needs overriding.
+
+## Links to each language
+
+The workbench topbar can link the **published** page in every language — `FR EN
+DE ES`, the one being translated highlighted — so a translator checks the live
+result without leaving the list. The package cannot build those URLs: one host
+spells a locale as a path prefix, another as a subdomain. So nothing is linked
+until the host implements `LocalizedPageUrlResolverInterface`:
+
+```php
+use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\I18n\Locale\LocalizedPageUrlResolverInterface;
+use Symfony\Component\DependencyInjection\Attribute\AsAlias;
+
+#[AsAlias(LocalizedPageUrlResolverInterface::class)]
+final class LocalizedPageUrlResolver implements LocalizedPageUrlResolverInterface
+{
+    public function resolve(ContentArea $area, string $locale): ?string
+    {
+        $page = $this->pages->findOneBy(['contentArea' => $area]);
+        if ($page === null) {
+            return null;
+        }
+
+        return $locale === 'en'   // the source locale
+            ? $this->urls->generate('page_show', ['id' => $page->getId()])
+            : $this->urls->generate('page_show_localized', ['_locale' => $locale, 'id' => $page->getId()]);
+    }
+}
+```
+
+It is called for the source locale and for each target. Returning `null` skips
+that language. To hide the links while keeping the resolver — for another use,
+or on one environment — set `content_blocks_i18n.workbench.public_links: false`.
+
+## Adding to the workbench
+
+The workbench template carries empty Twig blocks for a host to fill, without
+copying the page:
+
+```twig
+{# templates/bundles/ContentBlocksI18nBundle/workbench/workbench.html.twig #}
+{% extends '@!ContentBlocksI18n/workbench/workbench.html.twig' %}
+
+{% block cb_wb_head %}
+    <link rel="stylesheet" href="{{ asset('admin/workbench-theme.css') }}">
+{% endblock %}
+```
+
+| Block | Where |
+|---|---|
+| `cb_wb_head` | End of `<head>` — a stylesheet redeclaring the tokens below |
+| `cb_wb_topbar_left_end` | Left of the topbar, after the language pair |
+| `cb_wb_topbar_right_start` | Right of the topbar, first |
+| `cb_wb_topbar_right_end` | Right of the topbar, last |
+| `cb_wb_end` | Last thing inside `.cb-wb` |
+
+A block sees the page's variables — `area` and `locale` included. The page loads
+none of the host's JavaScript, so a script added here has to be self-contained.
 
 ## Theming the workbench
 

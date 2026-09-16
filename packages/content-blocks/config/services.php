@@ -58,6 +58,8 @@ return static function (ContainerConfigurator $container): void {
         ->set('content_blocks.content_version', 1)
         ->set('content_blocks.section.default_width_mode', 'full')
         ->set('content_blocks.section.default_max_width', 1320)
+        // Written onto a section the builder creates. See SectionsController.
+        ->set('content_blocks.section.initial_settings', [])
         // List of {label, color} entries; normally fed by the bundle's
         // semantic config (`content_blocks.palette`) via loadExtension().
         ->set('content_blocks.palette', [])
@@ -86,6 +88,7 @@ return static function (ContainerConfigurator $container): void {
         // picks them up.
         ->bind('int $defaultMaxWidth', '%content_blocks.section.default_max_width%')
         ->bind('string $defaultWidthMode', '%content_blocks.section.default_width_mode%')
+        ->bind('array $initialSectionSettings', '%content_blocks.section.initial_settings%')
         // ContentAreaTouchListener takes this one positionally.
         ->bind('int $contentVersion', '%content_blocks.content_version%')
         // Upload limits: consumed by UploadController.

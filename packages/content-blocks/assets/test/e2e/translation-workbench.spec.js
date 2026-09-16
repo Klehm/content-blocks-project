@@ -173,6 +173,31 @@ test.describe('translation workbench', () => {
         expect(hovered.background).not.toBe(hovered.color);
     });
 
+    /**
+     * The sandbox wires a LocalizedPageUrlResolver: every language gets a link
+     * to its own public page, the open one flagged, source first.
+     */
+    test('the topbar links the published page in each language', async ({ page }) => {
+        await buildPageWithTranslatableText(page);
+        const publicUrl = await page.locator('.cb-shell__public-link').getAttribute('href');
+        const id = publicUrl.match(/\/page\/(\d+)/)[1];
+        const workbench = await openWorkbench(page);
+        const locale = new URL(workbench.url()).pathname.split('/').pop();
+
+        const links = workbench.locator('.cb-wb__public-link');
+        await expect(links).toHaveText(['FR', 'EN', 'DE', 'ES']);
+        await expect(links.nth(0)).toHaveAttribute('href', `/page/${id}`);
+        await expect(links.nth(2)).toHaveAttribute('href', `/de/page/${id}`);
+        await expect(links.nth(0)).toHaveAttribute('target', '_blank');
+
+        const current = workbench.locator('.cb-wb__public-link[aria-current="true"]');
+        await expect(current).toHaveText(locale.toUpperCase());
+        await expect(current).toHaveAttribute('href', `/${locale}/page/${id}`);
+
+        const response = await workbench.request.get(`/de/page/${id}`);
+        expect(response.status()).toBe(200);
+    });
+
     /** Typing a translation saves it and repaints the row and the counters. */
     test('a typed translation is saved and the row turns translated', async ({ page }) => {
         await buildPageWithTranslatableText(page);

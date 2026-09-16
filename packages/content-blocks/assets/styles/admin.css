@@ -76,6 +76,12 @@
   background: rgba(var(--cb-shadow-rgb), 0.6);
 }
 
+/* The host page keeps its scrollbar beside the fullscreen dialog otherwise. */
+html:has(.cb-builder-dialog[open]),
+body:has(.cb-builder-dialog[open]) {
+  overflow: hidden;
+}
+
 /* ---- Shell layout ---- */
 
 .cb-shell {
@@ -267,7 +273,8 @@
 /* ---- Tree panel ----
    Floats over the preview: the edit sidebar already owns the left track. */
 
-.cb-shell__tree-toggle {
+.cb-shell__tree-toggle,
+.cb-shell__public-link {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -285,8 +292,14 @@
     background-color 0.12s ease,
     border-color 0.12s ease;
 }
+.cb-shell__public-link,
+.cb-shell__public-link:hover,
+.cb-shell__public-link:focus {
+  text-decoration: none;
+}
 .cb-shell__tree-toggle:hover,
-.cb-shell__tree-toggle--open {
+.cb-shell__tree-toggle--open,
+.cb-shell__public-link:hover {
   background: rgba(var(--cb-accent-rgb), 0.08);
   border-color: rgba(var(--cb-accent-rgb), 0.25);
 }
@@ -1269,10 +1282,12 @@
     max-height: calc(100% - 32px);
   }
   /* Icon-only, like Discard: the word does not fit beside it here. */
-  .cb-shell__tree-toggle {
+  .cb-shell__tree-toggle,
+  .cb-shell__public-link {
     padding: 0.375rem 0.5rem;
   }
-  .cb-shell__tree-toggle .cb-shell__btn-label {
+  .cb-shell__tree-toggle .cb-shell__btn-label,
+  .cb-shell__public-link .cb-shell__btn-label {
     display: none;
   }
   /* The sidebar is a bottom sheet here, so the panel takes the full width

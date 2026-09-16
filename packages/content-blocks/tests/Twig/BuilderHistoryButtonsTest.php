@@ -119,6 +119,10 @@ final class BuilderHistoryButtonsTest extends TestCase
         $env->addFunction(new TwigFunction('cb_api_base', static fn (): string => '/_content-blocks'));
         $env->addFunction(new TwigFunction('cb_shell_fragments', static fn (ContentArea $area): array => []));
         $env->addFunction(new TwigFunction(
+            'cb_public_url',
+            static fn (ContentArea $area): string => '/page/' . $area->getId(),
+        ));
+        $env->addFunction(new TwigFunction(
             'cb_history_state',
             static fn (ContentArea $area): array => ['canUndo' => $canUndo, 'canRedo' => $canRedo],
         ));

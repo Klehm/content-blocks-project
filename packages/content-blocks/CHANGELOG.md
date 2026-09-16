@@ -5,6 +5,39 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **A "View page" link in the builder topbar.** It opens the published page in a
+  new tab, from the URL `ContentAreaUrlResolverInterface` already returns — so
+  there is nothing to wire. On by default; `ContentAreaType`'s
+  `enable_public_link: false` (or `enablePublicLink: false` on a direct
+  `launcher.html.twig` include) hides it. The URL is also exposed as the Twig
+  function `cb_public_url(area)`.
+- **`content_blocks.section.initial_settings`: settings a new section starts
+  with.** Written as the draft settings of every section added from the
+  builder, so padding, margin, background or the *Customize styling* switch
+  render straight away — which a `SectionSettingsDefaultsProviderInterface`
+  default could not do, since it only pre-fills the sidebar and styling has no
+  render fallback. Same typed tree as a preset's `settings`, validated at
+  `cache:clear`. Pasted, duplicated, imported and template-built sections keep
+  their own settings. See [Initial settings of a new section](https://klehm.github.io/content-blocks-project/guide/host-services#initial-settings-of-a-new-section).
+- **Empty Twig blocks for host additions in the builder shell:**
+  `cb_shell_topbar_left_end`, `cb_shell_topbar_right_start`,
+  `cb_shell_topbar_right_end` and `cb_shell_end`. A host overrides
+  `builder/shell.html.twig`, extends `@!ContentBlocks/…` and fills only the
+  blocks it needs. See [Host services](https://klehm.github.io/content-blocks-project/guide/host-services#from-your-own-templates-the-shell-s-empty-blocks).
+
+### Fixed
+
+- **The "View page" link is no longer underlined on hover** when the host's
+  stylesheet underlines hovered links.
+- **The host page no longer shows its scrollbar behind the open builder.**
+  `admin.css` sets `overflow: hidden` on `html` and `body` while the builder
+  dialog is open (`:has(.cb-builder-dialog[open])`), and the page scrolls again
+  once it closes.
+
 ## [1.0.0-RC8] - 2026-09-16
 
 ### Added

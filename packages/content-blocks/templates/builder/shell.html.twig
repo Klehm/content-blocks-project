@@ -2,6 +2,7 @@
 {# @var iframeUrl string #}
 {# @var enableReplace bool #}
 {# @var enableImportExport bool #}
+{# @var enablePublicLink bool #}
 {# @var topbarActions array #}
 <div class="cb-shell"
      data-controller="cb-builder"
@@ -120,9 +121,25 @@
                         aria-label="{{ 'cb.builder.history.redo'|trans({}, 'content_blocks') }}"
                         {% if not history.canRedo %}disabled{% endif %}>↷</button>
             </div>
+
+            {# Empty on purpose: host additions. See docs/guide/host-services.md #}
+            {% block cb_shell_topbar_left_end %}{% endblock %}
         </div>
 
         <div class="cb-shell__topbar-right">
+            {% block cb_shell_topbar_right_start %}{% endblock %}
+
+            {% if enablePublicLink ?? true %}
+                <a class="cb-shell__public-link"
+                   href="{{ cb_public_url(area) }}"
+                   target="_blank"
+                   rel="noopener"
+                   title="{{ 'cb.builder.public_link.title'|trans({}, 'content_blocks') }}">
+                    <span class="cb-shell__btn-icon" aria-hidden="true">↗</span>
+                    <span class="cb-shell__btn-label">{{ 'cb.builder.public_link.label'|trans({}, 'content_blocks') }}</span>
+                </a>
+            {% endif %}
+
             {# The panel it drives lives beside <main>, not here: floating
                over the preview needs the shell as containing block. #}
             <button type="button"
@@ -177,6 +194,8 @@
                     {% if not area.hasUnpublishedChanges %}disabled{% endif %}>
                 {{ 'cb.builder.publish'|trans({}, 'content_blocks') }}
             </button>
+
+            {% block cb_shell_topbar_right_end %}{% endblock %}
         </div>
     </header>
 
@@ -375,4 +394,6 @@
     {% for fragment in cb_shell_fragments(area) %}
         {{ include(fragment.template, fragment.context|merge({ area: area }), with_context = false) }}
     {% endfor %}
+
+    {% block cb_shell_end %}{% endblock %}
 </div>

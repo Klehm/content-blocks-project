@@ -948,6 +948,44 @@ test.describe('builder shell — polish', () => {
         await expect(dialog).not.toHaveAttribute('open');
     });
 
+    // The public page, in a new tab: the resolver URL with no preview flag.
+    test('the topbar links the published page', async ({ page }) => {
+        const url = await createFreshPage(page);
+        await page.goto(url);
+        await page.locator('.cb-launcher__button').click();
+
+        const link = page.locator('.cb-shell__public-link');
+        await expect(link).toBeVisible();
+        await expect(link).toHaveAttribute('target', '_blank');
+        const href = await link.getAttribute('href');
+        expect(href).toMatch(/^\/page\/\d+$/);
+
+        const [tab] = await Promise.all([page.waitForEvent('popup'), link.click()]);
+        await tab.waitForLoadState('domcontentloaded');
+        expect(new URL(tab.url()).pathname).toBe(href);
+        await expect(tab.locator('.cb-overlay-toolbar')).toHaveCount(0);
+    });
+
+    // The host page must not show its scrollbar beside the fullscreen dialog,
+    // and gets it back once the builder closes.
+    test('the host page does not scroll while the builder is open', async ({ page }) => {
+        const overflow = () => page.evaluate(() => [
+            getComputedStyle(document.documentElement).overflow,
+            getComputedStyle(document.body).overflow,
+        ]);
+        await page.goto(await createFreshPage(page));
+        const before = await overflow();
+        expect(before).not.toEqual(['hidden', 'hidden']);
+
+        await page.locator('.cb-launcher__button').click();
+        await expect(page.locator('.cb-shell')).toBeVisible();
+        expect(await overflow()).toEqual(['hidden', 'hidden']);
+
+        await page.locator('.cb-shell__close').click();
+        await expect(page.locator('.cb-builder-dialog')).not.toHaveAttribute('open');
+        expect(await overflow()).toEqual(before);
+    });
+
     // The "close while a form is open prompts a confirmation" tests were
     // removed: autosave replaced manual save, so there are no unsaved changes
     // to confirm — close() now just closes the dialog (covered above).

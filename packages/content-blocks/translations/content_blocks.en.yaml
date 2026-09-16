@@ -94,6 +94,9 @@ cb:
         toggle_sidebar: "Toggle sidebar"
         sidebar:
             empty: "Click an element in the preview to edit it."
+        public_link:
+            label: "View page"
+            title: "Open the published page in a new tab"
         tree:
             open: "Navigator"
             title: "Content navigator"

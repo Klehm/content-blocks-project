@@ -94,6 +94,9 @@ cb:
         toggle_sidebar: "Afficher / masquer la sidebar"
         sidebar:
             empty: "Cliquez sur un élément de l'aperçu pour le modifier."
+        public_link:
+            label: "Voir la page"
+            title: "Ouvrir la page publiée dans un nouvel onglet"
         tree:
             open: "Navigateur"
             title: "Navigateur de contenu"

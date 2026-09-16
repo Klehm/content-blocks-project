@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Twig;
 
+use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Palette\ColorPaletteRegistry;
+use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
+use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Twig\ContentBlocksExtension;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -25,5 +29,21 @@ final class ContentBlocksExtensionTest extends TestCase
             ->newInstanceWithoutConstructor();
 
         $this->assertSame('', $extension->renderContentArea(null));
+    }
+
+    /** The link is the resolver's URL as is: no preview flag, so published. */
+    public function testPublicUrlIsTheResolverUrlWithoutThePreviewFlag(): void
+    {
+        $resolver = $this->createMock(ContentAreaUrlResolverInterface::class);
+        $resolver->method('resolve')->willReturn('/page/7');
+
+        $extension = new ContentBlocksExtension(
+            $this->createMock(BlockRendererInterface::class),
+            $resolver,
+            (new ReflectionClass(ColorPaletteRegistry::class))->newInstanceWithoutConstructor(),
+        );
+
+        $this->assertSame('/page/7', $extension->publicUrl(new ContentArea()));
+        $this->assertSame('/page/7?cb_preview=1', $extension->previewUrl(new ContentArea()));
     }
 }
