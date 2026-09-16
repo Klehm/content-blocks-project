@@ -17,6 +17,7 @@ use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 
@@ -28,7 +29,6 @@ use Twig\Environment;
  *
  * @internal the routes are the contract, not this class
  */
-#[Route('/_content-blocks')]
 final class SectionSidebarController
 {
     use CsrfProtectedTrait;
@@ -42,6 +42,7 @@ final class SectionSidebarController
         private readonly SectionSettingsDefaults $settingsDefaults,
         private readonly SectionStyleRegistry $styleRegistry,
         private readonly ActionJournal $journal,
+        private readonly UrlGeneratorInterface $urlGenerator,
     ) {
     }
 
@@ -91,7 +92,7 @@ final class SectionSidebarController
         }
 
         $form = $this->formFactory->create(SectionSettingsType::class, $initial, [
-            'action' => '/_content-blocks/section/' . $id . '/settings',
+            'action' => $this->urlGenerator->generate('content_blocks_section_settings', ['id' => $id]),
             'method' => 'POST',
             'column_count' => $columnCount,
         ]);

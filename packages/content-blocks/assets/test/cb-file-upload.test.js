@@ -66,6 +66,16 @@ describe('cb-file-upload', () => {
         global.fetch = undefined;
     });
 
+    it('uploads under the base the host mounted the routes at', async () => {
+        mockUpload('/uploads/dropped.png');
+        const { controller } = setup();
+        document.querySelector('[data-cb-csrf-token]').dataset.cbApiBase = '/admin/cb';
+
+        await controller.drop(dragEvent([imageFile()]));
+
+        expect(global.fetch.mock.calls[0][0]).toBe('/admin/cb/upload');
+    });
+
     it('uploads a dropped file to the builder endpoint with the CSRF token', async () => {
         mockUpload('/uploads/dropped.png');
         const { controller, element } = setup();

@@ -68,7 +68,7 @@ test('rich text — the selected editor is wired onto the field', async ({ page 
 
     // Uploads point at the builder's own endpoint, not at anything editor-
     // specific.
-    await expect(wrapper).toHaveAttribute('data-cb-tinymce-upload-url-value', '/_content-blocks/upload');
+    await expect(wrapper).toHaveAttribute('data-cb-tinymce-upload-url-value', '/admin/content-blocks/upload');
     // The palette reaches the editor's swatches.
     const palette = await wrapper.getAttribute('data-cb-tinymce-palette-value');
     expect(JSON.parse(palette).length).toBeGreaterThan(0);

@@ -21,7 +21,6 @@ use Symfony\Component\Routing\Attribute\Route;
  *
  * @internal the route is the contract, not this class
  */
-#[Route('/_content-blocks')]
 final class TreeController
 {
     public function __construct(

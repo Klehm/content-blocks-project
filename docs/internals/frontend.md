@@ -51,6 +51,34 @@ A `cb:area:changed` **supersedes** a pending debounced reload rather than
 coalescing with it: the area just changed wholesale, and waiting out the quiet
 period would show the stale preview for that much longer.
 
+## Endpoint URLs come from the router
+
+The mount point belongs to the host ([routing guide](../guide/routing.md)), so no
+script spells `/_content-blocks`. The shell carries one value,
+`data-cb-api-base`, and `cb-builder`, `cb-tree` and `cb-file-upload` append a
+path to it. PHP never builds a path either: it generates by route name.
+
+**One base, not a URL per endpoint.** The i18n workbench hands its JS one
+`path()` per URL, which is right for a handful. The builder calls about thirty
+endpoints, and a thirty-entry map on the shell would be one more table to keep
+in step with the controllers. A single base can express that because
+`routes/editor.php` is imported as a unit: every editor route shares its prefix.
+
+`cb_api_base()` derives the base from the router, by generating one argument-free
+anchor route (`content_blocks_block_types`) and stripping its known suffix. That
+keeps the app's base URL for free (an app under `/shop/index.php`). If the host
+re-pathed that route alone, the suffix no longer matches and the function
+**throws** instead of guessing a base that would silently 404 every call.
+
+**The public assets are a separate import**, not a sub-prefix of the editor
+mount. A public page links `layout.css` and `styling.css`, so they must live
+outside whatever firewall the editor mount sits behind. With one import, a host
+moving the builder under `/admin` would have broken every visitor's page.
+
+The JS falls back to `/_content-blocks` when the attribute is absent, so a host
+that overrides `shell.html.twig` from an older version keeps working on the
+default mount.
+
 ## Mutations are serialized
 
 `_jsonRequest()` funnels **every** structural mutation through one in-flight

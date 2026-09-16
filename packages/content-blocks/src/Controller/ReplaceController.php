@@ -26,7 +26,6 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  *
  * @internal the routes are the contract, not this class
  */
-#[Route('/_content-blocks')]
 final class ReplaceController
 {
     use CsrfProtectedTrait;

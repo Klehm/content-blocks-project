@@ -19,7 +19,6 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  *
  * @internal The routes are the contract, not this class. See FREEZE-AUDIT.md.
  */
-#[Route('/_content-blocks')]
 final class UploadController
 {
     use CsrfProtectedTrait;

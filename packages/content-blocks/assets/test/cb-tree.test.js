@@ -132,6 +132,15 @@ describe('cb-tree: loading and painting', () => {
         expect(list.querySelector('.cb-tree__block .cb-tree__name').textContent).toBe('Welcome');
     });
 
+    it('fetches the outline under the base the host mounted the routes at', async () => {
+        global.fetch = vi.fn(() => okJson(sampleTree()));
+        document.querySelector('[data-controller="cb-builder"]').dataset.cbApiBase = '/admin/cb';
+
+        await controller.reload();
+
+        expect(global.fetch.mock.calls[0][0]).toBe('/admin/cb/area/42/tree');
+    });
+
     it('says the block type as a glyph, not as a second word', async () => {
         global.fetch = vi.fn(() => okJson(sampleTree()));
 

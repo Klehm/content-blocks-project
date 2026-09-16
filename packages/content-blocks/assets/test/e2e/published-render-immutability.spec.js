@@ -84,7 +84,7 @@ async function moveBlockToColumn(page, frame, blockIndex, columnIndex) {
     const columnId = await frame.locator('[data-cb-column-id]').nth(columnIndex).getAttribute('data-cb-column-id');
     const token = await page.locator('[data-cb-csrf-token]').first().getAttribute('data-cb-csrf-token');
 
-    const response = await page.request.post(`/_content-blocks/block/${blockId}/move`, {
+    const response = await page.request.post(`/admin/content-blocks/block/${blockId}/move`, {
         headers: { 'X-CSRF-Token': token, 'Content-Type': 'application/json' },
         data: { toColumnId: Number(columnId), position: 0 },
     });

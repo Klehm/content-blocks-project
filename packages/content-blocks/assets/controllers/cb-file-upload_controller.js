@@ -24,6 +24,13 @@ export default class extends Controller {
         return this.element.closest('[data-cb-csrf-token]')?.dataset.cbCsrfToken || '';
     }
 
+    /** Read off the shell, like the token: see cb-builder's `_apiBase`. */
+    _getUploadUrl() {
+        const base = this.element.closest('[data-cb-api-base]')?.dataset.cbApiBase
+            ?? '/_content-blocks';
+        return `${base}/upload`;
+    }
+
     async upload(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -162,7 +169,7 @@ export default class extends Controller {
         formData.append('file', file);
 
         try {
-            const response = await fetch('/_content-blocks/upload', {
+            const response = await fetch(this._getUploadUrl(), {
                 method: 'POST',
                 headers: {
                     'X-CSRF-Token': this._getCsrfToken(),

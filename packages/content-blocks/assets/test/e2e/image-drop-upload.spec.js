@@ -55,7 +55,7 @@ test('a dropped image uploads and fills the field', async ({ page }) => {
     const hidden = widget.locator('input[type=hidden]');
     await expect(hidden).toHaveValue('');
 
-    const upload = page.waitForResponse((r) => r.url().includes('/_content-blocks/upload'));
+    const upload = page.waitForResponse((r) => r.url().includes('/admin/content-blocks/upload'));
     await dropFile(page, '.cb-image-upload', { name: 'dropped.png', type: 'image/png', base64: PNG_BASE64 });
 
     expect((await upload).status()).toBe(200);
@@ -67,7 +67,7 @@ test('a dropped image uploads and fills the field', async ({ page }) => {
 test('a pasted path fills the field without an upload, and remove clears it', async ({ page }) => {
     const uploads = [];
     page.on('request', (r) => {
-        if (r.url().includes('/_content-blocks/upload')) uploads.push(r.url());
+        if (r.url().includes('/admin/content-blocks/upload')) uploads.push(r.url());
     });
 
     await page.goto(await createFreshPage(page));

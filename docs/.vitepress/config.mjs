@@ -67,6 +67,7 @@ export default defineConfig({
             { text: 'Rendering & preview', link: '/guide/rendering' },
             { text: 'Styling', link: '/guide/styling' },
             { text: 'Security', link: '/guide/security' },
+            { text: 'Mounting the routes', link: '/guide/routing' },
             { text: 'Custom blocks', link: '/guide/custom-blocks' },
             { text: 'Translation (i18n)', link: '/guide/translation' },
             { text: 'Content versioning', link: '/guide/content-versioning' },

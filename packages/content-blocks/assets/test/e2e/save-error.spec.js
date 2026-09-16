@@ -28,7 +28,7 @@ test('a failed structural op shows the banner; the next successful save clears i
     await expect(banner).toBeHidden();
 
     // Cut the network for the section-create endpoint and try to add one.
-    await page.route('**/_content-blocks/area/*/sections', (route) => route.abort());
+    await page.route('**/admin/content-blocks/area/*/sections', (route) => route.abort());
     await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
 
     await expect(banner).toBeVisible();
@@ -36,7 +36,7 @@ test('a failed structural op shows the banner; the next successful save clears i
     expect(await frame.locator('[data-cb-section-id]').count()).toBe(0);
 
     // Network restored: the same action succeeds and clears the banner.
-    await page.unroute('**/_content-blocks/area/*/sections');
+    await page.unroute('**/admin/content-blocks/area/*/sections');
     await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
     await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);
     await expect(banner).toBeHidden();

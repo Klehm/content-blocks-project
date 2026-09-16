@@ -110,6 +110,7 @@ final class BuilderToggleTemplatesTest extends TestCase
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
         // The shell renders a CSRF token; the value is irrelevant here.
         $env->addFunction(new TwigFunction('csrf_token', static fn (string $id): string => 'test-token'));
+        $env->addFunction(new TwigFunction('cb_api_base', static fn (): string => '/_content-blocks'));
         // The shell asks for contributed fragments; none here (see
         // BuilderShellFragmentsTemplateTest for that contract).
         $env->addFunction(new TwigFunction('cb_shell_fragments', static fn (ContentArea $area): array => []));

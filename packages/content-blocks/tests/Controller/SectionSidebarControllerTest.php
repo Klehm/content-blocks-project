@@ -18,6 +18,11 @@ use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\Forms;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Generator\UrlGenerator;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RequestContext;
+use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouteCollection;
 use Twig\Environment;
 
 final class SectionSidebarControllerTest extends ControllerTestCase
@@ -119,6 +124,16 @@ final class SectionSidebarControllerTest extends ControllerTestCase
         $this->assertTrue($this->renderedFormView()['stylingCustom']->vars['checked']);
     }
 
+    public function testTheFormPostsWhereverTheHostMountedTheRoute(): void
+    {
+        $section = $this->makeSettingsSection(id: 5);
+        $controller = $this->makeController([$section]);
+
+        $controller->settings(5, Request::create('/admin/cb/section/5/settings'));
+
+        $this->assertSame('/admin/cb/section/5/settings', $this->renderedFormView()->vars['action']);
+    }
+
     // -------- plumbing --------
 
     private function makeSettingsSection(int $id, array $settings = []): Section
@@ -164,7 +179,17 @@ final class SectionSidebarControllerTest extends ControllerTestCase
             new SectionSettingsDefaults([]),
             $styleRegistry,
             $this->makeJournal($em),
+            $this->makeUrlGenerator(),
         );
+    }
+
+    /** A host that mounted the builder endpoints under `/admin/cb`. */
+    private function makeUrlGenerator(): UrlGeneratorInterface
+    {
+        $routes = new RouteCollection();
+        $routes->add('content_blocks_section_settings', new Route('/admin/cb/section/{id}/settings'));
+
+        return new UrlGenerator($routes, new RequestContext());
     }
 
     private function makeFormFactory(SectionStyleRegistry $styleRegistry): FormFactoryInterface

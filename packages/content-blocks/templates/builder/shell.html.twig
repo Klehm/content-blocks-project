@@ -8,6 +8,7 @@
      data-cb-builder-area-id-value="{{ area.id }}"
      data-cb-builder-iframe-url-value="{{ iframeUrl }}"
      data-cb-csrf-token="{{ csrf_token('content_blocks') }}"
+     data-cb-api-base="{{ cb_api_base() }}"
      data-i18n-cb-builder-discard-confirm="{{ 'cb.builder.discard_confirm'|trans({}, 'content_blocks') }}"
      {# On the shell root, not the library panel: this flow starts from the
         in-preview toolbar, whatever the sidebar shows. #}
