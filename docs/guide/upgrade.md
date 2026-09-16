@@ -298,6 +298,16 @@ Only if you copied one of these into `templates/bundles/ContentBlocksBundle/`:
   `add_section` and `empty_cta` entries to `window.__cbOverlayLabels` too, or
   the tray label keeps its old wording when the area empties or fills.
 
+### 3b. Overridden translation workbench
+
+Only if you have a file at
+`templates/bundles/ContentBlocksI18nBundle/workbench/workbench.html.twig`. Until
+`1.0.0-RC9` that override was **never used**: the bundle registered its own
+templates ahead of the override directory. It is used now, so check it still
+matches the shipped page before upgrading — or, better, replace the copy with an
+`{% extends '@!ContentBlocksI18n/workbench/workbench.html.twig' %}` that fills
+only the empty blocks you need ([Adding to the workbench](./translation.md#adding-to-the-workbench)).
+
 ---
 
 ## 4. `ContentBlocks\Service\` is gone (update your `use` statements)
@@ -477,6 +487,20 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
   `config/routes.php` changes nothing. See [Mounting the routes](./routing.md).
 - **Adding or deleting a section no longer reloads the preview** — nothing to
   wire, unless you forked the templates listed in §3a.
+- **"View page" in the builder topbar** — opens the published page, from the
+  URL your `ContentAreaUrlResolverInterface` already returns. On by default;
+  `enable_public_link: false` on `ContentAreaType` hides it. See
+  [Toggling topbar features](./host-services.md#toggling-topbar-features-insert-content-import-export-view-page).
+- **`content_blocks.section.initial_settings`** — settings every section added
+  from the builder starts with (padding, *Customize styling*, a preset…). If you
+  wrote a listener or a defaults provider to get there, it can go; don't keep a
+  defaults provider declaring the same values. See
+  [Initial settings of a new section](./host-services.md#initial-settings-of-a-new-section).
+- **Empty Twig blocks** in the builder shell and the translation workbench, for
+  adding markup without copying a template.
+- **Two i18n seams** — `WorkbenchBackUrlResolverInterface` (where the
+  workbench's back arrow leads) and `LocalizedPageUrlResolverInterface` (links
+  to the published page in each language). Both default to today's behaviour.
 
 - **`BlockDataResolverInterface`** — an autoconfigured pipeline for changing what
   a block renders (translation, token expansion, computed values) without
