@@ -278,6 +278,26 @@ The shipped kit templates already use the new keys — you only need this if you
 forked one. (Translation *label* keys such as `…field.link` were intentionally
 **not** renamed — they are identifiers, not the data contract.)
 
+### 3a. Overridden builder or render templates in the core
+
+Only if you copied one of these into `templates/bundles/ContentBlocksBundle/`:
+
+- **`builder/shell.html.twig`** — add the attribute the builder reads its
+  endpoint mount from, next to `data-cb-csrf-token`:
+
+  ```twig
+       data-cb-csrf-token="{{ csrf_token('content_blocks') }}"
+  +    data-cb-api-base="{{ cb_api_base() }}"
+  ```
+
+  Without it the builder falls back to `/_content-blocks`, which is correct only
+  as long as you keep the default mount ([Mounting the routes](./routing.md)).
+- **`render/content_area.html.twig`** — keep a single `.cb-add-section-tray`
+  inside `.cb-content-area`: adding a section inserts it in place before that
+  tray, and falls back to a full preview reload without it. Add the
+  `add_section` and `empty_cta` entries to `window.__cbOverlayLabels` too, or
+  the tray label keeps its old wording when the area empties or fills.
+
 ---
 
 ## 4. `ContentBlocks\Service\` is gone (update your `use` statements)
@@ -450,6 +470,14 @@ pairs, which would be wrong the moment you ship your own collection block.
 
 These landed in `1.0.0` but are backward-compatible — nothing to change:
 
+- **The route mount is yours** — `/_content-blocks` is only the default.
+  `config/routes/editor.php` and `config/routes/public.php` carry the routes
+  without a prefix, so the builder can live under `/admin` and your firewall
+  pattern covers it as is. Route names are unchanged; keeping
+  `config/routes.php` changes nothing. See [Mounting the routes](./routing.md).
+- **Adding or deleting a section no longer reloads the preview** — nothing to
+  wire, unless you forked the templates listed in §3a.
+
 - **`BlockDataResolverInterface`** — an autoconfigured pipeline for changing what
   a block renders (translation, token expansion, computed values) without
   touching the renderer. With none registered, output is unchanged.
@@ -497,6 +525,7 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
 - [ ] Spell out `d`/`t`/`m` → `desktop`/`tablet`/`mobile` in any preset `settings`.
 - [ ] Rename kit `defaults`/`choices` config keyed by a renamed field.
 - [ ] Update any forked kit block templates to the new data keys.
+- [ ] Forked `builder/shell.html.twig`? Add `data-cb-api-base` (§3a).
 - [ ] Find-and-replace `ContentBlocks\Service\` with the new namespaces (§4).
 - [ ] Adjust any direct call to `import()` / `serialize()` to their value objects (§5).
 - [ ] Swap `RenderMode` for `RenderContext` if you call or implement the renderer (§6).
