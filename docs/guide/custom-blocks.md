@@ -196,7 +196,7 @@ This pays off in a place you never wrote code for: **a pasted block is replayed 
 
 ## Opting into preview hot reload
 
-By default an inline edit triggers a full iframe reload. If your block's rendered **view** is self-contained (static HTML or CSS-only, no JS init needed once the markup lands in the DOM), opt into in-place swapping:
+By default an inline edit, add or duplicate of your block triggers a full iframe reload (moves and deletes never do). If your block's rendered **view** is self-contained (static HTML or CSS-only, no JS init needed once the markup lands in the DOM), opt into in-place swapping:
 
 ```php
 public function supportsPreviewHotReload(): bool

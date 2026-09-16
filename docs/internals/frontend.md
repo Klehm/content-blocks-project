@@ -85,8 +85,8 @@ say something specific.
 
 ## Hot reload and when it is refused
 
-Three flows can patch the preview in place instead of reloading it: insert,
-duplicate and reorder.
+Five flows patch the preview in place instead of reloading it: block insert,
+duplicate, reorder, and adding or deleting a section.
 
 Insert and duplicate ship server-rendered markup **only when the block opts into
 hot reload** ([why it is opt-in](blocks.md#preview-hot-reload-is-opt-in)); a
@@ -96,7 +96,20 @@ so its scripts run. A section qualifies only when every one of its blocks does.
 Reorder is different: it **moves the live node**, so the block's DOM and JS state
 survive. A re-render or a reload would discard both.
 
+Adding a section always ships its markup: a new section has no block, so there
+is no script to run. It lands ahead of the add-section tray, pinned and scrolled
+into view. The overlay refuses (`cb:reorder:desync`, hence a reload) when the
+page holds more than one tray, since it cannot tell which area grew.
+
+Deleting a section **flags** it rather than removing it: `data-cb-deleted` and
+the `--deleted` class on the section, its columns and its blocks — the markup a
+reload renders, hidden by CSS. Both flows re-sync the area's empty state, and
+hidden sections do not count towards it, on either side.
+
 Every one of these falls back to a full reload if the iframe cannot be reached.
+
+Undo of a section delete and `Ctrl-Z` still reload: a restored section brings its
+whole subtree and position back, and a history step can touch any of the area.
 
 `replaceBlock()` re-pins any hover or focus from the old node onto the fresh one,
 so the outline and toolbar survive the swap, and dispatches `cb:block:rendered`
@@ -123,14 +136,15 @@ stops hover from moving the toolbar elsewhere. Hover is also suppressed during a
 drag, so the toolbar does not pop up over everything the cursor passes on the way
 to a drop target.
 
-After any iframe reload the parent asks the overlay to **re-pin** focus, or the
-outline and toolbar would vanish on every autosave. When the pinned element no
-longer exists — a section delete that cascaded to a focused child block — the
-overlay replies `cb:focus:not-found` and the parent clears the stale form.
+After any iframe reload, and after an in-place section delete, the parent asks
+the overlay to **re-pin** focus, or the outline and toolbar would vanish on every
+autosave. When the pinned element no longer exists or is flagged deleted — a
+section delete that cascaded to a focused child block — the overlay replies
+`cb:focus:not-found` and the parent clears the stale form.
 
-A newly inserted section wins over the restored scroll position: it lands at the
-end of the area, often below the fold, and restoring the old scroll would hide
-the one thing the editor wants to see.
+A newly inserted section wins over the restored scroll position, on the reload
+fallback too: it lands at the end of the area, often below the fold, and
+restoring the old scroll would hide the one thing the editor wants to see.
 
 ## The tree is a second view, not a second state
 

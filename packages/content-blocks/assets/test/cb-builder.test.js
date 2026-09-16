@@ -881,10 +881,108 @@ describe('cb-builder: structural AJAX handlers', () => {
         expect(reloadSpy).not.toHaveBeenCalled();
     });
 
-    it('_deleteSection issues DELETE and reloads', async () => {
+    it('_deleteSection issues DELETE and flags the section in place (no full reload)', async () => {
+        reqSpy.mockResolvedValueOnce({ deleted: true });
+        const removeSpy = vi.spyOn(controller, '_removeSectionFromPreview').mockImplementation(() => {});
+
         await controller._deleteSection(5);
+
         expect(reqSpy).toHaveBeenCalledWith('DELETE', '/_content-blocks/section/5');
+        expect(removeSpy).toHaveBeenCalledWith(5);
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_deleteSection leaves the preview untouched when the delete fails', async () => {
+        reqSpy.mockResolvedValueOnce(null);
+        const removeSpy = vi.spyOn(controller, '_removeSectionFromPreview').mockImplementation(() => {});
+
+        await controller._deleteSection(5);
+
+        expect(removeSpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_removeSectionFromPreview posts cb:section:remove, then re-pins the open block', () => {
+        const postSpy = vi.spyOn(controller.iframeTarget.contentWindow, 'postMessage').mockImplementation(() => {});
+        // A block inside the section is open: the re-pin is what lets the
+        // overlay answer cb:focus:not-found.
+        controller.sidebarTarget.setAttribute('data-cb-sidebar-block-id', '31');
+
+        controller._removeSectionFromPreview(5);
+
+        expect(postSpy.mock.calls.map(([message]) => message)).toEqual([
+            { type: 'cb:section:remove', sectionId: 5 },
+            { type: 'cb:focus:block', blockId: 31 },
+        ]);
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_removeSectionFromPreview falls back to a reload when the preview is unreachable', () => {
+        vi.spyOn(controller.iframeTarget.contentWindow, 'postMessage').mockImplementation(() => {
+            throw new Error('detached');
+        });
+
+        controller._removeSectionFromPreview(5);
+
         expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('_addSection inserts the new section in place when the server ships html', async () => {
+        reqSpy.mockResolvedValueOnce({ id: 8, hotReload: true, html: '<section data-cb-section-id="8"></section>' });
+        vi.spyOn(controller, '_mountSectionSettings').mockImplementation(() => {});
+        const insertSpy = vi.spyOn(controller, '_insertSectionInPreview').mockImplementation(() => {});
+
+        await controller._addSection('full');
+
+        expect(insertSpy).toHaveBeenCalledWith(8, '<section data-cb-section-id="8"></section>');
+        expect(reloadSpy).not.toHaveBeenCalled();
+        // Nothing left for a later, unrelated reload to scroll to.
+        expect(controller._pendingScrollSectionId ?? null).toBeNull();
+    });
+
+    it('_addSection falls back to a reload that scrolls to the section without html', async () => {
+        reqSpy.mockResolvedValueOnce({ id: 8 });
+        vi.spyOn(controller, '_mountSectionSettings').mockImplementation(() => {});
+        const insertSpy = vi.spyOn(controller, '_insertSectionInPreview').mockImplementation(() => {});
+
+        await controller._addSection('full');
+
+        expect(insertSpy).not.toHaveBeenCalled();
+        expect(reloadSpy).toHaveBeenCalled();
+        expect(controller._pendingScrollSectionId).toBe(8);
+    });
+
+    it('_addSection leaves the preview untouched when create fails', async () => {
+        reqSpy.mockResolvedValueOnce(null);
+        const insertSpy = vi.spyOn(controller, '_insertSectionInPreview').mockImplementation(() => {});
+
+        await controller._addSection('full');
+
+        expect(insertSpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_insertSectionInPreview posts cb:section:insert to the iframe', () => {
+        const postSpy = vi.spyOn(controller.iframeTarget.contentWindow, 'postMessage').mockImplementation(() => {});
+
+        controller._insertSectionInPreview(8, '<section data-cb-section-id="8"></section>');
+
+        expect(postSpy).toHaveBeenCalledWith(
+            { type: 'cb:section:insert', sectionId: 8, html: '<section data-cb-section-id="8"></section>' },
+            window.location.origin,
+        );
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_insertSectionInPreview falls back to a scrolling reload when unreachable', () => {
+        vi.spyOn(controller.iframeTarget.contentWindow, 'postMessage').mockImplementation(() => {
+            throw new Error('detached');
+        });
+
+        controller._insertSectionInPreview(8, '<section></section>');
+
+        expect(reloadSpy).toHaveBeenCalled();
+        expect(controller._pendingScrollSectionId).toBe(8);
     });
 });
 
@@ -1416,6 +1514,7 @@ describe('cb-builder: undo delete snackbar', () => {
         errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
         // Deletes route preview updates through these; not under test here.
         vi.spyOn(controller, '_removeBlockFromPreview').mockImplementation(() => {});
+        vi.spyOn(controller, '_removeSectionFromPreview').mockImplementation(() => {});
         vi.spyOn(controller, '_afterStructuralOp').mockImplementation(() => {});
         vi.spyOn(controller, '_applyDraftState').mockImplementation(() => {});
         vi.spyOn(controller, 'reload').mockImplementation(() => {});
@@ -1455,7 +1554,8 @@ describe('cb-builder: undo delete snackbar', () => {
         await controller._deleteSection(5);
 
         expect(undoBar.hidden).toBe(true);
-        expect(controller._afterStructuralOp).not.toHaveBeenCalled();
+        expect(controller._removeSectionFromPreview).not.toHaveBeenCalled();
+        expect(controller.reload).not.toHaveBeenCalled();
         expect(saveError.hidden).toBe(false);
     });
 

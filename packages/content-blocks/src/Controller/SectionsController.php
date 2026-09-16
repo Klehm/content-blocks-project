@@ -95,7 +95,12 @@ final class SectionsController
             $this->em->persist($section);
             $this->em->flush();
 
-            return new JsonResponse(['id' => $section->getId()]);
+            // No blocks yet, so no script that would need a full reload.
+            return new JsonResponse([
+                'id' => $section->getId(),
+                'hotReload' => true,
+                'html' => $this->blockRenderer->renderSection($section, RenderContext::forPreview()),
+            ]);
         });
     }
 
