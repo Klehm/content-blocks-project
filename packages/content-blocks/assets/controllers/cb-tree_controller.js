@@ -223,6 +223,12 @@ export default class extends Controller {
         );
     }
 
+    /** The shell's `cb_api_base()`, as cb-builder reads it. */
+    _apiBase() {
+        return this.element.closest('[data-cb-api-base]')?.dataset.cbApiBase
+            ?? '/_content-blocks';
+    }
+
     async reload() {
         if (!this.hasListTarget) return;
         clearTimeout(this._refreshTimer);
@@ -230,7 +236,7 @@ export default class extends Controller {
 
         let payload;
         try {
-            const response = await fetch(`/_content-blocks/area/${this.areaIdValue}/tree`, {
+            const response = await fetch(`${this._apiBase()}/area/${this.areaIdValue}/tree`, {
                 credentials: 'same-origin',
                 headers: { Accept: 'application/json' },
             });

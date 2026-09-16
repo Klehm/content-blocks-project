@@ -237,7 +237,7 @@ Les 13 controllers livrés (source unique : `assets/package.json`) :
 - `cb-tabs` : onglets de la sidebar
 - `cb-collection-sort` : réordonnancement des entrées de collection
 - `cb-condition` : affichage conditionnel générique de champs (`data-cb-condition="field:value1|value2"` sur une row ; checkbox → `true`/`false` ; `field` seul → non-vide). Plusieurs clauses se combinent en **ET** via `;` (ex. `size:custom;customHeightAuto:false`), chaque clause gardant son **OU** via `|`. Les instances s'imbriquent (scope = plus proche ancêtre) ; le controller est aussi posé sur la **racine du form d'édition de bloc** ([Block.html.twig]) pour qu'un `<select>` puisse gater des rows sœurs (resize image). Utilisé par le switch « Personnaliser le style » et `PaletteColorType` ; réutilisable dans les forms de blocs custom
-- `cb-file-upload` : upload AJAX vers `/_content-blocks/upload` (preview + status), utilisé par `ImageUploadType`
+- `cb-file-upload` : upload AJAX vers `content_blocks_upload` (`/_content-blocks/upload` par défaut, preview + status), utilisé par `ImageUploadType`
 - `cb-tree` : le **navigateur** de la zone (voir plus bas)
 
 Ces controllers doivent être déclarés dans `assets/controllers.json` côté host — Flex l'écrit tout seul à l'install (mot-clé `symfony-ux` + `assets/package.json`), à la main sinon. Voir `packages/content-blocks/README.md`.
@@ -472,6 +472,8 @@ security:
         admin:
             pattern: ^/(admin|_content-blocks)
 ```
+
+Or move the mount instead. `/_content-blocks` is only the default: `config/routes.php` imports two prefix-free files, `config/routes/editor.php` (every builder endpoint) and `config/routes/public.php` (the CSS/JS **public pages** link, which must stay outside any firewall). A host importing `editor.php` under `/admin/...` needs no extra pattern. Route **names** are unchanged either way. Nothing in the package spells the path: the shell carries `data-cb-api-base` from `cb_api_base()` (derived from the router, app base URL included), the three Stimulus controllers that fetch read it, and PHP generates URLs by route name. The main sandbox mounts the editor routes under `/admin/content-blocks`, so the whole Playwright suite runs against a moved mount (`host-route-prefix.spec.js` pins it), while the Encore sandbox keeps the default. Guide: [docs/guide/routing.md](docs/guide/routing.md).
 
 ### Block Data Sanitization
 

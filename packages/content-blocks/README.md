@@ -47,6 +47,8 @@ content_blocks:
     resource: '@ContentBlocksBundle/config/routes.php'
 ```
 
+This mounts everything under `/_content-blocks`. The mount point is yours: see [Mounting the routes](#mounting-the-routes) below.
+
 ### Stimulus controllers & admin CSS (required — written by Flex, manual otherwise)
 
 The host's Symfony Stimulus Bundle reads `assets/controllers.json` from your project — it does **not** auto-discover controllers shipped by third-party packages. Without an entry for each controller, the builder UI loads no JS and the "Edit content" button does nothing.
@@ -901,10 +903,29 @@ Blocks are addressed by the `ref` the payload gives them (`s0.c1.b2`) — databa
 
 ### CSRF
 
-AJAX endpoints (`/_content-blocks/*`) require an `X-CSRF-Token` header bound to the token id `content_blocks`. Stimulus controllers read it from a `data-cb-csrf-token` attribute rendered by the bundle. Your app needs:
+AJAX endpoints (`/_content-blocks/*` by default) require an `X-CSRF-Token` header bound to the token id `content_blocks`. Stimulus controllers read it from a `data-cb-csrf-token` attribute rendered by the bundle. Your app needs:
 
 - `framework.session: true` (CSRF tokens are session-bound)
 - `framework.csrf_protection.enabled: true`
+
+### Mounting the routes
+
+`/_content-blocks` is a default: route **names** are the contract, the paths belong to your app. The routes come in two families, each in its own prefix-free file, and they must not share a mount:
+
+- `config/routes/editor.php` — every builder endpoint (sections, blocks, sidebars, upload, clipboard, history, import/export, asset report).
+- `config/routes/public.php` — the CSS/JS a **public page** links (`layout`, `styling`, `builder`, `preview-overlay`). Keep it outside any firewall.
+
+```yaml
+# config/routes/content_blocks.yaml — instead of routes.php
+content_blocks_editor:
+    resource: '@ContentBlocksBundle/config/routes/editor.php'
+    prefix: /admin/content-blocks
+content_blocks_public:
+    resource: '@ContentBlocksBundle/config/routes/public.php'
+    prefix: /_content-blocks/public
+```
+
+The builder reads the mount from the router (`data-cb-api-base` on the shell, `cb_api_base()` in Twig), so nothing else changes and a firewall on `^/admin` covers it. Import `editor.php` as a whole: the mount is derived from one of its routes. A script of your own inside the builder reads `closest('[data-cb-api-base]').dataset.cbApiBase` rather than hardcoding the path.
 
 ### Firewalls & access control
 
@@ -916,6 +937,8 @@ The bundle exposes two URL families with different exposure:
 | `/_content-blocks/*` (everything else) | Authenticated admin (block CRUD, section CRUD, sidebars, upload) | Admin-only |
 
 The public sub-prefix is intentional: it lets you lock the admin endpoints down without breaking the iframe's CSS and overlay JS.
+
+The simplest setup is to mount the admin endpoints under your admin path, where the rule you already have covers them — see [Mounting the routes](#mounting-the-routes). The rest of this section assumes the default mount.
 
 **With a single firewall**, an `access_control` split is enough:
 

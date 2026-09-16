@@ -28,7 +28,7 @@ final class BlockSidebarController
     }
 
     #[Route(
-        '/_content-blocks/block/{id}/edit',
+        '/block/{id}/edit',
         name: 'content_blocks_block_edit',
         methods: ['GET'],
         requirements: ['id' => '\d+'],

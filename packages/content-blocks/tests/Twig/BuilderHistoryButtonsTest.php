@@ -116,6 +116,7 @@ final class BuilderHistoryButtonsTest extends TestCase
         $env = new Environment($loader, ['strict_variables' => true]);
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
         $env->addFunction(new TwigFunction('csrf_token', static fn (string $id): string => 'test-token'));
+        $env->addFunction(new TwigFunction('cb_api_base', static fn (): string => '/_content-blocks'));
         $env->addFunction(new TwigFunction('cb_shell_fragments', static fn (ContentArea $area): array => []));
         $env->addFunction(new TwigFunction(
             'cb_history_state',

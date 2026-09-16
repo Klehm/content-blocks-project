@@ -986,6 +986,27 @@ describe('cb-builder: structural AJAX handlers', () => {
     });
 });
 
+describe('cb-builder: host-mounted routes', () => {
+    it('prefixes every endpoint with the base the shell carries', async () => {
+        const { controller } = setupController({ areaId: 99 });
+        controller.element.dataset.cbApiBase = '/admin/cb';
+        const reqSpy = vi.spyOn(controller, '_jsonRequest').mockResolvedValue({});
+        vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        await controller.publish();
+        await controller._deleteSection(5);
+
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/admin/cb/area/99/publish');
+        expect(reqSpy).toHaveBeenCalledWith('DELETE', '/admin/cb/section/5');
+    });
+
+    it('keeps the default mount when the shell predates the attribute', () => {
+        const { controller } = setupController();
+
+        expect(controller._apiBase).toBe('/_content-blocks');
+    });
+});
+
 describe('cb-builder: publish/discard', () => {
     let controller, reqSpy, reloadSpy, applySpy;
 

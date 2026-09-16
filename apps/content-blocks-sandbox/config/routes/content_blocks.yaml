@@ -1,2 +1,13 @@
-content_blocks:
-    resource: '@ContentBlocksBundle/config/routes.php'
+# The builder's endpoints are mounted under `/admin/content-blocks` rather than
+# the package's default `/_content-blocks`, so that one `/admin` firewall
+# pattern would cover them. The sandbox runs the whole e2e suite this way; the
+# Encore sandbox keeps the default mount, so both are exercised.
+#
+# The public assets are imported apart and stay outside `/admin`: a visitor's
+# page links `layout.css` and `styling.css` too.
+content_blocks_editor:
+    resource: '@ContentBlocksBundle/config/routes/editor.php'
+    prefix: /admin/content-blocks
+content_blocks_public:
+    resource: '@ContentBlocksBundle/config/routes/public.php'
+    prefix: /_content-blocks/public

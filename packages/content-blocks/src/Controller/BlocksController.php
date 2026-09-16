@@ -29,7 +29,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * @internal the routes are the contract, not this class
  */
-#[Route('/_content-blocks')]
 final class BlocksController
 {
     use CsrfProtectedTrait;

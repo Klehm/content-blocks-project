@@ -3,8 +3,8 @@
 {#
    Rendered inside `.cb-shell` by the package (see DemoShellExtension). The
    fragment sees only its own context plus `area`; everything else it needs —
-   the CSRF token, the area id — it reads off the shell root with `closest()`,
-   which is the contract a bundle's own script relies on.
+   the CSRF token, where the endpoints are mounted — it reads off the shell
+   root with `closest()`, which is the contract a bundle's script relies on.
 #}
 <div class="sandbox-shell-fragment" data-sandbox-shell-fragment data-area-id="{{ area.id }}">
     <button type="button" class="sandbox-shell-fragment__btn" data-sandbox-shell-fragment-btn>{{ label }}</button>
@@ -20,7 +20,7 @@
 
     button.addEventListener('click', async () => {
         status.textContent = 'Adding…';
-        const response = await fetch(`/_content-blocks/area/${root.dataset.areaId}/sections`, {
+        const response = await fetch(`${shell.dataset.cbApiBase}/area/${root.dataset.areaId}/sections`, {
             method: 'POST',
             credentials: 'same-origin',
             headers: {

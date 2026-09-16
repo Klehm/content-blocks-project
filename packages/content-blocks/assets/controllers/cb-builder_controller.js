@@ -60,6 +60,8 @@ export default class extends Controller {
      *
      * @see docs/internals/frontend.md#keyboard-and-clipboard
      */
+    static DEFAULT_API_BASE = '/_content-blocks';
+
     static CLIPBOARD_KEY = 'cb-builder.clipboard';
 
     static SIDEBAR_WIDTH_KEY = 'cb-builder.sidebarWidth';
@@ -432,7 +434,7 @@ export default class extends Controller {
 
     async publish(event) {
         if (event) event.preventDefault();
-        const result = await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/publish`);
+        const result = await this._jsonRequest('POST', `${this._apiBase}/area/${this.areaIdValue}/publish`);
         if (result === null) return;
         // Publish physically removed soft-deleted rows — a pending undo
         // offer can no longer be honoured.
@@ -447,7 +449,7 @@ export default class extends Controller {
         // irreversible — unlike a delete, which has its own Undo.
         const confirmText = this._t('cb.builder.discard_confirm', this.constructor.DISCARD_CONFIRM_FALLBACK);
         if (!window.confirm(confirmText)) return;
-        const result = await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/discard`);
+        const result = await this._jsonRequest('POST', `${this._apiBase}/area/${this.areaIdValue}/discard`);
         if (result === null) return;
         // Discard already reverted every draft deletion (or removed
         // never-published rows) — the undo offer is moot either way.
@@ -645,7 +647,7 @@ export default class extends Controller {
     async _addSection(layout) {
         const allowed = ['full', 'two_cols', 'three_cols'];
         const finalLayout = allowed.includes(layout) ? layout : 'full';
-        const result = await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/sections`, { layout: finalLayout });
+        const result = await this._jsonRequest('POST', `${this._apiBase}/area/${this.areaIdValue}/sections`, { layout: finalLayout });
         // Create failed (CSRF/access/network) — leave the preview untouched.
         if (result === null) return;
         if (result.hotReload && result.id && typeof result.html === 'string') {
@@ -688,7 +690,7 @@ export default class extends Controller {
 
     async _addBlock(columnId, blockType) {
         if (!columnId || !blockType) return;
-        const result = await this._jsonRequest('POST', `/_content-blocks/column/${columnId}/blocks`, { type: blockType });
+        const result = await this._jsonRequest('POST', `${this._apiBase}/column/${columnId}/blocks`, { type: blockType });
         // Create failed (CSRF/access/network) — leave the preview untouched.
         if (result === null) return;
         this._applyDraftState(true);
@@ -727,7 +729,7 @@ export default class extends Controller {
 
     async _deleteBlock(blockId) {
         if (!blockId) return;
-        const result = await this._jsonRequest('DELETE', `/_content-blocks/block/${blockId}`);
+        const result = await this._jsonRequest('DELETE', `${this._apiBase}/block/${blockId}`);
         // Delete failed (CSRF/access/network) — leave the preview untouched.
         if (result === null) return;
         if (this._isSidebarFocusedOnBlock(blockId)) {
@@ -762,7 +764,7 @@ export default class extends Controller {
     async _moveBlock(blockId, toColumnId, position) {
         if (!blockId || !toColumnId) return;
         const finalPosition = position ?? 0;
-        const result = await this._jsonRequest('POST', `/_content-blocks/block/${blockId}/move`, {
+        const result = await this._jsonRequest('POST', `${this._apiBase}/block/${blockId}/move`, {
             toColumnId,
             position: finalPosition,
         });
@@ -779,7 +781,7 @@ export default class extends Controller {
 
     async _moveSection(sectionId, direction) {
         if (!sectionId || !['up', 'down'].includes(direction)) return;
-        const result = await this._jsonRequest('POST', `/_content-blocks/section/${sectionId}/move`, { direction });
+        const result = await this._jsonRequest('POST', `${this._apiBase}/section/${sectionId}/move`, { direction });
         if (result === null) return;
         this._applyDraftState(true);
         // Already at the edge — the server couldn't move it, so neither do we.
@@ -789,7 +791,7 @@ export default class extends Controller {
 
     async _reorderSection(sectionId, position) {
         if (!sectionId || !Number.isInteger(position) || position < 0) return;
-        const result = await this._jsonRequest('POST', `/_content-blocks/section/${sectionId}/move`, { position });
+        const result = await this._jsonRequest('POST', `${this._apiBase}/section/${sectionId}/move`, { position });
         if (result === null) return;
         this._applyDraftState(true);
         if (result.moved === false) return;
@@ -816,7 +818,7 @@ export default class extends Controller {
 
     async _duplicateSection(sectionId) {
         if (!sectionId) return;
-        const result = await this._jsonRequest('POST', `/_content-blocks/section/${sectionId}/duplicate`);
+        const result = await this._jsonRequest('POST', `${this._apiBase}/section/${sectionId}/duplicate`);
         // Duplicate failed (CSRF/access/network) — leave the preview untouched.
         if (result === null) return;
         this._applyDraftState(true);
@@ -831,7 +833,7 @@ export default class extends Controller {
 
     async _duplicateBlock(blockId) {
         if (!blockId) return;
-        const result = await this._jsonRequest('POST', `/_content-blocks/block/${blockId}/duplicate`);
+        const result = await this._jsonRequest('POST', `${this._apiBase}/block/${blockId}/duplicate`);
         // Duplicate failed (CSRF/access/network) — leave the preview untouched.
         if (result === null) return;
         this._applyDraftState(true);
@@ -861,7 +863,7 @@ export default class extends Controller {
 
     async _deleteSection(sectionId) {
         if (!sectionId) return;
-        const result = await this._jsonRequest('DELETE', `/_content-blocks/section/${sectionId}`);
+        const result = await this._jsonRequest('DELETE', `${this._apiBase}/section/${sectionId}`);
         // Delete failed (CSRF/access/network) — leave the preview untouched.
         if (result === null) return;
         // The direct case. A focused block *inside* this section is caught by
@@ -911,6 +913,16 @@ export default class extends Controller {
     _afterStructuralOp() {
         this._applyDraftState(true);
         this.reload();
+    }
+
+    /**
+     * Where the host mounted the endpoints (`cb_api_base()`). Falls back to
+     * the default mount for a shell template that predates the attribute.
+     *
+     * @see docs/internals/frontend.md#endpoint-urls-come-from-the-router
+     */
+    get _apiBase() {
+        return this.element.dataset.cbApiBase ?? this.constructor.DEFAULT_API_BASE;
     }
 
     /**
@@ -1061,7 +1073,7 @@ export default class extends Controller {
             return;
         }
 
-        const entry = await this._jsonRequest('GET', `/_content-blocks/${scope}/${blockId || sectionId}/copy`);
+        const entry = await this._jsonRequest('GET', `${this._apiBase}/${scope}/${blockId || sectionId}/copy`);
         if (entry === null) return;
 
         try {
@@ -1098,7 +1110,7 @@ export default class extends Controller {
         const { blockId, sectionId } = this._selectionIds();
         const result = await this._jsonRequest(
             'POST',
-            `/_content-blocks/area/${this.areaIdValue}/paste`,
+            `${this._apiBase}/area/${this.areaIdValue}/paste`,
             {
                 payload: entry,
                 ...(blockId ? { targetBlockId: blockId } : {}),
@@ -1253,7 +1265,7 @@ export default class extends Controller {
         const open = this._openSidebarRef();
         const result = await this._jsonRequest(
             'POST',
-            `/_content-blocks/area/${this.areaIdValue}/${direction}`,
+            `${this._apiBase}/area/${this.areaIdValue}/${direction}`,
             open ? { open } : {},
         );
         // Request failed outright — the save-error banner already says so.
@@ -1421,7 +1433,7 @@ export default class extends Controller {
         if (!pending) return;
         const result = await this._jsonRequest(
             'POST',
-            `/_content-blocks/${pending.kind}/${pending.id}/restore`,
+            `${this._apiBase}/${pending.kind}/${pending.id}/restore`,
         );
         if (result === null) return;
         // It comes back with its full subtree, and undo is rare — a full
@@ -1541,14 +1553,14 @@ export default class extends Controller {
      * injects it into the sidebar. Stimulus + Live Component auto-connect.
      */
     async _mountSidebar(blockId) {
-        await this._mountSidebarFrom(`/_content-blocks/block/${blockId}/edit`, {
+        await this._mountSidebarFrom(`${this._apiBase}/block/${blockId}/edit`, {
             'data-cb-sidebar-block-id': String(blockId),
         });
     }
 
     /** Section settings: same fetch/inject flow, different endpoint. */
     async _mountSectionSettings(sectionId) {
-        await this._mountSidebarFrom(`/_content-blocks/section/${sectionId}/settings`, {
+        await this._mountSidebarFrom(`${this._apiBase}/section/${sectionId}/settings`, {
             'data-cb-sidebar-section-id': String(sectionId),
         });
     }
@@ -1775,7 +1787,7 @@ export default class extends Controller {
         this._beginLoading();
         let payload = null;
         try {
-            const response = await fetch(`/_content-blocks/block/${blockId}/render`, {
+            const response = await fetch(`${this._apiBase}/block/${blockId}/render`, {
                 credentials: 'same-origin',
                 headers: { Accept: 'application/json' },
             });
@@ -1825,7 +1837,7 @@ export default class extends Controller {
         this._beginLoading();
         let payload = null;
         try {
-            const response = await fetch(`/_content-blocks/section/${sectionId}/render`, {
+            const response = await fetch(`${this._apiBase}/section/${sectionId}/render`, {
                 credentials: 'same-origin',
                 headers: { Accept: 'application/json' },
             });
@@ -1924,7 +1936,7 @@ export default class extends Controller {
         const params = new URLSearchParams();
         if (filter) params.set('q', filter);
         const qs = params.toString();
-        const url = `/_content-blocks/area/${this.areaIdValue}/replace-candidates${qs ? `?${qs}` : ''}`;
+        const url = `${this._apiBase}/area/${this.areaIdValue}/replace-candidates${qs ? `?${qs}` : ''}`;
 
         let payload;
         try {
@@ -1981,7 +1993,7 @@ export default class extends Controller {
 
         const result = await this._jsonRequest(
             'POST',
-            `/_content-blocks/area/${this.areaIdValue}/replace-with/${item.id}`,
+            `${this._apiBase}/area/${this.areaIdValue}/replace-with/${item.id}`,
         );
         if (result === null) return;
         // The target's updatedAt just changed, so a sticky cache would
@@ -2014,7 +2026,7 @@ export default class extends Controller {
 
         const result = await this._jsonRequest(
             'POST',
-            `/_content-blocks/section/${id}/save-as-template`,
+            `${this._apiBase}/section/${id}/save-as-template`,
             { name },
         );
         if (result === null) return;
@@ -2086,7 +2098,7 @@ export default class extends Controller {
         if (filter) params.set('q', filter);
         if (page > 0) params.set('page', String(page));
         const qs = params.toString();
-        const url = `/_content-blocks/area/${this.areaIdValue}/section-templates${qs ? `?${qs}` : ''}`;
+        const url = `${this._apiBase}/area/${this.areaIdValue}/section-templates${qs ? `?${qs}` : ''}`;
 
         let payload;
         try {
@@ -2323,7 +2335,7 @@ export default class extends Controller {
     async _confirmInsert(item) {
         const result = await this._jsonRequest(
             'POST',
-            `/_content-blocks/area/${this.areaIdValue}/insert-template/${item.id}`,
+            `${this._apiBase}/area/${this.areaIdValue}/insert-template/${item.id}`,
         );
         if (result === null) return;
 
@@ -2352,7 +2364,7 @@ export default class extends Controller {
         );
         if (!window.confirm(confirmText)) return;
 
-        const result = await this._jsonRequest('DELETE', `/_content-blocks/section-templates/${item.id}`);
+        const result = await this._jsonRequest('DELETE', `${this._apiBase}/section-templates/${item.id}`);
         if (result === null) return;
         // From the top, so counts and pagination stay sane.
         await this._loadTemplates(filter ?? this._templatePickerFilter ?? '', 0, false);
@@ -2412,7 +2424,7 @@ export default class extends Controller {
     runExport(event) {
         if (event) event.preventDefault();
         const link = document.createElement('a');
-        link.href = `/_content-blocks/area/${this.areaIdValue}/export`;
+        link.href = `${this._apiBase}/area/${this.areaIdValue}/export`;
         link.rel = 'noopener';
         // Empty, so the server's Content-Disposition filename wins.
         link.download = '';
@@ -2456,7 +2468,7 @@ export default class extends Controller {
         let ok = false;
         try {
             const response = await fetch(
-                `/_content-blocks/area/${this.areaIdValue}/import`,
+                `${this._apiBase}/area/${this.areaIdValue}/import`,
                 {
                     method: 'POST',
                     credentials: 'same-origin',

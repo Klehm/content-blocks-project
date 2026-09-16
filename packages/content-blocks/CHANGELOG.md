@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The host chooses where the routes are mounted.** `/_content-blocks` is now
+  only the default: `config/routes/editor.php` (every builder endpoint) and
+  `config/routes/public.php` (the CSS/JS public pages link) carry the routes
+  with no prefix, so a host can mount the builder under `/admin` and let its
+  existing firewall pattern cover it. The builder reads the mount from the
+  router (`cb_api_base()`, carried on the shell as `data-cb-api-base`), app
+  base URL included. Route names, and the default mount, are unchanged: a host
+  importing `config/routes.php` needs to do nothing. See
+  [Mounting the routes](https://klehm.github.io/content-blocks-project/guide/routing).
+
+  A host that **overrides `builder/shell.html.twig`** should add
+  `data-cb-api-base="{{ cb_api_base() }}"` next to `data-cb-csrf-token`.
+  Without it the builder falls back to `/_content-blocks`, which is only
+  correct on the default mount.
+
 ### Changed
 
 - **Adding or deleting a section no longer reloads the preview.** The new

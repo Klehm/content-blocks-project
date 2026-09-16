@@ -30,7 +30,7 @@ final class SectionRenderController
     }
 
     #[Route(
-        '/_content-blocks/section/{id}/render',
+        '/section/{id}/render',
         name: 'content_blocks_section_render',
         methods: ['GET'],
         requirements: ['id' => '\d+'],

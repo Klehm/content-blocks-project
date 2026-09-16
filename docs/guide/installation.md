@@ -63,6 +63,8 @@ content_blocks:
     resource: '@ContentBlocksBundle/config/routes.php'
 ```
 
+This mounts everything under `/_content-blocks`. To put the builder endpoints under your admin path instead, see [Mounting the routes](./routing.md).
+
 ## Stimulus controllers & admin CSS
 
 ::: warning Required — written by Flex, manual otherwise
@@ -171,7 +173,7 @@ Nothing else is Encore-specific. The bundles skip their AssetMapper registration
 
 ### Public assets loaded inside the preview iframe
 
-The bundle exposes four routes under `/_content-blocks/public/*` that serve the styles and the overlay JS injected into the front-end iframe:
+The bundle exposes four routes under `/_content-blocks/public/*` (the default mount) that serve the styles and the overlay JS injected into the front-end iframe:
 
 - `/_content-blocks/public/layout` → `text/css` (PUBLIC + PREVIEW)
 - `/_content-blocks/public/styling` → `text/css` (PUBLIC + PREVIEW)

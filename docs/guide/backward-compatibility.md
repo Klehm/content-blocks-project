@@ -21,7 +21,7 @@ Every key of the three semantic config trees (`content_blocks`, `content_blocks_
 
 ### HTTP and console
 
-Route **names**, their methods, payload shapes and CSRF requirement. Mount *paths* belong to the host — the i18n package ships `config/routes/bare.php` precisely so a host can mount its routes wherever its firewall covers — so the names are the contract, not the URLs.
+Route **names**, their methods, payload shapes and CSRF requirement. Mount *paths* belong to the host — the core ships `config/routes/editor.php` and `config/routes/public.php`, and the i18n package `config/routes/bare.php`, precisely so a host can mount its routes wherever its firewall covers ([Mounting the routes](./routing.md)) — so the names are the contract, not the URLs.
 
 The five console commands, their names and their options: `content-blocks:assets:gc`, `content-blocks:backfill-collection-ids`, `content-blocks-kit:blocks`, `content-blocks:i18n:status`, `content-blocks:i18n:translate`.
 

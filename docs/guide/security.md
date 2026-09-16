@@ -6,7 +6,7 @@ title: Security
 
 ## CSRF
 
-AJAX endpoints (`/_content-blocks/*`) require an `X-CSRF-Token` header bound to the token id `content_blocks`. Stimulus controllers read it from a `data-cb-csrf-token` attribute rendered by the bundle. Your app needs:
+AJAX endpoints (`/_content-blocks/*` by default) require an `X-CSRF-Token` header bound to the token id `content_blocks`. Stimulus controllers read it from a `data-cb-csrf-token` attribute rendered by the bundle. Your app needs:
 
 - `framework.session: true` (CSRF tokens are session-bound)
 - `framework.csrf_protection.enabled: true`
@@ -25,6 +25,12 @@ The bundle exposes two URL families with different exposure:
 | `/_content-blocks/*` (everything else) | Authenticated admin (block CRUD, section CRUD, sidebars, upload) | Admin-only |
 
 The public sub-prefix is intentional: it lets you lock the admin endpoints down without breaking the iframe's CSS and overlay JS.
+
+::: tip Simplest: mount the admin endpoints under your admin path
+Both families can be mounted wherever you like. With the builder endpoints under `/admin/content-blocks`, a `^/admin` firewall or `access_control` rule already covers them, and none of the patterns below is needed. See [Mounting the routes](./routing.md).
+:::
+
+The rest of this section assumes the default mount.
 
 **With a single firewall**, an `access_control` split is enough:
 

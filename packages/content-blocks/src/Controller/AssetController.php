@@ -8,8 +8,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Serves the package's CSS/JS under `/_content-blocks/public/*` — outside the
- * admin namespace, and without file extensions. Both are deliberate.
+ * Serves the package's CSS/JS, imported apart (`routes/public.php`) so it stays
+ * outside the admin mount, and without file extensions. Both are deliberate.
  *
  * @see docs/internals/assets.md#asset-routes-are-public-on-purpose
  *
@@ -20,7 +20,7 @@ final class AssetController
     private const ASSETS_DIR = '/../../assets';
 
     #[Route(
-        '/_content-blocks/public/layout',
+        '/layout',
         name: 'content_blocks_asset_layout',
         methods: ['GET'],
     )]
@@ -30,7 +30,7 @@ final class AssetController
     }
 
     #[Route(
-        '/_content-blocks/public/styling',
+        '/styling',
         name: 'content_blocks_asset_styling',
         methods: ['GET'],
     )]
@@ -40,14 +40,14 @@ final class AssetController
     }
 
     #[Route(
-        '/_content-blocks/public/builder',
+        '/builder',
         name: 'content_blocks_asset_builder',
         methods: ['GET'],
     )]
     public function builderCss(): Response
     {
         // Prepended, not @import-ed: served raw, and an @import would resolve
-        // against /_content-blocks/public/, where no route serves the tokens.
+        // against the public mount, where no route serves the tokens.
         return $this->asset(
             '/styles/builder.css',
             'text/css; charset=UTF-8',
@@ -56,7 +56,7 @@ final class AssetController
     }
 
     #[Route(
-        '/_content-blocks/public/preview-overlay',
+        '/preview-overlay',
         name: 'content_blocks_asset_preview_overlay',
         methods: ['GET'],
     )]

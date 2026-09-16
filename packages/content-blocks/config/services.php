@@ -154,6 +154,9 @@ return static function (ContainerConfigurator $container): void {
     $services->set(\ContentBlocks\Twig\ImageExtension::class)
         ->tag('twig.extension');
 
+    $services->set(\ContentBlocks\Twig\RoutingExtension::class)
+        ->tag('twig.extension');
+
     $services->set(\ContentBlocks\Rendering\BlockRenderer::class);
     // Rendering override seam: host decorates/replaces via the interface.
     $services->alias(\ContentBlocks\Rendering\BlockRendererInterface::class, \ContentBlocks\Rendering\BlockRenderer::class);

@@ -112,6 +112,7 @@ final class BuilderShellFragmentsTemplateTest extends TestCase
         $env = new Environment(new ChainLoader([$inline, $files]), ['strict_variables' => true]);
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
         $env->addFunction(new TwigFunction('csrf_token', static fn (string $id): string => 'test-token'));
+        $env->addFunction(new TwigFunction('cb_api_base', static fn (): string => '/_content-blocks'));
         // Stand-in for ShellFragmentsExtension: this test is about the
         // template, and the extension has its own.
         $env->addFunction(new TwigFunction('cb_shell_fragments', static fn (ContentArea $area): array => $fragments));

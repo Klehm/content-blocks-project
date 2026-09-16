@@ -21,7 +21,6 @@ use Twig\Environment;
  *
  * @internal The route is the contract, not this class. See FREEZE-AUDIT.md.
  */
-#[Route('/_content-blocks')]
 final class AssetReportController
 {
     public function __construct(

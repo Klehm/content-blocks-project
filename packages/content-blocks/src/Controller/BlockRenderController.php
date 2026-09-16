@@ -33,7 +33,7 @@ final class BlockRenderController
     }
 
     #[Route(
-        '/_content-blocks/block/{id}/render',
+        '/block/{id}/render',
         name: 'content_blocks_block_render',
         methods: ['GET'],
         requirements: ['id' => '\d+'],

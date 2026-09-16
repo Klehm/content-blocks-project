@@ -118,7 +118,7 @@ test.describe('transfer — translations travel with the content', () => {
 
         // Export what we just imported: the fragment is rebuilt from the rows,
         // addressed by the ref the payload gives that same block.
-        const response = await page.request.get(`/_content-blocks/area/${source}/export`);
+        const response = await page.request.get(`/admin/content-blocks/area/${source}/export`);
         expect(response.ok()).toBeTruthy();
         const exported = await response.json();
 
