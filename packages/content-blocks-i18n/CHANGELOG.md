@@ -5,6 +5,15 @@ All notable changes to `klehm/content-blocks-i18n` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **The workbench preview can be resized.** Drag the left edge of the preview,
+  as with the builder's sidebar, or focus it and use the arrow keys;
+  double-click restores the even split. Both panes keep a 320px minimum, and
+  the width is remembered per browser.
+
 ## [1.0.0-RC9] - 2026-09-16
 
 ### Added

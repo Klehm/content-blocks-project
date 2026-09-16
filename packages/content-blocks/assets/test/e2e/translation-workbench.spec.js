@@ -198,6 +198,46 @@ test.describe('translation workbench', () => {
         expect(response.status()).toBe(200);
     });
 
+    /**
+     * The preview's left edge is a drag handle, as the builder's sidebar is:
+     * dragging over the frame still works, and the width survives a reload.
+     */
+    test('the preview is resized by dragging its edge, and stays that way', async ({ page }) => {
+        await buildPageWithTranslatableText(page);
+        const workbench = await openWorkbench(page);
+        await workbench.setViewportSize({ width: 1600, height: 900 });
+
+        const pane = workbench.locator('.cb-wb__preview');
+        const handle = workbench.locator('.cb-wb__resize');
+        const before = (await pane.boundingBox()).width;
+        expect(Math.abs(before - 800)).toBeLessThan(4);
+
+        const box = await handle.boundingBox();
+        const y = box.y + box.height / 2;
+        await workbench.mouse.move(box.x + box.width / 2, y);
+        await workbench.mouse.down();
+        // Ends over the frame: the drag must not lose the pointer to it.
+        await workbench.mouse.move(box.x + 200, y, { steps: 8 });
+        await workbench.mouse.move(box.x - 300, y, { steps: 8 });
+        await workbench.mouse.up();
+
+        const after = (await pane.boundingBox()).width;
+        expect(Math.abs(after - (before + 300))).toBeLessThan(6);
+        await expect(workbench.locator('.cb-wb__preview iframe')).toHaveCSS('pointer-events', 'auto');
+
+        await workbench.reload();
+        await expect(workbench.locator('.cb-wb__row').first()).toBeVisible();
+        expect(Math.abs((await pane.boundingBox()).width - after)).toBeLessThan(6);
+
+        // Neither pane can be squeezed out.
+        const edge = await handle.boundingBox();
+        await workbench.mouse.move(edge.x + 4, y);
+        await workbench.mouse.down();
+        await workbench.mouse.move(10, y, { steps: 8 });
+        await workbench.mouse.up();
+        expect((await workbench.locator('.cb-wb__list').boundingBox()).width).toBeGreaterThanOrEqual(319);
+    });
+
     /** Typing a translation saves it and repaints the row and the counters. */
     test('a typed translation is saved and the row turns translated', async ({ page }) => {
         await buildPageWithTranslatableText(page);

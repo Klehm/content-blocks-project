@@ -46,6 +46,10 @@
                 <source>cb_i18n.workbench.reset</source>
                 <target>Vider — revenir au texte source</target>
             </trans-unit>
+            <trans-unit id="workbench.resize_preview">
+                <source>cb_i18n.workbench.resize_preview</source>
+                <target>Redimensionner l'aperçu</target>
+            </trans-unit>
             <trans-unit id="workbench.hide_preview">
                 <source>cb_i18n.workbench.hide_preview</source>
                 <target>Masquer l'aperçu</target>
