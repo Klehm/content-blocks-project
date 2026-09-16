@@ -6,6 +6,7 @@
    @var progress  array
    @var locales   array
    @var providers array
+   @var publicLinks array
 #}
 {% trans_default_domain 'content_blocks_i18n' %}
 <!DOCTYPE html>
@@ -16,6 +17,9 @@
     <title>{{ 'cb_i18n.workbench.title'|trans }} — {{ localeLabel }}</title>
     <link rel="stylesheet" href="{{ path('content_blocks_i18n_asset_css') }}">
     <script type="module" src="{{ path('content_blocks_i18n_asset_js') }}" defer></script>
+    {# Empty on purpose: host additions, e.g. a stylesheet redeclaring the
+       --cb-wb-* tokens. See docs/guide/translation.md#adding-to-the-workbench #}
+    {% block cb_wb_head %}{% endblock %}
 </head>
 <body>
 <div class="cb-wb"
@@ -32,7 +36,7 @@
 
     <header class="cb-wb__topbar">
         <div class="cb-wb__topbar-left">
-            <a class="cb-wb__back" href="{{ previewUrl|split('?')|first }}" title="{{ 'cb_i18n.workbench.back'|trans }}">←</a>
+            <a class="cb-wb__back" href="{{ backUrl }}" title="{{ 'cb_i18n.workbench.back'|trans }}">←</a>
 
             {# Source → target. The source is stated, not chosen: block data
                *is* the source text, so there is nothing to switch it to. #}
@@ -48,9 +52,28 @@
                     </select>
                 </label>
             </span>
+
+            {% block cb_wb_topbar_left_end %}{% endblock %}
         </div>
 
         <div class="cb-wb__topbar-right">
+            {% block cb_wb_topbar_right_start %}{% endblock %}
+
+            {% if publicLinks is not empty %}
+                <nav class="cb-wb__public" aria-label="{{ 'cb_i18n.workbench.public_links'|trans }}">
+                    <span class="cb-wb__public-icon" aria-hidden="true">↗</span>
+                    {% for link in publicLinks %}
+                        <a class="cb-wb__public-link{{ link.current ? ' is-current' : '' }}"
+                           href="{{ link.url }}"
+                           hreflang="{{ link.code }}"
+                           target="_blank"
+                           rel="noopener"
+                           title="{{ 'cb_i18n.workbench.public_link'|trans({ '%locale%': link.label }) }}"
+                           {% if link.current %}aria-current="true"{% endif %}>{{ link.code|upper }}</a>
+                    {% endfor %}
+                </nav>
+            {% endif %}
+
             {% if providers is not empty %}
                 {% if providers|length > 1 %}
                     <label class="cb-wb__provider">
@@ -76,6 +99,8 @@
                       data-hide="{{ 'cb_i18n.workbench.hide_preview'|trans }}"
                       data-show="{{ 'cb_i18n.workbench.show_preview'|trans }}">{{ 'cb_i18n.workbench.hide_preview'|trans }}</span>
             </button>
+
+            {% block cb_wb_topbar_right_end %}{% endblock %}
         </div>
     </header>
 
@@ -168,6 +193,8 @@
     </main>
 
     <div class="cb-wb__toast" data-target="toast" role="status" aria-live="polite" hidden></div>
+
+    {% block cb_wb_end %}{% endblock %}
 </div>
 </body>
 </html>

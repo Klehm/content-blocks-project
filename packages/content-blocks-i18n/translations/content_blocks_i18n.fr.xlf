@@ -10,6 +10,14 @@
                 <source>cb_i18n.workbench.back</source>
                 <target>Retour à la page</target>
             </trans-unit>
+            <trans-unit id="workbench.public_links">
+                <source>cb_i18n.workbench.public_links</source>
+                <target>Pages publiées</target>
+            </trans-unit>
+            <trans-unit id="workbench.public_link">
+                <source>cb_i18n.workbench.public_link</source>
+                <target>Ouvrir la page publiée en %locale%</target>
+            </trans-unit>
             <trans-unit id="workbench.target_locale">
                 <source>cb_i18n.workbench.target_locale</source>
                 <target>Langue cible</target>

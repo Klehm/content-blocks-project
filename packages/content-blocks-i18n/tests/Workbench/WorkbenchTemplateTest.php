@@ -13,6 +13,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Translation\Translator;
 use Twig\Environment;
+use Twig\Loader\ArrayLoader;
+use Twig\Loader\ChainLoader;
 use Twig\Loader\FilesystemLoader;
 
 /**
@@ -86,12 +88,69 @@ final class WorkbenchTemplateTest extends TestCase
         }
     }
 
+    /** The arrow is the resolver's URL verbatim, not one derived from preview. */
+    public function testTheBackArrowUsesTheResolvedBackUrl(): void
+    {
+        $html = $this->render(providers: []);
+
+        $this->assertStringContainsString(
+            '<a class="cb-wb__back" href="/admin/pages/7/edit"',
+            $html,
+        );
+    }
+
+    public function testNoPublicLinksRenderNoNav(): void
+    {
+        $this->assertStringNotContainsString('cb-wb__public', $this->render(providers: []));
+    }
+
+    public function testEachPublicLinkOpensItsLanguageInANewTab(): void
+    {
+        $html = $this->render(providers: [], publicLinks: [
+            ['code' => 'fr', 'label' => 'Français', 'url' => '/page/7', 'current' => false],
+            ['code' => 'de', 'label' => 'Deutsch', 'url' => '/de/page/7', 'current' => true],
+        ]);
+
+        $this->assertMatchesRegularExpression(
+            '~<a class="cb-wb__public-link"\s+href="/page/7"\s+hreflang="fr"\s+target="_blank"\s+rel="noopener"~',
+            $html,
+        );
+        $this->assertMatchesRegularExpression(
+            '~<a class="cb-wb__public-link is-current"\s+href="/de/page/7"\s+hreflang="de"~',
+            $html,
+        );
+        $this->assertStringContainsString('aria-current="true">DE</a>', $html);
+    }
+
+    /** A host extends the shipped template and fills only the blocks it needs. */
+    public function testAHostFillsTheEmptyBlocks(): void
+    {
+        $html = $this->render(providers: [], host: <<<'TWIG'
+            {% extends '@ContentBlocksI18n/workbench/workbench.html.twig' %}
+            {% block cb_wb_head %}<link rel="stylesheet" href="/host.css">{% endblock %}
+            {% block cb_wb_topbar_left_end %}<i>host-left-end</i>{% endblock %}
+            {% block cb_wb_topbar_right_start %}<i>host-right-start</i>{% endblock %}
+            {% block cb_wb_topbar_right_end %}<i>host-right-end-{{ locale }}</i>{% endblock %}
+            {% block cb_wb_end %}<i>host-end</i>{% endblock %}
+            TWIG);
+
+        $this->assertLessThan(strpos($html, '</head>'), strpos($html, '/host.css'));
+        $this->assertLessThan(strpos($html, 'cb-wb__topbar-right'), strpos($html, 'host-left-end'));
+        $this->assertLessThan(strpos($html, 'data-act="togglePreview"'), strpos($html, 'host-right-start'));
+        $this->assertGreaterThan(strpos($html, 'data-act="togglePreview"'), strpos($html, 'host-right-end-de'));
+        $this->assertLessThan(strpos($html, '</header>'), strpos($html, 'host-right-end-de'));
+        $this->assertGreaterThan(strpos($html, 'cb-wb__toast'), strpos($html, 'host-end'));
+    }
+
     /**
      * @param list<array{name: string, label: string}> $providers
+     * @param list<array<string, mixed>> $publicLinks
      */
-    private function render(array $providers): string
+    private function render(array $providers, array $publicLinks = [], ?string $host = null): string
     {
-        return $this->twig()->render('@ContentBlocksI18n/workbench/workbench.html.twig', [
+        $template = '@ContentBlocksI18n/workbench/workbench.html.twig';
+
+        return $this->twig($host)->render($host === null ? $template : 'host.html.twig', [
             'area' => Entities::area(7),
             'locale' => 'de',
             'sourceLocale' => 'fr',
@@ -123,15 +182,18 @@ final class WorkbenchTemplateTest extends TestCase
             ]],
             'progress' => ['locale' => 'de', 'total' => 1, 'translated' => 0, 'outdated' => 0, 'missing' => 1, 'percent' => 0, 'complete' => false],
             'previewUrl' => '/page/7?cb_preview=1&cb_chrome=0&cb_locale=de',
+            'backUrl' => '/admin/pages/7/edit',
+            'publicLinks' => $publicLinks,
             'providers' => $providers,
             'csrfToken' => 'tok',
         ]);
     }
 
-    private function twig(): Environment
+    private function twig(?string $host = null): Environment
     {
-        $loader = new FilesystemLoader();
-        $loader->addPath(__DIR__ . '/../../templates', 'ContentBlocksI18n');
+        $files = new FilesystemLoader();
+        $files->addPath(__DIR__ . '/../../templates', 'ContentBlocksI18n');
+        $loader = new ChainLoader([new ArrayLoader(['host.html.twig' => $host ?? '']), $files]);
 
         // strict_variables: a template that reads a key the controller stopped
         // passing should fail here rather than render a silent blank.

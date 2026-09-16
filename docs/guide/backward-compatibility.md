@@ -8,7 +8,7 @@ That second half is the part worth reading. In PHP almost everything is reachabl
 
 ### PHP
 
-- **The 34 core interfaces**, plus the kit's `RichTextEditorInterface` and `IconProviderInterface`, and i18n's `TranslationProviderInterface` and `RenderLocaleResolverInterface`. These are the extension surface — implement them, alias them, decorate them.
+- **The 34 core interfaces**, plus the kit's `RichTextEditorInterface` and `IconProviderInterface`, and i18n's `TranslationProviderInterface`, `RenderLocaleResolverInterface`, `WorkbenchBackUrlResolverInterface` and `LocalizedPageUrlResolverInterface`. These are the extension surface — implement them, alias them, decorate them.
 - **`AbstractBlockType`, `AbstractKitBlock`, `AbstractRichTextEditor`** and their documented extension points.
 - **The 17 kit block classes, as subclassable** — see [extending a kit block](../kit/#extending-a-kit-block).
 - **The `#[AsContentBlock]` attribute.**
@@ -29,9 +29,9 @@ For `content-blocks:assets:gc`, the *shape* of the safety design is part of the 
 
 ### Twig
 
-The eleven functions — `cb_render_content_area`, `cb_preview_url`, `cb_color_palette`, `cb_shell_fragments`, `cb_image`, `cb_embed_url`, `cb_kit_icon`, `cb_kit_token`, `cb_i18n_workbench_url`, `cb_i18n_locales`, `cb_i18n_progress`.
+The twelve functions — `cb_render_content_area`, `cb_preview_url`, `cb_public_url`, `cb_color_palette`, `cb_shell_fragments`, `cb_image`, `cb_embed_url`, `cb_kit_icon`, `cb_kit_token`, `cb_i18n_workbench_url`, `cb_i18n_locales`, `cb_i18n_progress`.
 
-Every shipped template path, since overriding one under `templates/bundles/` is a supported integration. Their *contents* are not frozen — a template may be restructured — but the path will resolve and the block names a host overrides will keep working.
+Every shipped template path, since overriding one under `templates/bundles/` is a supported integration. Their *contents* are not frozen — a template may be restructured — but the path will resolve and the block names a host overrides will keep working — among them the empty blocks shipped for host additions: `cb_shell_topbar_left_end`, `cb_shell_topbar_right_start`, `cb_shell_topbar_right_end`, `cb_shell_end` in the builder shell, and `cb_wb_head`, `cb_wb_topbar_left_end`, `cb_wb_topbar_right_start`, `cb_wb_topbar_right_end`, `cb_wb_end` in the workbench.
 
 ### Front-end
 

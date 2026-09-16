@@ -33,6 +33,11 @@ content_blocks_i18n:
         - { code: de, label: 'Deutsch' }
         - es
 
+    # Link each language's published page from the workbench topbar. Only
+    # does something once you implement LocalizedPageUrlResolverInterface.
+    workbench:
+        public_links: true
+
     machine:
         # Optional: which of your registered providers runs when a caller names
         # none. There is nothing to configure here otherwise — the package ships
@@ -192,6 +197,19 @@ Four things about it are deliberate:
   stored preference, with no second resolver to implement. That parameter is
   honoured **only** on a request already in preview mode (which the core grants
   only after `canEdit()`), so it can never switch the language of a public page.
+
+The **back arrow** returns to the page by default. To send translators back to
+the host's admin instead, alias `WorkbenchBackUrlResolverInterface` — it receives
+the area and the locale, like the preview resolver receives the area. See
+[The back arrow](https://klehm.github.io/content-blocks-project/guide/translation#the-back-arrow).
+
+The topbar can also link the **published page in each language**, once the host
+says where those pages live by implementing `LocalizedPageUrlResolverInterface`,
+and the template carries empty Twig blocks (`cb_wb_head`,
+`cb_wb_topbar_left_end`, `cb_wb_topbar_right_start`, `cb_wb_topbar_right_end`,
+`cb_wb_end`) for a host override to fill. See
+[Links to each language](https://klehm.github.io/content-blocks-project/guide/translation#links-to-each-language)
+and [Adding to the workbench](https://klehm.github.io/content-blocks-project/guide/translation#adding-to-the-workbench).
 
 Its CSS and JS are served from the package. There is no Stimulus controller to
 declare and nothing to recompile in a host's asset pipeline: the page never

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Controller;
 
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\I18n\Locale\LocalizedPageUrlResolverInterface;
 use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Machine\NullTranslationProvider;
 use ContentBlocks\I18n\Machine\TranslationProviderRegistry;
@@ -12,6 +13,7 @@ use ContentBlocks\I18n\Preview\PreviewLocaleListener;
 use ContentBlocks\I18n\Progress\BlockTranslationView;
 use ContentBlocks\I18n\Progress\TranslationInspector;
 use ContentBlocks\I18n\Progress\TranslationProgress;
+use ContentBlocks\I18n\Workbench\WorkbenchBackUrlResolverInterface;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Security\AccessCheckerInterface;
@@ -39,9 +41,12 @@ final class WorkbenchPageController
         private readonly TranslationLocales $locales,
         private readonly TranslationProviderRegistry $providers,
         private readonly ContentAreaUrlResolverInterface $urlResolver,
+        private readonly WorkbenchBackUrlResolverInterface $backUrlResolver,
         private readonly TranslatorInterface $translator,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly Environment $twig,
+        private readonly LocalizedPageUrlResolverInterface $pageUrls,
+        private readonly bool $publicLinks = true,
     ) {
     }
 
@@ -84,6 +89,8 @@ final class WorkbenchPageController
             'blocks' => array_map(static fn (BlockTranslationView $v): array => $v->toArray(), $views),
             'progress' => $progress->toArray(),
             'previewUrl' => $this->previewUrl($area, $locale),
+            'backUrl' => $this->backUrlResolver->resolve($area, $locale),
+            'publicLinks' => $this->publicLinks($area, $locale),
             'providers' => $this->providerChoices($locale),
             'csrfToken' => (string) $this->csrfTokenManager->getToken('content_blocks'),
         ]));
@@ -105,6 +112,38 @@ final class WorkbenchPageController
             BlockRendererInterface::CHROME_QUERY_PARAM => '0',
             PreviewLocaleListener::PARAM => $locale,
         ]);
+    }
+
+    /**
+     * One link per language the host gave a URL for, source first. Off by
+     * config, or with no resolver wired, the list is empty.
+     *
+     * @return list<array{code: string, label: string, url: string, current: bool}>
+     */
+    private function publicLinks(ContentArea $area, string $locale): array
+    {
+        if (!$this->publicLinks) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach ($this->locales->toArray() as $entry) {
+            $url = $this->pageUrls->resolve($area, $entry['code']);
+
+            if ($url === null || $url === '') {
+                continue;
+            }
+
+            $out[] = [
+                'code' => $entry['code'],
+                'label' => $entry['label'],
+                'url' => $url,
+                'current' => $entry['code'] === $locale,
+            ];
+        }
+
+        return $out;
     }
 
     /**

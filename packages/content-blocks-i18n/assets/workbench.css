@@ -55,6 +55,17 @@ body {
 }
 .cb-wb__back:hover { background: var(--cb-wb-bg); color: var(--cb-wb-text); }
 
+/* The published page in each language, as short codes beside the toggle. */
+.cb-wb__public { display: inline-flex; align-items: center; gap: 2px; }
+.cb-wb__public-icon { color: var(--cb-wb-muted); margin-right: 4px; }
+.cb-wb__public-link {
+    padding: 3px 7px; border-radius: var(--cb-wb-radius);
+    color: var(--cb-wb-accent); text-decoration: none;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+}
+.cb-wb__public-link:hover { background: var(--cb-wb-accent-soft); }
+.cb-wb__public-link.is-current { background: var(--cb-wb-accent-soft); }
+
 .cb-wb__pair { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
 .cb-wb__source-tag { color: var(--cb-wb-muted); }
 .cb-wb__arrow { color: var(--cb-wb-muted); }

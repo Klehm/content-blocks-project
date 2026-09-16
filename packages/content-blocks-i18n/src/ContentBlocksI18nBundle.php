@@ -21,8 +21,8 @@ final class ContentBlocksI18nBundle extends AbstractBundle
     protected string $extensionAlias = 'content_blocks_i18n';
 
     /**
-     * Semantic config: `source_locale`, `locales`, and a default machine
-     * provider. No engine adapter ships here.
+     * Semantic config: `source_locale`, `locales`, the workbench's public links,
+     * and a default machine provider. No engine adapter ships here.
      *
      * @see docs/internals/i18n.md#config-and-mounting
      */
@@ -55,6 +55,15 @@ final class ContentBlocksI18nBundle extends AbstractBundle
                         ->children()
                             ->scalarNode('code')->isRequired()->cannotBeEmpty()->end()
                             ->scalarNode('label')->defaultNull()->end()
+                        ->end()
+                    ->end()
+                ->end()
+                ->arrayNode('workbench')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->booleanNode('public_links')
+                            ->info('Link each language\'s public page from the workbench topbar. Needs a LocalizedPageUrlResolverInterface; without one there is nothing to link.')
+                            ->defaultTrue()
                         ->end()
                     ->end()
                 ->end()
@@ -93,19 +102,12 @@ final class ContentBlocksI18nBundle extends AbstractBundle
             ->set('content_blocks_i18n.source_locale', $config['source_locale'])
             ->set('content_blocks_i18n.locales', $codes)
             ->set('content_blocks_i18n.locale_labels', $labels)
-            ->set('content_blocks_i18n.machine.default', $config['machine']['default']);
+            ->set('content_blocks_i18n.machine.default', $config['machine']['default'])
+            ->set('content_blocks_i18n.workbench.public_links', $config['workbench']['public_links']);
     }
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        // The workbench is a page this bundle renders in full, so it needs its
-        // own namespace — not one the host declares but never authors in.
-        if (isset($builder->getExtensions()['twig'])) {
-            $builder->prependExtensionConfig('twig', [
-                'paths' => [$this->getPath() . '/templates' => 'ContentBlocksI18n'],
-            ]);
-        }
-
         // So a host hand-writes no mapping for a table it never touches.
         // Guarded so the bundle still boots without Doctrine, as in a test.
         if (!isset($builder->getExtensions()['doctrine'])) {

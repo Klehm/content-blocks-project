@@ -6,6 +6,8 @@ namespace ContentBlocks\I18n\Tests\Controller;
 
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\I18n\Controller\WorkbenchPageController;
+use ContentBlocks\I18n\Locale\LocalizedPageUrlResolverInterface;
+use ContentBlocks\I18n\Locale\NullLocalizedPageUrlResolver;
 use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Machine\NullTranslationProvider;
 use ContentBlocks\I18n\Machine\TranslationProviderInterface;
@@ -15,6 +17,8 @@ use ContentBlocks\I18n\Repository\BlockTranslationRepository;
 use ContentBlocks\I18n\Storage\TranslationStore;
 use ContentBlocks\I18n\Tests\Fixtures\CatalogFactory;
 use ContentBlocks\I18n\Tests\Fixtures\Entities;
+use ContentBlocks\I18n\Workbench\PageBackUrlResolver;
+use ContentBlocks\I18n\Workbench\WorkbenchBackUrlResolverInterface;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\AllowAllAccessChecker;
@@ -67,6 +71,74 @@ final class WorkbenchPageControllerTest extends TestCase
             '/page/7?channel=web&cb_preview=1&cb_chrome=0&cb_locale=de',
             $this->context['previewUrl'],
         );
+    }
+
+    /** The default: back to the page, without the preview's query string. */
+    public function testTheBackArrowLeadsToThePageByDefault(): void
+    {
+        $this->controller(hostUrl: '/page/7?channel=web')->workbench(7, 'de');
+
+        $this->assertSame('/page/7?channel=web', $this->context['backUrl']);
+    }
+
+    /** A host's resolver gets the area and the locale the workbench is on. */
+    public function testAHostResolverDecidesWhereTheBackArrowLeads(): void
+    {
+        $admin = new class () implements WorkbenchBackUrlResolverInterface {
+            public function resolve(ContentArea $area, string $locale): string
+            {
+                return sprintf('/admin/pages/%d/edit?tab=%s', $area->getId(), $locale);
+            }
+        };
+
+        $this->controller(backUrlResolver: $admin)->workbench(7, 'de');
+
+        $this->assertSame('/admin/pages/7/edit?tab=de', $this->context['backUrl']);
+        $this->assertStringStartsWith('/page/7?', $this->context['previewUrl']);
+    }
+
+    /** Nothing is linked until the host says where its pages live. */
+    public function testWithNoLocalizedUrlResolverThereAreNoPublicLinks(): void
+    {
+        $this->controller()->workbench(7, 'de');
+
+        $this->assertSame([], $this->context['publicLinks']);
+    }
+
+    /**
+     * One link per language the resolver answers for, source included and
+     * first, the open one flagged; a language it has no URL for is skipped.
+     */
+    public function testEachLanguageWithAUrlGetsALink(): void
+    {
+        $this->controller(pageUrls: $this->pageUrls())->workbench(7, 'de');
+
+        $this->assertSame([
+            ['code' => 'fr', 'label' => 'Français', 'url' => '/page/7', 'current' => false],
+            ['code' => 'de', 'label' => 'Deutsch', 'url' => '/de/page/7', 'current' => true],
+        ], $this->context['publicLinks']);
+    }
+
+    /** The config flag hides the links even with a resolver wired. */
+    public function testTheConfigFlagTurnsTheLinksOff(): void
+    {
+        $this->controller(pageUrls: $this->pageUrls(), publicLinks: false)->workbench(7, 'de');
+
+        $this->assertSame([], $this->context['publicLinks']);
+    }
+
+    private function pageUrls(): LocalizedPageUrlResolverInterface
+    {
+        return new class () implements LocalizedPageUrlResolverInterface {
+            public function resolve(ContentArea $area, string $locale): ?string
+            {
+                return match ($locale) {
+                    'fr' => '/page/' . $area->getId(),
+                    'es' => null,
+                    default => sprintf('/%s/page/%d', $locale, $area->getId()),
+                };
+            }
+        };
     }
 
     public function testTheRowsAndTheProgressBarAreComputedFromTheSameInspection(): void
@@ -170,6 +242,9 @@ final class WorkbenchPageControllerTest extends TestCase
         string $hostUrl = '/page/7',
         ?AccessCheckerInterface $accessChecker = null,
         ?array $providers = null,
+        ?WorkbenchBackUrlResolverInterface $backUrlResolver = null,
+        ?LocalizedPageUrlResolverInterface $pageUrls = null,
+        bool $publicLinks = true,
     ): WorkbenchPageController {
         $this->context = [];
 
@@ -219,9 +294,12 @@ final class WorkbenchPageControllerTest extends TestCase
             $locales,
             new TranslationProviderRegistry($providers ?? [new FakeTranslationProvider(), new NullTranslationProvider()]),
             $urlResolver,
+            $backUrlResolver ?? new PageBackUrlResolver($urlResolver),
             new Translator('en'),
             $csrf,
             $twig,
+            $pageUrls ?? new NullLocalizedPageUrlResolver(),
+            $publicLinks,
         );
     }
 }
