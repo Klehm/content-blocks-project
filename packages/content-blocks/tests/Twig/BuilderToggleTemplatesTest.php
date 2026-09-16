@@ -58,6 +58,23 @@ final class BuilderToggleTemplatesTest extends TestCase
         $this->assertStringContainsString('cb-import-export-picker', $html);
     }
 
+    public function testPublicLinkIsShownByDefault(): void
+    {
+        $html = $this->renderShell([]);
+
+        $this->assertMatchesRegularExpression(
+            '~<a class="cb-shell__public-link"\s+href="/page/1"\s+target="_blank"\s+rel="noopener"~',
+            $html,
+        );
+    }
+
+    public function testPublicLinkIsHiddenWhenDisabled(): void
+    {
+        $html = $this->renderShell(['enablePublicLink' => false]);
+
+        $this->assertStringNotContainsString('cb-shell__public-link', $html);
+    }
+
     /**
      * The launcher forwards the flags into the shell via an `{% include %}`.
      * A `false` must survive the hand-off rather than being re-defaulted to
@@ -69,10 +86,12 @@ final class BuilderToggleTemplatesTest extends TestCase
             'area' => $this->makeArea(),
             'enableReplace' => false,
             'enableImportExport' => false,
+            'enablePublicLink' => false,
         ]);
 
         $this->assertStringNotContainsString('cb-shell__replace', $html);
         $this->assertStringNotContainsString('cb-shell__import-export', $html);
+        $this->assertStringNotContainsString('cb-shell__public-link', $html);
     }
 
     /** @param array<string, mixed> $extra */
@@ -115,6 +134,10 @@ final class BuilderToggleTemplatesTest extends TestCase
         // BuilderShellFragmentsTemplateTest for that contract).
         $env->addFunction(new TwigFunction('cb_shell_fragments', static fn (ContentArea $area): array => []));
         // The undo/redo pair starts from the journal; an empty stack here.
+        $env->addFunction(new TwigFunction(
+            'cb_public_url',
+            static fn (ContentArea $area): string => '/page/' . $area->getId(),
+        ));
         $env->addFunction(new TwigFunction(
             'cb_history_state',
             static fn (ContentArea $area): array => ['canUndo' => false, 'canRedo' => false],

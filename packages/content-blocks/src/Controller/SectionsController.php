@@ -47,6 +47,8 @@ final class SectionsController
         private readonly BlockRendererInterface $blockRenderer,
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly ActionJournal $journal,
+        /** @var array<string, mixed> */
+        private readonly array $initialSectionSettings = [],
     ) {
     }
 
@@ -82,6 +84,9 @@ final class SectionsController
             $section = new Section();
             $section->setLayout($layout);
             $section->setPreviewPosition($this->nextPreviewPosition($area));
+            if ($this->initialSectionSettings !== []) {
+                $section->setDraftSettings($this->initialSectionSettings);
+            }
             $area->addSection($section);
 
             foreach (self::LAYOUT_PRESETS[$layout] as $i => $preset) {

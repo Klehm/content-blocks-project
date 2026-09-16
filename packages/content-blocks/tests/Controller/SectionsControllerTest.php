@@ -17,11 +17,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class SectionsControllerTest extends ControllerTestCase
 {
+    /** @param array<string, mixed> $initialSettings */
     private function makeController(
         EntityManagerInterface $em,
         bool $csrfValid = true,
         ?AccessCheckerInterface $accessChecker = null,
         ?BlockRendererInterface $renderer = null,
+        array $initialSettings = [],
     ): SectionsController {
         return new SectionsController(
             $em,
@@ -31,6 +33,7 @@ final class SectionsControllerTest extends ControllerTestCase
             $renderer ?? $this->makeUnusedRenderer(),
             $this->makeRegistry(),
             $this->makeJournal($em),
+            $initialSettings,
         );
     }
 
@@ -51,6 +54,42 @@ final class SectionsControllerTest extends ControllerTestCase
         $this->assertCount(2, $section->getColumns());
         $this->assertSame('col-6', $section->getColumns()[0]->getPreset());
         $this->assertSame(1, $this->flushCount);
+    }
+
+    public function testCreateLeavesSettingsEmptyWithNoInitialSettings(): void
+    {
+        $area = $this->makeArea(1);
+        $controller = $this->makeController($this->makeEm([$area]));
+
+        $controller->create(1, $this->makeJsonRequest(['layout' => Section::LAYOUT_FULL]));
+
+        /** @var Section $section */
+        $section = $this->persisted[0];
+        $this->assertNull($section->getDraftSettings());
+        $this->assertNull($section->getPublishedSettings());
+    }
+
+    /**
+     * The configured settings are the new section's own draft values, so the
+     * render and the sidebar read them like anything an editor saved.
+     */
+    public function testCreateWritesTheInitialSettingsToTheDraft(): void
+    {
+        $settings = [
+            'widthMode' => 'centered',
+            'stylingCustom' => true,
+            'styling' => ['padding' => ['desktop' => ['top' => 12, 'bottom' => 12]]],
+        ];
+        $area = $this->makeArea(1);
+        $controller = $this->makeController($this->makeEm([$area]), initialSettings: $settings);
+
+        $controller->create(1, $this->makeJsonRequest(['layout' => Section::LAYOUT_TWO_COLS]));
+
+        /** @var Section $section */
+        $section = $this->persisted[0];
+        $this->assertSame($settings, $section->getDraftSettings());
+        // Draft only: nothing reaches the published page before Publish.
+        $this->assertNull($section->getPublishedSettings());
     }
 
     public function testCreateShipsThePreviewMarkupForAnInPlaceInsert(): void

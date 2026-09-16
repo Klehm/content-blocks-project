@@ -37,6 +37,10 @@ final class ContentBlocksExtension extends AbstractExtension
                 [$this, 'previewUrl'],
             ),
             new TwigFunction(
+                'cb_public_url',
+                [$this, 'publicUrl'],
+            ),
+            new TwigFunction(
                 'cb_color_palette',
                 [$this, 'colorPalette'],
             ),
@@ -72,6 +76,12 @@ final class ContentBlocksExtension extends AbstractExtension
         }
 
         return $this->renderer->render($area, RenderContext::forLocale($locale));
+    }
+
+    /** The host's public URL for the owning page, as its resolver returns it. */
+    public function publicUrl(ContentArea $area): string
+    {
+        return $this->urlResolver->resolve($area);
     }
 
     /**

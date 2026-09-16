@@ -32,6 +32,26 @@ final class ContentAreaTypeTest extends TestCase
         $this->resolveOptions(['topbar_actions' => 'nope']);
     }
 
+    public function testPublicLinkIsOnByDefaultAndReachesTheView(): void
+    {
+        $type = new ContentAreaType($this->createMock(EntityManagerInterface::class));
+        $form = $this->createMock(FormInterface::class);
+        $form->method('getData')->willReturn(null);
+
+        $this->assertTrue($this->resolveOptions()['enable_public_link']);
+
+        $view = new FormView();
+        $type->buildView($view, $form, $this->resolveOptions(['enable_public_link' => false]));
+        $this->assertFalse($view->vars['enable_public_link']);
+    }
+
+    public function testPublicLinkRejectsNonBool(): void
+    {
+        $this->expectException(InvalidOptionsException::class);
+
+        $this->resolveOptions(['enable_public_link' => 'yes']);
+    }
+
     /**
      * The template iterates one homogeneous list, so the array shape accepted
      * by the option is normalized here rather than in Twig.

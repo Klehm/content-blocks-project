@@ -51,6 +51,10 @@ final class ContentBlocksBundle extends AbstractBundle
                             ->defaultValue(1320)
                         ->end()
                     ->end()
+                    ->append($this->settingsNode(
+                        'initial_settings',
+                        'Settings written onto a section added from the builder, same shape as a preset\'s. Stored as the section\'s own values, so they render like anything the editor saved.',
+                    ))
                 ->end()
                 ->arrayNode('palette')
                     ->info('Named colors offered by the palette color picker.')
@@ -69,7 +73,10 @@ final class ContentBlocksBundle extends AbstractBundle
                             ->scalarNode('label')->isRequired()->cannotBeEmpty()->end()
                             ->scalarNode('css_class')->defaultValue('')->end()
                         ->end()
-                        ->append($this->presetSettingsNode())
+                        ->append($this->settingsNode(
+                            'settings',
+                            'Section settings applied by the preset (subset of a section\'s settings).',
+                        ))
                     ->end()
                 ->end()
                 ->arrayNode('upload')
@@ -103,11 +110,11 @@ final class ContentBlocksBundle extends AbstractBundle
      *
      * @see docs/internals/rendering.md#style-presets-as-a-base-layer
      */
-    private function presetSettingsNode(): ArrayNodeDefinition
+    private function settingsNode(string $name, string $info): ArrayNodeDefinition
     {
-        $node = new ArrayNodeDefinition('settings');
+        $node = new ArrayNodeDefinition($name);
         $node
-            ->info('Section settings applied by the preset (subset of a section\'s settings).')
+            ->info($info)
             ->children()
                 ->scalarNode('classes')->end()
                 ->enumNode('widthMode')->values(['full', 'centered'])->end()
@@ -199,6 +206,7 @@ final class ContentBlocksBundle extends AbstractBundle
             ->set('content_blocks.content_version', $config['content_version'])
             ->set('content_blocks.section.default_width_mode', $config['section']['default_width_mode'])
             ->set('content_blocks.section.default_max_width', $config['section']['default_max_width'])
+            ->set('content_blocks.section.initial_settings', $config['section']['initial_settings'] ?? [])
             ->set('content_blocks.palette', $config['palette'])
             ->set('content_blocks.section_styles', $config['section_styles'])
             ->set('content_blocks.upload.public_prefix', $config['upload']['public_prefix'])

@@ -1001,6 +1001,73 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     section?: array{
  *         default_width_mode?: "full"|"centered"|Param, // Default: "full"
  *         default_max_width?: int|Param, // Default: 1320
+ *         initial_settings?: array{ // Settings written onto a section added from the builder, same shape as a preset's. Stored as the section's own values, so they render like anything the editor saved.
+ *             classes?: scalar|Param|null,
+ *             widthMode?: "full"|"centered"|Param,
+ *             maxWidth?: int|Param,
+ *             columnWidths?: scalar|Param|null,
+ *             styleName?: scalar|Param|null,
+ *             stylingCustom?: bool|Param,
+ *             styling?: array{
+ *                 padding?: array{
+ *                     desktop?: array{
+ *                         top?: int|Param,
+ *                         right?: int|Param,
+ *                         bottom?: int|Param,
+ *                         left?: int|Param,
+ *                         linked?: bool|Param,
+ *                     },
+ *                     tablet?: array{
+ *                         top?: int|Param,
+ *                         right?: int|Param,
+ *                         bottom?: int|Param,
+ *                         left?: int|Param,
+ *                         linked?: bool|Param,
+ *                     },
+ *                     mobile?: array{
+ *                         top?: int|Param,
+ *                         right?: int|Param,
+ *                         bottom?: int|Param,
+ *                         left?: int|Param,
+ *                         linked?: bool|Param,
+ *                     },
+ *                 },
+ *                 margin?: array{
+ *                     desktop?: array{
+ *                         top?: int|Param,
+ *                         right?: int|Param,
+ *                         bottom?: int|Param,
+ *                         left?: int|Param,
+ *                         linked?: bool|Param,
+ *                     },
+ *                     tablet?: array{
+ *                         top?: int|Param,
+ *                         right?: int|Param,
+ *                         bottom?: int|Param,
+ *                         left?: int|Param,
+ *                         linked?: bool|Param,
+ *                     },
+ *                     mobile?: array{
+ *                         top?: int|Param,
+ *                         right?: int|Param,
+ *                         bottom?: int|Param,
+ *                         left?: int|Param,
+ *                         linked?: bool|Param,
+ *                     },
+ *                 },
+ *                 gap?: array{
+ *                     desktop?: int|Param,
+ *                     tablet?: int|Param,
+ *                     mobile?: int|Param,
+ *                 },
+ *                 backgroundColor?: scalar|Param|null,
+ *                 minHeight?: array{
+ *                     value?: int|Param,
+ *                     unit?: "px"|"vh"|Param,
+ *                 },
+ *                 verticalAlign?: "start"|"center"|"end"|Param,
+ *             },
+ *         },
  *     },
  *     palette?: list<array{ // Default: []
  *         label?: scalar|Param|null,

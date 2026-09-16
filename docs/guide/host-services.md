@@ -275,6 +275,43 @@ parameters:
 
 Like `maxWidth`, this drives the form radio pre-selection (`SectionSettingsType`), the defaults provider (`CoreSectionDefaults`), and the render fallback (`BuiltInSectionDecorator`) in lock-step.
 
+### Initial settings of a new section
+
+A default only reaches what the render falls back on — width mode and max width
+above. Padding, margin, background or the **Customize styling** switch have no
+render fallback, so a default for them only pre-fills the sidebar. To have every
+section **added from the builder** start with real values, declare them:
+
+```yaml
+# config/packages/content_blocks.yaml
+content_blocks:
+    section:
+        initial_settings:
+            widthMode: centered
+            stylingCustom: true
+            styling:
+                padding:
+                    desktop: { top: 12, right: 12, bottom: 12, left: 12, linked: true }
+```
+
+They are written as the new section's own draft settings, exactly as if the
+editor had saved them — so they render immediately, show in the sidebar, and
+follow Publish / Discard. The tree is the same typed one as a style preset's
+`settings`, so a misspelt key or an invalid value fails at `cache:clear`.
+`styleName` is accepted too, which is how to give new sections a default preset.
+
+Three things to know:
+
+- **Only new, empty sections** get them. A pasted, duplicated, imported or
+  template-built section keeps the settings it came with, and existing sections
+  are untouched.
+- **Don't declare the same value as a default too.** The render strips values
+  equal to a `SectionSettingsDefaultsProviderInterface` default before the
+  styling runs, and styling has no fallback — so 12 declared in both places
+  renders no padding at all.
+- Values equal to `default_width_mode` / `default_max_width` are harmless: those
+  two do fall back at render.
+
 ### Adding (or overriding) defaults via a provider
 
 For multi-key defaults, nested values, or anything computed at runtime, register a `SectionSettingsDefaultsProviderInterface`:
@@ -319,24 +356,29 @@ guarantee, and a complete migration.
 ContentBlocks\Versioning\ContentVersionUpgraderInterface: '@App\ContentBlocks\MyUpgrader'
 ```
 
-## Toggling topbar features (Insert content, Import / Export)
+## Toggling topbar features (Insert content, Import / Export, View page)
 
 Everything that acts on the area as a whole lives behind the topbar's single **Actions** menu. It ships two entries:
 
 - **Insert content** (`⇆`) — overwrite the area's content with a clone of another area's content (the replace-content flow).
 - **Import / Export** (`⇅`) — export a `ContentArea` to a self-contained JSON file (sections + blocks + base64-encoded assets) and re-import it elsewhere.
 
-Both are **on by default** and are toggled **per field**, via `ContentAreaType` options — so the host picks its own strategy per form (an admin form can keep them, a lighter editor can drop them):
+Outside the menu, on the right of the topbar, **View page** (`↗`) opens the published page in a new tab — the URL your `ContentAreaUrlResolverInterface` returns, without the preview flag, so it shows what visitors see rather than the draft.
+
+All three are **on by default** and are toggled **per field**, via `ContentAreaType` options — so the host picks its own strategy per form (an admin form can keep them, a lighter editor can drop them):
 
 ```php
 $builder->add('contentArea', ContentAreaType::class, [
     'enable_replace' => false,        // hide the "Insert content" button + picker
     'enable_import_export' => false,  // hide the Import / Export button + overlay
+    'enable_public_link' => false,    // hide the "View page" link
 ]);
 ```
 
+A host that includes `launcher.html.twig` directly passes the same flags as `enableReplace`, `enableImportExport` and `enablePublicLink`. The link's URL is also available to your own templates as `cb_public_url(area)`.
+
 ::: warning UI-only toggles
-Both options are **UI-only**: they hide the menu entry and its overlay. The underlying endpoints (`…/replace-with`, `…/export`, `…/import`) stay reachable and remain protected by your `AccessCheckerInterface` (and CSRF for writes). If you need to close the endpoints server-side too, gate them with your firewall or `AccessChecker` — the form option does not, by design, since the route has no per-form context.
+The first two options are **UI-only**: they hide the menu entry and its overlay. The underlying endpoints (`…/replace-with`, `…/export`, `…/import`) stay reachable and remain protected by your `AccessCheckerInterface` (and CSRF for writes). If you need to close the endpoints server-side too, gate them with your firewall or `AccessChecker` — the form option does not, by design, since the route has no per-form context.
 :::
 
 Turn both off and register no action of your own, and the Actions button is not rendered at all.
@@ -465,3 +507,32 @@ document.addEventListener('cb:builder:action', async (event) => {
 ::: tip Where fragments show up
 The shell asks for its fragments itself (the `cb_shell_fragments(area)` Twig function), so a fragment renders whether the builder came from `ContentAreaType` or from a direct `{% include '@ContentBlocks/builder/launcher.html.twig' %}`. That differs from `BuilderActionProviderInterface`, whose actions are gathered by `ContentAreaType` and, on a direct include, have to be passed as `topbarActions` by the host.
 :::
+
+
+### From your own templates: the shell's empty blocks
+
+A fragment is the way in for a **bundle**. A **host** that only wants a button or
+a badge in the topbar can do it without a service: the shell carries empty Twig
+blocks, and overriding the template to fill one copies nothing else.
+
+```twig
+{# templates/bundles/ContentBlocksBundle/builder/shell.html.twig #}
+{% extends '@!ContentBlocks/builder/shell.html.twig' %}
+
+{% block cb_shell_topbar_right_start %}
+    <a class="cb-shell__public-link" href="{{ path('admin_page_list') }}">All pages</a>
+{% endblock %}
+```
+
+| Block | Where |
+|---|---|
+| `cb_shell_topbar_left_end` | Left cluster, after undo / redo |
+| `cb_shell_topbar_right_start` | Right cluster, first — before *View page* |
+| `cb_shell_topbar_right_end` | Right cluster, last — after *Publish* |
+| `cb_shell_end` | Last thing inside `.cb-shell`, after the fragments |
+
+A block sees the shell's own variables — `area` always. Reusing the shell's
+classes (`cb-shell__public-link` above) makes an addition look native. The block
+**names** are covered by the [backward-compatibility promise](./backward-compatibility.md#twig);
+what surrounds them is not. The translation workbench carries the same kind of
+blocks, see [Translation](./translation.md#adding-to-the-workbench).
