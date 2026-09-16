@@ -279,6 +279,25 @@ final class BlockRendererTest extends TestCase
     }
 
     /**
+     * A deleted section is still in the preview DOM, hidden. It must not keep
+     * the area out of its empty state, or the overlay and a reload disagree.
+     */
+    public function testAreaWithOnlyDeletedSectionsRendersTheEmptyState(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $renderer = $this->makeRenderer(mode: RenderMode::PREVIEW);
+
+        $live = $renderer->render($area, new RenderContext(RenderMode::PREVIEW));
+        $this->assertStringNotContainsString('cb-content-area--empty', $live);
+
+        $section->setDeleted(true);
+        $html = $renderer->render($area, new RenderContext(RenderMode::PREVIEW));
+        $this->assertStringContainsString('cb-content-area--empty', $html);
+        $this->assertStringContainsString('data-cb-deleted="1"', $html);
+    }
+
+    /**
      * resolveMode ignores the query param if the user is not allowed to edit.
      */
     public function testResolveModeFallsBackToPublicWhenAccessDenied(): void

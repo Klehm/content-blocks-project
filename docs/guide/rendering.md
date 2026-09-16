@@ -166,7 +166,7 @@ Requires `klehm/content-blocks >= 0.1.0-alpha.4` for overrides to take priority.
 Sub-templates are included with `with_context = false` — the listed variables are the contract; anything else from the parent scope is not available.
 
 ::: warning Keep the hooks intact
-If you override `section`/`column`/`block`, keep the existing `cb-*` classes and `data-cb-*` attributes intact. The builder's Stimulus controllers and the preview-overlay script attach to those selectors; renaming them breaks the in-context editing UI.
+If you override `section`/`column`/`block`, keep the existing `cb-*` classes and `data-cb-*` attributes intact. The builder's Stimulus controllers and the preview-overlay script attach to those selectors; renaming them breaks the in-context editing UI. The same goes for `content_area`: the overlay inserts a new section right before the single `.cb-add-section-tray`, and toggles `cb-content-area--empty` on its `.cb-content-area` parent.
 :::
 
 ## Preview hot reload
@@ -181,6 +181,8 @@ public function supportsPreviewHotReload(): bool
 ```
 
 The builder then swaps just that block's markup in place (no flash, no re-running the host page's scripts) by fetching `GET /_content-blocks/block/{id}/render`. The server has the final say: an unknown type or one that returns `false` answers `{ "hotReload": false }` and the builder falls back to a full reload.
+
+Your opt-in only matters where a block's markup is (re)rendered: editing it, adding it, duplicating it or a section that contains it. Structural changes that render no block never reload the preview, whatever your blocks declare — moving a block or a section, deleting a block or a section, and adding a section (it starts empty). Undoing an action (snackbar or `Ctrl-Z`) still reloads.
 
 This is about the rendered **view**, not the edit form — the kit's `image` and `rich_text` blocks opt in even though their *forms* use JavaScript (upload widget, TinyMCE), because that JS lives in the sidebar, never in the preview.
 

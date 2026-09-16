@@ -745,7 +745,7 @@ npm test
 
 | Config | Fixture | Couvre |
 |---|---|---|
-| `playwright.config.js` | `content-blocks-sandbox` — Symfony 7/8, AssetMapper | le **comportement** du builder (143 specs) |
+| `playwright.config.js` | `content-blocks-sandbox` — Symfony 7/8, AssetMapper | le **comportement** du builder (151 specs) |
 | `playwright.encore.config.js` | `content-blocks-encore-sandbox` — Symfony 6.4, ORM 2, Webpack Encore | le **chemin d'installation** sous un bundler qu'on ne développe pas au quotidien, + l'éditeur rich-text bundlé par l'hôte (7 specs) |
 
 La suite Encore reste volontairement petite : tout ce qui passerait à l'identique sous les deux bundlers appartient à la suite principale. Elle existe parce qu'un bug de boot (le prepend `asset_mapper` inconditionnel) a pu vivre longtemps sans qu'aucun test ne le voie — la sandbox met `symfony/asset-mapper` dans son `conflict` Composer pour que la jambe ne puisse jamais redériver vers le chemin déjà couvert.

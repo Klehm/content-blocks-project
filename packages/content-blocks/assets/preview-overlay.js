@@ -538,6 +538,75 @@
     }
 
     /**
+     * Appends a new, empty section ahead of the add-section tray. Two trays
+     * mean two editable areas, and no way to tell which one grew.
+     */
+    function insertSection(sectionId, html) {
+        const trays = document.querySelectorAll('.cb-add-section-tray');
+        const tray = trays.length === 1 ? trays[0] : null;
+        const area = tray && tray.closest('.cb-content-area');
+        if (!area) {
+            postToParent('cb:reorder:desync');
+            return;
+        }
+        const tpl = document.createElement('template');
+        tpl.innerHTML = html.trim();
+        const newEl = tpl.content.firstElementChild;
+        if (!newEl || newEl.getAttribute('data-cb-section-id') !== String(sectionId)) {
+            postToParent('cb:reorder:desync');
+            return;
+        }
+
+        tray.before(newEl);
+        syncEmptyState(area);
+        focusElement(newEl, 'section');
+        newEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    /**
+     * Flags a section deleted, down to its blocks: the markup a reload
+     * renders, which Discard and the undo snackbar both rely on.
+     */
+    function removeSection(sectionId) {
+        const el = document.querySelector(`[data-cb-section-id="${sectionId}"]`);
+        if (!el) return;
+        if (hoveredEl && el.contains(hoveredEl)) { hoveredEl = null; hoveredKind = null; }
+        if (focusedEl && el.contains(focusedEl)) {
+            focusedEl.classList.remove('cb-overlay-outline');
+            focusedEl = null;
+            focusedKind = null;
+            toolbar.classList.remove('is-visible');
+        }
+        el.classList.remove('cb-overlay-outline');
+
+        const marks = [[el, 'cb-section--deleted']];
+        el.querySelectorAll('[data-cb-column-id]').forEach((c) => marks.push([c, 'cb-col--deleted']));
+        el.querySelectorAll('[data-cb-block-id]').forEach((b) => marks.push([b, 'cb-block--deleted']));
+        for (const [node, cls] of marks) {
+            node.classList.add(cls);
+            node.setAttribute('data-cb-deleted', '1');
+        }
+
+        const area = el.closest('.cb-content-area');
+        if (area) syncEmptyState(area);
+    }
+
+    /** The empty-state class and tray label, as content_area.html.twig. */
+    function syncEmptyState(area) {
+        const empty = !area.querySelector(
+            ':scope > [data-cb-section-id]:not([data-cb-deleted="1"])',
+        );
+        area.classList.toggle('cb-content-area--empty', empty);
+
+        const tray = area.querySelector(':scope > .cb-add-section-tray');
+        const labelEl = tray && tray.querySelector('.cb-add-section-tray__label');
+        if (!labelEl) return;
+        const label = t(empty ? 'empty_cta' : 'add_section', labelEl.textContent);
+        labelEl.textContent = label;
+        tray.setAttribute('aria-label', label);
+    }
+
+    /**
      * Moves the **live** node, so a rich-text editor mid-edit survives.
      * `position` indexes visible blocks only.
      *
@@ -965,6 +1034,20 @@
             return;
         }
 
+        // Hot add: a new, empty section lands at the end of the area.
+        if (data.type === 'cb:section:insert'
+            && Number.isFinite(data.sectionId)
+            && typeof data.html === 'string') {
+            insertSection(data.sectionId, data.html);
+            return;
+        }
+
+        // Hot delete: flag a section deleted in place.
+        if (data.type === 'cb:section:remove' && Number.isFinite(data.sectionId)) {
+            removeSection(data.sectionId);
+            return;
+        }
+
         // Hot duplicate: drop a section copy right after its source.
         if (data.type === 'cb:section:duplicate:apply'
             && Number.isFinite(data.sourceId)
@@ -1028,15 +1111,17 @@
 
         if (!data.type.startsWith('cb:focus:')) return;
 
+        // A flagged node is hidden, so it counts as gone: that is how a block
+        // open inside a just-deleted section gets its sidebar cleared.
         if (data.type === 'cb:focus:block' && Number.isFinite(data.blockId)) {
-            const el = document.querySelector(`[data-cb-block-id="${data.blockId}"]`);
+            const el = document.querySelector(`[data-cb-block-id="${data.blockId}"]:not([data-cb-deleted="1"])`);
             if (el) {
                 focusElement(el, 'block');
             } else {
                 postToParent('cb:focus:not-found');
             }
         } else if (data.type === 'cb:focus:section' && Number.isFinite(data.sectionId)) {
-            const el = document.querySelector(`[data-cb-section-id="${data.sectionId}"]`);
+            const el = document.querySelector(`[data-cb-section-id="${data.sectionId}"]:not([data-cb-deleted="1"])`);
             if (el) {
                 focusElement(el, 'section');
             } else {

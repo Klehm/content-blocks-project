@@ -646,14 +646,43 @@ export default class extends Controller {
         const allowed = ['full', 'two_cols', 'three_cols'];
         const finalLayout = allowed.includes(layout) ? layout : 'full';
         const result = await this._jsonRequest('POST', `/_content-blocks/area/${this.areaIdValue}/sections`, { layout: finalLayout });
-        // It lands at the end of the area, off screen on any long page —
-        // without this the editor gets no feedback at all.
-        this._scrollPreviewTo(result?.id);
-        this._afterStructuralOp();
-        // Configure it immediately. The reload above runs in parallel; the
+        // Create failed (CSRF/access/network) — leave the preview untouched.
+        if (result === null) return;
+        if (result.hotReload && result.id && typeof result.html === 'string') {
+            this._applyDraftState(true);
+            this._insertSectionInPreview(result.id, result.html);
+        } else {
+            // It lands at the end of the area, off screen on any long page —
+            // without this the editor gets no feedback at all.
+            this._scrollPreviewTo(result.id);
+            this._afterStructuralOp();
+        }
+        // Configure it immediately. The insert above runs in parallel; the
         // sidebar fetches its HTML separately.
-        if (result?.id) {
+        if (result.id) {
             this._mountSectionSettings(result.id);
+        }
+    }
+
+    /**
+     * Appends a rendered (empty) section, which the overlay then focuses and
+     * scrolls to. Falls back to a reload if the iframe is unreachable.
+     *
+     * @see docs/internals/frontend.md#hot-reload-and-when-it-is-refused
+     */
+    _insertSectionInPreview(sectionId, html) {
+        const id = parseInt(sectionId, 10);
+        try {
+            if (!this.hasIframeTarget || !this.iframeTarget.contentWindow) {
+                throw new Error('preview unreachable');
+            }
+            this.iframeTarget.contentWindow.postMessage(
+                { type: 'cb:section:insert', sectionId: id, html },
+                window.location.origin,
+            );
+        } catch (_) {
+            this._scrollPreviewTo(id);
+            this.reload();
         }
     }
 
@@ -835,13 +864,34 @@ export default class extends Controller {
         const result = await this._jsonRequest('DELETE', `/_content-blocks/section/${sectionId}`);
         // Delete failed (CSRF/access/network) — leave the preview untouched.
         if (result === null) return;
-        // The direct case. A focused block *inside* this section is caught
-        // after reload, by the overlay's `cb:focus:not-found` reply.
+        // The direct case. A focused block *inside* this section is caught by
+        // the overlay's `cb:focus:not-found` reply to the re-pin below.
         if (this._isSidebarFocusedOnSection(sectionId)) {
             this._resetSidebarToEmptyState();
         }
-        this._afterStructuralOp();
+        this._applyDraftState(true);
+        this._removeSectionFromPreview(sectionId);
         this._offerUndo('section', sectionId);
+    }
+
+    /**
+     * Flags the section deleted in place — the markup a reload would produce —
+     * then re-pins focus so a block open inside it clears the sidebar.
+     */
+    _removeSectionFromPreview(sectionId) {
+        try {
+            if (!this.hasIframeTarget || !this.iframeTarget.contentWindow) {
+                throw new Error('preview unreachable');
+            }
+            this.iframeTarget.contentWindow.postMessage(
+                { type: 'cb:section:remove', sectionId: parseInt(sectionId, 10) },
+                window.location.origin,
+            );
+        } catch (_) {
+            this.reload();
+            return;
+        }
+        this._restorePinnedFocus();
     }
 
     _isSidebarFocusedOnBlock(blockId) {

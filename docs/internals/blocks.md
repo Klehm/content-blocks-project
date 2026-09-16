@@ -48,9 +48,9 @@ A block that ships a little view JS *and* wants hot reload can return true and
 re-initialise idempotently from the `cb:block:rendered` DOM event the overlay
 dispatches on the freshly-swapped element.
 
-A **section** is hot-insertable only when every one of its non-deleted blocks
-opts in — one JS-dependent block forces the full reload. An empty section
-trivially qualifies.
+A **duplicated section** is hot-insertable only when every one of its non-deleted
+blocks opts in — one JS-dependent block forces the full reload. An empty section
+trivially qualifies, which is why adding a section never asks.
 
 ## Preview hints, and why they stay tiny
 

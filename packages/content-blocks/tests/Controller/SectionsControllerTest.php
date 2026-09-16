@@ -6,6 +6,9 @@ namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Controller\SectionsController;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Rendering\BlockRendererInterface;
+use ContentBlocks\Rendering\RenderContext;
+use ContentBlocks\Rendering\RenderMode;
 use ContentBlocks\Section\SectionCloner;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
@@ -18,13 +21,14 @@ final class SectionsControllerTest extends ControllerTestCase
         EntityManagerInterface $em,
         bool $csrfValid = true,
         ?AccessCheckerInterface $accessChecker = null,
+        ?BlockRendererInterface $renderer = null,
     ): SectionsController {
         return new SectionsController(
             $em,
             $accessChecker ?? $this->makeAccessChecker(),
             $this->makeCsrfManager($csrfValid),
             new SectionCloner(),
-            $this->makeUnusedRenderer(),
+            $renderer ?? $this->makeUnusedRenderer(),
             $this->makeRegistry(),
             $this->makeJournal($em),
         );
@@ -47,6 +51,27 @@ final class SectionsControllerTest extends ControllerTestCase
         $this->assertCount(2, $section->getColumns());
         $this->assertSame('col-6', $section->getColumns()[0]->getPreset());
         $this->assertSame(1, $this->flushCount);
+    }
+
+    public function testCreateShipsThePreviewMarkupForAnInPlaceInsert(): void
+    {
+        $area = $this->makeArea(1);
+        $renderer = $this->createMock(BlockRendererInterface::class);
+        $renderer->expects($this->once())
+            ->method('renderSection')
+            ->with(
+                $this->isInstanceOf(Section::class),
+                $this->callback(fn (RenderContext $c) => $c->mode === RenderMode::PREVIEW),
+            )
+            ->willReturn('<section data-cb-section-id="7"></section>');
+        $controller = $this->makeController($this->makeEm([$area]), renderer: $renderer);
+
+        $response = $controller->create(1, $this->makeJsonRequest(['layout' => Section::LAYOUT_FULL]));
+
+        $payload = json_decode((string) $response->getContent(), true);
+        // A new section has no block, so it always qualifies.
+        $this->assertTrue($payload['hotReload']);
+        $this->assertSame('<section data-cb-section-id="7"></section>', $payload['html']);
     }
 
     public function testCreateAppendsAfterExistingSections(): void

@@ -5,6 +5,27 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Adding or deleting a section no longer reloads the preview.** The new
+  section is inserted in place, pinned and scrolled into view; a deleted one is
+  flagged hidden in place, with the same markup a reload renders. Scroll
+  position and the JS state of every other block survive. The reload remains
+  the fallback when the preview cannot be reached, and for undoing a delete.
+  `POST /_content-blocks/area/{id}/sections` now also returns `hotReload` and
+  `html`.
+
+### Fixed
+
+- **Deleting the last section shows the empty-area call to action again.** A
+  soft-deleted section, still in the preview DOM but hidden, kept the area out
+  of its empty state.
+- **A block open in the sidebar is cleared when its section is deleted.** The
+  focus re-pin matched the hidden block, so the form of a deleted block stayed
+  open.
+
 ## [1.0.0-RC7] - 2026-09-14
 
 ### Fixed

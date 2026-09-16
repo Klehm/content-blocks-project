@@ -12,14 +12,15 @@
 {# Without the chrome there is nothing to explain a struck-through section, so
    what is pending deletion is simply left out — the published shape. #}
 {% set visibleSections = chrome ? sections : sections|filter(s => not s.deleted) %}
+{# Hidden sections do not count: deleting the last one shows the empty state. #}
+{% set isEmpty = sections|filter(s => not s.deleted) is empty %}
 {# The empty-state class is a builder affordance ("nothing here yet, add a
    section"), so it follows the chrome rather than the mode. #}
-<div class="cb-content-area{% if chrome and visibleSections is empty %} cb-content-area--empty{% endif %}"{% if isPreview %} data-cb-preview="1"{% endif %}>
+<div class="cb-content-area{% if chrome and isEmpty %} cb-content-area--empty{% endif %}"{% if isPreview %} data-cb-preview="1"{% endif %}>
 {% for section in visibleSections %}
     {{ include('@ContentBlocks/render/section.html.twig', { section: section, isPreview: isPreview, chrome: chrome }, with_context = false) }}
 {% endfor %}
 {% if chrome %}
-    {% set isEmpty = visibleSections is empty %}
     {% set trayLabel = isEmpty
         ? 'cb.builder.empty_cta'|trans({}, 'content_blocks')
         : 'cb.builder.add_section'|trans({}, 'content_blocks') %}
@@ -71,6 +72,8 @@
        labels are translated here. Anything it hardcodes ships untranslated. #}
     <script>window.__cbOverlayLabels = {{ {
         add_block: 'cb.block.add_title'|trans({}, 'content_blocks'),
+        add_section: 'cb.builder.add_section'|trans({}, 'content_blocks'),
+        empty_cta: 'cb.builder.empty_cta'|trans({}, 'content_blocks'),
         block_drag: 'cb.block.drag'|trans({}, 'content_blocks'),
         block_duplicate: 'cb.block.duplicate'|trans({}, 'content_blocks'),
         block_delete: 'cb.block.remove'|trans({}, 'content_blocks'),
