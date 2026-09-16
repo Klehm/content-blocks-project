@@ -188,6 +188,11 @@
         </section>
 
         <aside class="cb-wb__preview" data-target="previewPane">
+            {# Dragged, or arrow keys once focused; double-click resets. #}
+            <div class="cb-wb__resize" data-target="previewResize"
+                 role="separator" aria-orientation="vertical" tabindex="0"
+                 aria-valuemin="0" aria-valuemax="100"
+                 aria-label="{{ 'cb_i18n.workbench.resize_preview'|trans }}"></div>
             <iframe data-target="preview" src="{{ previewUrl }}" title="{{ 'cb_i18n.workbench.preview'|trans }}"></iframe>
         </aside>
     </main>

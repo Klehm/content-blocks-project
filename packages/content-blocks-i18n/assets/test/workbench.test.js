@@ -83,7 +83,12 @@ function mount({ rows = [row()], providers = true } = {}) {
                     `<article data-cb-block="${id}" ${blockUrls(id)}>${inner}</article>`).join('')}
             </section>
 
-            <aside data-target="previewPane"><iframe data-target="preview"></iframe></aside>
+            <main data-target="main">
+                <aside data-target="previewPane">
+                    <div data-target="previewResize" role="separator"></div>
+                    <iframe data-target="preview"></iframe>
+                </aside>
+            </main>
             <div data-target="toast" hidden></div>
         </div>`;
 
@@ -440,6 +445,91 @@ describe('the list', () => {
  * reloads. jsdom marks `location.reload` unforgeable, so it can be neither
  * performed nor spied on — the branch is exercised by the e2e suite instead.
  */
+describe('resizing the preview', () => {
+    /** jsdom lays nothing out: give the main area a 2000px box at x=0. */
+    function sized(root) {
+        root.querySelector('[data-target="main"]').getBoundingClientRect = () => ({ left: 0, right: 2000, width: 2000 });
+
+        return root;
+    }
+
+    function pointer(type, clientX) {
+        const event = new MouseEvent(type, { bubbles: true, clientX });
+        Object.defineProperty(event, 'pointerId', { value: 1 });
+
+        return event;
+    }
+
+    it('starts as an even split', () => {
+        stubFetch();
+        const root = sized(mount());
+        new Workbench(root);
+
+        expect(root.querySelector('[data-target="previewPane"]').style.flexBasis).toBe('50%');
+    });
+
+    it('follows the pointer and keeps the width for the next visit', () => {
+        stubFetch();
+        const root = sized(mount());
+        new Workbench(root);
+        const handle = root.querySelector('[data-target="previewResize"]');
+
+        handle.dispatchEvent(pointer('pointerdown', 1000));
+        expect(root.classList.contains('cb-wb--resizing')).toBe(true);
+        handle.dispatchEvent(pointer('pointermove', 600));
+        handle.dispatchEvent(pointer('pointerup', 600));
+
+        const pane = root.querySelector('[data-target="previewPane"]');
+        expect(pane.style.flexBasis).toBe('70%');
+        expect(handle.getAttribute('aria-valuenow')).toBe('70');
+        expect(root.classList.contains('cb-wb--resizing')).toBe(false);
+
+        const again = sized(mount());
+        new Workbench(again);
+        expect(again.querySelector('[data-target="previewPane"]').style.flexBasis).toBe('70%');
+    });
+
+    it('a pointer move without a press does nothing', () => {
+        stubFetch();
+        const root = sized(mount());
+        new Workbench(root);
+
+        root.querySelector('[data-target="previewResize"]').dispatchEvent(pointer('pointermove', 100));
+
+        expect(root.querySelector('[data-target="previewPane"]').style.flexBasis).toBe('50%');
+    });
+
+    it('never squeezes either pane below its minimum width', () => {
+        stubFetch();
+        const root = sized(mount());
+        const workbench = new Workbench(root);
+        const pane = root.querySelector('[data-target="previewPane"]');
+
+        workbench.setPreviewRatio(0.95);
+        expect(pane.style.flexBasis).toBe('84%');
+        workbench.setPreviewRatio(0.01);
+        expect(pane.style.flexBasis).toBe('16%');
+    });
+
+    it('arrow keys step it, left growing the preview; double-click resets', () => {
+        stubFetch();
+        const root = sized(mount());
+        new Workbench(root);
+        const handle = root.querySelector('[data-target="previewResize"]');
+        const pane = root.querySelector('[data-target="previewPane"]');
+
+        handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+        expect(pane.style.flexBasis).toBe('52%');
+        handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+        handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+        expect(pane.style.flexBasis).toBe('48%');
+
+        handle.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+        expect(pane.style.flexBasis).toBe('50%');
+        expect(window.localStorage.getItem('cb-i18n.preview-ratio')).toBe('0.5');
+    });
+});
+
 describe('the preview pane', () => {
     it('re-renders exactly one block, in the locale being translated', async () => {
         const root = mount();

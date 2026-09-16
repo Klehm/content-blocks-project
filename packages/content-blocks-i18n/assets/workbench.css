@@ -126,14 +126,30 @@ body {
 
 /* ---- layout ---------------------------------------------------------- */
 
-.cb-wb__main { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
-.cb-wb--no-preview .cb-wb__main { grid-template-columns: 1fr; }
+/* Flex, not grid: the preview's share is an inline flex-basis set by the
+   resize handle, and both panes keep a usable minimum width. */
+.cb-wb__main { flex: 1 1 auto; display: flex; min-height: 0; }
 .cb-wb--no-preview .cb-wb__preview { display: none; }
 
-.cb-wb__list { overflow-y: auto; padding: 16px; }
+.cb-wb__list { flex: 1 1 0; min-width: 320px; overflow-y: auto; padding: 16px; }
 .cb-wb__empty { color: var(--cb-wb-muted); text-align: center; padding: 48px 0; }
 
-.cb-wb__preview { border-left: 1px solid var(--cb-wb-border); background: var(--cb-wb-surface); }
+.cb-wb__preview {
+    position: relative; flex: 0 1 50%; min-width: 320px;
+    border-left: 1px solid var(--cb-wb-border); background: var(--cb-wb-surface);
+}
+
+/* Straddles the border, wider than it looks so it is easy to grab. */
+.cb-wb__resize {
+    position: absolute; top: 0; bottom: 0; left: -4px; width: 8px; z-index: 2;
+    cursor: col-resize; touch-action: none;
+}
+.cb-wb__resize:hover, .cb-wb__resize:focus-visible, .cb-wb--resizing .cb-wb__resize {
+    background: var(--cb-wb-accent-soft); outline: none;
+}
+/* The frame would swallow the pointer mid-drag and end it early. */
+.cb-wb--resizing { cursor: col-resize; user-select: none; }
+.cb-wb--resizing iframe { pointer-events: none; }
 .cb-wb__preview iframe { width: 100%; height: 100%; border: 0; display: block; }
 
 /* ---- rows ------------------------------------------------------------ */
@@ -217,7 +233,6 @@ body {
 @media (max-width: 1024px) {
     /* Below this the two panes stop being side by side in any useful sense;
        the list wins, since it is where the work happens. */
-    .cb-wb__main { grid-template-columns: 1fr; }
     .cb-wb__preview { display: none; }
     .cb-wb__row { grid-template-columns: 1fr; }
 }

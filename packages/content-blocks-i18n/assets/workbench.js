@@ -6,6 +6,11 @@
  */
 
 const SAVE_DEBOUNCE_MS = 600;
+const PREVIEW_RATIO_KEY = 'cb-i18n.preview-ratio';
+const PREVIEW_RATIO_DEFAULT = 0.5;
+const PREVIEW_RATIO_STEP = 0.02;
+/** Mirrors the panes' CSS `min-width`. */
+const PANE_MIN_WIDTH = 320;
 
 class Workbench {
     constructor(root) {
@@ -16,6 +21,8 @@ class Workbench {
 
         this.list = root.querySelector('[data-target="list"]');
         this.previewPane = root.querySelector('[data-target="previewPane"]');
+        this.previewResize = root.querySelector('[data-target="previewResize"]');
+        this.main = this.previewPane?.parentElement ?? null;
         this.preview = root.querySelector('[data-target="preview"]');
         this.toast = root.querySelector('[data-target="toast"]');
         this.providerInput = root.querySelector('[data-target="provider"]');
@@ -71,6 +78,69 @@ class Workbench {
         window.addEventListener('beforeunload', () => this._flushAll(true));
 
         this.preview?.addEventListener('load', () => this._dressPreview());
+
+        this._bindPreviewResize();
+    }
+
+    // ---- preview width ----------------------------------------------------
+
+    _bindPreviewResize() {
+        const handle = this.previewResize;
+        if (!handle || !this.main) return;
+
+        handle.addEventListener('pointerdown', (event) => {
+            event.preventDefault();
+            handle.setPointerCapture?.(event.pointerId);
+            this.root.classList.add('cb-wb--resizing');
+        });
+
+        handle.addEventListener('pointermove', (event) => {
+            if (!this.root.classList.contains('cb-wb--resizing')) return;
+            const rect = this.main.getBoundingClientRect();
+            if (rect.width > 0) this.setPreviewRatio((rect.right - event.clientX) / rect.width);
+        });
+
+        const end = (event) => {
+            if (!this.root.classList.contains('cb-wb--resizing')) return;
+            this.root.classList.remove('cb-wb--resizing');
+            handle.releasePointerCapture?.(event.pointerId);
+            this._storePreviewRatio();
+        };
+        handle.addEventListener('pointerup', end);
+        handle.addEventListener('pointercancel', end);
+
+        // The handle sits on the preview's left edge: left grows the preview.
+        handle.addEventListener('keydown', (event) => {
+            const step = { ArrowLeft: PREVIEW_RATIO_STEP, ArrowRight: -PREVIEW_RATIO_STEP }[event.key];
+            if (step === undefined) return;
+            event.preventDefault();
+            this.setPreviewRatio(this.previewRatio + step);
+            this._storePreviewRatio();
+        });
+
+        handle.addEventListener('dblclick', () => {
+            this.setPreviewRatio(PREVIEW_RATIO_DEFAULT);
+            this._storePreviewRatio();
+        });
+    }
+
+    /** Share of the main area given to the preview, clamped to both minimums. */
+    setPreviewRatio(ratio) {
+        const width = this.main?.getBoundingClientRect().width ?? 0;
+        const floor = width > 0 ? Math.min(PANE_MIN_WIDTH / width, 0.5) : 0;
+        const next = Math.min(1 - floor, Math.max(floor, Number(ratio) || PREVIEW_RATIO_DEFAULT));
+
+        this.previewRatio = next;
+        if (this.previewPane) this.previewPane.style.flexBasis = `${(next * 100).toFixed(2)}%`;
+        this.previewResize?.setAttribute('aria-valuenow', String(Math.round(next * 100)));
+    }
+
+    _storePreviewRatio() {
+        try {
+            window.localStorage.setItem(PREVIEW_RATIO_KEY, String(this.previewRatio));
+        } catch {
+            // Private browsing: the width simply does not persist.
+        }
     }
 
     _rowOf(element) {
@@ -475,6 +545,14 @@ class Workbench {
     }
 
     _restorePreferences() {
+        let ratio = PREVIEW_RATIO_DEFAULT;
+        try {
+            ratio = Number.parseFloat(window.localStorage.getItem(PREVIEW_RATIO_KEY) ?? '') || ratio;
+        } catch {
+            // Unreadable storage: keep the even split.
+        }
+        this.setPreviewRatio(ratio);
+
         let hidden = false;
         try {
             hidden = window.localStorage.getItem('cb-i18n.preview-hidden') === '1';
