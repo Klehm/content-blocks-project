@@ -501,6 +501,8 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
 - **Two i18n seams** — `WorkbenchBackUrlResolverInterface` (where the
   workbench's back arrow leads) and `LocalizedPageUrlResolverInterface` (links
   to the published page in each language). Both default to today's behaviour.
+- **The translation workbench's preview is resizable** — drag its left edge or
+  use the arrow keys; nothing to wire.
 
 - **`BlockDataResolverInterface`** — an autoconfigured pipeline for changing what
   a block renders (translation, token expansion, computed values) without
