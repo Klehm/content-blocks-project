@@ -1,0 +1,55 @@
+{
+    "manifests": {
+        "klehm/content-blocks-kit": {
+            "manifest": {
+                "bundles": {
+                    "ContentBlocks\\Kit\\ContentBlocksKitBundle": [
+                        "all"
+                    ]
+                },
+                "copy-from-recipe": {
+                    "config/": "%CONFIG_DIR%/"
+                },
+                "post-install-output": [
+                    "  <bg=blue;fg=white>                                          </>",
+                    "  <bg=blue;fg=white> ContentBlocks Kit: blocks ready to use!  </>",
+                    "  <bg=blue;fg=white>                                          </>",
+                    "",
+                    "  * Title, Text, RichText, Image and Tabs block types are now registered.",
+                    "",
+                    "  * <fg=blue>For the Image block</>, wire a file storage: uncomment the",
+                    "    <comment>LocalFileStorage</comment> example in <comment>config/packages/content_blocks_kit.yaml</comment>",
+                    "    (or plug your own <comment>FileStorageInterface</comment> implementation)."
+                ]
+            },
+            "files": {
+                "config/packages/content_blocks_kit.yaml": {
+                    "contents": [
+                        "# ContentBlocks Kit \u2014 file storage for the Image block uploads.",
+                        "#",
+                        "# The default storage throws on purpose (NullFileStorage); uncomment to store",
+                        "# uploads on the local filesystem, or plug your own implementation (S3, \u2026):",
+                        "#",
+                        "# services:",
+                        "#     ContentBlocks\\Kit\\Storage\\FileStorageInterface:",
+                        "#         class: ContentBlocks\\Kit\\Storage\\LocalFileStorage",
+                        "#         arguments:",
+                        "#             $uploadDir: '%kernel.project_dir%/public/uploads/content-blocks'",
+                        "#             $publicPrefix: '/uploads/content-blocks'",
+                        ""
+                    ],
+                    "executable": false
+                },
+                "config/routes/content_blocks_kit.yaml": {
+                    "contents": [
+                        "content_blocks_kit:",
+                        "    resource: '@ContentBlocksKitBundle/config/routes.php'",
+                        ""
+                    ],
+                    "executable": false
+                }
+            },
+            "ref": "391414b5333f04360f4641c1a12d5941ec0d1d53"
+        }
+    }
+}
