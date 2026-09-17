@@ -29,7 +29,7 @@ use Symfony\Component\Validator\Validation;
 /**
  * The kit tags the fields an editor would want in another language, so that a
  * satellite translation package finds an annotated field set on day one rather
- * than 17 blocks nobody marked up (see the core's
+ * than 18 blocks nobody marked up (see the core's
  * {@see TranslatableFieldTypeExtension} for the tagging rule).
  *
  * Scope note: only blocks and item types built from stock Symfony form types

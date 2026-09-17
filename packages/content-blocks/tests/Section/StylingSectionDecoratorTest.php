@@ -143,6 +143,20 @@ final class StylingSectionDecoratorTest extends TestCase
         $this->assertArrayNotHasKey('--cb-valign', $decoration->inlineStyles);
     }
 
+    /** The host styles text over the background from these classes. */
+    public function testTheBackgroundToneIsAClass(): void
+    {
+        $deco = new StylingSectionDecorator();
+
+        $dark = $deco->decorate(['styling' => ['backgroundColor' => '#1e293b']], new Section());
+        $light = $deco->decorate(['styling' => ['backgroundColor' => '#f1f5f9']], new Section());
+        $none = $deco->decorate(['styling' => ['backgroundColor' => '']], new Section());
+
+        $this->assertContains('cb-section--bg-dark', $dark->classes);
+        $this->assertContains('cb-section--bg-light', $light->classes);
+        $this->assertSame([], $none->classes);
+    }
+
     public function testFullPayloadProducesStableOutput(): void
     {
         $settings = [
@@ -159,7 +173,7 @@ final class StylingSectionDecoratorTest extends TestCase
         $decoration = (new StylingSectionDecorator())->decorate($settings, new Section());
 
         $this->assertEqualsCanonicalizing(
-            ['cb-section--has-valign', 'cb-section--styled'],
+            ['cb-section--bg-dark', 'cb-section--has-valign', 'cb-section--styled'],
             $decoration->classes,
         );
         $this->assertSame('10px', $decoration->inlineStyles['--cb-s-pad-d-t']);

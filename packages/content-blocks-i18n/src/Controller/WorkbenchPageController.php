@@ -11,6 +11,7 @@ use ContentBlocks\I18n\Machine\NullTranslationProvider;
 use ContentBlocks\I18n\Machine\TranslationProviderRegistry;
 use ContentBlocks\I18n\Preview\PreviewLocaleListener;
 use ContentBlocks\I18n\Progress\BlockTranslationView;
+use ContentBlocks\I18n\Progress\ColumnTranslationView;
 use ContentBlocks\I18n\Progress\TranslationInspector;
 use ContentBlocks\I18n\Progress\TranslationProgress;
 use ContentBlocks\I18n\Workbench\WorkbenchBackUrlResolverInterface;
@@ -86,7 +87,7 @@ final class WorkbenchPageController
             'localeLabel' => $this->locales->getLabel($locale),
             'sourceLabel' => $this->locales->getLabel($this->locales->getSourceLocale()),
             'locales' => $this->locales->toArray(),
-            'blocks' => array_map(static fn (BlockTranslationView $v): array => $v->toArray(), $views),
+            'blocks' => array_map(static fn (BlockTranslationView|ColumnTranslationView $v): array => $v->toArray(), $views),
             'progress' => $progress->toArray(),
             'previewUrl' => $this->previewUrl($area, $locale),
             'backUrl' => $this->backUrlResolver->resolve($area, $locale),

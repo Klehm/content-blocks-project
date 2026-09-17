@@ -13,6 +13,8 @@ use ContentBlocks\History\JournalScope;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Section\SectionClonerInterface;
+use ContentBlocks\Section\SectionDisplay;
+use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -33,12 +35,6 @@ final class SectionsController
 {
     use CsrfProtectedTrait;
 
-    private const LAYOUT_PRESETS = [
-        Section::LAYOUT_FULL => ['col-12'],
-        Section::LAYOUT_TWO_COLS => ['col-6', 'col-6'],
-        Section::LAYOUT_THREE_COLS => ['col-4', 'col-4', 'col-4'],
-    ];
-
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly AccessCheckerInterface $accessChecker,
@@ -49,6 +45,7 @@ final class SectionsController
         private readonly ActionJournal $journal,
         /** @var array<string, mixed> */
         private readonly array $initialSectionSettings = [],
+        private readonly SectionLayoutRegistry $sectionLayouts = new SectionLayoutRegistry(),
     ) {
     }
 
@@ -74,22 +71,27 @@ final class SectionsController
         }
 
         $payload = json_decode($request->getContent(), true) ?? [];
-        $layout = $payload['layout'] ?? Section::LAYOUT_FULL;
+        $name = $payload['layout'] ?? Section::LAYOUT_FULL;
+        $layout = \is_string($name) ? $this->sectionLayouts->creatable($name) : null;
 
-        if (!isset(self::LAYOUT_PRESETS[$layout])) {
+        if ($layout === null) {
             return new JsonResponse(['error' => 'Unknown layout'], Response::HTTP_BAD_REQUEST);
         }
 
         return $this->journal->record($area, 'section.create', JournalScope::structure(), function () use ($area, $layout): JsonResponse {
             $section = new Section();
-            $section->setLayout($layout);
+            $section->setLayout($layout->name);
             $section->setPreviewPosition($this->nextPreviewPosition($area));
-            if ($this->initialSectionSettings !== []) {
-                $section->setDraftSettings($this->initialSectionSettings);
+            $settings = $this->initialSectionSettings;
+            if ($layout->display !== SectionDisplay::GRID) {
+                $settings[SectionDisplay::SETTING] = $layout->display;
+            }
+            if ($settings !== []) {
+                $section->setDraftSettings($settings);
             }
             $area->addSection($section);
 
-            foreach (self::LAYOUT_PRESETS[$layout] as $i => $preset) {
+            foreach ($layout->presets() as $i => $preset) {
                 $column = new Column();
                 $column->setPreset($preset);
                 $column->setPreviewPosition($i);

@@ -150,8 +150,10 @@ export default class extends Controller {
     }
 
     /**
-     * Sorted, so the order cannot shift. `[linked]` toggles are dropped:
-     * cb-spacing-link engages them on connect and would dirty the baseline.
+     * Sorted. `[linked]` and `[_token]` are dropped: cb-spacing-link and the
+     * host's CSRF script rewrite them, which no editor did.
+     *
+     * @see docs/internals/frontend.md#what-autosave-compares
      */
     _serializeForm() {
         const form = this.element.querySelector('form');
@@ -159,7 +161,7 @@ export default class extends Controller {
         try {
             const params = new URLSearchParams(new FormData(form));
             for (const key of [...params.keys()]) {
-                if (key.endsWith('[linked]')) params.delete(key);
+                if (key.endsWith('[linked]') || key.endsWith('[_token]')) params.delete(key);
             }
             params.sort();
             return params.toString();

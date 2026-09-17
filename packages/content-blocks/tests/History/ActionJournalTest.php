@@ -182,6 +182,52 @@ final class ActionJournalTest extends TestCase
         $this->assertSame(['styling' => ['backgroundColor' => '#eb0540']], $section->getDraftSettings());
     }
 
+    public function testUndoingAColumnLabelRestoresThePreviousOne(): void
+    {
+        $column = $this->column(1);
+        $column->setDraftSettings(['label' => 'Before']);
+
+        $this->journal->record(
+            $this->area,
+            'column.settings',
+            JournalScope::columnSettings($column),
+            fn () => $column->setDraftSettings(['label' => 'After']),
+        );
+        $this->journal->undo($this->area);
+
+        $this->assertSame(['label' => 'Before'], $column->getDraftSettings());
+
+        $this->journal->redo($this->area);
+
+        $this->assertSame(['label' => 'After'], $column->getDraftSettings());
+    }
+
+    /** A new column and the re-spanned presets undo as one step. */
+    public function testUndoingAnAddedColumnRestoresThePresetsAndHidesIt(): void
+    {
+        $section = $this->section(1);
+        foreach ($section->getColumns() as $existing) {
+            $existing->setPreset('col-6');
+        }
+
+        $added = null;
+        $this->record('column.create', function () use ($section, &$added): void {
+            $added = new Column();
+            $this->identify($added);
+            $added->setPreviewPosition(2);
+            $section->addColumn($added);
+            $this->managed[] = $added;
+            foreach ($section->getColumns() as $column) {
+                $column->setPreset('col-4');
+            }
+        });
+        $this->journal->undo($this->area);
+
+        $this->assertTrue($added->isDeleted());
+        $this->assertSame('col-6', $this->column(1)->getPreset());
+        $this->assertSame('col-6', $this->column(2)->getPreset());
+    }
+
     // ---------- the stack ----------
 
     public function testUndoWalksBackwardsAndRedoForwards(): void

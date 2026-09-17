@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Storage;
 
 use ContentBlocks\Entity\Block;
+use ContentBlocks\Entity\Column;
+use ContentBlocks\I18n\Entity\ColumnTranslation;
 use ContentBlocks\I18n\Field\FieldPath;
 use ContentBlocks\I18n\Field\SourceDigest;
 use ContentBlocks\I18n\Locale\TranslationLocales;
+use ContentBlocks\Section\ColumnSettings;
 use ContentBlocks\Translation\TranslatableFieldsInterface;
 
 /**
@@ -106,6 +109,82 @@ final class TranslationWriter
             }
 
             $row->setDraftValue($path, $values[$path], SourceDigest::of(FieldPath::read($sourceData, $path)));
+            $written[] = $path;
+        }
+
+        return new TranslationWriteResult($written, rejected: $rejected);
+    }
+
+    /**
+     * A column's tab title. The allow-list is the one path it has, and the
+     * value obeys the same trim and length as the source label.
+     *
+     * @param array<string, string|null> $values path => text, null to clear
+     */
+    public function writeColumn(Column $column, string $locale, array $values): TranslationWriteResult
+    {
+        if (!$this->locales->isTarget($locale)) {
+            return new TranslationWriteResult(rejected: array_fill_keys(array_keys($values), 'unknown_locale'));
+        }
+
+        $source = $this->store->columnSourceLabel($column);
+        $written = [];
+        $cleared = [];
+        $rejected = [];
+        $row = null;
+
+        foreach ($values as $path => $value) {
+            $path = (string) $path;
+
+            if ($path !== ColumnTranslation::LABEL) {
+                $rejected[$path] = 'not_translatable';
+
+                continue;
+            }
+
+            if ($source === null) {
+                $rejected[$path] = 'unknown_path';
+
+                continue;
+            }
+
+            $row ??= $this->store->findOrCreateColumn($column, $locale);
+
+            if ($value === null) {
+                $row->removeDraftValue($path);
+                $cleared[] = $path;
+
+                continue;
+            }
+
+            $row->setDraftValue(
+                $path,
+                trim(mb_substr($value, 0, ColumnSettings::LABEL_MAX_LENGTH)),
+                SourceDigest::of($source),
+            );
+            $written[] = $path;
+        }
+
+        return new TranslationWriteResult($written, $cleared, $rejected);
+    }
+
+    /** @param list<string> $paths */
+    public function markColumnUpToDate(Column $column, string $locale, array $paths): TranslationWriteResult
+    {
+        $row = $this->store->findColumn($column, $locale);
+        $source = $this->store->columnSourceLabel($column);
+        $values = $row?->getEffectiveValues() ?? [];
+        $written = [];
+        $rejected = [];
+
+        foreach ($paths as $path) {
+            if ($row === null || $source === null || $path !== ColumnTranslation::LABEL || !\array_key_exists($path, $values)) {
+                $rejected[$path] = 'no_translation';
+
+                continue;
+            }
+
+            $row->setDraftValue($path, $values[$path], SourceDigest::of($source));
             $written[] = $path;
         }
 

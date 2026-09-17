@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
  * instance answers `buildForm()` and `getDefaultData()` for every block of that
  * type on every page of every request — so a block that memoizes anything about
  * the block it last rendered would, under a worker, hand that to the next
- * visitor. The 17 shipped blocks are stateless, and this test is what keeps the
+ * visitor. The 18 shipped blocks are stateless, and this test is what keeps the
  * eighteenth honest.
  */
 final class CrossRequestStateTest extends TestCase

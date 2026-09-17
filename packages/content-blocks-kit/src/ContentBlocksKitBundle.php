@@ -22,6 +22,7 @@ use ContentBlocks\Kit\Block\TableBlock;
 use ContentBlocks\Kit\Block\TabsBlock;
 use ContentBlocks\Kit\Block\TextBlock;
 use ContentBlocks\Kit\Block\TitleBlock;
+use ContentBlocks\Kit\Block\VideoBlock;
 use ContentBlocks\Kit\DependencyInjection\KitBlockConfigPass;
 use ContentBlocks\Kit\Icon\IconProviderInterface;
 use ContentBlocks\Kit\RichText\RichTextEditorInterface;
@@ -67,6 +68,7 @@ final class ContentBlocksKitBundle extends AbstractBundle
         'accordion' => AccordionBlock::class,
         'table' => TableBlock::class,
         'embed' => EmbedBlock::class,
+        'video' => VideoBlock::class,
         'breadcrumb' => BreadcrumbBlock::class,
         'html_raw' => HtmlRawBlock::class,
         'tabs' => TabsBlock::class,

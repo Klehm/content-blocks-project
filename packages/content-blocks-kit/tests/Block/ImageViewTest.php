@@ -156,6 +156,51 @@ final class ImageViewTest extends TestCase
         $this->assertStringNotContainsString('sizes=', $html);
     }
 
+    public function testFullWidthIsMarkedForTheFillRule(): void
+    {
+        $html = $this->render(['size' => 'full']);
+
+        $this->assertStringContainsString('cb-kit-image--size-full', $html);
+        $this->assertStringNotContainsString(' width="', $html);
+    }
+
+    public function testARatioShapesTheImageAndItsFit(): void
+    {
+        $html = $this->render(['size' => 'full', 'ratio' => '16-9', 'fit' => 'contain']);
+
+        $this->assertStringContainsString('aspect-ratio:16 / 9;object-fit:contain;', $html);
+        $this->assertStringContainsString('cb-kit-image--ratio-16-9', $html);
+    }
+
+    public function testAutoRatioAddsNothing(): void
+    {
+        $html = $this->render(['size' => 'md', 'ratio' => 'auto']);
+
+        $this->assertStringNotContainsString('aspect-ratio', $html);
+        $this->assertStringNotContainsString('--ratio-', $html);
+    }
+
+    /** A fixed custom height already pins the box. */
+    public function testAFixedHeightWinsOverTheRatio(): void
+    {
+        $html = $this->render([
+            'size' => 'custom', 'customWidth' => 600, 'customHeightAuto' => false,
+            'customHeight' => 200, 'ratio' => '1-1',
+        ]);
+
+        $this->assertStringContainsString('height:200px', $html);
+        $this->assertStringNotContainsString('aspect-ratio', $html);
+    }
+
+    /** The value lands in a style attribute: only `W-H` digits pass. */
+    public function testAMalformedRatioIsIgnored(): void
+    {
+        $html = $this->render(['size' => 'full', 'ratio' => '16-9;color:red']);
+
+        $this->assertStringNotContainsString('aspect-ratio', $html);
+        $this->assertStringNotContainsString('color:red', $html);
+    }
+
     private function srcsetOnlyResolver(): ImageUrlResolverInterface
     {
         return new class () implements ImageUrlResolverInterface {

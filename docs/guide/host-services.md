@@ -154,6 +154,11 @@ content_blocks:
         # allowed_mime_types: ['image/jpeg', ...]  # default: common images + PDF
 ```
 
+The default whitelist has no video type. If you use the kit's `video` block
+with uploads, list `video/mp4` and `video/webm` in `allowed_mime_types` (which
+replaces the default list, so repeat the image types) and raise `max_size`.
+Pasting a path to an existing video works without either.
+
 For S3/Flysystem/CDN storage, alias the interface to your own implementation instead:
 
 ```yaml
@@ -168,6 +173,8 @@ use ContentBlocks\Form\Type\ImageUploadType;
 
 $builder->add('src', ImageUploadType::class);
 ```
+
+`VideoUploadType` is the same widget with a `<video>` preview and `accept` set to MP4, WebM and Ogg.
 
 The widget renders a dashed frame around the preview, a **Choose an image** button, a **Remove** button (only once there is a value) and a link toggle that reveals a raw path field.
 
@@ -311,6 +318,96 @@ Three things to know:
   renders no padding at all.
 - Values equal to `default_width_mode` / `default_max_width` are harmless: those
   two do fall back at render.
+
+### Section layouts
+
+The add-section buttons offer three layouts out of the box: `full`, `two_cols`
+and `three_cols`. Add your own, relabel or hide one, in config:
+
+```yaml
+# config/packages/content_blocks.yaml
+content_blocks:
+    section:
+        layouts:
+            four_cols: { label: '4 columns', columns: [3, 3, 3, 3] }
+            sidebar_left: { label: 'Sidebar + content', columns: [4, 8] }
+            two_cols: { label: 'Halves' }   # relabel a built-in
+            three_cols: false               # hide a built-in
+            tabs: { label: 'Tabs', columns: [4, 4, 4], display: tabs }
+```
+
+- **`columns`** is the span of each column on a 12-unit grid, and must add up
+  to 12. A new section gets one column per entry, with the preset `col-N`.
+  `label` is plain text or a translation key in the `content_blocks` domain.
+  Both are required for a new layout. For a built-in, set only what changes.
+- **The name** is stored in `cb_section.layout` and becomes the class
+  `cb-section--<name>`, so it must be lowercase snake_case, 30 characters at
+  most. Every mistake fails at `cache:clear`.
+- **Hiding a layout never breaks content.** Sections are drawn from the presets
+  of their own columns, not from this config, so a section built with a layout
+  you later hide or remove still renders. The server refuses to *create* one,
+  including from a forged request.
+- Buttons follow the declaration order, built-ins first, and their glyph is
+  drawn from `columns`.
+- **`display`** (`grid` by default, `tabs` or `accordion`) is how a new section of this
+  layout starts showing its columns. The editor can switch it at any time in
+  the section sidebar (see below).
+
+The front stylesheet handles every span from `col-1` to `col-12`. On desktop,
+columns share the row in proportion to their spans. At 768px and below, spans
+of 4 or less sit two per row (so four columns become 2 + 2) and uneven wide
+spans (`col-8`) take the whole row. At 540px and below, every column stacks.
+Override `.cb-section--<name> .cb-col` in your own CSS for anything else.
+
+A section with two columns or more also has **Reverse the column order on
+mobile** in its sidebar (`reverseOnMobile` setting, class
+`cb-section--reverse-mobile`). At 540px and below its stacked columns read last
+to first, which keeps the image above the text across alternating rows. It
+applies to the grid display only, and a style preset may set it.
+
+### Columns and tabs
+
+A layout only chooses a section's **starting** columns. The section sidebar has
+a **Columns** group where the editor adds a column, removes one (not the last)
+and names each. The **Display** setting shows the columns side by side or one at
+a time as **tabs**, or as an **accordion** of collapsible panels, and the
+column names become the tab or panel titles. A section holds
+at most 20 columns.
+
+Like everything else in the builder, all of it is draft: the published page
+keeps its columns, spans and names until Publish, and undo walks every step
+back. Adding or removing a column resets the spans to equal.
+
+Tabs need no JavaScript on your pages. They are radios, labels and CSS served
+by the core stylesheet, so they work wherever `cb_render_content_area()`
+does. Three custom properties restyle them, and the classes are yours to
+override:
+
+```css
+.cb-content-area {
+    --cb-tabs-accent: #eb0540;               /* active tab underline */
+    --cb-tabs-line: rgba(0, 0, 0, 0.1);      /* bar under the tabs */
+    --cb-tabs-gap: 1.5rem;                   /* space above the panel */
+}
+.cb-tabs__tab { text-transform: uppercase; }
+```
+
+The accordion works the same way: a checkbox and a header before each column,
+the first panel open, each one opening independently of the others. Its
+custom properties and classes:
+
+```css
+.cb-content-area {
+    --cb-accordion-accent: #eb0540;          /* keyboard focus ring */
+    --cb-accordion-line: rgba(0, 0, 0, 0.1); /* rule under each header */
+    --cb-accordion-gap: 1.5rem;              /* padding around a panel */
+}
+.cb-accordion__header { font-weight: 600; }
+.cb-accordion__header::after { /* the chevron */ }
+```
+
+A style preset may carry `display: tabs` or `display: accordion` in its
+`settings`, like any other section setting.
 
 ### Adding (or overriding) defaults via a provider
 

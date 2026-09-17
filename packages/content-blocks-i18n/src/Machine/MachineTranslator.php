@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Machine;
 
 use ContentBlocks\Entity\Block;
+use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\I18n\Content\AreaWalker;
 use ContentBlocks\I18n\Field\FieldStatus;
 use ContentBlocks\I18n\Field\TranslatableField;
 use ContentBlocks\I18n\Locale\TranslationLocales;
+use ContentBlocks\I18n\Progress\ColumnTranslationView;
 use ContentBlocks\I18n\Progress\TranslationInspector;
 use ContentBlocks\I18n\Storage\TranslationWriter;
+use ContentBlocks\I18n\Storage\TranslationWriteResult;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -49,7 +52,26 @@ final class MachineTranslator
             return new TranslationRunResult($locale, $providerName ?? '');
         }
 
-        return $this->run([$blockId => ['block' => $block, 'fields' => $view->fields]], $locale, $paths, $overwrite, $providerName);
+        return $this->run([$this->blockEntry($block, $view->fields, $locale)], $locale, $paths, $overwrite, $providerName);
+    }
+
+    /**
+     * @param list<string>|null $paths null means every eligible field
+     */
+    public function translateColumn(
+        Column $column,
+        string $locale,
+        ?array $paths = null,
+        bool $overwrite = false,
+        ?string $providerName = null,
+    ): TranslationRunResult {
+        $view = $this->inspector->inspectColumn($column, $locale);
+
+        if ($view === null) {
+            return new TranslationRunResult($locale, $providerName ?? '');
+        }
+
+        return $this->run([$this->columnEntry($column, $view, $locale)], $locale, $paths, $overwrite, $providerName);
     }
 
     public function translateArea(
@@ -59,33 +81,84 @@ final class MachineTranslator
         ?string $providerName = null,
     ): TranslationRunResult {
         $blocks = [];
+        $columns = [];
 
-        foreach (AreaWalker::blocks($area) as $ref) {
-            $blockId = $ref->block->getId();
-            if ($blockId === null) {
-                continue;
+        foreach (AreaWalker::sections($area) as $section) {
+            foreach (AreaWalker::columns($section) as $column) {
+                $columns[$column->getId()] = $column;
+
+                foreach (AreaWalker::columnBlocks($column) as $block) {
+                    $blocks[$block->getId()] = $block;
+                }
             }
-
-            $blocks[$blockId] = ['block' => $ref->block, 'fields' => []];
         }
+
+        $entries = [];
 
         foreach ($this->inspector->inspectArea($area, $locale) as $view) {
-            if (isset($blocks[$view->blockId])) {
-                $blocks[$view->blockId]['fields'] = $view->fields;
+            if ($view instanceof ColumnTranslationView) {
+                if (isset($columns[$view->columnId])) {
+                    $entries[] = $this->columnEntry($columns[$view->columnId], $view, $locale);
+                }
+            } elseif (isset($blocks[$view->blockId])) {
+                $entries[] = $this->blockEntry($blocks[$view->blockId], $view->fields, $locale);
             }
         }
 
-        return $this->run($blocks, $locale, null, $overwrite, $providerName);
+        return $this->run($entries, $locale, null, $overwrite, $providerName);
     }
 
     /**
-     * @param array<int, array{
-     *     block: Block,
+     * @param list<TranslatableField> $fields
+     *
+     * @return array{
+     *     key: string,
+     *     blockType: string|null,
      *     fields: list<TranslatableField>,
-     * }> $blocks
+     *     write: \Closure(array<string, string|null>): TranslationWriteResult,
+     * }
+     */
+    private function blockEntry(Block $block, array $fields, string $locale): array
+    {
+        return [
+            'key' => (string) $block->getId(),
+            'blockType' => $block->getType(),
+            'fields' => $fields,
+            'write' => fn (array $values): TranslationWriteResult => $this->writer->write($block, $locale, $values),
+        ];
+    }
+
+    /**
+     * @return array{
+     *     key: string,
+     *     blockType: string|null,
+     *     fields: list<TranslatableField>,
+     *     write: \Closure(array<string, string|null>): TranslationWriteResult,
+     * }
+     */
+    private function columnEntry(Column $column, ColumnTranslationView $view, string $locale): array
+    {
+        return [
+            'key' => $view->key(),
+            'blockType' => null,
+            'fields' => $view->fields,
+            'write' => fn (array $values): TranslationWriteResult => $this->writer->writeColumn($column, $locale, $values),
+        ];
+    }
+
+    /**
+     * Refs are `key#path`: paths are unique per entry, not per page. A block's
+     * key is its id, so block refs read as they always did.
+     *
+     * @param list<array{
+     *     key: string,
+     *     blockType: string|null,
+     *     fields: list<TranslatableField>,
+     *     write: \Closure(array<string, string|null>): TranslationWriteResult,
+     * }> $entries
      * @param list<string>|null $paths
      */
-    private function run(array $blocks, string $locale, ?array $paths, bool $overwrite, ?string $providerName): TranslationRunResult
+    private function run(array $entries, string $locale, ?array $paths, bool $overwrite, ?string $providerName): TranslationRunResult
     {
         $provider = $providerName === null ? $this->providers->getDefault() : $this->providers->get($providerName);
         $source = $this->locales->getSourceLocale();
@@ -103,7 +176,7 @@ final class MachineTranslator
         $index = [];
         $skipped = 0;
 
-        foreach ($blocks as $blockId => $entry) {
+        foreach ($entries as $position => $entry) {
             foreach ($entry['fields'] as $field) {
                 if ($paths !== null && !\in_array($field->path, $paths, true)) {
                     continue;
@@ -115,17 +188,15 @@ final class MachineTranslator
                     continue;
                 }
 
-                // Paths are unique per block, not per page, so the ref the
-                // provider echoes back has to name the block too.
-                $ref = $blockId . '#' . $field->path;
-                $index[$ref] = ['blockId' => $blockId, 'path' => $field->path];
+                $ref = $entry['key'] . '#' . $field->path;
+                $index[$ref] = ['entry' => $position, 'path' => $field->path];
 
                 $requests[] = new TranslationRequest(
                     path: $ref,
                     text: $field->source,
                     format: $field->widget === 'html' ? TranslationRequest::FORMAT_HTML : TranslationRequest::FORMAT_TEXT,
                     label: $this->labelOf($field),
-                    blockType: $entry['block']->getType(),
+                    blockType: $entry['blockType'],
                 );
             }
         }
@@ -137,9 +208,9 @@ final class MachineTranslator
         $job = new TranslationJob($source, $locale);
         $outcomes = $provider->translate($requests, $job);
 
-        // Grouped per block so each block's fields are written in one call —
-        // the writer creates at most one row per block that way.
-        $byBlock = [];
+        // Grouped per entry so each one's fields are written in one call —
+        // the writer creates at most one row per entry that way.
+        $byEntry = [];
         $failed = [];
 
         foreach ($outcomes as $outcome) {
@@ -159,20 +230,21 @@ final class MachineTranslator
                 continue;
             }
 
-            $byBlock[$target['blockId']][$target['path']] = $outcome->text;
+            $byEntry[$target['entry']][$target['path']] = $outcome->text;
         }
 
         $translated = [];
 
-        foreach ($byBlock as $blockId => $values) {
-            $result = $this->writer->write($blocks[$blockId]['block'], $locale, $values);
+        foreach ($byEntry as $position => $values) {
+            $entry = $entries[$position];
+            $result = ($entry['write'])($values);
 
             foreach ($result->written as $path) {
-                $translated[] = $blockId . '#' . $path;
+                $translated[] = $entry['key'] . '#' . $path;
             }
 
             foreach ($result->rejected as $path => $reason) {
-                $failed[$blockId . '#' . $path] = $reason;
+                $failed[$entry['key'] . '#' . $path] = $reason;
             }
         }
 

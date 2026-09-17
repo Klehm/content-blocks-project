@@ -1,0 +1,28 @@
+{# A native <video>: no player script, and the browser picks the codec. #}
+{% set src = data.src|default('')|trim %}
+{% if src is not empty %}
+    {% set size = data.size|default('full') %}
+    {% set align = cb_kit_token(data.align|default('center'), 'center') %}
+    {% set width = { sm: 400, md: 800, lg: 1200 }[size]|default(null) %}
+    {% set autoplay = (data.autoplay ?? false) == true %}
+    {# Browsers refuse unmuted autoplay, and a video with neither autoplay
+       nor controls could never be started. #}
+    {% set muted = autoplay or (data.muted ?? false) == true %}
+    {% set controls = not autoplay or (data.controls ?? true) == true %}
+    {% set poster = data.poster|default('')|trim %}
+
+    <figure class="cb-kit-video cb-kit-video--{{ align }} cb-kit-video--size-{{ cb_kit_token(size, 'full') }}">
+        <video class="cb-kit-video__player" src="{{ src }}"
+               {%- if poster is not empty %} poster="{{ cb_image(poster, width).src }}"{% endif %}
+               {%- if controls %} controls{% endif %}
+               {%- if autoplay %} autoplay playsinline{% endif %}
+               {%- if muted %} muted{% endif %}
+               {%- if data.loop ?? false %} loop{% endif %}
+               {%- if width %} style="width:{{ width }}px"{% endif %} preload="metadata"></video>
+        {% if data.caption|default('')|trim is not empty %}
+            <figcaption class="cb-kit-video__caption">{{ data.caption }}</figcaption>
+        {% endif %}
+    </figure>
+{% else %}
+    <small class="cb-kit-muted">{{ 'cb_kit.block.video.no_video'|trans({}, 'content_blocks_kit') }}</small>
+{% endif %}

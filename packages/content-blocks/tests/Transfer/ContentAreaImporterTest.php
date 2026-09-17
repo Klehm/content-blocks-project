@@ -125,6 +125,21 @@ final class ContentAreaImporterTest extends TestCase
         $this->assertNull($block->getPublishedData());
     }
 
+    public function testImportSanitizesColumnSettings(): void
+    {
+        $target = new ContentArea();
+        $payload = $this->makePayload([
+            ['layout' => Section::LAYOUT_FULL, 'columns' => [
+                ['preset' => 'col-12', 'settings' => ['label' => 'Specs', 'script' => '<x>'], 'blocks' => []],
+            ]],
+        ]);
+
+        $this->importer()->import($target, $payload);
+
+        $column = $target->getSections()->first()->getColumns()->first();
+        $this->assertSame(['label' => 'Specs'], $column->getDraftSettings());
+    }
+
     public function testImportAssignsDensePreviewPositions(): void
     {
         $target = new ContentArea();
@@ -356,6 +371,8 @@ final class ContentAreaImporterTest extends TestCase
             $column->setPreviewPosition($i);
             $section->addColumn($column);
         }
+        // Column settings travel too, and only where they are set.
+        $section->getColumns()[0]->setDraftSettings(['label' => 'Overview']);
         $block = new \ContentBlocks\Entity\Block();
         $block->setType('text');
         $block->setDraftData(['content' => 'round-trip']);
@@ -373,6 +390,8 @@ final class ContentAreaImporterTest extends TestCase
         $reExported = $exporter->export($target);
 
         $this->assertSame($exported['contentArea'], $reExported['contentArea']);
+        $this->assertSame(['label' => 'Overview'], $exported['contentArea']['sections'][0]['columns'][0]['settings']);
+        $this->assertArrayNotHasKey('settings', $exported['contentArea']['sections'][0]['columns'][1]);
     }
 }
 

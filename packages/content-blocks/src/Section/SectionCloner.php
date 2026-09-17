@@ -18,9 +18,14 @@ final class SectionCloner implements SectionClonerInterface
     /** Optional so building a cloner by hand stays a no-argument call. */
     private readonly BlockCloneObserverCollection $observers;
 
-    public function __construct(?BlockCloneObserverCollection $observers = null)
-    {
+    private readonly ColumnCloneObserverCollection $columnObservers;
+
+    public function __construct(
+        ?BlockCloneObserverCollection $observers = null,
+        ?ColumnCloneObserverCollection $columnObservers = null,
+    ) {
         $this->observers = $observers ?? new BlockCloneObserverCollection([]);
+        $this->columnObservers = $columnObservers ?? new ColumnCloneObserverCollection();
     }
 
     public function cloneSection(Section $source): Section
@@ -41,6 +46,11 @@ final class SectionCloner implements SectionClonerInterface
             $columnCopy = new Column();
             $columnCopy->setPreset($column->getPreset());
             $columnCopy->setPreviewPosition($column->getPreviewPosition());
+            $columnSettings = $column->getDraftSettings() ?? $column->getPublishedSettings();
+            if ($columnSettings !== null && $columnSettings !== []) {
+                $columnCopy->setDraftSettings($columnSettings);
+            }
+            $this->columnObservers->columnCloned($column, $columnCopy);
 
             foreach ($column->getBlocks() as $block) {
                 if ($block->isDeleted()) {

@@ -20,6 +20,7 @@ use ContentBlocks\Kit\Block\RichTextBlock;
 use ContentBlocks\Kit\Block\TabsBlock;
 use ContentBlocks\Kit\Block\TextBlock;
 use ContentBlocks\Kit\Block\TitleBlock;
+use ContentBlocks\Kit\Block\VideoBlock;
 use ContentBlocks\Kit\ContentBlocksKitBundle;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -88,6 +89,15 @@ final class PreviewHintTest extends TestCase
         ];
         yield 'embed names itself with its title' => [
             new EmbedBlock(), ['title' => 'Trailer'], BlockPreviewHint::KIND_GENERIC, 'Trailer',
+        ];
+        yield 'video shows its poster' => [
+            new VideoBlock(),
+            ['src' => '/v.mp4', 'poster' => '/p.jpg', 'caption' => 'Teaser'],
+            BlockPreviewHint::KIND_IMAGE,
+            'Teaser',
+        ];
+        yield 'video without a poster names itself with its caption' => [
+            new VideoBlock(), ['src' => '/v.mp4', 'poster' => '', 'caption' => 'Teaser'], BlockPreviewHint::KIND_GENERIC, 'Teaser',
         ];
         yield 'card falls back to its first title when it has no cover' => [
             new CardBlock(),
@@ -204,7 +214,7 @@ final class PreviewHintTest extends TestCase
 
         $this->assertSame([
             'accordion', 'alert', 'breadcrumb', 'button', 'card', 'divider', 'embed',
-            'gallery', 'image', 'list', 'rich_text', 'tabs', 'text', 'title',
+            'gallery', 'image', 'list', 'rich_text', 'tabs', 'text', 'title', 'video',
         ], $optedIn, 'icon, table and html_raw deliberately stay generic tiles');
     }
 }

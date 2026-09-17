@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Twig;
 
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Section\SectionLayoutRegistry;
+use ContentBlocks\Twig\SectionLayoutExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -80,6 +82,7 @@ final class BuilderShellBlocksTest extends TestCase
         $env->addExtension(new TranslationExtension(new class () implements TranslatorInterface {
             use TranslatorTrait;
         }));
+        $env->addExtension(new SectionLayoutExtension(new SectionLayoutRegistry()));
         $env->addFunction(new TwigFunction('csrf_token', static fn (): string => 'tok'));
         $env->addFunction(new TwigFunction('cb_api_base', static fn (): string => '/_content-blocks'));
         $env->addFunction(new TwigFunction('cb_shell_fragments', static fn (): array => []));

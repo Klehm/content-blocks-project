@@ -317,11 +317,27 @@ final class SectionTemplateInstantiatorTest extends TestCase
         );
     }
 
+    /** A template or a clipboard entry is untrusted: settings are filtered. */
+    public function testColumnSettingsArriveSanitizedInTheDraft(): void
+    {
+        $payload = $this->payload([
+            ['preset' => 'col-6', 'settings' => ['label' => ' Specs ', 'onclick' => 'x'], 'blocks' => []],
+            ['preset' => 'col-6', 'settings' => 'not-an-array', 'blocks' => []],
+        ]);
+
+        $columns = array_values($this->instantiator()->instantiate($payload)->section->getColumns()->toArray());
+
+        $this->assertSame(['label' => 'Specs'], $columns[0]->getDraftSettings());
+        $this->assertNull($columns[1]->getDraftSettings());
+        $this->assertNull($columns[0]->getPublishedSettings());
+    }
+
     public function testRoundTripsThroughTheSerializer(): void
     {
         $source = new Section();
         $source->setLayout(Section::LAYOUT_FULL);
         $col = (new \ContentBlocks\Entity\Column())->setPreset('col-12')->setPreviewPosition(0);
+        $col->setDraftSettings(['label' => 'Tab']);
         $source->addColumn($col);
         $col->addBlock(
             (new \ContentBlocks\Entity\Block())->setType('text')->setDraftData(['text' => 'hello'])->setPreviewPosition(0),
@@ -335,6 +351,7 @@ final class SectionTemplateInstantiatorTest extends TestCase
             ['text' => 'hello'],
             $result->section->getColumns()->first()->getBlocks()->first()->getDraftData(),
         );
+        $this->assertSame(['label' => 'Tab'], $result->section->getColumns()->first()->getDraftSettings());
         $this->assertFalse($result->hasWarnings());
     }
 }

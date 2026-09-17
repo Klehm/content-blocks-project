@@ -1,0 +1,6 @@
+{# The layout glyph of an add-section button, drawn from its column spans. #}
+<svg viewBox="0 0 32 24" width="32" height="24" aria-hidden="true">
+    {%- for rect in cb_section_layout_rects(layout) %}
+    <rect x="{{ rect.x }}" y="3" width="{{ rect.width }}" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+    {%- endfor %}
+</svg>

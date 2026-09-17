@@ -256,3 +256,124 @@ describe('cb-section-settings-form — submit error feedback', () => {
         expect(events).toEqual(['saved']);
     });
 });
+
+// ---------- Columns: add, remove, label ----------
+
+function setupColumns({ labels = ['', 'Specs'] } = {}) {
+    document.body.innerHTML = `
+        <div data-cb-api-base="/admin/cb" data-cb-csrf-token="tok">
+            <div data-controller="cb-section-settings-form">
+                <section class="cb-columns-editor"
+                         data-i18n-cb-columns-last="Keep one"
+                         data-i18n-cb-columns-too-many="Too many">
+                    ${labels.map((l, i) => `
+                        <input class="lbl" data-cb-column-id="${10 + i}" value="${l}">
+                        <button class="rm" data-cb-column-id="${10 + i}"></button>`).join('')}
+                </section>
+            </div>
+        </div>`;
+    const root = document.querySelector('[data-controller]');
+    const inputs = Array.from(root.querySelectorAll('.lbl'));
+    const c = new Controller();
+    Object.defineProperty(c, 'element', { value: root });
+    Object.defineProperty(c, 'columnLabelTargets', { value: inputs });
+    Object.defineProperty(c, 'sectionIdValue', { value: 7 });
+    inputs.forEach((input) => c.columnLabelTargetConnected(input));
+
+    return { c, root, inputs, removes: Array.from(root.querySelectorAll('.rm')) };
+}
+
+describe('cb-section-settings-form — columns', () => {
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.restoreAllMocks();
+    });
+
+    it('addColumn asks the builder, with the refusal messages', () => {
+        const { c, root } = setupColumns();
+        const seen = [];
+        root.parentElement.addEventListener('cb:column:add-requested', (e) => seen.push(e.detail));
+
+        c.addColumn();
+
+        expect(seen).toEqual([{
+            sectionId: 7,
+            messages: { last_column: 'Keep one', too_many_columns: 'Too many' },
+        }]);
+    });
+
+    it('removeColumn names the column', () => {
+        const { c, root, removes } = setupColumns();
+        const seen = [];
+        root.parentElement.addEventListener('cb:column:delete-requested', (e) => seen.push(e.detail));
+
+        c.removeColumn({ currentTarget: removes[1] });
+
+        expect(seen[0]).toMatchObject({ sectionId: 7, columnId: 11 });
+    });
+
+    it('a typed label is saved once, after the debounce, then reported', async () => {
+        vi.useFakeTimers();
+        const { c, root, inputs } = setupColumns();
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true });
+        const saved = vi.fn();
+        root.parentElement.addEventListener('cb:section:saved', saved);
+
+        inputs[0].value = 'Over';
+        c.onColumnLabelInput({ currentTarget: inputs[0] });
+        inputs[0].value = 'Overview';
+        c.onColumnLabelInput({ currentTarget: inputs[0] });
+        expect(fetchSpy).not.toHaveBeenCalled();
+
+        await vi.advanceTimersByTimeAsync(Controller.COLUMN_LABEL_DEBOUNCE_MS);
+
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+        const [url, init] = fetchSpy.mock.calls[0];
+        expect(url).toBe('/admin/cb/column/10/settings');
+        expect(init.headers['X-CSRF-Token']).toBe('tok');
+        expect(JSON.parse(init.body)).toEqual({ label: 'Overview' });
+        expect(saved).toHaveBeenCalledTimes(1);
+        expect(saved.mock.calls[0][0].detail).toEqual({ sectionId: 7 });
+    });
+
+    it('commit saves at once, and an unchanged label posts nothing', async () => {
+        const { c, inputs } = setupColumns();
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true });
+
+        await c.commitColumnLabel({ currentTarget: inputs[1] });
+        expect(fetchSpy).not.toHaveBeenCalled();
+
+        inputs[1].value = 'Details';
+        await c.commitColumnLabel({ currentTarget: inputs[1] });
+        await c.commitColumnLabel({ currentTarget: inputs[1] });
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('a failed save raises the error and lets the next commit retry', async () => {
+        const { c, root, inputs } = setupColumns();
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({ ok: false, status: 500 });
+        const errors = vi.fn();
+        root.parentElement.addEventListener('cb:save:error', errors);
+
+        inputs[0].value = 'Nope';
+        await c.commitColumnLabel({ currentTarget: inputs[0] });
+        expect(errors).toHaveBeenCalledTimes(1);
+
+        fetchSpy.mockResolvedValueOnce({ ok: true });
+        await c.commitColumnLabel({ currentTarget: inputs[0] });
+        expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('a label still waiting on its debounce is saved on disconnect', () => {
+        vi.useFakeTimers();
+        const { c, inputs } = setupColumns();
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true });
+        Object.defineProperty(c, 'hasFormTarget', { value: false });
+
+        inputs[0].value = 'Pending';
+        c.onColumnLabelInput({ currentTarget: inputs[0] });
+        c.disconnect();
+
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+});

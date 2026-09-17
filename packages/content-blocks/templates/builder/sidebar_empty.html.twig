@@ -1,5 +1,5 @@
-{# The sidebar with nothing focused: a hint, the three section layouts, and
-   the saved-section library. #}
+{# The sidebar with nothing focused: a hint, the section layouts, and the
+   saved-section library. #}
 
 {# The library is here rather than behind a modal — it is the panel's whole
    reason to exist when nothing is selected. #}
@@ -12,39 +12,17 @@
             {{ 'cb.builder.add_section'|trans({}, 'content_blocks') }}
         </p>
         <div class="cb-sidebar-empty__buttons">
-            <button type="button"
-                    class="cb-sidebar-empty__btn"
-                    data-action="cb-builder#addSection"
-                    data-cb-builder-layout-param="full"
-                    aria-label="{{ 'cb.section.layout.full'|trans({}, 'content_blocks') }}"
-                    title="{{ 'cb.section.layout.full'|trans({}, 'content_blocks') }}">
-                <svg viewBox="0 0 32 24" width="32" height="24" aria-hidden="true">
-                    <rect x="3" y="3" width="26" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                </svg>
-            </button>
-            <button type="button"
-                    class="cb-sidebar-empty__btn"
-                    data-action="cb-builder#addSection"
-                    data-cb-builder-layout-param="two_cols"
-                    aria-label="{{ 'cb.section.layout.two_cols'|trans({}, 'content_blocks') }}"
-                    title="{{ 'cb.section.layout.two_cols'|trans({}, 'content_blocks') }}">
-                <svg viewBox="0 0 32 24" width="32" height="24" aria-hidden="true">
-                    <rect x="3" y="3" width="11.5" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                    <rect x="17.5" y="3" width="11.5" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                </svg>
-            </button>
-            <button type="button"
-                    class="cb-sidebar-empty__btn"
-                    data-action="cb-builder#addSection"
-                    data-cb-builder-layout-param="three_cols"
-                    aria-label="{{ 'cb.section.layout.three_cols'|trans({}, 'content_blocks') }}"
-                    title="{{ 'cb.section.layout.three_cols'|trans({}, 'content_blocks') }}">
-                <svg viewBox="0 0 32 24" width="32" height="24" aria-hidden="true">
-                    <rect x="3" y="3" width="6.667" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                    <rect x="12.667" y="3" width="6.667" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                    <rect x="22.333" y="3" width="6.667" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                </svg>
-            </button>
+            {% for layout in cb_section_layouts() %}
+                {% set label = layout.label|trans({}, 'content_blocks') %}
+                <button type="button"
+                        class="cb-sidebar-empty__btn"
+                        data-action="cb-builder#addSection"
+                        data-cb-builder-layout-param="{{ layout.name }}"
+                        aria-label="{{ label }}"
+                        title="{{ label }}">
+                    {{ include('@ContentBlocks/builder/section_layout_icon.html.twig', { layout: layout }, with_context = false) }}
+                </button>
+            {% endfor %}
         </div>
     </div>
 

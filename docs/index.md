@@ -28,7 +28,7 @@ features:
     details: The builder opens your real public page in an iframe and edits it in place. What editors see is what visitors get — no separate "preview" that drifts.
   - icon: 📦
     title: 17 ready-made blocks
-    details: The optional kit ships title, text, rich text, image, gallery, button, card, list, icon, alert, divider, accordion, table, embed, breadcrumb, tabs and a raw-HTML escape hatch — all self-contained, zero CSS-framework dependency.
+    details: The optional kit ships title, text, rich text, image, gallery, button, card, list, icon, alert, divider, accordion, table, embed, video, breadcrumb, tabs and a raw-HTML escape hatch — all self-contained, zero CSS-framework dependency.
   - icon: 🔌
     title: Extensible by design
     details: A block is one PHP class with a Symfony form. Tag it with #[AsContentBlock] and it auto-registers. The form IS the data whitelist and validator.

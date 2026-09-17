@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\History;
 
 use ContentBlocks\Entity\Block;
+use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 
@@ -18,7 +19,7 @@ use ContentBlocks\Entity\Section;
 final class JournalScope
 {
     private function __construct(
-        private readonly Block|Section|null $target,
+        private readonly Block|Column|Section|null $target,
     ) {
     }
 
@@ -33,6 +34,11 @@ final class JournalScope
         return new self($block);
     }
 
+    public static function columnSettings(Column $column): self
+    {
+        return new self($column);
+    }
+
     public static function sectionSettings(Section $section): self
     {
         return new self($section);
@@ -42,6 +48,7 @@ final class JournalScope
     {
         return match (true) {
             $this->target instanceof Block => AreaStateSnapshot::blockData($this->target),
+            $this->target instanceof Column => AreaStateSnapshot::columnSettings($this->target),
             $this->target instanceof Section => AreaStateSnapshot::sectionSettings($this->target),
             default => AreaStateSnapshot::structure($area),
         };

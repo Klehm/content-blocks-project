@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Form\Type;
 
 use ContentBlocks\Form\Type\Styling\StylingType;
+use ContentBlocks\Section\SectionDisplay;
 use ContentBlocks\Section\SectionStyleRegistry;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -38,6 +39,17 @@ final class SectionSettingsType extends AbstractType
                 'label' => 'cb.section.settings.classes',
                 'help' => 'cb.section.settings.classes_help',
             ])
+            ->add('display', ChoiceType::class, [
+                'required' => true,
+                'expanded' => true,
+                'choices' => [
+                    'cb.section.settings.display.grid' => SectionDisplay::GRID,
+                    'cb.section.settings.display.tabs' => SectionDisplay::TABS,
+                    'cb.section.settings.display.accordion' => SectionDisplay::ACCORDION,
+                ],
+                'label' => 'cb.section.settings.display',
+                'data' => SectionDisplay::fromSettings($options['data'] ?? []),
+            ])
             ->add('widthMode', ChoiceType::class, [
                 'required' => true,
                 'expanded' => true,
@@ -55,6 +67,15 @@ final class SectionSettingsType extends AbstractType
                 // with the configured default so the hint never lies.
                 'attr' => ['placeholder' => (string) $this->defaultMaxWidth],
             ]);
+
+        if ($options['column_count'] >= 2) {
+            $builder->add('reverseOnMobile', CheckboxType::class, [
+                'required' => false,
+                'label' => 'cb.section.settings.reverse_on_mobile',
+                'help' => 'cb.section.settings.reverse_on_mobile_help',
+                'row_attr' => ['data-cb-condition' => 'display:grid'],
+            ]);
+        }
 
         // A CSV of percentages summing to 100 ("40,60"), kept canonical by
         // cb-section-settings-form. The visible inputs live in the template.

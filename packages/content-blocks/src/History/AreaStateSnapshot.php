@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\History;
 
 use ContentBlocks\Entity\Block;
+use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 
@@ -83,6 +84,15 @@ final class AreaStateSnapshot
 
         return new self($id === null ? [] : [
             self::T_BLOCK . ':' . $id => ['data' => $block->getDraftData()],
+        ]);
+    }
+
+    public static function columnSettings(Column $column): self
+    {
+        $id = $column->getId();
+
+        return new self($id === null ? [] : [
+            self::T_COLUMN . ':' . $id => ['settings' => $column->getDraftSettings()],
         ]);
     }
 

@@ -118,7 +118,8 @@ background is worse than one with no background at all. A tile cannot inherit th
 section's answer: a red card on a cream section is a dark ground inside a light
 one.
 
-The luminance threshold comes straight off the sRGB coefficients. Its exact value
+The luminance threshold comes straight off the sRGB coefficients, in
+`ContentBlocks\Palette\ColorTone`, shared with the render's tone classes. Its exact value
 matters less than having one, since it only picks between two paint jobs.
 
 `styling.backgroundColor` is read straight from the data with no

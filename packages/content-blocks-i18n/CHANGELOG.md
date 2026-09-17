@@ -5,6 +5,32 @@ All notable changes to `klehm/content-blocks-i18n` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Tab titles are translated.** When a section shows its columns as tabs or
+  as an accordion (core `display: tabs | accordion`), each column name is
+  translatable text: the workbench lists it as a *Tabs* or *Accordion* entry
+  before the section's blocks, it counts in
+  progress and `content-blocks:i18n:status`, the machine run translates it
+  (ref `column-{id}#label`), and the page renders it in its locale. A blank
+  translation falls back to the source title. Rows live in a new table
+  `cb_column_translation` (migration `Version20260917130000` in the sandbox),
+  share the draft/published payload of `cb_block_translation` through the
+  `TranslationPayload` trait, are published and discarded with the page,
+  duplicated with the section, and carried by export/import under
+  `extensions."content-blocks/i18n".columns`, keyed `s{i}.c{j}`. New routes:
+  `POST …/column/{id}/{locale}`, `…/approve`, `…/translate`.
+
+### Changed
+
+- **Workbench entries carry `kind` and `key`.** The JSON of
+  `/area/{id}/fields/{locale}` and every save answer adds `kind` (`block` or
+  `column`) and `key` (`"12"` or `"column-4"`) to each entry. `blockId` is
+  unchanged for blocks and absent for columns. A script reading the list
+  should key rows by `key`.
+
 ## [1.0.0-RC10] - 2026-09-16
 
 ### Added

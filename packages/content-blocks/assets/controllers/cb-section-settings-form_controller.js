@@ -5,8 +5,11 @@ import { Controller } from '@hotwired/stimulus';
  * `cb:section:saved` on success and swapping in the errors on a 422.
  */
 export default class extends Controller {
-    static targets = ['form', 'maxWidthRow', 'widthsField', 'widthInput', 'widthsTotal', 'customRow', 'customToggle'];
+    static targets = ['form', 'maxWidthRow', 'widthsField', 'widthInput', 'widthsTotal', 'customRow', 'customToggle', 'columnLabel'];
     static values = { sectionId: Number };
+
+    /** A label is typed; this is how long it waits for the next keystroke. */
+    static COLUMN_LABEL_DEBOUNCE_MS = 500;
 
     connect() {
         this._onSubmit = this._onSubmit.bind(this);
@@ -24,6 +27,11 @@ export default class extends Controller {
     }
 
     disconnect() {
+        // The sidebar is remounted after every column gesture: save what was
+        // typed rather than drop it.
+        for (const input of this.columnLabelTargets) {
+            if (this._labelTimers?.has(input)) this._saveColumnLabel(input);
+        }
         if (this.hasFormTarget) {
             this.formTarget.removeEventListener('submit', this._onSubmit);
             this.formTarget.removeEventListener('change', this._onChange);
@@ -45,6 +53,94 @@ export default class extends Controller {
         if (!this.hasMaxWidthRowTarget) return;
         const checked = this.formTarget.querySelector('input[name$="[widthMode]"]:checked');
         this.maxWidthRowTarget.hidden = checked?.value !== 'centered';
+    }
+
+    // ---------- Columns: add, remove, label ----------
+
+    // Add and remove are structural, so cb-builder runs them through its
+    // mutation queue; the label is a value, saved from here.
+    columnLabelTargetConnected(input) {
+        input.dataset.cbSavedLabel = input.value;
+    }
+
+    addColumn() {
+        this._requestColumnOp('cb:column:add-requested', {});
+    }
+
+    removeColumn(event) {
+        const columnId = parseInt(event.currentTarget.dataset.cbColumnId, 10);
+        if (!Number.isFinite(columnId)) return;
+        this._requestColumnOp('cb:column:delete-requested', { columnId });
+    }
+
+    _requestColumnOp(name, detail) {
+        const editor = this.element.querySelector('.cb-columns-editor');
+        this.element.dispatchEvent(new CustomEvent(name, {
+            bubbles: true,
+            detail: {
+                sectionId: this.sectionIdValue,
+                ...detail,
+                // Refusal reasons, already translated by the sidebar.
+                messages: {
+                    last_column: editor?.dataset.i18nCbColumnsLast,
+                    too_many_columns: editor?.dataset.i18nCbColumnsTooMany,
+                },
+            },
+        }));
+    }
+
+    onColumnLabelInput(event) {
+        const input = event.currentTarget;
+        this._labelTimers ??= new Map();
+        clearTimeout(this._labelTimers.get(input));
+        this._labelTimers.set(input, setTimeout(
+            () => this._saveColumnLabel(input),
+            this.constructor.COLUMN_LABEL_DEBOUNCE_MS,
+        ));
+    }
+
+    commitColumnLabel(event) {
+        this._saveColumnLabel(event.currentTarget);
+    }
+
+    async _saveColumnLabel(input) {
+        clearTimeout(this._labelTimers?.get(input));
+        this._labelTimers?.delete(input);
+
+        const label = input.value;
+        if (input.dataset.cbSavedLabel === label) return;
+        const columnId = input.dataset.cbColumnId;
+        const base = this.element.closest('[data-cb-api-base]')?.dataset.cbApiBase ?? '/_content-blocks';
+        const csrfToken = this.element.closest('[data-cb-csrf-token]')?.dataset.cbCsrfToken || '';
+        // Claimed before the request, so a change event right behind the
+        // debounced save does not post the same value twice.
+        const previous = input.dataset.cbSavedLabel;
+        input.dataset.cbSavedLabel = label;
+
+        let response;
+        try {
+            response = await fetch(`${base}/column/${columnId}/settings`, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                body: JSON.stringify({ label }),
+            });
+        } catch (e) {
+            console.error('[cb-section-settings-form] column label save failed', e);
+            response = null;
+        }
+
+        if (!response?.ok) {
+            input.dataset.cbSavedLabel = previous ?? '';
+            this._dispatchSaveError();
+            return;
+        }
+
+        // Same event as the form: the builder patches the tab bar in place.
+        this.element.dispatchEvent(new CustomEvent('cb:section:saved', {
+            bubbles: true,
+            detail: { sectionId: this.sectionIdValue },
+        }));
     }
 
     // ---------- Column widths ----------

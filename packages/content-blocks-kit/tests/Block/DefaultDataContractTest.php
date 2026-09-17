@@ -48,7 +48,7 @@ final class DefaultDataContractTest extends TestCase
      */
     private const TYPES_WITH_CHOICE_DEFAULTS = [
         'title', 'image', 'gallery', 'button', 'card',
-        'list', 'icon', 'alert', 'divider', 'table',
+        'list', 'icon', 'alert', 'divider', 'table', 'video',
     ];
 
     /**

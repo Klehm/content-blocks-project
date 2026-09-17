@@ -79,6 +79,19 @@ cb_kit:
                 url: "URL de la vidéo"
                 title: "Titre (accessibilité)"
             url_help: "Collez un lien YouTube ou Vimeo."
+        video:
+            label: "Vidéo"
+            no_video: "Aucune vidéo"
+            file_help: "Un fichier MP4 ou WebM. Pour YouTube ou Vimeo, utilisez le bloc Vidéo intégrée."
+            field:
+                file: "Fichier vidéo"
+                poster: "Image d'aperçu (optionnel)"
+                autoplay: "Lecture automatique (sans le son)"
+                muted: "Sans le son"
+                controls: "Afficher les contrôles"
+                loop: "Lecture en boucle"
+                size: "Taille"
+                caption: "Légende (optionnel)"
         breadcrumb:
             label: "Fil d'Ariane"
             field:
@@ -124,6 +137,7 @@ cb_kit:
                 width: "Largeur (px)"
                 height: "Hauteur (px)"
                 height_auto: "Hauteur automatique (conserver le ratio)"
+                ratio: "Proportions"
                 fit: "Ajustement"
                 link: "Lien (optionnel)"
                 caption: "Légende (optionnel)"
@@ -134,6 +148,8 @@ cb_kit:
                 lg: "Grande (1200px)"
                 full: "Pleine largeur"
                 custom: "Personnalisée"
+            ratio:
+                auto: "Originales"
             fit:
                 cover: "Remplir (rogner)"
                 contain: "Entière (visible)"

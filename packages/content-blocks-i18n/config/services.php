@@ -71,6 +71,7 @@ return static function (ContainerConfigurator $container): void {
     // ---------- Storage ----------
 
     $services->set(BlockTranslationRepository::class)->tag('doctrine.repository_service');
+    $services->set(\ContentBlocks\I18n\Repository\ColumnTranslationRepository::class)->tag('doctrine.repository_service');
     $services->set(TranslationStore::class)->public();
     $services->set(TranslationWriter::class)->public();
 
@@ -88,6 +89,9 @@ return static function (ContainerConfigurator $container): void {
         ->autoconfigure(false)
         ->autowire()
         ->tag('content_blocks.block_data_resolver', ['priority' => TranslationBlockDataResolver::PRIORITY]);
+
+    // A tab title in the render locale; autoconfigured through its interface.
+    $services->set(\ContentBlocks\I18n\Rendering\TranslationColumnSettingsResolver::class);
 
     // Warms the store with one query per area so the resolver above never
     // issues a query of its own. Purely an optimization — see the class.

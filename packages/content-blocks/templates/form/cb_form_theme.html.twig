@@ -487,11 +487,20 @@
         {# The frame is the affordance once there is an image, so the hint
            only shows on an empty field or mid-drag. #}
         <div class="cb-image-upload__preview">
-            <img data-cb-file-upload-target="preview"
-                 {% if src %}src="{{ src }}"{% endif %}
-                 class="cb-thumbnail"
-                 alt=""
-                 {% if not src %}hidden{% endif %}>
+            {% if (preview_kind|default('image')) == 'video' %}
+                <video data-cb-file-upload-target="preview"
+                       {% if src %}src="{{ src }}"{% endif %}
+                       class="cb-thumbnail"
+                       muted
+                       preload="metadata"
+                       {% if not src %}hidden{% endif %}></video>
+            {% else %}
+                <img data-cb-file-upload-target="preview"
+                     {% if src %}src="{{ src }}"{% endif %}
+                     class="cb-thumbnail"
+                     alt=""
+                     {% if not src %}hidden{% endif %}>
+            {% endif %}
             <p class="cb-image-upload__hint">{{ 'cb.upload.drop_hint'|trans({}, 'content_blocks') }}</p>
         </div>
 

@@ -82,6 +82,22 @@ final class StylingType extends AbstractType
             ]);
         }
 
+        if ($options['include_text_align']) {
+            $builder->add('textAlign', ChoiceType::class, [
+                'required' => false,
+                'placeholder' => 'cb.styling.align.default',
+                'expanded' => true,
+                'label' => 'cb.styling.text_align',
+                'choices' => [
+                    'cb.styling.text_align.start' => 'start',
+                    'cb.styling.text_align.center' => 'center',
+                    'cb.styling.text_align.end' => 'end',
+                    'cb.styling.text_align.justify' => 'justify',
+                ],
+                'block_prefix' => 'cb_horizontal_align',
+            ]);
+        }
+
         if ($options['include_align_self']) {
             // Only meaningful once maxWidth is set, so cb-block-styling-form
             // keeps the row hidden until then.
@@ -112,6 +128,7 @@ final class StylingType extends AbstractType
             'include_alignment' => false,
             'include_max_width' => false,
             'include_align_self' => false,
+            'include_text_align' => false,
             'include_gap' => false,
             'translation_domain' => 'content_blocks',
             'label' => false,
@@ -121,6 +138,7 @@ final class StylingType extends AbstractType
         $resolver->setAllowedTypes('include_max_width', 'bool');
         $resolver->setAllowedTypes('include_align_self', 'bool');
         $resolver->setAllowedTypes('include_gap', 'bool');
+        $resolver->setAllowedTypes('include_text_align', 'bool');
     }
 
     public function getBlockPrefix(): string

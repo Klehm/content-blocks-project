@@ -114,6 +114,30 @@
                 <source>cb_i18n.action.translate</source>
                 <target>Translate</target>
             </trans-unit>
+            <trans-unit id="workbench.tabs">
+                <source>cb_i18n.workbench.tabs</source>
+                <target>Tabs</target>
+            </trans-unit>
+            <trans-unit id="workbench.tab_title">
+                <source>cb_i18n.workbench.tab_title</source>
+                <target>Tab title</target>
+            </trans-unit>
+            <trans-unit id="workbench.tab_n">
+                <source>cb_i18n.workbench.tab_n</source>
+                <target>Tab %n%</target>
+            </trans-unit>
+            <trans-unit id="workbench.accordion">
+                <source>cb_i18n.workbench.accordion</source>
+                <target>Accordion</target>
+            </trans-unit>
+            <trans-unit id="workbench.panel_title">
+                <source>cb_i18n.workbench.panel_title</source>
+                <target>Panel title</target>
+            </trans-unit>
+            <trans-unit id="workbench.panel_n">
+                <source>cb_i18n.workbench.panel_n</source>
+                <target>Panel %n%</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

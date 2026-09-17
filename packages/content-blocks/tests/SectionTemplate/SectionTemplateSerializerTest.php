@@ -109,4 +109,19 @@ final class SectionTemplateSerializerTest extends TestCase
         $data = (new SectionTemplateSerializer())->serialize($section)->payload['columns'][0]['blocks'][0]['data'];
         $this->assertSame('/uploads/content-blocks/photo.jpg', $data['src']);
     }
+
+    /** Absent when unset, so older payloads and new ones read the same. */
+    public function testColumnSettingsAreSerializedOnlyWhenSet(): void
+    {
+        $section = new Section();
+        $named = (new Column())->setPreset('col-6');
+        $named->setPublishedSettings(['label' => 'Live']);
+        $section->addColumn($named);
+        $section->addColumn((new Column())->setPreset('col-6')->setPreviewPosition(1));
+
+        $columns = (new SectionTemplateSerializer())->serialize($section)->payload['columns'];
+
+        $this->assertSame(['label' => 'Live'], $columns[0]['settings']);
+        $this->assertArrayNotHasKey('settings', $columns[1]);
+    }
 }

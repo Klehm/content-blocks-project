@@ -146,4 +146,30 @@ final class StylingBlockDecoratorTest extends TestCase
 
         $this->assertArrayNotHasKey('--cb-align-self', $decoration->inlineStyles);
     }
+
+    public function testTheBackgroundToneIsAClass(): void
+    {
+        $decoration = (new StylingBlockDecorator())
+            ->decorate(['styling' => ['backgroundColor' => '#fff']], new Block());
+
+        $this->assertSame(['cb-block--styled', 'cb-block--bg-light'], $decoration->classes);
+    }
+
+    /** Alone, it must not add `cb-block--styled`, which zeroes margins. */
+    public function testTextAlignIsAClassOfItsOwn(): void
+    {
+        $decoration = (new StylingBlockDecorator())
+            ->decorate(['styling' => ['textAlign' => 'center']], new Block());
+
+        $this->assertSame(['cb-block--text-center'], $decoration->classes);
+        $this->assertSame([], $decoration->inlineStyles);
+    }
+
+    public function testTextAlignIgnoresUnknownValues(): void
+    {
+        $decoration = (new StylingBlockDecorator())
+            ->decorate(['styling' => ['textAlign' => 'center x']], new Block());
+
+        $this->assertSame([], $decoration->classes);
+    }
 }

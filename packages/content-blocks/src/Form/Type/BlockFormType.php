@@ -40,6 +40,7 @@ final class BlockFormType extends AbstractType
         $builder->add('styling', StylingType::class, [
             'include_max_width' => true,
             'include_align_self' => true,
+            'include_text_align' => true,
         ]);
     }
 

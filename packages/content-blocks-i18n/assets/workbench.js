@@ -153,6 +153,11 @@ class Workbench {
      *
      * @see docs/internals/i18n.md#config-and-mounting
      */
+    /** Where an entry sits in the preview: its block, or a tab's section. */
+    _previewSelector(key) {
+        return this._url(key, 'cbPreviewSelector') ?? `[data-cb-block-id="${key}"]`;
+    }
+
     _url(blockId, name) {
         return this.root.querySelector(`[data-cb-block="${blockId}"]`)?.dataset[name] ?? null;
     }
@@ -315,7 +320,7 @@ class Workbench {
         const doc = this._previewDocument();
         if (!doc) return;
 
-        const target = doc.querySelector(`[data-cb-block-id="${row.dataset.block}"]`);
+        const target = doc.querySelector(this._previewSelector(row.dataset.block));
         if (!target) return;
 
         doc.querySelectorAll('.cb-wb-focus').forEach((el) => el.classList.remove('cb-wb-focus'));
@@ -334,8 +339,12 @@ class Workbench {
         const doc = this._previewDocument();
         if (!doc) return;
 
+        // A tab title has no render route: only a reload shows the tab bar.
         const url = this._url(blockId, 'cbRenderUrl');
-        if (!url) return;
+        if (!url) {
+            this.preview.contentWindow?.location.reload();
+            return;
+        }
 
         let payload;
         try {
@@ -447,7 +456,7 @@ class Workbench {
 
         for (const field of block.fields ?? []) {
             const row = this.root.querySelector(
-                `[data-target="row"][data-block="${block.blockId}"][data-path="${CSS.escape(field.path)}"]`,
+                `[data-target="row"][data-block="${block.key ?? block.blockId}"][data-path="${CSS.escape(field.path)}"]`,
             );
             if (!row) continue;
 

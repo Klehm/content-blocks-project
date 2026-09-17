@@ -290,6 +290,36 @@ describe('cb-autosave', () => {
         expect(clickSpy).toHaveBeenCalledTimes(1);
     });
 
+    // Symfony's csrf_protection_controller rewrites `_token` on submit; the
+    // next focusout used to post the same values again, even after Discard.
+    it('does not save again when only the CSRF token field was rewritten', () => {
+        document.body.innerHTML = `
+            <div data-controller="cb-autosave">
+                <form>
+                    <input type="text" name="section_settings[classes]" id="classes">
+                    <input type="hidden" name="section_settings[_token]" id="token" value="csrf-token">
+                    <button type="button" data-cb-sidebar-save id="save">Save</button>
+                </form>
+            </div>
+        `;
+        const element = document.querySelector('[data-controller="cb-autosave"]');
+        const controller = new Controller();
+        Object.defineProperty(controller, 'element', { value: element });
+        Object.defineProperty(controller, 'debounceValue', { value: 100 });
+        controller.connect();
+
+        const clickSpy = vi.fn();
+        element.querySelector('#save').addEventListener('click', clickSpy);
+
+        const classes = element.querySelector('#classes');
+        classes.value = 'hero';
+        classes.dispatchEvent(new Event('change', { bubbles: true }));
+        element.querySelector('#token').value = 'x3HuZzbTQUbOYHZBnqnR3CW5';
+        classes.dispatchEvent(new Event('focusout', { bubbles: true }));
+
+        expect(clickSpy).toHaveBeenCalledTimes(1);
+    });
+
     it('saves again once the user changes the value a second time', () => {
         const { input, clickSpy } = setup();
 

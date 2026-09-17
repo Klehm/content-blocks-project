@@ -227,6 +227,39 @@ final class ContentAreaPublisherTest extends TestCase
         $this->assertSame([$newSection], $this->removed);
     }
 
+    public function testPublishPromotesColumnPresetAndSettings(): void
+    {
+        $area = new ContentArea();
+        $section = $this->makeSection($area, 0, 0);
+        $column = $this->makeColumn($section, 0, 0);
+        $column->setPreset('col-4');
+        $column->setDraftSettings(['label' => 'Specs']);
+
+        (new ContentAreaPublisher($this->em))->publish($area);
+
+        $this->assertSame('col-4', $column->getPublishedPreset());
+        $this->assertSame(['label' => 'Specs'], $column->getPublishedSettings());
+        $this->assertNull($column->getDraftSettings());
+    }
+
+    public function testDiscardRestoresColumnPresetAndSettings(): void
+    {
+        $area = new ContentArea();
+        $section = $this->makeSection($area, 0, 0);
+        $column = $this->makeColumn($section, 0, 0);
+        $column->setPreset('col-6');
+        $column->setPublishedPreset('col-6');
+        $column->setPublishedSettings(['label' => 'Live']);
+        $column->setPreset('col-3');
+        $column->setDraftSettings(['label' => 'Draft']);
+
+        (new ContentAreaPublisher($this->em))->discardDraft($area);
+
+        $this->assertSame('col-6', $column->getPreset());
+        $this->assertNull($column->getDraftSettings());
+        $this->assertSame(['label' => 'Live'], $column->getEffectiveSettings(preferDraft: true));
+    }
+
     public function testDiscardRemovesNeverPublishedColumnInsidePublishedSection(): void
     {
         $area = new ContentArea();

@@ -13,20 +13,21 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Section\SectionLayoutRegistry;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class AreaTreeBuilderTest extends TestCase
 {
-    private function makeBuilder(): AreaTreeBuilder
+    private function makeBuilder(?SectionLayoutRegistry $layouts = null): AreaTreeBuilder
     {
         $registry = new BlockTypeRegistry();
         $registry->register(new TreeHeadingBlock());
         $registry->register(new TreeMuteBlock());
         $registry->register(new TreeExplodingBlock());
 
-        return new AreaTreeBuilder($registry, new ParamTranslator());
+        return new AreaTreeBuilder($registry, new ParamTranslator(), $layouts ?? new SectionLayoutRegistry());
     }
 
     public function testOutlineFollowsTheDraftOrderNotThePublishedOne(): void
@@ -154,6 +155,35 @@ final class AreaTreeBuilderTest extends TestCase
         $this->assertSame('cb.section.label{%index%:1,%layout%:cb.section.layout.two_cols}', $tree['sections'][0]['label']);
         $this->assertSame('cb.builder.tree.column{%index%:2}', $tree['sections'][0]['columns'][1]['label']);
         $this->assertSame('col-12', $tree['sections'][0]['columns'][0]['preset']);
+    }
+
+    public function testANamedColumnReadsItsDraftName(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, 1, layout: Section::LAYOUT_TWO_COLS);
+        $this->makeColumn($section, 10)->setDraftSettings(['label' => 'Specs']);
+        $this->makeColumn($section, 11, previewPosition: 1);
+
+        $columns = $this->makeBuilder()->build($area)['sections'][0]['columns'];
+
+        $this->assertSame('Specs', $columns[0]['label']);
+        $this->assertSame('cb.builder.tree.column{%index%:2}', $columns[1]['label']);
+    }
+
+    public function testAHostLayoutIsNamedByItsConfiguredLabel(): void
+    {
+        $area = $this->makeArea();
+        $this->makeSection($area, 1, layout: 'four_cols');
+        $this->makeSection($area, 2, previewPosition: 1, layout: 'gone_from_config');
+        $layouts = new SectionLayoutRegistry(SectionLayoutRegistry::resolve([
+            'four_cols' => ['label' => 'Four columns', 'columns' => [3, 3, 3, 3]],
+        ]));
+
+        $sections = $this->makeBuilder($layouts)->build($area)['sections'];
+
+        $this->assertSame('cb.section.label{%index%:1,%layout%:Four columns}', $sections[0]['label']);
+        // A layout no longer configured still reads as something.
+        $this->assertSame('cb.section.label{%index%:2,%layout%:gone_from_config}', $sections[1]['label']);
     }
 
     // ---------- Entity factories (ids assigned as Doctrine would) ----------

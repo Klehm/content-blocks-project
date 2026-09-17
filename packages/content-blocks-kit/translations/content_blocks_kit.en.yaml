@@ -79,6 +79,19 @@ cb_kit:
                 url: "Video URL"
                 title: "Title (accessibility)"
             url_help: "Paste a YouTube or Vimeo link."
+        video:
+            label: "Video"
+            no_video: "No video selected"
+            file_help: "An MP4 or WebM file. For YouTube or Vimeo, use the Video embed block."
+            field:
+                file: "Video file"
+                poster: "Poster image (optional)"
+                autoplay: "Autoplay (muted)"
+                muted: "Muted"
+                controls: "Show controls"
+                loop: "Loop"
+                size: "Size"
+                caption: "Caption (optional)"
         breadcrumb:
             label: "Breadcrumb"
             field:
@@ -124,6 +137,7 @@ cb_kit:
                 width: "Width (px)"
                 height: "Height (px)"
                 height_auto: "Automatic height (keep ratio)"
+                ratio: "Aspect ratio"
                 fit: "Fit"
                 link: "Link (optional)"
                 caption: "Caption (optional)"
@@ -134,6 +148,8 @@ cb_kit:
                 lg: "Large (1200px)"
                 full: "Full width"
                 custom: "Custom"
+            ratio:
+                auto: "Original"
             fit:
                 cover: "Fill (crop)"
                 contain: "Contain (whole image)"

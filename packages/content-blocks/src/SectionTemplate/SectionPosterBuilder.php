@@ -7,6 +7,7 @@ namespace ContentBlocks\SectionTemplate;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Palette\ColorTone;
 use ContentBlocks\Section\SectionStyleRegistry;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -28,13 +29,6 @@ final class SectionPosterBuilder
 
     /** Fallback weight when a column carries no usable `col-N` preset. */
     private const FULL_WIDTH = 12;
-
-    /**
-     * Relative luminance above which a background counts as light.
-     *
-     * @see docs/internals/section-templates.md#what-the-poster-decides-in-php
-     */
-    private const LIGHT_LUMINANCE = 0.55;
 
     public function __construct(
         private readonly BlockTypeRegistry $blockTypeRegistry,
@@ -86,7 +80,7 @@ final class SectionPosterBuilder
             'background' => $background,
             // Decided here rather than in CSS: only PHP has the resolved
             // colour. See section-templates.md#what-the-poster-decides-in-php
-            'dark' => $background !== null && !$this->isLight($background),
+            'dark' => $background !== null && ColorTone::isDark($background),
         ];
     }
 
@@ -122,21 +116,6 @@ final class SectionPosterBuilder
         return is_string($value) && preg_match('/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i', $value) === 1
             ? strtolower($value)
             : null;
-    }
-
-    /** Relative luminance of a #rgb / #rrggbb colour, 0 black to 1 white. */
-    private function isLight(string $hex): bool
-    {
-        $hex = ltrim($hex, '#');
-        if (\strlen($hex) === 3) {
-            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
-        }
-
-        $r = hexdec(substr($hex, 0, 2)) / 255;
-        $g = hexdec(substr($hex, 2, 2)) / 255;
-        $b = hexdec(substr($hex, 4, 2)) / 255;
-
-        return (0.2126 * $r + 0.7152 * $g + 0.0722 * $b) >= self::LIGHT_LUMINANCE;
     }
 
     /**
@@ -213,7 +192,7 @@ final class SectionPosterBuilder
             'background' => $background = $this->hexOrNull($data['styling']['backgroundColor'] ?? null),
             // A tile cannot inherit the section's answer — a red card on a
             // cream section is a dark ground inside a light one.
-            'backgroundDark' => $background !== null && !$this->isLight($background),
+            'backgroundDark' => $background !== null && ColorTone::isDark($background),
         ];
     }
 

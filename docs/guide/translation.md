@@ -206,6 +206,15 @@ and staleness digests per locale, and importing it into an installation without
 this package simply skips that fragment. Copy/paste and saved section templates
 are the two flows that do **not** carry translations yet.
 
+**Tab titles have their own table.** A section shown as tabs or as an
+accordion puts its column names on the page, so the workbench lists them as
+*Tabs* or *Accordion* entries before that
+section's blocks, and they count in the progress bar. They are stored in
+`cb_column_translation` and follow the same rules: draft until Publish,
+duplicated with the section, carried by export/import, translatable by your
+machine provider. Titles of a section shown side by side are not listed, since
+no visitor sees them.
+
 **Collection entries are keyed by `_id`, never by position.** Reordering,
 duplicating or deleting a card shifts every position after it; keying per-entry
 translations by index would attach the German title of card 1 to card 3. An entry

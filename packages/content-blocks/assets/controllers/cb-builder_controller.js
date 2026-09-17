@@ -115,6 +115,8 @@ export default class extends Controller {
         this._onMessage = this._onMessage.bind(this);
         this._onBlockSaved = this._onBlockSaved.bind(this);
         this._onSectionSaved = this._onSectionSaved.bind(this);
+        this._onColumnAddRequested = this._onColumnAddRequested.bind(this);
+        this._onColumnDeleteRequested = this._onColumnDeleteRequested.bind(this);
         this._onResizeMove = this._onResizeMove.bind(this);
         this._onResizeEnd = this._onResizeEnd.bind(this);
         this._onWindowResize = this._onWindowResize.bind(this);
@@ -140,6 +142,9 @@ export default class extends Controller {
         // dispatchBrowserEvent on save; the events bubble up to here.
         this.element.addEventListener('cb:block:saved', this._onBlockSaved);
         this.element.addEventListener('cb:section:saved', this._onSectionSaved);
+        // The section sidebar asks; the columns change through the queue.
+        this.element.addEventListener('cb:column:add-requested', this._onColumnAddRequested);
+        this.element.addEventListener('cb:column:delete-requested', this._onColumnDeleteRequested);
         // live:connect bubbles from every Live Component in the sidebar;
         // cb:save:error from the section form and the hooks below.
         this.element.addEventListener('live:connect', this._onLiveConnect);
@@ -177,6 +182,8 @@ export default class extends Controller {
         window.removeEventListener('resize', this._onWindowResize);
         this.element.removeEventListener('cb:block:saved', this._onBlockSaved);
         this.element.removeEventListener('cb:section:saved', this._onSectionSaved);
+        this.element.removeEventListener('cb:column:add-requested', this._onColumnAddRequested);
+        this.element.removeEventListener('cb:column:delete-requested', this._onColumnDeleteRequested);
         this.element.removeEventListener('live:connect', this._onLiveConnect);
         this.element.removeEventListener('cb:save:error', this._onSaveError);
         this.element.removeEventListener('cb:area:changed', this._onAreaChanged);
@@ -645,8 +652,8 @@ export default class extends Controller {
     }
 
     async _addSection(layout) {
-        const allowed = ['full', 'two_cols', 'three_cols'];
-        const finalLayout = allowed.includes(layout) ? layout : 'full';
+        // The layouts are host config: the server is the one to refuse.
+        const finalLayout = typeof layout === 'string' && layout !== '' ? layout : 'full';
         const result = await this._jsonRequest('POST', `${this._apiBase}/area/${this.areaIdValue}/sections`, { layout: finalLayout });
         // Create failed (CSRF/access/network) — leave the preview untouched.
         if (result === null) return;
@@ -904,6 +911,37 @@ export default class extends Controller {
     _isSidebarFocusedOnSection(sectionId) {
         if (!this.hasSidebarTarget) return false;
         return this.sidebarTarget.getAttribute('data-cb-sidebar-section-id') === String(sectionId);
+    }
+
+    // ---------- Columns ----------
+
+    _onColumnAddRequested(event) {
+        const { sectionId, messages } = event.detail ?? {};
+        return this._columnOp(sectionId, `section/${sectionId}/columns`, messages);
+    }
+
+    _onColumnDeleteRequested(event) {
+        const { sectionId, columnId, messages } = event.detail ?? {};
+        if (!Number.isFinite(columnId)) return undefined;
+        return this._columnOp(sectionId, `column/${columnId}/delete`, messages);
+    }
+
+    /**
+     * The column count moves the whole row and the sidebar's column list, so
+     * both are rebuilt rather than patched.
+     */
+    async _columnOp(sectionId, path, messages = {}) {
+        if (!Number.isFinite(sectionId)) return;
+        const result = await this._jsonRequest('POST', `${this._apiBase}/${path}`, {}, { tolerate: [400] });
+        if (result === null) return;
+        if (result.error) {
+            this._notify(messages?.[result.error] || result.error);
+            return;
+        }
+        this._afterStructuralOp();
+        if (this._isSidebarFocusedOnSection(sectionId)) {
+            await this._mountSectionSettings(sectionId);
+        }
     }
 
     /**

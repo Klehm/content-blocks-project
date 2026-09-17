@@ -9,7 +9,9 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Section\ColumnSettings;
 use ContentBlocks\Section\SectionDecoratorCollection;
+use ContentBlocks\Section\SectionDisplay;
 use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
@@ -42,6 +44,7 @@ final class BlockRenderer implements BlockRendererInterface
         private readonly \ContentBlocks\Block\BlockDecoratorCollection $blockDecorators,
         private readonly \ContentBlocks\Block\BlockDataDefaults $blockDataDefaults,
         private readonly BlockDataResolverCollection $blockDataResolvers,
+        private readonly ColumnSettingsResolverCollection $columnSettingsResolvers = new ColumnSettingsResolverCollection(),
     ) {
     }
 
@@ -230,6 +233,7 @@ final class BlockRenderer implements BlockRendererInterface
      * @return array{
      *     id: ?int,
      *     layout: string,
+     *     display: string,
      *     deleted: bool,
      *     extraClasses: string,
      *     inlineStyle: string,
@@ -260,6 +264,7 @@ final class BlockRenderer implements BlockRendererInterface
         return [
             'id' => $section->getId(),
             'layout' => $section->getLayout(),
+            'display' => SectionDisplay::fromSettings($settings),
             'deleted' => $sectionDeleted,
             'extraClasses' => $decoration->classString(),
             'inlineStyle' => $decoration->styleString(),
@@ -300,6 +305,7 @@ final class BlockRenderer implements BlockRendererInterface
      * @return list<array{
      *     id: ?int,
      *     preset: string,
+     *     label: ?string,
      *     deleted: bool,
      *     width: ?int,
      *     blocks: list<array<string, mixed>>,
@@ -321,9 +327,16 @@ final class BlockRenderer implements BlockRendererInterface
         $out = [];
         foreach ($columns as $i => $column) {
             $columnDeleted = $parentDeleted || ($context->mode === RenderMode::PREVIEW && $column->isDeleted());
+            $preferDraft = $context->mode === RenderMode::PREVIEW;
+            $columnSettings = $this->columnSettingsResolvers->resolve(
+                $column,
+                $context,
+                $column->getEffectiveSettings($preferDraft),
+            );
             $out[] = [
                 'id' => $column->getId(),
-                'preset' => $column->getPreset(),
+                'preset' => $column->getEffectivePreset($preferDraft),
+                'label' => ColumnSettings::label($columnSettings),
                 'deleted' => $columnDeleted,
                 'width' => $widths[$i] ?? null,
                 'blocks' => $this->buildBlockList($column, $context, $columnDeleted, $buckets),

@@ -5,6 +5,93 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Section layouts are host config: `content_blocks.section.layouts`.** Add a
+  layout (`four_cols: { label: '4 columns', columns: [3, 3, 3, 3] }`, or an
+  uneven `[4, 8]`), relabel a built-in, or hide one with `name: false`. Spans
+  are on a 12-unit grid and must add up to 12. Names must be snake_case, 30
+  characters at most. Both are checked at `cache:clear`. The add-section
+  buttons, their glyphs, the navigator labels and `POST …/sections` all read
+  the same `SectionLayoutRegistry`, and the Twig function `cb_section_layouts()`
+  exposes it. Hiding a layout only stops new sections: existing ones render
+  from their own column presets. See [Section layouts](https://klehm.github.io/content-blocks-project/guide/host-services#section-layouts).
+- **Columns are edited from the section sidebar, and a section can show them
+  as tabs or as an accordion.** A new *Columns* group adds a column, removes one (never the last)
+  and names each. At most 20 columns per section. The new *Display* setting
+  (`display: grid | tabs | accordion`) shows them side by side, one at a time,
+  or as collapsible panels, with the column names as tab or panel titles. Tabs are CSS only (radios + labels, no script on
+  the public page), themable through `--cb-tabs-accent`, `--cb-tabs-line` and
+  `--cb-tabs-gap`. The accordion is CSS only as well (a checkbox and a header
+  before each column, panels open independently), themable through
+  `--cb-accordion-accent`, `--cb-accordion-line` and `--cb-accordion-gap`. In
+  the builder the open tab or panels survive a preview reload, and selecting a
+  block opens its tab or panel. All of it is draft, journalled for undo,
+  and carried by duplicate, copy/paste, section templates and export/import
+  (`columns[].settings`, only when set). A layout can start its sections as
+  tabs or an accordion with `display: tabs` or `display: accordion`. New endpoints `POST …/section/{id}/columns`,
+  `POST …/column/{id}/delete`, `POST …/column/{id}/settings` (CSRF + `canEdit`).
+  See [Columns and tabs](https://klehm.github.io/content-blocks-project/guide/host-services#columns-and-tabs).
+- **Two seams for what is stored beside a column:**
+  `ColumnSettingsResolverInterface` (tag `content_blocks.column_settings_resolver`)
+  rewrites a column's settings at render, and `ColumnCloneObserverInterface`
+  (tag `content_blocks.column_clone_observer`) is told of each column copy
+  during a section clone. Both are autoconfigured and empty by default, so
+  output and cloning are unchanged without them. `content-blocks-i18n` uses
+  them to translate tab titles.
+- **Text alignment on every block.** The block's Style tab gains *Text align*
+  (left, centre, right, justify), rendered as the class
+  `cb-block--text-start|center|end|justify`. It sits next to the existing
+  *Max width* and *Horizontal align*, which cap and place a block for readable
+  line lengths. See [Styling](https://klehm.github.io/content-blocks-project/guide/styling#text-alignment-and-max-width-of-a-block).
+- **Reverse the column order on mobile.** A section with two columns or more
+  has a `reverseOnMobile` setting (sidebar checkbox, also accepted in preset
+  `settings`). At 540px and below its stacked columns read last to first
+  (`cb-section--reverse-mobile`), for alternating image and text rows. Grid
+  display only.
+- **Dark or light background, as a class and a helper.** A section or block
+  with a background colour carries `cb-section--bg-dark|light` or
+  `cb-block--bg-dark|light`, so a host stylesheet can switch the text colour.
+  `ContentBlocks\Palette\ColorTone` (`of()`, `isDark()`, `isLight()`,
+  `luminance()`) and the Twig functions `cb_color_tone()` /
+  `cb_color_is_dark()` expose the same rule, which the section library's
+  thumbnails already used. See [Dark and light backgrounds](https://klehm.github.io/content-blocks-project/guide/styling#dark-and-light-backgrounds).
+- **`VideoUploadType`**: the image upload widget (picker, drop zone, pasted
+  path) with a `<video>` preview and `accept` set to MP4, WebM and Ogg. The
+  default upload whitelist is unchanged and has no video type. Add
+  `video/mp4` / `video/webm` to `upload.allowed_mime_types` to upload videos.
+
+### Changed
+
+- **`cb_column` gains draft twins: `published_preset`, `published_settings`,
+  `draft_settings`.** Migration required: `Version20260917120000` (in the
+  sandbox), which also pins the preset of every published column. `preset` is
+  now the draft value and the public render reads `published_preset`, so
+  re-spanning columns in the builder never moves the live page before Publish.
+  See the [upgrade guide](https://klehm.github.io/content-blocks-project/guide/upgrade#_1f-bis-column-draft-twins-version20260917120000).
+
+- **Column presets are spans, rendered as `flex-grow`.** `layout.css` now
+  styles every `col-1` to `col-12` instead of only `col-12`, `col-6` and
+  `col-4`. Built-in layouts render as before: equal columns on desktop, a
+  three-column row two per row on tablet, stacked on mobile. A host
+  stylesheet that targeted `.cb-col--col-4` / `.cb-col--col-6` through
+  `flex-basis` should be checked.
+- **The builder no longer filters layout names client-side.** `cb-builder`
+  posts whatever the button carries and the server refuses an unknown or
+  hidden layout with a 400, as it already did.
+
+### Fixed
+
+- **A section edit was saved twice, and could survive *Revert to published*.**
+  With Symfony's `csrf_protection_controller.js` installed (the Flex recipe
+  default), the first save rewrites the form's `_token`. `cb-autosave` took that
+  for an edit and posted the same values again on the next focusout. When that
+  focusout came from clicking *Revert to published*, the second save could
+  land after the revert and leave the draft marked as changed. The token is
+  now ignored when comparing, like the spacing-link toggles.
+
 ## [1.0.0-RC10] - 2026-09-16
 
 Version bump only — no functional change in `klehm/content-blocks`. The tag is cut

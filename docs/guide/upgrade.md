@@ -137,6 +137,24 @@ topbar's Navigator button does nothing.
 php bin/console doctrine:migrations:migrate
 ```
 
+### 1f-bis. Column draft twins — `Version20260917120000` <Badge type="danger" text="do not skip" />
+
+Columns can now be added, removed and named from the builder, which needs the
+same draft/published split every other field has: `cb_column` gains
+`published_preset`, `published_settings` and `draft_settings`. The migration
+also backfills `published_preset` from `preset` for published columns, so what
+the live page shows is pinned before anyone edits a column.
+
+Without the columns, Doctrine cannot load a `Column` at all, so this one is not
+optional. Copy it from the sandbox like the others.
+
+### 1f-ter. Translated tab titles (i18n only) — `Version20260917130000`
+
+If you use `klehm/content-blocks-i18n`, it now also translates the titles of
+tabs sections, in a new table `cb_column_translation`. Create it with the
+sandbox migration. Without it, the workbench and any translated page fail as
+soon as they query the table.
+
 ### 1g. Join columns no longer follow your naming strategy
 
 Join columns used to take their name from the host's Doctrine naming strategy.
@@ -503,6 +521,15 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
   to the published page in each language). Both default to today's behaviour.
 - **The translation workbench's preview is resizable** — drag its left edge or
   use the arrow keys; nothing to wire.
+- **Tone classes on coloured backgrounds** — a section or block with a
+  background colour now also carries `cb-section--bg-dark|light` or
+  `cb-block--bg-dark|light`. No styles come with them. Only check your CSS if
+  it already used those class names. See
+  [Dark and light backgrounds](./styling.md#dark-and-light-backgrounds).
+- **A kit image set to *Full width* now fills its column** (`width: 100%`)
+  instead of stopping at the file's own width. An image narrower than its
+  column is scaled up: pick another size for those. The new *Aspect ratio*
+  field defaults to the original proportions.
 
 - **`BlockDataResolverInterface`** — an autoconfigured pipeline for changing what
   a block renders (translation, token expansion, computed values) without

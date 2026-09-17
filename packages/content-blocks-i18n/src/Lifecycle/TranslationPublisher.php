@@ -6,6 +6,7 @@ namespace ContentBlocks\I18n\Lifecycle;
 
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\I18n\Repository\BlockTranslationRepository;
+use ContentBlocks\I18n\Repository\ColumnTranslationRepository;
 use ContentBlocks\I18n\Storage\TranslationStore;
 use ContentBlocks\Publishing\ContentAreaPublisherInterface;
 use ContentBlocks\Publishing\PublishContext;
@@ -24,6 +25,7 @@ final class TranslationPublisher implements ContentAreaPublisherInterface
         private readonly BlockTranslationRepository $repository,
         private readonly TranslationStore $store,
         private readonly EntityManagerInterface $em,
+        private readonly ?ColumnTranslationRepository $columnRepository = null,
     ) {
     }
 
@@ -53,6 +55,26 @@ final class TranslationPublisher implements ContentAreaPublisherInterface
             }
         }
 
+        foreach ($this->columnRepository?->findForArea($area) ?? [] as $row) {
+            $column = $row->getColumn();
+
+            if ($column === null || $column->isDeleted()) {
+                $this->em->remove($row);
+
+                continue;
+            }
+
+            if ($context !== null && !$context->coversLocale($row->getLocale())) {
+                continue;
+            }
+
+            $row->publish();
+
+            if ($row->isEmpty()) {
+                $this->em->remove($row);
+            }
+        }
+
         $this->store->reset();
         $this->inner->publish($area, $context);
     }
@@ -72,6 +94,27 @@ final class TranslationPublisher implements ContentAreaPublisherInterface
 
             // Same scoping rule as publish: the area's own draft always
             // goes, a locale left out of the scope keeps its draft.
+            if ($context !== null && !$context->coversLocale($row->getLocale())) {
+                continue;
+            }
+
+            $row->revertDraft();
+
+            if ($row->isEmpty()) {
+                $this->em->remove($row);
+            }
+        }
+
+        foreach ($this->columnRepository?->findForArea($area) ?? [] as $row) {
+            $column = $row->getColumn();
+
+            // A never-published column goes with the inner discard.
+            if ($column === null || !$column->isPublished()) {
+                $this->em->remove($row);
+
+                continue;
+            }
+
             if ($context !== null && !$context->coversLocale($row->getLocale())) {
                 continue;
             }

@@ -258,7 +258,9 @@ body.cb-dragging--block [data-cb-section-id] {
 
 /* Hidden in preview: the marker stays so Discard can restore it, but the
    editor clicked delete. See docs/internals/publishing.md */
-[data-cb-deleted="1"] {
+[data-cb-deleted="1"],
+.cb-tabs__tab--deleted,
+.cb-accordion__header--deleted {
   display: none !important;
 }
 
@@ -370,6 +372,8 @@ body {
 }
 .cb-add-section-tray__buttons {
   display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
   vertical-align: middle;
 }

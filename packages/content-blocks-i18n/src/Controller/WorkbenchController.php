@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Controller;
 
 use ContentBlocks\Entity\Block;
+use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Progress\BlockTranslationView;
+use ContentBlocks\I18n\Progress\ColumnTranslationView;
 use ContentBlocks\I18n\Progress\TranslationInspector;
 use ContentBlocks\I18n\Progress\TranslationProgress;
 use ContentBlocks\I18n\Storage\TranslationWriter;
@@ -99,7 +101,7 @@ final class WorkbenchController
             'locale' => $locale,
             'source' => $this->locales->getSourceLocale(),
             'progress' => $total->toArray(),
-            'blocks' => array_map(static fn (BlockTranslationView $v): array => $v->toArray(), $views),
+            'blocks' => array_map(static fn (BlockTranslationView|ColumnTranslationView $v): array => $v->toArray(), $views),
         ]);
     }
 
@@ -190,6 +192,82 @@ final class WorkbenchController
         ]);
     }
 
+    /**
+     * A column's tab title. Same body and answer as {@see self::saveBlock()};
+     * the entry comes back under `block` so one client handles both.
+     */
+    #[Route('/column/{id}/{locale}', name: 'content_blocks_i18n_column_save', methods: ['POST'], requirements: ['id' => '\d+', 'locale' => '[A-Za-z0-9_-]+'])]
+    public function saveColumn(int $id, string $locale, Request $request): JsonResponse
+    {
+        $csrf = $this->csrfFailureOrNull($request);
+
+        if ($csrf !== null) {
+            return $csrf;
+        }
+
+        $column = $this->columnForWrite($id);
+
+        if ($column instanceof JsonResponse) {
+            return $column;
+        }
+
+        $payload = json_decode($request->getContent(), true);
+        $values = \is_array($payload) ? ($payload['values'] ?? null) : null;
+
+        if (!\is_array($values)) {
+            return new JsonResponse(['error' => 'missing_values'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $clean = [];
+
+        foreach ($values as $path => $value) {
+            if ($value !== null && !\is_string($value)) {
+                return new JsonResponse(['error' => 'invalid_value', 'path' => (string) $path], Response::HTTP_BAD_REQUEST);
+            }
+
+            $clean[(string) $path] = $value;
+        }
+
+        $result = $this->writer->writeColumn($column, $locale, $clean);
+        $this->em->flush();
+
+        return new JsonResponse([
+            'result' => $result->toArray(),
+            'block' => $this->inspector->inspectColumn($column, $locale)?->toArray(),
+        ]);
+    }
+
+    #[Route('/column/{id}/{locale}/approve', name: 'content_blocks_i18n_column_approve', methods: ['POST'], requirements: ['id' => '\d+', 'locale' => '[A-Za-z0-9_-]+'])]
+    public function approveColumn(int $id, string $locale, Request $request): JsonResponse
+    {
+        $csrf = $this->csrfFailureOrNull($request);
+
+        if ($csrf !== null) {
+            return $csrf;
+        }
+
+        $column = $this->columnForWrite($id);
+
+        if ($column instanceof JsonResponse) {
+            return $column;
+        }
+
+        $payload = json_decode($request->getContent(), true);
+        $paths = \is_array($payload) ? ($payload['paths'] ?? null) : null;
+
+        if (!\is_array($paths)) {
+            return new JsonResponse(['error' => 'missing_paths'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $result = $this->writer->markColumnUpToDate($column, $locale, array_values(array_map(strval(...), $paths)));
+        $this->em->flush();
+
+        return new JsonResponse([
+            'result' => $result->toArray(),
+            'block' => $this->inspector->inspectColumn($column, $locale)?->toArray(),
+        ]);
+    }
+
     private function area(int $id): ContentArea|JsonResponse
     {
         $area = $this->em->find(ContentArea::class, $id);
@@ -224,6 +302,24 @@ final class WorkbenchController
         }
 
         return $block;
+    }
+
+    /** Authorized against the column's own area, like a block. */
+    private function columnForWrite(int $id): Column|JsonResponse
+    {
+        $column = $this->em->find(Column::class, $id);
+
+        if ($column === null) {
+            return new JsonResponse(['error' => 'not_found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $area = $column->getSection()?->getContentArea();
+
+        if ($area === null || !$this->accessChecker->canEdit($area)) {
+            throw new ContentBlocksAccessDeniedException();
+        }
+
+        return $column;
     }
 
     private function csrfFailureOrNull(Request $request): ?JsonResponse

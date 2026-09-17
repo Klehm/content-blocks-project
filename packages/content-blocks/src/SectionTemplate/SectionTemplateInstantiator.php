@@ -10,6 +10,7 @@ use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Section\ColumnSettings;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 
 /**
@@ -79,6 +80,10 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
         $column = new Column();
         if (isset($raw['preset']) && is_string($raw['preset'])) {
             $column->setPreset($raw['preset']);
+        }
+        $settings = ColumnSettings::sanitize($raw['settings'] ?? null);
+        if ($settings !== []) {
+            $column->setDraftSettings($settings);
         }
 
         $blocks = $raw['blocks'] ?? null;

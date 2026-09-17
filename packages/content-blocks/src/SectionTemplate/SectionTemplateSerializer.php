@@ -45,8 +45,13 @@ final class SectionTemplateSerializer implements SectionTemplateSerializerInterf
             $blocks[] = $this->serializeBlock($block, $blockTypes);
         }
 
+        $settings = $column->getDraftSettings() ?? $column->getPublishedSettings();
+
         return [
             'preset' => $column->getPreset(),
+            // Only when set, so a payload without column settings is
+            // byte-identical to one written before they existed.
+            ...($settings !== null && $settings !== [] ? ['settings' => $settings] : []),
             'blocks' => $blocks,
         ];
     }

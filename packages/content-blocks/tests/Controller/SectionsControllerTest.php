@@ -10,6 +10,7 @@ use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Rendering\RenderMode;
 use ContentBlocks\Section\SectionCloner;
+use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,6 +25,7 @@ final class SectionsControllerTest extends ControllerTestCase
         ?AccessCheckerInterface $accessChecker = null,
         ?BlockRendererInterface $renderer = null,
         array $initialSettings = [],
+        ?SectionLayoutRegistry $layouts = null,
     ): SectionsController {
         return new SectionsController(
             $em,
@@ -34,6 +36,7 @@ final class SectionsControllerTest extends ControllerTestCase
             $this->makeRegistry(),
             $this->makeJournal($em),
             $initialSettings,
+            $layouts ?? new SectionLayoutRegistry(),
         );
     }
 
@@ -136,6 +139,71 @@ final class SectionsControllerTest extends ControllerTestCase
 
         $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
         $this->assertSame(0, $this->flushCount);
+    }
+
+    public function testCreateBuildsAHostLayoutFromItsSpans(): void
+    {
+        $area = $this->makeArea(1);
+        $layouts = new SectionLayoutRegistry(SectionLayoutRegistry::resolve([
+            'four_cols' => ['label' => '4 columns', 'columns' => [3, 3, 3, 3]],
+        ]));
+        $controller = $this->makeController($this->makeEm([$area]), layouts: $layouts);
+
+        $response = $controller->create(1, $this->makeJsonRequest(['layout' => 'four_cols']));
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        /** @var Section $section */
+        $section = $this->persisted[0];
+        $this->assertSame('four_cols', $section->getLayout());
+        $presets = [];
+        foreach ($section->getColumns() as $column) {
+            $presets[] = [$column->getPreset(), $column->getPreviewPosition()];
+        }
+        $this->assertSame([['col-3', 0], ['col-3', 1], ['col-3', 2], ['col-3', 3]], $presets);
+    }
+
+    public function testATabsLayoutStartsItsSectionAsTabsOverTheInitialSettings(): void
+    {
+        $area = $this->makeArea(1);
+        $layouts = new SectionLayoutRegistry(SectionLayoutRegistry::resolve([
+            'tabs' => ['label' => 'Tabs', 'columns' => [6, 6], 'display' => 'tabs'],
+        ]));
+        $controller = $this->makeController(
+            $this->makeEm([$area]),
+            initialSettings: ['widthMode' => 'centered'],
+            layouts: $layouts,
+        );
+
+        $controller->create(1, $this->makeJsonRequest(['layout' => 'tabs']));
+
+        /** @var Section $section */
+        $section = $this->persisted[0];
+        $this->assertSame(['widthMode' => 'centered', 'display' => 'tabs'], $section->getDraftSettings());
+    }
+
+    /** Hidden from the buttons means refused from a forged POST too. */
+    public function testCreateRejectsADisabledLayout(): void
+    {
+        $area = $this->makeArea(1);
+        $layouts = new SectionLayoutRegistry(SectionLayoutRegistry::resolve([
+            'three_cols' => ['enabled' => false],
+        ]));
+        $controller = $this->makeController($this->makeEm([$area]), layouts: $layouts);
+
+        $response = $controller->create(1, $this->makeJsonRequest(['layout' => Section::LAYOUT_THREE_COLS]));
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+        $this->assertSame(0, $this->flushCount);
+    }
+
+    public function testCreateRejectsANonStringLayout(): void
+    {
+        $area = $this->makeArea(1);
+        $controller = $this->makeController($this->makeEm([$area]));
+
+        $response = $controller->create(1, $this->makeJsonRequest(['layout' => ['full']]));
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
     }
 
     public function testCreateReturns404ForAnUnknownArea(): void

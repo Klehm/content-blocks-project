@@ -5,7 +5,8 @@
 <div class="cb-col cb-col--{{ column.preset }}{% if column.width is defined and column.width %} cb-col--weighted{% endif %}{% if column.deleted %} cb-col--deleted{% endif %}"
     {% if column.width is defined and column.width %}style="--cb-col-grow: {{ column.width }};"{% endif %}
     {% if isPreview %}data-cb-column-id="{{ column.id }}"{% endif %}
-    {% if column.deleted %}data-cb-deleted="1"{% endif %}>
+    {% if column.deleted %}data-cb-deleted="1"{% endif %}
+    {% if panelId ?? null %}id="{{ panelId }}-panel" role="region" aria-labelledby="{{ panelId }}-label"{% endif %}>
     {% for block in (chrome ? column.blocks : column.blocks|filter(b => not b.deleted)) %}
         {{ include('@ContentBlocks/render/block.html.twig', { block: block, isPreview: isPreview }, with_context = false) }}
     {% endfor %}

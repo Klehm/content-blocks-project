@@ -225,7 +225,94 @@
         positionToolbarFor(el, kind);
     }
 
+    // ---------- Tabs and accordion displays ----------
+
+    // A block in a closed tab or panel is in the DOM but invisible.
+    // See docs/internals/rendering.md#columns-and-tabs
+    const PANEL_STORAGE_PREFIX = 'cb-builder.tab:';
+    const PANEL_INPUTS = ':scope > .cb-tabs__radio, :scope > .cb-row > .cb-accordion__toggle';
+
+    function panelColumns(section) {
+        return Array.from(section.querySelectorAll(':scope > .cb-row > [data-cb-column-id]'));
+    }
+
+    /** One input per column, in column order: radios or checkboxes. */
+    function panelInputs(section) {
+        return Array.from(section.querySelectorAll(PANEL_INPUTS));
+    }
+
+    function openColumnIds(section) {
+        const columns = panelColumns(section);
+        return panelInputs(section)
+            .map((input, i) => (input.checked ? columns[i]?.getAttribute('data-cb-column-id') : null))
+            .filter((id) => id);
+    }
+
+    /** Opens the tab or panel holding `el`. */
+    function revealTab(el) {
+        const column = el.closest('[data-cb-column-id]');
+        const section = column?.parentElement?.parentElement;
+        if (!section) return;
+        const input = panelInputs(section)[panelColumns(section).indexOf(column)];
+        if (input && !input.checked) {
+            input.checked = true;
+            rememberPanels(section);
+        }
+    }
+
+    function rememberPanels(section) {
+        try {
+            sessionStorage.setItem(
+                PANEL_STORAGE_PREFIX + section.getAttribute('data-cb-section-id'),
+                openColumnIds(section).join(','),
+            );
+        } catch (_) {
+            // Storage blocked: a reload opens the first panel, as in public.
+        }
+    }
+
+    /**
+     * Checks the inputs of the listed columns. A tab bar with none of them
+     * left keeps the one the server opened.
+     */
+    function applyOpenColumns(section, ids) {
+        const columns = panelColumns(section);
+        const live = (i) => columns[i] && columns[i].getAttribute('data-cb-deleted') !== '1'
+            && ids.includes(columns[i].getAttribute('data-cb-column-id'));
+        panelInputs(section).forEach((input, i) => {
+            if (input.type === 'checkbox') {
+                input.checked = live(i);
+            } else if (live(i)) {
+                input.checked = true;
+            }
+        });
+    }
+
+    /** A reload would reopen the first panel under the editor's feet. */
+    function restoreTabs(root) {
+        root.querySelectorAll('.cb-section[data-cb-section-id]').forEach((section) => {
+            if (panelInputs(section).length === 0) return;
+            let stored = null;
+            try {
+                stored = sessionStorage.getItem(PANEL_STORAGE_PREFIX + section.getAttribute('data-cb-section-id'));
+            } catch (_) {
+                return;
+            }
+            if (stored === null) return;
+            applyOpenColumns(section, stored === '' ? [] : stored.split(','));
+        });
+    }
+
+    document.addEventListener('change', (event) => {
+        const input = event.target;
+        if (!(input instanceof HTMLInputElement)) return;
+        if (!input.classList.contains('cb-tabs__radio') && !input.classList.contains('cb-accordion__toggle')) return;
+        const section = input.closest('[data-cb-section-id]');
+        if (section) rememberPanels(section);
+    });
+
     function focusElement(el, kind) {
+        revealTab(el);
         // Drop any prior hover/focus highlight before moving on.
         if (hoveredEl && hoveredEl !== el) hoveredEl.classList.remove('cb-overlay-outline');
         if (focusedEl && focusedEl !== el) focusedEl.classList.remove('cb-overlay-outline');
@@ -414,6 +501,27 @@
         }
         if (wasOutlined) oldEl.classList.add('cb-overlay-outline');
 
+        // Tab bar and accordion headers follow the display and the column
+        // labels, keeping what was open when those columns are still there.
+        const hadPanels = panelInputs(oldEl).length > 0;
+        const open = openColumnIds(oldEl);
+        oldEl.querySelectorAll(':scope > .cb-tabs__radio, :scope > .cb-tabs__nav, '
+            + ':scope > .cb-row > .cb-accordion__toggle, :scope > .cb-row > .cb-accordion__header')
+            .forEach((n) => n.remove());
+        const row = oldEl.querySelector(':scope > .cb-row');
+        newEl.querySelectorAll(':scope > .cb-tabs__radio, :scope > .cb-tabs__nav').forEach((n) => {
+            oldEl.insertBefore(n, row);
+        });
+        newEl.querySelectorAll(':scope > .cb-row > .cb-accordion__header').forEach((header) => {
+            const toggle = header.previousElementSibling;
+            const id = header.nextElementSibling?.getAttribute('data-cb-column-id');
+            const oldCol = id ? row?.querySelector(`:scope > [data-cb-column-id="${id}"]`) : null;
+            if (!oldCol) return;
+            row.insertBefore(toggle, oldCol);
+            row.insertBefore(header, oldCol);
+        });
+        if (hadPanels) applyOpenColumns(oldEl, open);
+
         // Columns: copy class + style by matching data-cb-column-id, so column
         // width changes (cb-col--weighted / --cb-col-grow) land too.
         newEl.querySelectorAll('[data-cb-column-id]').forEach((newCol) => {
@@ -422,11 +530,13 @@
             if (!oldCol) return;
             const wasColOutlined = oldCol.classList.contains('cb-overlay-outline');
             oldCol.setAttribute('class', newCol.getAttribute('class') || '');
-            const colStyle = newCol.getAttribute('style');
-            if (colStyle !== null) {
-                oldCol.setAttribute('style', colStyle);
-            } else {
-                oldCol.removeAttribute('style');
+            for (const name of ['style', 'id', 'role', 'aria-labelledby']) {
+                const value = newCol.getAttribute(name);
+                if (value !== null) {
+                    oldCol.setAttribute(name, value);
+                } else {
+                    oldCol.removeAttribute(name);
+                }
             }
             if (wasColOutlined) oldCol.classList.add('cb-overlay-outline');
         });
@@ -1105,7 +1215,10 @@
         // whatever the preview is currently showing.
         if (data.type === 'cb:block:scroll-into-view' && Number.isFinite(data.blockId)) {
             const el = document.querySelector(`[data-cb-block-id="${data.blockId}"]`);
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (el) {
+                revealTab(el);
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
             return;
         }
 
@@ -1133,8 +1246,12 @@
     // ---------- Ready signal ----------
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => postToParent('cb:ready'));
+        document.addEventListener('DOMContentLoaded', () => {
+            restoreTabs(document);
+            postToParent('cb:ready');
+        });
     } else {
+        restoreTabs(document);
         postToParent('cb:ready');
     }
 })();

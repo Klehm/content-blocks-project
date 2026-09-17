@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Controller;
 
+use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Form\Type\SectionSettingsType;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
+use ContentBlocks\Section\ColumnSettings;
 use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
@@ -82,14 +84,18 @@ final class SectionSidebarController
         // as customized so their values survive the next save.
         $initial['stylingCustom'] ??= ($current['styling'] ?? []) !== [];
 
-        // Number of (live) columns: drives whether the column-widths control
-        // is offered and how many width inputs the sidebar renders.
-        $columnCount = 0;
-        foreach ($section->getColumns() as $column) {
-            if (!$column->isDeleted()) {
-                ++$columnCount;
-            }
+        // Live columns, in draft order: the widths control, the column list
+        // and its add/remove buttons all read this.
+        $columns = [];
+        $live = array_filter($section->getColumns()->toArray(), static fn (Column $c): bool => !$c->isDeleted());
+        usort($live, static fn (Column $a, Column $b): int => $a->getPreviewPosition() <=> $b->getPreviewPosition());
+        foreach ($live as $column) {
+            $columns[] = [
+                'id' => $column->getId(),
+                'label' => ColumnSettings::label($column->getEffectiveSettings(preferDraft: true)),
+            ];
         }
+        $columnCount = \count($columns);
 
         $form = $this->formFactory->create(SectionSettingsType::class, $initial, [
             'action' => $this->urlGenerator->generate('content_blocks_section_settings', ['id' => $id]),
@@ -134,6 +140,8 @@ final class SectionSidebarController
                     'form' => $form->createView(),
                     'sectionId' => $id,
                     'columnCount' => $columnCount,
+                    'columns' => $columns,
+                    'maxColumns' => ColumnsController::MAX_COLUMNS,
                 ]),
                 Response::HTTP_UNPROCESSABLE_ENTITY,
             );
@@ -143,6 +151,8 @@ final class SectionSidebarController
             'form' => $form->createView(),
             'sectionId' => $id,
             'columnCount' => $columnCount,
+            'columns' => $columns,
+            'maxColumns' => ColumnsController::MAX_COLUMNS,
         ]));
     }
 
