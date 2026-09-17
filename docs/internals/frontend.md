@@ -313,9 +313,9 @@ one unpublished change.
 A Live Component in the sidebar fails in two ways, and neither surfaces on its
 own:
 
-- **`response:error`** — the server answered with a non-component response (500,
-  expired session). Live's default raw-HTML error modal is suppressed in favour
-  of the topbar banner.
+- **`response:error`** — the server answered with a non-component response (a
+  500, or an expired session, see below). Live's default raw-HTML error modal is
+  suppressed in favour of the topbar banner.
 - **a network failure** — Live's request promise has no rejection handler at all,
   so the save dies silently. One is attached through `loading.state:started`.
 
@@ -327,6 +327,58 @@ A failure is dispatched as `cb:save:error` on the form's **autosave wrapper**,
 which does two things at once: `cb-autosave` resets its dirty-detection baseline
 so the next interaction re-attempts the save rather than treating the failed state
 as already saved, and the event bubbles up to show the banner.
+
+### An expired session is said, not followed
+
+The editor leaves the builder open, comes back an hour later, and the session
+is gone. The host's firewall does not answer the builder's calls with a 401: a
+form-login entry point **redirects** to the login page, and `fetch()` follows
+redirects silently. The builder saw a `200` carrying HTML. The section form
+took it for a save and emitted `cb:section:saved`; the hot reload then failed
+to parse JSON and fell back to reloading the iframe, whose preview URL the
+firewall redirected too: a front page with nothing to do with the edit, and an
+edit that was never stored.
+
+Two halves, so neither depends on the other:
+
+- **Server — `SessionExpiredResponseListener`.** A redirect answering a
+  *fetch* (`Sec-Fetch-Mode` other than `navigate`, or JSON / Live / XHR
+  headers when fetch metadata is absent) on a package route (`_route` starting
+  `content_blocks_`, or a `ContentBlocks:` Live Component) becomes
+  `401 {"error":"session_expired","login":…}` with
+  `X-Content-Blocks-Session: expired`. None of these endpoints redirects on its
+  own, so nothing legitimate is lost; a navigation (the workbench page, the
+  asset report) still reaches the login form. It runs at priority 10, ahead of
+  `LiveComponentSubscriber`, which would otherwise turn the redirect into
+  `X-Live-Redirect` and send the whole admin tab to the login page.
+- **Client — `isSessionLoss()`.** A 401, the marker header, or
+  `response.redirected` (so a host whose redirect escapes the listener is still
+  caught). `cb-builder` checks it on every fetch it makes; the section form, the
+  tree and the upload widget report it as `cb:save:error` with
+  `detail.sessionExpired`, so the autosave baseline resets exactly as for any
+  failed save.
+
+A lost session raises its own banner in place of the generic save error, and
+**`reload()` does nothing** until the session is back: reloading is what put a
+login or a front page in the preview. The banner's link reopens the *current*
+page in a new tab rather than the login URL: the firewall remembers the target
+path, so the editor lands back on their page, and the tab with the unsaved
+edit stays where it was.
+
+**Checking on the way back.** The first interaction after `sessionCheckAfter`
+(60 s) of inactivity — window focus, the tab becoming visible, a pointer or key
+in the shell, a message from the preview — sends `GET /area/{id}/state`. The
+banner then shows *before* the editor types into a dead session. While the
+session is known lost, every interaction rechecks, spaced by
+`SESSION_RECHECK_MS`. A live answer carries `csrfToken`, written back to
+`data-cb-csrf-token`: a renewed session (a new login, or remember-me) issues a
+new token, and without it every later mutation would fail its CSRF check. When
+the session is found back, the banner goes, the open sidebar form is flushed —
+its baseline was reset, so the swallowed edit is sent again — and the preview
+reloads.
+
+This is not a keep-alive: nothing pings on a timer, so the host's session
+lifetime still decides. A check only follows the editor's own activity.
 
 ## What autosave compares
 

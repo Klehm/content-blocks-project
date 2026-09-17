@@ -81,6 +81,16 @@ final class AreaControllerTest extends ControllerTestCase
         $this->assertTrue($payload['hasUnpublishedChanges']);
     }
 
+    public function testStateHandsOutTheSessionsCurrentCsrfToken(): void
+    {
+        $area = $this->makeArea(1);
+        $controller = $this->makeController($this->makeEm([$area]));
+
+        $payload = json_decode((string) $controller->state(1)->getContent(), true);
+
+        $this->assertSame('fresh-token', $payload['csrfToken']);
+    }
+
     public function testPublishRejectsInvalidCsrf(): void
     {
         $controller = $this->makeController($this->makeEm(), csrfValid: false);

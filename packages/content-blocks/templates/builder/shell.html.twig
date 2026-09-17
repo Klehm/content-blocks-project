@@ -193,6 +193,20 @@
                 <span class="cb-shell__btn-icon" aria-hidden="true">⚠</span>
                 <span>{{ 'cb.builder.save_error'|trans({}, 'content_blocks') }}</span>
             </span>
+            {# Until a later check finds the session back; the link reopens this
+               page in a new tab, so the unsaved edit stays on screen here. #}
+            <span class="cb-shell__session-expired"
+                  data-cb-builder-target="sessionExpired"
+                  role="alert"
+                  hidden>
+                <span class="cb-shell__btn-icon" aria-hidden="true">⚠</span>
+                <span>{{ 'cb.builder.session_expired.message'|trans({}, 'content_blocks') }}</span>
+                <a class="cb-shell__session-login"
+                   data-cb-builder-target="sessionLogin"
+                   href="#"
+                   target="_blank"
+                   rel="noopener">{{ 'cb.builder.session_expired.login'|trans({}, 'content_blocks') }}</a>
+            </span>
             <button type="button"
                     class="cb-shell__discard"
                     data-action="cb-builder#discard"

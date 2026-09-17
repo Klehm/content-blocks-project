@@ -30,6 +30,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\Forms;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
@@ -82,6 +83,8 @@ abstract class ControllerTestCase extends TestCase
     {
         $manager = $this->createMock(CsrfTokenManagerInterface::class);
         $manager->method('isTokenValid')->willReturn($valid);
+        $manager->method('getToken')
+            ->willReturnCallback(static fn (string $id) => new CsrfToken($id, 'fresh-token'));
 
         return $manager;
     }

@@ -240,6 +240,13 @@ export default class extends Controller {
                 credentials: 'same-origin',
                 headers: { Accept: 'application/json' },
             });
+            if (response.status === 401 || response.redirected) {
+                // cb-builder owns the session banner.
+                this.element.dispatchEvent(new CustomEvent('cb:save:error', {
+                    bubbles: true,
+                    detail: { sessionExpired: true },
+                }));
+            }
             if (!response.ok) throw new Error(`status ${response.status}`);
             payload = await response.json();
         } catch (e) {

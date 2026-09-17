@@ -146,6 +146,9 @@ cb:
         draft_pending: "Draft pending"
         saved: "Saved"
         save_error: "Changes could not be saved — check your connection and try again"
+        session_expired:
+            message: "Session expired — changes are not saved"
+            login: "Log in again"
         undo:
             block_deleted: "Block deleted"
             section_deleted: "Section deleted"
