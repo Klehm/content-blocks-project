@@ -568,7 +568,9 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
       `Version20260715130000` (styling viewports), `Version20260729120000`
       (content-version columns), **`Version20260831120000`** (published-render
       immutability — skipping it hides already-live sections) and
-      `Version20260910120000` (undo stack); run `doctrine:migrations:migrate`.
+      `Version20260910120000` (undo stack), **`Version20260917120000`** (column
+      draft twins — pins published column presets) and, with the i18n package,
+      `Version20260917130000` (tab titles); run `doctrine:migrations:migrate`.
 - [ ] On Doctrine's default naming strategy only: generate the
       `cb_section.contentArea_id` rename with `doctrine:migrations:diff` and
       check it is a `CHANGE` (§1g).
