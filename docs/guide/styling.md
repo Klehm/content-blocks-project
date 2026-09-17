@@ -96,9 +96,12 @@ use. The same helper is available to your own code:
 - PHP: `ContentBlocks\Palette\ColorTone::of('#1e293b')` returns `'dark'`,
   `'light'` or `null` for anything that is not `#rgb` / `#rrggbb`. `isDark()`,
   `isLight()` and `luminance()` are there too.
-- Twig: `cb_color_tone(color)` and `cb_color_is_dark(color)`, for instance
-  `<div class="hero hero--{{ cb_color_tone(data.color) ?? 'none' }}">` in a
-  block template.
+- Twig: `cb_color_tone(color)` and `cb_color_is_dark(color)`, for instance in
+  a block template:
+
+  ```twig
+  <div class="hero hero--{{ cb_color_tone(data.color) ?? 'none' }}">
+  ```
 
 ## Extending the Styling sub-form
 
