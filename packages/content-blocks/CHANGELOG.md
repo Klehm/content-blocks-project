@@ -5,6 +5,16 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **The tab bar follows the section's width.** On a centered section the bar
+  spanned the whole section while the panels stopped at the max width, and
+  once a vertical alignment turned the section into a flex column, a host
+  style centring its children shrank the bar to its labels. `.cb-tabs__nav` is
+  now capped by `--cb-row-max-w` like the row, and always full width.
+
 ## [1.0.0-RC11] - 2026-09-17
 
 ### Added

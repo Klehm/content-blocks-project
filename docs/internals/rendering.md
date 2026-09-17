@@ -218,7 +218,9 @@ holds at most `ColumnsController::MAX_COLUMNS` (20).
 one radio per column, then a nav of `<label>`s, then the row, as siblings, so
 `radio:nth-of-type(n):checked ~ .cb-row > .cb-col:nth-child(n)` opens a panel
 and `~ .cb-tabs__nav > :nth-child(n)` marks its tab. Those rules are written
-out to 20, the column cap. A radio group also gives arrow-key navigation for
+out to 20, the column cap. Being a sibling of the row, the nav needs the row's
+sizing too: the centered cap (`--cb-row-max-w`) and a fixed full width, since a
+vertical alignment makes the section a flex column where it could shrink. A radio group also gives arrow-key navigation for
 free. Ids derive from the section id rather than a random suffix, because the
 public render must be byte-stable (see the immutability test).
 

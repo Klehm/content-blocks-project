@@ -142,6 +142,40 @@ test('a section shows its columns as tabs, in the builder and on the page', asyn
     await viewer.close();
 });
 
+/** Centered and vertically aligned: the tab bar keeps the content's width. */
+test('the tab bar follows the section max width and vertical alignment', async ({ page }) => {
+    const frame = await openBuilder(page, await createFreshPage(page));
+
+    await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="tabs"]').click();
+    const sidebar = page.locator('.cb-shell__sidebar');
+    const saved = () => page.waitForResponse((r) => /\/section\/\d+\/settings$/.test(r.url())
+        && r.request().method() === 'POST');
+    let save = saved();
+    await sidebar.locator('input[name$="[widthMode]"][value="centered"]').check();
+    await save;
+    save = saved();
+    await sidebar.locator('input[name$="[maxWidth]"]').fill('600');
+    await sidebar.locator('input[name$="[maxWidth]"]').press('Tab');
+    await save;
+    save = saved();
+    await sidebar.locator('input[name$="[stylingCustom]"]').check();
+    await save;
+    // An icon button: the radio itself is visually hidden.
+    save = saved();
+    await sidebar.locator('.cb-align-btn:has(input[name$="[styling][verticalAlign]"][value="center"])').click();
+    await save;
+
+    const section = frame.locator('.cb-section--display-tabs');
+    await expect(section).toHaveClass(/cb-section--has-valign/, { timeout: 10000 });
+    await expect(section).toHaveClass(/cb-section--centered/);
+    await expect.poll(() => section.getAttribute('style')).toContain('--cb-row-max-w:600px');
+
+    const box = (selector) => section.locator(selector)
+        .evaluate((el) => { const r = el.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.width)]; });
+    await expect.poll(() => box(':scope > .cb-row')).toEqual([expect.any(Number), 600]);
+    expect(await box(':scope > .cb-tabs__nav')).toEqual(await box(':scope > .cb-row'));
+});
+
 test('a section shows its columns as an accordion, in the builder and on the page', async ({ page, context }) => {
     const builderUrl = await createFreshPage(page);
     const frame = await openBuilder(page, builderUrl);
