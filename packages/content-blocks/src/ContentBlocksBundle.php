@@ -148,6 +148,9 @@ final class ContentBlocksBundle extends AbstractBundle
         $node = new ArrayNodeDefinition($name);
         $node
             ->info($info)
+            // A host's own section field (a form type extension) is kept
+            // as is; only the core keys are typed.
+            ->ignoreExtraKeys(false)
             ->children()
                 ->scalarNode('classes')->end()
                 ->enumNode('display')->values(Section\SectionDisplay::ALL)->end()
@@ -157,10 +160,37 @@ final class ContentBlocksBundle extends AbstractBundle
                 ->scalarNode('styleName')->end()
                 ->booleanNode('stylingCustom')->end()
                 ->booleanNode('reverseOnMobile')->end()
+                ->booleanNode('accordionSingle')->end()
+                ->booleanNode('accordionCollapsed')->end()
             ->end()
             ->append($this->stylingNode());
+        self::refuseNearMisses($node);
 
         return $node;
+    }
+
+    /**
+     * Extra keys are kept for host fields, but one a letter or two off a core
+     * key is a typo, and would otherwise do nothing without a word.
+     */
+    private static function refuseNearMisses(ArrayNodeDefinition $node): void
+    {
+        $node->validate()->always(static function (mixed $value) use ($node): mixed {
+            if (!\is_array($value)) {
+                return $value;
+            }
+            $core = array_keys($node->getChildNodeDefinitions());
+            foreach (array_diff(array_keys($value), $core) as $key) {
+                foreach ($core as $known) {
+                    $distance = levenshtein(strtolower((string) $key), strtolower($known));
+                    if ($distance > 0 && $distance <= (\strlen($known) > 4 ? 2 : 1)) {
+                        throw new \InvalidArgumentException(sprintf('Unknown key "%s": did you mean "%s"?', $key, $known));
+                    }
+                }
+            }
+
+            return $value;
+        })->end();
     }
 
     /**
@@ -173,11 +203,17 @@ final class ContentBlocksBundle extends AbstractBundle
     {
         $node = new ArrayNodeDefinition('styling');
         $node
+            ->ignoreExtraKeys(false)
             ->append($this->responsiveBoxNode('padding'))
             ->append($this->responsiveBoxNode('margin'))
             ->append($this->responsiveGapNode())
             ->children()
                 ->scalarNode('backgroundColor')->end()
+                ->scalarNode('backgroundImage')->end()
+                ->enumNode('backgroundSize')->values(['cover', 'contain'])->end()
+                ->enumNode('backgroundPosition')->values(['center', 'top', 'bottom', 'left', 'right'])->end()
+                ->scalarNode('overlayColor')->end()
+                ->integerNode('overlayOpacity')->min(0)->max(100)->end()
                 ->arrayNode('minHeight')
                     ->children()
                         ->integerNode('value')->min(0)->end()
@@ -186,6 +222,8 @@ final class ContentBlocksBundle extends AbstractBundle
                 ->end()
                 ->enumNode('verticalAlign')->values(['start', 'center', 'end'])->end()
             ->end();
+
+        self::refuseNearMisses($node);
 
         return $node;
     }

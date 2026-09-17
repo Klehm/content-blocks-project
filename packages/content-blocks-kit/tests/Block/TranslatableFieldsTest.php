@@ -12,6 +12,7 @@ use ContentBlocks\Kit\Block\HtmlRawBlock;
 use ContentBlocks\Kit\Block\RichTextBlock;
 use ContentBlocks\Kit\Form\Type\AccordionItemType;
 use ContentBlocks\Kit\Form\Type\BreadcrumbItemType;
+use ContentBlocks\Kit\Form\Type\ButtonGroupItemType;
 use ContentBlocks\Kit\Form\Type\ListItemType;
 use ContentBlocks\Kit\Form\Type\RichTextEditorType;
 use ContentBlocks\Kit\Form\Type\TabEntryType;
@@ -29,7 +30,7 @@ use Symfony\Component\Validator\Validation;
 /**
  * The kit tags the fields an editor would want in another language, so that a
  * satellite translation package finds an annotated field set on day one rather
- * than 18 blocks nobody marked up (see the core's
+ * than 19 blocks nobody marked up (see the core's
  * {@see TranslatableFieldTypeExtension} for the tagging rule).
  *
  * Scope note: only blocks and item types built from stock Symfony form types
@@ -66,6 +67,7 @@ final class TranslatableFieldsTest extends TestCase
         yield 'html_raw' => [$block(new HtmlRawBlock()), ['html']];
 
         yield 'list item' => [$type(ListItemType::class), ['text']];
+        yield 'button group item' => [$type(ButtonGroupItemType::class), ['text', 'url']];
         yield 'accordion item' => [$type(AccordionItemType::class), ['title', 'content']];
         yield 'tab entry' => [$type(TabEntryType::class), ['title', 'content']];
         yield 'breadcrumb item' => [$type(BreadcrumbItemType::class), ['label', 'url']];

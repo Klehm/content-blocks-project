@@ -1603,8 +1603,14 @@ export default class extends Controller {
         });
     }
 
+    /**
+     * Only the latest request lands, and clearing the sidebar cancels any in
+     * flight: a late response would replace what the editor chose since.
+     */
     async _mountSidebarFrom(url, dataAttrs = {}) {
         if (!this.hasSidebarTarget || !this.hasSidebarContentTarget) return;
+        const mount = {};
+        this._latestMount = mount;
 
         // The user just asked to edit something.
         this._setSidebarCollapsed(false);
@@ -1620,7 +1626,9 @@ export default class extends Controller {
                 return;
             }
 
-            this.sidebarContentTarget.innerHTML = await response.text();
+            const html = await response.text();
+            if (this._latestMount !== mount) return;
+            this.sidebarContentTarget.innerHTML = html;
             this._clearSidebarDataAttrs();
             for (const [k, v] of Object.entries(dataAttrs)) {
                 this.sidebarTarget.setAttribute(k, v);
@@ -1648,6 +1656,7 @@ export default class extends Controller {
     _resetSidebarToEmptyState() {
         if (!this.hasSidebarContentTarget) return;
         if (typeof this._sidebarEmptyHtml !== 'string') return;
+        this._latestMount = null;
         this.sidebarContentTarget.innerHTML = this._sidebarEmptyHtml;
         this._clearSidebarDataAttrs();
         this._broadcastSelection();

@@ -38,6 +38,27 @@ final class SectionTemplateInstantiatorTest extends TestCase
         return new SectionTemplateInstantiator($registry, new BlockDataKeys($registry, $factory));
     }
 
+    public function testMissingCollectionIdsAreAdded(): void
+    {
+        $registry = \ContentBlocks\Tests\Block\CollectionIdBackfillerTest::registry();
+        $factory = Forms::createFormFactoryBuilder()
+            ->addType(new BlockFormType(new BlockFormExtensionCollection()))
+            ->getFormFactory();
+        $instantiator = new SectionTemplateInstantiator(
+            $registry,
+            new BlockDataKeys($registry, $factory),
+            collectionIds: \ContentBlocks\Tests\Block\CollectionIdBackfillerTest::backfillerFor($registry),
+        );
+
+        $section = $instantiator->instantiate($this->payload([
+            ['preset' => 'col-12', 'blocks' => [['type' => 'grid', 'data' => ['rows' => [['cells' => [['content' => 'A']]]]]]]],
+        ]))->section;
+
+        $rows = $section->getColumns()[0]->getBlocks()[0]->getDraftData()['rows'];
+        $this->assertIsString($rows[0]['_id'] ?? null);
+        $this->assertIsString($rows[0]['cells'][0]['_id'] ?? null);
+    }
+
     /** Wraps a global (`*`) extension the way the compiler pass would. */
     private function extensions(BlockFormExtensionInterface $extension): BlockFormExtensionCollection
     {
@@ -102,7 +123,7 @@ final class SectionTemplateInstantiatorTest extends TestCase
         return [
             'format' => SectionTemplateSerializer::FORMAT,
             'layout' => Section::LAYOUT_TWO_COLS,
-            'settings' => ['classes' => 'hero'],
+            'settings' => ['classes' => 'hero', 'anchorId' => 'intro'],
             'columns' => $columns,
         ];
     }
@@ -125,7 +146,8 @@ final class SectionTemplateInstantiatorTest extends TestCase
         $this->assertNull($section->getContentArea());
         $this->assertNull($section->getId());
         $this->assertSame(Section::LAYOUT_TWO_COLS, $section->getLayout());
-        $this->assertSame(['classes' => 'hero'], $section->getDraftSettings());
+        // A host key (`anchorId`) comes through untouched.
+        $this->assertSame(['classes' => 'hero', 'anchorId' => 'intro'], $section->getDraftSettings());
         $this->assertFalse($result->hasWarnings());
 
         $columns = array_values($section->getColumns()->toArray());

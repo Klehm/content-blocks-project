@@ -48,6 +48,10 @@ Type extensions are autoconfigured — with the standard `App\` service definiti
 Extending `SectionSettingsType` lands your field in the section's **General** settings. If instead you want it inside the **Styling** group (behind the "Customize styling" switch), extend `ContentBlocks\Form\Type\Styling\StylingType` — same pattern, different target. See [Styling → Extending the styling sub-form](../styling.md#extending-the-styling-sub-form).
 :::
 
+A preset or `section.initial_settings` can set your field too:
+`settings: { anchorId: faq }` is kept as is. See
+[Your own keys in presets](../host-services.md#your-own-keys-in-presets-and-initial-settings).
+
 ### Where the value goes
 
 `SectionSettingsType` works on a plain array (`data_class: null`), so your field's value becomes a **top-level key** in the section's settings: `$settings['anchorId']`. On save it is written to the section's `draft_settings` JSON column and promoted to `published_settings` on publish.

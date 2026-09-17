@@ -239,3 +239,57 @@ test('a section shows its columns as an accordion, in the builder and on the pag
     await expect.poll(() => shown(tabPanels.nth(1))).toBe(true);
     expect(await shown(tabPanels.nth(0))).toBe(false);
 });
+
+test('an accordion can open one panel at a time and start closed', async ({ page, context }) => {
+    const builderUrl = await createFreshPage(page);
+    const frame = await openBuilder(page, builderUrl);
+    const sidebar = page.locator('.cb-shell__sidebar');
+    const saved = () => page.waitForResponse((r) => /\/section\/\d+\/settings$/.test(r.url())
+        && r.request().method() === 'POST');
+
+    await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="three_cols"]').click();
+    let save = saved();
+    await sidebar.locator('input[name$="[display]"][value="accordion"]').check();
+    await save;
+    save = saved();
+    await sidebar.locator('input[name$="[accordionSingle]"]').check();
+    await save;
+
+    const section = frame.locator('.cb-section--display-accordion');
+    const panels = section.locator(':scope > .cb-row > [data-cb-column-id]');
+    // One visible header per column: the open panel shows its closing twin.
+    const header = (i) => section.locator('.cb-accordion__header:visible').nth(i);
+    await expect(section.locator('.cb-accordion__none')).toHaveCount(1);
+    await expect.poll(() => shown(panels.nth(0))).toBe(true);
+
+    await header(1).click();
+    await expect.poll(() => shown(panels.nth(1))).toBe(true);
+    expect(await shown(panels.nth(0))).toBe(false);
+
+    // Clicking the open panel's header closes it: nothing is left open.
+    await header(1).click();
+    await expect.poll(() => shown(panels.nth(1))).toBe(false);
+    expect(await shown(panels.nth(0))).toBe(false);
+    await page.locator('.cb-shell__iframe').evaluate((el) => el.contentWindow.location.reload());
+    await expect(section.locator('.cb-accordion__header:visible')).toHaveCount(3);
+    expect(await shown(panels.nth(0))).toBe(false);
+
+    await frame.locator('.cb-section-handle').first().click({ force: true });
+    save = saved();
+    await sidebar.locator('input[name$="[accordionCollapsed]"]').check();
+    await save;
+    await publish(page);
+
+    const viewer = await context.newPage();
+    await viewer.goto(builderUrl.replace('/admin/page/', '/page/'));
+    const publicSection = viewer.locator('.cb-section--display-accordion');
+    const publicPanels = publicSection.locator(':scope > .cb-row > .cb-col');
+    const publicHeader = (i) => publicSection.locator('.cb-accordion__header:visible').nth(i);
+    for (let i = 0; i < 3; i++) expect(await shown(publicPanels.nth(i))).toBe(false);
+    await publicHeader(0).click();
+    await expect.poll(() => shown(publicPanels.nth(0))).toBe(true);
+    await publicHeader(2).click();
+    await expect.poll(() => shown(publicPanels.nth(2))).toBe(true);
+    expect(await shown(publicPanels.nth(0))).toBe(false);
+    await viewer.close();
+});

@@ -51,6 +51,35 @@ final class SectionSidebarControllerTest extends ControllerTestCase
         $this->assertArrayNotHasKey('stylingCustom', $saved);
     }
 
+    /** The range posts a string; the veil is stored as an int, 0 not at all. */
+    public function testABackgroundImageAndItsVeilAreSaved(): void
+    {
+        $section = $this->makeSettingsSection(id: 5);
+        $this->makeController([$section])->settings(5, $this->makeFormRequest([
+            'widthMode' => 'full',
+            'stylingCustom' => '1',
+            'styling' => [
+                'backgroundImage' => '/uploads/hero.jpg',
+                'backgroundSize' => '',
+                'backgroundPosition' => 'bottom',
+                'overlayOpacity' => '45',
+            ],
+        ]));
+
+        $styling = $section->getDraftSettings()['styling'] ?? [];
+        $this->assertSame('/uploads/hero.jpg', $styling['backgroundImage']);
+        $this->assertSame('bottom', $styling['backgroundPosition']);
+        $this->assertSame(45, $styling['overlayOpacity']);
+        $this->assertArrayNotHasKey('backgroundSize', $styling);
+
+        $this->makeController([$section])->settings(5, $this->makeFormRequest([
+            'widthMode' => 'full',
+            'stylingCustom' => '1',
+            'styling' => ['backgroundImage' => '/uploads/hero.jpg', 'overlayOpacity' => '0'],
+        ]));
+        $this->assertArrayNotHasKey('overlayOpacity', $section->getDraftSettings()['styling'] ?? []);
+    }
+
     public function testPostWithStylingCustomOnKeepsTheStylingSubtree(): void
     {
         $section = $this->makeSettingsSection(id: 5);

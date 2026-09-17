@@ -7,7 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A background image on sections.** The section's Style group gains an image
+  (upload, drop or path), its size (cover or contain), its position, and a veil
+  (colour and opacity, 0 to 90%) to keep text readable. Rendered as
+  `cb-section--bg-image` with `--cb-s-bg-img`, `--cb-s-bg-size`,
+  `--cb-s-bg-pos`, `--cb-s-overlay` and `--cb-s-overlay-color`; the URL goes
+  through `ImageUrlResolverInterface` at 1920px. From 40% opacity the veil sets
+  the tone class. Exported, imported and kept by the asset GC like any other
+  file. See [Background image of a section](https://klehm.github.io/content-blocks-project/guide/styling#background-image-of-a-section).
+- **Accordion options.** `accordionSingle` opens one panel at a time (CSS only,
+  clicking the open header closes it) and `accordionCollapsed` starts with
+  every panel closed. Both are sidebar checkboxes shown for the accordion
+  display, and preset settings.
+- **Host keys in preset and initial settings.** `section_styles[].settings` and
+  `section.initial_settings` keep keys the core does not know, so a field added
+  by a form type extension can be preset. Core keys stay typed, and a key a
+  letter or two off a core key is refused as a typo.
+
 ### Fixed
+
+- **A block added and never edited is translatable.** Collection entries only
+  got their `_id` when the block's form was saved, so a fresh `table`, `card`,
+  `list`, `accordion`, `tabs`, `gallery`, `breadcrumb` or `button_group` stored
+  its default entries without one, and the translation workbench skipped them.
+  Adding a block, inserting a section template and importing now fill in the
+  missing ids through the new `CollectionIdBackfiller` (ids already present are
+  kept). Blocks added before this fix: run `content-blocks:backfill-collection-ids`.
+- **`assets/package.json` declares a `version`.** Yarn 1 refused the package
+  (`invalid package version ""`) when a host linked it with `file:`; npm let
+  it through. A test keeps it from falling behind the last release.
+- **A late sidebar response no longer replaces a newer form.** Opening a
+  section's settings right after adding it, or clicking outside while a form
+  was loading, could let the earlier request land last and undo the editor's
+  choice, or bring the dismissed form back. Only the latest request lands now.
 
 - **The tab bar follows the section's width.** On a centered section the bar
   spanned the whole section while the panels stopped at the max width, and

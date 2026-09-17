@@ -310,3 +310,30 @@ test('a tab title is translated in the workbench and served in its locale', asyn
     await expect(viewer.locator('.cb-tabs__tab').first()).toHaveText('Détails');
     await viewer.close();
 });
+
+/** Collection entries get their ids when the block is added, not edited. */
+test('a table added and never edited is listed in the workbench', async ({ page }) => {
+    await page.goto(await createFreshPage(page));
+    await page.locator('.cb-launcher__button').click();
+    const frame = page.frameLocator('.cb-shell__iframe');
+    await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
+    await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);
+    await page.waitForTimeout(200);
+    await frame.locator('.cb-add-block-inline').first().click();
+    await frame.locator('.cb-overlay-popover button', { hasText: /^(Tableau|Table)$/ }).click();
+    await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
+
+    const workbench = await openWorkbench(page);
+    const paths = await workbench.locator('.cb-wb__row').evaluateAll((rows) => rows.map((r) => r.dataset.path));
+    expect(paths.filter((p) => /^columns\[\w+\]\.label$/.test(p))).toHaveLength(2);
+    expect(paths.filter((p) => /^rows\[\w+\]\.cells\[\w+\]\.content$/.test(p))).toHaveLength(2);
+
+    // The arrow starts the translation from the source, and it is saved.
+    const row = workbench.locator('.cb-wb__row').first();
+    const source = (await row.locator('.cb-wb__source-text').textContent()) ?? '';
+    const saved = workbench.waitForResponse((r) => r.request().method() === 'POST' && /\/block\/\d+\/en$/.test(r.url()));
+    await row.locator('[data-act="copySource"]').click();
+    await expect(row.locator('[data-target="input"]')).toHaveValue(source);
+    expect((await saved).ok()).toBe(true);
+    await expect(row).toHaveAttribute('data-status', 'translated');
+});

@@ -46,8 +46,8 @@ final class SectionInitialSettingsConfigTest extends TestCase
         $this->assertSame('full', $container->getParameter('content_blocks.section.default_width_mode'));
     }
 
-    /** Same typed tree as a preset, so a typo fails at cache:clear. */
-    public function testAnUnknownKeyIsRefused(): void
+    /** A host key is kept, but a near-miss of a core key is a typo. */
+    public function testATypoOfACoreKeyIsRefused(): void
     {
         $this->expectException(InvalidConfigurationException::class);
 

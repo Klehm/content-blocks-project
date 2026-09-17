@@ -627,6 +627,47 @@ final class BlockRendererTest extends TestCase
         $this->assertTrue($row < $toggle && $toggle < $header && $header < $panel);
     }
 
+    /** Radios plus a "none" one, and a twin header that closes the panel. */
+    public function testAOneAtATimeAccordionRendersRadiosAndCloseHeaders(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, 'two_cols', 0, 0, 84);
+        $section->setPublishedSettings(['display' => 'accordion', 'accordionSingle' => true]);
+        $this->makeColumn($section, 0, 0, 85)->setPublishedSettings(['label' => 'Shipping']);
+        $this->makeColumn($section, 1, 1, 86);
+
+        $html = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertStringNotContainsString('type="checkbox"', $html);
+        $this->assertSame(3, substr_count($html, 'type="radio" class="cb-accordion__toggle'));
+        $this->assertMatchesRegularExpression('/id="cb-accordion-84-none"[^>]*aria-hidden="true">/', $html);
+        $this->assertMatchesRegularExpression('/name="cb-accordion-84" id="cb-accordion-84-0"[^>]*checked>/', $html);
+        $this->assertSame(2, substr_count($html, 'for="cb-accordion-84-none"'));
+        $this->assertMatchesRegularExpression('/cb-accordion__header--close">Shipping<\/label>/', $html);
+        // The close twin sits between the header and the panel.
+        $this->assertLessThan(
+            strpos($html, 'id="cb-accordion-84-0-panel"'),
+            strpos($html, 'for="cb-accordion-84-none"'),
+        );
+    }
+
+    public function testACollapsedAccordionOpensNothing(): void
+    {
+        $area = $this->makeArea();
+        $multi = $this->makeSection($area, 'two_cols', 0, 0, 87);
+        $multi->setPublishedSettings(['display' => 'accordion', 'accordionCollapsed' => true]);
+        $this->makeColumn($multi, 0, 0, 88);
+        $single = $this->makeSection($area, 'two_cols', 1, 1, 89);
+        $single->setPublishedSettings(['display' => 'accordion', 'accordionSingle' => true, 'accordionCollapsed' => true]);
+        $this->makeColumn($single, 0, 0, 90);
+
+        $html = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertDoesNotMatchRegularExpression('/id="cb-accordion-87-0"[^>]*checked>/', $html);
+        $this->assertDoesNotMatchRegularExpression('/id="cb-accordion-89-0"[^>]*checked>/', $html);
+        $this->assertMatchesRegularExpression('/id="cb-accordion-89-none"[^>]*checked>/', $html);
+    }
+
     /** As with tabs, a column pending deletion is skipped. */
     public function testThePreviewOpensTheFirstLiveAccordionPanel(): void
     {

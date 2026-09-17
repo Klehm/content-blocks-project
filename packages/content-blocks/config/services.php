@@ -346,6 +346,7 @@ return static function (ContainerConfigurator $container): void {
     // Minted on the draft-write path, so a reorder never shifts what
     // per-entry information points at. See docs/internals/clipboard.md
     $services->set(\ContentBlocks\Block\CollectionItemIds::class);
+    $services->set(\ContentBlocks\Block\CollectionIdBackfiller::class);
 
     // One-off normalization of content stored before `_id` existed. The
     // #[AsCommand] attribute is picked up by console.command autoconfiguration.

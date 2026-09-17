@@ -112,6 +112,11 @@ cannot perturb it. An editor who judges a translation still correct clicks
 staleness flag that can only be cleared by redoing finished work is a flag people
 learn to ignore.
 
+Each row of the workbench also has an **arrow (→)** that copies the source text
+into the translation, filling an empty field or overwriting what is there. It
+is saved like typing. Useful when most of a text stays the same (names,
+figures, links) or when a long text is easier to edit than to retype.
+
 ```bash
 php bin/console content-blocks:i18n:status                       # every area, every locale
 php bin/console content-blocks:i18n:status --locale=de --incomplete   # exit non-zero if not ready

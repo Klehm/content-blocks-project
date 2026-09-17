@@ -1016,6 +1016,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             styleName?: scalar|Param|null,
  *             stylingCustom?: bool|Param,
  *             reverseOnMobile?: bool|Param,
+ *             accordionSingle?: bool|Param,
+ *             accordionCollapsed?: bool|Param,
  *             styling?: array{
  *                 padding?: array{
  *                     desktop?: array{
@@ -1069,12 +1071,19 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *                     mobile?: int|Param,
  *                 },
  *                 backgroundColor?: scalar|Param|null,
+ *                 backgroundImage?: scalar|Param|null,
+ *                 backgroundSize?: "cover"|"contain"|Param,
+ *                 backgroundPosition?: "center"|"top"|"bottom"|"left"|"right"|Param,
+ *                 overlayColor?: scalar|Param|null,
+ *                 overlayOpacity?: int|Param,
  *                 minHeight?: array{
  *                     value?: int|Param,
  *                     unit?: "px"|"vh"|Param,
  *                 },
  *                 verticalAlign?: "start"|"center"|"end"|Param,
+ *                 ...<string, mixed>
  *             },
+ *             ...<string, mixed>
  *         },
  *     },
  *     palette?: list<array{ // Default: []
@@ -1094,6 +1103,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             styleName?: scalar|Param|null,
  *             stylingCustom?: bool|Param,
  *             reverseOnMobile?: bool|Param,
+ *             accordionSingle?: bool|Param,
+ *             accordionCollapsed?: bool|Param,
  *             styling?: array{
  *                 padding?: array{
  *                     desktop?: array{
@@ -1147,12 +1158,19 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *                     mobile?: int|Param,
  *                 },
  *                 backgroundColor?: scalar|Param|null,
+ *                 backgroundImage?: scalar|Param|null,
+ *                 backgroundSize?: "cover"|"contain"|Param,
+ *                 backgroundPosition?: "center"|"top"|"bottom"|"left"|"right"|Param,
+ *                 overlayColor?: scalar|Param|null,
+ *                 overlayOpacity?: int|Param,
  *                 minHeight?: array{
  *                     value?: int|Param,
  *                     unit?: "px"|"vh"|Param,
  *                 },
  *                 verticalAlign?: "start"|"center"|"end"|Param,
+ *                 ...<string, mixed>
  *             },
+ *             ...<string, mixed>
  *         },
  *     }>,
  *     upload?: array{

@@ -228,6 +228,16 @@ decision, like the size cap that comes with it; pasting a path works without
 it. The poster goes through `cb_image()` like every kit picture, at the width
 of the chosen size.
 
+## A button group, not a repeated button
+
+`button_group` is its own block rather than an `items` collection added to
+`button`: stored `button` data keeps its shape, with nothing to migrate. Size
+and alignment belong to the row, so the buttons wrap and line up together, and
+*Stack on mobile* turns the row into a full-width column under 540px. The style
+(`variant`) is chosen per button: the block passes its resolved choices and
+constraint down to `ButtonGroupItemType`, so `choices.variant` in config reaches
+every entry. `options.max_items` (3) caps the collection at validation.
+
 ## Why views check a token shape, not a value list
 
 The kit's views used to inline a whitelist per field —

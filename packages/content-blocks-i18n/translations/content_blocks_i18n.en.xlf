@@ -42,6 +42,10 @@
                 <source>cb_i18n.workbench.mark_current</source>
                 <target>Still current — keep this translation</target>
             </trans-unit>
+            <trans-unit id="workbench.copy_source">
+                <source>cb_i18n.workbench.copy_source</source>
+                <target>Copy the source text into the translation</target>
+            </trans-unit>
             <trans-unit id="workbench.reset">
                 <source>cb_i18n.workbench.reset</source>
                 <target>Clear — fall back to the source text</target>

@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Form\Type\Styling;
 
+use ContentBlocks\Form\Type\ImageUploadType;
 use ContentBlocks\Form\Type\PaletteColorType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\RangeType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -35,6 +38,10 @@ final class StylingType extends AbstractType
                 'required' => false,
                 'label' => 'cb.styling.background_color',
             ]);
+
+        if ($options['include_background_image']) {
+            $this->addBackgroundImage($builder);
+        }
 
         if ($options['include_gap']) {
             // Section-only: the gap between columns, responsive (D/T/M).
@@ -120,6 +127,57 @@ final class StylingType extends AbstractType
         }
     }
 
+    /** Section-only: the image, how it covers, and a veil for legible text. */
+    private function addBackgroundImage(FormBuilderInterface $builder): void
+    {
+        $onlyWithImage = ['data-cb-condition' => 'backgroundImage'];
+        $builder
+            ->add('backgroundImage', ImageUploadType::class, [
+                'required' => false,
+                'label' => 'cb.styling.background_image',
+            ])
+            // The CSS default is the placeholder, so an untouched field
+            // posts '' and stores nothing.
+            ->add('backgroundSize', ChoiceType::class, [
+                'required' => false,
+                'label' => 'cb.styling.background_size',
+                'placeholder' => 'cb.styling.background_size.cover',
+                'choices' => [
+                    'cb.styling.background_size.contain' => 'contain',
+                ],
+                'row_attr' => $onlyWithImage,
+            ])
+            ->add('backgroundPosition', ChoiceType::class, [
+                'required' => false,
+                'label' => 'cb.styling.background_position',
+                'placeholder' => 'cb.styling.background_position.center',
+                'choices' => [
+                    'cb.styling.background_position.top' => 'top',
+                    'cb.styling.background_position.bottom' => 'bottom',
+                    'cb.styling.background_position.left' => 'left',
+                    'cb.styling.background_position.right' => 'right',
+                ],
+                'row_attr' => $onlyWithImage,
+            ])
+            ->add('overlayColor', PaletteColorType::class, [
+                'required' => false,
+                'label' => 'cb.styling.overlay_color',
+                'row_attr' => $onlyWithImage,
+            ])
+            ->add('overlayOpacity', RangeType::class, [
+                'required' => false,
+                'label' => 'cb.styling.overlay_opacity',
+                'attr' => ['min' => 0, 'max' => 90, 'step' => 5],
+                'row_attr' => $onlyWithImage,
+            ]);
+
+        // A range posts a string; the settings and the config hold an int.
+        $builder->get('overlayOpacity')->addModelTransformer(new CallbackTransformer(
+            static fn (mixed $value): string => (string) (\is_numeric($value) ? (int) $value : 0),
+            static fn (mixed $value): ?int => \is_numeric($value) && (int) $value > 0 ? min(100, (int) $value) : null,
+        ));
+    }
+
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
@@ -130,6 +188,7 @@ final class StylingType extends AbstractType
             'include_align_self' => false,
             'include_text_align' => false,
             'include_gap' => false,
+            'include_background_image' => false,
             'translation_domain' => 'content_blocks',
             'label' => false,
         ]);
@@ -139,6 +198,7 @@ final class StylingType extends AbstractType
         $resolver->setAllowedTypes('include_align_self', 'bool');
         $resolver->setAllowedTypes('include_gap', 'bool');
         $resolver->setAllowedTypes('include_text_align', 'bool');
+        $resolver->setAllowedTypes('include_background_image', 'bool');
     }
 
     public function getBlockPrefix(): string

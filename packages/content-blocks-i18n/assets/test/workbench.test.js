@@ -15,7 +15,7 @@ import { Workbench, start } from '../workbench.js';
 const SAVE_DEBOUNCE_MS = 600;
 
 /** One row of the list, matching workbench.html.twig. */
-function row({ block = '1', path = 'heading', status = 'missing', value = '', widget = 'input' } = {}) {
+function row({ block = '1', path = 'heading', status = 'missing', value = '', widget = 'input', source = 'Bienvenue' } = {}) {
     const field = widget === 'textarea'
         ? `<textarea data-target="input">${value}</textarea>`
         : `<input type="text" data-target="input" value="${value}">`;
@@ -23,11 +23,13 @@ function row({ block = '1', path = 'heading', status = 'missing', value = '', wi
     return `
         <div class="cb-wb__row cb-wb__row--${status}" data-target="row"
              data-status="${status}" data-block="${block}" data-path="${path}">
+            <p class="cb-wb__source-text">${source}</p>
             <p class="cb-wb__stale" ${status === 'outdated' ? '' : 'hidden'}></p>
             ${field}
             <button type="button" data-act="translateField"></button>
             <button type="button" data-act="approve"></button>
             <button type="button" data-act="reset"></button>
+            <button type="button" data-act="copySource"></button>
         </div>`;
 }
 
@@ -217,6 +219,21 @@ describe('saving', () => {
         expect(saves).toHaveLength(1);
         expect(saves[0].body.values).toEqual({ heading: null });
         expect(root.querySelector('[data-target="input"]').value).toBe('');
+    });
+
+    it('the arrow copies the source over the translation and saves it like typing', async () => {
+        // Escaped as Twig prints it: rich text copies as its markup.
+        const root = mount({ rows: [row({ value: 'Alt', status: 'translated', widget: 'textarea', source: 'Ligne 1\n&lt;b&gt;gras&lt;/b&gt; &amp; co' })] });
+        const calls = stubFetch();
+        new Workbench(root);
+
+        root.querySelector('[data-act="copySource"]').click();
+        expect(root.querySelector('[data-target="input"]').value).toBe('Ligne 1\n<b>gras</b> & co');
+        await settle();
+
+        const saves = calls.filter((c) => c.options.method === 'POST');
+        expect(saves).toHaveLength(1);
+        expect(saves[0].body.values).toEqual({ heading: 'Ligne 1\n<b>gras</b> & co' });
     });
 
     it('a typed value that is emptied is stored as a blank, not as a removal', async () => {

@@ -28,6 +28,13 @@ cb_kit:
                 secondary: "Secondary"
                 outline: "Outline"
                 link: "Link"
+        button_group:
+            label: "Button group"
+            field:
+                items: "Buttons"
+                stack_on_mobile: "Stack the buttons on mobile"
+            action:
+                add: "Add a button"
         list:
             label: "List"
             field:

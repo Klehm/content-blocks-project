@@ -5,6 +5,14 @@ All notable changes to `klehm/content-blocks-i18n` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Copy the source into the translation.** Each workbench row has an arrow
+  (→) that fills the translation with the source text, or overwrites it, and
+  saves it like typing.
+
 ## [1.0.0-RC11] - 2026-09-17
 
 ### Added
