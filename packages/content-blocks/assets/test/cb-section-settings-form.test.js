@@ -233,6 +233,32 @@ describe('cb-section-settings-form — submit error feedback', () => {
         expect(events).toEqual(['error']);
     });
 
+    it('a followed login redirect is a lost session, not a save', async () => {
+        const { c, events } = setupSubmit();
+        const details = [];
+        document.body.addEventListener('cb:save:error', (e) => details.push(e.detail));
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: true, status: 200, redirected: true, url: '/login',
+        }));
+
+        await c._onSubmit(new Event('submit', { cancelable: true }));
+
+        expect(events).toEqual(['error']);
+        expect(details).toEqual([{ sessionExpired: true }]);
+    });
+
+    it('a 401 is a lost session too', async () => {
+        const { c, events } = setupSubmit();
+        const details = [];
+        document.body.addEventListener('cb:save:error', (e) => details.push(e.detail));
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 }));
+
+        await c._onSubmit(new Event('submit', { cancelable: true }));
+
+        expect(events).toEqual(['error']);
+        expect(details).toEqual([{ sessionExpired: true }]);
+    });
+
     it('a 422 swaps the form with the re-rendered HTML and is not a save error', async () => {
         const { c, events } = setupSubmit();
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({

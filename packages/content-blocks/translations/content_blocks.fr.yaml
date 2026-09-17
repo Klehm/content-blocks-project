@@ -146,6 +146,9 @@ cb:
         draft_pending: "Brouillon en attente"
         saved: "Enregistré"
         save_error: "Modifications non enregistrées — vérifiez votre connexion et réessayez"
+        session_expired:
+            message: "Session expirée — modifications non enregistrées"
+            login: "Se reconnecter"
         undo:
             block_deleted: "Bloc supprimé"
             section_deleted: "Section supprimée"

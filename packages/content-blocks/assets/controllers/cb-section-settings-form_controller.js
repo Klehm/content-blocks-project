@@ -175,9 +175,9 @@ export default class extends Controller {
             response = null;
         }
 
-        if (!response?.ok) {
+        if (!response?.ok || response.redirected) {
             input.dataset.cbSavedLabel = previous ?? '';
-            this._dispatchSaveError();
+            this._dispatchSaveError(this._sessionLoss(response));
             return;
         }
 
@@ -371,6 +371,12 @@ export default class extends Controller {
             return;
         }
 
+        const sessionLoss = this._sessionLoss(response);
+        if (sessionLoss) {
+            this._dispatchSaveError(sessionLoss);
+            return;
+        }
+
         if (response.ok) {
             this.element.dispatchEvent(new CustomEvent('cb:section:saved', {
                 bubbles: true,
@@ -395,7 +401,24 @@ export default class extends Controller {
      *
      * @see docs/internals/frontend.md#live-component-failures-need-two-hooks
      */
-    _dispatchSaveError() {
-        this.element.dispatchEvent(new CustomEvent('cb:save:error', { bubbles: true }));
+    _dispatchSaveError(detail = null) {
+        this.element.dispatchEvent(new CustomEvent('cb:save:error', {
+            bubbles: true,
+            detail: detail ?? {},
+        }));
+    }
+
+    /**
+     * A login redirect `fetch()` followed, or the 401 the package turns it
+     * into: the save never happened, whatever the status says.
+     *
+     * @see docs/internals/frontend.md#an-expired-session-is-said-not-followed
+     */
+    _sessionLoss(response) {
+        if (!response || (response.status !== 401 && !response.redirected)) {
+            return null;
+        }
+
+        return { sessionExpired: true };
     }
 }

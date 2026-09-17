@@ -16,6 +16,8 @@ export default class extends Controller {
         'progress',
         'savedFlash',
         'saveError',
+        'sessionExpired',
+        'sessionLogin',
         'undoBar',
         'undoLabel',
         'undoButton',
@@ -41,7 +43,25 @@ export default class extends Controller {
     static values = {
         areaId: Number,
         iframeUrl: String,
+        /** Idle ms after which the next interaction checks the session. */
+        sessionCheckAfter: { type: Number, default: 60000 },
     };
+
+    /** Minimum gap (ms) between two session checks once it is known lost. */
+    static SESSION_RECHECK_MS = 3000;
+
+    /**
+     * A 401, the package's own marker, or a followed redirect: none of the
+     * builder's endpoints redirects, so a redirect is the host's login.
+     *
+     * @see docs/internals/frontend.md#an-expired-session-is-said-not-followed
+     */
+    static isSessionLoss(response) {
+        if (!response) return false;
+        return response.status === 401
+            || response.headers?.get?.('X-Content-Blocks-Session') === 'expired'
+            || response.redirected === true;
+    }
 
     /** Debounce window (ms) on the replace-picker search input. */
     static REPLACE_PICKER_DEBOUNCE_MS = 250;
@@ -134,6 +154,14 @@ export default class extends Controller {
         this._onTreeSectionMove = this._onTreeSectionMove.bind(this);
         this._onTreeBlockMove = this._onTreeBlockMove.bind(this);
         this._onTreeState = this._onTreeState.bind(this);
+        this._onActivity = this._onActivity.bind(this);
+        this._onVisibilityChange = this._onVisibilityChange.bind(this);
+
+        this._sessionExpired = false;
+        this._lastActivityAt = Date.now();
+        this._lastSessionCheckAt = 0;
+        window.addEventListener('focus', this._onActivity);
+        document.addEventListener('visibilitychange', this._onVisibilityChange);
 
         window.addEventListener('message', this._onMessage);
         window.addEventListener('resize', this._onWindowResize);
@@ -183,6 +211,8 @@ export default class extends Controller {
     disconnect() {
         window.removeEventListener('message', this._onMessage);
         window.removeEventListener('resize', this._onWindowResize);
+        window.removeEventListener('focus', this._onActivity);
+        document.removeEventListener('visibilitychange', this._onVisibilityChange);
         this.element.removeEventListener('cb:block:saved', this._onBlockSaved);
         this.element.removeEventListener('cb:section:saved', this._onSectionSaved);
         this.element.removeEventListener('cb:column:add-requested', this._onColumnAddRequested);
@@ -239,6 +269,7 @@ export default class extends Controller {
      * one — or on its list's scrollbar — never dismisses it.
      */
     _onDocumentPointerDown(event) {
+        this._onActivity();
         const target = event.target;
         if (this.hasActionsMenuTarget && !this.actionsMenuTarget.contains(target)) {
             this.closeActions();
@@ -253,6 +284,7 @@ export default class extends Controller {
      * keeps Ctrl-C/V out of a genuine text copy.
      */
     _onDocumentKeydown(event) {
+        this._onActivity();
         if ((event.ctrlKey || event.metaKey) && !event.altKey) {
             const key = event.key?.toLowerCase();
             const intent = this.constructor.shortcutIntent(key, event.shiftKey);
@@ -359,6 +391,8 @@ export default class extends Controller {
      */
     reload() {
         if (!this.hasIframeTarget) return;
+        // Without a session the preview URL lands on the host's login.
+        if (this._sessionExpired) return;
 
         let scrollY = 0;
         try {
@@ -1017,6 +1051,10 @@ export default class extends Controller {
                 this._showSaveError();
                 return null;
             }
+            if (this.constructor.isSessionLoss(response)) {
+                this._onSessionExpired();
+                return null;
+            }
             if (!response.ok) {
                 // A refusal carrying a reason opts out of the generic
                 // banner; the caller reads the body and says it.
@@ -1048,6 +1086,13 @@ export default class extends Controller {
         if (!component || typeof component.on !== 'function') return;
         component.on('response:error', (backendResponse, controls) => {
             controls.displayError = false;
+            const response = backendResponse?.response;
+            if (this.constructor.isSessionLoss(response)) {
+                // Marked first, so the bubbling save error stays quiet.
+                this._onSessionExpired();
+                this._signalSaveError(component.element);
+                return;
+            }
             this._signalSaveError(component.element);
         });
         component.on('loading.state:started', (el, request) => {
@@ -1077,7 +1122,11 @@ export default class extends Controller {
         }
     }
 
-    _onSaveError() {
+    _onSaveError(event) {
+        if (event?.detail?.sessionExpired) {
+            this._onSessionExpired();
+            return;
+        }
         this._showSaveError();
     }
 
@@ -1088,6 +1137,8 @@ export default class extends Controller {
      * @see docs/internals/frontend.md#feedback-what-stays-and-what-flashes
      */
     _showSaveError() {
+        // The session banner already says why, and what to do about it.
+        if (this._sessionExpired) return;
         if (!this.hasSaveErrorTarget) return;
         this.saveErrorTarget.hidden = false;
     }
@@ -1095,6 +1146,88 @@ export default class extends Controller {
     _clearSaveError() {
         if (!this.hasSaveErrorTarget) return;
         this.saveErrorTarget.hidden = true;
+    }
+
+    // ---------- Session expiry ----------
+
+    /** Any interaction after a long idle, or any while the session is lost. */
+    _onActivity() {
+        const now = Date.now();
+        const idle = now - this._lastActivityAt;
+        this._lastActivityAt = now;
+        if (this._sessionExpired) {
+            if (now - this._lastSessionCheckAt >= this.constructor.SESSION_RECHECK_MS) {
+                this._checkSession();
+            }
+            return;
+        }
+        if (idle >= this.sessionCheckAfterValue) this._checkSession();
+    }
+
+    _onVisibilityChange() {
+        if (document.visibilityState === 'visible') this._onActivity();
+    }
+
+    /**
+     * Asks before the editor types into a dead session, and brings back the
+     * CSRF token a renewed one issued.
+     *
+     * @see docs/internals/frontend.md#an-expired-session-is-said-not-followed
+     */
+    async _checkSession() {
+        if (this._sessionCheck) return this._sessionCheck;
+        const dialog = this.element.closest('dialog');
+        if (dialog && !dialog.open) return undefined;
+
+        this._lastSessionCheckAt = Date.now();
+        this._sessionCheck = (async () => {
+            let response;
+            try {
+                response = await fetch(`${this._apiBase}/area/${this.areaIdValue}/state`, {
+                    credentials: 'same-origin',
+                    headers: { Accept: 'application/json' },
+                });
+            } catch (_) {
+                return; // Offline says nothing about the session.
+            }
+            if (this.constructor.isSessionLoss(response)) {
+                this._onSessionExpired();
+                return;
+            }
+            if (!response.ok) return;
+            const payload = await response.json().catch(() => null);
+            if (typeof payload?.csrfToken === 'string' && payload.csrfToken !== '') {
+                this.element.dataset.cbCsrfToken = payload.csrfToken;
+            }
+            if (this._sessionExpired) await this._onSessionRestored();
+        })();
+        try {
+            await this._sessionCheck;
+        } finally {
+            this._sessionCheck = null;
+        }
+        return undefined;
+    }
+
+    /**
+     * The link reopens this page rather than the login form: the firewall
+     * brings the editor back here once they are in.
+     */
+    _onSessionExpired() {
+        this._sessionExpired = true;
+        this._clearSaveError();
+        if (this.hasSessionLoginTarget) {
+            this.sessionLoginTarget.href = window.location.href;
+        }
+        if (this.hasSessionExpiredTarget) this.sessionExpiredTarget.hidden = false;
+    }
+
+    /** The edit the dead session swallowed is sent again, then the preview. */
+    async _onSessionRestored() {
+        this._sessionExpired = false;
+        if (this.hasSessionExpiredTarget) this.sessionExpiredTarget.hidden = true;
+        await this._flushSidebarEdits();
+        this.reload();
     }
 
     // ---------- Clipboard (copy / paste) ----------
@@ -1575,6 +1708,8 @@ export default class extends Controller {
         const data = event.data;
         if (!data || typeof data !== 'object' || typeof data.type !== 'string') return;
         if (!data.type.startsWith('cb:')) return;
+        // Clicks in the preview never reach this document.
+        this._onActivity();
 
         switch (data.type) {
             case 'cb:ready':
@@ -1698,6 +1833,10 @@ export default class extends Controller {
                 headers: { 'Accept': 'text/html' },
                 credentials: 'same-origin',
             });
+            if (this.constructor.isSessionLoss(response)) {
+                this._onSessionExpired();
+                return;
+            }
             if (!response.ok) {
                 console.error('[cb-builder] failed to load', url, response.status);
                 return;
@@ -1915,6 +2054,10 @@ export default class extends Controller {
                 credentials: 'same-origin',
                 headers: { Accept: 'application/json' },
             });
+            if (this.constructor.isSessionLoss(response)) {
+                this._onSessionExpired();
+                return;
+            }
             if (response.ok) {
                 payload = await response.json().catch(() => null);
             }
@@ -1965,6 +2108,10 @@ export default class extends Controller {
                 credentials: 'same-origin',
                 headers: { Accept: 'application/json' },
             });
+            if (this.constructor.isSessionLoss(response)) {
+                this._onSessionExpired();
+                return;
+            }
             if (response.ok) {
                 payload = await response.json().catch(() => null);
             }
@@ -2068,6 +2215,9 @@ export default class extends Controller {
                 credentials: 'same-origin',
                 headers: { Accept: 'application/json' },
             });
+            if (this.constructor.isSessionLoss(response)) {
+                this._onSessionExpired();
+            }
             if (!response.ok) throw new Error(`status ${response.status}`);
             payload = await response.json();
         } catch (e) {
@@ -2230,6 +2380,9 @@ export default class extends Controller {
                 credentials: 'same-origin',
                 headers: { Accept: 'application/json' },
             });
+            if (this.constructor.isSessionLoss(response)) {
+                this._onSessionExpired();
+            }
             if (!response.ok) throw new Error(`status ${response.status}`);
             payload = await response.json();
         } catch (e) {
@@ -2603,8 +2756,11 @@ export default class extends Controller {
                     body: formData,
                 },
             );
+            if (this.constructor.isSessionLoss(response)) {
+                this._onSessionExpired();
+            }
             payload = await response.json().catch(() => null);
-            ok = response.ok;
+            ok = response.ok && !response.redirected;
             if (!ok) {
                 const msg = payload && payload.error
                     ? payload.error

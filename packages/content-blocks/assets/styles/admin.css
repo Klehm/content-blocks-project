@@ -1152,7 +1152,8 @@ body:has(.cb-builder-dialog[open]) {
 
 /* ---- Save-failure banner (topbar) ----
    Persistent: it goes only once a later save succeeds. */
-.cb-shell__save-error {
+.cb-shell__save-error,
+.cb-shell__session-expired {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -1165,12 +1166,19 @@ body:has(.cb-builder-dialog[open]) {
   line-height: 1.2;
   white-space: nowrap;
 }
-.cb-shell__save-error[hidden] {
+.cb-shell__save-error[hidden],
+.cb-shell__session-expired[hidden] {
   display: none;
+}
+.cb-shell__session-login {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
 }
 @media (max-width: 768px) {
   /* Keep the chip readable on narrow topbars: icon only. */
-  .cb-shell__save-error > span:not(.cb-shell__btn-icon) {
+  .cb-shell__save-error > span:not(.cb-shell__btn-icon),
+  .cb-shell__session-expired > span:not(.cb-shell__btn-icon) {
     display: none;
   }
 }

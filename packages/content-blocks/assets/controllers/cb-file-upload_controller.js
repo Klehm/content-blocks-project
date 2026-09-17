@@ -178,6 +178,16 @@ export default class extends Controller {
                 body: formData,
             });
 
+            if (response.status === 401 || response.redirected) {
+                // cb-builder owns the session banner.
+                this.element.dispatchEvent(new CustomEvent('cb:save:error', {
+                    bubbles: true,
+                    detail: { sessionExpired: true },
+                }));
+                this._setStatus('error', this._t('cb.upload.failed', 'Upload failed'));
+                return;
+            }
+
             const data = await response.json();
 
             if (!response.ok) {

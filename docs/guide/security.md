@@ -55,6 +55,20 @@ security:
             pattern: ^/
 ```
 
+### When the session expires
+
+A form-login firewall answers an unauthenticated request with a redirect to the
+login page. For the builder's own calls, the bundle turns that redirect into a
+`401` carrying `{"error": "session_expired"}` and the
+`X-Content-Blocks-Session: expired` header, so the builder can tell a lost
+session from a save. The editor sees a *Session expired* banner with a link that
+opens the page again in a new tab. Their unsaved edit stays on screen and is
+sent again once they are logged back in. Full-page navigations are left alone
+and still reach your login form.
+
+Nothing to configure. The builder does not keep the session alive: your session
+lifetime still applies.
+
 ### Cross-firewall auth detection
 
 The render template auto-detects preview mode by calling `AccessCheckerInterface::canEdit()` while serving the public URL — i.e. the request passes through the **public/main** firewall, but the user authenticated against the **admin** firewall. With separate firewall contexts (`context: admin`), Symfony's standard `Security::isGranted()` will not see the admin token from the main firewall and the iframe falls back to public mode (no editing UI, even when an admin opens the builder).

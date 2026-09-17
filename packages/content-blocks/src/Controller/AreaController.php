@@ -78,7 +78,11 @@ final class AreaController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        return new JsonResponse(['hasUnpublishedChanges' => $area->hasUnpublishedChanges()]);
+        return new JsonResponse([
+            'hasUnpublishedChanges' => $area->hasUnpublishedChanges(),
+            // A session renewed since the shell rendered holds a new token.
+            'csrfToken' => $this->csrfTokenManager->getToken(self::CSRF_TOKEN_ID)->getValue(),
+        ]);
     }
 
     /**

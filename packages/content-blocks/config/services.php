@@ -104,6 +104,9 @@ return static function (ContainerConfigurator $container): void {
     $services->set(DenyAllAccessChecker::class);
     $services->alias(AccessCheckerInterface::class, DenyAllAccessChecker::class);
 
+    // A login redirect answering a builder fetch becomes a readable 401.
+    $services->set(\ContentBlocks\Security\SessionExpiredResponseListener::class);
+
     // Throws: the host must override this too.
     $services->set(NullContentAreaUrlResolver::class);
     $services->alias(ContentAreaUrlResolverInterface::class, NullContentAreaUrlResolver::class);
