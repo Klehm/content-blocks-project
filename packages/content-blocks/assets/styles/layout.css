@@ -21,7 +21,8 @@
 
 /* Caps the inner row, NOT the <section>, so the background still spans
    the viewport. See docs/internals/rendering.md */
-.cb-section--centered > .cb-row {
+.cb-section--centered > .cb-row,
+.cb-section--centered > .cb-tabs__nav {
     max-width: var(--cb-row-max-w, none);
     margin-inline: auto;
 }
@@ -108,7 +109,11 @@
     opacity: 0;
     pointer-events: none;
 }
+/* Sized like the row: the section turns into a flex column once a
+   vertical alignment is set, where the bar would otherwise shrink. */
 .cb-tabs__nav {
+    flex: none;
+    width: 100%;
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
