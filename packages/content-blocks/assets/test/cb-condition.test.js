@@ -45,6 +45,31 @@ describe('cb-condition', () => {
         expect(row.hidden).toBe(true);
     });
 
+    it('shows the row when any `||` group matches as a whole', () => {
+        const { element } = setup(`
+            <input type="radio" name="s[display]" value="grid" checked>
+            <input type="radio" name="s[display]" value="tabs">
+            <input type="radio" name="s[displayMobile]" value="inherit" checked>
+            <input type="radio" name="s[displayMobile]" value="accordion">
+            <div id="row" data-cb-condition="display:accordion||display:grid|slider;displayMobile:accordion"></div>
+        `);
+        const row = element.querySelector('#row');
+        const pick = (name, value) => {
+            const radio = element.querySelector(`[name="s[${name}]"][value="${value}"]`);
+            radio.checked = true;
+            radio.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        expect(row.hidden).toBe(true);
+
+        pick('displayMobile', 'accordion');
+        expect(row.hidden).toBe(false);
+
+        // Second group fails on its first clause, first group on its only one.
+        pick('display', 'tabs');
+        expect(row.hidden).toBe(true);
+    });
+
     it('supports OR values with a pipe separator', () => {
         const { element } = setup(`
             <select name="size">

@@ -24,6 +24,25 @@
 
     // Styling lives in builder.css, <link>-ed by the render template.
 
+    // ---------- Viewport ----------
+
+    // What the CSS applies, not the topbar button: a narrow builder window
+    // renders tablet order even with "desktop" pressed. Mirrors layout.css.
+    const MOBILE_QUERY = window.matchMedia('(max-width: 540px)');
+    const TABLET_QUERY = window.matchMedia('(max-width: 768px)');
+
+    function currentViewport() {
+        if (MOBILE_QUERY.matches) return 'mobile';
+        return TABLET_QUERY.matches ? 'tablet' : 'desktop';
+    }
+
+    function announceViewport() {
+        postToParent('cb:viewport:changed', { viewport: currentViewport() });
+    }
+    [MOBILE_QUERY, TABLET_QUERY].forEach((query) => {
+        query.addEventListener?.('change', announceViewport);
+    });
+
     // ---------- Toolbar (single reusable element) ----------
 
     const toolbar = document.createElement('div');
@@ -157,9 +176,9 @@
             const sectionId = parseInt(el.dataset.cbSectionId, 10);
             toolbar.appendChild(makeDragHandle('section', sectionId, el));
             toolbar.appendChild(makeBtn('▲', t('section_move_up', 'Move up'), 'move-up', () =>
-                postToParent('cb:section:move-requested', { sectionId, direction: 'up' })));
+                moveSectionRequested(el, sectionId, 'up')));
             toolbar.appendChild(makeBtn('▼', t('section_move_down', 'Move down'), 'move-down', () =>
-                postToParent('cb:section:move-requested', { sectionId, direction: 'down' })));
+                moveSectionRequested(el, sectionId, 'down')));
             toolbar.appendChild(makeBtn('⎘', t('section_duplicate', 'Duplicate'), 'duplicate', () =>
                 postToParent('cb:section:duplicate-requested', { sectionId })));
             toolbar.appendChild(makeBtn('☆', t('section_save_template', 'Save as template'), 'save-template', () =>
@@ -248,11 +267,17 @@
             .filter((id) => id);
     }
 
-    /** Opens the tab or panel holding `el`. */
+    /** Opens the tab or panel holding `el`, or scrolls its slide in. */
     function revealTab(el) {
         const column = el.closest('[data-cb-column-id]');
         const section = column?.parentElement?.parentElement;
         if (!section) return;
+        const row = column.parentElement;
+        if (getComputedStyle(row).scrollSnapType.indexOf('x') !== -1) {
+            const first = Array.from(row.querySelectorAll(':scope > [data-cb-column-id]'))
+                .find((c) => c.getClientRects().length > 0);
+            row.scrollTo({ left: column.offsetLeft - (first ? first.offsetLeft : 0) });
+        }
         const input = panelInputs(section)[panelColumns(section).indexOf(column)];
         if (input && !input.checked) {
             input.checked = true;
@@ -504,6 +529,13 @@
             oldEl.removeAttribute('style');
         }
         if (wasOutlined) oldEl.classList.add('cb-overlay-outline');
+        // slider.js watches the attribute and rebuilds its controls.
+        const slider = newEl.getAttribute('data-cb-slider');
+        if (slider !== null) {
+            oldEl.setAttribute('data-cb-slider', slider);
+        } else {
+            oldEl.removeAttribute('data-cb-slider');
+        }
 
         // Tab bar and accordion headers follow the display and the column
         // labels, keeping what was open when those columns are still there.
@@ -605,6 +637,9 @@
         }));
 
         focusElement(newEl, 'block');
+        if (hasViewportOrder(Array.from(column.querySelectorAll('[data-cb-block-id]')))) {
+            postToParent('cb:reorder:desync');
+        }
     }
 
     /**
@@ -629,6 +664,9 @@
             bubbles: true,
             detail: { blockId: parseInt(newEl.getAttribute('data-cb-block-id'), 10) },
         }));
+        if (hasViewportOrder(Array.from(source.parentElement.querySelectorAll(':scope > [data-cb-block-id]')))) {
+            postToParent('cb:reorder:desync');
+        }
     }
 
     /**
@@ -654,6 +692,9 @@
                 detail: { blockId: parseInt(block.getAttribute('data-cb-block-id'), 10) },
             }));
         });
+        if (source.parentElement?.classList.contains('cb-content-area--ordered')) {
+            postToParent('cb:reorder:desync');
+        }
     }
 
     /**
@@ -680,6 +721,9 @@
         syncEmptyState(area);
         focusElement(newEl, 'section');
         newEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (area.classList.contains('cb-content-area--ordered')) {
+            postToParent('cb:reorder:desync');
+        }
     }
 
     /**
@@ -741,8 +785,10 @@
         }
         const siblings = Array.from(column.querySelectorAll('[data-cb-block-id]'))
             .filter((b) => b !== el && b.dataset.cbDeleted !== '1');
+        const ranked = hasViewportOrder([el, ...siblings]);
         placeAmong(el, column, siblings, position);
         if (focusedEl === el) positionToolbarFor(el, focusedKind);
+        if (ranked) postToParent('cb:reorder:desync');
     }
 
     /**
@@ -760,6 +806,9 @@
             .filter((s) => s !== el && s.dataset.cbDeleted !== '1');
         placeAmong(el, container, siblings, position);
         if (focusedEl === el) positionToolbarFor(el, focusedKind);
+        if (container.classList.contains('cb-content-area--ordered')) {
+            postToParent('cb:reorder:desync');
+        }
     }
 
     /**
@@ -781,6 +830,9 @@
             visible[idx + 1].after(el);
         }
         if (focusedEl === el) positionToolbarFor(el, focusedKind);
+        if (el.parentElement.classList.contains('cb-content-area--ordered')) {
+            postToParent('cb:reorder:desync');
+        }
     }
 
     /**
@@ -807,6 +859,45 @@
     document.body.appendChild(dropIndicator);
 
     let dragState = null;
+    // A drop's pointerup still fires a click, on whatever lies under it, in
+    // the same task: the flag is gone by the next one.
+    let swallowDropClick = false;
+    const HANDLE_DRAG_THRESHOLD = 4;
+
+    /**
+     * The section's hanging label drags it too. Past a few pixels only, so a
+     * click on it still selects the section.
+     */
+    document.addEventListener('pointerdown', (event) => {
+        const handle = event.target.closest?.('.cb-section-handle');
+        if (!handle || dragState) return;
+        if (event.button !== undefined && event.button !== 0) return;
+        const section = handle.closest('[data-cb-section-id]');
+        const sectionId = section ? parseInt(section.dataset.cbSectionId, 10) : NaN;
+        if (!Number.isFinite(sectionId)) return;
+
+        // No preventDefault: it would keep focus out of the preview, and the
+        // keyboard shortcuts with it. builder.css stops the text selection.
+        const origin = { x: event.clientX, y: event.clientY, id: event.pointerId };
+        const same = (e) => origin.id === undefined || e.pointerId === origin.id;
+        const cleanup = () => {
+            document.removeEventListener('pointermove', onMove);
+            document.removeEventListener('pointerup', onUp);
+            document.removeEventListener('pointercancel', onUp);
+        };
+        const onMove = (e) => {
+            if (!same(e)) return;
+            const distance = Math.hypot(e.clientX - origin.x, e.clientY - origin.y);
+            if (distance < HANDLE_DRAG_THRESHOLD) return;
+            cleanup();
+            window.getSelection()?.removeAllRanges();
+            startDrag(e, 'section', sectionId, section);
+        };
+        const onUp = (e) => { if (same(e)) cleanup(); };
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp);
+        document.addEventListener('pointercancel', onUp);
+    });
 
     function startDrag(event, kind, id, sourceEl) {
         // Cancel any popover/toolbar UI; the drag takes over the screen.
@@ -868,8 +959,15 @@
         document.body.classList.remove('cb-dragging', 'cb-dragging--section', 'cb-dragging--block');
         dropIndicator.hidden = true;
         dragState = null;
+        swallowDropClick = true;
+        setTimeout(() => { swallowDropClick = false; }, 0);
 
         if (!commit || !target) return;
+        const viewport = currentViewport();
+        if (viewport !== 'desktop') {
+            requestViewportOrder(viewport, kind, sourceEl, target);
+            return;
+        }
         if (kind === 'section') {
             postToParent('cb:section:reorder', {
                 sectionId: id,
@@ -884,6 +982,96 @@
         }
     }
 
+    /** Siblings as the eye reads them, which `order` can make differ. */
+    function visualOrder(nodes) {
+        return nodes
+            .map((node) => ({ node, top: node.getBoundingClientRect().top }))
+            .sort((a, b) => a.top - b.top)
+            .map((entry) => entry.node);
+    }
+
+    /**
+     * On tablet or mobile nothing moves in the DOM: the new visual sequence is
+     * posted, and the answer sets --cb-order-*. A block stays in its column.
+     *
+     * @see docs/internals/rendering.md#order-per-viewport
+     */
+    function requestViewportOrder(viewport, kind, sourceEl, target) {
+        if (kind === 'block') {
+            const column = sourceEl.closest('[data-cb-column-id]');
+            const columnId = column ? parseInt(column.dataset.cbColumnId, 10) : NaN;
+            if (columnId !== target.columnId) {
+                postToParent('cb:viewport-order:refused', { viewport, reason: 'column' });
+                return;
+            }
+            const siblings = visualOrder(Array.from(column.querySelectorAll('[data-cb-block-id]'))
+                .filter((b) => b.dataset.cbDeleted !== '1'));
+            postViewportOrder(viewport, 'block', siblings, sourceEl, target.position, { columnId });
+            return;
+        }
+        const siblings = visualOrder(Array.from(document.querySelectorAll('[data-cb-section-id]'))
+            .filter((s) => s.dataset.cbDeleted !== '1'));
+        postViewportOrder(viewport, 'section', siblings, sourceEl, target.position, {});
+    }
+
+    /** `position` indexes the siblings minus the moved one, as a drop does. */
+    function postViewportOrder(viewport, scope, siblings, moved, position, extra) {
+        const idOf = (node) => parseInt(scope === 'block' ? node.dataset.cbBlockId : node.dataset.cbSectionId, 10);
+        const before = siblings.map(idOf);
+        const rest = siblings.filter((node) => node !== moved);
+        rest.splice(Math.max(0, Math.min(position, rest.length)), 0, moved);
+        const ids = rest.map(idOf);
+        if (ids.every((id, i) => id === before[i])) return;
+        postToParent('cb:viewport-order:requested', { viewport, scope, ids, ...extra });
+    }
+
+    /** The toolbar arrows, which follow the viewport like a drag does. */
+    function moveSectionRequested(el, sectionId, direction) {
+        const viewport = currentViewport();
+        if (viewport === 'desktop') {
+            postToParent('cb:section:move-requested', { sectionId, direction });
+            return;
+        }
+        const siblings = visualOrder(Array.from(document.querySelectorAll('[data-cb-section-id]'))
+            .filter((s) => s.dataset.cbDeleted !== '1'));
+        const index = siblings.indexOf(el);
+        const position = direction === 'up' ? index - 1 : index + 1;
+        if (index === -1 || position < 0 || position >= siblings.length) return;
+        postViewportOrder(viewport, 'section', siblings, el, position, {});
+    }
+
+    /** Sets what the server computed; a sibling it left bare loses its vars. */
+    function applyViewportOrder(scope, orders) {
+        const attr = scope === 'block' ? 'data-cb-block-id' : 'data-cb-section-id';
+        let ordered = false;
+        Object.keys(orders || {}).forEach((id) => {
+            const node = document.querySelector(`[${attr}="${id}"]`);
+            if (!node) return;
+            node.style.removeProperty('--cb-order-t');
+            node.style.removeProperty('--cb-order-m');
+            const vars = orders[id] || {};
+            Object.keys(vars).forEach((name) => {
+                node.style.setProperty(name, vars[name]);
+                ordered = true;
+            });
+            if (node.getAttribute('style') === '') node.removeAttribute('style');
+        });
+        if (scope === 'section') {
+            document.querySelectorAll('.cb-content-area').forEach((area) => {
+                area.classList.toggle('cb-content-area--ordered', ordered);
+            });
+        }
+        if (focusedEl) positionToolbarFor(focusedEl, focusedKind);
+    }
+
+    /**
+     * A hot insert or move among ranked siblings changes their sequence, which
+     * only the server computes: reload instead.
+     */
+    function hasViewportOrder(nodes) {
+        return nodes.some((node) => node && /--cb-order-/.test(node.getAttribute('style') || ''));
+    }
+
     function computeDropTarget(x, y) {
         return dragState.kind === 'section'
             ? computeSectionDrop(x, y)
@@ -891,8 +1079,8 @@
     }
 
     function computeSectionDrop(x, y) {
-        const sections = Array.from(document.querySelectorAll('[data-cb-section-id]'))
-            .filter((s) => s !== dragState.sourceEl && s.dataset.cbDeleted !== '1');
+        const sections = visualOrder(Array.from(document.querySelectorAll('[data-cb-section-id]'))
+            .filter((s) => s !== dragState.sourceEl && s.dataset.cbDeleted !== '1'));
 
         // Empty area (no siblings) — drop at index 0; no indicator needed
         // because there's nothing visible to anchor it to.
@@ -929,8 +1117,8 @@
         const columnId = parseInt(column.dataset.cbColumnId, 10);
         if (!Number.isFinite(columnId)) return null;
 
-        const blocks = Array.from(column.querySelectorAll('[data-cb-block-id]'))
-            .filter((b) => b !== dragState.sourceEl && b.dataset.cbDeleted !== '1');
+        const blocks = visualOrder(Array.from(column.querySelectorAll('[data-cb-block-id]'))
+            .filter((b) => b !== dragState.sourceEl && b.dataset.cbDeleted !== '1'));
 
         if (blocks.length === 0) {
             const colRect = column.getBoundingClientRect();
@@ -1026,6 +1214,13 @@
         'click',
         (event) => {
             const target = event.target;
+
+            if (swallowDropClick) {
+                swallowDropClick = false;
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                return;
+            }
 
             // 1. Permanent in-iframe affordances: handle their intent and
             //    bail out before any outside-click / link suppression runs.
@@ -1208,6 +1403,13 @@
             return;
         }
 
+        // A viewport reorder the server accepted.
+        if (data.type === 'cb:viewport-order:apply'
+            && (data.scope === 'section' || data.scope === 'block')) {
+            applyViewportOrder(data.scope, data.orders);
+            return;
+        }
+
         // Sent instead of the usual scroll restore, so the editor sees
         // what they just added.
         if (data.type === 'cb:section:scroll-into-view' && Number.isFinite(data.sectionId)) {
@@ -1258,9 +1460,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             restoreTabs(document);
             postToParent('cb:ready');
+            announceViewport();
         });
     } else {
         restoreTabs(document);
         postToParent('cb:ready');
+        announceViewport();
     }
 })();

@@ -5,6 +5,41 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Display per viewport.** *Display* gets the desktop / tablet / mobile switch:
+  `displayTablet` and `displayMobile` inherit the viewport above, and can only
+  get more compact (grid or slider → grid, slider or accordion; tabs → tabs or
+  accordion; accordion stays). A section that changes renders
+  `cb-section--responsive cb-section--t-* cb-section--m-*`; a uniform one keeps
+  its markup. Tabs becoming an accordion reuse the tab radios. See
+  [Display per viewport](https://klehm.github.io/content-blocks-project/guide/host-services#display-per-viewport).
+- **Slider display.** Columns scroll and snap, one column per slide, with
+  `sliderPerView` per viewport (1 to 6), `sliderControls` (arrows, dots, both,
+  none), `sliderAutoplay` (seconds; pauses on hover and focus, off for reduced
+  motion and in the builder) and `sliderLoop`. Swiping needs no script; the
+  controls and ARIA come from `content_blocks_asset_slider`, loaded only by a
+  page that has a slider. Also a layout `display`.
+- **Order per viewport.** With the preview on tablet or mobile, dragging a
+  section, or a block within its column, orders that viewport only, through
+  `POST /area/{id}/viewport-order` (and `/reset`). Ranks live under `_order`,
+  render as `--cb-order-t` / `--cb-order-m`, go through undo and Publish, and a
+  block moved to another column on desktop loses them.
+- **Drag a section by its label.** The hanging *Section* label drags the
+  section; a click still selects it.
+- **`||` in `data-cb-condition`** separates whole alternatives.
+
+### Changed
+
+- **Tab panels are matched with `.cb-col:nth-of-type(n)`** instead of
+  `:nth-child(n)`, and an open accordion panel is `display: flex` like a tab
+  panel (margins between its blocks no longer collapse). Host CSS copying the
+  old selectors needs the same change.
+- **Accordion toggles and headers are `display: none` outside an accordion**,
+  and shown by the accordion rules.
+
 ## [1.0.0-RC12] - 2026-09-17
 
 ### Added

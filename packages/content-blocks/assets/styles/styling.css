@@ -50,9 +50,10 @@
 }
 
 /* Column gap: the --cb-gap-* vars are set on the section and inherited by
-   the inner row. Falls back to the framework default (1rem in layout.css). */
+   the row; --cb-slide-gap repeats it for the slider's width maths. */
 .cb-section--styled > .cb-row {
     gap: var(--cb-gap-d, 1rem);
+    --cb-slide-gap: var(--cb-gap-d, 1rem);
 }
 
 /* ----- Tablet (≤ 991px) ----- */
@@ -69,6 +70,7 @@
     }
     .cb-section--styled > .cb-row {
         gap: var(--cb-gap-t, var(--cb-gap-d, 1rem));
+        --cb-slide-gap: var(--cb-gap-t, var(--cb-gap-d, 1rem));
     }
 }
 
@@ -86,6 +88,7 @@
     }
     .cb-section--styled > .cb-row {
         gap: var(--cb-gap-m, var(--cb-gap-t, var(--cb-gap-d, 1rem)));
+        --cb-slide-gap: var(--cb-gap-m, var(--cb-gap-t, var(--cb-gap-d, 1rem)));
     }
 }
 

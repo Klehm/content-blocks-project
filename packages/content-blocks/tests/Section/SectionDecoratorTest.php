@@ -85,6 +85,67 @@ final class SectionDecoratorTest extends TestCase
         $this->assertNotContains('cb-section--reverse-mobile', $truthy->classes);
     }
 
+    public function testAUniformSectionKeepsItsSingleDisplayClass(): void
+    {
+        $decorator = new BuiltInSectionDecorator(new SectionStyleRegistry([]));
+
+        $slider = $decorator->decorate(['display' => 'slider'], new Section());
+        $tabs = $decorator->decorate(['display' => 'tabs', 'displayMobile' => 'tabs'], new Section());
+
+        $this->assertSame(['cb-section--display-slider'], $slider->classes);
+        $this->assertSame(['cb-section--display-tabs'], $tabs->classes);
+    }
+
+    public function testASectionThatChangesNamesEveryViewportResolved(): void
+    {
+        $decorator = new BuiltInSectionDecorator(new SectionStyleRegistry([]));
+
+        $deco = $decorator->decorate(['displayMobile' => 'slider'], new Section());
+
+        $this->assertSame([
+            'cb-section--display-grid',
+            'cb-section--responsive',
+            'cb-section--t-grid',
+            'cb-section--m-slider',
+        ], $deco->classes);
+    }
+
+    public function testASliderAtAnyViewportEmitsTheSlidesPerViewport(): void
+    {
+        $decorator = new BuiltInSectionDecorator(new SectionStyleRegistry([]));
+
+        $deco = $decorator->decorate([
+            'display' => 'grid',
+            'displayMobile' => 'slider',
+            'sliderPerView' => ['desktop' => 3, 'mobile' => 1],
+        ], new Section());
+        $grid = $decorator->decorate(['sliderPerView' => ['desktop' => 3]], new Section());
+
+        $this->assertSame(
+            '--cb-slides-d:3;--cb-slides-t:3;--cb-slides-m:1;',
+            $deco->styleString(),
+        );
+        $this->assertSame('', $grid->styleString());
+    }
+
+    /** Only a mobile grid stacks its columns, whatever desktop shows. */
+    public function testReverseOnMobileFollowsTheMobileDisplay(): void
+    {
+        $decorator = new BuiltInSectionDecorator(new SectionStyleRegistry([]));
+
+        $sliderToGrid = $decorator->decorate(
+            ['display' => 'slider', 'displayMobile' => 'grid', 'reverseOnMobile' => true],
+            new Section(),
+        );
+        $gridToSlider = $decorator->decorate(
+            ['displayMobile' => 'slider', 'reverseOnMobile' => true],
+            new Section(),
+        );
+
+        $this->assertContains('cb-section--reverse-mobile', $sliderToGrid->classes);
+        $this->assertNotContains('cb-section--reverse-mobile', $gridToSlider->classes);
+    }
+
     public function testBuiltInDecoratorAppliesCenteredWidth(): void
     {
         $decorator = new BuiltInSectionDecorator(new SectionStyleRegistry());

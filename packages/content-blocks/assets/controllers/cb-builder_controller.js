@@ -33,6 +33,9 @@ export default class extends Controller {
         'actionsMenu',
         'actionsToggle',
         'actionsList',
+        'viewportOrder',
+        'viewportOrderLabel',
+        'viewportOrderReset',
     ];
 
     static values = {
@@ -1480,6 +1483,68 @@ export default class extends Controller {
         this.reload();
     }
 
+    // ---------- Order per viewport ----------
+
+    /**
+     * The hint follows what the preview renders, reported by the overlay,
+     * not the button: both decide what a drag means there.
+     *
+     * @see docs/internals/rendering.md#order-per-viewport
+     */
+    _showViewportOrder(viewport) {
+        this._previewViewport = viewport;
+        if (!this.hasViewportOrderTarget) return;
+        const narrow = viewport === 'tablet' || viewport === 'mobile';
+        this.viewportOrderTarget.hidden = !narrow;
+        if (!narrow) return;
+        const fallbacks = {
+            tablet: ['Tablet order: desktop is unchanged', 'Reset the tablet order'],
+            mobile: ['Mobile order: desktop is unchanged', 'Reset the mobile order'],
+        }[viewport];
+        if (this.hasViewportOrderLabelTarget) {
+            this.viewportOrderLabelTarget.textContent = this._t(`cb.builder.viewport_order.${viewport}`, fallbacks[0]);
+        }
+        if (this.hasViewportOrderResetTarget) {
+            const reset = this._t(`cb.builder.viewport_order.reset_${viewport}`, fallbacks[1]);
+            this.viewportOrderResetTarget.title = reset;
+            this.viewportOrderResetTarget.setAttribute('aria-label', reset);
+        }
+    }
+
+    async _setViewportOrder({ viewport, scope, ids, columnId }) {
+        if (!['tablet', 'mobile'].includes(viewport) || !Array.isArray(ids)) return;
+        const body = { viewport, scope, ids };
+        if (scope === 'block') body.columnId = columnId;
+        const result = await this._jsonRequest(
+            'POST',
+            `${this._apiBase}/area/${this.areaIdValue}/viewport-order`,
+            body,
+            { tolerate: [400] },
+        );
+        if (result === null) return;
+        if (result.error) {
+            // The preview drifted from the server: redraw it from the truth.
+            this.reload();
+            return;
+        }
+        this._applyDraftState(true);
+        this._reorderInPreview({ type: 'cb:viewport-order:apply', scope, orders: result.orders });
+    }
+
+    /** Action: the hint's reset button. */
+    async resetViewportOrder(event) {
+        if (event) event.preventDefault();
+        const viewport = this._previewViewport;
+        if (!['tablet', 'mobile'].includes(viewport)) return;
+        const result = await this._jsonRequest(
+            'POST',
+            `${this._apiBase}/area/${this.areaIdValue}/viewport-order/reset`,
+            { viewport },
+        );
+        if (result === null) return;
+        this._afterStructuralOp();
+    }
+
     setViewport(event) {
         if (event) event.preventDefault();
         const viewport = event?.params?.viewport ?? 'desktop';
@@ -1574,6 +1639,18 @@ export default class extends Controller {
                 // The focused element no longer exists — a section delete
                 // that cascaded to a child block. Clear the stale form.
                 this._resetSidebarToEmptyState();
+                break;
+            case 'cb:viewport:changed':
+                this._showViewportOrder(data.viewport);
+                break;
+            case 'cb:viewport-order:requested':
+                this._setViewportOrder(data);
+                break;
+            case 'cb:viewport-order:refused':
+                this._notify(this._t(
+                    'cb.builder.viewport_order.column',
+                    'On tablet and mobile a block can only be reordered within its column',
+                ));
                 break;
             case 'cb:reorder:desync':
                 // The overlay couldn't find a node it was asked to relocate —

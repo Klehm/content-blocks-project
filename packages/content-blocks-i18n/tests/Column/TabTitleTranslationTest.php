@@ -199,6 +199,24 @@ final class TabTitleTranslationTest extends TestCase
         self::assertNotNull($this->inspector()->inspectColumn($column, 'en'));
     }
 
+    /** A grid or slider on desktop still prints panel titles on mobile. */
+    public function testAnAccordionOnMobileOnlyStillListsItsTitles(): void
+    {
+        $area = new ContentArea();
+        Entities::id($area, 1);
+        $section = $this->section($area, 100, 0, ['display' => 'slider', 'displayMobile' => 'accordion']);
+        $column = $this->column(10, 'Livraison', $section, 0);
+        $slider = $this->section($area, 200, 1, ['displayMobile' => 'slider']);
+        $this->column(20, 'Invisible', $slider, 0);
+
+        $views = $this->inspector()->inspectArea($area, 'en');
+
+        self::assertCount(1, $views);
+        self::assertSame('cb_i18n.workbench.panel_title', $views[0]->fields[0]->label);
+        self::assertNotNull($this->inspector()->inspectColumn($column, 'en'));
+        self::assertNull($this->inspector()->inspectColumn($slider->getColumns()->first(), 'en'));
+    }
+
     public function testATabsDisplayInheritedFromAStylePresetCounts(): void
     {
         $area = new ContentArea();

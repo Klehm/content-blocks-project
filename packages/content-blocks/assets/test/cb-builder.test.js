@@ -1821,3 +1821,104 @@ describe('cb-builder: column add / delete', () => {
         controller.disconnect();
     });
 });
+
+describe('cb-builder: order per viewport', () => {
+    let controller, element, iframe;
+
+    function withHint() {
+        const hint = document.createElement('span');
+        hint.hidden = true;
+        const label = document.createElement('span');
+        const reset = document.createElement('button');
+        hint.append(label, reset);
+        element.appendChild(hint);
+        element.setAttribute('data-i18n-cb-builder-viewport-order-mobile', 'Ordre mobile');
+        Object.defineProperty(controller, 'hasViewportOrderTarget', { value: true });
+        Object.defineProperty(controller, 'viewportOrderTarget', { value: hint });
+        Object.defineProperty(controller, 'hasViewportOrderLabelTarget', { value: true });
+        Object.defineProperty(controller, 'viewportOrderLabelTarget', { value: label });
+        Object.defineProperty(controller, 'hasViewportOrderResetTarget', { value: true });
+        Object.defineProperty(controller, 'viewportOrderResetTarget', { value: reset });
+
+        return { hint, label, reset };
+    }
+
+    beforeEach(() => {
+        ({ controller, element, iframe } = setupController());
+        element.dataset.cbCsrfToken = 'tok';
+    });
+
+    it('shows the hint only while the preview renders tablet or mobile', () => {
+        const { hint, label, reset } = withHint();
+
+        controller._onMessage(postMessage({ type: 'cb:viewport:changed', viewport: 'mobile' }));
+        expect(hint.hidden).toBe(false);
+        expect(label.textContent).toBe('Ordre mobile');
+        expect(reset.getAttribute('aria-label')).toBe('Reset the mobile order');
+
+        controller._onMessage(postMessage({ type: 'cb:viewport:changed', viewport: 'desktop' }));
+        expect(hint.hidden).toBe(true);
+    });
+
+    it('posts the new order and hands the variables to the preview', async () => {
+        const orders = { 5: { '--cb-order-m': '1' }, 6: { '--cb-order-m': '0' } };
+        global.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ ok: true, orders }),
+        }));
+        const postSpy = vi.spyOn(iframe.contentWindow, 'postMessage').mockImplementation(() => {});
+
+        await controller._setViewportOrder({ viewport: 'mobile', scope: 'block', ids: [6, 5], columnId: 3 });
+
+        const [url, init] = global.fetch.mock.calls[0];
+        expect(url).toBe('/_content-blocks/area/42/viewport-order');
+        expect(JSON.parse(init.body)).toEqual({ viewport: 'mobile', scope: 'block', ids: [6, 5], columnId: 3 });
+        expect(postSpy).toHaveBeenCalledWith(
+            { type: 'cb:viewport-order:apply', scope: 'block', orders },
+            window.location.origin,
+        );
+    });
+
+    it('reloads the preview when the server refuses the order', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({
+            ok: false,
+            status: 400,
+            json: () => Promise.resolve({ error: 'not_siblings' }),
+        }));
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        await controller._setViewportOrder({ viewport: 'tablet', scope: 'section', ids: [1] });
+
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('says why a block cannot leave its column', () => {
+        const notifySpy = vi.spyOn(controller, '_notify').mockImplementation(() => {});
+
+        controller._onMessage(postMessage({ type: 'cb:viewport-order:refused', viewport: 'mobile' }));
+
+        expect(notifySpy).toHaveBeenCalledWith(expect.stringContaining('within its column'));
+    });
+
+    it('resets the viewport the preview renders, then reloads', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true }) }));
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+        controller._onMessage(postMessage({ type: 'cb:viewport:changed', viewport: 'tablet' }));
+
+        await controller.resetViewportOrder();
+
+        const [url, init] = global.fetch.mock.calls[0];
+        expect(url).toBe('/_content-blocks/area/42/viewport-order/reset');
+        expect(JSON.parse(init.body)).toEqual({ viewport: 'tablet' });
+        expect(reloadSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('does nothing to reset on desktop', async () => {
+        global.fetch = vi.fn();
+        controller._onMessage(postMessage({ type: 'cb:viewport:changed', viewport: 'desktop' }));
+
+        await controller.resetViewportOrder();
+
+        expect(global.fetch).not.toHaveBeenCalled();
+    });
+});

@@ -7,6 +7,7 @@ namespace ContentBlocks\History;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Rendering\ViewportOrder;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -102,6 +103,7 @@ final class StateApplier
                 'columnId' => $entity->getColumn()?->getId(),
                 'publishedColumnId' => $entity->getPublishedColumnId(),
                 'data' => $entity->getDraftData(),
+                'order' => AreaStateSnapshot::orderOf($entity),
                 default => null,
             },
             $entity instanceof Column => match ($field) {
@@ -116,6 +118,7 @@ final class StateApplier
                 'previewPosition' => $entity->getPreviewPosition(),
                 'layout' => $entity->getLayout(),
                 'settings' => $entity->getDraftSettings(),
+                'order' => AreaStateSnapshot::orderOf($entity),
                 default => null,
             },
         };
@@ -146,8 +149,29 @@ final class StateApplier
             'previewPosition' => $entity->setPreviewPosition((int) $value),
             'layout' => \is_string($value) ? $entity->setLayout($value) : $entity,
             'settings' => $entity->setDraftSettings(\is_array($value) ? $value : null),
+            'order' => $entity->setDraftSettings(self::withRanks(
+                $entity->getEffectiveSettings(preferDraft: true),
+                $value,
+            )),
             default => null,
         };
+    }
+
+    /**
+     * @param array<string, mixed> $holder
+     *
+     * @return array<string, mixed>
+     */
+    private static function withRanks(array $holder, mixed $ranks): array
+    {
+        $holder = ViewportOrder::withoutRanks($holder);
+        foreach (\is_array($ranks) ? $ranks : [] as $viewport => $rank) {
+            if (\is_string($viewport) && (\is_int($rank) || $rank === null)) {
+                $holder = ViewportOrder::withRank($holder, $viewport, $rank);
+            }
+        }
+
+        return $holder;
     }
 
     /**
@@ -172,6 +196,10 @@ final class StateApplier
             'previewPosition' => $block->setPreviewPosition((int) $value),
             'publishedColumnId' => $block->setPublishedColumnId(\is_int($value) ? $value : null),
             'data' => $block->setDraftData(\is_array($value) ? $value : null),
+            'order' => $block->setDraftData(self::withRanks(
+                $block->getDraftData() ?? $block->getPublishedData() ?? [],
+                $value,
+            )),
             default => null,
         };
     }

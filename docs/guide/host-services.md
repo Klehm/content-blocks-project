@@ -349,7 +349,7 @@ content_blocks:
   including from a forged request.
 - Buttons follow the declaration order, built-ins first, and their glyph is
   drawn from `columns`.
-- **`display`** (`grid` by default, `tabs` or `accordion`) is how a new section of this
+- **`display`** (`grid` by default, `slider`, `tabs` or `accordion`) is how a new section of this
   layout starts showing its columns. The editor can switch it at any time in
   the section sidebar (see below).
 
@@ -363,7 +363,7 @@ A section with two columns or more also has **Reverse the column order on
 mobile** in its sidebar (`reverseOnMobile` setting, class
 `cb-section--reverse-mobile`). At 540px and below its stacked columns read last
 to first, which keeps the image above the text across alternating rows. It
-applies to the grid display only, and a style preset may set it.
+applies only where mobile shows a grid, and a style preset may set it.
 
 ### Columns and tabs
 
@@ -415,6 +415,72 @@ Its custom properties and classes:
 
 A style preset may carry `display: tabs` or `display: accordion` in its
 `settings`, like any other section setting.
+
+### Display per viewport
+
+*Display* has the same desktop / tablet / mobile switch as the spacing fields.
+Tablet and mobile default to *Same as above*, and **can only get more
+compact** than the viewport above them:
+
+| Above | Allowed below |
+|---|---|
+| grid or slider | grid, slider, accordion |
+| tabs | tabs, accordion |
+| accordion | accordion |
+
+So a row of three cards can scroll on a phone, and tabs can become an
+accordion, but tabs are never offered below a grid. The rule keeps the markup
+light: a grid and a slider are the same HTML, and tabs becoming an accordion
+reuse the tab radios (one panel is always open there). The server applies the
+same rule, so a value it refuses, from a preset or a forged request, falls
+back to the viewport above.
+
+The keys are `display` (desktop), `displayTablet` and `displayMobile`, and a
+preset may set them. A section that changes gets `cb-section--responsive` plus
+`cb-section--t-<display>` and `cb-section--m-<display>`; one that does not keeps
+`cb-section--display-<display>` alone, as before.
+
+### Slider
+
+A slider shows the columns in a row that scrolls and snaps, one column per
+slide, so a slide holds any blocks. Swiping works without JavaScript. The
+sidebar sets:
+
+- **Slides visible at once** (`sliderPerView`), per viewport, 1 to 6; a blank
+  viewport inherits the one above.
+- **Slider controls** (`sliderControls`): `both` (default), `arrows`, `dots` or
+  `none`.
+- **Autoplay** (`sliderAutoplay`), in seconds, 0 to 60, off at 0. It pauses on
+  hover and keyboard focus, stops in a hidden tab, and never runs for visitors
+  who ask for reduced motion, nor in the builder.
+- **Arrows loop back** (`sliderLoop`): the last slide's arrow goes to the first.
+
+The arrows, dots and ARIA roles come from a small script the page loads only
+when a section needs it (`content_blocks_asset_slider`, a public route like the
+stylesheets). It reads from the CSS whether a section is a slider at the current
+width, so it follows the same breakpoints. Restyle it through:
+
+```css
+.cb-content-area {
+    --cb-slider-accent: #eb0540;             /* keyboard focus ring */
+    --cb-slider-gap: 1.5rem;                 /* space above the controls */
+}
+.cb-slider__arrow { border-color: transparent; }
+.cb-slider__dot[aria-current="true"] { background: #eb0540; }
+```
+
+### Order per viewport
+
+With the builder preview on tablet or mobile, dragging a section, or a block
+within its column, changes the order **for that viewport only**. The topbar
+says so, next to a button that resets the order. Desktop is untouched, and a
+block cannot change column there: CSS can reorder siblings, not move them.
+
+Each element keeps its rank under `_order` in its settings or data. The render
+turns the ranks of a group into `--cb-order-t` / `--cb-order-m` on every
+sibling. A sibling without a rank (a duplicate, a paste, a new block) follows
+the one before it on desktop. Screen readers and keyboard navigation keep the
+desktop order.
 
 ### Your own keys in presets and initial settings
 

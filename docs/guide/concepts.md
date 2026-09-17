@@ -24,7 +24,7 @@ ContentArea → Section → Column → Block
 | `Block`       | `cb_block`         | id, column_id, type, data, position      |
 
 - **`Section.layout`**: `full`, `two_cols`, `three_cols`, plus any layout the host declares (see [Section layouts](./host-services.md#section-layouts))
-- **`Column.preset`**: `col-N`, a span on a 12-unit grid (`col-12`, `col-6`, `col-3`…). Editors add, name and remove columns from the section sidebar, and a section can show its columns as tabs or as an accordion (see [Columns and tabs](./host-services.md#columns-and-tabs))
+- **`Column.preset`**: `col-N`, a span on a 12-unit grid (`col-12`, `col-6`, `col-3`…). Editors add, name and remove columns from the section sidebar, and a section can show its columns as a slider, as tabs or as an accordion, per viewport (see [Columns and tabs](./host-services.md#columns-and-tabs))
 - **`Block.type`**: the BlockType identifier (e.g. `text`, `title`, `image`)
 - **`Block.data`**: free-form JSON; its structure depends on the block type
 

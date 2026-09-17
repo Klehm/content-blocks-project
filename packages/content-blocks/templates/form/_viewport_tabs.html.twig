@@ -1,0 +1,18 @@
+{# D/T/M switcher for a row whose panes carry `data-viewport`. #}
+<div class="cb-viewport-tabs" data-controller="cb-viewport-tabs" data-cb-viewport-tabs-active-value="desktop">
+    {% for v in [
+        { key: 'desktop', icon: '▭', label: 'cb.styling.viewport.desktop' },
+        { key: 'tablet', icon: '▢', label: 'cb.styling.viewport.tablet' },
+        { key: 'mobile', icon: '▯', label: 'cb.styling.viewport.mobile' },
+    ] %}
+        <button type="button"
+                class="cb-viewport-tabs__btn"
+                data-cb-viewport-tabs-target="tab"
+                data-viewport="{{ v.key }}"
+                data-action="cb-viewport-tabs#select"
+                aria-pressed="{{ v.key == 'desktop' ? 'true' : 'false' }}"
+                title="{{ v.label|trans({}, 'content_blocks') }}">
+            <span aria-hidden="true">{{ v.icon }}</span>
+        </button>
+    {% endfor %}
+</div>

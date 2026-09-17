@@ -233,7 +233,10 @@ body.cb-dragging--block [data-cb-section-id] {
   font-size: 11px;
   font-weight: 600;
   line-height: 1.4;
-  cursor: pointer;
+  /* It drags the section too; `none` keeps a touch drag from scrolling. */
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
   opacity: 0;
   pointer-events: none;
   transition:
@@ -254,6 +257,11 @@ body.cb-dragging--block [data-cb-section-id] {
 .cb-section-handle__grip {
   letter-spacing: -2px;
   opacity: 0.7;
+}
+
+/* Trailing affordances stay last when sections carry a viewport order. */
+.cb-content-area--ordered > .cb-add-section-tray {
+  order: 2147483647;
 }
 
 /* Hidden in preview: the marker stays so Discard can restore it, but the
