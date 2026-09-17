@@ -1001,13 +1001,21 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     section?: array{
  *         default_width_mode?: "full"|"centered"|Param, // Default: "full"
  *         default_max_width?: int|Param, // Default: 1320
+ *         layouts?: array<string, bool|array{ // Default: []
+ *             enabled?: bool|Param, // Default: true
+ *             label?: scalar|Param|null, // Text or translation key (content_blocks domain). Required for a new layout. // Default: null
+ *             display?: "grid"|"tabs"|"accordion"|Param, // How a new section of this layout shows its columns: side by side (grid), one at a time (tabs) or as collapsible panels (accordion). // Default: null
+ *             columns?: list<int|Param>,
+ *         }>,
  *         initial_settings?: array{ // Settings written onto a section added from the builder, same shape as a preset's. Stored as the section's own values, so they render like anything the editor saved.
  *             classes?: scalar|Param|null,
+ *             display?: "grid"|"tabs"|"accordion"|Param,
  *             widthMode?: "full"|"centered"|Param,
  *             maxWidth?: int|Param,
  *             columnWidths?: scalar|Param|null,
  *             styleName?: scalar|Param|null,
  *             stylingCustom?: bool|Param,
+ *             reverseOnMobile?: bool|Param,
  *             styling?: array{
  *                 padding?: array{
  *                     desktop?: array{
@@ -1079,11 +1087,13 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         css_class?: scalar|Param|null, // Default: ""
  *         settings?: array{ // Section settings applied by the preset (subset of a section's settings).
  *             classes?: scalar|Param|null,
+ *             display?: "grid"|"tabs"|"accordion"|Param,
  *             widthMode?: "full"|"centered"|Param,
  *             maxWidth?: int|Param,
  *             columnWidths?: scalar|Param|null,
  *             styleName?: scalar|Param|null,
  *             stylingCustom?: bool|Param,
+ *             reverseOnMobile?: bool|Param,
  *             styling?: array{
  *                 padding?: array{
  *                     desktop?: array{

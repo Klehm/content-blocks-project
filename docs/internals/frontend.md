@@ -321,6 +321,20 @@ which does two things at once: `cb-autosave` resets its dirty-detection baseline
 so the next interaction re-attempts the save rather than treating the failed state
 as already saved, and the event bubbles up to show the banner.
 
+## What autosave compares
+
+`cb-autosave` saves only when the serialized form differs from what it last
+sent, so one edit that fires `input`, `change` and `focusout` is one save. Two
+fields are left out of that comparison because code rewrites them, not the
+editor:
+
+- `[linked]`: cb-spacing-link ticks the box on connect when four sides match.
+- `[_token]`: Symfony's `csrf_protection_controller.js`, which the Flex recipe
+  installs in the host, swaps the placeholder for a real token on the first
+  submit. Compared, it made the next focusout post the same values again, and
+  when that focusout was the click on *Revert to published*, the late save
+  landed after the discard and marked the draft as changed.
+
 ## Why the range field debounces locally
 
 The number input is the submitted field, so an editor can type a value finer

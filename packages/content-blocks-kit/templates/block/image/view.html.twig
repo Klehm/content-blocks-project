@@ -22,10 +22,16 @@
     {% set has_radius = (br.top ?? null) is not null or (br.right ?? null) is not null or (br.bottom ?? null) is not null or (br.left ?? null) is not null %}
     {% set radius = has_radius ? (br.top ?? 0) ~ 'px ' ~ (br.right ?? 0) ~ 'px ' ~ (br.bottom ?? 0) ~ 'px ' ~ (br.left ?? 0) ~ 'px' : null %}
 
+    {# `W-H`, so a ratio added through config renders too. A fixed height
+       already pins the box, so it wins. #}
+    {% set ratio = cb_kit_token(data.ratio|default('auto'), 'auto') %}
+    {% set ratio_parts = ratio matches '/^[1-9][0-9]?-[1-9][0-9]?$/' and not height ? ratio|split('-') : null %}
+
     {# Caps the <img>, not the <figure>, which stays a full-width flex
        column so `align-items` can place the image. #}
     {% set img_style = (width ? 'width:' ~ width ~ 'px;' : '')
         ~ (height ? 'height:' ~ height ~ 'px;object-fit:' ~ fit ~ ';' : '')
+        ~ (ratio_parts ? 'aspect-ratio:' ~ ratio_parts[0] ~ ' / ' ~ ratio_parts[1] ~ ';object-fit:' ~ fit ~ ';' : '')
         ~ (radius ? 'border-radius:' ~ radius ~ ';' : '') %}
 
     {# With candidates but no `sizes`, one is derived from the display
@@ -35,7 +41,7 @@
 
     {# Also a class, or a config-added size would be entirely inert: fluid,
        with nothing in the markup naming it. #}
-    <figure class="cb-kit-image cb-kit-image--{{ align }} cb-kit-image--size-{{ cb_kit_token(size, 'md') }}">
+    <figure class="cb-kit-image cb-kit-image--{{ align }} cb-kit-image--size-{{ cb_kit_token(size, 'md') }}{% if ratio_parts %} cb-kit-image--ratio-{{ ratio }}{% endif %}">
         {% if data.url|default('')|trim is not empty %}<a href="{{ data.url }}">{% endif %}
         <img class="cb-kit-image__img" src="{{ img.src }}" alt="{{ data.alt|default('') }}"
              {%- if img.srcset %} srcset="{{ img.srcset }}"{% endif %}{% if sizes %} sizes="{{ sizes }}"{% endif %}

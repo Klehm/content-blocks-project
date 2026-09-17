@@ -140,6 +140,22 @@ final class SidebarOutcomeTest extends TestCase
         $this->assertSame(SidebarOutcome::RELOAD, $verdict);
     }
 
+    /** The form lists its columns: one coming back or going changes it. */
+    public function testAColumnDeleteOrLabelUndoneRepaintsItsSectionsForm(): void
+    {
+        $section = $this->section(1);
+
+        foreach ([['deleted' => true], ['settings' => ['label' => 'x']]] as $set) {
+            $verdict = $this->outcome->decide(
+                [$this->op('column', $this->column(2), $set)],
+                'section',
+                (int) $section->getId(),
+            );
+
+            $this->assertSame(SidebarOutcome::RELOAD, $verdict);
+        }
+    }
+
     public function testAnotherSectionsColumnLeavesThisFormAlone(): void
     {
         $section = $this->section(1);

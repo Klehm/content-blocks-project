@@ -50,6 +50,39 @@ final class ContentBlocksBundle extends AbstractBundle
                             ->min(1)
                             ->defaultValue(1320)
                         ->end()
+                        ->arrayNode('layouts')
+                            ->info('Column layouts offered by the add-section buttons, keyed by name and merged over the built-in full, two_cols and three_cols. Column spans are on a 12-unit grid; `name: false` hides a layout.')
+                            ->useAttributeAsKey('name')
+                            ->validate()
+                                ->ifTrue(static fn (array $layouts): bool => array_filter(
+                                    array_keys($layouts),
+                                    static fn (int|string $name): bool => preg_match('/^[a-z][a-z0-9_]{0,29}$/', (string) $name) !== 1,
+                                ) !== [])
+                                ->thenInvalid('Section layout names must be lowercase snake_case, 30 characters at most (they are stored in cb_section.layout and used in a CSS class). Got %s.')
+                            ->end()
+                            ->arrayPrototype()
+                                ->canBeDisabled()
+                                ->children()
+                                    ->scalarNode('label')
+                                        ->info('Text or translation key (content_blocks domain). Required for a new layout.')
+                                        ->defaultNull()
+                                    ->end()
+                                    ->enumNode('display')
+                                        ->info('How a new section of this layout shows its columns: side by side (grid), one at a time (tabs) or as collapsible panels (accordion).')
+                                        ->values(Section\SectionDisplay::ALL)
+                                        ->defaultNull()
+                                    ->end()
+                                    ->arrayNode('columns')
+                                        ->info('Span of each column, adding up to 12: [3, 3, 3, 3], [4, 8]. Required for a new layout.')
+                                        ->integerPrototype()->min(1)->max(12)->end()
+                                        ->validate()
+                                            ->ifTrue(static fn (array $spans): bool => $spans !== [] && array_sum($spans) !== 12)
+                                            ->thenInvalid('The column spans of a section layout must add up to 12, got %s.')
+                                        ->end()
+                                    ->end()
+                                ->end()
+                            ->end()
+                        ->end()
                     ->end()
                     ->append($this->settingsNode(
                         'initial_settings',
@@ -117,11 +150,13 @@ final class ContentBlocksBundle extends AbstractBundle
             ->info($info)
             ->children()
                 ->scalarNode('classes')->end()
+                ->enumNode('display')->values(Section\SectionDisplay::ALL)->end()
                 ->enumNode('widthMode')->values(['full', 'centered'])->end()
                 ->integerNode('maxWidth')->min(1)->end()
                 ->scalarNode('columnWidths')->end()
                 ->scalarNode('styleName')->end()
                 ->booleanNode('stylingCustom')->end()
+                ->booleanNode('reverseOnMobile')->end()
             ->end()
             ->append($this->stylingNode());
 
@@ -207,6 +242,7 @@ final class ContentBlocksBundle extends AbstractBundle
             ->set('content_blocks.section.default_width_mode', $config['section']['default_width_mode'])
             ->set('content_blocks.section.default_max_width', $config['section']['default_max_width'])
             ->set('content_blocks.section.initial_settings', $config['section']['initial_settings'] ?? [])
+            ->set('content_blocks.section.layouts', Section\SectionLayoutRegistry::resolve($config['section']['layouts'] ?? []))
             ->set('content_blocks.palette', $config['palette'])
             ->set('content_blocks.section_styles', $config['section_styles'])
             ->set('content_blocks.upload.public_prefix', $config['upload']['public_prefix'])
@@ -318,6 +354,11 @@ final class ContentBlocksBundle extends AbstractBundle
         // seam for anything stored beside a block rather than inside its data.
         $container->registerForAutoconfiguration(Section\BlockCloneObserverInterface::class)
             ->addTag('content_blocks.block_clone_observer');
+
+        $container->registerForAutoconfiguration(Section\ColumnCloneObserverInterface::class)
+            ->addTag('content_blocks.column_clone_observer');
+        $container->registerForAutoconfiguration(Rendering\ColumnSettingsResolverInterface::class)
+            ->addTag('content_blocks.column_settings_resolver');
 
         // "These uploaded files are still referenced" — for a host keeping its
         // own images in the upload directory. See assets.md.

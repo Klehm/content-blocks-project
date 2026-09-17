@@ -88,6 +88,12 @@
     align-self: var(--cb-align-self, stretch);
 }
 
+/* Classes rather than variables, which a nested block would inherit. */
+.cb-block--text-start { text-align: start; }
+.cb-block--text-center { text-align: center; }
+.cb-block--text-end { text-align: end; }
+.cb-block--text-justify { text-align: justify; }
+
 @media (max-width: 991px) {
     .cb-block--styled {
         padding-top: var(--cb-b-pad-t-t, var(--cb-b-pad-d-t, 0));

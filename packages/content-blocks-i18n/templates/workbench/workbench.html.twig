@@ -134,22 +134,32 @@
             {# Generated here, per block, so a host can mount these routes
                anywhere. See docs/internals/i18n.md#config-and-mounting #}
             {% for block in blocks %}
-                <article class="cb-wb__block"
-                         data-cb-block="{{ block.blockId }}"
+                {# A tab title has no render route of its own: its preview
+                   reloads the page, which is what shows the tab bar. #}
+                {% set isColumn = (block.kind ?? 'block') == 'column' %}
+                <article class="cb-wb__block{% if isColumn %} cb-wb__block--column{% endif %}"
+                         data-cb-block="{{ block.key ?? block.blockId }}"
+                         {% if isColumn %}
+                         data-cb-save-url="{{ path('content_blocks_i18n_column_save', { id: block.columnId, locale: locale }) }}"
+                         data-cb-approve-url="{{ path('content_blocks_i18n_column_approve', { id: block.columnId, locale: locale }) }}"
+                         data-cb-translate-url="{{ path('content_blocks_i18n_column_translate', { id: block.columnId, locale: locale }) }}"
+                         data-cb-preview-selector="[data-cb-section-id=&quot;{{ block.sectionId }}&quot;]"
+                         {% else %}
                          data-cb-save-url="{{ path('content_blocks_i18n_block_save', { id: block.blockId, locale: locale }) }}"
                          data-cb-approve-url="{{ path('content_blocks_i18n_block_approve', { id: block.blockId, locale: locale }) }}"
                          data-cb-translate-url="{{ path('content_blocks_i18n_block_translate', { id: block.blockId, locale: locale }) }}"
-                         data-cb-render-url="{{ path('content_blocks_block_render', { id: block.blockId, locale: locale }) }}">
+                         data-cb-render-url="{{ path('content_blocks_block_render', { id: block.blockId, locale: locale }) }}"
+                         {% endif %}>
                     <h2 class="cb-wb__block-title">
                         <span class="cb-wb__block-index">§{{ block.sectionNumber }}</span>
-                        {{ block.blockLabel }}
+                        {% if isColumn %}{{ block.groupLabel ?? 'cb_i18n.workbench.tabs'|trans }} · {% endif %}{{ block.blockLabel }}
                     </h2>
 
                     {% for field in block.fields %}
                         <div class="cb-wb__row cb-wb__row--{{ field.status }}"
                              data-target="row"
                              data-status="{{ field.status }}"
-                             data-block="{{ block.blockId }}"
+                             data-block="{{ block.key ?? block.blockId }}"
                              data-path="{{ field.path }}">
 
                             <div class="cb-wb__source">

@@ -36,6 +36,8 @@ final class BlockTranslationView
     public function toArray(): array
     {
         return [
+            'kind' => 'block',
+            'key' => (string) $this->blockId,
             'blockId' => $this->blockId,
             'blockType' => $this->blockType,
             'blockLabel' => $this->blockLabel,

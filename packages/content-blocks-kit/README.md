@@ -24,6 +24,7 @@ shipped stylesheet, so it drops into any host regardless of its CSS setup.
 | `accordion` | Collapsible panels (native `<details>`, zero JS) |
 | `table` | Columns + rows data table |
 | `embed` | Responsive YouTube / Vimeo embed |
+| `video` | Self-hosted video file (MP4 / WebM) with poster, autoplay, loop, size, caption |
 | `breadcrumb` | Breadcrumb trail |
 | `html_raw` | Raw HTML escape hatch (**disabled by default** — opt in) |
 | `tabs` | Tabbed panels |

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Block;
 
 use ContentBlocks\Entity\Block;
+use ContentBlocks\Palette\ColorTone;
 
 /**
  * Reads the `styling` sub-form and emits the custom properties and classes
@@ -18,6 +19,7 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
     // Data keys are spelled out; emitted CSS var names stay terse (see
     // StylingSectionDecorator). This map bridges the two.
     private const VIEWPORT_SHORT = ['desktop' => 'd', 'tablet' => 't', 'mobile' => 'm'];
+    private const TEXT_ALIGNS = ['start', 'center', 'end', 'justify'];
     private const ALIGN_SELF_MAP = [
         'start' => 'flex-start',
         'center' => 'center',
@@ -32,6 +34,7 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
         }
 
         $vars = [];
+        $classes = [];
 
         // Namespaced `--cb-b-*` so a section's `--cb-s-*` never inherits in.
         foreach (['padding' => 'b-pad', 'margin' => 'b-mar'] as $key => $short) {
@@ -56,6 +59,16 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
         $bg = $styling['backgroundColor'] ?? null;
         if (\is_string($bg) && $bg !== '') {
             $vars['--cb-b-bg'] = $bg;
+            $tone = ColorTone::of($bg);
+            if ($tone !== null) {
+                $classes[] = 'cb-block--bg-' . $tone;
+            }
+        }
+
+        // A class, not a variable: a nested block would inherit the variable.
+        $textAlign = $styling['textAlign'] ?? null;
+        if (\is_string($textAlign) && \in_array($textAlign, self::TEXT_ALIGNS, true)) {
+            $classes[] = 'cb-block--text-' . $textAlign;
         }
 
         $maxWidth = $styling['maxWidth'] ?? null;
@@ -77,10 +90,11 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
             }
         }
 
-        if ($vars === []) {
-            return new BlockDecoration();
+        // `cb-block--styled` zeroes padding and margin, so only with values.
+        if ($vars !== []) {
+            array_unshift($classes, 'cb-block--styled');
         }
 
-        return new BlockDecoration(classes: ['cb-block--styled'], inlineStyles: $vars);
+        return new BlockDecoration(classes: $classes, inlineStyles: $vars);
     }
 }

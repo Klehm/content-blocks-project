@@ -610,3 +610,60 @@ describe('booting', () => {
         expect(start()).toBeInstanceOf(Workbench);
     });
 });
+
+describe('a tab title entry', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    /** A column article as the template renders one: no render route. */
+    function mountWithTab() {
+        const root = mount();
+        root.querySelector('[data-target="list"]').insertAdjacentHTML('afterbegin', `
+            <article data-cb-block="column-10"
+                     data-cb-save-url="${MOUNT}/column/10/de"
+                     data-cb-approve-url="${MOUNT}/column/10/de/approve"
+                     data-cb-translate-url="${MOUNT}/column/10/de/translate"
+                     data-cb-preview-selector='[data-cb-section-id="5"]'>
+                ${row({ block: 'column-10', path: 'label' })}
+            </article>`);
+
+        return root;
+    }
+
+    it('saves to its column route and repaints by its key', async () => {
+        const root = mountWithTab();
+        const calls = stubFetch({
+            block: { kind: 'column', key: 'column-10', columnId: 10, fields: [{ path: 'label', status: 'translated', value: 'Details' }] },
+        });
+        const workbench = new Workbench(root);
+        const reload = vi.fn();
+        workbench.preview = { contentDocument: document.implementation.createHTMLDocument(), contentWindow: { location: { reload } } };
+
+        type(root, 'Details', 0);
+        await settle();
+
+        expect(calls[0].url).toBe(`${MOUNT}/column/10/de`);
+        expect(calls[0].body).toEqual({ values: { label: 'Details' } });
+        const tabRow = root.querySelector('[data-block="column-10"]');
+        expect(tabRow.dataset.status).toBe('translated');
+        // No render route: the tab bar only shows through a page reload.
+        expect(calls.some((c) => c.url.includes('/render'))).toBe(false);
+        expect(reload).toHaveBeenCalledTimes(1);
+    });
+
+    it('focusing it highlights its section in the preview', () => {
+        const root = mountWithTab();
+        stubFetch();
+        const workbench = new Workbench(root);
+
+        const doc = workbench.preview.contentDocument;
+        doc.body.innerHTML = '<section data-cb-section-id="5">tabs</section>';
+        const target = doc.querySelector('[data-cb-section-id="5"]');
+        target.scrollIntoView = vi.fn();
+
+        root.querySelector('[data-block="column-10"] [data-target="input"]')
+            .dispatchEvent(new Event('focusin', { bubbles: true }));
+
+        expect(target.classList.contains('cb-wb-focus')).toBe(true);
+    });
+});

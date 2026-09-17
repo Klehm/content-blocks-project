@@ -601,13 +601,33 @@ describe('cb-builder: action methods', () => {
         expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/sections', { layout: 'full' });
     });
 
-    it('_addSection falls back to "full" for an unknown layout token', async () => {
+    // Layouts are host config, so a name the client has never heard of is
+    // sent as is and the server rules on it.
+    it('_addSection sends a host-configured layout name untouched', async () => {
         const reqSpy = vi.spyOn(controller, '_jsonRequest').mockResolvedValue({});
         vi.spyOn(controller, 'reload').mockImplementation(() => {});
 
-        await controller._addSection('totally_made_up');
+        await controller._addSection('four_cols');
+
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/sections', { layout: 'four_cols' });
+    });
+
+    it('_addSection falls back to "full" for a non-string layout', async () => {
+        const reqSpy = vi.spyOn(controller, '_jsonRequest').mockResolvedValue({});
+        vi.spyOn(controller, 'reload').mockImplementation(() => {});
+
+        await controller._addSection({ layout: 'two_cols' });
 
         expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/sections', { layout: 'full' });
+    });
+
+    it('_addSection leaves the preview alone when the server refuses the layout', async () => {
+        vi.spyOn(controller, '_jsonRequest').mockResolvedValue(null);
+        const mountSpy = vi.spyOn(controller, '_mountSectionSettings').mockImplementation(() => {});
+
+        await controller._addSection('not_configured');
+
+        expect(mountSpy).not.toHaveBeenCalled();
     });
 });
 
@@ -1738,5 +1758,66 @@ describe('cb-builder: scrolling the preview to a new section', () => {
     it('ignores a create that came back without an id', () => {
         controller._scrollPreviewTo(undefined);
         expect(controller._pendingScrollSectionId ?? null).toBeNull();
+    });
+});
+
+describe('cb-builder: column add / delete', () => {
+    let controller, element, reqSpy;
+
+    beforeEach(() => {
+        ({ controller, element } = setupController({ areaId: 99 }));
+        reqSpy = vi.spyOn(controller, '_jsonRequest');
+        vi.spyOn(controller, '_afterStructuralOp').mockImplementation(() => {});
+    });
+
+    it('adding goes through the queue, then rebuilds the preview and sidebar', async () => {
+        reqSpy.mockResolvedValue({ id: 5, columnCount: 3 });
+        const mount = vi.spyOn(controller, '_mountSectionSettings').mockResolvedValue();
+        vi.spyOn(controller, '_isSidebarFocusedOnSection').mockReturnValue(true);
+
+        await controller._onColumnAddRequested({ detail: { sectionId: 7, messages: {} } });
+
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/section/7/columns', {}, { tolerate: [400] });
+        expect(controller._afterStructuralOp).toHaveBeenCalled();
+        expect(mount).toHaveBeenCalledWith(7);
+    });
+
+    it('deleting names the column endpoint', async () => {
+        reqSpy.mockResolvedValue({ deleted: true, columnCount: 1 });
+        vi.spyOn(controller, '_mountSectionSettings').mockResolvedValue();
+
+        await controller._onColumnDeleteRequested({ detail: { sectionId: 7, columnId: 12 } });
+
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/column/12/delete', {}, { tolerate: [400] });
+    });
+
+    it('a refusal is said in the snackbar and changes nothing', async () => {
+        reqSpy.mockResolvedValue({ error: 'last_column' });
+        const notify = vi.spyOn(controller, '_notify').mockImplementation(() => {});
+
+        await controller._onColumnDeleteRequested({
+            detail: { sectionId: 7, columnId: 12, messages: { last_column: 'Keep one' } },
+        });
+
+        expect(notify).toHaveBeenCalledWith('Keep one');
+        expect(controller._afterStructuralOp).not.toHaveBeenCalled();
+    });
+
+    it('a failed request leaves everything alone', async () => {
+        reqSpy.mockResolvedValue(null);
+
+        await controller._onColumnAddRequested({ detail: { sectionId: 7 } });
+
+        expect(controller._afterStructuralOp).not.toHaveBeenCalled();
+    });
+
+    it('the sidebar events reach the handlers', () => {
+        const add = vi.spyOn(controller, '_columnOp').mockResolvedValue();
+        controller.connect();
+
+        element.dispatchEvent(new CustomEvent('cb:column:add-requested', { detail: { sectionId: 3 } }));
+
+        expect(add).toHaveBeenCalledWith(3, 'section/3/columns', undefined);
+        controller.disconnect();
     });
 });

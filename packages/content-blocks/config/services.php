@@ -60,6 +60,8 @@ return static function (ContainerConfigurator $container): void {
         ->set('content_blocks.section.default_max_width', 1320)
         // Written onto a section the builder creates. See SectionsController.
         ->set('content_blocks.section.initial_settings', [])
+        // Resolved list; normally fed by `content_blocks.section.layouts`.
+        ->set('content_blocks.section.layouts', \ContentBlocks\Section\SectionLayoutRegistry::resolve([]))
         // List of {label, color} entries; normally fed by the bundle's
         // semantic config (`content_blocks.palette`) via loadExtension().
         ->set('content_blocks.palette', [])
@@ -160,6 +162,13 @@ return static function (ContainerConfigurator $container): void {
     $services->set(\ContentBlocks\Twig\RoutingExtension::class)
         ->tag('twig.extension');
 
+    $services->set(\ContentBlocks\Section\SectionLayoutRegistry::class)
+        ->args(['%content_blocks.section.layouts%']);
+    $services->set(\ContentBlocks\Twig\SectionLayoutExtension::class)
+        ->tag('twig.extension');
+    $services->set(\ContentBlocks\Twig\ColorToneExtension::class)
+        ->tag('twig.extension');
+
     $services->set(\ContentBlocks\Rendering\BlockRenderer::class);
     // Rendering override seam: host decorates/replaces via the interface.
     $services->alias(\ContentBlocks\Rendering\BlockRendererInterface::class, \ContentBlocks\Rendering\BlockRenderer::class);
@@ -188,6 +197,11 @@ return static function (ContainerConfigurator $container): void {
     // docs/internals/rendering.md#why-the-clone-notification-is-an-observer
     $services->set(\ContentBlocks\Section\BlockCloneObserverCollection::class)
         ->args([tagged_iterator('content_blocks.block_clone_observer')])
+        ->public();
+
+    // Same seam, for what is stored beside a column (a translated tab title).
+    $services->set(\ContentBlocks\Section\ColumnCloneObserverCollection::class)
+        ->args([tagged_iterator('content_blocks.column_clone_observer')])
         ->public();
 
     $services->set(SectionCloner::class);
@@ -318,6 +332,11 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(\ContentBlocks\Rendering\BlockDataResolverCollection::class)
         ->args([tagged_iterator('content_blocks.block_data_resolver')])
+        ->public();
+
+    // Empty by default: a column renders its own settings.
+    $services->set(\ContentBlocks\Rendering\ColumnSettingsResolverCollection::class)
+        ->args([tagged_iterator('content_blocks.column_settings_resolver')])
         ->public();
 
     // Shared by both restore paths, so the union rule lives in one place.

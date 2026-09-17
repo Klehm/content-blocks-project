@@ -11,6 +11,8 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Section\ColumnSettings;
+use ContentBlocks\Section\SectionLayoutRegistry;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -25,6 +27,7 @@ final class AreaTreeBuilder
     public function __construct(
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly TranslatorInterface $translator,
+        private readonly SectionLayoutRegistry $sectionLayouts = new SectionLayoutRegistry(),
     ) {
     }
 
@@ -86,7 +89,11 @@ final class AreaTreeBuilder
             'layout' => $layout,
             'label' => $this->translator->trans('cb.section.label', [
                 '%index%' => $index + 1,
-                '%layout%' => $this->translator->trans('cb.section.layout.' . $layout, [], 'content_blocks'),
+                '%layout%' => $this->translator->trans(
+                    $this->sectionLayouts->get($layout)->label ?? $layout,
+                    [],
+                    'content_blocks',
+                ),
             ], 'content_blocks'),
             'columns' => $columns,
         ];
@@ -110,11 +117,8 @@ final class AreaTreeBuilder
         return [
             'id' => $column->getId(),
             'preset' => $column->getPreset(),
-            'label' => $this->translator->trans(
-                'cb.builder.tree.column',
-                ['%index%' => $index + 1],
-                'content_blocks',
-            ),
+            'label' => ColumnSettings::label($column->getEffectiveSettings(preferDraft: true))
+                ?? $this->translator->trans('cb.builder.tree.column', ['%index%' => $index + 1], 'content_blocks'),
             'blocks' => $blocks,
         ];
     }

@@ -60,6 +60,46 @@ At render time, two decorators (`StylingSectionDecorator`, `StylingBlockDecorato
 
 The fallback chain inside each `@media` block is: mobile → tablet → desktop → 0. A viewport you leave blank inherits the next-wider one.
 
+## Text alignment and max width of a block
+
+A block's **Style** tab has three layout fields besides spacing and colour:
+
+- **Text align** (left, centre, right, justify) adds `cb-block--text-start`,
+  `-center`, `-end` or `-justify` to the block. A class rather than a variable,
+  so a block nested in another one does not inherit it.
+- **Max width** caps the block in pixels. It only ever shrinks the block, so a
+  narrow screen still gets the full column, which side padding does not.
+- **Horizontal align** places a block narrower than its column. It appears
+  once a max width is set.
+
+Together they give readable line lengths without spacer columns: a text block
+with `Max width: 720` and `Horizontal align: center` sits in the middle of a
+full-width section.
+
+## Dark and light backgrounds
+
+When a section or a block has a background colour, its decorator also adds a
+tone class: `cb-section--bg-dark` / `cb-section--bg-light`, and
+`cb-block--bg-dark` / `cb-block--bg-light`. The package does not change the text
+colour itself, since that would restyle existing pages. Your stylesheet decides:
+
+```css
+.cb-section--bg-dark,
+.cb-block--bg-dark { color: #fff; }
+.cb-section--bg-dark a { color: inherit; }
+```
+
+The tone comes from the colour's perceived luminance, with a threshold of 0.55
+(`ColorTone::LIGHT_THRESHOLD`), the same rule the section library's thumbnails
+use. The same helper is available to your own code:
+
+- PHP: `ContentBlocks\Palette\ColorTone::of('#1e293b')` returns `'dark'`,
+  `'light'` or `null` for anything that is not `#rgb` / `#rrggbb`. `isDark()`,
+  `isLight()` and `luminance()` are there too.
+- Twig: `cb_color_tone(color)` and `cb_color_is_dark(color)`, for instance
+  `<div class="hero hero--{{ cb_color_tone(data.color) ?? 'none' }}">` in a
+  block template.
+
 ## Extending the Styling sub-form
 
 The `StylingType` form holds the styling fields. Register a Symfony `FormTypeExtension` against it to inject (or override, by re-`add()`ing an existing name) fields without forking — they will render inside the sidebar's **Styling** group, for sections and blocks alike:

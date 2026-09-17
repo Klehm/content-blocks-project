@@ -54,6 +54,37 @@ final class SectionDecoratorTest extends TestCase
         $this->assertSame('', $deco->styleString());
     }
 
+    public function testBuiltInDecoratorFlagsTheTabsAndAccordionDisplays(): void
+    {
+        $decorator = new BuiltInSectionDecorator(new SectionStyleRegistry([]));
+
+        $tabs = $decorator->decorate(['display' => 'tabs'], new Section());
+        $accordion = $decorator->decorate(['display' => 'accordion'], new Section());
+        $grid = $decorator->decorate(['display' => 'grid'], new Section());
+        $bogus = $decorator->decorate(['display' => 'carousel'], new Section());
+
+        $this->assertContains('cb-section--display-tabs', $tabs->classes);
+        $this->assertNotContains('cb-section--display-tabs', $grid->classes);
+        $this->assertNotContains('cb-section--display-tabs', $bogus->classes);
+        $this->assertContains('cb-section--display-accordion', $accordion->classes);
+        $this->assertNotContains('cb-section--display-tabs', $accordion->classes);
+        $this->assertSame([], $grid->classes);
+    }
+
+    /** Tabs and accordion stack nothing, so only a grid reverses. */
+    public function testBuiltInDecoratorReversesAGridOnMobile(): void
+    {
+        $decorator = new BuiltInSectionDecorator(new SectionStyleRegistry([]));
+
+        $grid = $decorator->decorate(['reverseOnMobile' => true], new Section());
+        $tabs = $decorator->decorate(['reverseOnMobile' => true, 'display' => 'tabs'], new Section());
+        $truthy = $decorator->decorate(['reverseOnMobile' => '1'], new Section());
+
+        $this->assertContains('cb-section--reverse-mobile', $grid->classes);
+        $this->assertNotContains('cb-section--reverse-mobile', $tabs->classes);
+        $this->assertNotContains('cb-section--reverse-mobile', $truthy->classes);
+    }
+
     public function testBuiltInDecoratorAppliesCenteredWidth(): void
     {
         $decorator = new BuiltInSectionDecorator(new SectionStyleRegistry());

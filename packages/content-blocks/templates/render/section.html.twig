@@ -18,9 +18,52 @@
             {{ 'cb.section.handle'|trans({}, 'content_blocks') }}
         </button>
     {% endif %}
+    {% set columns = chrome ? section.columns : section.columns|filter(c => not c.deleted) %}
+    {% set display = section.display ?? 'grid' %}
+    {% set tabs = display == 'tabs' %}
+    {% set accordion = display == 'accordion' %}
+    {% if tabs or accordion %}
+        {% set panelsId = 'cb-' ~ display ~ '-' ~ section.id %}
+        {# The builder keeps a column pending deletion: open the first live. #}
+        {% set openIndex = null %}
+        {% for column in columns %}
+            {% if openIndex is null and not column.deleted %}{% set openIndex = loop.index0 %}{% endif %}
+        {% endfor %}
+    {% endif %}
+    {# CSS-only tabs: radios, then the labels, then the row, so `:checked ~`
+       reaches both. See docs/internals/rendering.md#columns-and-tabs #}
+    {% if tabs %}
+        {% for column in columns %}
+            <input type="radio" class="cb-tabs__radio" name="{{ panelsId }}" id="{{ panelsId }}-{{ loop.index0 }}"
+                   aria-controls="{{ panelsId }}-{{ loop.index0 }}-panel"{% if loop.index0 == openIndex %} checked{% endif %}>
+        {% endfor %}
+        <div class="cb-tabs__nav">
+            {% for column in columns %}
+                <label for="{{ panelsId }}-{{ loop.index0 }}" id="{{ panelsId }}-{{ loop.index0 }}-label"
+                       class="cb-tabs__tab{% if column.deleted %} cb-tabs__tab--deleted{% endif %}">
+                    {{- column.label ?? ('cb.section.tabs.untitled'|trans({ '%n%': loop.index }, 'content_blocks')) -}}
+                </label>
+            {% endfor %}
+        </div>
+    {% endif %}
     <div class="cb-row">
-        {% for column in (chrome ? section.columns : section.columns|filter(c => not c.deleted)) %}
-            {{ include('@ContentBlocks/render/column.html.twig', { column: column, isPreview: isPreview, chrome: chrome }, with_context = false) }}
+        {% for column in columns %}
+            {# Accordion: a checkbox and its header right before each panel,
+               so `:checked + label + .cb-col` opens it. #}
+            {% if accordion %}
+                <input type="checkbox" class="cb-accordion__toggle" id="{{ panelsId }}-{{ loop.index0 }}"
+                       aria-controls="{{ panelsId }}-{{ loop.index0 }}-panel"{% if loop.index0 == openIndex %} checked{% endif %}>
+                <label for="{{ panelsId }}-{{ loop.index0 }}" id="{{ panelsId }}-{{ loop.index0 }}-label"
+                       class="cb-accordion__header{% if column.deleted %} cb-accordion__header--deleted{% endif %}">
+                    {{- column.label ?? ('cb.section.accordion.untitled'|trans({ '%n%': loop.index }, 'content_blocks')) -}}
+                </label>
+            {% endif %}
+            {{ include('@ContentBlocks/render/column.html.twig', {
+                column: column,
+                isPreview: isPreview,
+                chrome: chrome,
+                panelId: tabs or accordion ? panelsId ~ '-' ~ loop.index0 : null,
+            }, with_context = false) }}
         {% endfor %}
     </div>
 </section>

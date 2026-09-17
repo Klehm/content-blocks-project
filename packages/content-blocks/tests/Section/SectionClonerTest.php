@@ -93,6 +93,53 @@ final class SectionClonerTest extends TestCase
         $this->assertSame(['text' => 'P'], $clonedBlockB->getDraftData());
     }
 
+    public function testClonesColumnSettingsIntoTheDraft(): void
+    {
+        $source = new Section();
+        $named = new Column();
+        $named->setPublishedSettings(['label' => 'Live']);
+        $named->setDraftSettings(['label' => 'Draft']);
+        $source->addColumn($named);
+        $published = new Column();
+        $published->setPreviewPosition(1);
+        $published->setPublishedSettings(['label' => 'Only live']);
+        $source->addColumn($published);
+        $source->addColumn((new Column())->setPreviewPosition(2));
+
+        $columns = (new SectionCloner())->cloneSection($source)->getColumns()->toArray();
+
+        $this->assertSame(['label' => 'Draft'], $columns[0]->getDraftSettings());
+        $this->assertSame(['label' => 'Only live'], $columns[1]->getDraftSettings());
+        $this->assertNull($columns[2]->getDraftSettings());
+        $this->assertNull($columns[0]->getPublishedSettings());
+    }
+
+    public function testColumnObserversAreToldWhichCopyCameFromWhichSource(): void
+    {
+        $source = new Section();
+        $live = new Column();
+        $source->addColumn($live);
+        $gone = (new Column())->setDeleted(true);
+        $source->addColumn($gone);
+
+        $observer = new class () implements \ContentBlocks\Section\ColumnCloneObserverInterface {
+            /** @var list<array{Column, Column}> */
+            public array $pairs = [];
+
+            public function columnCloned(Column $source, Column $copy): void
+            {
+                $this->pairs[] = [$source, $copy];
+            }
+        };
+
+        $copy = (new SectionCloner(null, new \ContentBlocks\Section\ColumnCloneObserverCollection([$observer])))
+            ->cloneSection($source);
+
+        $this->assertCount(1, $observer->pairs);
+        $this->assertSame($live, $observer->pairs[0][0]);
+        $this->assertSame($copy->getColumns()->first(), $observer->pairs[0][1]);
+    }
+
     public function testSkipsDeletedBlocksAndColumns(): void
     {
         $section = new Section();

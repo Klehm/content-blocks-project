@@ -108,6 +108,7 @@ final class StateApplier
                 'deleted' => $entity->isDeleted(),
                 'previewPosition' => $entity->getPreviewPosition(),
                 'preset' => $entity->getPreset(),
+                'settings' => $entity->getDraftSettings(),
                 default => null,
             },
             default => match ($field) {
@@ -133,6 +134,7 @@ final class StateApplier
                 'deleted' => $entity->setDeleted((bool) $value),
                 'previewPosition' => $entity->setPreviewPosition((int) $value),
                 'preset' => \is_string($value) ? $entity->setPreset($value) : $entity,
+                'settings' => $entity->setDraftSettings(\is_array($value) ? $value : null),
                 default => null,
             };
 

@@ -6,11 +6,20 @@ namespace ContentBlocks\I18n\Progress;
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
+use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Entity\Section;
 use ContentBlocks\I18n\Content\AreaWalker;
+use ContentBlocks\I18n\Entity\ColumnTranslation;
+use ContentBlocks\I18n\Field\FieldStatus;
+use ContentBlocks\I18n\Field\SourceDigest;
+use ContentBlocks\I18n\Field\TranslatableField;
 use ContentBlocks\I18n\Field\TranslatableFieldCatalog;
 use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Storage\TranslationStore;
+use ContentBlocks\Rendering\RenderMode;
+use ContentBlocks\Section\SectionDisplay;
+use ContentBlocks\Section\SectionStyleRegistry;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -28,14 +37,15 @@ final class TranslationInspector
         private readonly TranslationLocales $locales,
         private readonly BlockTypeRegistry $blockTypes,
         private readonly TranslatorInterface $translator,
+        private readonly ?SectionStyleRegistry $styles = null,
     ) {
     }
 
     /**
-     * Every block with something to translate, in reading order. Blocks with
-     * no translatable field are dropped, not listed as complete.
+     * Everything with something to translate, in reading order: a tabs or
+     * accordion section's titles, then its blocks. Empty views are dropped.
      *
-     * @return list<BlockTranslationView>
+     * @return list<BlockTranslationView|ColumnTranslationView>
      */
     public function inspectArea(ContentArea $area, string $locale): array
     {
@@ -43,15 +53,52 @@ final class TranslationInspector
 
         $views = [];
 
-        foreach (AreaWalker::blocks($area) as $ref) {
-            $view = $this->inspectRef($ref->block, $locale, $ref->sectionNumber, $ref->blockNumber);
+        foreach (AreaWalker::sections($area) as $sectionIndex => $section) {
+            $columns = AreaWalker::columns($section);
 
-            if ($view !== null && !$view->isEmpty()) {
-                $views[] = $view;
+            $display = $this->displayOf($section);
+
+            if (SectionDisplay::showsTitles($display)) {
+                foreach ($columns as $columnIndex => $column) {
+                    $view = $this->inspectColumnRef($column, $locale, $display, $sectionIndex + 1, $columnIndex + 1);
+
+                    if ($view !== null && !$view->isEmpty()) {
+                        $views[] = $view;
+                    }
+                }
+            }
+
+            foreach ($columns as $column) {
+                foreach (AreaWalker::columnBlocks($column) as $blockIndex => $block) {
+                    $view = $this->inspectRef($block, $locale, $sectionIndex + 1, $blockIndex + 1);
+
+                    if ($view !== null && !$view->isEmpty()) {
+                        $views[] = $view;
+                    }
+                }
             }
         }
 
         return $views;
+    }
+
+    /**
+     * Null when the column has no id, or its section shows no titles (a
+     * grid) — a title nobody reads is not work.
+     */
+    public function inspectColumn(Column $column, string $locale): ?ColumnTranslationView
+    {
+        $section = $column->getSection();
+
+        $display = $section === null ? SectionDisplay::GRID : $this->displayOf($section);
+
+        if ($section === null || !SectionDisplay::showsTitles($display)) {
+            return null;
+        }
+
+        $number = array_search($column, AreaWalker::columns($section), true);
+
+        return $this->inspectColumnRef($column, $locale, $display, 0, $number === false ? 0 : $number + 1);
     }
 
     public function inspectBlock(Block $block, string $locale): ?BlockTranslationView
@@ -100,7 +147,7 @@ final class TranslationInspector
         }
 
         $sourceData = $this->store->sourceDataOf($block);
-        $payload = $this->store->payloadFor($block, $locale, \ContentBlocks\Rendering\RenderMode::PREVIEW);
+        $payload = $this->store->payloadFor($block, $locale, RenderMode::PREVIEW);
 
         $fields = $this->catalog->build($block->getType(), $sourceData, $payload['values'], $payload['digests']);
 
@@ -114,6 +161,62 @@ final class TranslationInspector
             fields: $fields,
             progress: TranslationProgress::of($locale, $fields),
         );
+    }
+
+    private function inspectColumnRef(Column $column, string $locale, string $display, int $sectionNumber, int $columnNumber): ?ColumnTranslationView
+    {
+        $columnId = $column->getId();
+
+        if ($columnId === null) {
+            return null;
+        }
+
+        $source = $this->store->columnSourceLabel($column);
+        $fields = [];
+        $kind = $display === SectionDisplay::ACCORDION ? 'panel' : 'tab';
+
+        if ($source !== null) {
+            $payload = $this->store->columnPayloadFor($column, $locale, RenderMode::PREVIEW);
+            $value = $payload['values'][ColumnTranslation::LABEL] ?? null;
+
+            $fields[] = new TranslatableField(
+                path: ColumnTranslation::LABEL,
+                pattern: ColumnTranslation::LABEL,
+                label: 'cb_i18n.workbench.' . $kind . '_title',
+                labelDomain: 'content_blocks_i18n',
+                widget: 'text',
+                source: $source,
+                value: \is_string($value) ? $value : null,
+                status: match (true) {
+                    !\is_string($value) => FieldStatus::MISSING,
+                    SourceDigest::matches($source, $payload['digests'][ColumnTranslation::LABEL] ?? null) => FieldStatus::TRANSLATED,
+                    default => FieldStatus::OUTDATED,
+                },
+            );
+        }
+
+        return new ColumnTranslationView(
+            columnId: $columnId,
+            label: $this->translator->trans('cb_i18n.workbench.' . $kind . '_n', ['%n%' => $columnNumber], 'content_blocks_i18n'),
+            group: $this->translator->trans('cb_i18n.workbench.' . ($kind === 'panel' ? 'accordion' : 'tabs'), [], 'content_blocks_i18n'),
+            sectionId: $column->getSection()?->getId() ?? 0,
+            sectionNumber: $sectionNumber,
+            columnNumber: $columnNumber,
+            fields: $fields,
+            progress: TranslationProgress::of($locale, $fields),
+        );
+    }
+
+    /** The section's own display, over its style preset's, as it renders. */
+    private function displayOf(Section $section): string
+    {
+        $settings = $section->getEffectiveSettings(preferDraft: true);
+        $styleName = $settings['styleName'] ?? null;
+        $preset = \is_string($styleName) && $styleName !== ''
+            ? ($this->styles?->get($styleName)->settings ?? [])
+            : [];
+
+        return SectionDisplay::fromSettings($settings + $preset);
     }
 
     private function labelOf(string $type): string

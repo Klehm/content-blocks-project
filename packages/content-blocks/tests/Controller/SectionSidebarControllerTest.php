@@ -16,6 +16,7 @@ use ContentBlocks\Section\SectionStyleRegistry;
 use Symfony\Component\Form\Extension\HttpFoundation\HttpFoundationExtension;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\Forms;
+use Symfony\Component\Form\FormTypeExtensionInterface;
 use Symfony\Component\Form\FormView;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Generator\UrlGenerator;
@@ -134,6 +135,93 @@ final class SectionSidebarControllerTest extends ControllerTestCase
         $this->assertSame('/admin/cb/section/5/settings', $this->renderedFormView()->vars['action']);
     }
 
+    public function testGetListsTheLiveColumnsInDraftOrderWithTheirNames(): void
+    {
+        $section = $this->makeSettingsSection(id: 5);
+        $second = $this->makeColumn($section, 51, 1);
+        $second->setDraftSettings(['label' => 'Specs']);
+        $this->makeColumn($section, 50, 0);
+        $this->makeColumn($section, 52, 2)->setDeleted(true);
+        $controller = $this->makeController([$section]);
+
+        $controller->settings(5, Request::create('/_content-blocks/section/5/settings'));
+
+        $this->assertSame(
+            [['id' => 50, 'label' => null], ['id' => 51, 'label' => 'Specs']],
+            $this->renderContext['columns'],
+        );
+        $this->assertSame(2, $this->renderContext['columnCount']);
+        $this->assertSame(20, $this->renderContext['maxColumns']);
+    }
+
+    public function testTheDisplayFieldStartsFromTheStoredSetting(): void
+    {
+        $controller = $this->makeController([$this->makeSettingsSection(id: 5, settings: ['display' => 'tabs'])]);
+
+        $controller->settings(5, Request::create('/_content-blocks/section/5/settings'));
+
+        $this->assertSame('tabs', $this->renderedFormView()['display']->vars['value']);
+    }
+
+    public function testASavedDisplayLandsInTheDraftSettings(): void
+    {
+        $section = $this->makeSettingsSection(id: 5);
+        $controller = $this->makeController([$section]);
+
+        $response = $controller->settings(5, $this->makeFormRequest(['display' => 'tabs', 'widthMode' => 'full']));
+
+        $this->assertSame(204, $response->getStatusCode());
+        $this->assertSame('tabs', $section->getDraftSettings()['display'] ?? null);
+    }
+
+    /** One column has nothing to reverse. */
+    public function testReverseOnMobileIsOfferedFromTwoColumns(): void
+    {
+        $single = $this->makeSettingsSection(id: 5);
+        $single->addColumn(new \ContentBlocks\Entity\Column());
+        $this->makeController([$single])->settings(5, Request::create('/_content-blocks/section/5/settings'));
+        $this->assertArrayNotHasKey('reverseOnMobile', $this->renderedFormView()->children);
+
+        $pair = $this->makeSettingsSection(id: 5);
+        $pair->addColumn(new \ContentBlocks\Entity\Column());
+        $pair->addColumn(new \ContentBlocks\Entity\Column());
+        $controller = $this->makeController([$pair]);
+        $controller->settings(5, Request::create('/_content-blocks/section/5/settings'));
+        $this->assertArrayHasKey('reverseOnMobile', $this->renderedFormView()->children);
+
+        $controller->settings(5, $this->makeFormRequest(['reverseOnMobile' => '1', 'widthMode' => 'full']));
+        $this->assertTrue($pair->getDraftSettings()['reverseOnMobile'] ?? null);
+    }
+
+    /** A host field comes from a stock type extension, no fork needed. */
+    public function testAFieldAddedByATypeExtensionIsRenderedAndSaved(): void
+    {
+        $section = $this->makeSettingsSection(id: 5, settings: ['anchorId' => 'intro']);
+        $extension = new class () extends \Symfony\Component\Form\AbstractTypeExtension {
+            public static function getExtendedTypes(): iterable
+            {
+                return [SectionSettingsType::class];
+            }
+
+            public function buildForm(\Symfony\Component\Form\FormBuilderInterface $builder, array $options): void
+            {
+                $builder->add('anchorId', \Symfony\Component\Form\Extension\Core\Type\TextType::class, [
+                    'required' => false,
+                ]);
+            }
+        };
+
+        $this->makeController([$section], [$extension])
+            ->settings(5, Request::create('/_content-blocks/section/5/settings'));
+        $this->assertSame('intro', $this->renderedFormView()['anchorId']->vars['value']);
+
+        $response = $this->makeController([$section], [$extension])
+            ->settings(5, $this->makeFormRequest(['anchorId' => 'faq', 'widthMode' => 'full']));
+
+        $this->assertSame(204, $response->getStatusCode());
+        $this->assertSame('faq', $section->getDraftSettings()['anchorId'] ?? null);
+    }
+
     // -------- plumbing --------
 
     private function makeSettingsSection(int $id, array $settings = []): Section
@@ -147,8 +235,11 @@ final class SectionSidebarControllerTest extends ControllerTestCase
         return $section;
     }
 
-    /** @param list<object> $entities */
-    private function makeController(array $entities): SectionSidebarController
+    /**
+     * @param list<object> $entities
+     * @param list<FormTypeExtensionInterface> $typeExtensions
+     */
+    private function makeController(array $entities, array $typeExtensions = []): SectionSidebarController
     {
         $styleRegistry = new SectionStyleRegistry([
             new class () implements SectionStyleProviderInterface {
@@ -173,7 +264,7 @@ final class SectionSidebarControllerTest extends ControllerTestCase
         return new SectionSidebarController(
             $em,
             $this->makeAccessChecker(),
-            $this->makeFormFactory($styleRegistry),
+            $this->makeFormFactory($styleRegistry, $typeExtensions),
             $twig,
             $this->makeCsrfManager(),
             new SectionSettingsDefaults([]),
@@ -192,10 +283,14 @@ final class SectionSidebarControllerTest extends ControllerTestCase
         return new UrlGenerator($routes, new RequestContext());
     }
 
-    private function makeFormFactory(SectionStyleRegistry $styleRegistry): FormFactoryInterface
+    /**
+     * @param list<FormTypeExtensionInterface> $typeExtensions
+     */
+    private function makeFormFactory(SectionStyleRegistry $styleRegistry, array $typeExtensions = []): FormFactoryInterface
     {
         return Forms::createFormFactoryBuilder()
             ->addExtension(new HttpFoundationExtension())
+            ->addTypeExtensions($typeExtensions)
             ->addType(new SectionSettingsType($styleRegistry))
             ->addType(new PaletteColorType(new ColorPaletteRegistry([])))
             ->getFormFactory();

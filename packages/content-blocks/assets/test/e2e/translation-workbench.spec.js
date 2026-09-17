@@ -260,3 +260,53 @@ test.describe('translation workbench', () => {
             .toHaveValue('A deliberately long English tab title');
     });
 });
+
+test('a tab title is translated in the workbench and served in its locale', async ({ page, context }) => {
+    const builderUrl = await createFreshPage(page);
+    await page.goto(builderUrl);
+    await page.locator('.cb-launcher__button').click();
+    const frame = page.frameLocator('.cb-shell__iframe');
+    await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="tabs"]').click();
+    await expect(frame.locator('.cb-section--display-tabs')).toHaveCount(1);
+
+    const label = page.locator('.cb-shell__sidebar .cb-columns-editor__label').first();
+    const saved = page.waitForResponse((r) => /\/column\/\d+\/settings$/.test(r.url()));
+    await label.fill('Détails');
+    await label.press('Tab');
+    await saved;
+    await expect(frame.locator('.cb-tabs__tab').first()).toHaveText('Détails');
+
+    const workbench = await openWorkbench(page);
+    const tabEntry = workbench.locator('.cb-wb__block--column').first();
+    await expect(tabEntry.locator('.cb-wb__source-text')).toHaveText('Détails');
+    // Only the named column has something to translate.
+    await expect(workbench.locator('.cb-wb__block--column')).toHaveCount(1);
+
+    const input = tabEntry.locator('[data-target="input"]');
+    const save = workbench.waitForResponse((r) => /\/column\/\d+\/en$/.test(r.url()));
+    await input.fill('Details');
+    const body = await (await save).json();
+    expect(body.block.fields[0].status).toBe('translated');
+    await expect(tabEntry.locator('.cb-wb__row')).toHaveAttribute('data-status', 'translated');
+
+    // The preview is the page in English: the reload shows the new title.
+    const preview = workbench.frameLocator('.cb-wb__preview iframe');
+    await expect(preview.locator('.cb-tabs__tab').first()).toHaveText('Details');
+
+    // Publish carries the translation with the page.
+    await page.bringToFront();
+    await page.reload();
+    await page.locator('.cb-launcher__button').click();
+    const publish = page.locator('.cb-shell__publish');
+    await expect(publish).toBeEnabled();
+    await publish.click();
+    await expect(publish).toBeDisabled({ timeout: 10000 });
+
+    const pageId = builderUrl.match(/\/admin\/page\/(\d+)/)[1];
+    const viewer = await context.newPage();
+    await viewer.goto(`/en/page/${pageId}`);
+    await expect(viewer.locator('.cb-tabs__tab').first()).toHaveText('Details');
+    await viewer.goto(`/page/${pageId}`);
+    await expect(viewer.locator('.cb-tabs__tab').first()).toHaveText('Détails');
+    await viewer.close();
+});

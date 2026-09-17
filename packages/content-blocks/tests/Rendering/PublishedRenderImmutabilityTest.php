@@ -9,6 +9,7 @@ use ContentBlocks\Block\BlockDecoratorCollection;
 use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Controller\BlocksController;
+use ContentBlocks\Controller\ColumnsController;
 use ContentBlocks\Controller\HistoryController;
 use ContentBlocks\Controller\ReplaceController;
 use ContentBlocks\Controller\SectionsController;
@@ -27,12 +28,15 @@ use ContentBlocks\Rendering\CoreBlockDataResolver;
 use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Rendering\RenderMode;
 use ContentBlocks\Replace\ContentAreaProviderInterface;
+use ContentBlocks\Section\BuiltInSectionDecorator;
 use ContentBlocks\Section\SectionCloner;
 use ContentBlocks\Section\SectionDecoratorCollection;
+use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AllowAllAccessChecker;
 use ContentBlocks\Tests\History\InMemoryActionLogStore;
+use ContentBlocks\Twig\SectionLayoutExtension;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
@@ -137,6 +141,70 @@ final class PublishedRenderImmutabilityTest extends TestCase
         ]);
 
         $this->assertSame($before, $this->publicHtml($area));
+    }
+
+    // ---------------------------------------------------------------
+    // Column-scoped actions
+    // ---------------------------------------------------------------
+
+    /** The new column re-spans the published ones — in the draft only. */
+    public function testAddingAColumnDoesNotTouchThePublicRender(): void
+    {
+        $area = $this->publishedArea();
+        $before = $this->publicHtml($area);
+
+        $this->columnsController()->create(10, $this->jsonRequest());
+
+        $this->assertStringContainsString('cb-col--col-4', $this->previewHtml($area));
+        $this->assertSame($before, $this->publicHtml($area));
+    }
+
+    public function testDeletingAColumnDoesNotTouchThePublicRender(): void
+    {
+        $area = $this->publishedArea();
+        $before = $this->publicHtml($area);
+
+        $this->columnsController()->delete(21, $this->jsonRequest());
+
+        $this->assertSame($before, $this->publicHtml($area));
+    }
+
+    public function testNamingAColumnDoesNotTouchThePublicRender(): void
+    {
+        $area = $this->publishedArea();
+        $this->find(Section::class, 10)->setPublishedSettings(['display' => 'tabs']);
+        $before = $this->publicHtml($area);
+
+        $this->columnsController()->settings(20, $this->jsonRequest(['label' => 'Renamed']));
+
+        $this->assertStringContainsString('Renamed', $this->previewHtml($area));
+        $this->assertSame($before, $this->publicHtml($area));
+    }
+
+    public function testShowingASectionAsTabsDoesNotTouchThePublicRender(): void
+    {
+        $area = $this->publishedArea();
+        $before = $this->publicHtml($area);
+
+        $this->find(Section::class, 10)->setDraftSettings(['display' => 'tabs']);
+
+        $this->assertStringContainsString('cb-tabs__nav', $this->previewHtml($area));
+        $this->assertSame($before, $this->publicHtml($area));
+    }
+
+    public function testPublishingColumnChangesReachesThePublicRender(): void
+    {
+        $area = $this->publishedArea();
+        $this->columnsController()->create(10, $this->jsonRequest());
+        $this->columnsController()->settings(20, $this->jsonRequest(['label' => 'Overview']));
+        $this->find(Section::class, 10)->setDraftSettings(['display' => 'tabs']);
+
+        (new ContentAreaPublisher($this->em()))->publish($area);
+
+        $html = $this->publicHtml($area);
+        $this->assertStringContainsString('cb-section--display-tabs', $html);
+        $this->assertStringContainsString('>Overview</label>', $html);
+        $this->assertSame(3, substr_count($html, 'cb-col--col-4'));
     }
 
     // ---------------------------------------------------------------
@@ -324,6 +392,9 @@ final class PublishedRenderImmutabilityTest extends TestCase
         $this->blocksController()->move(30, $this->jsonRequest(['toColumnId' => 21, 'position' => 0]));
         $this->blocksController()->delete(31, $this->jsonRequest());
         $this->find(Block::class, 32)->setDraftData(['title' => 'Edited']);
+        $this->columnsController()->create(11, $this->jsonRequest());
+        $this->columnsController()->delete(20, $this->jsonRequest());
+        $this->columnsController()->settings(21, $this->jsonRequest(['label' => 'Tab']));
 
         (new ContentAreaPublisher($this->em()))->discardDraft($area);
 
@@ -463,6 +534,14 @@ final class PublishedRenderImmutabilityTest extends TestCase
         return $this->renderer(RenderMode::PUBLIC)->render($area, new RenderContext(RenderMode::PUBLIC));
     }
 
+    /** Proves an action did reach the draft, so "unchanged" means something. */
+    private function previewHtml(ContentArea $area): string
+    {
+        $this->reload();
+
+        return $this->renderer(RenderMode::PREVIEW)->render($area, new RenderContext(RenderMode::PREVIEW));
+    }
+
     /**
      * Rebuilds every collection from the parent FK of the entities that hold
      * it, ordered by `position` — i.e. exactly what the next request gets
@@ -543,7 +622,7 @@ final class PublishedRenderImmutabilityTest extends TestCase
             $stack,
             new AllowAllAccessChecker(),
             $this->registry(),
-            new SectionDecoratorCollection([]),
+            new SectionDecoratorCollection([new BuiltInSectionDecorator(new SectionStyleRegistry([]))]),
             new SectionSettingsDefaults([]),
             new SectionStyleRegistry([]),
             $this->translator(),
@@ -568,6 +647,7 @@ final class PublishedRenderImmutabilityTest extends TestCase
 
         $env = new Environment($loader, ['strict_variables' => true]);
         $env->addExtension(new TranslationExtension($this->translator()));
+        $env->addExtension(new SectionLayoutExtension(new SectionLayoutRegistry()));
         $env->addExtension(new RoutingExtension($this->urlGenerator()));
 
         return $env;
@@ -681,6 +761,16 @@ final class PublishedRenderImmutabilityTest extends TestCase
             new SectionCloner(),
             $this->renderer(RenderMode::PREVIEW),
             $this->registry(),
+            $this->journal(),
+        );
+    }
+
+    private function columnsController(): ColumnsController
+    {
+        return new ColumnsController(
+            $this->em(),
+            new AllowAllAccessChecker(),
+            $this->csrf(),
             $this->journal(),
         );
     }

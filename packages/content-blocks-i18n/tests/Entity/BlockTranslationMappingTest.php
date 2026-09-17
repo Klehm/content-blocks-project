@@ -34,6 +34,11 @@ final class BlockTranslationMappingTest extends TestCase
             '/CREATE TABLE cb_block_translation \(.*block_id INT NOT NULL/s',
             implode("\n", $default),
         );
+        // Its sibling spells `column_id` in its unique constraint the same way.
+        $this->assertMatchesRegularExpression(
+            '/CREATE TABLE cb_column_translation \(.*column_id INT NOT NULL.*UNIQUE INDEX cb_column_translation_unique \(column_id, locale\)/s',
+            implode("\n", $default),
+        );
     }
 
     /** @return list<string> */

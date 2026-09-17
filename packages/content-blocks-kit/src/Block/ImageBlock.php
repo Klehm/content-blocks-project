@@ -91,6 +91,13 @@ class ImageBlock extends AbstractKitBlock implements BlockPreviewHintInterface
                 'row_attr' => ['data-cb-condition' => 'size:custom;customHeightAuto:false'],
                 'attr' => ['min' => 16, 'max' => 1920, 'step' => 10],
             ])
+            // Ignored under a fixed custom height, which already pins the box.
+            ->add('ratio', ChoiceType::class, [
+                'label' => 'cb_kit.block.image.field.ratio',
+                'translation_domain' => 'content_blocks_kit',
+                'choices' => $this->choices('ratio'),
+                'constraints' => [$this->choiceConstraint('ratio')],
+            ])
             ->add('fit', ChoiceType::class, [
                 'label' => 'cb_kit.block.image.field.fit',
                 'translation_domain' => 'content_blocks_kit',
@@ -135,6 +142,14 @@ class ImageBlock extends AbstractKitBlock implements BlockPreviewHintInterface
                 'cb_kit.block.image.size.full' => 'full',
                 'cb_kit.block.image.size.custom' => 'custom',
             ],
+            'ratio' => [
+                'cb_kit.block.image.ratio.auto' => 'auto',
+                '16:9' => '16-9',
+                '4:3' => '4-3',
+                '3:2' => '3-2',
+                '1:1' => '1-1',
+                '3:4' => '3-4',
+            ],
             'fit' => [
                 'cb_kit.block.image.fit.cover' => 'cover',
                 'cb_kit.block.image.fit.contain' => 'contain',
@@ -152,6 +167,7 @@ class ImageBlock extends AbstractKitBlock implements BlockPreviewHintInterface
             'customWidth' => 600,
             'customHeightAuto' => true,
             'customHeight' => 400,
+            'ratio' => 'auto',
             'fit' => 'cover',
             'align' => 'center',
             'url' => '',

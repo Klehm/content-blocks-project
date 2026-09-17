@@ -129,8 +129,11 @@ final class ContentAreaExporter implements ContentAreaExporterInterface
             $exported[] = $this->exportBlock($block, $blockRef, $assets);
         }
 
+        $settings = $column->getDraftSettings() ?? $column->getPublishedSettings();
+
         return [
             'preset' => $column->getPreset(),
+            ...($settings !== null && $settings !== [] ? ['settings' => $settings] : []),
             'blocks' => $exported,
         ];
     }

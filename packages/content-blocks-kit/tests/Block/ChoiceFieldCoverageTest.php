@@ -48,6 +48,7 @@ final class ChoiceFieldCoverageTest extends TestCase
         'icon' => ['name' => 'star'],
         'alert' => ['content' => 'X'],
         'divider' => [],
+        'video' => ['src' => '/uploads/x.mp4'],
     ];
 
     /**
@@ -66,6 +67,7 @@ final class ChoiceFieldCoverageTest extends TestCase
         yield 'title.size' => ['title', 'size', 'display', []];
         yield 'image.size' => ['image', 'size', 'xxl', []];
         yield 'image.align' => ['image', 'align', 'baseline', []];
+        yield 'image.ratio' => ['image', 'ratio', '21-9', []];
         yield 'image.fit' => ['image', 'fit', 'scale-down', [
             'size' => 'custom', 'customWidth' => 100, 'customHeightAuto' => false, 'customHeight' => 50,
         ]];
@@ -81,6 +83,8 @@ final class ChoiceFieldCoverageTest extends TestCase
         yield 'icon.align' => ['icon', 'align', 'baseline', []];
         yield 'alert.type' => ['alert', 'type', 'tip', []];
         yield 'divider.style' => ['divider', 'style', 'double', []];
+        yield 'video.size' => ['video', 'size', 'xxl', []];
+        yield 'video.align' => ['video', 'align', 'baseline', []];
     }
 
     /**

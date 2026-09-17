@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Section;
 
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Palette\ColorTone;
 
 /**
  * Reads the `styling` sub-form and emits the CSS custom properties and classes
@@ -66,10 +67,13 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
             }
         }
 
-        // Background color.
         $bg = $styling['backgroundColor'] ?? null;
         if (\is_string($bg) && $bg !== '') {
             $vars['--cb-s-bg'] = $bg;
+            $tone = ColorTone::of($bg);
+            if ($tone !== null) {
+                $classes[] = 'cb-section--bg-' . $tone;
+            }
         }
 
         // Min height (value + unit).

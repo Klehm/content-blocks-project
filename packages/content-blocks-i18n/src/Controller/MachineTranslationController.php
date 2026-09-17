@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Controller;
 
 use ContentBlocks\Entity\Block;
+use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\I18n\Machine\MachineTranslator;
 use ContentBlocks\I18n\Machine\TranslationProviderRegistry;
@@ -108,6 +109,49 @@ final class MachineTranslationController
         return new JsonResponse([
             'result' => $result->toArray(),
             'block' => $this->inspector->inspectBlock($block, $locale)?->toArray(),
+        ]);
+    }
+
+    /** A column's tab title; same body and answer as the block route. */
+    #[Route('/column/{id}/{locale}/translate', name: 'content_blocks_i18n_column_translate', methods: ['POST'], requirements: ['id' => '\d+', 'locale' => '[A-Za-z0-9_-]+'])]
+    public function translateColumn(int $id, string $locale, Request $request): JsonResponse
+    {
+        $csrf = $this->csrfFailureOrNull($request);
+
+        if ($csrf !== null) {
+            return $csrf;
+        }
+
+        $column = $this->em->find(Column::class, $id);
+
+        if ($column === null) {
+            return new JsonResponse(['error' => 'not_found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $area = $column->getSection()?->getContentArea();
+
+        if ($area === null || !$this->accessChecker->canEdit($area)) {
+            throw new ContentBlocksAccessDeniedException();
+        }
+
+        $payload = $this->payload($request);
+        $paths = \is_array($payload['paths'] ?? null)
+            ? array_values(array_map(strval(...), $payload['paths']))
+            : null;
+
+        $result = $this->translator->translateColumn(
+            $column,
+            $locale,
+            $paths,
+            (bool) ($payload['overwrite'] ?? false),
+            $this->providerName($payload),
+        );
+
+        $this->em->flush();
+
+        return new JsonResponse([
+            'result' => $result->toArray(),
+            'block' => $this->inspector->inspectColumn($column, $locale)?->toArray(),
         ]);
     }
 

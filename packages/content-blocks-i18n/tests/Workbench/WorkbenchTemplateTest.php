@@ -88,6 +88,40 @@ final class WorkbenchTemplateTest extends TestCase
         }
     }
 
+    /** A tab title posts to its column routes and has no render route. */
+    public function testATabTitleEntryUsesItsColumnRoutes(): void
+    {
+        $html = $this->render(providers: [['name' => 'mine', 'label' => 'Mine']], extraBlocks: [[
+            'kind' => 'column',
+            'key' => 'column-4',
+            'columnId' => 4,
+            'blockLabel' => 'Onglet 1',
+            'sectionId' => 10,
+            'sectionNumber' => 1,
+            'columnNumber' => 1,
+            'fields' => [[
+                'path' => 'label',
+                'pattern' => 'label',
+                'label' => 'cb_i18n.workbench.tab_title',
+                'labelDomain' => 'content_blocks_i18n',
+                'widget' => 'text',
+                'source' => 'Détails',
+                'value' => null,
+                'status' => 'missing',
+                'entryIndex' => null,
+            ]],
+            'progress' => ['locale' => 'de', 'total' => 1, 'translated' => 0, 'outdated' => 0, 'missing' => 1, 'percent' => 0, 'complete' => false],
+        ]]);
+
+        $this->assertStringContainsString('data-cb-block="column-4"', $html);
+        $this->assertStringContainsString('data-block="column-4"', $html);
+        $this->assertStringContainsString('data-cb-save-url="/mnt/content_blocks_i18n_column_save/4/de"', $html);
+        $this->assertStringContainsString('data-cb-approve-url="/mnt/content_blocks_i18n_column_approve/4/de"', $html);
+        $this->assertStringContainsString('data-cb-translate-url="/mnt/content_blocks_i18n_column_translate/4/de"', $html);
+        $this->assertStringContainsString('data-cb-preview-selector="[data-cb-section-id=&quot;10&quot;]"', $html);
+        $this->assertSame(1, substr_count($html, 'data-cb-render-url='), 'only the block entry has one');
+    }
+
     /** The arrow is the resolver's URL verbatim, not one derived from preview. */
     public function testTheBackArrowUsesTheResolvedBackUrl(): void
     {
@@ -146,7 +180,7 @@ final class WorkbenchTemplateTest extends TestCase
      * @param list<array{name: string, label: string}> $providers
      * @param list<array<string, mixed>> $publicLinks
      */
-    private function render(array $providers, array $publicLinks = [], ?string $host = null): string
+    private function render(array $providers, array $publicLinks = [], ?string $host = null, array $extraBlocks = []): string
     {
         $template = '@ContentBlocksI18n/workbench/workbench.html.twig';
 
@@ -179,7 +213,7 @@ final class WorkbenchTemplateTest extends TestCase
                     'entryIndex' => null,
                 ]],
                 'progress' => ['locale' => 'de', 'total' => 1, 'translated' => 0, 'outdated' => 0, 'missing' => 1, 'percent' => 0, 'complete' => false],
-            ]],
+            ], ...$extraBlocks],
             'progress' => ['locale' => 'de', 'total' => 1, 'translated' => 0, 'outdated' => 0, 'missing' => 1, 'percent' => 0, 'complete' => false],
             'previewUrl' => '/page/7?cb_preview=1&cb_chrome=0&cb_locale=de',
             'backUrl' => '/admin/pages/7/edit',

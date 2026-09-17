@@ -5,6 +5,32 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **A `video` block** for a self-hosted file in a native `<video>`: upload or
+  pasted path, optional poster (through `cb_image()`), autoplay, loop, muted,
+  controls, size, alignment and a translatable caption. Autoplay is always
+  muted and inline, because browsers refuse unmuted autoplay. Without autoplay
+  the controls stay on, or the video could never be started. YouTube and Vimeo
+  stay with `embed`. Uploading needs `video/mp4` / `video/webm` in the core's
+  `upload.allowed_mime_types` (not in the default list), and pasting a path
+  works without it. Styled by `kit.css` (`cb-kit-video*`). Enabled by default:
+  `content_blocks_kit.blocks.video.enabled: false` removes it.
+
+- **An aspect ratio on `image`.** The new `ratio` field (original, 16:9, 4:3,
+  3:2, 1:1, 3:4) shapes the image with `aspect-ratio` and crops it with the
+  existing *Fit*. A fixed custom height wins over it. Values are `W-H`, so
+  `content_blocks_kit.blocks.image.choices.ratio` can add one (`21-9`); the
+  figure carries `cb-kit-image--ratio-<value>`.
+
+### Changed
+
+- **`image` at *Full width* fills its column.** The image is now
+  `width: 100%` rather than its file's own width capped at the column, so a
+  photo narrower than the column is scaled up to it.
+
 ## [1.0.0-RC10] - 2026-09-16
 
 Version bump only — no functional change in `klehm/content-blocks-kit`. The tag is cut

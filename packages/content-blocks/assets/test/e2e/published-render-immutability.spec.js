@@ -196,3 +196,61 @@ test('discarding a session leaves the published page exactly where it was', asyn
 
     await viewer.close();
 });
+
+test('column edits and the tabs display wait for Publish too', async ({ page, context }) => {
+    const builderUrl = await createFreshPage(page);
+    const frame = await openBuilder(page, builderUrl);
+
+    await addSection(page, frame, 'two_cols');
+    await addBlock(page, frame, 0);
+    await addBlock(page, frame, 1);
+    await publish(page);
+
+    const publicUrl = builderUrl.replace('/admin/page/', '/page/');
+    const viewer = await context.newPage();
+    const publicMarkup = async () => {
+        await viewer.goto(publicUrl);
+
+        return viewer.locator('.cb-content-area').innerHTML();
+    };
+    const published = await publicMarkup();
+
+    // Open the section's sidebar, where the columns are edited.
+    await frame.locator('.cb-section-handle').first().click({ force: true });
+    const sidebar = page.locator('.cb-shell__sidebar');
+    const items = sidebar.locator('.cb-columns-editor__item');
+    await expect(items).toHaveCount(2);
+
+    // Adding a column re-spans the published ones in the draft only.
+    await sidebar.locator('.cb-columns-editor__add').click();
+    await expect(items).toHaveCount(3);
+    expect(await publicMarkup()).toBe(published);
+
+    // Naming a published column.
+    const save = page.waitForResponse((r) => /\/column\/\d+\/settings$/.test(r.url()));
+    await items.nth(0).locator('.cb-columns-editor__label').fill('Overview');
+    await items.nth(0).locator('.cb-columns-editor__label').press('Tab');
+    await save;
+    expect(await publicMarkup()).toBe(published);
+
+    // Deleting a published column, blocks and all.
+    await items.nth(1).locator('.cb-columns-editor__remove').click();
+    await expect(items).toHaveCount(2);
+    expect(await publicMarkup()).toBe(published);
+
+    // Showing the section as tabs.
+    const saved = page.waitForResponse((r) => /\/section\/\d+\/settings$/.test(r.url()) && r.request().method() === 'POST');
+    await sidebar.locator('input[name$="[display]"][value="tabs"]').check();
+    await saved;
+    expect(await publicMarkup()).toBe(published);
+
+    // Discard walks every one of them back.
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.locator('.cb-shell__discard').click();
+    await expect(page.locator('.cb-shell__publish')).toBeDisabled({ timeout: 10000 });
+    expect(await publicMarkup()).toBe(published);
+    await expect.poll(() => frame.locator('[data-cb-column-id]:not([data-cb-deleted="1"])').count()).toBe(2);
+    await expect(frame.locator('.cb-col--col-6')).toHaveCount(2);
+
+    await viewer.close();
+});

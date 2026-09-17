@@ -7,8 +7,8 @@ namespace ContentBlocks\Section;
 use ContentBlocks\Entity\Section;
 
 /**
- * Maps the built-in section settings — `classes`, `widthMode`, `maxWidth`,
- * `styleName` — to a {@see SectionDecoration}. Always registered first.
+ * Maps the built-in section settings (`classes`, `display`, `reverseOnMobile`,
+ * `widthMode`, `maxWidth`, `styleName`) to a {@see SectionDecoration}.
  *
  * @see docs/internals/rendering.md#section-decorators-emit-variables
  */
@@ -33,6 +33,13 @@ final class BuiltInSectionDecorator implements SectionDecoratorInterface
                     $classes[] = $cls;
                 }
             }
+        }
+
+        $display = SectionDisplay::fromSettings($settings);
+        if ($display !== SectionDisplay::GRID) {
+            $classes[] = 'cb-section--display-' . $display;
+        } elseif (($settings['reverseOnMobile'] ?? false) === true) {
+            $classes[] = 'cb-section--reverse-mobile';
         }
 
         $widthMode = $settings['widthMode'] ?? $this->defaultWidthMode;

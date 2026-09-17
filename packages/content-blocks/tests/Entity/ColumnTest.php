@@ -72,4 +72,87 @@ final class ColumnTest extends TestCase
         $this->assertFalse($column->isDeleted());
         $this->assertFalse($column->hasUnpublishedChanges());
     }
+
+    public function testPublishPromotesPresetAndSettings(): void
+    {
+        $column = new Column();
+        $column->setPreset('col-6');
+        $column->setDraftSettings(['label' => 'Specs']);
+
+        $column->publish();
+
+        $this->assertSame('col-6', $column->getPublishedPreset());
+        $this->assertSame(['label' => 'Specs'], $column->getPublishedSettings());
+        $this->assertNull($column->getDraftSettings());
+        $this->assertFalse($column->hasUnpublishedChanges());
+    }
+
+    /** The public render reads the published twin, the builder the draft. */
+    public function testAPresetChangeStaysInTheDraft(): void
+    {
+        $column = new Column();
+        $column->setPreset('col-6');
+        $column->publish();
+
+        $column->setPreset('col-4');
+
+        $this->assertSame('col-6', $column->getEffectivePreset());
+        $this->assertSame('col-4', $column->getEffectivePreset(preferDraft: true));
+        $this->assertTrue($column->hasUnpublishedChanges());
+    }
+
+    public function testRevertDraftRestoresPresetAndDropsDraftSettings(): void
+    {
+        $column = new Column();
+        $column->setPreset('col-6');
+        $column->setDraftSettings(['label' => 'Old']);
+        $column->publish();
+        $column->setPreset('col-3');
+        $column->setDraftSettings(['label' => 'New']);
+
+        $column->revertDraft();
+
+        $this->assertSame('col-6', $column->getPreset());
+        $this->assertNull($column->getDraftSettings());
+        $this->assertSame(['label' => 'Old'], $column->getEffectiveSettings(preferDraft: true));
+        $this->assertFalse($column->hasUnpublishedChanges());
+    }
+
+    /**
+     * A column published before the twin existed has no published preset:
+     * the first draft change pins what the page shows.
+     */
+    public function testALegacyPublishedColumnPinsItsPresetOnFirstChange(): void
+    {
+        $column = new Column();
+        $column->setPreset('col-6');
+        $column->publish();
+        $column->setPublishedPreset(null);
+        $this->assertSame('col-6', $column->getEffectivePreset());
+
+        $column->setPreset('col-4');
+
+        $this->assertSame('col-6', $column->getPublishedPreset());
+        $this->assertSame('col-6', $column->getEffectivePreset());
+        $this->assertTrue($column->hasUnpublishedChanges());
+    }
+
+    public function testANeverPublishedColumnPinsNothing(): void
+    {
+        $column = new Column();
+        $column->setPreset('col-4');
+
+        $this->assertNull($column->getPublishedPreset());
+    }
+
+    public function testEffectiveSettingsPreferTheDraftOnlyWhenAsked(): void
+    {
+        $column = new Column();
+        $column->setPublishedSettings(['label' => 'Live']);
+        $column->setDraftSettings(['label' => 'Draft']);
+
+        $this->assertSame(['label' => 'Live'], $column->getEffectiveSettings());
+        $this->assertSame(['label' => 'Draft'], $column->getEffectiveSettings(preferDraft: true));
+        $this->assertSame([], (new Column())->getEffectiveSettings(preferDraft: true));
+    }
 }

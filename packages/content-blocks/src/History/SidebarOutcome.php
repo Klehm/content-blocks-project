@@ -87,16 +87,30 @@ final class SidebarOutcome
             return self::RELOAD;
         }
 
-        // `columnWidths` is one of the section form's own fields, so a column
-        // preset moving is that form moving.
+        // The section sidebar lists its columns, their labels and widths, so
+        // any step on one of them is that form moving.
         foreach ($section->getColumns() as $column) {
             $columnId = $column->getId();
-            if ($columnId !== null && $this->touchesForm($appliedOps, AreaStateSnapshot::T_COLUMN, $columnId)) {
+            if ($columnId !== null && $this->namesEntity($appliedOps, AreaStateSnapshot::T_COLUMN, $columnId)) {
                 return self::RELOAD;
             }
         }
 
         return self::KEEP;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $appliedOps
+     */
+    private function namesEntity(array $appliedOps, string $type, int $id): bool
+    {
+        foreach ($appliedOps as $op) {
+            if (($op['t'] ?? null) === $type && ($op['id'] ?? null) === $id) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

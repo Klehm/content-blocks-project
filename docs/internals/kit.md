@@ -184,7 +184,7 @@ self-hosted build still boots.
 
 ## Preview hints in the kit
 
-Fourteen blocks implement [`BlockPreviewHintInterface`](blocks.md#preview-hints-and-why-they-stay-tiny);
+Fifteen blocks implement [`BlockPreviewHintInterface`](blocks.md#preview-hints-and-why-they-stay-tiny);
 `icon`, `table` and `html_raw` stay deliberately as named tiles.
 
 Three decisions worth keeping:
@@ -203,6 +203,30 @@ Three decisions worth keeping:
 and is not: the third-party player boots inside the frame, not on our page, so
 the swapped-in view needs no init pass. See
 [blocks.md](blocks.md#preview-hot-reload-is-opt-in).
+
+## Video: a file, not a provider
+
+`video` and `embed` are two blocks because they have nothing in common but the
+word. `embed` takes a provider URL and renders the provider's player in an
+iframe. `video` takes a file the host serves and renders a native `<video>`:
+no player script, no third-party request, the browser picks the codec.
+
+Two rules are enforced in the view, not left to the form, because stored data
+can predate or bypass the form:
+
+- **Autoplay is always muted and inline.** Browsers refuse to autoplay with
+  sound, and iOS goes fullscreen without `playsinline`. An unmuted autoplay
+  would silently not play, so the view never emits one.
+- **Without autoplay, the controls are always on.** A video with neither could
+  never be started. The form hides the `controls` checkbox unless autoplay is
+  on, and the view ignores a stored `controls: false` when it is off.
+
+The file goes through `VideoUploadType`, which is the core image widget with a
+`<video>` preview, so drop, paste-a-path and the asset GC work unchanged. The
+core upload whitelist ships **without** video types. Adding them is the host's
+decision, like the size cap that comes with it; pasting a path works without
+it. The poster goes through `cb_image()` like every kit picture, at the width
+of the chosen size.
 
 ## Why views check a token shape, not a value list
 

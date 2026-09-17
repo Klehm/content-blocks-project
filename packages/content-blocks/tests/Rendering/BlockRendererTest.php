@@ -16,9 +16,11 @@ use ContentBlocks\Rendering\BlockRenderer;
 use ContentBlocks\Rendering\CoreBlockDataResolver;
 use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Rendering\RenderMode;
+use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\AllowAllAccessChecker;
 use ContentBlocks\Security\DenyAllAccessChecker;
+use ContentBlocks\Twig\SectionLayoutExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\RoutingExtension;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
@@ -577,6 +579,150 @@ final class BlockRendererTest extends TestCase
     /**
      * If a block type defines a viewTemplate, it is included with `data` arg.
      */
+    public function testATabsSectionRendersOneRadioAndLabelPerColumn(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, 'tabs', 0, 0, 40);
+        $section->setPublishedSettings(['display' => 'tabs']);
+        $first = $this->makeColumn($section, 0, 0, 41);
+        $first->setPublishedSettings(['label' => 'Overview']);
+        $this->makeColumn($section, 1, 1, 42);
+
+        $html = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertSame(2, substr_count($html, 'class="cb-tabs__radio"'));
+        $this->assertMatchesRegularExpression('/id="cb-tabs-40-0"[^>]*checked>/', $html);
+        $this->assertStringNotContainsString('id="cb-tabs-40-1" aria-controls="cb-tabs-40-1-panel" checked', $html);
+        $this->assertStringContainsString('>Overview</label>', $html);
+        // A column with no name is numbered.
+        $this->assertStringContainsString('>cb.section.tabs.untitled</label>', $html);
+        $this->assertStringContainsString('id="cb-tabs-40-1-panel" role="region" aria-labelledby="cb-tabs-40-1-label"', $html);
+        // The nav comes after the radios and before the row: `~` needs both.
+        $this->assertLessThan(strpos($html, 'cb-tabs__nav'), strrpos($html, 'cb-tabs__radio'));
+        $this->assertLessThan(strpos($html, 'class="cb-row"'), strpos($html, 'cb-tabs__nav'));
+    }
+
+    public function testAnAccordionSectionPutsAToggleAndHeaderBeforeEachPanel(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, 'two_cols', 0, 0, 80);
+        $section->setPublishedSettings(['display' => 'accordion']);
+        $this->makeColumn($section, 0, 0, 81)->setPublishedSettings(['label' => 'Shipping']);
+        $this->makeColumn($section, 1, 1, 82);
+
+        $html = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertSame(2, substr_count($html, 'class="cb-accordion__toggle"'));
+        $this->assertStringNotContainsString('cb-tabs__', $html);
+        $this->assertMatchesRegularExpression('/type="checkbox" class="cb-accordion__toggle" id="cb-accordion-80-0"[^>]*checked>/', $html);
+        $this->assertDoesNotMatchRegularExpression('/id="cb-accordion-80-1"[^>]*checked>/', $html);
+        $this->assertStringContainsString('>Shipping</label>', $html);
+        $this->assertStringContainsString('>cb.section.accordion.untitled</label>', $html);
+        $this->assertStringContainsString('id="cb-accordion-80-1-panel" role="region" aria-labelledby="cb-accordion-80-1-label"', $html);
+        // Toggle, header, panel: siblings in that order inside the row.
+        $row = strpos($html, 'class="cb-row"');
+        $toggle = strpos($html, 'id="cb-accordion-80-1"');
+        $header = strpos($html, 'id="cb-accordion-80-1-label"');
+        $panel = strpos($html, 'id="cb-accordion-80-1-panel"');
+        $this->assertTrue($row < $toggle && $toggle < $header && $header < $panel);
+    }
+
+    /** As with tabs, a column pending deletion is skipped. */
+    public function testThePreviewOpensTheFirstLiveAccordionPanel(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, 'two_cols', 0, 0, 90);
+        $section->setDraftSettings(['display' => 'accordion']);
+        $this->makeColumn($section, 0, 0, 91)->setDeleted(true);
+        $this->makeColumn($section, 1, 1, 92);
+
+        $html = $this->makeRenderer(RenderMode::PREVIEW)->render($area, new RenderContext(RenderMode::PREVIEW));
+
+        $this->assertMatchesRegularExpression('/id="cb-accordion-90-1"[^>]*checked>/', $html);
+        $this->assertDoesNotMatchRegularExpression('/id="cb-accordion-90-0"[^>]*checked>/', $html);
+        $this->assertStringContainsString('cb-accordion__header cb-accordion__header--deleted', $html);
+    }
+
+    /** A resolver (the i18n package's) decides the title a tab renders. */
+    public function testAColumnSettingsResolverRewritesTheTabTitle(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, 'tabs', 0, 0, 70);
+        $section->setPublishedSettings(['display' => 'tabs']);
+        $this->makeColumn($section, 0, 0, 71)->setPublishedSettings(['label' => 'Détails']);
+
+        $resolver = new class () implements \ContentBlocks\Rendering\ColumnSettingsResolverInterface {
+            public ?RenderContext $seen = null;
+
+            public function resolve(Column $column, RenderContext $context, array $settings): array
+            {
+                $this->seen = $context;
+
+                return ['label' => 'Details'] + $settings;
+            }
+        };
+
+        $renderer = $this->makeRenderer(
+            columnResolvers: new \ContentBlocks\Rendering\ColumnSettingsResolverCollection([$resolver]),
+        );
+
+        $html = $renderer->render($area, RenderContext::forPublic('en'));
+
+        $this->assertStringContainsString('>Details</label>', $html);
+        $this->assertSame('en', $resolver->seen?->locale);
+    }
+
+    public function testAGridSectionHasNoTabMarkup(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, 'two_cols', 0, 0);
+        $this->makeColumn($section, 0, 0)->setPublishedSettings(['label' => 'Unused']);
+
+        $html = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertStringNotContainsString('cb-tabs__', $html);
+        $this->assertStringNotContainsString('cb-accordion__', $html);
+        $this->assertStringNotContainsString('role="region"', $html);
+    }
+
+    /** The builder shows the draft; the page keeps the published twins. */
+    public function testPublicReadsThePublishedPresetAndLabelPreviewTheDraft(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, 'tabs', 0, 0, 50);
+        $section->setPublishedSettings(['display' => 'tabs']);
+        $column = $this->makeColumn($section, 0, 0, 51);
+        $column->setPreset('col-12');
+        $column->publish();
+        $column->setPublishedSettings(['label' => 'Live']);
+        $column->setPreset('col-6');
+        $column->setDraftSettings(['label' => 'Draft']);
+
+        $public = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
+        $preview = $this->makeRenderer(RenderMode::PREVIEW)->render($area, new RenderContext(RenderMode::PREVIEW));
+
+        $this->assertStringContainsString('cb-col--col-12', $public);
+        $this->assertStringContainsString('>Live</label>', $public);
+        $this->assertStringContainsString('cb-col--col-6', $preview);
+        $this->assertStringContainsString('>Draft</label>', $preview);
+    }
+
+    /** The builder keeps a deleted column in the DOM: open a live tab. */
+    public function testThePreviewOpensTheFirstLiveTab(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, 'tabs', 0, 0, 60);
+        $section->setDraftSettings(['display' => 'tabs']);
+        $this->makeColumn($section, 0, 0, 61)->setDeleted(true);
+        $this->makeColumn($section, 1, 1, 62);
+
+        $html = $this->makeRenderer(RenderMode::PREVIEW)->render($area, new RenderContext(RenderMode::PREVIEW));
+
+        $this->assertMatchesRegularExpression('/id="cb-tabs-60-1"[^>]*checked>/', $html);
+        $this->assertDoesNotMatchRegularExpression('/id="cb-tabs-60-0"[^>]*checked>/', $html);
+        $this->assertStringContainsString('cb-tabs__tab cb-tabs__tab--deleted', $html);
+    }
+
     public function testBlockViewTemplateIsIncluded(): void
     {
         $area = $this->makeArea();
@@ -784,8 +930,12 @@ final class BlockRendererTest extends TestCase
      * @param list<BlockDataResolverInterface> $extraResolvers
      *        appended after CoreBlockDataResolver, as a host's would be
      */
-    private function makeRenderer(RenderMode $mode = RenderMode::PUBLIC, array $extraResolvers = [], array $query = []): BlockRenderer
-    {
+    private function makeRenderer(
+        RenderMode $mode = RenderMode::PUBLIC,
+        array $extraResolvers = [],
+        array $query = [],
+        ?\ContentBlocks\Rendering\ColumnSettingsResolverCollection $columnResolvers = null,
+    ): BlockRenderer {
         $request = new Request(($mode === RenderMode::PREVIEW ? ['cb_preview' => '1'] : []) + $query);
         $stack = new RequestStack();
         $stack->push($request);
@@ -805,6 +955,7 @@ final class BlockRendererTest extends TestCase
             new \ContentBlocks\Block\BlockDecoratorCollection([]),
             new \ContentBlocks\Block\BlockDataDefaults(),
             new BlockDataResolverCollection([new CoreBlockDataResolver(), ...$extraResolvers]),
+            $columnResolvers ?? new \ContentBlocks\Rendering\ColumnSettingsResolverCollection(),
         );
     }
 
@@ -908,6 +1059,7 @@ final class BlockRendererTest extends TestCase
 
         $env = new Environment($loader, ['strict_variables' => true]);
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
+        $env->addExtension(new SectionLayoutExtension(new SectionLayoutRegistry()));
         $env->addExtension(new RoutingExtension($this->makeUrlGenerator()));
 
         return $env;

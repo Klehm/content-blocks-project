@@ -169,6 +169,88 @@ untouched form no longer needs a sacrificial `#ffffff` to avoid persisting black
 `styling.backgroundColor = '#ffffff'`, which used to be stripped as default-equal
 and now renders as an actual white background.
 
+## Column presets are spans
+
+`Column.preset` is `col-N`, a span on a 12-unit grid, and `layout.css` turns it
+into `flex-grow: N` over a zero basis. The first version gave each preset a
+`flex-basis` computed for its one known row: `col-4` meant a third of the row
+minus two gaps. That breaks as soon as layouts are host config. `[4, 8]` mixes
+two presets whose bases were each computed for a different row, and `col-3`
+had no rule at all. With grow over a zero basis, the browser shares out the
+row's real gap and any mix of spans keeps its ratio.
+
+`col-12` keeps `flex-basis: 100%`, so a lone full-width column still wraps
+whatever follows it.
+
+Breakpoints only set `flex-basis`, never `flex-grow`, so the column-width
+weights (`.cb-col--weighted`) keep their ratio inside a row. At tablet width,
+`col-6` goes to half-width only in a row that also holds narrower spans
+(`:has()`). Otherwise a weighted two-column row would fall back to 50/50,
+which it did not do before.
+
+## Columns and tabs
+
+A section's columns are no longer fixed by its layout. The section sidebar adds,
+names and removes them (`ColumnsController`), and the `display` section setting
+shows them side by side (`grid`), one at a time (`tabs`) or as collapsible
+panels (`accordion`). The layout name
+stays what the section was created from, and nothing renders from it but a CSS
+class.
+
+**Every mutable column field has a draft twin**, like the rest of the model.
+`preset` is the draft and `published_preset` what the page renders, because
+adding a column re-spans the others (three `col-6` become `col-4`), and writing
+that to a field the public render reads would move the live page before
+Publish. `draft_settings` / `published_settings` hold the name. A column
+published before the twin existed has no `published_preset`: the render falls
+back to `preset`, and `setPreset()` pins the old value on the first change, so
+an un-backfilled database is safe too.
+
+**Adding or removing resets the spans to equal.** An uneven `[4, 8]` becomes
+`[4, 4, 4]` with a third column. Guessing how to split a custom layout is worse
+than a visible reset, and undo restores the presets, which the structure
+snapshot records. A delete is the draft flag, blocks included: the column
+leaves the builder, stays on the public page until Publish, and comes back
+with Discard or undo. The last live column cannot be deleted, and a section
+holds at most `ColumnsController::MAX_COLUMNS` (20).
+
+**Tabs are CSS only, with no script on the public page.** The section renders
+one radio per column, then a nav of `<label>`s, then the row, as siblings, so
+`radio:nth-of-type(n):checked ~ .cb-row > .cb-col:nth-child(n)` opens a panel
+and `~ .cb-tabs__nav > :nth-child(n)` marks its tab. Those rules are written
+out to 20, the column cap. A radio group also gives arrow-key navigation for
+free. Ids derive from the section id rather than a random suffix, because the
+public render must be byte-stable (see the immutability test).
+
+**The accordion is CSS only too, and needs no rule per index.** Each column
+is preceded, inside the row, by a checkbox and its header `<label>`, so
+`toggle:checked + .cb-accordion__header + .cb-col` opens that panel whatever
+the count. Checkboxes rather than radios: panels open independently, and a
+radio could never be closed again. The row turns `display: block` so the
+section's column gap does not open between a header and its panel. The
+interleaving is safe because everything that walks columns selects
+`[data-cb-column-id]`, never the row's children by position.
+
+In the builder the same markup is live, and three things keep it usable:
+
+- A **deleted column keeps its place** in the DOM (hidden), so indices still
+  line up; the first *live* tab is the one opened.
+- A **full preview reload would reopen the first tab**, so the overlay stores
+  the open columns per section in `sessionStorage` (a list, for the
+  accordion) and restores them on load.
+- **Focusing a block opens its tab or panel** (`revealTab`). The tree panel and the
+  sidebar can select a block that sits in a closed tab.
+
+A tab title renders through `ColumnSettingsResolverInterface` (autoconfigured,
+empty by default), which is how the i18n package puts it in the page's locale.
+See [i18n.md](i18n.md#tab-titles-are-translated-beside-the-column).
+
+`patchSection` swaps the radios and the nav, or re-inserts each toggle and
+header before its column, along with the classes. It keeps what was open when
+those columns are still there, so switching an accordion to tabs keeps the open
+panel as the open tab, and a rename or a display toggle updates in place. Adding or removing a column changes the row itself, so it
+reloads the preview and remounts the sidebar.
+
 ## Style presets as a base layer
 
 A `SectionStyle` carries a `cssClass`, a `settings` map, or both — a class-only
@@ -227,3 +309,7 @@ Contract for an observer:
 The collection is a constructor default rather than a required argument so
 building a cloner by hand — which tests and host scripts do — stays a
 no-argument call.
+
+`ColumnCloneObserverInterface` is the same seam one level up, for rows stored
+beside a column (a translated tab title). Same contract, called once per
+copied column, before that column's blocks.

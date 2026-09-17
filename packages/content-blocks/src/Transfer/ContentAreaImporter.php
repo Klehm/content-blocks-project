@@ -12,6 +12,7 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Section\ColumnSettings;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 
 /**
@@ -193,6 +194,10 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         $col = new Column();
         if (isset($raw['preset']) && is_string($raw['preset'])) {
             $col->setPreset($raw['preset']);
+        }
+        $settings = ColumnSettings::sanitize($raw['settings'] ?? null);
+        if ($settings !== []) {
+            $col->setDraftSettings($settings);
         }
 
         $blocksRaw = $raw['blocks'] ?? null;

@@ -27,36 +27,16 @@
     <aside class="cb-add-section-tray" aria-label="{{ trayLabel }}">
         <p class="cb-add-section-tray__label">{{ trayLabel }}</p>
         <div class="cb-add-section-tray__buttons">
-            <button type="button"
-                    class="cb-add-section-tray__btn"
-                    data-cb-add-section="full"
-                    aria-label="{{ 'cb.section.layout.full'|trans({}, 'content_blocks') }}"
-                    title="{{ 'cb.section.layout.full'|trans({}, 'content_blocks') }}">
-                <svg viewBox="0 0 32 24" width="32" height="24" aria-hidden="true">
-                    <rect x="3" y="3" width="26" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                </svg>
-            </button>
-            <button type="button"
-                    class="cb-add-section-tray__btn"
-                    data-cb-add-section="two_cols"
-                    aria-label="{{ 'cb.section.layout.two_cols'|trans({}, 'content_blocks') }}"
-                    title="{{ 'cb.section.layout.two_cols'|trans({}, 'content_blocks') }}">
-                <svg viewBox="0 0 32 24" width="32" height="24" aria-hidden="true">
-                    <rect x="3" y="3" width="11.5" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                    <rect x="17.5" y="3" width="11.5" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                </svg>
-            </button>
-            <button type="button"
-                    class="cb-add-section-tray__btn"
-                    data-cb-add-section="three_cols"
-                    aria-label="{{ 'cb.section.layout.three_cols'|trans({}, 'content_blocks') }}"
-                    title="{{ 'cb.section.layout.three_cols'|trans({}, 'content_blocks') }}">
-                <svg viewBox="0 0 32 24" width="32" height="24" aria-hidden="true">
-                    <rect x="3" y="3" width="6.667" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                    <rect x="12.667" y="3" width="6.667" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                    <rect x="22.333" y="3" width="6.667" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                </svg>
-            </button>
+            {% for layout in cb_section_layouts() %}
+                {% set layoutLabel = layout.label|trans({}, 'content_blocks') %}
+                <button type="button"
+                        class="cb-add-section-tray__btn"
+                        data-cb-add-section="{{ layout.name }}"
+                        aria-label="{{ layoutLabel }}"
+                        title="{{ layoutLabel }}">
+                    {{ include('@ContentBlocks/builder/section_layout_icon.html.twig', { layout: layout }, with_context = false) }}
+                </button>
+            {% endfor %}
         </div>
         <button type="button"
                 class="cb-add-section-tray__library"

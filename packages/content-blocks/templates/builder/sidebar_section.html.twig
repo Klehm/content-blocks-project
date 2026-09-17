@@ -10,6 +10,49 @@
         '@ContentBlocks/form/cb_form_theme.html.twig',
         '@ContentBlocks/form/styling_widgets.html.twig',
     ] %}
+    {# Outside the form: each gesture is its own request, so autosave never
+       sees these inputs. See docs/internals/rendering.md#columns-and-tabs #}
+    <section class="cb-sidebar__group cb-columns-editor"
+             data-i18n-cb-columns-last="{{ 'cb.section.columns.last_column'|trans({}, 'content_blocks') }}"
+             data-i18n-cb-columns-too-many="{{ 'cb.section.columns.too_many'|trans({ '%max%': maxColumns }, 'content_blocks') }}">
+        <h4 class="cb-sidebar__group-title">
+            {{ 'cb.section.columns.title'|trans({}, 'content_blocks') }}
+        </h4>
+        <div class="cb-sidebar__group-body">
+            <ol class="cb-columns-editor__list">
+                {% for column in columns %}
+                    <li class="cb-columns-editor__item">
+                        <input type="text"
+                               class="cb-form-control cb-columns-editor__label"
+                               maxlength="100"
+                               value="{{ column.label ?? '' }}"
+                               placeholder="{{ 'cb.builder.tree.column'|trans({ '%index%': loop.index }, 'content_blocks') }}"
+                               aria-label="{{ 'cb.section.columns.label_n'|trans({ '%n%': loop.index }, 'content_blocks') }}"
+                               data-cb-column-id="{{ column.id }}"
+                               data-cb-section-settings-form-target="columnLabel"
+                               data-action="input->cb-section-settings-form#onColumnLabelInput change->cb-section-settings-form#commitColumnLabel">
+                        <button type="button"
+                                class="cb-form-btn cb-form-btn--sm cb-columns-editor__remove"
+                                data-cb-column-id="{{ column.id }}"
+                                data-action="cb-section-settings-form#removeColumn"
+                                aria-label="{{ 'cb.section.columns.remove_n'|trans({ '%n%': loop.index }, 'content_blocks') }}"
+                                title="{{ 'cb.section.columns.remove_n'|trans({ '%n%': loop.index }, 'content_blocks') }}"
+                                {% if columns|length <= 1 %}disabled{% endif %}>×</button>
+                    </li>
+                {% endfor %}
+            </ol>
+            <button type="button"
+                    class="cb-form-btn cb-form-btn--sm cb-columns-editor__add"
+                    data-action="cb-section-settings-form#addColumn"
+                    {% if columns|length >= maxColumns %}disabled{% endif %}>
+                + {{ 'cb.section.columns.add'|trans({}, 'content_blocks') }}
+            </button>
+            <p class="cb-form-help cb-columns-editor__help">
+                {{ 'cb.section.columns.help'|trans({}, 'content_blocks') }}
+            </p>
+        </div>
+    </section>
+
     {{ form_start(form, { 'attr': { 'data-cb-section-settings-form-target': 'form' } }) }}
 
         {# No tabs: both groups are always visible and the sidebar scrolls
@@ -19,6 +62,13 @@
                 {{ 'cb.section.settings.tab.general'|trans({}, 'content_blocks') }}
             </h4>
             <div class="cb-sidebar__group-body">
+                {# Beyond two and three columns, only "equal" is offered;
+                   the free inputs below cover the rest. #}
+                {% set equal_base = columnCount > 0 ? (100 / columnCount)|round(0, 'floor') : 0 %}
+                {% set equal_widths = [] %}
+                {% for i in 1..max(columnCount, 1) %}
+                    {% set equal_widths = equal_widths|merge([equal_base + (i <= 100 - equal_base * columnCount ? 1 : 0)]) %}
+                {% endfor %}
                 {% set width_presets = columnCount == 3
                     ? [
                         { label: 'cb.section.settings.column_widths_equal'|trans({}, 'content_blocks'), value: '34,33,33' },
@@ -27,20 +77,24 @@
                         { label: '25/25/50', value: '25,25,50' },
                         { label: '40/30/30', value: '40,30,30' },
                       ]
-                    : [
-                        { label: '50/50', value: '50,50' },
-                        { label: '33/67', value: '33,67' },
-                        { label: '40/60', value: '40,60' },
-                        { label: '60/40', value: '60,40' },
-                        { label: '67/33', value: '67,33' },
-                      ] %}
+                    : (columnCount == 2
+                        ? [
+                            { label: '50/50', value: '50,50' },
+                            { label: '33/67', value: '33,67' },
+                            { label: '40/60', value: '40,60' },
+                            { label: '60/40', value: '60,40' },
+                            { label: '67/33', value: '67,33' },
+                          ]
+                        : [
+                            { label: 'cb.section.settings.column_widths_equal'|trans({}, 'content_blocks'), value: equal_widths|join(',') },
+                          ]) %}
                 {% for child in form %}
                     {% if child.vars.name == 'styling' or child.vars.name == 'stylingCustom' %}
                         {# Rendered in the Styling group below. #}
                     {% elseif child.vars.name == 'columnWidths' %}
                         {# The hidden CSV is canonical; the number inputs
                            carry no `name` and never reach the FormData. #}
-                        <div class="cb-form-row cb-col-widths">
+                        <div class="cb-form-row cb-col-widths" data-cb-condition="display:grid">
                             <span class="cb-form-label">
                                 {{ 'cb.section.settings.column_widths'|trans({}, 'content_blocks') }}
                             </span>
