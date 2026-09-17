@@ -1,7 +1,7 @@
 {
     "name": "@klehm/content-blocks",
     "description": "Modular page builder for Symfony.",
-    "version": "1.0.0-RC13",
+    "version": "1.0.0-RC14",
     "license": "MIT",
     "symfony": {
         "controllers": {
