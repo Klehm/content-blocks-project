@@ -469,6 +469,11 @@ width, so it follows the same breakpoints. Restyle it through:
 .cb-slider__dot[aria-current="true"] { background: #eb0540; }
 ```
 
+A slide's width comes from two properties set on `.cb-row`: `--cb-slide-n`,
+the slides visible at the current width (resolved from `--cb-slides-d/t/m`),
+and `--cb-slide-gap`, which follows the section's column gap. Override the gap
+to space slides apart from the grid's gutter; set the count in the sidebar.
+
 ### Order per viewport
 
 With the builder preview on tablet or mobile, dragging a section, or a block
