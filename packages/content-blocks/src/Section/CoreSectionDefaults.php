@@ -23,6 +23,7 @@ final class CoreSectionDefaults implements SectionSettingsDefaultsProviderInterf
         return [
             'widthMode' => $this->defaultWidthMode,
             'maxWidth' => $this->defaultMaxWidth,
+            SectionDisplay::SLIDER_CONTROLS => 'both',
         ];
     }
 }

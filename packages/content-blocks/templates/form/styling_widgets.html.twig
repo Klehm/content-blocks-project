@@ -220,3 +220,21 @@
         {% endfor %}
     </div>
 {% endmacro %}
+
+{# Slides per view: the same D/T/M tabs, one number each. #}
+{% block cb_slider_per_view_row %}
+    <div class="cb-form-row"{% for attrName, attrValue in row_attr %} {{ attrName }}="{{ attrValue }}"{% endfor %}>
+        <div class="cb-form-row__header">
+            <label class="cb-form-label">{{ form.vars.label|trans({}, 'content_blocks') }}</label>
+            {{ include('@ContentBlocks/form/_viewport_tabs.html.twig') }}
+        </div>
+        <div class="cb-responsive-length">
+            {% for vp in ['desktop', 'tablet', 'mobile'] %}
+                <div class="cb-responsive-length__viewport" data-viewport="{{ vp }}">
+                    {{ form_widget(form[vp], { attr: { class: 'cb-responsive-length__input' } }) }}
+                </div>
+            {% endfor %}
+        </div>
+        {{ form_errors(form) }}
+    </div>
+{% endblock %}

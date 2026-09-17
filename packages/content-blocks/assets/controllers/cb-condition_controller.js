@@ -1,8 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 
 /*
- * Generic conditional-field visibility from `data-cb-condition`: `|` is OR
- * within a clause, `;` is AND between clauses. Hidden fields still submit.
+ * Conditional fields from `data-cb-condition`: `|` is OR within a clause, `;`
+ * ANDs clauses, `||` ORs whole groups. Hidden fields still submit.
  */
 export default class extends Controller {
     connect() {
@@ -23,20 +23,22 @@ export default class extends Controller {
             // only — or an outer one resolves it against the wrong scope.
             const scope = row.closest('[data-controller~="cb-condition"]');
             if (scope && scope !== this.element && this.element.contains(scope)) continue;
-            const specs = this._parse(row.getAttribute('data-cb-condition'));
-            if (!specs) continue;
-            // AND across clauses: every clause must match for the row to show.
-            row.hidden = !specs.every((spec) => this._matches(spec));
+            const groups = this._parse(row.getAttribute('data-cb-condition'));
+            if (!groups) continue;
+            row.hidden = !groups.some((specs) => specs.every((spec) => this._matches(spec)));
         }
     }
 
     _parse(raw) {
         if (typeof raw !== 'string' || raw.trim() === '') return null;
-        const specs = raw
-            .split(';')
-            .map((clause) => this._parseClause(clause))
-            .filter((spec) => spec !== null);
-        return specs.length > 0 ? specs : null;
+        const groups = raw
+            .split('||')
+            .map((group) => group
+                .split(';')
+                .map((clause) => this._parseClause(clause))
+                .filter((spec) => spec !== null))
+            .filter((specs) => specs.length > 0);
+        return groups.length > 0 ? groups : null;
     }
 
     _parseClause(raw) {

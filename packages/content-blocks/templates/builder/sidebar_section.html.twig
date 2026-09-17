@@ -91,6 +91,24 @@
                 {% for child in form %}
                     {% if child.vars.name == 'styling' or child.vars.name == 'stylingCustom' %}
                         {# Rendered in the Styling group below. #}
+                    {% elseif child.vars.name == 'display' %}
+                        {# One row, three panes: the viewport tabs pick which
+                           of the three display fields shows. #}
+                        <div class="cb-form-row cb-display-row">
+                            <div class="cb-form-row__header">
+                                <span class="cb-form-label">{{ 'cb.section.settings.display'|trans({}, 'content_blocks') }}</span>
+                                {{ include('@ContentBlocks/form/_viewport_tabs.html.twig') }}
+                            </div>
+                            <div data-viewport="desktop">{{ form_widget(child) }}</div>
+                            {% for field in ['displayTablet', 'displayMobile'] %}
+                                <div data-viewport="{{ field == 'displayTablet' ? 'tablet' : 'mobile' }}" hidden>
+                                    {{ form_widget(form[field]) }}
+                                    <p class="cb-form-help">{{ 'cb.section.settings.display.below_help'|trans({}, 'content_blocks') }}</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% elseif child.vars.name == 'displayTablet' or child.vars.name == 'displayMobile' %}
+                        {# Rendered in the display row. #}
                     {% elseif child.vars.name == 'columnWidths' %}
                         {# The hidden CSV is canonical; the number inputs
                            carry no `name` and never reach the FormData. #}

@@ -9,7 +9,9 @@ use ContentBlocks\Entity\Section;
 use ContentBlocks\Form\Type\SectionSettingsType;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
+use ContentBlocks\Rendering\ViewportOrder;
 use ContentBlocks\Section\ColumnSettings;
+use ContentBlocks\Section\SectionDisplay;
 use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
@@ -117,6 +119,12 @@ final class SectionSidebarController
                 // values persisted while the fields were hidden.
                 if (($data['stylingCustom'] ?? false) !== true) {
                     unset($data['styling']);
+                }
+                $data = SectionDisplay::normalize($data);
+                // Not a form field: the ranks are written by a preview drag.
+                unset($data[ViewportOrder::KEY]);
+                if (isset($current[ViewportOrder::KEY])) {
+                    $data[ViewportOrder::KEY] = $current[ViewportOrder::KEY];
                 }
                 // Coalesced per section: the sidebar autosaves, and a slider
                 // dragged across its range must not be forty undo steps.

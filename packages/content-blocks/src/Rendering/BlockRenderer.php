@@ -52,7 +52,7 @@ final class BlockRenderer implements BlockRendererInterface
     {
         $context = $this->materialize($context, fn () => $this->resolveMode($area));
         $mode = $context->mode;
-        $sections = $this->buildSectionTree($area, $context);
+        $sections = $this->buildSectionTree($area, $context, $ordered);
 
         $blockTypes = [];
         if ($mode === RenderMode::PREVIEW) {
@@ -75,6 +75,7 @@ final class BlockRenderer implements BlockRendererInterface
             'sections' => $sections,
             'blockTypes' => $blockTypes,
             'chrome' => $this->chromeEnabled($mode),
+            'ordered' => $ordered,
         ]);
     }
 
@@ -134,9 +135,15 @@ final class BlockRenderer implements BlockRendererInterface
     public function renderBlock(Block $block, ?RenderContext $context = null): string
     {
         $context = $this->materialize($context, fn () => RenderMode::PREVIEW);
+        $column = $block->getColumn();
+        $siblings = $column !== null ? $this->sortedBlocks($column, $context) : [$block];
+        $index = array_search($block, $siblings, true);
+        $order = $this->orderVariables($siblings, $context)[$index === false ? -1 : $index] ?? [];
+        $viewModel = $this->buildBlockViewModel($block, $context, false);
+        $viewModel['inlineStyle'] .= ViewportOrder::styleString($order);
 
         return $this->twig->render(self::BLOCK_TEMPLATE, [
-            'block' => $this->buildBlockViewModel($block, $context, false),
+            'block' => $viewModel,
             'isPreview' => $context->mode === RenderMode::PREVIEW,
         ]);
     }
@@ -150,9 +157,15 @@ final class BlockRenderer implements BlockRendererInterface
     public function renderSection(Section $section, ?RenderContext $context = null): string
     {
         $context = $this->materialize($context, fn () => RenderMode::PREVIEW);
+        $area = $section->getContentArea();
+        $siblings = $area !== null ? $this->sortedSections($area, $context) : [$section];
+        $index = array_search($section, $siblings, true);
+        $order = $this->orderVariables($siblings, $context)[$index === false ? -1 : $index] ?? [];
+        $viewModel = $this->buildSectionViewModel($section, $context);
+        $viewModel['inlineStyle'] .= ViewportOrder::styleString($order);
 
         return $this->twig->render(self::SECTION_TEMPLATE, [
-            'section' => $this->buildSectionViewModel($section, $context),
+            'section' => $viewModel,
             'isPreview' => $context->mode === RenderMode::PREVIEW,
             'chrome' => $this->chromeEnabled($context->mode),
         ]);
@@ -165,8 +178,32 @@ final class BlockRenderer implements BlockRendererInterface
      *     deleted: bool,
      *     columns: list<array<string, mixed>>,
      * }>
+     *
+     * @param-out bool $ordered whether a section carries an order variable
      */
-    private function buildSectionTree(ContentArea $area, RenderContext $context): array
+    private function buildSectionTree(ContentArea $area, RenderContext $context, ?bool &$ordered = null): array
+    {
+        $sections = $this->sortedSections($area, $context);
+        $buckets = $context->mode === RenderMode::PUBLIC ? $this->publishedColumnBuckets($area) : [];
+        $order = $this->orderVariables($sections, $context);
+        $ordered = array_filter($order) !== [];
+
+        $out = [];
+        foreach ($sections as $i => $section) {
+            $viewModel = $this->buildSectionViewModel($section, $context, $buckets);
+            $viewModel['inlineStyle'] .= ViewportOrder::styleString($order[$i]);
+            $out[] = $viewModel;
+        }
+
+        return $out;
+    }
+
+    /**
+     * The sections a mode renders, in its order.
+     *
+     * @return list<Section>
+     */
+    private function sortedSections(ContentArea $area, RenderContext $context): array
     {
         $sections = $area->getSections()->toArray();
 
@@ -177,14 +214,30 @@ final class BlockRenderer implements BlockRendererInterface
             usort($sections, fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
         }
 
-        $buckets = $context->mode === RenderMode::PUBLIC ? $this->publishedColumnBuckets($area) : [];
+        return $sections;
+    }
 
-        $out = [];
-        foreach ($sections as $section) {
-            $out[] = $this->buildSectionViewModel($section, $context, $buckets);
-        }
+    /**
+     * `--cb-order-*` per sibling, from the ranks the mode reads.
+     *
+     * @see docs/internals/rendering.md#order-per-viewport
+     *
+     * @param list<Section>|list<Block> $siblings in rendered order
+     *
+     * @return list<array<string, string>>
+     */
+    private function orderVariables(array $siblings, RenderContext $context): array
+    {
+        $preview = $context->mode === RenderMode::PREVIEW;
 
-        return $out;
+        return ViewportOrder::variables(array_map(
+            static fn (Section|Block $e): array => ViewportOrder::ranks(match (true) {
+                $e instanceof Section => $e->getEffectiveSettings(preferDraft: $preview),
+                $preview => $e->getDraftData() ?? $e->getPublishedData(),
+                default => $e->getPublishedData(),
+            }),
+            $siblings,
+        ));
     }
 
     /**
@@ -234,7 +287,9 @@ final class BlockRenderer implements BlockRendererInterface
      *     id: ?int,
      *     layout: string,
      *     display: string,
+     *     displays: array{desktop: string, tablet: string, mobile: string},
      *     accordion: array{single: bool, collapsed: bool},
+     *     slider: array{controls: string, autoplay: int, loop: bool}|null,
      *     deleted: bool,
      *     extraClasses: string,
      *     inlineStyle: string,
@@ -261,12 +316,17 @@ final class BlockRenderer implements BlockRendererInterface
         // Only real overrides reach the markup.
         $settings = $this->settingsDefaults->withoutDefaults($settings);
         $decoration = $this->sectionDecorators->decorate($settings, $section);
+        $displays = SectionDisplay::resolve($settings);
 
         return [
             'id' => $section->getId(),
             'layout' => $section->getLayout(),
-            'display' => SectionDisplay::fromSettings($settings),
+            'display' => $displays['desktop'],
+            'displays' => $displays,
             'accordion' => SectionDisplay::accordionOptions($settings),
+            'slider' => \in_array(SectionDisplay::SLIDER, $displays, true)
+                ? SectionDisplay::sliderOptions($settings)
+                : null,
             'deleted' => $sectionDeleted,
             'extraClasses' => $decoration->classString(),
             'inlineStyle' => $decoration->styleString(),
@@ -394,6 +454,32 @@ final class BlockRenderer implements BlockRendererInterface
      */
     private function buildBlockList(Column $column, RenderContext $context, bool $parentDeleted, array $buckets = []): array
     {
+        $blocks = $this->sortedBlocks($column, $context, $buckets);
+        $order = $this->orderVariables($blocks, $context);
+
+        $out = [];
+        foreach ($blocks as $i => $block) {
+            $viewModel = $this->buildBlockViewModel($block, $context, $parentDeleted);
+            $viewModel['inlineStyle'] .= ViewportOrder::styleString($order[$i]);
+            $out[] = $viewModel;
+        }
+
+        return $out;
+    }
+
+    /**
+     * The blocks a mode renders in a column, in its order.
+     *
+     * @param array<int, list<Block>> $buckets
+     *
+     * @return list<Block>
+     */
+    private function sortedBlocks(Column $column, RenderContext $context, ?array $buckets = null): array
+    {
+        if ($buckets === null) {
+            $area = $context->mode === RenderMode::PUBLIC ? $column->getSection()?->getContentArea() : null;
+            $buckets = $area !== null ? $this->publishedColumnBuckets($area) : [];
+        }
         $blocks = $buckets === [] ? $column->getBlocks()->toArray() : ($buckets[$column->getId()] ?? []);
 
         if ($context->mode === RenderMode::PUBLIC) {
@@ -406,12 +492,7 @@ final class BlockRenderer implements BlockRendererInterface
             usort($blocks, fn (Block $a, Block $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
         }
 
-        $out = [];
-        foreach ($blocks as $block) {
-            $out[] = $this->buildBlockViewModel($block, $context, $parentDeleted);
-        }
-
-        return $out;
+        return $blocks;
     }
 
     /**

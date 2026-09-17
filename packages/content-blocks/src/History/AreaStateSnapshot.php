@@ -8,6 +8,7 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Rendering\ViewportOrder;
 
 /**
  * The draft fields a builder action can move, read once for a chosen scope.
@@ -76,6 +77,45 @@ final class AreaStateSnapshot
         }
 
         return new self($entries);
+    }
+
+    /**
+     * The `_order` ranks alone, so undoing a viewport reorder never rewrites
+     * a payload edited since.
+     *
+     * @see docs/internals/rendering.md#order-per-viewport
+     */
+    public static function viewportOrder(ContentArea $area): self
+    {
+        $entries = [];
+        foreach ($area->getSections() as $section) {
+            if ($section->getId() !== null) {
+                $entries[self::T_SECTION . ':' . $section->getId()] = [
+                    'order' => self::orderOf($section),
+                ];
+            }
+            foreach ($section->getColumns() as $column) {
+                foreach ($column->getBlocks() as $block) {
+                    if ($block->getId() !== null) {
+                        $entries[self::T_BLOCK . ':' . $block->getId()] = [
+                            'order' => self::orderOf($block),
+                        ];
+                    }
+                }
+            }
+        }
+
+        return new self($entries);
+    }
+
+    /** @return array<string, int>|null null when no rank is set */
+    public static function orderOf(Section|Block $entity): ?array
+    {
+        $ranks = ViewportOrder::ranks($entity instanceof Section
+            ? $entity->getEffectiveSettings(preferDraft: true)
+            : ($entity->getDraftData() ?? $entity->getPublishedData()));
+
+        return $ranks === [] ? null : $ranks;
     }
 
     public static function blockData(Block $block): self

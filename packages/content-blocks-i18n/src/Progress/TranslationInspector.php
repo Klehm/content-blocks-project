@@ -207,7 +207,10 @@ final class TranslationInspector
         );
     }
 
-    /** The section's own display, over its style preset's, as it renders. */
+    /**
+     * The section's display over its preset's; the first viewport printing
+     * titles wins, since a mobile-only accordion still has titles.
+     */
     private function displayOf(Section $section): string
     {
         $settings = $section->getEffectiveSettings(preferDraft: true);
@@ -215,8 +218,15 @@ final class TranslationInspector
         $preset = \is_string($styleName) && $styleName !== ''
             ? ($this->styles?->get($styleName)->settings ?? [])
             : [];
+        $displays = SectionDisplay::resolve($settings + $preset);
 
-        return SectionDisplay::fromSettings($settings + $preset);
+        foreach ($displays as $display) {
+            if (SectionDisplay::showsTitles($display)) {
+                return $display;
+            }
+        }
+
+        return $displays['desktop'];
     }
 
     private function labelOf(string $type): string

@@ -188,6 +188,29 @@ final class BlocksControllerTest extends ControllerTestCase
         $this->assertSame(0, $staying->getPreviewPosition());
     }
 
+    /** A rank means something only among the siblings it was set in. */
+    public function testMoveAcrossColumnsDropsTheBlockRanks(): void
+    {
+        $area = $this->makeArea(1);
+        $section = $this->makeSection($area, 2);
+        $source = $this->makeColumn($section, 3, previewPosition: 0);
+        $target = $this->makeColumn($section, 4, previewPosition: 1);
+        $moving = $this->makeBlock($source, 10);
+        $moving->setPublishedData(['title' => 'x', '_order' => ['mobile' => 1]]);
+        $sibling = $this->makeBlock($source, 11, previewPosition: 1);
+        $sibling->setDraftData(['_order' => ['mobile' => 0]]);
+        $controller = $this->makeController($this->makeEm([$source, $target, $moving]));
+
+        $controller->move(10, $this->makeJsonRequest(['toColumnId' => 4, 'position' => 0]));
+
+        $this->assertSame(['title' => 'x'], $moving->getDraftData());
+        $this->assertSame(['_order' => ['mobile' => 0]], $sibling->getDraftData());
+
+        // Within its own column the ranks stay.
+        $controller->move(11, $this->makeJsonRequest(['toColumnId' => 3, 'position' => 0]));
+        $this->assertSame(['_order' => ['mobile' => 0]], $sibling->getDraftData());
+    }
+
     public function testMoveAcrossColumnsPreservesTheSourceColumnDraftOrder(): void
     {
         $area = $this->makeArea(1);

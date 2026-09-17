@@ -13,6 +13,7 @@ use ContentBlocks\Controller\ColumnsController;
 use ContentBlocks\Controller\HistoryController;
 use ContentBlocks\Controller\ReplaceController;
 use ContentBlocks\Controller\SectionsController;
+use ContentBlocks\Controller\ViewportOrderController;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
@@ -117,6 +118,30 @@ final class PublishedRenderImmutabilityTest extends TestCase
 
         $this->sectionsController()->move(11, $this->jsonRequest(['direction' => 'up']));
 
+        $this->assertSame($before, $this->publicHtml($area));
+    }
+
+    public function testOrderingSectionsForMobileDoesNotTouchThePublicRender(): void
+    {
+        $area = $this->publishedArea();
+        $before = $this->publicHtml($area);
+
+        $this->viewportOrderController()->reorder(1, $this->jsonRequest([
+            'viewport' => 'mobile',
+            'scope' => 'section',
+            'ids' => [11, 10],
+        ]));
+        $this->viewportOrderController()->reorder(1, $this->jsonRequest([
+            'viewport' => 'tablet',
+            'scope' => 'block',
+            'columnId' => 20,
+            'ids' => [31, 30],
+        ]));
+
+        $this->assertSame($before, $this->publicHtml($area));
+        $this->assertStringContainsString('--cb-order-m', $this->previewHtml($area), 'guard: the draft moved');
+
+        $this->viewportOrderController()->reset(1, $this->jsonRequest(['viewport' => 'mobile']));
         $this->assertSame($before, $this->publicHtml($area));
     }
 
@@ -761,6 +786,16 @@ final class PublishedRenderImmutabilityTest extends TestCase
             new SectionCloner(),
             $this->renderer(RenderMode::PREVIEW),
             $this->registry(),
+            $this->journal(),
+        );
+    }
+
+    private function viewportOrderController(): ViewportOrderController
+    {
+        return new ViewportOrderController(
+            $this->em(),
+            new AllowAllAccessChecker(),
+            $this->csrf(),
             $this->journal(),
         );
     }

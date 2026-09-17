@@ -16,10 +16,14 @@
 {% set isEmpty = sections|filter(s => not s.deleted) is empty %}
 {# The empty-state class is a builder affordance ("nothing here yet, add a
    section"), so it follows the chrome rather than the mode. #}
-<div class="cb-content-area{% if chrome and isEmpty %} cb-content-area--empty{% endif %}"{% if isPreview %} data-cb-preview="1"{% endif %}>
+<div class="cb-content-area{% if chrome and isEmpty %} cb-content-area--empty{% endif %}{% if ordered ?? false %} cb-content-area--ordered{% endif %}"{% if isPreview %} data-cb-preview="1"{% endif %}>
 {% for section in visibleSections %}
     {{ include('@ContentBlocks/render/section.html.twig', { section: section, isPreview: isPreview, chrome: chrome }, with_context = false) }}
 {% endfor %}
+{# Always in the builder, where a section can turn into a slider in place. #}
+{% if chrome or visibleSections|filter(s => s.slider ?? null) is not empty %}
+    <script type="module" src="{{ path('content_blocks_asset_slider') }}"></script>
+{% endif %}
 {% if chrome %}
     {% set trayLabel = isEmpty
         ? 'cb.builder.empty_cta'|trans({}, 'content_blocks')

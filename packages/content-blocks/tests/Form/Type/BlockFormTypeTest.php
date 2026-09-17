@@ -129,6 +129,20 @@ final class BlockFormTypeTest extends TestCase
         $this->assertSame('https://example.test', $data['url']);
     }
 
+    /** Written by a preview drag, so a sidebar save must carry it over. */
+    public function testTheViewportRanksSurviveASave(): void
+    {
+        $form = $this->createBlockForm(
+            new BlockFormExtensionCollection([]),
+            $this->multiFieldBlock(),
+            ['text' => 'Go', 'url' => '', 'fullWidth' => true, '_order' => ['mobile' => 1]],
+        );
+        $form->submit(['text' => 'Went', 'url' => '', 'fullWidth' => '1', 'styling' => []]);
+
+        $this->assertSame(['mobile' => 1], $form->getData()['_order']);
+        $this->assertSame('Went', $form->getData()['text']);
+    }
+
     public function testExtensionCanReorderBlockFields(): void
     {
         // Reordering = re-adding the existing child builders in the wanted

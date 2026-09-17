@@ -222,6 +222,54 @@ final class SectionSidebarControllerTest extends ControllerTestCase
         $this->assertTrue($pair->getDraftSettings()['reverseOnMobile'] ?? null);
     }
 
+    public function testPerViewportDisplaysAreStoredOnlyWhereTheyDiffer(): void
+    {
+        $section = $this->makeSettingsSection(id: 5);
+        $controller = $this->makeController([$section]);
+
+        $response = $controller->settings(5, $this->makeFormRequest([
+            'widthMode' => 'full',
+            'display' => 'tabs',
+            'displayTablet' => 'inherit',
+            // Tabs never become a slider: clamped back to the tabs above.
+            'displayMobile' => 'slider',
+            'sliderPerView' => ['desktop' => '3', 'tablet' => '', 'mobile' => '1'],
+            'sliderControls' => 'arrows',
+        ]));
+
+        $this->assertSame(204, $response->getStatusCode());
+        $saved = $section->getDraftSettings();
+        $this->assertSame('tabs', $saved['display']);
+        $this->assertArrayNotHasKey('displayTablet', $saved);
+        $this->assertArrayNotHasKey('displayMobile', $saved);
+        $this->assertSame(['desktop' => 3, 'mobile' => 1], $saved['sliderPerView']);
+        $this->assertSame('arrows', $saved['sliderControls']);
+
+        $controller->settings(5, $this->makeFormRequest([
+            'widthMode' => 'full',
+            'display' => 'grid',
+            'displayTablet' => 'inherit',
+            'displayMobile' => 'slider',
+        ]));
+        $this->assertSame('slider', $section->getDraftSettings()['displayMobile'] ?? null);
+    }
+
+    /** Ranks come from a preview drag, never from this form. */
+    public function testSavingTheFormKeepsTheSectionRanks(): void
+    {
+        $section = $this->makeSettingsSection(id: 5, settings: ['_order' => ['mobile' => 2]]);
+
+        $this->makeController([$section])->settings(5, $this->makeFormRequest([
+            'widthMode' => 'full',
+            'classes' => 'hero',
+            '_order' => ['mobile' => 9],
+        ]));
+
+        $saved = $section->getDraftSettings();
+        $this->assertSame('hero', $saved['classes']);
+        $this->assertSame(['mobile' => 2], $saved['_order']);
+    }
+
     /** A host field comes from a stock type extension, no fork needed. */
     public function testAFieldAddedByATypeExtensionIsRenderedAndSaved(): void
     {

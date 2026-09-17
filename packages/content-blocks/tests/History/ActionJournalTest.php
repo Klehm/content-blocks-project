@@ -182,6 +182,36 @@ final class ActionJournalTest extends TestCase
         $this->assertSame(['styling' => ['backgroundColor' => '#eb0540']], $section->getDraftSettings());
     }
 
+    /** The entry carries ranks only, so an edit made since survives. */
+    public function testUndoingAViewportReorderRestoresTheRanksAlone(): void
+    {
+        $section = $this->section(1);
+        $section->setDraftSettings(['classes' => 'hero', '_order' => ['mobile' => 1]]);
+        $block = $this->blockAt(1, 0);
+        $block->setDraftData(['title' => 'Before']);
+
+        $this->journal->record($this->area, 'viewport.order', JournalScope::viewportOrder(), function () use ($section, $block): void {
+            $section->setDraftSettings(['classes' => 'hero', '_order' => ['mobile' => 0]]);
+            $block->setDraftData(['title' => 'Before', '_order' => ['tablet' => 2]]);
+        });
+        $this->assertSame(
+            [
+                ['t' => 'section', 'id' => $section->getId(), 'set' => ['order' => ['mobile' => 1]]],
+                ['t' => 'block', 'id' => $block->getId(), 'set' => ['order' => null]],
+            ],
+            $this->store->entries[0]->getUndoOps(),
+        );
+
+        $block->setDraftData(['title' => 'Edited since', '_order' => ['tablet' => 2]]);
+        $this->assertSame('ok', $this->journal->undo($this->area)->status);
+
+        $this->assertSame(['classes' => 'hero', '_order' => ['mobile' => 1]], $section->getDraftSettings());
+        $this->assertSame(['title' => 'Edited since'], $block->getDraftData());
+
+        $this->journal->redo($this->area);
+        $this->assertSame(['title' => 'Edited since', '_order' => ['tablet' => 2]], $block->getDraftData());
+    }
+
     public function testUndoingAColumnLabelRestoresThePreviousOne(): void
     {
         $column = $this->column(1);

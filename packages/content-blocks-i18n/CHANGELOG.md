@@ -5,6 +5,14 @@ All notable changes to `klehm/content-blocks-i18n` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Titles of an accordion shown on tablet or mobile only are translatable.**
+  The workbench read the desktop display alone, so a grid or slider turning
+  into an accordion on mobile listed no panel title.
+
 ## [1.0.0-RC12] - 2026-09-17
 
 ### Added

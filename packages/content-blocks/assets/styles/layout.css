@@ -130,26 +130,26 @@
     display: none;
     flex: 1 1 100%;
 }
-.cb-tabs__radio:nth-of-type(1):checked ~ .cb-row > .cb-col:nth-child(1),
-.cb-tabs__radio:nth-of-type(2):checked ~ .cb-row > .cb-col:nth-child(2),
-.cb-tabs__radio:nth-of-type(3):checked ~ .cb-row > .cb-col:nth-child(3),
-.cb-tabs__radio:nth-of-type(4):checked ~ .cb-row > .cb-col:nth-child(4),
-.cb-tabs__radio:nth-of-type(5):checked ~ .cb-row > .cb-col:nth-child(5),
-.cb-tabs__radio:nth-of-type(6):checked ~ .cb-row > .cb-col:nth-child(6),
-.cb-tabs__radio:nth-of-type(7):checked ~ .cb-row > .cb-col:nth-child(7),
-.cb-tabs__radio:nth-of-type(8):checked ~ .cb-row > .cb-col:nth-child(8),
-.cb-tabs__radio:nth-of-type(9):checked ~ .cb-row > .cb-col:nth-child(9),
-.cb-tabs__radio:nth-of-type(10):checked ~ .cb-row > .cb-col:nth-child(10),
-.cb-tabs__radio:nth-of-type(11):checked ~ .cb-row > .cb-col:nth-child(11),
-.cb-tabs__radio:nth-of-type(12):checked ~ .cb-row > .cb-col:nth-child(12),
-.cb-tabs__radio:nth-of-type(13):checked ~ .cb-row > .cb-col:nth-child(13),
-.cb-tabs__radio:nth-of-type(14):checked ~ .cb-row > .cb-col:nth-child(14),
-.cb-tabs__radio:nth-of-type(15):checked ~ .cb-row > .cb-col:nth-child(15),
-.cb-tabs__radio:nth-of-type(16):checked ~ .cb-row > .cb-col:nth-child(16),
-.cb-tabs__radio:nth-of-type(17):checked ~ .cb-row > .cb-col:nth-child(17),
-.cb-tabs__radio:nth-of-type(18):checked ~ .cb-row > .cb-col:nth-child(18),
-.cb-tabs__radio:nth-of-type(19):checked ~ .cb-row > .cb-col:nth-child(19),
-.cb-tabs__radio:nth-of-type(20):checked ~ .cb-row > .cb-col:nth-child(20) {
+.cb-tabs__radio:nth-of-type(1):checked ~ .cb-row > .cb-col:nth-of-type(1),
+.cb-tabs__radio:nth-of-type(2):checked ~ .cb-row > .cb-col:nth-of-type(2),
+.cb-tabs__radio:nth-of-type(3):checked ~ .cb-row > .cb-col:nth-of-type(3),
+.cb-tabs__radio:nth-of-type(4):checked ~ .cb-row > .cb-col:nth-of-type(4),
+.cb-tabs__radio:nth-of-type(5):checked ~ .cb-row > .cb-col:nth-of-type(5),
+.cb-tabs__radio:nth-of-type(6):checked ~ .cb-row > .cb-col:nth-of-type(6),
+.cb-tabs__radio:nth-of-type(7):checked ~ .cb-row > .cb-col:nth-of-type(7),
+.cb-tabs__radio:nth-of-type(8):checked ~ .cb-row > .cb-col:nth-of-type(8),
+.cb-tabs__radio:nth-of-type(9):checked ~ .cb-row > .cb-col:nth-of-type(9),
+.cb-tabs__radio:nth-of-type(10):checked ~ .cb-row > .cb-col:nth-of-type(10),
+.cb-tabs__radio:nth-of-type(11):checked ~ .cb-row > .cb-col:nth-of-type(11),
+.cb-tabs__radio:nth-of-type(12):checked ~ .cb-row > .cb-col:nth-of-type(12),
+.cb-tabs__radio:nth-of-type(13):checked ~ .cb-row > .cb-col:nth-of-type(13),
+.cb-tabs__radio:nth-of-type(14):checked ~ .cb-row > .cb-col:nth-of-type(14),
+.cb-tabs__radio:nth-of-type(15):checked ~ .cb-row > .cb-col:nth-of-type(15),
+.cb-tabs__radio:nth-of-type(16):checked ~ .cb-row > .cb-col:nth-of-type(16),
+.cb-tabs__radio:nth-of-type(17):checked ~ .cb-row > .cb-col:nth-of-type(17),
+.cb-tabs__radio:nth-of-type(18):checked ~ .cb-row > .cb-col:nth-of-type(18),
+.cb-tabs__radio:nth-of-type(19):checked ~ .cb-row > .cb-col:nth-of-type(19),
+.cb-tabs__radio:nth-of-type(20):checked ~ .cb-row > .cb-col:nth-of-type(20) {
     display: flex;
 }
 .cb-tabs__radio:nth-of-type(1):checked ~ .cb-tabs__nav > .cb-tabs__tab:nth-child(1),
@@ -201,10 +201,8 @@
 
 /* Accordion display: each column is a panel behind its own checkbox and
    header. See docs/internals/rendering.md#columns-and-tabs */
-.cb-section--display-accordion > .cb-row {
-    display: block;
-}
 .cb-accordion__toggle {
+    display: none;
     position: absolute;
     width: 1px;
     height: 1px;
@@ -212,7 +210,7 @@
     pointer-events: none;
 }
 .cb-accordion__header {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
@@ -230,34 +228,318 @@
     transform: translateY(-25%) rotate(45deg);
     transition: transform 0.15s ease;
 }
-.cb-accordion__toggle:checked + .cb-accordion__header::after {
+.cb-accordion__toggle:checked + .cb-accordion__header::after,
+.cb-accordion__header--close::after {
     transform: translateY(25%) rotate(-135deg);
 }
-.cb-accordion__toggle:focus-visible + .cb-accordion__header {
+.cb-accordion__toggle:focus-visible + .cb-accordion__header,
+.cb-accordion__toggle:checked:focus-visible + .cb-accordion__header + .cb-accordion__header--close {
     outline: 2px solid var(--cb-accordion-accent, currentColor);
     outline-offset: 2px;
+}
+
+/* Tabs shown as an accordion below: the headers are labels for the tab
+   radios, so the open panel follows the tabs rules above. */
+.cb-tabs__radio:nth-of-type(1):checked ~ .cb-row > .cb-accordion__header:nth-of-type(1)::after,
+.cb-tabs__radio:nth-of-type(2):checked ~ .cb-row > .cb-accordion__header:nth-of-type(2)::after,
+.cb-tabs__radio:nth-of-type(3):checked ~ .cb-row > .cb-accordion__header:nth-of-type(3)::after,
+.cb-tabs__radio:nth-of-type(4):checked ~ .cb-row > .cb-accordion__header:nth-of-type(4)::after,
+.cb-tabs__radio:nth-of-type(5):checked ~ .cb-row > .cb-accordion__header:nth-of-type(5)::after,
+.cb-tabs__radio:nth-of-type(6):checked ~ .cb-row > .cb-accordion__header:nth-of-type(6)::after,
+.cb-tabs__radio:nth-of-type(7):checked ~ .cb-row > .cb-accordion__header:nth-of-type(7)::after,
+.cb-tabs__radio:nth-of-type(8):checked ~ .cb-row > .cb-accordion__header:nth-of-type(8)::after,
+.cb-tabs__radio:nth-of-type(9):checked ~ .cb-row > .cb-accordion__header:nth-of-type(9)::after,
+.cb-tabs__radio:nth-of-type(10):checked ~ .cb-row > .cb-accordion__header:nth-of-type(10)::after,
+.cb-tabs__radio:nth-of-type(11):checked ~ .cb-row > .cb-accordion__header:nth-of-type(11)::after,
+.cb-tabs__radio:nth-of-type(12):checked ~ .cb-row > .cb-accordion__header:nth-of-type(12)::after,
+.cb-tabs__radio:nth-of-type(13):checked ~ .cb-row > .cb-accordion__header:nth-of-type(13)::after,
+.cb-tabs__radio:nth-of-type(14):checked ~ .cb-row > .cb-accordion__header:nth-of-type(14)::after,
+.cb-tabs__radio:nth-of-type(15):checked ~ .cb-row > .cb-accordion__header:nth-of-type(15)::after,
+.cb-tabs__radio:nth-of-type(16):checked ~ .cb-row > .cb-accordion__header:nth-of-type(16)::after,
+.cb-tabs__radio:nth-of-type(17):checked ~ .cb-row > .cb-accordion__header:nth-of-type(17)::after,
+.cb-tabs__radio:nth-of-type(18):checked ~ .cb-row > .cb-accordion__header:nth-of-type(18)::after,
+.cb-tabs__radio:nth-of-type(19):checked ~ .cb-row > .cb-accordion__header:nth-of-type(19)::after,
+.cb-tabs__radio:nth-of-type(20):checked ~ .cb-row > .cb-accordion__header:nth-of-type(20)::after {
+    transform: translateY(25%) rotate(-135deg);
+}
+.cb-tabs__radio:nth-of-type(1):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(1),
+.cb-tabs__radio:nth-of-type(2):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(2),
+.cb-tabs__radio:nth-of-type(3):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(3),
+.cb-tabs__radio:nth-of-type(4):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(4),
+.cb-tabs__radio:nth-of-type(5):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(5),
+.cb-tabs__radio:nth-of-type(6):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(6),
+.cb-tabs__radio:nth-of-type(7):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(7),
+.cb-tabs__radio:nth-of-type(8):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(8),
+.cb-tabs__radio:nth-of-type(9):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(9),
+.cb-tabs__radio:nth-of-type(10):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(10),
+.cb-tabs__radio:nth-of-type(11):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(11),
+.cb-tabs__radio:nth-of-type(12):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(12),
+.cb-tabs__radio:nth-of-type(13):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(13),
+.cb-tabs__radio:nth-of-type(14):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(14),
+.cb-tabs__radio:nth-of-type(15):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(15),
+.cb-tabs__radio:nth-of-type(16):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(16),
+.cb-tabs__radio:nth-of-type(17):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(17),
+.cb-tabs__radio:nth-of-type(18):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(18),
+.cb-tabs__radio:nth-of-type(19):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(19),
+.cb-tabs__radio:nth-of-type(20):focus-visible ~ .cb-row > .cb-accordion__header:nth-of-type(20) {
+    outline: 2px solid var(--cb-accordion-accent, currentColor);
+    outline-offset: 2px;
+}
+
+/* The accordion's own rules, scoped to where it applies: everywhere, or from
+   a breakpoint down. See docs/internals/rendering.md#display-per-viewport */
+.cb-section--display-accordion > .cb-row {
+    display: block;
+}
+.cb-section--display-accordion > .cb-row > .cb-accordion__toggle {
+    display: block;
+}
+.cb-section--display-accordion > .cb-row > .cb-accordion__header {
+    display: flex;
 }
 .cb-section--display-accordion > .cb-row > .cb-col {
     display: none;
     padding-block: var(--cb-accordion-gap, 1rem);
 }
-.cb-accordion__toggle:checked + .cb-accordion__header + .cb-col,
-.cb-accordion__toggle:checked + .cb-accordion__header + .cb-accordion__header--close + .cb-col {
-    display: block;
-}
-/* One at a time: an open panel swaps its header for the twin that checks
-   the hidden "none" radio, which is how a radio group closes again. */
-.cb-accordion__header--close,
-.cb-accordion__toggle[type="radio"]:checked + .cb-accordion__header {
-    display: none;
-}
-.cb-accordion__toggle:checked + .cb-accordion__header + .cb-accordion__header--close {
+.cb-section--display-accordion > .cb-row > .cb-accordion__toggle:checked + .cb-accordion__header + .cb-col,
+.cb-section--display-accordion > .cb-row > .cb-accordion__toggle:checked + .cb-accordion__header + .cb-accordion__header--close + .cb-col {
     display: flex;
 }
-.cb-accordion__header--close::after {
-    transform: translateY(25%) rotate(-135deg);
+.cb-section--display-accordion > .cb-row > .cb-accordion__header--close,
+.cb-section--display-accordion > .cb-row > .cb-accordion__toggle[type="radio"]:checked + .cb-accordion__header {
+    display: none;
 }
-.cb-accordion__toggle:checked:focus-visible + .cb-accordion__header + .cb-accordion__header--close {
-    outline: 2px solid var(--cb-accordion-accent, currentColor);
+.cb-section--display-accordion > .cb-row > .cb-accordion__toggle:checked + .cb-accordion__header + .cb-accordion__header--close {
+    display: flex;
+}
+.cb-section--display-accordion > .cb-tabs__nav {
+    display: none;
+}
+
+@media (width <= 768px) {
+    .cb-section--t-accordion > .cb-row {
+        display: block;
+    }
+    .cb-section--t-accordion > .cb-row > .cb-accordion__toggle {
+        display: block;
+    }
+    .cb-section--t-accordion > .cb-row > .cb-accordion__header {
+        display: flex;
+    }
+    .cb-section--t-accordion > .cb-row > .cb-col {
+        display: none;
+        padding-block: var(--cb-accordion-gap, 1rem);
+    }
+    .cb-section--t-accordion > .cb-row > .cb-accordion__toggle:checked + .cb-accordion__header + .cb-col,
+    .cb-section--t-accordion > .cb-row > .cb-accordion__toggle:checked + .cb-accordion__header + .cb-accordion__header--close + .cb-col {
+        display: flex;
+    }
+    .cb-section--t-accordion > .cb-row > .cb-accordion__header--close,
+    .cb-section--t-accordion > .cb-row > .cb-accordion__toggle[type="radio"]:checked + .cb-accordion__header {
+        display: none;
+    }
+    .cb-section--t-accordion > .cb-row > .cb-accordion__toggle:checked + .cb-accordion__header + .cb-accordion__header--close {
+        display: flex;
+    }
+    .cb-section--t-accordion > .cb-tabs__nav {
+        display: none;
+    }
+}
+
+@media (width <= 540px) {
+    .cb-section--m-accordion > .cb-row {
+        display: block;
+    }
+    .cb-section--m-accordion > .cb-row > .cb-accordion__toggle {
+        display: block;
+    }
+    .cb-section--m-accordion > .cb-row > .cb-accordion__header {
+        display: flex;
+    }
+    .cb-section--m-accordion > .cb-row > .cb-col {
+        display: none;
+        padding-block: var(--cb-accordion-gap, 1rem);
+    }
+    .cb-section--m-accordion > .cb-row > .cb-accordion__toggle:checked + .cb-accordion__header + .cb-col,
+    .cb-section--m-accordion > .cb-row > .cb-accordion__toggle:checked + .cb-accordion__header + .cb-accordion__header--close + .cb-col {
+        display: flex;
+    }
+    .cb-section--m-accordion > .cb-row > .cb-accordion__header--close,
+    .cb-section--m-accordion > .cb-row > .cb-accordion__toggle[type="radio"]:checked + .cb-accordion__header {
+        display: none;
+    }
+    .cb-section--m-accordion > .cb-row > .cb-accordion__toggle:checked + .cb-accordion__header + .cb-accordion__header--close {
+        display: flex;
+    }
+    .cb-section--m-accordion > .cb-tabs__nav {
+        display: none;
+    }
+}
+
+/* Slider display: the row scrolls and snaps, --cb-slides-* columns at a
+   time. Disjoint ranges, so a range never has to undo another. */
+.cb-row {
+    --cb-slide-n: var(--cb-slides-d, 1);
+    --cb-slide-gap: 1rem;
+}
+@media (width <= 768px) {
+    .cb-row {
+        --cb-slide-n: var(--cb-slides-t, var(--cb-slides-d, 1));
+    }
+}
+@media (width <= 540px) {
+    .cb-row {
+        --cb-slide-n: var(--cb-slides-m, var(--cb-slides-t, var(--cb-slides-d, 1)));
+    }
+}
+
+.cb-section--display-slider:not(.cb-section--responsive) > .cb-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+}
+.cb-section--display-slider:not(.cb-section--responsive) > .cb-row > .cb-col {
+    flex: 0 0 calc((100% - (var(--cb-slide-n) - 1) * var(--cb-slide-gap)) / var(--cb-slide-n));
+    scroll-snap-align: start;
+}
+.cb-section--display-slider:not(.cb-section--responsive) > .cb-slider__controls {
+    display: flex;
+}
+
+@media (width > 768px) {
+    .cb-section--responsive.cb-section--display-slider > .cb-row {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        overscroll-behavior-x: contain;
+    }
+    .cb-section--responsive.cb-section--display-slider > .cb-row > .cb-col {
+        flex: 0 0 calc((100% - (var(--cb-slide-n) - 1) * var(--cb-slide-gap)) / var(--cb-slide-n));
+        scroll-snap-align: start;
+    }
+    .cb-section--responsive.cb-section--display-slider > .cb-slider__controls {
+        display: flex;
+    }
+}
+
+@media (540px < width <= 768px) {
+    .cb-section--t-slider > .cb-row {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        overscroll-behavior-x: contain;
+    }
+    .cb-section--t-slider > .cb-row > .cb-col {
+        flex: 0 0 calc((100% - (var(--cb-slide-n) - 1) * var(--cb-slide-gap)) / var(--cb-slide-n));
+        scroll-snap-align: start;
+    }
+    .cb-section--t-slider > .cb-slider__controls {
+        display: flex;
+    }
+}
+
+@media (width <= 540px) {
+    .cb-section--m-slider > .cb-row {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        overscroll-behavior-x: contain;
+    }
+    .cb-section--m-slider > .cb-row > .cb-col {
+        flex: 0 0 calc((100% - (var(--cb-slide-n) - 1) * var(--cb-slide-gap)) / var(--cb-slide-n));
+        scroll-snap-align: start;
+    }
+    .cb-section--m-slider > .cb-slider__controls {
+        display: flex;
+    }
+}
+
+/* Controls are built by slider.js, which also hides the scrollbar once
+   they exist: without them it is the only affordance left. */
+.cb-slider--enhanced > .cb-row {
+    scrollbar-width: none;
+}
+.cb-slider--enhanced > .cb-row::-webkit-scrollbar {
+    display: none;
+}
+.cb-slider__controls {
+    display: none;
+    flex: none;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: var(--cb-slider-gap, 1rem);
+}
+.cb-slider__controls[hidden] {
+    display: none !important;
+}
+.cb-section--centered > .cb-slider__controls {
+    max-width: var(--cb-row-max-w, none);
+    margin-inline: auto;
+}
+.cb-slider__arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin: 0;
+    padding: 0;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+}
+.cb-slider__arrow:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+.cb-slider__dots {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+}
+.cb-slider__dot {
+    width: 0.625rem;
+    height: 0.625rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.3;
+    cursor: pointer;
+}
+.cb-slider__dot[aria-current="true"] {
+    opacity: 1;
+}
+.cb-slider__arrow:focus-visible,
+.cb-slider__dot:focus-visible {
+    outline: 2px solid var(--cb-slider-accent, currentColor);
     outline-offset: 2px;
+}
+
+/* Order per viewport: ranks become --cb-order-t/m on every sibling of a
+   group. See docs/internals/rendering.md#order-per-viewport */
+@media (width <= 768px) {
+    .cb-content-area--ordered {
+        display: flex;
+        flex-direction: column;
+    }
+    .cb-content-area > .cb-section,
+    .cb-col > .cb-block {
+        order: var(--cb-order-t, 0);
+    }
+}
+@media (width <= 540px) {
+    .cb-content-area > .cb-section,
+    .cb-col > .cb-block {
+        order: var(--cb-order-m, var(--cb-order-t, 0));
+    }
 }

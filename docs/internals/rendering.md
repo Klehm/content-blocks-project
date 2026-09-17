@@ -216,7 +216,7 @@ holds at most `ColumnsController::MAX_COLUMNS` (20).
 
 **Tabs are CSS only, with no script on the public page.** The section renders
 one radio per column, then a nav of `<label>`s, then the row, as siblings, so
-`radio:nth-of-type(n):checked ~ .cb-row > .cb-col:nth-child(n)` opens a panel
+`radio:nth-of-type(n):checked ~ .cb-row > .cb-col:nth-of-type(n)` opens a panel
 and `~ .cb-tabs__nav > :nth-child(n)` marks its tab. Those rules are written
 out to 20, the column cap. Being a sibling of the row, the nav needs the row's
 sizing too: the centered cap (`--cb-row-max-w`) and a fixed full width, since a
@@ -260,6 +260,113 @@ header before its column, along with the classes. It keeps what was open when
 those columns are still there, so switching an accordion to tabs keeps the open
 panel as the open tab, and a rename or a display toggle updates in place. Adding or removing a column changes the row itself, so it
 reloads the preview and remounts the sidebar.
+
+## Display per viewport
+
+`display` is the desktop value. `displayTablet` and `displayMobile` are
+optional, and a missing one inherits the viewport above it. They are flat keys
+rather than a `{desktop, tablet, mobile}` map so that every section, preset and
+layout written before them stays valid as it is.
+
+**A narrower viewport may only become more compact.** `SectionDisplay::resolve()`
+applies the rule, and a value it refuses falls back to the viewport above
+rather than failing:
+
+| Above | Allowed below |
+|---|---|
+| grid, slider | grid, slider, accordion |
+| tabs | tabs, accordion |
+| accordion | accordion |
+
+The rule exists for the markup, not for taste. Grid and slider are the same
+HTML, and so cost nothing to swap. Tabs put their radios and nav *beside* the
+row, so tabs below a grid would ship both structures to every visitor. Tabs
+turning into an accordion reuse the tab radios: the row only gains one
+`<label for>` header per column, and panel visibility is the tabs rule
+unchanged — hence one panel always open there, whatever `accordionSingle` says.
+Grid or slider turning into an accordion ship the accordion toggles and
+headers, hidden until their range.
+
+**Classes.** A uniform section keeps its old markup byte for byte:
+`cb-section--display-{d}`. A section that changes gets
+`cb-section--responsive` plus `cb-section--t-{t}` and `cb-section--m-{m}`, both
+always, resolved. `layout.css` then scopes each mode to a range:
+
+- slider: `display-slider:not(.responsive)` everywhere; otherwise
+  `responsive.display-slider` above 768px, `t-slider` from 541 to 768px,
+  `m-slider` up to 540px. Disjoint ranges, so nothing has to be undone.
+- accordion: sticky downwards, so `display-accordion` everywhere,
+  `t-accordion` up to 768px, `m-accordion` up to 540px.
+- tabs: unconditional; an accordion range hides the nav.
+
+Accordion toggles and headers are `display: none` outside an accordion range,
+which also keeps an invisible checkbox out of the tab order. The tab panels
+match `.cb-col:nth-of-type(n)` rather than `:nth-child(n)`, because the
+accordion headers interleaved in the row are labels, not divs.
+
+**A column is a region everywhere** once an accordion appears at any viewport,
+since its `aria-labelledby` must point at a header that exists. Harmless on
+desktop, where the region is merely named.
+
+## The slider
+
+A slide is a column, like a tab or a panel, so a slide holds any blocks. The
+row scrolls with `scroll-snap`; `--cb-slides-d/t/m` (1 to 6) set how many
+columns show, and the width reuses the row gap. **Swiping needs no script.**
+
+`sliderControls` (`both`, `arrows`, `dots`, `none`), `sliderAutoplay` (seconds,
+0 is off) and `sliderLoop` travel in `data-cb-slider` with translated labels.
+`assets/slider.js` builds the controls, and is linked by the area template only
+when a section needs it — always in the builder, where a display can change
+under the editor. A module script runs once per URL, so two areas on a page
+still load it once.
+
+The script never decides whether a section is a slider: CSS does, and it reads
+the answer back (`scroll-snap-type` on the row). The breakpoints therefore live
+in one file. A `ResizeObserver` catches a range change; a `MutationObserver`
+catches a section inserted or patched by the builder. Autoplay rewinds at the
+end, pauses on hover, focus and a hidden tab, and is off under
+`prefers-reduced-motion` and in the builder preview. Loop means the arrows
+rewind; an infinite loop would clone slides.
+
+## Order per viewport
+
+Sections and blocks can be reordered for tablet and mobile. Columns cannot
+yet: the preview has no column drag at all. `reverseOnMobile` still covers the
+usual case, and applies only where mobile resolves to a grid.
+
+**Each element stores its own rank**: `_order: {tablet?, mobile?}` in a
+section's settings or a block's data (`_` is the reserved prefix). A list of ids
+on the parent was the alternative. Every copy path — clipboard, template,
+import, duplicate — would have had to rewrite those ids, and sections would
+have needed settings on `ContentArea`.
+
+**The renderer turns ranks into a full sequence** (`ViewportOrder`), because a
+rank alone cannot place a sibling that has none. Ranked siblings sort by rank,
+then desktop order; each unranked one is inserted right after its desktop
+predecessor. So a duplicate lands after its source, a pasted block after its
+anchor, a new block after the last one, with nothing to rewrite on creation.
+Mobile builds on the tablet sequence when tablet has one. The result is
+`--cb-order-t` / `--cb-order-m` on every sibling of a group that has a rank,
+and nothing on the others.
+
+`layout.css` applies `order` to `.cb-content-area > .cb-section` and
+`.cb-col > .cb-block` in the two ranges. The area only becomes a flex column
+(`cb-content-area--ordered`) when a section carries a rank, because a flex
+parent stops vertical margins collapsing and every other page must keep its
+spacing. The accordion's open panel is a flex column like a tab panel, so block
+order holds there too.
+
+**In the builder the viewport decides what a drag means**, read by the overlay
+through `matchMedia`, not from the topbar button. On desktop a drag moves the
+element; on tablet or mobile it posts the new visual sequence to
+`POST /area/{id}/viewport-order` and nothing moves in the DOM. A block leaving
+its column is refused there: CSS cannot express it. A block moved to another
+column on desktop loses its ranks. Any hot insert or move in a group that
+carries ranks reloads the preview, since the sequence of its siblings changed.
+
+The history field is `order`, read and written inside `settings` or `data`, so
+an undo carries the ranks alone and never a whole payload.
 
 ## Style presets as a base layer
 

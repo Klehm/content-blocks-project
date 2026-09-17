@@ -684,6 +684,134 @@ final class BlockRendererTest extends TestCase
         $this->assertStringContainsString('cb-accordion__header cb-accordion__header--deleted', $html);
     }
 
+    /** The headers are labels for the tab radios: no second input. */
+    public function testTabsTurningIntoAnAccordionAddHeadersForTheTabRadios(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, 'tabs', 0, 0, 93);
+        $section->setPublishedSettings(['display' => 'tabs', 'displayMobile' => 'accordion']);
+        $this->makeColumn($section, 0, 0, 94)->setPublishedSettings(['label' => 'Specs']);
+        $this->makeColumn($section, 1, 1, 95);
+
+        $html = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertSame(2, substr_count($html, 'class="cb-tabs__radio"'));
+        $this->assertStringNotContainsString('cb-accordion__toggle', $html);
+        $this->assertStringContainsString('<label for="cb-tabs-93-0" class="cb-accordion__header">Specs</label>', $html);
+        $this->assertStringContainsString('<label for="cb-tabs-93-1" class="cb-accordion__header">cb.section.tabs.untitled</label>', $html);
+        // Inside the row, each right before its panel.
+        $this->assertLessThan(strpos($html, 'for="cb-tabs-93-0" class="cb-accordion__header"'), strpos($html, 'class="cb-row"'));
+        $this->assertLessThan(strpos($html, 'id="cb-tabs-93-0-panel"'), strpos($html, 'for="cb-tabs-93-0" class="cb-accordion__header"'));
+    }
+
+    public function testAGridTurningIntoAnAccordionShipsTheAccordionMarkup(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, 'two_cols', 0, 0, 96);
+        $section->setPublishedSettings(['displayTablet' => 'accordion', 'accordionSingle' => true]);
+        $this->makeColumn($section, 0, 0, 97);
+        $this->makeColumn($section, 1, 1, 98);
+
+        $html = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertStringNotContainsString('cb-tabs__', $html);
+        $this->assertMatchesRegularExpression('/id="cb-accordion-96-none"/', $html);
+        $this->assertSame(2, substr_count($html, 'class="cb-accordion__header cb-accordion__header--close"'));
+        $this->assertStringContainsString('id="cb-accordion-96-1-panel" role="region"', $html);
+    }
+
+    public function testASliderCarriesItsOptionsAndLoadsTheScript(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, 'three_cols', 0, 0, 99);
+        $section->setPublishedSettings([
+            'displayMobile' => 'slider',
+            'sliderControls' => 'dots',
+            'sliderAutoplay' => 5,
+        ]);
+        $this->makeColumn($section, 0, 0);
+        $grid = $this->makeSection($area, 'full', 1, 1);
+        $this->makeColumn($grid, 0, 0);
+
+        $html = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertSame(1, substr_count($html, 'data-cb-slider='));
+        $this->assertStringContainsString('&quot;controls&quot;:&quot;dots&quot;,&quot;autoplay&quot;:5,&quot;loop&quot;:false', $html);
+        $this->assertStringContainsString('&quot;previous&quot;:&quot;cb.slider.previous&quot;', $html);
+        $this->assertSame(1, substr_count($html, 'src="/_route/content_blocks_asset_slider"'));
+    }
+
+    public function testAPageWithoutSliderLoadsNoScript(): void
+    {
+        $area = $this->makeArea();
+        $this->makeColumn($this->makeSection($area, 'full', 0, 0), 0, 0);
+
+        $public = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
+        $builder = $this->makeRenderer(RenderMode::PREVIEW)->render($area, new RenderContext(RenderMode::PREVIEW));
+
+        $this->assertStringNotContainsString('content_blocks_asset_slider', $public);
+        // The builder can turn a section into a slider in place.
+        $this->assertStringContainsString('content_blocks_asset_slider', $builder);
+    }
+
+    public function testSectionRanksBecomeOrderVariablesOnEverySibling(): void
+    {
+        $area = $this->makeArea();
+        $first = $this->makeSection($area, 'full', 0, 0, 301);
+        $second = $this->makeSection($area, 'full', 1, 1, 302);
+        $first->setPublishedSettings(['_order' => ['mobile' => 1]]);
+        $second->setPublishedSettings(['_order' => ['mobile' => 0]]);
+        $this->makeColumn($first, 0, 0);
+        $this->makeColumn($second, 0, 0);
+
+        $html = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertStringContainsString('class="cb-content-area cb-content-area--ordered"', $html);
+        $this->assertStringContainsString('style="--cb-order-m:1;"', $html);
+        $this->assertStringContainsString('style="--cb-order-m:0;"', $html);
+    }
+
+    /** Ranks are content like any other: the page keeps the published ones. */
+    public function testThePublicPageReadsPublishedRanksAndThePreviewDraftOnes(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, 'full', 0, 0);
+        $column = $this->makeColumn($section, 0, 0);
+        $this->makeBlock($column, 'text', ['title' => 'A'], ['title' => 'A', '_order' => ['tablet' => 1]], 0, 0, 311);
+        $this->makeBlock($column, 'text', ['title' => 'B'], ['title' => 'B', '_order' => ['tablet' => 0]], 1, 1, 312);
+
+        $public = $this->makeRenderer()->render($area, new RenderContext(RenderMode::PUBLIC));
+        $preview = $this->makeRenderer(RenderMode::PREVIEW)->render($area, new RenderContext(RenderMode::PREVIEW));
+
+        $this->assertStringNotContainsString('--cb-order-', $public);
+        $this->assertStringNotContainsString('cb-content-area--ordered', $public);
+        $this->assertMatchesRegularExpression('/data-cb-block-id="311"[^>]*style="--cb-order-t:1;"/s', $preview);
+        $this->assertMatchesRegularExpression('/data-cb-block-id="312"[^>]*style="--cb-order-t:0;"/s', $preview);
+        // Blocks ordered, sections not: the area stays a plain block box.
+        $this->assertStringNotContainsString('cb-content-area--ordered', $preview);
+    }
+
+    /** A hot-swapped node must carry the same variables as a full render. */
+    public function testRenderingOneSectionOrBlockKeepsItsOrderVariables(): void
+    {
+        $area = $this->makeArea();
+        $top = $this->makeSection($area, 'full', 0, 0, 321);
+        $bottom = $this->makeSection($area, 'full', 1, 1, 322);
+        $bottom->setDraftSettings(['_order' => ['mobile' => 0]]);
+        $column = $this->makeColumn($top, 0, 0);
+        $this->makeColumn($bottom, 0, 0);
+        $this->makeBlock($column, 'text', null, ['title' => 'A', '_order' => ['mobile' => 1]], 0, 0, 323);
+        $block = $this->makeBlock($column, 'text', null, ['title' => 'B', '_order' => ['mobile' => 0]], 1, 1, 324);
+
+        $renderer = $this->makeRenderer(RenderMode::PREVIEW);
+        $section = $renderer->renderSection($top, new RenderContext(RenderMode::PREVIEW));
+        $single = $renderer->renderBlock($block, new RenderContext(RenderMode::PREVIEW));
+
+        // Unranked and first on desktop, so first on mobile too.
+        $this->assertMatchesRegularExpression('/data-cb-section-id="321"[^>]*style="--cb-order-m:0;"/s', $section);
+        $this->assertStringContainsString('style="--cb-order-m:0;"', $single);
+    }
+
     /** A resolver (the i18n package's) decides the title a tab renders. */
     public function testAColumnSettingsResolverRewritesTheTabTitle(): void
     {

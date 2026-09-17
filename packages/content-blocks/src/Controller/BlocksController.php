@@ -12,6 +12,7 @@ use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Rendering\RenderContext;
+use ContentBlocks\Rendering\ViewportOrder;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -176,6 +177,12 @@ final class BlocksController
                 // moveTo(), not setColumn(): the FK is the *draft* location, a
                 // published block noting where PUBLIC keeps showing it.
                 $block->moveTo($target);
+
+                // A rank only means something among the siblings it was set in.
+                $data = $block->getDraftData() ?? $block->getPublishedData();
+                if (ViewportOrder::ranks($data) !== []) {
+                    $block->setDraftData(ViewportOrder::withoutRanks($data ?? []));
+                }
             }
 
             $targetBlocks = array_values(array_filter(

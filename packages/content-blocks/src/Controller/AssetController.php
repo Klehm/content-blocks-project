@@ -56,6 +56,16 @@ final class AssetController
     }
 
     #[Route(
+        '/slider',
+        name: 'content_blocks_asset_slider',
+        methods: ['GET'],
+    )]
+    public function slider(): Response
+    {
+        return $this->asset('/slider.js', 'application/javascript; charset=UTF-8');
+    }
+
+    #[Route(
         '/preview-overlay',
         name: 'content_blocks_asset_preview_overlay',
         methods: ['GET'],

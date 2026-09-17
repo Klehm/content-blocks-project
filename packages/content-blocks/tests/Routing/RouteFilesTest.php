@@ -47,6 +47,7 @@ final class RouteFilesTest extends TestCase
             'content_blocks_asset_builder',
             'content_blocks_asset_layout',
             'content_blocks_asset_preview_overlay',
+            'content_blocks_asset_slider',
             'content_blocks_asset_styling',
         ], $publicNames);
         $this->assertSame('/layout', $public->get('content_blocks_asset_layout')?->getPath());

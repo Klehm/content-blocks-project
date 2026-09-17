@@ -35,11 +35,25 @@ final class BuiltInSectionDecorator implements SectionDecoratorInterface
             }
         }
 
-        $display = SectionDisplay::fromSettings($settings);
-        if ($display !== SectionDisplay::GRID) {
-            $classes[] = 'cb-section--display-' . $display;
-        } elseif (($settings['reverseOnMobile'] ?? false) === true) {
+        // A uniform section keeps its markup byte for byte. See
+        // docs/internals/rendering.md#display-per-viewport
+        $displays = SectionDisplay::resolve($settings);
+        $uniform = SectionDisplay::isUniform($displays);
+        if (!$uniform || $displays['desktop'] !== SectionDisplay::GRID) {
+            $classes[] = 'cb-section--display-' . $displays['desktop'];
+        }
+        if (!$uniform) {
+            $classes[] = 'cb-section--responsive';
+            $classes[] = 'cb-section--t-' . $displays['tablet'];
+            $classes[] = 'cb-section--m-' . $displays['mobile'];
+        }
+        if ($displays['mobile'] === SectionDisplay::GRID && ($settings['reverseOnMobile'] ?? false) === true) {
             $classes[] = 'cb-section--reverse-mobile';
+        }
+        if (\in_array(SectionDisplay::SLIDER, $displays, true)) {
+            foreach (SectionDisplay::perView($settings) as $viewport => $count) {
+                $styles['--cb-slides-' . $viewport[0]] = (string) $count;
+            }
         }
 
         $widthMode = $settings['widthMode'] ?? $this->defaultWidthMode;

@@ -24,6 +24,15 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 final class SectionSettingsType extends AbstractType
 {
+    /** `||` separates alternatives in cb-condition, `;` joins clauses. */
+    private const ANY_SLIDER = 'display:slider||displayTablet:slider||displayMobile:slider';
+    private const ACCORDION_OWN = 'display:accordion'
+        . '||display:grid|slider;displayTablet:accordion'
+        . '||display:grid|slider;displayMobile:accordion';
+    private const MOBILE_GRID = 'displayMobile:grid'
+        . '||displayMobile:inherit;displayTablet:grid'
+        . '||displayMobile:inherit;displayTablet:inherit;display:grid';
+
     public function __construct(
         private readonly SectionStyleRegistry $styleRegistry,
         private readonly int $defaultMaxWidth = 1320,
@@ -44,21 +53,57 @@ final class SectionSettingsType extends AbstractType
                 'expanded' => true,
                 'choices' => [
                     'cb.section.settings.display.grid' => SectionDisplay::GRID,
+                    'cb.section.settings.display.slider' => SectionDisplay::SLIDER,
                     'cb.section.settings.display.tabs' => SectionDisplay::TABS,
                     'cb.section.settings.display.accordion' => SectionDisplay::ACCORDION,
                 ],
                 'label' => 'cb.section.settings.display',
                 'data' => SectionDisplay::fromSettings($options['data'] ?? []),
             ])
+            // Tabs never appear below: from tabs, "inherit" is tabs.
+            ->add(SectionDisplay::SETTING_TABLET, ChoiceType::class, self::belowOptions(
+                $options['data'][SectionDisplay::SETTING_TABLET] ?? null,
+            ))
+            ->add(SectionDisplay::SETTING_MOBILE, ChoiceType::class, self::belowOptions(
+                $options['data'][SectionDisplay::SETTING_MOBILE] ?? null,
+            ))
             ->add(SectionDisplay::ACCORDION_SINGLE, CheckboxType::class, [
                 'required' => false,
                 'label' => 'cb.section.settings.accordion_single',
-                'row_attr' => ['data-cb-condition' => 'display:accordion'],
+                'row_attr' => ['data-cb-condition' => self::ACCORDION_OWN],
             ])
             ->add(SectionDisplay::ACCORDION_COLLAPSED, CheckboxType::class, [
                 'required' => false,
                 'label' => 'cb.section.settings.accordion_collapsed',
-                'row_attr' => ['data-cb-condition' => 'display:accordion'],
+                'row_attr' => ['data-cb-condition' => self::ACCORDION_OWN],
+            ])
+            ->add(SectionDisplay::SLIDER_PER_VIEW, SliderPerViewType::class, [
+                'label' => 'cb.section.settings.slider_per_view',
+                'row_attr' => ['data-cb-condition' => self::ANY_SLIDER],
+            ])
+            ->add(SectionDisplay::SLIDER_CONTROLS, ChoiceType::class, [
+                'required' => true,
+                'choices' => [
+                    'cb.section.settings.slider_controls.both' => 'both',
+                    'cb.section.settings.slider_controls.arrows' => 'arrows',
+                    'cb.section.settings.slider_controls.dots' => 'dots',
+                    'cb.section.settings.slider_controls.none' => 'none',
+                ],
+                'label' => 'cb.section.settings.slider_controls',
+                'data' => SectionDisplay::sliderOptions($options['data'] ?? [])['controls'],
+                'row_attr' => ['data-cb-condition' => self::ANY_SLIDER],
+            ])
+            ->add(SectionDisplay::SLIDER_AUTOPLAY, IntegerType::class, [
+                'required' => false,
+                'label' => 'cb.section.settings.slider_autoplay',
+                'help' => 'cb.section.settings.slider_autoplay_help',
+                'attr' => ['min' => 0, 'max' => SectionDisplay::MAX_AUTOPLAY, 'placeholder' => '0'],
+                'row_attr' => ['data-cb-condition' => self::ANY_SLIDER],
+            ])
+            ->add(SectionDisplay::SLIDER_LOOP, CheckboxType::class, [
+                'required' => false,
+                'label' => 'cb.section.settings.slider_loop',
+                'row_attr' => ['data-cb-condition' => self::ANY_SLIDER],
             ])
             ->add('widthMode', ChoiceType::class, [
                 'required' => true,
@@ -83,7 +128,7 @@ final class SectionSettingsType extends AbstractType
                 'required' => false,
                 'label' => 'cb.section.settings.reverse_on_mobile',
                 'help' => 'cb.section.settings.reverse_on_mobile_help',
-                'row_attr' => ['data-cb-condition' => 'display:grid'],
+                'row_attr' => ['data-cb-condition' => self::MOBILE_GRID],
             ]);
         }
 
@@ -122,6 +167,27 @@ final class SectionSettingsType extends AbstractType
             'include_gap' => true,
             'include_background_image' => true,
         ]);
+    }
+
+    /**
+     * `inherit` is dropped on save by {@see SectionDisplay::normalize()}.
+     *
+     * @return array<string, mixed>
+     */
+    private static function belowOptions(mixed $current): array
+    {
+        return [
+            'required' => true,
+            'expanded' => true,
+            'data' => \in_array($current, SectionDisplay::ALL, true) ? $current : SectionDisplay::INHERIT,
+            'choices' => [
+                'cb.section.settings.display.inherit' => SectionDisplay::INHERIT,
+                'cb.section.settings.display.grid' => SectionDisplay::GRID,
+                'cb.section.settings.display.slider' => SectionDisplay::SLIDER,
+                'cb.section.settings.display.accordion' => SectionDisplay::ACCORDION,
+            ],
+            'label' => false,
+        ];
     }
 
     public function configureOptions(OptionsResolver $resolver): void

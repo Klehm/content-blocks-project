@@ -377,3 +377,64 @@ describe('cb-section-settings-form — columns', () => {
         expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('cb-section-settings-form — display per viewport', () => {
+    function setupDisplay({ desktop = 'grid', tablet = 'inherit', mobile = 'inherit' } = {}) {
+        const radios = (name, values, checked) => values
+            .map((v) => `<input type="radio" name="section_settings[${name}]" value="${v}"${v === checked ? ' checked' : ''}>`)
+            .join('');
+        document.body.innerHTML = `
+            <div data-controller="cb-section-settings-form">
+                <form>
+                    ${radios('display', ['grid', 'slider', 'tabs', 'accordion'], desktop)}
+                    ${radios('displayTablet', ['inherit', 'grid', 'slider', 'accordion'], tablet)}
+                    ${radios('displayMobile', ['inherit', 'grid', 'slider', 'accordion'], mobile)}
+                </form>
+            </div>`;
+        const form = document.querySelector('form');
+        const c = new Controller();
+        Object.defineProperty(c, 'element', { value: document.querySelector('[data-controller]') });
+        Object.defineProperty(c, 'hasFormTarget', { value: true });
+        Object.defineProperty(c, 'formTarget', { value: form });
+        Object.defineProperty(c, 'columnLabelTargets', { value: [] });
+        const radio = (name, value) => form.querySelector(`[name="section_settings[${name}]"][value="${value}"]`);
+
+        return { c, form, radio };
+    }
+
+    beforeEach(() => {
+        document.body.innerHTML = '';
+    });
+
+    it('offers only more compact displays below tabs', () => {
+        const { c, radio } = setupDisplay({ desktop: 'tabs' });
+        c._syncDisplayChoices();
+
+        expect(radio('displayTablet', 'grid').disabled).toBe(true);
+        expect(radio('displayTablet', 'slider').disabled).toBe(true);
+        expect(radio('displayTablet', 'accordion').disabled).toBe(false);
+        expect(radio('displayMobile', 'inherit').disabled).toBe(false);
+    });
+
+    it('falls back to inherit when the choice made below is no longer allowed', () => {
+        const { c, radio } = setupDisplay({ desktop: 'grid', tablet: 'slider', mobile: 'grid' });
+        c.connect();
+
+        radio('display', 'accordion').checked = true;
+        radio('display', 'accordion').dispatchEvent(new Event('change', { bubbles: true }));
+
+        expect(radio('displayTablet', 'inherit').checked).toBe(true);
+        expect(radio('displayMobile', 'inherit').checked).toBe(true);
+        expect(radio('displayMobile', 'grid').disabled).toBe(true);
+        c.disconnect();
+    });
+
+    it('clamps mobile by what tablet resolves to', () => {
+        const { c, radio } = setupDisplay({ desktop: 'slider', tablet: 'accordion' });
+        c._syncDisplayChoices();
+
+        expect(radio('displayTablet', 'grid').disabled).toBe(false);
+        expect(radio('displayMobile', 'grid').disabled).toBe(true);
+        expect(radio('displayMobile', 'accordion').disabled).toBe(false);
+    });
+});

@@ -2,10 +2,20 @@
 {# @var isPreview bool #}
 {# @var chrome bool — see content_area.html.twig #}
 {% set chrome = chrome is defined ? chrome : isPreview %}
+{% set desktop = section.display ?? 'grid' %}
+{% set displays = section.displays ?? { desktop: desktop, tablet: desktop, mobile: desktop } %}
+{% set slider = section.slider ?? null %}
 <section class="cb-section cb-section--{{ section.layout }}{% if section.deleted %} cb-section--deleted{% endif %}{% if section.extraClasses %} {{ section.extraClasses }}{% endif %}"
     {% if isPreview %}data-cb-section-id="{{ section.id }}"{% endif %}
     {% if section.deleted %}data-cb-deleted="1"{% endif %}
     {% if section.inlineStyle %}style="{{ section.inlineStyle }}"{% endif %}
+    {% if slider %}data-cb-slider="{{ slider|merge({ labels: {
+        carousel: 'cb.slider.carousel'|trans({}, 'content_blocks'),
+        slide: 'cb.slider.slide'|trans({}, 'content_blocks'),
+        previous: 'cb.slider.previous'|trans({}, 'content_blocks'),
+        next: 'cb.slider.next'|trans({}, 'content_blocks'),
+        goto: 'cb.slider.goto'|trans({}, 'content_blocks'),
+    } })|json_encode }}"{% endif %}
     {% for k, v in section.extraAttributes %} {{ k }}="{{ v }}"{% endfor %}>
     {% if chrome %}
         {# A direct child of <section>, not of .cb-row, so the overlay
@@ -19,12 +29,14 @@
         </button>
     {% endif %}
     {% set columns = chrome ? section.columns : section.columns|filter(c => not c.deleted) %}
-    {% set display = section.display ?? 'grid' %}
-    {% set tabs = display == 'tabs' %}
-    {% set accordion = display == 'accordion' %}
+    {% set tabs = desktop == 'tabs' %}
+    {# Tabs turning into an accordion keep the tab radios: see
+       docs/internals/rendering.md#display-per-viewport #}
+    {% set tabsAccordion = tabs and 'accordion' in displays %}
+    {% set accordion = not tabs and 'accordion' in displays %}
     {% set single = accordion and (section.accordion.single ?? false) %}
     {% if tabs or accordion %}
-        {% set panelsId = 'cb-' ~ display ~ '-' ~ section.id %}
+        {% set panelsId = 'cb-' ~ (tabs ? 'tabs' : 'accordion') ~ '-' ~ section.id %}
         {# The builder keeps a column pending deletion: open the first live. #}
         {% set openIndex = null %}
         {% if not (accordion and (section.accordion.collapsed ?? false)) %}
@@ -57,6 +69,11 @@
                    id="{{ panelsId }}-none" tabindex="-1" aria-hidden="true"{% if openIndex is null %} checked{% endif %}>
         {% endif %}
         {% for column in columns %}
+            {% if tabsAccordion %}
+                <label for="{{ panelsId }}-{{ loop.index0 }}" class="cb-accordion__header{% if column.deleted %} cb-accordion__header--deleted{% endif %}">
+                    {{- column.label ?? ('cb.section.tabs.untitled'|trans({ '%n%': loop.index }, 'content_blocks')) -}}
+                </label>
+            {% endif %}
             {# Accordion: a toggle and its header right before each panel,
                so `:checked + label + .cb-col` opens it. #}
             {% if accordion %}

@@ -1113,6 +1113,43 @@ body:has(.cb-builder-dialog[open]) {
   background: var(--cb-line);
 }
 
+/* The preview renders a narrower viewport: say what a drag does there. */
+.cb-shell__viewport-order {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.25rem 0.2rem 0.6rem;
+  border: 1px solid var(--cb-line);
+  border-radius: var(--cb-radius-sm);
+  background: var(--cb-surface);
+  color: var(--cb-muted);
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.cb-shell__viewport-order[hidden] {
+  display: none;
+}
+.cb-shell__viewport-order-reset {
+  padding: 0.15rem 0.4rem;
+  border: 0;
+  border-radius: var(--cb-radius-xs);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.cb-shell__viewport-order-reset:hover,
+.cb-shell__viewport-order-reset:focus-visible {
+  background: var(--cb-panel);
+  color: var(--cb-text);
+}
+@media (max-width: 1024px) {
+  .cb-shell__viewport-order-label {
+    display: none;
+  }
+}
+
 /* ---- Save-failure banner (topbar) ----
    Persistent: it goes only once a later save succeeds. */
 .cb-shell__save-error {

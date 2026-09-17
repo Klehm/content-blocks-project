@@ -23,6 +23,11 @@
      data-i18n-cb-builder-clipboard-empty="{{ 'cb.builder.clipboard.empty'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-no-target="{{ 'cb.builder.clipboard.no_target'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-stale-version="{{ 'cb.builder.clipboard.stale_version'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-viewport-order-tablet="{{ 'cb.builder.viewport_order.tablet'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-viewport-order-mobile="{{ 'cb.builder.viewport_order.mobile'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-viewport-order-reset-tablet="{{ 'cb.builder.viewport_order.reset_tablet'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-viewport-order-reset-mobile="{{ 'cb.builder.viewport_order.reset_mobile'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-viewport-order-column="{{ 'cb.builder.viewport_order.column'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-unreadable="{{ 'cb.builder.clipboard.unreadable'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-skipped-blocks="{{ 'cb.builder.clipboard.skipped_blocks'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-dropped-fields="{{ 'cb.builder.clipboard.dropped_fields'|trans({}, 'content_blocks') }}"
@@ -169,6 +174,15 @@
                         data-cb-builder-viewport-param="mobile"
                         title="Mobile">▯</button>
             </div>
+            {# Shown while the preview renders tablet or mobile: a drag there
+               orders that viewport only. #}
+            <span class="cb-shell__viewport-order" data-cb-builder-target="viewportOrder" hidden>
+                <span class="cb-shell__viewport-order-label" data-cb-builder-target="viewportOrderLabel"></span>
+                <button type="button"
+                        class="cb-shell__viewport-order-reset"
+                        data-action="cb-builder#resetViewportOrder"
+                        data-cb-builder-target="viewportOrderReset">↺</button>
+            </span>
 
             {# Persistent until a later save succeeds: the editor must know
                their latest edits are not stored. #}

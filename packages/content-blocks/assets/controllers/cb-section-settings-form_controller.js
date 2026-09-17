@@ -8,6 +8,14 @@ export default class extends Controller {
     static targets = ['form', 'maxWidthRow', 'widthsField', 'widthInput', 'widthsTotal', 'customRow', 'customToggle', 'columnLabel'];
     static values = { sectionId: Number };
 
+    /** Mirrors SectionDisplay::COMPACTER. */
+    static COMPACTER = {
+        grid: ['grid', 'slider', 'accordion'],
+        slider: ['grid', 'slider', 'accordion'],
+        tabs: ['tabs', 'accordion'],
+        accordion: ['accordion'],
+    };
+
     /** A label is typed; this is how long it waits for the next keystroke. */
     static COLUMN_LABEL_DEBOUNCE_MS = 500;
 
@@ -20,6 +28,7 @@ export default class extends Controller {
             // Only matters after a 422 swap, where the user had toggled
             // widthMode before saving.
             this._syncMaxWidthVisibility();
+            this._syncDisplayChoices();
         }
         // Seed the column-width inputs from the stored CSV (or an equal split
         // for display when none is set yet) and paint the running total.
@@ -47,6 +56,42 @@ export default class extends Controller {
         if (typeof name === 'string' && name.endsWith('[widthMode]')) {
             this._syncMaxWidthVisibility();
         }
+        if (typeof name === 'string' && /\[display(Tablet|Mobile)?\]$/.test(name)) {
+            this._syncDisplayChoices();
+        }
+    }
+
+    /**
+     * A narrower viewport may only get more compact, so the choices below
+     * follow the one above. The server applies the same rule.
+     *
+     * @see docs/internals/rendering.md#display-per-viewport
+     */
+    _syncDisplayChoices() {
+        const radios = (field) => Array.from(
+            this.formTarget.querySelectorAll(`input[type="radio"][name$="[${field}]"]`),
+        );
+        const desktop = radios('display').find((r) => r.checked)?.value ?? 'grid';
+        const tablet = this._clampDisplay(radios('displayTablet'), desktop);
+        this._clampDisplay(radios('displayMobile'), tablet);
+    }
+
+    /** Returns what the viewport resolves to once clamped. */
+    _clampDisplay(inputs, above) {
+        const allowed = this.constructor.COMPACTER[above] ?? this.constructor.COMPACTER.grid;
+        let resolved = above;
+        for (const input of inputs) {
+            const ok = input.value === 'inherit' || allowed.includes(input.value);
+            input.disabled = !ok;
+            if (!ok && input.checked) {
+                input.checked = false;
+                inputs.find((i) => i.value === 'inherit')?.click();
+            }
+        }
+        const checked = inputs.find((i) => i.checked);
+        if (checked && checked.value !== 'inherit') resolved = checked.value;
+
+        return resolved;
     }
 
     _syncMaxWidthVisibility() {

@@ -20,7 +20,14 @@ final class JournalScope
 {
     private function __construct(
         private readonly Block|Column|Section|null $target,
+        private readonly bool $order = false,
     ) {
+    }
+
+    /** Every section and block rank of the area, and nothing else. */
+    public static function viewportOrder(): self
+    {
+        return new self(null, true);
     }
 
     /** Every section, column and block of the area — where things sit. */
@@ -50,6 +57,7 @@ final class JournalScope
             $this->target instanceof Block => AreaStateSnapshot::blockData($this->target),
             $this->target instanceof Column => AreaStateSnapshot::columnSettings($this->target),
             $this->target instanceof Section => AreaStateSnapshot::sectionSettings($this->target),
+            $this->order => AreaStateSnapshot::viewportOrder($area),
             default => AreaStateSnapshot::structure($area),
         };
     }
