@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Section;
 
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Image\ImageUrlResolverInterface;
+use ContentBlocks\Image\PassthroughImageUrlResolver;
 use ContentBlocks\Palette\ColorTone;
 
 /**
@@ -19,11 +21,22 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
     // Data keys are spelled out; the emitted CSS var names stay terse (the
     // stylesheet reads --cb-*-d/t/m-*). This map bridges the two.
     private const VIEWPORT_SHORT = ['desktop' => 'd', 'tablet' => 't', 'mobile' => 'm'];
+    private const BACKGROUND_SIZES = ['cover' => true, 'contain' => true];
+    private const BACKGROUND_POSITIONS = ['center' => true, 'top' => true, 'bottom' => true, 'left' => true, 'right' => true];
+    /** Asked of the image resolver: a section spans the viewport. */
+    private const BACKGROUND_WIDTH = 1920;
+    /** Veil opacity, in percent, from which it decides the tone class. */
+    private const TONE_VEIL_OPACITY = 40;
     private const ALIGN_MAP = [
         'start' => 'flex-start',
         'center' => 'center',
         'end' => 'flex-end',
     ];
+
+    public function __construct(
+        private readonly ImageUrlResolverInterface $imageUrls = new PassthroughImageUrlResolver(),
+    ) {
+    }
 
     public function decorate(array $settings, Section $section): SectionDecoration
     {
@@ -68,12 +81,41 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
         }
 
         $bg = $styling['backgroundColor'] ?? null;
+        $tone = null;
         if (\is_string($bg) && $bg !== '') {
             $vars['--cb-s-bg'] = $bg;
             $tone = ColorTone::of($bg);
-            if ($tone !== null) {
-                $classes[] = 'cb-section--bg-' . $tone;
+        }
+
+        $image = $this->imageUrl($styling['backgroundImage'] ?? null);
+        if ($image !== null) {
+            $classes[] = 'cb-section--bg-image';
+            $vars['--cb-s-bg-img'] = 'url("' . $image . '")';
+            $size = $styling['backgroundSize'] ?? null;
+            if (\is_string($size) && isset(self::BACKGROUND_SIZES[$size])) {
+                $vars['--cb-s-bg-size'] = $size;
             }
+            $position = $styling['backgroundPosition'] ?? null;
+            if (\is_string($position) && isset(self::BACKGROUND_POSITIONS[$position])) {
+                $vars['--cb-s-bg-pos'] = $position;
+            }
+            $opacity = $styling['overlayOpacity'] ?? null;
+            $opacity = \is_int($opacity) || (\is_string($opacity) && ctype_digit($opacity))
+                ? min(100, (int) $opacity)
+                : 0;
+            $veil = $styling['overlayColor'] ?? null;
+            $veil = ColorTone::of($veil) !== null ? $veil : '#000000';
+            if ($opacity > 0) {
+                $vars['--cb-s-overlay'] = (string) ($opacity / 100);
+                $vars['--cb-s-overlay-color'] = $veil;
+            }
+            // The photo hides the colour: only a veil dense enough to carry
+            // the text says whether it reads dark or light.
+            $tone = $opacity >= self::TONE_VEIL_OPACITY ? ColorTone::of($veil) : null;
+        }
+
+        if ($tone !== null) {
+            $classes[] = 'cb-section--bg-' . $tone;
         }
 
         // Min height (value + unit).
@@ -100,5 +142,25 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
         $classes[] = 'cb-section--styled';
 
         return new SectionDecoration(classes: $classes, inlineStyles: $vars);
+    }
+
+    /**
+     * Through the host's image resolver, then made safe inside `url("…")`:
+     * a quote or a bracket in a stored path must not close the value.
+     */
+    private function imageUrl(mixed $src): ?string
+    {
+        if (!\is_string($src) || trim($src) === '' || preg_match('/[\x00-\x1f]/', $src) === 1) {
+            return null;
+        }
+        $src = trim($src);
+        // A scheme other than http(s) has no business in a stylesheet.
+        if (preg_match('#^([a-z][a-z0-9+.-]*):#i', $src, $m) === 1 && !\in_array(strtolower($m[1]), ['http', 'https'], true)) {
+            return null;
+        }
+
+        $url = $this->imageUrls->resolve($src, self::BACKGROUND_WIDTH)->src;
+
+        return strtr($url, ['"' => '%22', "'" => '%27', '(' => '%28', ')' => '%29', '\\' => '%5C', ' ' => '%20', ';' => '%3B']);
     }
 }

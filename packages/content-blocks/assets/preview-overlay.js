@@ -230,7 +230,7 @@
     // A block in a closed tab or panel is in the DOM but invisible.
     // See docs/internals/rendering.md#columns-and-tabs
     const PANEL_STORAGE_PREFIX = 'cb-builder.tab:';
-    const PANEL_INPUTS = ':scope > .cb-tabs__radio, :scope > .cb-row > .cb-accordion__toggle';
+    const PANEL_INPUTS = ':scope > .cb-tabs__radio, :scope > .cb-row > .cb-accordion__toggle:not(.cb-accordion__none)';
 
     function panelColumns(section) {
         return Array.from(section.querySelectorAll(':scope > .cb-row > [data-cb-column-id]'));
@@ -273,19 +273,23 @@
 
     /**
      * Checks the inputs of the listed columns. A tab bar with none of them
-     * left keeps the one the server opened.
+     * left keeps the one the server opened; a one-at-a-time accordion closes.
      */
     function applyOpenColumns(section, ids) {
         const columns = panelColumns(section);
         const live = (i) => columns[i] && columns[i].getAttribute('data-cb-deleted') !== '1'
             && ids.includes(columns[i].getAttribute('data-cb-column-id'));
+        let matched = false;
         panelInputs(section).forEach((input, i) => {
             if (input.type === 'checkbox') {
                 input.checked = live(i);
             } else if (live(i)) {
                 input.checked = true;
+                matched = true;
             }
         });
+        const none = section.querySelector(':scope > .cb-row > .cb-accordion__none');
+        if (none && !matched) none.checked = true;
     }
 
     /** A reload would reopen the first panel under the editor's feet. */
@@ -512,14 +516,19 @@
         newEl.querySelectorAll(':scope > .cb-tabs__radio, :scope > .cb-tabs__nav').forEach((n) => {
             oldEl.insertBefore(n, row);
         });
-        newEl.querySelectorAll(':scope > .cb-row > .cb-accordion__header').forEach((header) => {
-            const toggle = header.previousElementSibling;
-            const id = header.nextElementSibling?.getAttribute('data-cb-column-id');
-            const oldCol = id ? row?.querySelector(`:scope > [data-cb-column-id="${id}"]`) : null;
-            if (!oldCol) return;
-            row.insertBefore(toggle, oldCol);
-            row.insertBefore(header, oldCol);
-        });
+        // Whatever precedes a column in the new row (toggle, headers, the
+        // "none" radio) goes before the same column in the old one.
+        let pending = [];
+        for (const node of Array.from(newEl.querySelector(':scope > .cb-row')?.children ?? [])) {
+            const id = node.getAttribute('data-cb-column-id');
+            if (!id) {
+                if (node.matches('.cb-accordion__toggle, .cb-accordion__header')) pending.push(node);
+                continue;
+            }
+            const oldCol = row?.querySelector(`:scope > [data-cb-column-id="${id}"]`);
+            if (oldCol) pending.forEach((n) => row.insertBefore(n, oldCol));
+            pending = [];
+        }
         if (hadPanels) applyOpenColumns(oldEl, open);
 
         // Columns: copy class + style by matching data-cb-column-id, so column

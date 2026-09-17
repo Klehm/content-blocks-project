@@ -22,20 +22,23 @@
     {% set display = section.display ?? 'grid' %}
     {% set tabs = display == 'tabs' %}
     {% set accordion = display == 'accordion' %}
+    {% set single = accordion and (section.accordion.single ?? false) %}
     {% if tabs or accordion %}
         {% set panelsId = 'cb-' ~ display ~ '-' ~ section.id %}
         {# The builder keeps a column pending deletion: open the first live. #}
         {% set openIndex = null %}
-        {% for column in columns %}
-            {% if openIndex is null and not column.deleted %}{% set openIndex = loop.index0 %}{% endif %}
-        {% endfor %}
+        {% if not (accordion and (section.accordion.collapsed ?? false)) %}
+            {% for column in columns %}
+                {% if openIndex is null and not column.deleted %}{% set openIndex = loop.index0 %}{% endif %}
+            {% endfor %}
+        {% endif %}
     {% endif %}
     {# CSS-only tabs: radios, then the labels, then the row, so `:checked ~`
        reaches both. See docs/internals/rendering.md#columns-and-tabs #}
     {% if tabs %}
         {% for column in columns %}
             <input type="radio" class="cb-tabs__radio" name="{{ panelsId }}" id="{{ panelsId }}-{{ loop.index0 }}"
-                   aria-controls="{{ panelsId }}-{{ loop.index0 }}-panel"{% if loop.index0 == openIndex %} checked{% endif %}>
+                   aria-controls="{{ panelsId }}-{{ loop.index0 }}-panel"{% if loop.index0 is same as(openIndex) %} checked{% endif %}>
         {% endfor %}
         <div class="cb-tabs__nav">
             {% for column in columns %}
@@ -47,16 +50,34 @@
         </div>
     {% endif %}
     <div class="cb-row">
+        {# One at a time: radios, plus a "none" one that the open header's
+           twin label checks, since a radio cannot be unchecked. #}
+        {% if single %}
+            <input type="radio" class="cb-accordion__toggle cb-accordion__none" name="{{ panelsId }}"
+                   id="{{ panelsId }}-none" tabindex="-1" aria-hidden="true"{% if openIndex is null %} checked{% endif %}>
+        {% endif %}
         {% for column in columns %}
-            {# Accordion: a checkbox and its header right before each panel,
+            {# Accordion: a toggle and its header right before each panel,
                so `:checked + label + .cb-col` opens it. #}
             {% if accordion %}
-                <input type="checkbox" class="cb-accordion__toggle" id="{{ panelsId }}-{{ loop.index0 }}"
-                       aria-controls="{{ panelsId }}-{{ loop.index0 }}-panel"{% if loop.index0 == openIndex %} checked{% endif %}>
+                {% set title = column.label ?? ('cb.section.accordion.untitled'|trans({ '%n%': loop.index }, 'content_blocks')) %}
+                {% set deletedClass = column.deleted ? ' cb-accordion__header--deleted' : '' %}
+                {% if single %}
+                    <input type="radio" class="cb-accordion__toggle" name="{{ panelsId }}" id="{{ panelsId }}-{{ loop.index0 }}"
+                           aria-controls="{{ panelsId }}-{{ loop.index0 }}-panel"{% if loop.index0 is same as(openIndex) %} checked{% endif %}>
+                {% else %}
+                    <input type="checkbox" class="cb-accordion__toggle" id="{{ panelsId }}-{{ loop.index0 }}"
+                           aria-controls="{{ panelsId }}-{{ loop.index0 }}-panel"{% if loop.index0 is same as(openIndex) %} checked{% endif %}>
+                {% endif %}
                 <label for="{{ panelsId }}-{{ loop.index0 }}" id="{{ panelsId }}-{{ loop.index0 }}-label"
-                       class="cb-accordion__header{% if column.deleted %} cb-accordion__header--deleted{% endif %}">
-                    {{- column.label ?? ('cb.section.accordion.untitled'|trans({ '%n%': loop.index }, 'content_blocks')) -}}
+                       class="cb-accordion__header{{ deletedClass }}">
+                    {{- title -}}
                 </label>
+                {% if single %}
+                    <label for="{{ panelsId }}-none" class="cb-accordion__header cb-accordion__header--close{{ deletedClass }}">
+                        {{- title -}}
+                    </label>
+                {% endif %}
             {% endif %}
             {{ include('@ContentBlocks/render/column.html.twig', {
                 column: column,

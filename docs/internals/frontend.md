@@ -170,6 +170,13 @@ autosave. When the pinned element no longer exists or is flagged deleted — a
 section delete that cascaded to a focused child block — the overlay replies
 `cb:focus:not-found` and the parent clears the stale form.
 
+**Only the latest sidebar request lands.** Adding a section opens its settings,
+and a click on it right after asks again; clicking outside clears the sidebar
+while a form is still on its way. A late response used to replace what the
+editor had picked since (or bring back the form they had just dismissed), so
+`_mountSidebarFrom` drops any response that is not the latest request, and
+`_resetSidebarToEmptyState` cancels the one in flight.
+
 A newly inserted section wins over the restored scroll position, on the reload
 fallback too: it lands at the end of the area, often below the fold, and
 restoring the old scroll would hide the one thing the editor wants to see.

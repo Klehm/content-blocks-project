@@ -179,6 +179,10 @@
                                 {% endif %}
 
                                 <div class="cb-wb__row-actions">
+                                    {# Source over the translation. #}
+                                    <button type="button" class="cb-wb__icon" data-act="copySource"
+                                            title="{{ 'cb_i18n.workbench.copy_source'|trans }}"
+                                            aria-label="{{ 'cb_i18n.workbench.copy_source'|trans }}">→</button>
                                     {% if providers is not empty %}
                                         <button type="button" class="cb-wb__icon" data-act="translateField"
                                                 title="{{ 'cb_i18n.workbench.translate_field'|trans }}">⚡</button>

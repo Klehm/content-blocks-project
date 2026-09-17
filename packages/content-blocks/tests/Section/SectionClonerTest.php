@@ -16,12 +16,12 @@ final class SectionClonerTest extends TestCase
     {
         $section = new Section();
         $section->setLayout(Section::LAYOUT_THREE_COLS);
-        $section->setDraftSettings(['classes' => 'hero', 'maxWidth' => '900']);
+        $section->setDraftSettings(['classes' => 'hero', 'maxWidth' => '900', 'anchorId' => 'intro']);
 
         $copy = (new SectionCloner())->cloneSection($section);
 
         $this->assertSame(Section::LAYOUT_THREE_COLS, $copy->getLayout());
-        $this->assertSame(['classes' => 'hero', 'maxWidth' => '900'], $copy->getDraftSettings());
+        $this->assertSame(['classes' => 'hero', 'maxWidth' => '900', 'anchorId' => 'intro'], $copy->getDraftSettings());
         $this->assertNull($copy->getPublishedSettings());
         $this->assertNotSame($section, $copy);
     }

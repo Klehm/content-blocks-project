@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Controller;
 
+use ContentBlocks\Block\CollectionIdBackfiller;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
@@ -41,6 +42,7 @@ final class BlocksController
         private readonly TranslatorInterface $translator,
         private readonly BlockRendererInterface $blockRenderer,
         private readonly ActionJournal $journal,
+        private readonly ?CollectionIdBackfiller $collectionIds = null,
     ) {
     }
 
@@ -94,7 +96,9 @@ final class BlocksController
         return $this->journal->record($area, 'block.create', JournalScope::structure(), function () use ($blockType, $column, $type): JsonResponse {
             $block = new Block();
             $block->setType($type);
-            $block->setDraftData($blockType->getDefaultData());
+            // With ids from the start, a block never edited is translatable.
+            $data = $blockType->getDefaultData();
+            $block->setDraftData($this->collectionIds?->backfill($type, $data) ?? $data);
             $block->setPreviewPosition($this->nextPreviewPosition($column));
             $column->addBlock($block);
 

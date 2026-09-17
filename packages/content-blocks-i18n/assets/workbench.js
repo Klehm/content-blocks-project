@@ -49,6 +49,7 @@ class Workbench {
             else if (act === 'translateField') this.translateField(this._rowOf(button));
             else if (act === 'approve') this.approve(this._rowOf(button));
             else if (act === 'reset') this.reset(this._rowOf(button));
+            else if (act === 'copySource') this.copySource(this._rowOf(button));
         });
 
         this.root.addEventListener('input', (event) => {
@@ -180,6 +181,22 @@ class Workbench {
 
         this.pending.set(blockId, entry);
         this._markDirty(row);
+    }
+
+    /**
+     * The source as a starting point: names, figures and URLs often stay, and
+     * a long text is easier to edit than to retype. Saved like typing.
+     */
+    copySource(row) {
+        if (!row) return;
+
+        const input = row.querySelector('[data-target="input"]');
+        const source = row.querySelector('.cb-wb__source-text');
+        if (!input || !source) return;
+
+        input.value = source.textContent;
+        this.edit(row, input.value);
+        input.focus();
     }
 
     /**

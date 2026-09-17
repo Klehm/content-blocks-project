@@ -17,6 +17,10 @@ final class SectionDisplay
     public const TABS = 'tabs';
     public const ACCORDION = 'accordion';
 
+    /** Accordion settings: one panel open at a time, and none at first. */
+    public const ACCORDION_SINGLE = 'accordionSingle';
+    public const ACCORDION_COLLAPSED = 'accordionCollapsed';
+
     /** The only values a render acts on; anything else reads as a grid. */
     public const ALL = [self::GRID, self::TABS, self::ACCORDION];
 
@@ -32,5 +36,18 @@ final class SectionDisplay
     public static function showsTitles(string $display): bool
     {
         return $display !== self::GRID;
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     *
+     * @return array{single: bool, collapsed: bool}
+     */
+    public static function accordionOptions(array $settings): array
+    {
+        return [
+            'single' => ($settings[self::ACCORDION_SINGLE] ?? false) === true,
+            'collapsed' => ($settings[self::ACCORDION_COLLAPSED] ?? false) === true,
+        ];
     }
 }

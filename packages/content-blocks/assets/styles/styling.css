@@ -18,6 +18,26 @@
     min-height: var(--cb-min-h, auto);
 }
 
+/* The image sits over the colour; the veil is a pseudo-element under the
+   content, kept there by `isolation`. */
+.cb-section--bg-image {
+    position: relative;
+    isolation: isolate;
+    background-image: var(--cb-s-bg-img);
+    background-size: var(--cb-s-bg-size, cover);
+    background-position: var(--cb-s-bg-pos, center);
+    background-repeat: no-repeat;
+}
+.cb-section--bg-image::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: var(--cb-s-overlay-color, #000);
+    opacity: var(--cb-s-overlay, 0);
+    pointer-events: none;
+}
+
 /* One setting, two effects: `align-items` aligns the columns against each
    other, `justify-content` places the row when a min-height leaves room. */
 .cb-section--has-valign {

@@ -157,6 +157,74 @@ final class StylingSectionDecoratorTest extends TestCase
         $this->assertSame([], $none->classes);
     }
 
+    public function testABackgroundImageEmitsItsVariablesAndClass(): void
+    {
+        $decoration = (new StylingSectionDecorator())->decorate(['styling' => [
+            'backgroundImage' => '/uploads/hero.jpg',
+            'backgroundSize' => 'contain',
+            'backgroundPosition' => 'top',
+        ]], new Section());
+
+        $this->assertContains('cb-section--bg-image', $decoration->classes);
+        $this->assertSame('url("/uploads/hero.jpg")', $decoration->inlineStyles['--cb-s-bg-img']);
+        $this->assertSame('contain', $decoration->inlineStyles['--cb-s-bg-size']);
+        $this->assertSame('top', $decoration->inlineStyles['--cb-s-bg-pos']);
+        $this->assertArrayNotHasKey('--cb-s-overlay', $decoration->inlineStyles);
+    }
+
+    /** The host's resolver (CDN, LiipImagine) decides the URL. */
+    public function testTheImageGoesThroughTheResolver(): void
+    {
+        $resolver = new class () implements \ContentBlocks\Image\ImageUrlResolverInterface {
+            public ?int $width = null;
+
+            public function resolve(string $src, ?int $width = null, ?int $height = null): \ContentBlocks\Image\ResolvedImage
+            {
+                $this->width = $width;
+
+                return new \ContentBlocks\Image\ResolvedImage('https://cdn.test' . $src);
+            }
+        };
+
+        $decoration = (new StylingSectionDecorator($resolver))
+            ->decorate(['styling' => ['backgroundImage' => '/uploads/a.jpg']], new Section());
+
+        $this->assertSame('url("https://cdn.test/uploads/a.jpg")', $decoration->inlineStyles['--cb-s-bg-img']);
+        $this->assertSame(1920, $resolver->width);
+    }
+
+    /** A stored path lands inside `url("…")` in a style attribute. */
+    public function testTheImageUrlCannotBreakOutOfItsValue(): void
+    {
+        $deco = new StylingSectionDecorator();
+
+        $quoted = $deco->decorate(['styling' => ['backgroundImage' => '/a b"); color: red; x("']], new Section());
+        $script = $deco->decorate(['styling' => ['backgroundImage' => 'javascript:alert(1)']], new Section());
+        $data = $deco->decorate(['styling' => ['backgroundImage' => 'data:image/png;base64,AAA']], new Section());
+
+        $this->assertSame('url("/a%20b%22%29%3B%20color:%20red%3B%20x%28%22")', $quoted->inlineStyles['--cb-s-bg-img']);
+        $this->assertArrayNotHasKey('--cb-s-bg-img', $script->inlineStyles);
+        $this->assertArrayNotHasKey('--cb-s-bg-img', $data->inlineStyles);
+    }
+
+    public function testAVeilSetsTheToneOverTheColour(): void
+    {
+        $deco = new StylingSectionDecorator();
+        $image = ['backgroundImage' => '/uploads/a.jpg', 'backgroundColor' => '#ffffff'];
+
+        $dense = $deco->decorate(['styling' => $image + ['overlayOpacity' => 50]], new Section());
+        $light = $deco->decorate(['styling' => $image + ['overlayOpacity' => 60, 'overlayColor' => '#fafafa']], new Section());
+        $faint = $deco->decorate(['styling' => $image + ['overlayOpacity' => 20]], new Section());
+
+        $this->assertSame('0.5', $dense->inlineStyles['--cb-s-overlay']);
+        $this->assertSame('#000000', $dense->inlineStyles['--cb-s-overlay-color']);
+        $this->assertContains('cb-section--bg-dark', $dense->classes);
+        $this->assertContains('cb-section--bg-light', $light->classes);
+        // Under a faint veil the photo decides, and nobody knows its tone.
+        $this->assertNotContains('cb-section--bg-light', $faint->classes);
+        $this->assertNotContains('cb-section--bg-dark', $faint->classes);
+    }
+
     public function testFullPayloadProducesStableOutput(): void
     {
         $settings = [

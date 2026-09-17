@@ -7,6 +7,7 @@ namespace ContentBlocks\Transfer;
 use ContentBlocks\Asset\AssetResolverInterface;
 use ContentBlocks\Block\BlockDataKeys;
 use ContentBlocks\Block\BlockRestoreTally;
+use ContentBlocks\Block\CollectionIdBackfiller;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
@@ -30,6 +31,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         private readonly BlockDataKeys $dataKeys,
         private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
         private readonly iterable $extensions = [],
+        private readonly ?CollectionIdBackfiller $collectionIds = null,
     ) {
     }
 
@@ -263,8 +265,11 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
             }
             /** @var array<string, mixed> $rewritten */
             $rewritten = $assets->rewrite($data);
-            // Kept verbatim, unknown keys included — those warn, never drop.
-            $block->setDraftData($rewritten);
+            // Kept verbatim, unknown keys included (they warn, never drop). Ids
+            // the export carried stay: translations are keyed on them.
+            $block->setDraftData(is_string($type) && $this->collectionIds !== null
+                ? $this->collectionIds->backfill($type, $rewritten)
+                : $rewritten);
         }
 
         $tally->keep();

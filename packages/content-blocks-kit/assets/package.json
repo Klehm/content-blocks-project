@@ -1,6 +1,7 @@
 {
     "name": "@klehm/content-blocks-kit",
     "description": "Default blocks for ContentBlocks (Text, Title, Image, Tabs).",
+    "version": "1.0.0-RC12",
     "license": "MIT",
     "symfony": {
         "controllers": {

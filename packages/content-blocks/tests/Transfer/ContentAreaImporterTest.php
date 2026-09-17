@@ -70,6 +70,33 @@ final class ContentAreaImporterTest extends TestCase
         ];
     }
 
+    /** Imported entries missing an id get one; those carried are kept. */
+    public function testImportedCollectionEntriesGetTheirMissingIds(): void
+    {
+        $registry = \ContentBlocks\Tests\Block\CollectionIdBackfillerTest::registry();
+        $factory = Forms::createFormFactoryBuilder()
+            ->addType(new BlockFormType(new BlockFormExtensionCollection()))
+            ->getFormFactory();
+        $importer = new ContentAreaImporter(
+            $this->makeResolver(),
+            $registry,
+            new BlockDataKeys($registry, $factory),
+            collectionIds: \ContentBlocks\Tests\Block\CollectionIdBackfillerTest::backfillerFor($registry),
+        );
+        $target = new ContentArea();
+
+        $importer->import($target, $this->makePayload([[
+            'layout' => Section::LAYOUT_FULL,
+            'columns' => [['preset' => 'col-12', 'blocks' => [['type' => 'grid', 'data' => [
+                'rows' => [['_id' => 'r1', 'cells' => [['content' => 'A']]]],
+            ]]]]],
+        ]]));
+
+        $rows = $target->getSections()[0]->getColumns()[0]->getBlocks()[0]->getDraftData()['rows'];
+        $this->assertSame('r1', $rows[0]['_id']);
+        $this->assertIsString($rows[0]['cells'][0]['_id'] ?? null);
+    }
+
     public function testImportRejectsAnUnknownFormat(): void
     {
         $importer = $this->importer();
@@ -98,7 +125,8 @@ final class ContentAreaImporterTest extends TestCase
         $payload = $this->makePayload([
             [
                 'layout' => Section::LAYOUT_TWO_COLS,
-                'settings' => ['backgroundColor' => '#000'],
+                // `anchorId` stands for a host field: no filter drops it.
+                'settings' => ['backgroundColor' => '#000', 'anchorId' => 'faq'],
                 'columns' => [
                     ['preset' => 'col-6', 'blocks' => [['type' => 'text', 'data' => ['content' => 'imported']]]],
                     ['preset' => 'col-6', 'blocks' => []],
@@ -114,7 +142,7 @@ final class ContentAreaImporterTest extends TestCase
 
         $imported = $target->getSections()[1];
         $this->assertSame(Section::LAYOUT_TWO_COLS, $imported->getLayout());
-        $this->assertSame(['backgroundColor' => '#000'], $imported->getDraftSettings());
+        $this->assertSame(['backgroundColor' => '#000', 'anchorId' => 'faq'], $imported->getDraftSettings());
         $this->assertSame(0, $imported->getPreviewPosition());
         $this->assertCount(2, $imported->getColumns());
 

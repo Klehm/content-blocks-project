@@ -67,10 +67,49 @@ final class SectionLayoutsConfigTest extends TestCase
     {
         $container = $this->build(['section_styles' => [
             ['name' => 'tabbed', 'label' => 'Tabbed', 'settings' => ['display' => 'tabs', 'reverseOnMobile' => true]],
+            ['name' => 'faq', 'label' => 'FAQ', 'settings' => ['display' => 'accordion', 'accordionSingle' => true, 'accordionCollapsed' => true]],
         ]]);
 
         $this->assertSame('tabs', $container->getParameter('content_blocks.section_styles')[0]['settings']['display']);
         $this->assertTrue($container->getParameter('content_blocks.section_styles')[0]['settings']['reverseOnMobile']);
+        $this->assertTrue($container->getParameter('content_blocks.section_styles')[1]['settings']['accordionSingle']);
+    }
+
+    /** A field added by a form type extension can be preset too. */
+    public function testPresetAndInitialSettingsKeepHostKeys(): void
+    {
+        $container = $this->build([
+            'section' => ['initial_settings' => ['anchorId' => 'top', 'styling' => ['zIndex' => 2]]],
+            'section_styles' => [
+                ['name' => 'hero', 'label' => 'Hero', 'settings' => ['anchorId' => 'hero', 'styling' => ['backgroundColor' => '#000', 'zIndex' => 3]]],
+            ],
+        ]);
+
+        $preset = $container->getParameter('content_blocks.section_styles')[0]['settings'];
+        $this->assertSame('hero', $preset['anchorId']);
+        $this->assertSame(['backgroundColor' => '#000', 'zIndex' => 3], $preset['styling']);
+        $this->assertSame(['anchorId' => 'top', 'styling' => ['zIndex' => 2]], $container->getParameter('content_blocks.section.initial_settings'));
+    }
+
+    /** Host keys are allowed in `styling` too, but not a core key's typo. */
+    public function testATypoInsideStylingIsRefused(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('backgroundColor');
+
+        $this->build(['section_styles' => [
+            ['name' => 'hero', 'label' => 'Hero', 'settings' => ['styling' => ['backgroundColour' => '#000']]],
+        ]]);
+    }
+
+    /** Core keys stay typed: a wrong value still fails at cache:clear. */
+    public function testACoreKeyIsStillValidated(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        $this->build(['section_styles' => [
+            ['name' => 'hero', 'label' => 'Hero', 'settings' => ['widthMode' => 'huge']],
+        ]]);
     }
 
     public function testSpansThatDoNotAddUpToTwelveAreRefused(): void

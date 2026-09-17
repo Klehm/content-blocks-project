@@ -50,6 +50,16 @@ final class SectionSettingsType extends AbstractType
                 'label' => 'cb.section.settings.display',
                 'data' => SectionDisplay::fromSettings($options['data'] ?? []),
             ])
+            ->add(SectionDisplay::ACCORDION_SINGLE, CheckboxType::class, [
+                'required' => false,
+                'label' => 'cb.section.settings.accordion_single',
+                'row_attr' => ['data-cb-condition' => 'display:accordion'],
+            ])
+            ->add(SectionDisplay::ACCORDION_COLLAPSED, CheckboxType::class, [
+                'required' => false,
+                'label' => 'cb.section.settings.accordion_collapsed',
+                'row_attr' => ['data-cb-condition' => 'display:accordion'],
+            ])
             ->add('widthMode', ChoiceType::class, [
                 'required' => true,
                 'expanded' => true,
@@ -110,6 +120,7 @@ final class SectionSettingsType extends AbstractType
             'include_min_height' => true,
             'include_alignment' => true,
             'include_gap' => true,
+            'include_background_image' => true,
         ]);
     }
 

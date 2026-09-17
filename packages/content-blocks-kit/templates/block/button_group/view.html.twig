@@ -1,0 +1,15 @@
+{# One wrapper for the whole row, so the buttons wrap and align together.
+   Class suffixes, as in button. See docs/internals/kit.md #}
+{% set buttons = (data.items|default([]))|filter(item => item is iterable and (item.text|default('')|trim) is not empty) %}
+{% if buttons is not empty %}
+    {% set align = cb_kit_token(data.align|default('start'), 'start') %}
+    {% set size = cb_kit_token(data.size|default('md'), 'md') %}
+    <div class="cb-kit-btn-group cb-kit-btn-group--{{ align }}{{ data.stackOnMobile|default(false) ? ' cb-kit-btn-group--stack' : '' }}">
+        {% for item in buttons %}
+            {% set variant = cb_kit_token(item.variant|default('primary'), 'primary') %}
+            <a class="cb-kit-btn cb-kit-btn--{{ variant }} cb-kit-btn--{{ size }}"
+               href="{{ item.url|default('#') }}"
+               {%- if item.newTab|default(false) %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ item.text|trim }}</a>
+        {% endfor %}
+    </div>
+{% endif %}

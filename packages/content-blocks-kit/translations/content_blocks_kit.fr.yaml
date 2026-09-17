@@ -28,6 +28,13 @@ cb_kit:
                 secondary: "Secondaire"
                 outline: "Contour"
                 link: "Lien"
+        button_group:
+            label: "Groupe de boutons"
+            field:
+                items: "Boutons"
+                stack_on_mobile: "Empiler les boutons sur mobile"
+            action:
+                add: "Ajouter un bouton"
         list:
             label: "Liste"
             field:

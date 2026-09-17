@@ -86,3 +86,59 @@ test('a section stacks its columns in reverse on mobile', async ({ page, context
 
     await viewer.close();
 });
+
+test('a section gets a background image under a veil', async ({ page }) => {
+    const frame = await openBuilder(page, await createFreshPage(page));
+    const sidebar = page.locator('.cb-shell__sidebar');
+    const saved = () => page.waitForResponse((r) => /\/section\/\d+\/settings$/.test(r.url())
+        && r.request().method() === 'POST');
+
+    await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
+    let save = saved();
+    await sidebar.locator('input[name$="[stylingCustom]"]').check();
+    await save;
+
+    // The veil fields wait for an image.
+    const opacity = sidebar.locator('input[name$="[styling][overlayOpacity]"]');
+    await expect(opacity).toBeHidden();
+    const upload = sidebar.locator('.cb-image-upload').first();
+    await upload.locator('.cb-image-upload__path-toggle').click();
+    save = saved();
+    await upload.locator('.cb-image-upload__path').fill('/uploads/e2e-hero.jpg');
+    await upload.locator('.cb-image-upload__path').press('Enter');
+    await save;
+    await expect(opacity).toBeVisible();
+
+    save = saved();
+    await opacity.fill('50');
+    await save;
+
+    const section = frame.locator('.cb-section').first();
+    await expect(section).toHaveClass(/cb-section--bg-image/, { timeout: 10000 });
+    await expect(section).toHaveClass(/cb-section--bg-dark/);
+    // Through the host's image resolver: LiipImagine in this sandbox.
+    await expect.poll(() => section.getAttribute('style')).toMatch(/--cb-s-bg-img:url\("[^"]*\/uploads\/e2e-hero\.jpg"\)/);
+    expect(await section.evaluate((el) => getComputedStyle(el, '::before').opacity)).toBe('0.5');
+    expect(await section.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain('/uploads/e2e-hero.jpg');
+});
+
+test('a button group puts its buttons in one row', async ({ page, context }) => {
+    const builderUrl = await createFreshPage(page);
+    const frame = await openBuilder(page, builderUrl);
+
+    await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
+    const column = frame.locator('[data-cb-column-id]').first();
+    await column.locator('.cb-add-block-inline').click({ position: { x: 8, y: 3 } });
+    await frame.locator('.cb-overlay-popover button', { hasText: /^(Groupe de boutons|Button group)$/ }).click();
+
+    const group = column.locator('.cb-kit-btn-group');
+    await expect(group.locator('a.cb-kit-btn')).toHaveCount(2);
+    const tops = await group.locator('a').evaluateAll((links) => links.map((a) => a.getBoundingClientRect().top));
+    expect(tops[1]).toBe(tops[0]);
+
+    await publish(page);
+    const viewer = await context.newPage();
+    await viewer.goto(builderUrl.replace('/admin/page/', '/page/'));
+    await expect(viewer.locator('.cb-kit-btn-group a.cb-kit-btn')).toHaveCount(2);
+    await viewer.close();
+});

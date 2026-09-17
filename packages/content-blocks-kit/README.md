@@ -16,6 +16,7 @@ shipped stylesheet, so it drops into any host regardless of its CSS setup.
 | `image` | Image with size preset / custom size, fit, align, link, caption, rounded corners |
 | `gallery` | Image grid or slider (arrows) with columns, fit, rounded corners |
 | `button` | Call-to-action button (variants, sizes, alignment) |
+| `button_group` | One to three buttons side by side, sharing size and alignment, optionally stacked on mobile |
 | `card` | Image/title/text/button tiles as a grid or list |
 | `list` | Bulleted / checkmark / numbered list |
 | `icon` | A single icon from the shipped icon set |

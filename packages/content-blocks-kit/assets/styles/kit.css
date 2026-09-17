@@ -68,6 +68,17 @@
 .cb-kit-btn:hover { filter: brightness(1.06); }
 .cb-kit-btn--outline:hover, .cb-kit-btn--link:hover { filter: none; text-decoration: underline; }
 
+/* ---------- Button group ---------- */
+.cb-kit-btn-group { display: flex; flex-wrap: wrap; gap: var(--cb-kit-btn-gap, .75rem); align-items: center; }
+.cb-kit-btn-group--start { justify-content: flex-start; }
+.cb-kit-btn-group--center { justify-content: center; }
+.cb-kit-btn-group--end { justify-content: flex-end; }
+/* Stacked, each button takes the row, so the labels line up on mobile. */
+@media (max-width: 540px) {
+    .cb-kit-btn-group--stack { flex-direction: column; align-items: stretch; }
+    .cb-kit-btn-group--stack > .cb-kit-btn { justify-content: center; }
+}
+
 /* ---------- Divider ---------- */
 .cb-kit-divider { border: 0; border-top: 2px solid var(--cb-kit-border, #d1d5db); margin: 1.25rem 0; }
 .cb-kit-divider--solid { border-top-style: solid; }

@@ -45,10 +45,10 @@ final class SectionTemplateSerializerTest extends TestCase
         $section = new Section();
         $section->setLayout(Section::LAYOUT_FULL);
         $section->setPublishedSettings(['classes' => 'old']);
-        $section->setDraftSettings(['classes' => 'new']);
+        $section->setDraftSettings(['classes' => 'new', 'anchorId' => 'intro']);
 
         $result = (new SectionTemplateSerializer())->serialize($section);
-        $this->assertSame(['classes' => 'new'], $result->payload['settings']);
+        $this->assertSame(['classes' => 'new', 'anchorId' => 'intro'], $result->payload['settings']);
 
         $empty = new Section();
         $empty->setDraftSettings([]);

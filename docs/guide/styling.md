@@ -60,6 +60,29 @@ At render time, two decorators (`StylingSectionDecorator`, `StylingBlockDecorato
 
 The fallback chain inside each `@media` block is: mobile → tablet → desktop → 0. A viewport you leave blank inherits the next-wider one.
 
+## Background image of a section
+
+With *Customize styling* on, a section's Style group has a **background image**
+(upload, drop or pasted path, like the image block). Once it is set, four more
+fields show:
+
+- **Image size**: cover (crops, the default) or contain.
+- **Image position**: center (the default), top, bottom, left or right.
+- **Veil color** and **veil opacity** (0 to 90%): a layer between the image and
+  the content, to keep text readable over a photo. Black when no colour is
+  picked.
+
+The section gets `cb-section--bg-image` and the variables `--cb-s-bg-img`,
+`--cb-s-bg-size`, `--cb-s-bg-pos`, `--cb-s-overlay` and `--cb-s-overlay-color`.
+The image URL goes through your `ImageUrlResolverInterface` at 1920px, so a CDN
+or LiipImagine alias serves a resized file with no template to override. The
+file is referenced like any other: export/import embeds it and
+`content-blocks:assets:gc` keeps it.
+
+The tone class follows the veil: from 40% opacity the section is
+`cb-section--bg-dark` or `-light` after the veil's colour. Under a fainter veil
+the photo decides, so no tone class is set.
+
 ## Text alignment and max width of a block
 
 A block's **Style** tab has three layout fields besides spacing and colour:
@@ -78,8 +101,8 @@ full-width section.
 
 ## Dark and light backgrounds
 
-When a section or a block has a background colour, its decorator also adds a
-tone class: `cb-section--bg-dark` / `cb-section--bg-light`, and
+When a section or a block has a background colour (or, for a section, an image
+under a dense enough veil, see above), its decorator also adds a tone class: `cb-section--bg-dark` / `cb-section--bg-light`, and
 `cb-block--bg-dark` / `cb-block--bg-light`. The package does not change the text
 colour itself, since that would restyle existing pages. Your stylesheet decides:
 

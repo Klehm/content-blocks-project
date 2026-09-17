@@ -5,6 +5,25 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`assets/package.json` declares a `version`.** Yarn 1 refused a `file:`
+  link to the kit's assets without one (`invalid package version ""`).
+- **A table, card or list added and never edited can be translated.** The fix
+  is in the core (collection entry ids at creation); the kit's fields were
+  already tagged.
+
+### Added
+
+- **A `button_group` block**: one to three buttons in a row, each with its text,
+  link, style and new-tab option, sharing one size and alignment. They wrap
+  together, and *Stack on mobile* gives each its own full-width line under
+  540px. Texts and links are translatable. `options.max_items` (default 3)
+  changes the cap; `choices.variant` reaches every button. Styled by `kit.css`
+  (`cb-kit-btn-group*`).
+
 ## [1.0.0-RC11] - 2026-09-17
 
 ### Added

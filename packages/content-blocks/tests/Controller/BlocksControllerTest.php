@@ -66,6 +66,32 @@ final class BlocksControllerTest extends ControllerTestCase
         $this->assertFalse($payload['hotReload']);
     }
 
+    /** A block never edited is translatable too: its entries have ids. */
+    public function testCreateGivesCollectionEntriesTheirIds(): void
+    {
+        $column = $this->makeGraph();
+        $em = $this->makeEm([$column]);
+        $registry = \ContentBlocks\Tests\Block\CollectionIdBackfillerTest::registry();
+        $controller = new BlocksController(
+            $em,
+            $this->makeAccessChecker(),
+            $registry,
+            $this->makeCsrfManager(),
+            $this->createMock(TranslatorInterface::class),
+            $this->makeUnusedRenderer(),
+            $this->makeJournal($em),
+            \ContentBlocks\Tests\Block\CollectionIdBackfillerTest::backfillerFor($registry),
+        );
+
+        $controller->create(3, $this->makeJsonRequest(['type' => 'grid']));
+
+        /** @var Block $block */
+        $block = $this->persisted[0];
+        $rows = $block->getDraftData()['rows'] ?? [];
+        $this->assertIsString($rows[0]['_id'] ?? null);
+        $this->assertIsString($rows[0]['cells'][1]['_id'] ?? null);
+    }
+
     public function testCreateAppendsAfterTheLastSibling(): void
     {
         $column = $this->makeGraph();

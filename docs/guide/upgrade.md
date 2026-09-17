@@ -470,8 +470,10 @@ Entries of a collection field (the kit's `card`, `list`, `accordion`, `tabs`,
 only a position in a list, so anything keyed per entry pointed at the wrong one
 after a reorder, a duplicate or a delete.
 
-New and re-saved content gets ids automatically. Content written before the
-upgrade needs one pass:
+New and re-saved content gets ids automatically, and since RC12 so does a block
+that was added but never edited (before, a fresh `table` or `card` stayed out
+of the translation workbench until someone edited it). Content written before
+the upgrade, or blocks added and left untouched before RC12, need one pass:
 
 ```bash
 php bin/console content-blocks:backfill-collection-ids --dry-run   # report only
@@ -526,6 +528,12 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
   `cb-block--bg-dark|light`. No styles come with them. Only check your CSS if
   it already used those class names. See
   [Dark and light backgrounds](./styling.md#dark-and-light-backgrounds).
+- **Section background image, accordion options, `button_group`** — new
+  settings and a new kit block, off until an editor uses them. Nothing to
+  migrate.
+- **Presets and `initial_settings` accept your own keys** — a config that
+  failed before because of an unknown key now loads, unless that key is a near
+  miss of a core one.
 - **A kit image set to *Full width* now fills its column** (`width: 100%`)
   instead of stopping at the file's own width. An image narrower than its
   column is scaled up: pick another size for those. The new *Aspect ratio*

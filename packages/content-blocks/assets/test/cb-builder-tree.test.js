@@ -178,6 +178,50 @@ describe('cb-builder: telling the tree what changed', () => {
     });
 });
 
+describe('cb-builder: sidebar mounts', () => {
+    let controller;
+
+    beforeEach(() => {
+        ({ controller } = setupController());
+        controller.connect();
+    });
+
+    afterEach(() => controller.disconnect());
+
+    function deferredFetch() {
+        const replies = [];
+        global.fetch = vi.fn(() => new Promise((resolve) => replies.push(resolve)));
+        return (i, html) => replies[i]({ ok: true, text: () => Promise.resolve(html) });
+    }
+
+    it('a response overtaken by a newer request is dropped', async () => {
+        const reply = deferredFetch();
+
+        const first = controller._mountSectionSettings(5);
+        const second = controller._mountSectionSettings(6);
+        reply(1, '<p>newer</p>');
+        await second;
+        reply(0, '<p>older</p>');
+        await first;
+
+        expect(controller.sidebarContentTarget.innerHTML).toBe('<p>newer</p>');
+        expect(controller.sidebarTarget.getAttribute('data-cb-sidebar-section-id')).toBe('6');
+    });
+
+    it('clearing the sidebar cancels a mount still on its way', async () => {
+        const reply = deferredFetch();
+        controller._sidebarEmptyHtml = '<p>empty</p>';
+
+        const pending = controller._mountSidebar(700);
+        controller._resetSidebarToEmptyState();
+        reply(0, '<form>late</form>');
+        await pending;
+
+        expect(controller.sidebarContentTarget.innerHTML).toBe('<p>empty</p>');
+        expect(controller.sidebarTarget.hasAttribute('data-cb-sidebar-block-id')).toBe(false);
+    });
+});
+
 describe('cb-builder: the topbar button and the panel beside main', () => {
     let controller, element, panel, toggle;
 

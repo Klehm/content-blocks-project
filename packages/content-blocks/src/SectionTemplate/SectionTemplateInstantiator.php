@@ -6,6 +6,7 @@ namespace ContentBlocks\SectionTemplate;
 
 use ContentBlocks\Block\BlockDataKeys;
 use ContentBlocks\Block\BlockRestoreTally;
+use ContentBlocks\Block\CollectionIdBackfiller;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
@@ -23,6 +24,7 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
         private readonly BlockTypeRegistry $registry,
         private readonly BlockDataKeys $dataKeys,
         private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
+        private readonly ?CollectionIdBackfiller $collectionIds = null,
     ) {
     }
 
@@ -132,8 +134,10 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
                 $tally->noteUnknownKeys($type, $this->dataKeys->unknownIn($type, $data));
             }
             // Kept verbatim, including keys the type no longer declares — those
-            // warn, they are never dropped.
-            $block->setDraftData($data);
+            // warn, they are never dropped. Missing entry ids are added.
+            $block->setDraftData(is_string($type) && $this->collectionIds !== null
+                ? $this->collectionIds->backfill($type, $data)
+                : $data);
         }
 
         $tally->keep();

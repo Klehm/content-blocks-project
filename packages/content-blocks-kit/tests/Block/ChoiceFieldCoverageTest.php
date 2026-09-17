@@ -49,6 +49,7 @@ final class ChoiceFieldCoverageTest extends TestCase
         'alert' => ['content' => 'X'],
         'divider' => [],
         'video' => ['src' => '/uploads/x.mp4'],
+        'button_group' => ['items' => [['text' => 'X']]],
     ];
 
     /**
@@ -84,6 +85,12 @@ final class ChoiceFieldCoverageTest extends TestCase
         yield 'alert.type' => ['alert', 'type', 'tip', []];
         yield 'divider.style' => ['divider', 'style', 'double', []];
         yield 'video.size' => ['video', 'size', 'xxl', []];
+        // Chosen per button, so the value rides in an entry.
+        yield 'button_group.variant' => ['button_group', 'variant', 'ghost', [
+            'items' => [['text' => 'X', 'variant' => 'ghost']],
+        ]];
+        yield 'button_group.size' => ['button_group', 'size', 'jumbo', []];
+        yield 'button_group.align' => ['button_group', 'align', 'stretch', []];
         yield 'video.align' => ['video', 'align', 'baseline', []];
     }
 

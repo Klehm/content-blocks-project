@@ -233,6 +233,14 @@ section's column gap does not open between a header and its panel. The
 interleaving is safe because everything that walks columns selects
 `[data-cb-column-id]`, never the row's children by position.
 
+**One panel at a time uses radios, and a radio cannot be unchecked.** So the
+row starts with a hidden "none" radio of the same group, and each panel gets a
+second header labelled for it. `radio:checked + header` hides the opening label
+and shows its twin, so clicking the open header checks "none" and the panel
+closes. The builder overlay skips `.cb-accordion__none` when it lines inputs up
+with columns. The open index is compared with `is same as`: Twig's `0 == null`
+is true, which checked the first panel of every section meant to start closed.
+
 In the builder the same markup is live, and three things keep it usable:
 
 - A **deleted column keeps its place** in the DOM (hidden), so indices still

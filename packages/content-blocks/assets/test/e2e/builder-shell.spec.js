@@ -439,7 +439,7 @@ test.describe('builder shell — blocks', () => {
         // The list reflects the registered block types (the full kit is
         // enabled in the sandbox).
         const items = popover.locator('button');
-        await expect(items).toHaveCount(18);
+        await expect(items).toHaveCount(19);
 
         await items.first().click();
         await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);

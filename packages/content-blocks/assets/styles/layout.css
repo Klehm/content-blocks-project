@@ -241,6 +241,23 @@
     display: none;
     padding-block: var(--cb-accordion-gap, 1rem);
 }
-.cb-accordion__toggle:checked + .cb-accordion__header + .cb-col {
+.cb-accordion__toggle:checked + .cb-accordion__header + .cb-col,
+.cb-accordion__toggle:checked + .cb-accordion__header + .cb-accordion__header--close + .cb-col {
     display: block;
+}
+/* One at a time: an open panel swaps its header for the twin that checks
+   the hidden "none" radio, which is how a radio group closes again. */
+.cb-accordion__header--close,
+.cb-accordion__toggle[type="radio"]:checked + .cb-accordion__header {
+    display: none;
+}
+.cb-accordion__toggle:checked + .cb-accordion__header + .cb-accordion__header--close {
+    display: flex;
+}
+.cb-accordion__header--close::after {
+    transform: translateY(25%) rotate(-135deg);
+}
+.cb-accordion__toggle:checked:focus-visible + .cb-accordion__header + .cb-accordion__header--close {
+    outline: 2px solid var(--cb-accordion-accent, currentColor);
+    outline-offset: 2px;
 }

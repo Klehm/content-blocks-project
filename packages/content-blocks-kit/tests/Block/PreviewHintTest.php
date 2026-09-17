@@ -10,6 +10,7 @@ use ContentBlocks\Kit\Block\AccordionBlock;
 use ContentBlocks\Kit\Block\AlertBlock;
 use ContentBlocks\Kit\Block\BreadcrumbBlock;
 use ContentBlocks\Kit\Block\ButtonBlock;
+use ContentBlocks\Kit\Block\ButtonGroupBlock;
 use ContentBlocks\Kit\Block\CardBlock;
 use ContentBlocks\Kit\Block\DividerBlock;
 use ContentBlocks\Kit\Block\EmbedBlock;
@@ -56,6 +57,12 @@ final class PreviewHintTest extends TestCase
         ];
         yield 'button shows its label' => [
             new ButtonBlock(), ['text' => 'Buy now'], BlockPreviewHint::KIND_BUTTON, 'Buy now',
+        ];
+        yield 'button group joins its labels' => [
+            new ButtonGroupBlock(),
+            ['items' => [['text' => 'Buy'], ['text' => ''], ['text' => 'Contact']]],
+            BlockPreviewHint::KIND_BUTTON,
+            'Buy · Contact',
         ];
         yield 'list joins its items' => [
             new ListBlock(),
@@ -213,7 +220,7 @@ final class PreviewHintTest extends TestCase
         sort($optedIn);
 
         $this->assertSame([
-            'accordion', 'alert', 'breadcrumb', 'button', 'card', 'divider', 'embed',
+            'accordion', 'alert', 'breadcrumb', 'button', 'button_group', 'card', 'divider', 'embed',
             'gallery', 'image', 'list', 'rich_text', 'tabs', 'text', 'title', 'video',
         ], $optedIn, 'icon, table and html_raw deliberately stay generic tiles');
     }

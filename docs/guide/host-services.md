@@ -392,9 +392,16 @@ override:
 .cb-tabs__tab { text-transform: uppercase; }
 ```
 
-The accordion works the same way: a checkbox and a header before each column,
-the first panel open, each one opening independently of the others. Its
-custom properties and classes:
+The accordion works the same way: a toggle and a header before each column. By
+default the first panel is open and each one opens independently. Two section
+settings, next to *Display* in the sidebar and allowed in a preset, change that:
+
+- **`accordionSingle`** (*Only one panel open at a time*): opening a panel
+  closes the other one, and clicking the open header closes it. Still CSS only.
+- **`accordionCollapsed`** (*All panels closed at first*): nothing is open when
+  the page loads, as on a FAQ.
+
+Its custom properties and classes:
 
 ```css
 .cb-content-area {
@@ -408,6 +415,16 @@ custom properties and classes:
 
 A style preset may carry `display: tabs` or `display: accordion` in its
 `settings`, like any other section setting.
+
+### Your own keys in presets and initial settings
+
+`section_styles[].settings` and `section.initial_settings` type the core keys,
+and keep any other key as it is: a field you added to the section form with a
+type extension (see [Add a section field](./recipes/add-section-field.md)) can
+be preset too, at the top level or under `styling`. A key one or two letters
+away from a core key is refused at `cache:clear` as a typo
+(`widthMod` → *did you mean "widthMode"?*). Custom keys also travel with the
+section through duplicate, copy/paste, section templates and export/import.
 
 ### Adding (or overriding) defaults via a provider
 

@@ -9,6 +9,7 @@ use ContentBlocks\Kit\Block\AccordionBlock;
 use ContentBlocks\Kit\Block\AlertBlock;
 use ContentBlocks\Kit\Block\BreadcrumbBlock;
 use ContentBlocks\Kit\Block\ButtonBlock;
+use ContentBlocks\Kit\Block\ButtonGroupBlock;
 use ContentBlocks\Kit\Block\CardBlock;
 use ContentBlocks\Kit\Block\DividerBlock;
 use ContentBlocks\Kit\Block\EmbedBlock;
@@ -60,6 +61,7 @@ final class ContentBlocksKitBundle extends AbstractBundle
         'image' => ImageBlock::class,
         'gallery' => GalleryBlock::class,
         'button' => ButtonBlock::class,
+        'button_group' => ButtonGroupBlock::class,
         'card' => CardBlock::class,
         'list' => ListBlock::class,
         'icon' => IconBlock::class,
