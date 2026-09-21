@@ -5,6 +5,54 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Sidebar tabs and panels for every field.** Four form options lay out the
+  block and section sidebars without a template: `cb_group` (the tab),
+  `cb_panel` (a collapsible panel in it), `cb_help_tooltip` (the long help
+  behind an (i) button) and `cb_panels_exclusive`. The panels of a tab are
+  native `<details>` sharing a `name`, so opening one closes the other; the
+  one holding an invalid field opens, and the sidebar remembers the tab and
+  panel last used for the session. A closed panel sums up its values in its
+  header. See [Laying out sidebar fields](https://klehm.github.io/content-blocks-project/guide/sidebar-fields).
+- **Icon choices.** `cb_icons` on a `ChoiceType` draws each choice as an icon
+  button over its native radio — or checkbox, with `multiple` — in a row or a
+  grid (`cb_icon_layout`, `cb_icon_columns`), optionally labelled
+  (`cb_icon_labels`). 78 icons ship (positions, corners, sides, alignments,
+  media fits and ratios, layouts, displays, effects, directions); a host adds
+  or redraws some through `UiIconProviderInterface` (autoconfigured). Twig:
+  `cb_ui_icon(name)`.
+- **A background image can sit in a corner**: `backgroundPosition` accepts
+  `top left`, `top right`, `bottom left` and `bottom right`, picked from a 3×3
+  grid.
+
+### Changed
+
+- **The section sidebar has tabs**, like the block one: *Structure* and
+  *Style*. Structure holds four panels — *Columns*, *Layout* (the display per
+  screen with every field it gates: slider and accordion options, reverse on
+  mobile, column widths), *Width* and *Advanced*; the styling is folded into
+  *Spacing*, *Background* and *Size and alignment* panels, on blocks too. A
+  field that gates another shares its panel. A field a host adds to
+  `SectionSettingsType` lands on *Structure* unless it names a tab.
+- Display, width mode, background size and alignments are icon choices; the
+  display labels are shortened to Grid / Slider / Tabs / Accordion. The help
+  of *Customize styling* is one line, the rest in its tooltip.
+- **A lighter chrome.** Fields are white (`--cb-field-bg`: a tinted field read
+  as disabled) with a hairline shadow, `--cb-shadow-field`; buttons and the
+  preview's add controls take `--cb-shadow-control`, lift to
+  `--cb-shadow-control-hover` under the pointer, and a picked value — icon
+  choice, column-width preset, linked sides — is a solid accent with
+  `--cb-shadow-selected`. A host that redeclared `--cb-field-bg` keeps its fill.
+- `data-cb-group` is still read, and `cb_group` wins over it.
+- **If you styled or overrode the sidebar:** `.cb-block__tab*` became
+  `.cb-sidebar-tabs__*`, `.cb-sidebar__group*` and `.cb-align-*` are gone, and
+  so are the `cb_vertical_align` / `cb_horizontal_align` theme blocks — the
+  fields render through `cb_icon_choice_widget`. No `controllers.json`
+  change: `cb-tabs` does the new work.
+
 ## [1.0.0-RC14] - 2026-09-17
 
 ### Fixed

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Form\Type\Styling;
 
+use ContentBlocks\Form\Type\Styling\ResponsiveBoxSpacingType;
 use ContentBlocks\Form\Type\Styling\StylingType;
 use Symfony\Component\Form\Test\TypeTestCase;
 
@@ -88,5 +89,46 @@ final class StylingTypeTest extends TypeTestCase
         $this->assertSame(400, $data['minHeight']['value']);
         $this->assertSame('vh', $data['minHeight']['unit']);
         $this->assertSame('center', $data['verticalAlign']);
+    }
+
+    /** Built with a bare factory: the layout rides on view vars, no option. */
+    public function testFieldsKnowTheirPanelAndIconsWithoutTheExtensions(): void
+    {
+        $view = $this->factory->create(StylingType::class, null, [
+            'include_min_height' => true,
+            'include_alignment' => true,
+            'include_gap' => true,
+            'include_background_image' => true,
+        ])->createView();
+
+        $this->assertSame(StylingType::PANEL_SPACING, $view['gap']->vars['cb_panel']);
+        $this->assertSame(StylingType::PANEL_BACKGROUND, $view['backgroundPosition']->vars['cb_panel']);
+        $this->assertSame(StylingType::PANEL_LAYOUT, $view['verticalAlign']->vars['cb_panel']);
+        $this->assertSame('grid', $view['backgroundPosition']->vars['cb_icon_layout']);
+        $this->assertSame('pos-mc', $view['backgroundPosition']->vars['cb_icons']['']);
+        $this->assertContains('cb_icon_choice', $view['verticalAlign']->vars['block_prefixes']);
+    }
+
+    public function testAPanelAHostAlreadyPickedIsKept(): void
+    {
+        $view = $this->factory->createBuilder(StylingType::class)
+            ->add('padding', ResponsiveBoxSpacingType::class, ['label' => 'x'])
+            ->getForm()
+            ->createView();
+        $view['padding']->vars['cb_panel'] = 'Mine';
+
+        (new StylingType())->finishView($view, $this->factory->create(StylingType::class), []);
+
+        $this->assertSame('Mine', $view['padding']->vars['cb_panel']);
+    }
+
+    public function testTheImageCanBePinnedToACorner(): void
+    {
+        $form = $this->factory->create(StylingType::class, null, ['include_background_image' => true]);
+
+        $form->submit(['backgroundImage' => '/uploads/hero.jpg', 'backgroundPosition' => 'bottom right']);
+
+        $this->assertTrue($form->isSynchronized());
+        $this->assertSame('bottom right', $form->getData()['backgroundPosition']);
     }
 }

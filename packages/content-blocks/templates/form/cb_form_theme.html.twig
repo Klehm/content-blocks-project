@@ -392,10 +392,27 @@
 
 {% block form_help -%}
     {%- if help is not empty -%}
-        {%- set help_attr = help_attr|merge({class: (help_attr.class|default('') ~ ' cb-form-help')|trim}) -%}
+        {%- set help_attr = help_attr|merge({class: (help_attr.class|default('') ~ ' cb-form-help help-text')|trim}) -%}
+        <div id="{{ id }}_help"{% with {attr: help_attr} %}{{ block('attributes') }}{% endwith %}>
+            {{- block('form_help_content') -}}
+            {%- if cb_help_tooltip|default(null) is not empty -%}
+                {{- block('_cb_help_tooltip') -}}
+            {%- endif -%}
+        </div>
     {%- endif -%}
-    {{- parent() -}}
 {%- endblock form_help %}
+
+
+{# `cb_help_tooltip`: the long help, on hover or focus of an (i) button. #}
+{% block _cb_help_tooltip -%}
+    {%- set tip = translation_domain is same as(false) ? cb_help_tooltip : cb_help_tooltip|trans({}, translation_domain) -%}
+    <span class="cb-help-tip">
+        <button type="button" class="cb-help-tip__button"
+                aria-label="{{ 'cb.form.more_info'|trans({}, 'content_blocks') }}"
+                aria-describedby="{{ id }}_tip">i</button>
+        <span class="cb-help-tip__bubble" role="tooltip" id="{{ id }}_tip">{{ tip }}</span>
+    </span>
+{%- endblock _cb_help_tooltip %}
 
 
 {# ---- Live Collection ----

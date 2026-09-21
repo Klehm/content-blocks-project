@@ -283,6 +283,21 @@ return static function (ContainerConfigurator $container): void {
         ->args([tagged_iterator('content_blocks.color_palette_provider')])
         ->public();
 
+    // ---------- UI icons (sidebar icon choices) ----------
+
+    // Tagged by hand at the lowest priority: a host provider, autoconfigured
+    // at 0, is read first and so redraws any core icon it names.
+    $services->set(\ContentBlocks\Icon\CoreUiIcons::class)
+        ->autoconfigure(false)
+        ->tag('content_blocks.ui_icon_provider', ['priority' => -1000]);
+
+    $services->set(\ContentBlocks\Icon\UiIconRegistry::class)
+        ->args([tagged_iterator('content_blocks.ui_icon_provider')])
+        ->public();
+
+    $services->set(\ContentBlocks\Twig\UiIconExtension::class)
+        ->tag('twig.extension');
+
     // Built-in decorator runs first so host extensions can react to or
     // override its output via tag priority if needed.
     $services->set(BuiltInSectionDecorator::class);
@@ -381,6 +396,7 @@ return static function (ContainerConfigurator $container): void {
     // freezes with 1.0. See docs/internals/forms.md
     $services->set(\ContentBlocks\Form\Extension\TranslatableFieldTypeExtension::class)
         ->tag('form.type_extension');
+
 
     $services->set(\ContentBlocks\Translation\TranslatableFields::class);
     $services->alias(

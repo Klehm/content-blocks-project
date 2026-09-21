@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { reveal } from './helpers/sidebar.js';
 
 /**
  * A section's display per viewport (a grid becoming a slider, tabs becoming
@@ -50,7 +51,7 @@ async function publish(page) {
 
 /** Picks a display for one viewport in the section sidebar. */
 async function chooseDisplay(page, viewport, value) {
-    const row = page.locator('.cb-shell__sidebar .cb-display-row');
+    const row = await reveal(page.locator('.cb-shell__sidebar .cb-display-row'));
     await row.locator(`.cb-viewport-tabs__btn[data-viewport="${viewport}"]`).click();
     const field = { desktop: 'display', tablet: 'displayTablet', mobile: 'displayMobile' }[viewport];
     const saved = page.waitForResponse((r) => /\/section\/\d+\/settings$/.test(r.url())
@@ -140,7 +141,7 @@ test('tabs on desktop turn into an accordion on mobile', async ({ page, context 
     await addBlockTo(frame, section.locator('[data-cb-column-id]').first());
     await section.locator(':scope > .cb-section-handle').click({ force: true });
 
-    const row = page.locator('.cb-shell__sidebar .cb-display-row');
+    const row = await reveal(page.locator('.cb-shell__sidebar .cb-display-row'));
     await row.locator('.cb-viewport-tabs__btn[data-viewport="mobile"]').click();
     await expect(row.locator('input[name$="[displayMobile]"][value="grid"]')).toBeDisabled();
     await expect(row.locator('input[name$="[displayMobile]"][value="slider"]')).toBeDisabled();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Form\Type\Styling;
 
+use ContentBlocks\Form\Extension\IconChoiceTypeExtension;
 use ContentBlocks\Form\Type\ImageUploadType;
 use ContentBlocks\Form\Type\PaletteColorType;
 use Symfony\Component\Form\AbstractType;
@@ -11,6 +12,8 @@ use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\RangeType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
@@ -21,6 +24,61 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 final class StylingType extends AbstractType
 {
+    public const PANEL_SPACING = 'cb.styling.panel.spacing';
+    public const PANEL_BACKGROUND = 'cb.styling.panel.background';
+    public const PANEL_LAYOUT = 'cb.styling.panel.layout';
+
+    private const PANELS = [
+        'padding' => self::PANEL_SPACING,
+        'margin' => self::PANEL_SPACING,
+        'gap' => self::PANEL_SPACING,
+        'backgroundColor' => self::PANEL_BACKGROUND,
+        'backgroundImage' => self::PANEL_BACKGROUND,
+        'backgroundSize' => self::PANEL_BACKGROUND,
+        'backgroundPosition' => self::PANEL_BACKGROUND,
+        'overlayColor' => self::PANEL_BACKGROUND,
+        'overlayOpacity' => self::PANEL_BACKGROUND,
+        'minHeight' => self::PANEL_LAYOUT,
+        'maxWidth' => self::PANEL_LAYOUT,
+        'verticalAlign' => self::PANEL_LAYOUT,
+        'textAlign' => self::PANEL_LAYOUT,
+        'alignSelf' => self::PANEL_LAYOUT,
+    ];
+
+    /** Field => arguments of {@see IconChoiceTypeExtension::decorate()}. */
+    private const ICONS = [
+        'verticalAlign' => [self::ALIGN_ICONS],
+        'textAlign' => [self::HALIGN_ICONS],
+        'alignSelf' => [self::HALIGN_ICONS],
+        'backgroundSize' => [['' => 'fit-cover', 'contain' => 'fit-contain'], 'row', null, true],
+        'backgroundPosition' => [self::POSITION_ICONS, 'grid', 3],
+    ];
+
+    private const ALIGN_ICONS = [
+        '' => 'auto',
+        'start' => 'valign-start',
+        'center' => 'valign-center',
+        'end' => 'valign-end',
+    ];
+    private const POSITION_ICONS = [
+        'top left' => 'pos-tl',
+        'top' => 'pos-tc',
+        'top right' => 'pos-tr',
+        'left' => 'pos-ml',
+        '' => 'pos-mc',
+        'right' => 'pos-mr',
+        'bottom left' => 'pos-bl',
+        'bottom' => 'pos-bc',
+        'bottom right' => 'pos-br',
+    ];
+    private const HALIGN_ICONS = [
+        '' => 'auto',
+        'start' => 'halign-start',
+        'center' => 'halign-center',
+        'end' => 'halign-end',
+        'justify' => 'halign-justify',
+    ];
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
@@ -83,9 +141,6 @@ final class StylingType extends AbstractType
                     'cb.styling.align.center' => 'center',
                     'cb.styling.align.end' => 'end',
                 ],
-                // Custom block_prefix so the styling form theme can
-                // render each radio as an icon button.
-                'block_prefix' => 'cb_vertical_align',
             ]);
         }
 
@@ -101,7 +156,6 @@ final class StylingType extends AbstractType
                     'cb.styling.text_align.end' => 'end',
                     'cb.styling.text_align.justify' => 'justify',
                 ],
-                'block_prefix' => 'cb_horizontal_align',
             ]);
         }
 
@@ -118,7 +172,6 @@ final class StylingType extends AbstractType
                     'cb.styling.align.center' => 'center',
                     'cb.styling.align.end' => 'end',
                 ],
-                'block_prefix' => 'cb_horizontal_align',
                 'row_attr' => [
                     'data-cb-block-styling-form-target' => 'alignSelfRow',
                     'hidden' => 'hidden',
@@ -130,7 +183,7 @@ final class StylingType extends AbstractType
     /** Section-only: the image, how it covers, and a veil for legible text. */
     private function addBackgroundImage(FormBuilderInterface $builder): void
     {
-        $onlyWithImage = ['data-cb-condition' => 'backgroundImage'];
+        $withImage = ['row_attr' => ['data-cb-condition' => 'backgroundImage']];
         $builder
             ->add('backgroundImage', ImageUploadType::class, [
                 'required' => false,
@@ -145,37 +198,57 @@ final class StylingType extends AbstractType
                 'choices' => [
                     'cb.styling.background_size.contain' => 'contain',
                 ],
-                'row_attr' => $onlyWithImage,
-            ])
+                'expanded' => true,
+            ] + $withImage)
+            // The grid reads left to right, top to bottom; the placeholder
+            // is its centre cell.
             ->add('backgroundPosition', ChoiceType::class, [
                 'required' => false,
                 'label' => 'cb.styling.background_position',
                 'placeholder' => 'cb.styling.background_position.center',
                 'choices' => [
+                    'cb.styling.background_position.top_left' => 'top left',
                     'cb.styling.background_position.top' => 'top',
-                    'cb.styling.background_position.bottom' => 'bottom',
+                    'cb.styling.background_position.top_right' => 'top right',
                     'cb.styling.background_position.left' => 'left',
                     'cb.styling.background_position.right' => 'right',
+                    'cb.styling.background_position.bottom_left' => 'bottom left',
+                    'cb.styling.background_position.bottom' => 'bottom',
+                    'cb.styling.background_position.bottom_right' => 'bottom right',
                 ],
-                'row_attr' => $onlyWithImage,
-            ])
+                'expanded' => true,
+            ] + $withImage)
             ->add('overlayColor', PaletteColorType::class, [
                 'required' => false,
                 'label' => 'cb.styling.overlay_color',
-                'row_attr' => $onlyWithImage,
-            ])
+            ] + $withImage)
             ->add('overlayOpacity', RangeType::class, [
                 'required' => false,
                 'label' => 'cb.styling.overlay_opacity',
                 'attr' => ['min' => 0, 'max' => 90, 'step' => 5],
-                'row_attr' => $onlyWithImage,
-            ]);
+            ] + $withImage);
 
         // A range posts a string; the settings and the config hold an int.
         $builder->get('overlayOpacity')->addModelTransformer(new CallbackTransformer(
             static fn (mixed $value): string => (string) (\is_numeric($value) ? (int) $value : 0),
             static fn (mixed $value): ?int => \is_numeric($value) && (int) $value > 0 ? min(100, (int) $value) : null,
         ));
+    }
+
+    /**
+     * Panels and icons as view vars rather than options, so a bare form
+     * factory still builds this type. A value a host already set is kept.
+     */
+    public function finishView(FormView $view, FormInterface $form, array $options): void
+    {
+        foreach ($view->children as $name => $child) {
+            if (isset(self::PANELS[$name])) {
+                $child->vars['cb_panel'] ??= self::PANELS[$name];
+            }
+            if (isset(self::ICONS[$name]) && ($child->vars['cb_icons'] ?? null) === null) {
+                IconChoiceTypeExtension::decorate($child, ...self::ICONS[$name]);
+            }
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void

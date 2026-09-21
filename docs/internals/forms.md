@@ -245,12 +245,13 @@ edit form alike.
 value lands in the section's `draft_settings` JSON unchanged. To act on it at
 render time, register a `SectionDecoratorInterface` that reads it.
 
-Which **tab** a field appears in is decided by which type you extend:
+Which **tab** a field appears in is decided by which type you extend, then by
+its `cb_group`:
 
 | Extend | Field appears in |
 |---|---|
-| `SectionSettingsType` | the *General* tab |
-| `StylingType` (or a sub-type) | the *Styling* tab, sections and blocks alike |
+| `SectionSettingsType` | the *Structure* tab, or the tab its `cb_group` names |
+| `StylingType` (or a sub-type) | the *Style* tab, sections and blocks alike |
 
 `StylingType` is one compound type serving both sections and blocks; the
 irrelevant fields are gated by boolean options (`include_min_height`,
@@ -302,6 +303,60 @@ mobile under fixed keys. The viewport switcher shows one set at a time but the
 form always submits all three, and an unset tablet or mobile inherits from the
 next-wider value through CSS variable cascading at render — so empty viewports
 are not a bug.
+
+## Sidebar tabs and panels
+
+The integrator's side is [Laying out sidebar fields](../guide/sidebar-fields.md).
+What follows is why it is built the way it is.
+
+**The core's own fields carry their layout as view vars, not options.**
+`SectionSettingsType` and `StylingType` set `cb_group`, `cb_panel`, `cb_icons`
+and `cb_help_tooltip` on their children in `finishView()`, from constant maps.
+Passing them as options would have been shorter, but an option only exists
+where its extension is registered: every test (the kit's, i18n's, a host's)
+building `BlockFormType` from a bare `Forms::createFormFactoryBuilder()` would
+have failed with "the option cb_panel does not exist". `finishView()` only fills
+a var that is still null, so a host re-adding a core field with its own
+`cb_panel` keeps it. `IconChoiceTypeExtension::decorate()` is the one code path
+for both, so a core field and a host field render identically.
+
+**One panel open at a time is the browser's job.** Panels are `<details>`, and
+the panels of a group share a `name`: an exclusive accordion, native since
+Chrome 120 / Safari 17.2 / Firefox 130, degrading to independent panels
+before. A scripted version would have had to survive Live's morph of the block
+form; an attribute the browser enforces needs nothing. `cb_panels_exclusive`
+drops the `name`, and is and-ed down the tree so one switch on the root form
+also reaches the styling sub-form.
+
+**Which panel is open** is decided on the server first — the one holding an
+invalid field, else the first — and only then by `cb-tabs`' memory
+(`sessionStorage`, per sidebar kind: `section`, `block:<type>`). A remembered
+panel never overrides an error.
+
+**Summaries are an attribute, not text.** `cb-tabs` writes the summary of a
+panel to `data-cb-summary` and CSS prints it with `content: attr(...)`. Live's
+external-mutation tracker restores attributes a script changed, not text
+nodes, so text written into the header of the block form would vanish on the
+next re-render. The summary reads the form rather than a per-field
+declaration: desktop values of responsive fields, `0` for an empty side of a
+four-sided box, a slider resting on its minimum as unset, an upload by its file
+name. The columns panel has no named fields and passes a fixed summary.
+
+**The native input covers its icon button.** The radio or checkbox is absolutely
+positioned over the whole option at `opacity: 0`, not visually hidden in a
+corner: a click lands on the input itself, so a real browser, the keyboard and
+Playwright's `.check()` all behave as for a plain radio, with no
+`{ force: true }` and no label indirection.
+
+**The icon widget lives in `styling_widgets.html.twig`**, not in
+`cb_form_theme.html.twig`, because it calls `cb_ui_icon()`: a theme that
+references an unknown function fails to compile, and hosts and the kit render
+`cb_form_theme` alone in their own tests. Both sidebars load
+`styling_widgets` already.
+
+**The icon registry has no cache.** It walks its providers on every lookup — a
+few dozen per sidebar render over arrays of ~80 — which keeps it free of
+mutable state, so it needs no `ResetInterface` under worker mode.
 
 ## Block decorators
 

@@ -4,7 +4,7 @@ import Controller from '../controllers/cb-block-styling-form_controller.js';
 /**
  * Stimulus runtime is not booted — we wire the controller manually,
  * mimicking the markup produced by Block.html.twig and the
- * cb_horizontal_align_row form-theme block.
+ * cb_icon_choice form-theme block.
  */
 
 function setup({ maxWidth = '' } = {}) {

@@ -156,6 +156,8 @@ final class ZIndexExtension extends AbstractTypeExtension
 
 Pair it with a `SectionDecoratorInterface` reading `$settings['styling']['zIndex']` to emit the style. (For curated background colors, prefer the built-in `palette` config above.)
 
+The styling fields are folded into collapsible panels (Spacing, Background, Size and alignment). Give your field `'cb_panel' => StylingType::PANEL_LAYOUT` to join one, or a label of your own to open another; see [Laying out sidebar fields](./sidebar-fields.md).
+
 ## Adding your own block decorator
 
 Implement `ContentBlocks\Block\BlockDecoratorInterface` (mirror of `SectionDecoratorInterface`). It is auto-tagged with `content_blocks.block_decorator` when `autoconfigure: true` is on, and called for every block being rendered. Return a `BlockDecoration` (classes / inline styles / attributes) — the bundle merges all decorators' output into the block's outer `<div>`.
@@ -184,7 +186,7 @@ The token names are public surface — they are covered by the package's semver 
 | Text | `--cb-text`, `--cb-text-2`, `--cb-muted`, `--cb-faint`, `--cb-on-solid`, `--cb-on-solid-rgb`, `--cb-inverse-surface` |
 | Accent | `--cb-accent-rgb`, `--cb-accent`, `--cb-accent-strong`, `--cb-accent-darker`, `--cb-accent-soft`, `--cb-accent-soft-rgb`, `--cb-accent-bg` |
 | Status | `--cb-danger`, `--cb-danger-rgb`, `--cb-danger-strong`, `--cb-success`, `--cb-success-rgb`, `--cb-success-strong`, `--cb-warning`, `--cb-badge-bg`, `--cb-badge-fg` |
-| Shadow | `--cb-shadow-rgb` |
+| Shadow | `--cb-shadow-rgb`; `--cb-shadow-field` (inputs, selects, checks), `--cb-shadow-control`, `--cb-shadow-control-hover`, `--cb-shadow-selected` (buttons at rest, under the pointer, picked) |
 | Type | `--cb-font-mono`, `--cb-caption-size`, `--cb-caption-size-sm`, `--cb-caption-tracking` |
 | Geometry | `--cb-radius`, `--cb-radius-sm`, `--cb-radius-xs` |
 | Layout | `--cb-sidebar-width` (340px), `--cb-sidebar-collapsed-width` (32px) |

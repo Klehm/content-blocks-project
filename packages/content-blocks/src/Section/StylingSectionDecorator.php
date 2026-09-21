@@ -22,7 +22,10 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
     // stylesheet reads --cb-*-d/t/m-*). This map bridges the two.
     private const VIEWPORT_SHORT = ['desktop' => 'd', 'tablet' => 't', 'mobile' => 'm'];
     private const BACKGROUND_SIZES = ['cover' => true, 'contain' => true];
-    private const BACKGROUND_POSITIONS = ['center' => true, 'top' => true, 'bottom' => true, 'left' => true, 'right' => true];
+    private const BACKGROUND_POSITIONS = [
+        'center' => true, 'top' => true, 'bottom' => true, 'left' => true, 'right' => true,
+        'top left' => true, 'top right' => true, 'bottom left' => true, 'bottom right' => true,
+    ];
     /** Asked of the image resolver: a section spans the viewport. */
     private const BACKGROUND_WIDTH = 1920;
     /** Veil opacity, in percent, from which it decides the tone class. */

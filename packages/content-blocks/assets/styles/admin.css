@@ -850,7 +850,7 @@ body:has(.cb-builder-dialog[open]) {
   flex: 1 1 auto;
   min-height: 3.25rem;
   padding: 0;
-  background: var(--cb-field-bg);
+  background: var(--cb-panel-2);
 }
 .cb-template-poster__tile--image img {
   display: block;
@@ -1094,7 +1094,7 @@ body:has(.cb-builder-dialog[open]) {
 .cb-shell__viewport-btn--active {
   background: var(--cb-panel);
   color: var(--cb-text);
-  box-shadow: 0 1px 2px rgba(var(--cb-shadow-rgb), 0.08);
+  box-shadow: var(--cb-shadow-selected);
 }
 /* Separates looking at the page from committing to it. A pseudo-element, so
    it needs no node; `right` is half the 1rem gutter, to land centred. */
@@ -1438,7 +1438,7 @@ body:has(.cb-builder-dialog[open]) {
   background: var(--cb-panel);
   border: 1px solid var(--cb-line-strong);
   border-radius: 50%;
-  box-shadow: 0 1px 4px rgba(var(--cb-shadow-rgb), 0.12);
+  box-shadow: var(--cb-shadow-control);
   color: var(--cb-muted);
   font-size: 1rem;
   line-height: 1;
@@ -1601,33 +1601,100 @@ body:has(.cb-builder-dialog[open]) {
 /* (Add-section UI now lives inside the iframe — see builder.css's
    .cb-add-section-tray.) */
 
-/* ---- Sidebar groups (General + Styling stacked) ----
-   Both always visible; a label and a divider keep them scannable. */
+/* ---- Sidebar panels (`cb_panel`) ----
+   Native <details>: a shared `name` keeps one open per group, no JS. */
 
-.cb-sidebar__group {
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--cb-panel-2);
+.cb-panel {
+  border-top: 1px solid var(--cb-line);
 }
-.cb-sidebar__group:first-of-type {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
+.cb-panel:not(:has(+ .cb-panel)) {
+  border-bottom: 1px solid var(--cb-line);
+  margin-bottom: var(--cb-form-gap, 0.75rem);
 }
 
-.cb-sidebar__group-title {
-  margin: 0 0 0.75rem;
-  /* Outranks the field labels by weight and colour, not by a third size.
-     Going lighter inverted the hierarchy. */
-  color: var(--cb-text-2);
-  font-family: var(--cb-font-mono);
-  font-size: var(--cb-caption-size);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: var(--cb-caption-tracking);
+.cb-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.65rem 0.125rem;
+  list-style: none;
+  color: var(--cb-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+.cb-panel__header::-webkit-details-marker {
+  display: none;
 }
 
-.cb-sidebar__group-body > :last-child {
+/* The chevron: a bordered corner turned right, then down once open. */
+.cb-panel__header::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin: 0 3px 0 2px;
+  border-right: 1.5px solid var(--cb-faint);
+  border-bottom: 1.5px solid var(--cb-faint);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.cb-panel[open] > .cb-panel__header::before {
+  border-color: var(--cb-accent);
+  transform: rotate(45deg);
+}
+
+.cb-panel__header:hover .cb-panel__title {
+  color: var(--cb-accent);
+}
+.cb-panel__header:focus-visible {
+  outline: 2px solid var(--cb-accent-soft);
+  outline-offset: 2px;
+  border-radius: var(--cb-radius-xs);
+}
+
+.cb-panel__title {
+  flex: none;
+}
+
+/* Filled by cb-tabs from the fields; only shown while the panel is shut. */
+.cb-panel__summary {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  color: var(--cb-faint);
+  font-size: 0.75rem;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cb-panel__summary::before {
+  content: attr(data-cb-summary);
+}
+.cb-panel[open] > .cb-panel__header .cb-panel__summary {
+  visibility: hidden;
+}
+
+/* A dot for "something is set in here", red for "something is wrong". */
+.cb-panel[data-cb-filled] > .cb-panel__header::after,
+.cb-panel--has-error > .cb-panel__header::after {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cb-accent);
+}
+.cb-panel--has-error > .cb-panel__header::after {
+  background: var(--cb-danger);
+}
+
+.cb-panel__body {
+  padding: 0.25rem 0.125rem 1rem;
+}
+.cb-panel__body > :last-child {
   margin-bottom: 0;
 }
 
@@ -1665,17 +1732,17 @@ body:has(.cb-builder-dialog[open]) {
   letter-spacing: 0.01em;
 }
 
-/* ---- Block edit form: tabbed field groups ----
-   Bucketed by `data-cb-group`; all panels stay in the DOM for autosave. */
+/* ---- Sidebar tabs (`cb_group`) ----
+   Block and section sidebars alike; hidden panels stay in the DOM. */
 
-.cb-block__tabs {
+.cb-sidebar-tabs {
   display: flex;
   flex-direction: column;
 }
 
 /* Sticky, so tabs stay reachable on a tall form. The negative top and
    matching padding swallow the container's own, so no field peeks above. */
-.cb-block__tablist {
+.cb-sidebar-tabs__list {
   position: sticky;
   top: -1rem;
   z-index: 2;
@@ -1690,7 +1757,7 @@ body:has(.cb-builder-dialog[open]) {
 
 /* Folder tabs, not an underlined word: these switch the whole panel, and a
    shape keeps the segmented pill meaning "pick a value" only. */
-.cb-block__tab {
+.cb-sidebar-tabs__tab {
   appearance: none;
   padding: 6px 12px;
   /* Sit on the strip's bottom line so the active tab can cover it. */
@@ -1698,7 +1765,7 @@ body:has(.cb-builder-dialog[open]) {
   border: 1px solid var(--cb-line);
   border-top-width: 2px;
   border-radius: var(--cb-radius-sm) var(--cb-radius-sm) 0 0;
-  background: var(--cb-field-bg);
+  background: var(--cb-panel-2);
   color: var(--cb-muted);
   font-size: 0.78rem;
   font-weight: 600;
@@ -1706,12 +1773,12 @@ body:has(.cb-builder-dialog[open]) {
   white-space: nowrap;
 }
 
-.cb-block__tab:hover:not(.cb-block__tab--active) {
+.cb-sidebar-tabs__tab:hover:not(.cb-sidebar-tabs__tab--active) {
   background: var(--cb-panel-2);
   color: var(--cb-text);
 }
 
-.cb-block__tab--active {
+.cb-sidebar-tabs__tab--active {
   background: var(--cb-panel);
   border-top-color: var(--cb-accent);
   border-bottom-color: var(--cb-panel);
@@ -1719,9 +1786,9 @@ body:has(.cb-builder-dialog[open]) {
   font-weight: 700;
 }
 
-/* Red dot appended to a tab whose panel holds an invalid field, so a
-   validation error on a hidden tab is still discoverable after a save. */
-.cb-block__tab--has-error::after {
+/* Red dot on a tab whose panel holds an invalid field, so an error on a
+   hidden tab is still discoverable after a save. */
+.cb-sidebar-tabs__tab--has-error::after {
   content: "";
   display: inline-block;
   width: 6px;
@@ -1732,8 +1799,67 @@ body:has(.cb-builder-dialog[open]) {
   background: var(--cb-danger);
 }
 
-.cb-block__tabpanel[hidden] {
+.cb-sidebar-tabs__panel[hidden] {
   display: none;
+}
+
+/* ---- Help tooltip (`cb_help_tooltip`) ---- */
+
+/* The bubble spans the help line, so it never runs off the sidebar. */
+.cb-form-help:has(> .cb-help-tip) {
+  position: relative;
+}
+
+.cb-help-tip {
+  display: inline-flex;
+  margin-left: 4px;
+  vertical-align: -3px;
+}
+
+.cb-help-tip__button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--cb-line-hover);
+  border-radius: 50%;
+  background: var(--cb-panel);
+  color: var(--cb-muted);
+  font: italic 600 10px/1 Georgia, "Times New Roman", serif;
+  cursor: help;
+}
+.cb-help-tip__button:hover,
+.cb-help-tip__button:focus-visible {
+  border-color: var(--cb-accent);
+  color: var(--cb-accent);
+  outline: 0;
+}
+
+.cb-help-tip__bubble {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  z-index: 20;
+  padding: 8px 10px;
+  border-radius: var(--cb-radius-sm);
+  background: var(--cb-inverse-surface);
+  color: var(--cb-on-solid);
+  font-size: 0.75rem;
+  font-style: normal;
+  line-height: 1.45;
+  box-shadow: 0 6px 16px rgba(var(--cb-shadow-rgb), 0.25);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
+}
+.cb-help-tip:hover .cb-help-tip__bubble,
+.cb-help-tip:focus-within .cb-help-tip__bubble {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* ---- Styling: responsive box spacing (padding / margin) ---- */
@@ -1765,7 +1891,7 @@ body:has(.cb-builder-dialog[open]) {
 .cb-viewport-tabs__btn--active {
   background: var(--cb-panel);
   color: var(--cb-text);
-  box-shadow: 0 1px 2px rgba(var(--cb-shadow-rgb), 0.12);
+  box-shadow: var(--cb-shadow-selected);
 }
 
 .cb-responsive-box-spacing__viewport[hidden] {
@@ -1827,9 +1953,9 @@ body:has(.cb-builder-dialog[open]) {
 
 .cb-box-spacing--linked .cb-box-spacing__link,
 .cb-box-spacing__link[aria-pressed="true"] {
-  background: var(--cb-text);
+  background: var(--cb-accent);
   color: var(--cb-on-solid);
-  border-color: var(--cb-text);
+  border-color: var(--cb-accent);
 }
 
 /* ---- Styling: length input (value + unit) ---- */
@@ -1843,52 +1969,123 @@ body:has(.cb-builder-dialog[open]) {
   flex: 0 0 auto;
 }
 
-/* ---- Styling: alignment icon-radio group ---- */
+/* ---- Icon choices (`cb_icons`) ----
+   An invisible native input covers each option: clicks land on the radio. */
 
-.cb-align-group {
+.cb-icon-choice {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 2px;
+  padding: 2px;
   background: var(--cb-panel-2);
   border-radius: var(--cb-radius-sm);
-  padding: 2px;
+}
+.cb-icon-choice--grid {
+  display: inline-grid;
+  grid-template-columns: repeat(var(--cb-icon-cols, 3), auto);
+}
+.cb-icon-choice--labelled {
+  display: flex;
+}
+.cb-icon-choice--labelled.cb-icon-choice--grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cb-icon-cols, 3), minmax(0, 1fr));
 }
 
-.cb-align-btn {
+.cb-icon-choice__option {
+  position: relative;
+  display: flex;
+  margin: 0;
+}
+.cb-icon-choice--labelled.cb-icon-choice--row .cb-icon-choice__option {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.cb-icon-choice__input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.cb-icon-choice__input:disabled {
+  cursor: not-allowed;
+}
+
+.cb-icon-choice__face {
   display: inline-flex;
+  flex: 1;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  gap: 6px;
+  min-width: 32px;
   height: 28px;
+  padding: 0 6px;
   border-radius: var(--cb-radius-xs);
   color: var(--cb-muted);
-  cursor: pointer;
-  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
   transition:
     background-color 0.08s,
     color 0.08s;
 }
+.cb-icon-choice--grid .cb-icon-choice__face {
+  width: 30px;
+  height: 30px;
+  min-width: 0;
+  padding: 0;
+}
+.cb-icon-choice--labelled.cb-icon-choice--grid .cb-icon-choice__face {
+  flex-direction: column;
+  width: auto;
+  height: auto;
+  min-height: 52px;
+  padding: 6px 4px;
+  gap: 4px;
+}
 
-.cb-align-btn:hover {
+/* No icon to draw: the option reads as text, a whole row in a grid. */
+.cb-icon-choice--grid .cb-icon-choice__option--text {
+  grid-column: 1 / -1;
+}
+.cb-icon-choice--grid .cb-icon-choice__option--text .cb-icon-choice__face {
+  width: auto;
+  padding: 0 8px;
+}
+
+.cb-icon-choice__text {
+  min-width: 0;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.cb-icon-choice .cb-ui-icon {
+  flex: none;
+}
+
+.cb-icon-choice__option:hover .cb-icon-choice__input:not(:disabled, :checked) + .cb-icon-choice__face {
   background: rgba(var(--cb-on-solid-rgb), 0.6);
   color: var(--cb-text);
 }
-
-.cb-align-btn:has(.cb-align-btn__input:checked),
-.cb-align-btn--active {
-  background: var(--cb-panel);
-  color: var(--cb-text);
-  box-shadow: 0 1px 2px rgba(var(--cb-shadow-rgb), 0.12);
+.cb-icon-choice__input:checked + .cb-icon-choice__face {
+  background: var(--cb-accent);
+  color: var(--cb-on-solid);
+  box-shadow: var(--cb-shadow-selected);
 }
-
-.cb-align-btn:has(.cb-align-btn__input:focus-visible) {
+.cb-icon-choice__option:hover .cb-icon-choice__input:checked + .cb-icon-choice__face {
+  background: var(--cb-accent-strong);
+}
+.cb-icon-choice__input:focus-visible + .cb-icon-choice__face {
   outline: 2px solid var(--cb-accent-soft);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
-
-.cb-align-btn__face {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.cb-icon-choice__input:disabled + .cb-icon-choice__face {
+  opacity: 0.35;
 }
 
 /* Undo / redo. Same segmented shape as the viewport group, so the topbar
@@ -1919,4 +2116,53 @@ body:has(.cb-builder-dialog[open]) {
   color: var(--cb-muted);
   opacity: 0.45;
   cursor: default;
+}
+
+/* ---- Elevation ----
+   One shadow for fields, three steps for buttons; focus rings stay theirs. */
+
+.cb-shell .cb-form-control:not(:focus),
+.cb-shell .cb-form-select:not(:focus),
+.cb-shell .cb-form-range-wrap__number:not(:focus),
+.cb-shell .cb-form-file:not(:focus-within),
+.cb-shell .cb-form-check__input:not(:focus-visible),
+.cb-shell .cb-col-widths__input:not(:focus),
+.cb-replace-picker__search:not(:focus),
+.cb-template-picker__search:not(:focus) {
+  box-shadow: var(--cb-shadow-field);
+}
+
+.cb-launcher__button:not(:focus-visible),
+.cb-shell .cb-form-btn:not(:focus-visible),
+.cb-shell .cb-col-widths__preset:not(:focus-visible),
+.cb-box-spacing__link:not(:focus-visible),
+.cb-import-export-picker__btn:not(:focus-visible),
+.cb-sidebar-empty__btn:not(:focus-visible),
+.cb-template-picker__item-btn:not(:focus-visible),
+.cb-help-tip__button:not(:focus-visible),
+.cb-shell__publish:not([disabled], :focus-visible) {
+  box-shadow: var(--cb-shadow-control);
+}
+
+/* Lifts under the pointer; the text-like topbar buttons only then. */
+.cb-launcher__button:hover:not(:focus-visible),
+.cb-shell .cb-form-btn:hover:not(:disabled, :focus-visible),
+.cb-shell .cb-col-widths__preset:hover:not(:focus-visible),
+.cb-box-spacing__link:hover:not(:focus-visible),
+.cb-import-export-picker__btn:hover:not([disabled], :focus-visible),
+.cb-sidebar-empty__btn:hover:not(:focus-visible),
+.cb-template-picker__item-btn:hover:not(:focus-visible),
+.cb-shell__sidebar-toggle:hover,
+.cb-shell__publish:hover:not([disabled], :focus-visible),
+.cb-shell__discard:hover:not([disabled]),
+.cb-shell__tree-toggle:hover,
+.cb-shell__public-link:hover {
+  box-shadow: var(--cb-shadow-control-hover);
+}
+
+.cb-shell__tree-toggle--open,
+.cb-shell .cb-col-widths__preset--active:not(:focus-visible),
+.cb-box-spacing--linked .cb-box-spacing__link:not(:focus-visible),
+.cb-box-spacing__link[aria-pressed="true"]:not(:focus-visible) {
+  box-shadow: var(--cb-shadow-selected);
 }

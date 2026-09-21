@@ -15,7 +15,7 @@
   --cb-panel: #fff; /* panels, cards, inputs */
   --cb-panel-2: #eef2f6; /* subtle raised fill: pills, segmented controls */
   --cb-panel-3: #f4f7fa; /* faintest fill: zebra rows, placeholders */
-  --cb-field-bg: #eff4f8; /* input fill — tinted, so fields read against panels */
+  --cb-field-bg: #fff; /* input fill — white: a tinted field reads as disabled */
 
   /* ---- Lines ---- */
   --cb-line: #dde4ea; /* default border */
@@ -64,6 +64,13 @@
   /* ---- Shadows / overlays ----
    * One cool near-black drives every shadow and the dialog backdrop. */
   --cb-shadow-rgb: 30, 55, 80;
+
+  /* Fields (inputs, selects, checks): a hairline on the lower right edge. */
+  --cb-shadow-field: 1px 1px 4px -4px rgb(var(--cb-shadow-rgb));
+  /* Controls: resting, hovered, picked. Three steps, used everywhere. */
+  --cb-shadow-control: 0 1px 2px rgba(var(--cb-shadow-rgb), 0.08);
+  --cb-shadow-control-hover: 0 2px 6px rgba(var(--cb-shadow-rgb), 0.14);
+  --cb-shadow-selected: 0 1px 3px rgba(var(--cb-shadow-rgb), 0.24);
 
   /* ---- Geometry ---- */
   --cb-radius: 8px; /* panels, dialogs */

@@ -20,6 +20,62 @@
                 <source>app.builder.translate_title</source>
                 <target>Open the translation workbench in a new tab</target>
             </trans-unit>
+            <trans-unit id="ornament.panel">
+                <source>app.ornament.panel</source>
+                <target>Ornaments</target>
+            </trans-unit>
+            <trans-unit id="ornament.corner">
+                <source>app.ornament.corner</source>
+                <target>Corner mark</target>
+            </trans-unit>
+            <trans-unit id="ornament.corner.none">
+                <source>app.ornament.corner.none</source>
+                <target>None</target>
+            </trans-unit>
+            <trans-unit id="ornament.corner.tl">
+                <source>app.ornament.corner.tl</source>
+                <target>Top left</target>
+            </trans-unit>
+            <trans-unit id="ornament.corner.tr">
+                <source>app.ornament.corner.tr</source>
+                <target>Top right</target>
+            </trans-unit>
+            <trans-unit id="ornament.corner.bl">
+                <source>app.ornament.corner.bl</source>
+                <target>Bottom left</target>
+            </trans-unit>
+            <trans-unit id="ornament.corner.br">
+                <source>app.ornament.corner.br</source>
+                <target>Bottom right</target>
+            </trans-unit>
+            <trans-unit id="ornament.sides">
+                <source>app.ornament.sides</source>
+                <target>Rule on</target>
+            </trans-unit>
+            <trans-unit id="ornament.side.top">
+                <source>app.ornament.side.top</source>
+                <target>Top</target>
+            </trans-unit>
+            <trans-unit id="ornament.side.right">
+                <source>app.ornament.side.right</source>
+                <target>Right</target>
+            </trans-unit>
+            <trans-unit id="ornament.side.bottom">
+                <source>app.ornament.side.bottom</source>
+                <target>Bottom</target>
+            </trans-unit>
+            <trans-unit id="ornament.side.left">
+                <source>app.ornament.side.left</source>
+                <target>Left</target>
+            </trans-unit>
+            <trans-unit id="ornament.sides_help">
+                <source>app.ornament.sides_help</source>
+                <target>Several sides can be picked.</target>
+            </trans-unit>
+            <trans-unit id="ornament.sides_tooltip">
+                <source>app.ornament.sides_tooltip</source>
+                <target>Added by App\ContentBlocks\Form\SectionOrnamentExtension.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

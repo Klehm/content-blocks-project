@@ -1,0 +1,93 @@
+{# Layout helpers shared by the block and section sidebars: tabs from
+   `cb_group`, collapsible panels from `cb_panel`. See sidebar-fields.md #}
+
+{% macro tablist(labels, errors) %}
+    <div class="cb-sidebar-tabs__list" role="tablist">
+        {% for label in labels %}
+            {% set has_error = errors[loop.index0] ?? false %}
+            <button type="button"
+                    class="cb-sidebar-tabs__tab{{ has_error ? ' cb-sidebar-tabs__tab--has-error' : '' }}{{ loop.first ? ' cb-sidebar-tabs__tab--active' : '' }}"
+                    role="tab"
+                    data-cb-tabs-target="tab"
+                    data-cb-tab="{{ loop.index0 }}"
+                    data-action="cb-tabs#select"
+                    aria-selected="{{ loop.first ? 'true' : 'false' }}"
+                    {% if has_error %}title="{{ 'cb.block.tab.has_errors'|trans({}, 'content_blocks') }}"{% endif %}>
+                {{ label }}
+            </button>
+        {% endfor %}
+    </div>
+{% endmacro %}
+
+{# One collapsible panel: `summary` is filled by cb-tabs from the fields,
+   unless the caller passes a fixed one. #}
+{% macro panel_open(label, group, options = {}) %}
+    <details class="cb-panel{{ (options.error ?? false) ? ' cb-panel--has-error' : '' }}"
+             data-cb-tabs-target="fold"
+             data-cb-panel="{{ label }}"
+             data-cb-panel-group="{{ group }}"
+             {% if options.name ?? null %}name="{{ options.name }}"{% endif %}
+             {% if options.open ?? false %}open{% endif %}>
+        <summary class="cb-panel__header">
+            <span class="cb-panel__title">{{ label }}</span>
+            <span class="cb-panel__summary"
+                  {% if options.summary ?? null %}data-cb-summary="{{ options.summary }}" data-cb-summary-fixed{% endif %}></span>
+        </summary>
+        <div class="cb-panel__body">
+{% endmacro %}
+
+{% macro panel_close() %}
+        </div>
+    </details>
+{% endmacro %}
+
+{# A panel stands where its first field does; an invalid one opens first.
+   `slots`: label => {before, after, invalid}, for hand-rendered rows. #}
+{% macro panels(children, group, options = {}) %}
+    {% import _self as self %}
+    {% set name = (options.exclusive ?? true) ? (options.name ?? group) : null %}
+    {% set order = [] %}
+    {% set buckets = {} %}
+    {% for child in children %}
+        {% set raw = child.vars.cb_panel ?? null %}
+        {% if raw is empty %}
+            {% set order = order|merge([{ flat: child }]) %}
+        {% else %}
+            {% set label = raw|trans({}, 'content_blocks') %}
+            {% if buckets[label] is not defined %}
+                {% set order = order|merge([{ panel: label }]) %}
+            {% endif %}
+            {% set buckets = buckets|merge({ (label): (buckets[label] ?? [])|merge([child]) }) %}
+        {% endif %}
+    {% endfor %}
+
+    {% set first_panel = null %}
+    {% set error_panel = null %}
+    {% set slots = options.slots ?? {} %}
+    {% for item in order|filter(i => i.panel is defined) %}
+        {% if first_panel is null %}{% set first_panel = item.panel %}{% endif %}
+        {% if error_panel is null and ((slots[item.panel].invalid ?? false)
+            or buckets[item.panel]|filter(c => not c.vars.valid)|length > 0) %}
+            {% set error_panel = item.panel %}
+        {% endif %}
+    {% endfor %}
+    {% set open_panel = error_panel ?? ((options.open_first ?? true) ? first_panel : null) %}
+
+    {% for item in order %}
+        {% if item.flat is defined %}
+            {{ form_row(item.flat) }}
+        {% else %}
+            {{ self.panel_open(item.panel, group, {
+                name: name,
+                open: item.panel == open_panel,
+                error: item.panel == error_panel,
+            }) }}
+                {{ slots[item.panel].before ?? '' }}
+                {% for child in buckets[item.panel] %}
+                    {{ form_row(child) }}
+                {% endfor %}
+                {{ slots[item.panel].after ?? '' }}
+            {{ self.panel_close() }}
+        {% endif %}
+    {% endfor %}
+{% endmacro %}

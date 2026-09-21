@@ -34,11 +34,9 @@
 
         {{ form_start(form) }}
 
-            {# Grouped by `data-cb-group`, with styling always trailing.
-               Labels go through the core domain. #}
-
-            {# Every field stays rendered — panels are only hidden — so
-               autosave and validation are unaffected. #}
+            {# Tabs from `cb_group` (or the older `data-cb-group`), styling
+               always trailing. Hidden tabs stay in the DOM for autosave. #}
+            {% import '@ContentBlocks/form/_sidebar.html.twig' as sidebar %}
             {% set general_label = 'cb.block.tab.general'|trans({}, 'content_blocks') %}
             {% set style_label = 'cb.block.tab.style'|trans({}, 'content_blocks') %}
 
@@ -46,43 +44,31 @@
             {% set buckets = {} %}
             {% for child in form %}
                 {% if child.vars.name != 'styling' %}
-                    {% set raw = child.vars.attr['data-cb-group']|default('') %}
+                    {% set raw = child.vars.cb_group ?? child.vars.attr['data-cb-group'] ?? null %}
                     {% set label = raw is empty ? general_label : raw|trans({}, 'content_blocks') %}
                     {% if label not in order %}{% set order = order|merge([label]) %}{% endif %}
                     {% set buckets = buckets|merge({ (label): (buckets[label]|default([]))|merge([child]) }) %}
                 {% endif %}
             {% endfor %}
 
-            {# Pin the default "General" tab first, then the rest in
-               first-seen order; "Style" is always last. #}
             {% if general_label in order %}
                 {% set order = [general_label]|merge(order|filter(l => l != general_label)) %}
             {% endif %}
             {% set order = order|merge([style_label]) %}
 
-            <div class="cb-block__tabs" data-controller="cb-tabs">
+            {% set errors = order|map(label => label == style_label
+                ? not form.styling.vars.valid
+                : buckets[label]|filter(c => not c.vars.valid)|length > 0) %}
+
+            <div class="cb-sidebar-tabs"
+                 data-controller="cb-tabs"
+                 data-cb-tabs-storage-key-value="block:{{ this.block.type }}">
                 {% if order|length > 1 %}
-                    <div class="cb-block__tablist" role="tablist">
-                        {% for label in order %}
-                            {% set has_error = label == style_label
-                                ? not form.styling.vars.valid
-                                : buckets[label]|filter(c => not c.vars.valid)|length > 0 %}
-                            <button type="button"
-                                    class="cb-block__tab{{ has_error ? ' cb-block__tab--has-error' : '' }}"
-                                    role="tab"
-                                    data-cb-tabs-target="tab"
-                                    data-cb-tab="{{ loop.index0 }}"
-                                    data-action="cb-tabs#select"
-                                    aria-selected="{{ loop.first ? 'true' : 'false' }}"
-                                    {% if has_error %}title="{{ 'cb.block.tab.has_errors'|trans({}, 'content_blocks') }}"{% endif %}>
-                                {{ label }}
-                            </button>
-                        {% endfor %}
-                    </div>
+                    {{ sidebar.tablist(order, errors) }}
                 {% endif %}
 
                 {% for label in order %}
-                    <section class="cb-block__tabpanel"
+                    <section class="cb-sidebar-tabs__panel"
                              role="tabpanel"
                              data-cb-tabs-target="panel"
                              data-cb-tab="{{ loop.index0 }}"
@@ -90,9 +76,10 @@
                         {% if label == style_label %}
                             {{ form_row(form.styling) }}
                         {% else %}
-                            {% for child in buckets[label] %}
-                                {{ form_row(child) }}
-                            {% endfor %}
+                            {{ sidebar.panels(buckets[label], 'tab-' ~ loop.index0, {
+                                name: form.vars.id ~ '-tab-' ~ loop.index0,
+                                exclusive: form.vars.cb_panels_exclusive ?? true,
+                            }) }}
                         {% endif %}
                     </section>
                 {% endfor %}

@@ -299,6 +299,26 @@ final class SectionSidebarControllerTest extends ControllerTestCase
         $this->assertSame('faq', $section->getDraftSettings()['anchorId'] ?? null);
     }
 
+    public function testEachFieldKnowsItsTabPanelAndIcons(): void
+    {
+        $this->makeController([$this->makeSettingsSection(id: 5)])
+            ->settings(5, Request::create('/_content-blocks/section/5/settings'));
+        $view = $this->renderedFormView();
+
+        $this->assertSame(SectionSettingsType::TAB_STRUCTURE, $view['widthMode']->vars['cb_group']);
+        $this->assertSame(SectionSettingsType::PANEL_WIDTH, $view['widthMode']->vars['cb_panel']);
+        $this->assertSame(SectionSettingsType::TAB_STRUCTURE, $view['sliderLoop']->vars['cb_group']);
+        $this->assertSame(SectionSettingsType::PANEL_LAYOUT, $view['sliderLoop']->vars['cb_panel']);
+        $this->assertSame(SectionSettingsType::PANEL_LAYOUT, $view['display']->vars['cb_panel']);
+        $this->assertSame(SectionSettingsType::TAB_STYLING, $view['styling']->vars['cb_group']);
+        $this->assertSame('display-slider', $view['display']->vars['cb_icons']['slider']);
+        $this->assertSame('auto', $view['displayTablet']->vars['cb_icons']['inherit']);
+        $this->assertSame(
+            'cb.section.settings.styling_custom_tooltip',
+            $view['stylingCustom']->vars['cb_help_tooltip'],
+        );
+    }
+
     // -------- plumbing --------
 
     private function makeSettingsSection(int $id, array $settings = []): Section

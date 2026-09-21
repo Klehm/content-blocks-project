@@ -244,13 +244,17 @@ Les 13 controllers livrés (source unique : `assets/package.json`) :
 - `cb-spacing-link` : lie les quatre côtés d'une grille de spacing
 - `cb-viewport-tabs` : bascule desktop/tablet/mobile
 - `cb-range` : slider avec valeur affichée
-- `cb-tabs` : onglets de la sidebar
+- `cb-tabs` : sidebar layout — tabs (`cb_group`), collapsible panels (`cb_panel`), the tab/panel last used per sidebar kind (`sessionStorage`), and the summary a closed panel shows (`data-cb-summary`)
 - `cb-collection-sort` : réordonnancement des entrées de collection
 - `cb-condition` : affichage conditionnel générique de champs (`data-cb-condition="field:value1|value2"` sur une row ; checkbox → `true`/`false` ; `field` seul → non-vide). Plusieurs clauses se combinent en **ET** via `;` (ex. `size:custom;customHeightAuto:false`), chaque clause gardant son **OU** via `|`, and `||` separates whole alternative groups. Les instances s'imbriquent (scope = plus proche ancêtre) ; le controller est aussi posé sur la **racine du form d'édition de bloc** ([Block.html.twig]) pour qu'un `<select>` puisse gater des rows sœurs (resize image). Utilisé par le switch « Personnaliser le style » et `PaletteColorType` ; réutilisable dans les forms de blocs custom
 - `cb-file-upload` : upload AJAX vers `content_blocks_upload` (`/_content-blocks/upload` par défaut, preview + status), utilisé par `ImageUploadType`
 - `cb-tree` : le **navigateur** de la zone (voir plus bas)
 
 Ces controllers doivent être déclarés dans `assets/controllers.json` côté host — Flex l'écrit tout seul à l'install (mot-clé `symfony-ux` + `assets/package.json`), à la main sinon. Voir `packages/content-blocks/README.md`.
+
+### Sidebar layout — tabs, panels, icon choices
+
+Both sidebars are laid out from form options, never from a template: `cb_group` (tab; block = General / host tabs / Style, section = Structure / host tabs / Style — Structure's panels: Columns, Layout, Width, Advanced), `cb_panel` (a `<details>` panel; the panels of a group share a `name`, so the browser keeps one open — `cb_panels_exclusive: false` on the root form turns that off down the tree), `cb_help_tooltip` (long help behind an (i)), and on `ChoiceType` `cb_icons` + `cb_icon_layout` / `cb_icon_columns` / `cb_icon_labels` (icon buttons over the native radios/checkboxes, which cover their button so `.check()` works). Icons are names from `UiIconRegistry` (`CoreUiIcons`, 78; a host's `UiIconProviderInterface` is read first and can redraw one; Twig `cb_ui_icon()`). **The core's own fields get their layout in `finishView()`** (`SectionSettingsType`, `StylingType`: constant maps, `IconChoiceTypeExtension::decorate()`), never as options, so a bare form factory still builds them. The icon widget lives in `styling_widgets.html.twig`, not `cb_form_theme` (it calls `cb_ui_icon()`). **Rule: a field that gates another (cb-condition, JS sync) shares its panel, at worst its tab** — hence display + slider/accordion options + reverse on mobile + column widths all in Layout (`panels` macro `slots` for the hand-rendered rows). E2E reach a field with `reveal()` from `assets/test/e2e/helpers/sidebar.js`. Guide: [docs/guide/sidebar-fields.md](docs/guide/sidebar-fields.md); rationale: [docs/internals/forms.md#sidebar-tabs-and-panels](docs/internals/forms.md#sidebar-tabs-and-panels).
 
 ### Navigateur — la zone en arborescence
 
@@ -768,7 +772,7 @@ npm test
 
 | Config | Fixture | Couvre |
 |---|---|---|
-| `playwright.config.js` | `content-blocks-sandbox` — Symfony 7/8, AssetMapper | le **comportement** du builder (151 specs) |
+| `playwright.config.js` | `content-blocks-sandbox` — Symfony 7/8, AssetMapper | le **comportement** du builder (185 specs) |
 | `playwright.encore.config.js` | `content-blocks-encore-sandbox` — Symfony 6.4, ORM 2, Webpack Encore | le **chemin d'installation** sous un bundler qu'on ne développe pas au quotidien, + l'éditeur rich-text bundlé par l'hôte (7 specs) |
 
 La suite Encore reste volontairement petite : tout ce qui passerait à l'identique sous les deux bundlers appartient à la suite principale. Elle existe parce qu'un bug de boot (le prepend `asset_mapper` inconditionnel) a pu vivre longtemps sans qu'aucun test ne le voie — la sandbox met `symfony/asset-mapper` dans son `conflict` Composer pour que la jambe ne puisse jamais redériver vers le chemin déjà couvert.

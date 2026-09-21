@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { reveal } from './helpers/sidebar.js';
 
 /**
  * A section's columns are edited from its sidebar — added, named, removed —
@@ -97,6 +98,7 @@ test('a section shows its columns as tabs, in the builder and on the page', asyn
     // Naming a column renames its tab in place.
     const sidebar = page.locator('.cb-shell__sidebar');
     const labels = sidebar.locator('.cb-columns-editor__label');
+    await reveal(labels);
     await labels.nth(0).fill('Description');
     await labels.nth(0).press('Tab');
     await labels.nth(1).fill('Specs');
@@ -133,7 +135,7 @@ test('a section shows its columns as tabs, in the builder and on the page', asyn
     // Switching back to a grid from the sidebar shows every column again.
     // Forced: the open block's toolbar sits over the section's centre.
     await frame.locator('.cb-section-handle').first().click({ force: true });
-    await page.locator('input[name$="[display]"][value="grid"]').check();
+    await (await reveal(page.locator('input[name$="[display]"][value="grid"]'))).check();
     await expect(frame.locator('.cb-section--display-tabs')).toHaveCount(0);
     await expect(frame.locator('.cb-tabs__nav')).toHaveCount(0);
     await expect.poll(() => shown(frame.locator(liveColumns).nth(0))).toBe(true);
@@ -151,18 +153,18 @@ test('the tab bar follows the section max width and vertical alignment', async (
     const saved = () => page.waitForResponse((r) => /\/section\/\d+\/settings$/.test(r.url())
         && r.request().method() === 'POST');
     let save = saved();
-    await sidebar.locator('input[name$="[widthMode]"][value="centered"]').check();
+    await (await reveal(sidebar.locator('input[name$="[widthMode]"][value="centered"]'))).check();
     await save;
     save = saved();
     await sidebar.locator('input[name$="[maxWidth]"]').fill('600');
     await sidebar.locator('input[name$="[maxWidth]"]').press('Tab');
     await save;
     save = saved();
-    await sidebar.locator('input[name$="[stylingCustom]"]').check();
+    await (await reveal(sidebar.locator('input[name$="[stylingCustom]"]'))).check();
     await save;
-    // An icon button: the radio itself is visually hidden.
+    // An icon button over its radio, in the "Size and alignment" panel.
     save = saved();
-    await sidebar.locator('.cb-align-btn:has(input[name$="[styling][verticalAlign]"][value="center"])').click();
+    await (await reveal(sidebar.locator('input[name$="[styling][verticalAlign]"][value="center"]'))).check();
     await save;
 
     const section = frame.locator('.cb-section--display-tabs');
@@ -181,7 +183,7 @@ test('a section shows its columns as an accordion, in the builder and on the pag
     const frame = await openBuilder(page, builderUrl);
 
     await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="three_cols"]').click();
-    await page.locator('input[name$="[display]"][value="accordion"]').check();
+    await (await reveal(page.locator('input[name$="[display]"][value="accordion"]'))).check();
     const section = frame.locator('.cb-section--display-accordion');
     await expect(section).toHaveCount(1);
     const headers = section.locator('.cb-accordion__header');
@@ -195,6 +197,7 @@ test('a section shows its columns as an accordion, in the builder and on the pag
 
     // Naming a column renames its header in place.
     const labels = page.locator('.cb-shell__sidebar .cb-columns-editor__label');
+    await reveal(labels);
     await labels.nth(0).fill('Livraison');
     await labels.nth(0).press('Tab');
     await expect(headers.nth(0)).toHaveText('Livraison');
@@ -232,7 +235,7 @@ test('a section shows its columns as an accordion, in the builder and on the pag
 
     // Switching to tabs keeps the open panel as the open tab.
     await frame.locator('.cb-section-handle').first().click({ force: true });
-    await page.locator('input[name$="[display]"][value="tabs"]').check();
+    await (await reveal(page.locator('input[name$="[display]"][value="tabs"]'))).check();
     await expect(frame.locator('.cb-section--display-tabs .cb-tabs__tab')).toHaveCount(3);
     await expect(frame.locator('.cb-accordion__header')).toHaveCount(0);
     const tabPanels = frame.locator('.cb-section--display-tabs > .cb-row > [data-cb-column-id]');
@@ -249,10 +252,10 @@ test('an accordion can open one panel at a time and start closed', async ({ page
 
     await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="three_cols"]').click();
     let save = saved();
-    await sidebar.locator('input[name$="[display]"][value="accordion"]').check();
+    await (await reveal(sidebar.locator('input[name$="[display]"][value="accordion"]'))).check();
     await save;
     save = saved();
-    await sidebar.locator('input[name$="[accordionSingle]"]').check();
+    await (await reveal(sidebar.locator('input[name$="[accordionSingle]"]'))).check();
     await save;
 
     const section = frame.locator('.cb-section--display-accordion');
@@ -276,7 +279,7 @@ test('an accordion can open one panel at a time and start closed', async ({ page
 
     await frame.locator('.cb-section-handle').first().click({ force: true });
     save = saved();
-    await sidebar.locator('input[name$="[accordionCollapsed]"]').check();
+    await (await reveal(sidebar.locator('input[name$="[accordionCollapsed]"]'))).check();
     await save;
     await publish(page);
 

@@ -39,9 +39,9 @@ final class ButtonRelExtension implements BlockFormExtensionInterface
             // The form is the whitelist: an unexpected POST value is rejected
             // here and nothing is written to the draft.
             'constraints' => [new Assert\Choice(choices: [null, '', ...self::REL_VALUES])],
-            // Puts the field in its own "SEO" tab of the block sidebar, next to
-            // the global anchor id below (see AnchorIdExtension).
-            'attr' => ['data-cb-group' => 'SEO'],
+            // Its own "SEO" tab of the block sidebar, shared with the anchor
+            // id, which still uses the older `data-cb-group` attribute.
+            'cb_group' => 'SEO',
             'help' => 'Added by App\ContentBlocks\Form\ButtonRelExtension (targets the "button" block).',
         ]);
     }

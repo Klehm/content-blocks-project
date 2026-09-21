@@ -1,12 +1,14 @@
-{# Form theme for the Styling form types. Auto-loaded inside the section
-   settings sidebar so we don't pollute the host's global form theme. #}
+{# The builder sidebars' own widgets: styling, icon choices. Loaded by both
+   sidebars, never globally, so the host's form theme is untouched. #}
 
-{# Compound row for the whole Styling group — render children inline. #}
+{# Its children gathered into their `cb_panel` panels. #}
 {% block cb_styling_widget %}
+    {% import '@ContentBlocks/form/_sidebar.html.twig' as sidebar %}
     <div class="cb-styling">
-        {% for child in form %}
-            {{ form_row(child) }}
-        {% endfor %}
+        {{ sidebar.panels(form, 'styling', {
+            name: id ~ '-panels',
+            exclusive: cb_panels_exclusive ?? true,
+        }) }}
     </div>
 {% endblock %}
 
@@ -140,86 +142,57 @@
     </div>
 {% endblock %}
 
-{# An icon button-group. The native radios stay in the DOM so they submit
-   and remain keyboard-accessible. #}
-
-{% macro align_icon(value) %}
-    {# Items rendered inside an implicit 16x16 frame; the bars stand in
-       for flex children stacked along the vertical alignment axis. #}
-    {% set y = { start: [2, 5, 8], center: [5, 8, 11], end: [8, 11, 14] } %}
-    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-        {% for ty in y[value] %}
-            <rect x="2" y="{{ ty }}" width="12" height="2" rx="1" fill="currentColor" />
-        {% endfor %}
-    </svg>
-{% endmacro %}
-
-{% block cb_vertical_align_widget %}
-    {{ _self.render_align(form, 'v') }}
-{% endblock %}
-
-{# The word-processor metaphor: the full-width bar stays put and the two
-   shorter ones shift, giving each choice its own silhouette. #}
-{% macro halign_icon(value) %}
-    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-        {% if value == 'start' %}
-            <rect x="2" y="3"  width="12" height="2" rx="1" fill="currentColor" />
-            <rect x="2" y="7"  width="7"  height="2" rx="1" fill="currentColor" />
-            <rect x="2" y="11" width="10" height="2" rx="1" fill="currentColor" />
-        {% elseif value == 'center' %}
-            <rect x="2" y="3"  width="12" height="2" rx="1" fill="currentColor" />
-            <rect x="4" y="7"  width="8"  height="2" rx="1" fill="currentColor" />
-            <rect x="3" y="11" width="10" height="2" rx="1" fill="currentColor" />
-        {% elseif value == 'end' %}
-            <rect x="2" y="3"  width="12" height="2" rx="1" fill="currentColor" />
-            <rect x="7" y="7"  width="7"  height="2" rx="1" fill="currentColor" />
-            <rect x="4" y="11" width="10" height="2" rx="1" fill="currentColor" />
-        {% elseif value == 'justify' %}
-            <rect x="2" y="3"  width="12" height="2" rx="1" fill="currentColor" />
-            <rect x="2" y="7"  width="12" height="2" rx="1" fill="currentColor" />
-            <rect x="2" y="11" width="12" height="2" rx="1" fill="currentColor" />
-        {% endif %}
-    </svg>
-{% endmacro %}
-
-{% block cb_horizontal_align_widget %}
-    {{ _self.render_align(form, 'h') }}
-{% endblock %}
-
-{# axis: 'v' (vertical) or 'h' (horizontal) — picks the icon style. #}
-{% macro render_align(form, axis) %}
-    {# The input is rendered by hand: form_widget(child) would add its own
-       wrapper and a visible label, leaving more than the icon. #}
-    <div class="cb-align-group" role="radiogroup">
-        {% for child in form %}
-            {% set val = child.vars.value %}
-            {% set tip = child.vars.label is empty ? val : child.vars.label %}
-            <label class="cb-align-btn{% if child.vars.checked %} cb-align-btn--active{% endif %}"
-                   title="{{ tip|trans({}, 'content_blocks') }}">
-                <input type="radio"
-                       class="cb-form-sr-only cb-align-btn__input"
+{# `cb_icons`: one icon button per choice over its native input, kept in
+   the DOM so keyboard, forms and autosave behave as for a plain radio. #}
+{% block cb_icon_choice_widget -%}
+    {%- set domain = choice_translation_domain is same as(false) ? false : (choice_translation_domain ?? translation_domain) -%}
+    {# Options follow the order of `cb_icons`; the rest trail, as text. #}
+    {%- set by_value = {} -%}
+    {%- for child in form -%}
+        {%- set by_value = by_value|merge({('v' ~ child.vars.value): child}) -%}
+    {%- endfor -%}
+    {%- set ordered = [] -%}
+    {%- for value, icon in cb_icons -%}
+        {%- if by_value['v' ~ value] is defined -%}
+            {%- set ordered = ordered|merge([by_value['v' ~ value]]) -%}
+        {%- endif -%}
+    {%- endfor -%}
+    {%- for child in form -%}
+        {%- if cb_icons[child.vars.value] is not defined -%}
+            {%- set ordered = ordered|merge([child]) -%}
+        {%- endif -%}
+    {%- endfor -%}
+    {%- set classes = 'cb-icon-choice cb-icon-choice--' ~ cb_icon_layout ~ (cb_icon_labels ? ' cb-icon-choice--labelled' : '') -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' ' ~ classes)|trim}) -%}
+    {%- if cb_icon_columns -%}
+        {%- set attr = attr|merge({style: ('--cb-icon-cols: ' ~ cb_icon_columns ~ '; ' ~ attr.style|default(''))|trim}) -%}
+    {%- endif -%}
+    <div {{ block('widget_container_attributes') }} role="{{ multiple ? 'group' : 'radiogroup' }}">
+        {%- for child in ordered -%}
+            {%- set label = child.vars.label -%}
+            {%- set text = label is same as(false) ? child.vars.value
+                : (label is empty ? child.vars.value
+                : (domain is same as(false) ? label : label|trans(child.vars.label_translation_parameters|default({}), domain))) -%}
+            {%- set icon = cb_icons[child.vars.value] ?? null -%}
+            {%- set svg = icon ? cb_ui_icon(icon) : '' -%}
+            <label class="cb-icon-choice__option{{ svg|length > 0 ? '' : ' cb-icon-choice__option--text' }}" for="{{ child.vars.id }}" title="{{ text }}">
+                <input type="{{ multiple ? 'checkbox' : 'radio' }}"
+                       class="cb-icon-choice__input"
                        id="{{ child.vars.id }}"
                        name="{{ child.vars.full_name }}"
-                       value="{{ val }}"
-                       {% if child.vars.checked %}checked="checked"{% endif %}
-                       {% if child.vars.required %}required="required"{% endif %}
-                       {% if child.vars.disabled %}disabled="disabled"{% endif %} />
-                <span class="cb-align-btn__face" aria-hidden="true">
-                    {% if val == '' %}
-                        {# Placeholder choice → small "auto" dash. #}
-                        <svg viewBox="0 0 16 16" width="16" height="16">
-                            <rect x="3" y="7" width="10" height="2" rx="1" fill="currentColor" opacity=".5" />
-                        </svg>
-                    {% elseif axis == 'h' %}
-                        {{ _self.halign_icon(val) }}
-                    {% else %}
-                        {{ _self.align_icon(val) }}
-                    {% endif %}
+                       value="{{ child.vars.value }}"
+                       {%- if child.vars.checked %} checked="checked"{% endif %}
+                       {%- if child.vars.disabled %} disabled="disabled"{% endif %}
+                       {%- if child.vars.required and not multiple %} required="required"{% endif %}
+                       {%- for attrname, attrvalue in child.vars.attr %} {{ attrname }}="{{ attrvalue }}"{% endfor %}>
+                <span class="cb-icon-choice__face">
+                    {{- svg -}}
+                    <span class="{{ svg|length > 0 and not cb_icon_labels ? 'cb-form-sr-only' : 'cb-icon-choice__text' }}">{{ text }}</span>
                 </span>
             </label>
-        {% endfor %}
+        {%- endfor -%}
     </div>
-{% endmacro %}
+{%- endblock cb_icon_choice_widget %}
 
 {# Slides per view: the same D/T/M tabs, one number each. #}
 {% block cb_slider_per_view_row %}

@@ -66,6 +66,7 @@ export default defineConfig({
             { text: 'Host services', link: '/guide/host-services' },
             { text: 'Rendering & preview', link: '/guide/rendering' },
             { text: 'Styling', link: '/guide/styling' },
+            { text: 'Laying out sidebar fields', link: '/guide/sidebar-fields' },
             { text: 'Security', link: '/guide/security' },
             { text: 'Mounting the routes', link: '/guide/routing' },
             { text: 'Custom blocks', link: '/guide/custom-blocks' },

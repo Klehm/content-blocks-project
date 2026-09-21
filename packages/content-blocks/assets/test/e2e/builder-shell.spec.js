@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { reveal } from './helpers/sidebar.js';
 
 /**
  * E2E for the builder shell + structural ops.
@@ -102,7 +103,7 @@ async function openBlockEditor(page, frame, n = 0) {
 async function openSectionSettings(page, frame, n = 0) {
     await clickInPreview(page, '[data-cb-section-id]', n);
     const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
-    await expect(sidebar.locator('input[name="section_settings[classes]"]')).toBeVisible();
+    await expect(sidebar.locator('.cb-sidebar__section-settings .cb-sidebar-tabs__tab').first()).toBeVisible();
     // Give the form's autosave controller a beat to connect before callers
     // start editing — a fill fired before connect never triggers a save.
     await page.waitForTimeout(300);
@@ -261,8 +262,9 @@ test.describe('builder shell — sections', () => {
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar).not.toHaveAttribute('hidden');
-        // Built-in fields are present.
-        await expect(sidebar.locator('input[name="section_settings[classes]"]')).toBeVisible();
+        // Built-in fields, in two tabs: Structure / Style.
+        await expect(sidebar.locator('.cb-sidebar-tabs__tab')).toHaveCount(2);
+        await expect(await reveal(sidebar.locator('input[name="section_settings[classes]"]'))).toBeVisible();
         await expect(sidebar.locator('input[name="section_settings[widthMode]"][value="full"]')).toBeAttached();
         await expect(sidebar.locator('input[name="section_settings[widthMode]"][value="centered"]')).toBeAttached();
         // maxWidth only un-hides once the section is "centered"; in the default
@@ -273,7 +275,7 @@ test.describe('builder shell — sections', () => {
         await expect(sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]')).toBeAttached();
         // Styling fields sit behind the "Customize styling" switch, off by
         // default on a fresh section (progressive disclosure).
-        const stylingSwitch = sidebar.locator('input[name="section_settings[stylingCustom]"]');
+        const stylingSwitch = await reveal(sidebar.locator('input[name="section_settings[stylingCustom]"]'));
         await expect(stylingSwitch).not.toBeChecked();
         await expect(sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]')).toBeHidden();
     });
@@ -323,12 +325,13 @@ test.describe('builder shell — sections', () => {
         await expect(checkRow.locator('.cb-form-check__label')).toHaveCount(1);
 
         // A radio group is the opposite case: the row label names the group
-        // ("Width"), the per-option labels name the options. Both are needed.
+        // ("Width"), each option names itself — here an icon button, whose
+        // name is its title and its screen-reader text. Both are needed.
         const radioRow = sidebar.locator(
             '.cb-form-row:has(input[name="section_settings[widthMode]"])',
         );
         await expect(radioRow.locator('> .cb-form-label, > legend.cb-form-label')).toHaveCount(1);
-        await expect(radioRow.locator('.cb-form-check__label')).toHaveCount(2);
+        await expect(radioRow.locator('.cb-icon-choice__option[title]')).toHaveCount(2);
     });
 
     test('section settings save applies custom classes + width and the palette background', async ({ page }) => {
@@ -339,13 +342,13 @@ test.describe('builder shell — sections', () => {
         await openSectionSettings(page, frame);
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
-        await sidebar.locator('input[name="section_settings[classes]"]').fill('e2e-decorated');
-        await sidebar.locator('input[name="section_settings[widthMode]"][value="centered"]').check();
+        await (await reveal(sidebar.locator('input[name="section_settings[classes]"]'))).fill('e2e-decorated');
+        await (await reveal(sidebar.locator('input[name="section_settings[widthMode]"][value="centered"]'))).check();
         await sidebar.locator('input[name="section_settings[maxWidth]"]').fill('900');
         // Reveal the styling fields, then pick a palette color (Indigo from
         // the sandbox's content_blocks.palette config).
-        await sidebar.locator('input[name="section_settings[stylingCustom]"]').check();
-        await sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]').selectOption('#4f46e5');
+        await (await reveal(sidebar.locator('input[name="section_settings[stylingCustom]"]'))).check();
+        await (await reveal(sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]'))).selectOption('#4f46e5');
         // No manual Save button anymore — autosave persists each field change
         // (fill/check/select fire input/change, which the cb-autosave
         // controller debounces into a save). The section hot-reloads with the
@@ -374,7 +377,7 @@ test.describe('builder shell — sections', () => {
         // Autosave only fires on a change, so force a save via an unrelated
         // field (classes) while leaving backgroundColor unset — the point is
         // that the default (no color) must not leak into the markup.
-        await sidebar.locator('input[name="section_settings[classes]"]').fill('e2e-default-probe');
+        await (await reveal(sidebar.locator('input[name="section_settings[classes]"]'))).fill('e2e-default-probe');
 
         const section = frame.locator('[data-cb-section-id]').first();
         // Wait until the save round-trip applied the class to the section,
@@ -394,7 +397,7 @@ test.describe('builder shell — sections', () => {
         // Pick the "Boxed" preset from the sandbox config: CSS class +
         // settings (background #f1f5f9, padding 40) — no styling fields
         // touched, the switch stays off.
-        await sidebar.locator('select[name="section_settings[styleName]"]').selectOption('boxed');
+        await (await reveal(sidebar.locator('select[name="section_settings[styleName]"]'))).selectOption('boxed');
 
         const section = frame.locator('[data-cb-section-id]').first();
         await expect.poll(async () => section.getAttribute('class')).toContain('demo-section--boxed');
@@ -407,7 +410,7 @@ test.describe('builder shell — sections', () => {
         // same autosave POST — the visible --cb-s-bg change below doubles
         // as the "save round-trip completed" barrier.
         await sidebar.locator('input[name="section_settings[stylingCustom]"]').check();
-        const palette = sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]');
+        const palette = await reveal(sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]'));
         await expect(palette).toBeVisible();
         await palette.selectOption('#4f46e5');
         await expect.poll(async () => section.getAttribute('style')).toContain('--cb-s-bg:#4f46e5');
@@ -706,7 +709,8 @@ test.describe('builder shell — preview hardening', () => {
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
 
         // Styling fields are behind the "Customize styling" switch.
-        await sidebar.locator('input[name="section_settings[stylingCustom]"]').check();
+        await (await reveal(sidebar.locator('input[name="section_settings[stylingCustom]"]'))).check();
+        await reveal(sidebar.locator('input[name="section_settings[styling][gap][desktop]"]'));
         // Set the desktop column gap to 40px (the desktop viewport tab is
         // active by default, so its input is the visible one). Autosave
         // persists it and the preview reloads with --cb-gap-d:40px on the
@@ -1172,7 +1176,8 @@ test.describe('builder shell — column widths', () => {
         // Open the section settings (clicking the section opens them).
         await openSectionSettings(page, frame);
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
-        await expect(sidebar.locator('.cb-col-widths')).toBeVisible();
+        // In the Layout panel, beside the display that gates them.
+        await expect(await reveal(sidebar.locator('.cb-col-widths'))).toBeVisible();
 
         // Apply the 40/60 preset → save → preview reload re-renders weighted.
         await sidebar.locator('.cb-col-widths__preset', { hasText: '40/60' }).click();
