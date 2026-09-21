@@ -245,7 +245,7 @@ Les 13 controllers livrés (source unique : `assets/package.json`) :
 - `cb-viewport-tabs` : bascule desktop/tablet/mobile
 - `cb-range` : slider avec valeur affichée
 - `cb-tabs` : sidebar layout — tabs (`cb_group`), collapsible panels (`cb_panel`), the tab/panel last used per sidebar kind (`sessionStorage`), and the summary a closed panel shows (`data-cb-summary`)
-- `cb-collection-sort` : réordonnancement des entrées de collection
+- `cb-collection-sort` : réordonnancement des entrées de collection, and folding each entry to a header (first image + first text); the fold state is positional, kept by the controller and re-applied on `render:finished`, since Live re-renders by position
 - `cb-condition` : affichage conditionnel générique de champs (`data-cb-condition="field:value1|value2"` sur une row ; checkbox → `true`/`false` ; `field` seul → non-vide). Plusieurs clauses se combinent en **ET** via `;` (ex. `size:custom;customHeightAuto:false`), chaque clause gardant son **OU** via `|`, and `||` separates whole alternative groups. Les instances s'imbriquent (scope = plus proche ancêtre) ; le controller est aussi posé sur la **racine du form d'édition de bloc** ([Block.html.twig]) pour qu'un `<select>` puisse gater des rows sœurs (resize image). Utilisé par le switch « Personnaliser le style » et `PaletteColorType` ; réutilisable dans les forms de blocs custom
 - `cb-file-upload` : upload AJAX vers `content_blocks_upload` (`/_content-blocks/upload` par défaut, preview + status), utilisé par `ImageUploadType`
 - `cb-tree` : le **navigateur** de la zone (voir plus bas)

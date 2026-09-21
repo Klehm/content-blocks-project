@@ -16,11 +16,15 @@ function setup({ name = 'content_block[items]', count = 3 } = {}) {
         `<div class="cb-form-collection__item">
             <div class="cb-form-collection__controls">
                 <button class="cb-form-collection__drag-handle"></button>
+                <button class="cb-form-collection__toggle" aria-expanded="true"></button>
                 <button class="cb-form-collection__move--up" data-action="cb-collection-sort#moveUp">▲</button>
                 <button class="cb-form-collection__move--down" data-action="cb-collection-sort#moveDown">▼</button>
                 <button class="cb-form-collection__duplicate" data-action="cb-collection-sort#duplicate">⧉</button>
             </div>
-            <input name="items[${i}][label]" value="v${i}">
+            <div class="cb-form-collection__item-body">
+                <input name="items[${i}][label]" value="v${i}">
+            </div>
+            <button class="cb-form-collection__delete"></button>
         </div>`,
     ).join('');
 
@@ -42,6 +46,11 @@ function setup({ name = 'content_block[items]', count = 3 } = {}) {
 const up = (item) => item.querySelector('.cb-form-collection__move--up');
 const down = (item) => item.querySelector('.cb-form-collection__move--down');
 const dup = (item) => item.querySelector('.cb-form-collection__duplicate');
+const fold = (item) => item.querySelector('.cb-form-collection__toggle');
+const folded = (element) => Array.from(
+    element.querySelectorAll('.cb-form-collection__item'),
+    (item) => item.classList.contains('cb-form-collection__item--collapsed'),
+);
 
 describe('cb-collection-sort', () => {
     beforeEach(() => {
@@ -154,5 +163,87 @@ describe('cb-collection-sort', () => {
         await Promise.resolve();
 
         expect(action).not.toHaveBeenCalled();
+    });
+
+    describe('folding', () => {
+        it('toggle folds only the clicked entry and flips aria-expanded', () => {
+            const { controller, element } = setup({ count: 3 });
+            const items = element.querySelectorAll('.cb-form-collection__item');
+
+            controller.toggle({ currentTarget: fold(items[1]) });
+
+            expect(folded(element)).toEqual([false, true, false]);
+            expect(fold(items[1]).getAttribute('aria-expanded')).toBe('false');
+            expect(fold(items[0]).getAttribute('aria-expanded')).toBe('true');
+
+            controller.toggle({ currentTarget: fold(items[1]) });
+            expect(folded(element)).toEqual([false, false, false]);
+        });
+
+        it('collapseAll and expandAll fold and unfold every entry', () => {
+            const { controller, element } = setup({ count: 3 });
+
+            controller.collapseAll();
+            expect(folded(element)).toEqual([true, true, true]);
+
+            controller.expandAll();
+            expect(folded(element)).toEqual([false, false, false]);
+        });
+
+        it('a folded entry stays folded where a move takes it', () => {
+            const { controller, element } = setup({ count: 3 });
+            const items = element.querySelectorAll('.cb-form-collection__item');
+            controller.toggle({ currentTarget: fold(items[0]) });
+
+            // Keyboard path: the DOM keeps its order until Live re-renders.
+            controller._move(0, 2);
+            controller._applyCollapsed();
+
+            expect(folded(element)).toEqual([false, false, true]);
+        });
+
+        it('a duplicate opens unfolded right after its original', () => {
+            const { controller, element } = setup({ count: 2 });
+            controller.collapseAll();
+
+            controller._duplicate(0);
+            // What Live renders: one more entry at the end.
+            const extra = element.querySelector('.cb-form-collection__item').cloneNode(true);
+            extra.classList.remove('cb-form-collection__item--collapsed');
+            element.appendChild(extra);
+            controller._applyCollapsed();
+
+            expect(folded(element)).toEqual([true, false, true]);
+        });
+
+        it('deleting an entry drops its folded state', () => {
+            const { controller, element } = setup({ count: 3 });
+            const items = element.querySelectorAll('.cb-form-collection__item');
+            controller.toggle({ currentTarget: fold(items[2]) });
+
+            controller._forgetDeleted({ target: items[0].querySelector('.cb-form-collection__delete') });
+            items[0].remove();
+            controller._applyCollapsed();
+
+            expect(folded(element)).toEqual([false, true]);
+        });
+
+        it('re-applies the folded state after every Live render', async () => {
+            const { controller, element } = setup({ count: 2 });
+            const hooks = {};
+            __setMockComponent({ action: vi.fn(), on: (name, cb) => { hooks[name] = cb; }, off: vi.fn() });
+            controller.connect();
+            await Promise.resolve();
+            await Promise.resolve();
+
+            controller.collapseAll();
+            // A morph that resets the markup to what the server rendered.
+            element.querySelectorAll('.cb-form-collection__item')
+                .forEach((item) => item.classList.remove('cb-form-collection__item--collapsed'));
+            hooks['render:finished']();
+
+            expect(folded(element)).toEqual([true, true]);
+            controller.disconnect();
+        });
     });
 });

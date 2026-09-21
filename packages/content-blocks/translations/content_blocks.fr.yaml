@@ -141,6 +141,10 @@ cb:
         move_up: "Monter"
         move_down: "Descendre"
         duplicate: "Dupliquer"
+        toggle: "Replier / déplier"
+        collapse_all: "Tout replier"
+        expand_all: "Tout déplier"
+        item: "Élément %n%"
     builder:
         viewport_order:
             tablet: "Ordre tablette : le desktop ne change pas"

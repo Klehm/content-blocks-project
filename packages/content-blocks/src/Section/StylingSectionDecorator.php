@@ -8,6 +8,7 @@ use ContentBlocks\Entity\Section;
 use ContentBlocks\Image\ImageUrlResolverInterface;
 use ContentBlocks\Image\PassthroughImageUrlResolver;
 use ContentBlocks\Palette\ColorTone;
+use ContentBlocks\Rendering\ViewportVars;
 
 /**
  * Reads the `styling` sub-form and emits the CSS custom properties and classes
@@ -17,10 +18,6 @@ use ContentBlocks\Palette\ColorTone;
  */
 final class StylingSectionDecorator implements SectionDecoratorInterface
 {
-    private const SIDE_SHORT = ['top' => 't', 'right' => 'r', 'bottom' => 'b', 'left' => 'l'];
-    // Data keys are spelled out; the emitted CSS var names stay terse (the
-    // stylesheet reads --cb-*-d/t/m-*). This map bridges the two.
-    private const VIEWPORT_SHORT = ['desktop' => 'd', 'tablet' => 't', 'mobile' => 'm'];
     private const BACKGROUND_SIZES = ['cover' => true, 'contain' => true];
     private const BACKGROUND_POSITIONS = [
         'center' => true, 'top' => true, 'bottom' => true, 'left' => true, 'right' => true,
@@ -50,38 +47,20 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
 
         $vars = [];
         $classes = [];
+        $spaced = false;
 
         // Section vars are namespaced `--cb-s-*` so they do not inherit into
         // descendant blocks, which read `--cb-b-*`.
         foreach (['padding' => 's-pad', 'margin' => 's-mar'] as $key => $short) {
-            $responsive = $styling[$key] ?? null;
-            if (!\is_array($responsive)) {
-                continue;
-            }
-            foreach (self::VIEWPORT_SHORT as $viewport => $vpShort) {
-                $box = $responsive[$viewport] ?? null;
-                if (!\is_array($box)) {
-                    continue;
-                }
-                foreach (self::SIDE_SHORT as $side => $sideShort) {
-                    $value = $box[$side] ?? null;
-                    if (\is_int($value)) {
-                        $vars["--cb-{$short}-{$vpShort}-{$sideShort}"] = $value . 'px';
-                    }
-                }
+            $box = ViewportVars::box($styling[$key] ?? null, $short);
+            if ($box !== null) {
+                $spaced = true;
+                $vars += $box;
             }
         }
 
         // Set on the section, inherited by the inner .cb-row.
-        $gap = $styling['gap'] ?? null;
-        if (\is_array($gap)) {
-            foreach (self::VIEWPORT_SHORT as $viewport => $vpShort) {
-                $value = $gap[$viewport] ?? null;
-                if (\is_int($value) && $value >= 0) {
-                    $vars["--cb-gap-{$vpShort}"] = $value . 'px';
-                }
-            }
-        }
+        $vars += ViewportVars::single($styling['gap'] ?? null, 'gap');
 
         $bg = $styling['backgroundColor'] ?? null;
         $tone = null;
@@ -138,7 +117,8 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
             $classes[] = 'cb-section--has-valign';
         }
 
-        if ($vars === []) {
+        // An all-zero box emits nothing yet still needs the class that zeroes.
+        if ($vars === [] && !$spaced) {
             return new SectionDecoration();
         }
 

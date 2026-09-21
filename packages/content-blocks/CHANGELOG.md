@@ -5,6 +5,26 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Collection entries fold.** Each entry of a live collection in the sidebar
+  has a header naming it (its first image and first text, else its position)
+  that folds the entry down to that line; *Collapse all* / *Expand all* sit
+  above a list of two or more. A folded entry stays folded through a reorder,
+  a duplicate or a delete. The `cb-collection-sort` controller now sits on a
+  wrapper around the list (`data-cb-collection-sort-target="list"`).
+
+### Changed
+
+- **Lighter inline styles.** A section's or block's padding, margin and gap no
+  longer emit the CSS variables the stylesheet already resolves to the same
+  value: a `0` on desktop, or a tablet/mobile value equal to the one above it.
+  The render is unchanged; a section or block with an all-zero box keeps its
+  `--styled` class. A host stylesheet reading `--cb-*-pad-*`, `--cb-*-mar-*`
+  or `--cb-gap-*` directly must use the same fallback chain as `styling.css`.
+
 ## [1.0.0-RC15] - 2026-09-21
 
 ### Added

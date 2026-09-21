@@ -141,6 +141,10 @@ cb:
         move_up: "Move up"
         move_down: "Move down"
         duplicate: "Duplicate"
+        toggle: "Collapse / expand"
+        collapse_all: "Collapse all"
+        expand_all: "Expand all"
+        item: "Item %n%"
     builder:
         viewport_order:
             tablet: "Tablet order: desktop is unchanged"
