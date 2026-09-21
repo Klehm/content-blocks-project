@@ -5,6 +5,15 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-RC16] - 2026-09-21
+
+Version bump only — no functional change in `klehm/content-blocks-kit`. The tag is cut
+across the monorepo so the three packages stay installable as one set; this
+candidate's change is in `klehm/content-blocks`: collection entries fold in the
+sidebar, which every kit block with a list (gallery, tabs, accordion, card,
+button group, breadcrumb) picks up, and redundant inline spacing variables are
+no longer emitted. No migration, nothing to wire.
+
 ## [1.0.0-RC15] - 2026-09-21
 
 Version bump only — no functional change in `klehm/content-blocks-kit`. The tag is cut
