@@ -66,7 +66,7 @@ async function openBlockEditor(page, frame) {
  * order the form builder produced. `content_block[align]` → `align`.
  */
 async function fieldNamesOfFirstTab(sidebar) {
-    const controls = sidebar.locator('.cb-block__tabpanel').first().locator('input[name], select[name], textarea[name]');
+    const controls = sidebar.locator('.cb-sidebar-tabs__panel').first().locator('input[name], select[name], textarea[name]');
 
     return (await controls.evaluateAll((els) => els.map((el) => el.getAttribute('name'))))
         .map((name) => name.match(/\[([^\][]+)]$/)?.[1])
@@ -78,7 +78,7 @@ async function fieldNamesOfFirstTab(sidebar) {
  * selected.
  */
 async function openSeoTab(sidebar) {
-    const tab = sidebar.locator('.cb-block__tab', { hasText: 'SEO' });
+    const tab = sidebar.locator('.cb-sidebar-tabs__tab', { hasText: 'SEO' });
     await expect(tab).toHaveCount(1);
     await tab.click();
 }

@@ -435,3 +435,21 @@ body {
   background: rgba(var(--cb-accent-rgb), 0.06);
   outline: none;
 }
+
+/* ---------- Elevation ----------
+   The shell's three shadow steps, on the preview's own controls. */
+
+.cb-add-section-tray__btn,
+.cb-add-section-tray__library,
+.cb-add-block-inline {
+  box-shadow: var(--cb-shadow-control);
+}
+.cb-add-section-tray__btn:hover,
+.cb-add-section-tray__btn:focus-visible,
+.cb-add-section-tray__library:hover,
+.cb-add-section-tray__library:focus-visible,
+.cb-add-block-inline:hover,
+.cb-add-block-inline:focus-visible,
+.cb-overlay-popover__tile:hover {
+  box-shadow: var(--cb-shadow-control-hover);
+}

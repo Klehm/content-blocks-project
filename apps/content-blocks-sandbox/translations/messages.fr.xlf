@@ -28,6 +28,62 @@
                 <source>app.builder.translate_title</source>
                 <target>Ouvrir l'atelier de traduction dans un nouvel onglet</target>
             </trans-unit>
+            <trans-unit id="ornament.panel">
+                <source>app.ornament.panel</source>
+                <target>Ornements</target>
+            </trans-unit>
+            <trans-unit id="ornament.corner">
+                <source>app.ornament.corner</source>
+                <target>Marque d'angle</target>
+            </trans-unit>
+            <trans-unit id="ornament.corner.none">
+                <source>app.ornament.corner.none</source>
+                <target>Aucune</target>
+            </trans-unit>
+            <trans-unit id="ornament.corner.tl">
+                <source>app.ornament.corner.tl</source>
+                <target>En haut à gauche</target>
+            </trans-unit>
+            <trans-unit id="ornament.corner.tr">
+                <source>app.ornament.corner.tr</source>
+                <target>En haut à droite</target>
+            </trans-unit>
+            <trans-unit id="ornament.corner.bl">
+                <source>app.ornament.corner.bl</source>
+                <target>En bas à gauche</target>
+            </trans-unit>
+            <trans-unit id="ornament.corner.br">
+                <source>app.ornament.corner.br</source>
+                <target>En bas à droite</target>
+            </trans-unit>
+            <trans-unit id="ornament.sides">
+                <source>app.ornament.sides</source>
+                <target>Filet</target>
+            </trans-unit>
+            <trans-unit id="ornament.side.top">
+                <source>app.ornament.side.top</source>
+                <target>En haut</target>
+            </trans-unit>
+            <trans-unit id="ornament.side.right">
+                <source>app.ornament.side.right</source>
+                <target>À droite</target>
+            </trans-unit>
+            <trans-unit id="ornament.side.bottom">
+                <source>app.ornament.side.bottom</source>
+                <target>En bas</target>
+            </trans-unit>
+            <trans-unit id="ornament.side.left">
+                <source>app.ornament.side.left</source>
+                <target>À gauche</target>
+            </trans-unit>
+            <trans-unit id="ornament.sides_help">
+                <source>app.ornament.sides_help</source>
+                <target>Plusieurs côtés possibles.</target>
+            </trans-unit>
+            <trans-unit id="ornament.sides_tooltip">
+                <source>app.ornament.sides_tooltip</source>
+                <target>Ajouté par App\ContentBlocks\Form\SectionOrnamentExtension.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

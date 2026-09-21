@@ -175,7 +175,7 @@ test.describe('section-template library — round trip', () => {
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
         await expect(sidebar.locator('.cb-block__edit-form')).toBeVisible();
         await page.waitForTimeout(300); // let cb-autosave connect
-        await sidebar.locator('.cb-block__tab', { hasText: 'SEO' }).click();
+        await sidebar.locator('.cb-sidebar-tabs__tab', { hasText: 'SEO' }).click();
         await sidebar.locator('[name$="[anchorId]"]').fill('tpl-anchor');
         await sidebar.locator('[name$="[anchorId]"]').blur();
         await page.waitForTimeout(1200); // autosave debounce + round-trip
@@ -192,7 +192,8 @@ test.describe('section-template library — round trip', () => {
         await picker.locator('.cb-template-picker__item-btn').first().click();
 
         const targetSidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
-        await expect(targetSidebar.locator('input[name="section_settings[classes]"]')).toBeVisible();
+        // The inserted section's settings take over the sidebar.
+        await expect(targetSidebar.locator('.cb-sidebar__section-settings')).toBeVisible();
         await expect(page.locator('.cb-template-picker__status')).toHaveCount(0);
         await expect.poll(() => targetFrame.locator('[data-cb-section-id]').count()).toBe(1);
         // The extension field survived the snapshot round-trip.

@@ -8,10 +8,11 @@ That second half is the part worth reading. In PHP almost everything is reachabl
 
 ### PHP
 
-- **The 34 core interfaces**, plus the kit's `RichTextEditorInterface` and `IconProviderInterface`, and i18n's `TranslationProviderInterface`, `RenderLocaleResolverInterface`, `WorkbenchBackUrlResolverInterface` and `LocalizedPageUrlResolverInterface`. These are the extension surface — implement them, alias them, decorate them.
+- **The 35 core interfaces**, plus the kit's `RichTextEditorInterface` and `IconProviderInterface`, and i18n's `TranslationProviderInterface`, `RenderLocaleResolverInterface`, `WorkbenchBackUrlResolverInterface` and `LocalizedPageUrlResolverInterface`. These are the extension surface — implement them, alias them, decorate them.
 - **`AbstractBlockType`, `AbstractKitBlock`, `AbstractRichTextEditor`** and their documented extension points.
 - **The 17 kit block classes, as subclassable** — see [extending a kit block](../kit/#extending-a-kit-block).
 - **The `#[AsContentBlock]` attribute.**
+- **The sidebar form options** — `cb_group`, `cb_panel`, `cb_help_tooltip` and `cb_panels_exclusive` on every form type, `cb_icons`, `cb_icon_layout`, `cb_icon_columns` and `cb_icon_labels` on `ChoiceType` — and the **names of the shipped UI icons** they refer to ([Laying out sidebar fields](./sidebar-fields.md)). A name may gain a better drawing; it is not renamed or removed.
 - **Value objects and enums** — `RenderContext`, `PublishContext`, `RenderMode`, `ResolvedImage`, `BlockPreviewHint`, `FieldStatus`, `ImportResult`, `InstantiationResult`, `SectionTemplateSnapshot`. The last three are frozen as things you **read**; their constructors are `@internal` so the package can add fields to them.
 - **The entities** — `ContentArea`, `Section`, `Column`, `Block`, `SectionTemplate`, `BlockTranslation` — and their public accessors.
 
@@ -29,14 +30,14 @@ For `content-blocks:assets:gc`, the *shape* of the safety design is part of the 
 
 ### Twig
 
-The twelve functions — `cb_render_content_area`, `cb_preview_url`, `cb_public_url`, `cb_color_palette`, `cb_shell_fragments`, `cb_image`, `cb_embed_url`, `cb_kit_icon`, `cb_kit_token`, `cb_i18n_workbench_url`, `cb_i18n_locales`, `cb_i18n_progress`.
+The thirteen functions — `cb_render_content_area`, `cb_preview_url`, `cb_public_url`, `cb_color_palette`, `cb_shell_fragments`, `cb_image`, `cb_ui_icon`, `cb_embed_url`, `cb_kit_icon`, `cb_kit_token`, `cb_i18n_workbench_url`, `cb_i18n_locales`, `cb_i18n_progress`.
 
 Every shipped template path, since overriding one under `templates/bundles/` is a supported integration. Their *contents* are not frozen — a template may be restructured — but the path will resolve and the block names a host overrides will keep working — among them the empty blocks shipped for host additions: `cb_shell_topbar_left_end`, `cb_shell_topbar_right_start`, `cb_shell_topbar_right_end`, `cb_shell_end` in the builder shell, and `cb_wb_head`, `cb_wb_topbar_left_end`, `cb_wb_topbar_right_start`, `cb_wb_topbar_right_end`, `cb_wb_end` in the workbench.
 
 ### Front-end
 
 - The 15 **Stimulus controller names**, which hosts write into `assets/controllers.json`.
-- All 90 **`--cb-*` CSS custom properties** — the chrome tokens and form alias layer in [Styling](./styling#theming-the-builder-chrome), the kit's seven content tokens in the [Block Kit](../kit/#the-kits-own-tokens), the workbench's fifteen in [Translation](./translation#theming-the-workbench).
+- All 94 **`--cb-*` CSS custom properties** — the chrome tokens and form alias layer in [Styling](./styling#theming-the-builder-chrome), the kit's seven content tokens in the [Block Kit](../kit/#the-kits-own-tokens), the workbench's fifteen in [Translation](./translation#theming-the-workbench).
 - **Five `cb:*` events**: four outbound — `cb:ready`, `cb:block:saved`, `cb:section:saved`, `cb:builder:action` — and one inbound, `cb:area:changed`, which a [shell fragment](./host-services#adding-your-own-ui-to-the-builder-shell) or the host dispatches at the builder after changing the area server-side.
 
 The other 33 `cb:*` events are internal choreography between the preview overlay, the iframe and the builder shell — the `…-requested`, `…:apply`, `…:patch` and `…:desync` families. They are how the builder talks to itself, and they change as it changes.

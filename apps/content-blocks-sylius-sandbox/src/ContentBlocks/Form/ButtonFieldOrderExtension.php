@@ -21,7 +21,7 @@ use Symfony\Component\Form\FormBuilderInterface;
  * then `text`, then everything else in its original order.
  *
  * Two things to keep in mind:
- * - the sidebar groups fields into tabs by `data-cb-group`, so ordering only
+ * - the sidebar groups fields into tabs by `cb_group`, so ordering only
  *   shows within a tab (this app's SEO fields stay in their own tab);
  * - the styling sub-form is added by BlockFormType *after* every extension has
  *   run, so it is always the last tab whatever an extension does.

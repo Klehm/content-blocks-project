@@ -44,8 +44,8 @@ final class SectionAnchorExtension extends AbstractTypeExtension
 
 Type extensions are autoconfigured — with the standard `App\` service definition (`autoconfigure: true`) there is **nothing to tag**.
 
-::: tip Styling tab vs General tab
-Extending `SectionSettingsType` lands your field in the section's **General** settings. If instead you want it inside the **Styling** group (behind the "Customize styling" switch), extend `ContentBlocks\Form\Type\Styling\StylingType` — same pattern, different target. See [Styling → Extending the styling sub-form](../styling.md#extending-the-styling-sub-form).
+::: tip Which tab
+Extending `SectionSettingsType` lands your field on the section's **Structure** tab; `'cb_group' => 'SEO'` gives it a tab of its own and `cb_panel` folds it into a collapsible panel (`SectionSettingsType::PANEL_LAYOUT` joins the display and its options). If instead you want it on the **Style** tab (behind the "Customize styling" switch), extend `ContentBlocks\Form\Type\Styling\StylingType` — same pattern, different target. See [Styling → Extending the styling sub-form](../styling.md#extending-the-styling-sub-form) and [Laying out sidebar fields](../sidebar-fields.md).
 :::
 
 A preset or `section.initial_settings` can set your field too:

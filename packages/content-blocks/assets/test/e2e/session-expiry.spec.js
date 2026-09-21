@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { reveal } from './helpers/sidebar.js';
 
 /**
  * The editor's session runs out while the builder is open. The host firewall
@@ -61,7 +62,7 @@ test('a section edit into a dead session is kept, said, and sent once back', asy
     const saveError = page.locator('.cb-shell__save-error');
     await addSection(page, frame);
 
-    const classes = page.locator('.cb-shell__sidebar input[name$="[classes]"]');
+    const classes = await reveal(page.locator('.cb-shell__sidebar input[name$="[classes]"]'));
     await expect(classes).toBeVisible();
 
     await expireSession(page);

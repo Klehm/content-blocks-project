@@ -1,8 +1,10 @@
 {# @var form Symfony\Component\Form\FormView #}
 {# @var sectionId int #}
+{% import '@ContentBlocks/form/_sidebar.html.twig' as sidebar %}
 <div class="cb-sidebar__section-settings"
-     data-controller="cb-section-settings-form cb-autosave cb-condition"
-     data-cb-section-settings-form-section-id-value="{{ sectionId }}">
+     data-controller="cb-section-settings-form cb-autosave cb-condition cb-tabs"
+     data-cb-section-settings-form-section-id-value="{{ sectionId }}"
+     data-cb-tabs-storage-key-value="section">
 
     {# One call, since each `form_theme` directive replaces the previous
        local stack rather than adding to it. #}
@@ -10,96 +12,101 @@
         '@ContentBlocks/form/cb_form_theme.html.twig',
         '@ContentBlocks/form/styling_widgets.html.twig',
     ] %}
-    {# Outside the form: each gesture is its own request, so autosave never
-       sees these inputs. See docs/internals/rendering.md#columns-and-tabs #}
-    <section class="cb-sidebar__group cb-columns-editor"
-             data-i18n-cb-columns-last="{{ 'cb.section.columns.last_column'|trans({}, 'content_blocks') }}"
-             data-i18n-cb-columns-too-many="{{ 'cb.section.columns.too_many'|trans({ '%max%': maxColumns }, 'content_blocks') }}">
-        <h4 class="cb-sidebar__group-title">
-            {{ 'cb.section.columns.title'|trans({}, 'content_blocks') }}
-        </h4>
-        <div class="cb-sidebar__group-body">
-            <ol class="cb-columns-editor__list">
-                {% for column in columns %}
-                    <li class="cb-columns-editor__item">
-                        <input type="text"
-                               class="cb-form-control cb-columns-editor__label"
-                               maxlength="100"
-                               value="{{ column.label ?? '' }}"
-                               placeholder="{{ 'cb.builder.tree.column'|trans({ '%index%': loop.index }, 'content_blocks') }}"
-                               aria-label="{{ 'cb.section.columns.label_n'|trans({ '%n%': loop.index }, 'content_blocks') }}"
-                               data-cb-column-id="{{ column.id }}"
-                               data-cb-section-settings-form-target="columnLabel"
-                               data-action="input->cb-section-settings-form#onColumnLabelInput change->cb-section-settings-form#commitColumnLabel">
-                        <button type="button"
-                                class="cb-form-btn cb-form-btn--sm cb-columns-editor__remove"
-                                data-cb-column-id="{{ column.id }}"
-                                data-action="cb-section-settings-form#removeColumn"
-                                aria-label="{{ 'cb.section.columns.remove_n'|trans({ '%n%': loop.index }, 'content_blocks') }}"
-                                title="{{ 'cb.section.columns.remove_n'|trans({ '%n%': loop.index }, 'content_blocks') }}"
-                                {% if columns|length <= 1 %}disabled{% endif %}>×</button>
-                    </li>
-                {% endfor %}
-            </ol>
-            <button type="button"
-                    class="cb-form-btn cb-form-btn--sm cb-columns-editor__add"
-                    data-action="cb-section-settings-form#addColumn"
-                    {% if columns|length >= maxColumns %}disabled{% endif %}>
-                + {{ 'cb.section.columns.add'|trans({}, 'content_blocks') }}
-            </button>
-            <p class="cb-form-help cb-columns-editor__help">
-                {{ 'cb.section.columns.help'|trans({}, 'content_blocks') }}
-            </p>
-        </div>
-    </section>
-
     {{ form_start(form, { 'attr': { 'data-cb-section-settings-form-target': 'form' } }) }}
+        {% set t_structure = 'cb.section.settings.tab.structure'|trans({}, 'content_blocks') %}
+        {% set t_styling = 'cb.section.settings.tab.styling'|trans({}, 'content_blocks') %}
+        {% set special = ['columnWidths', 'display', 'displayTablet', 'displayMobile'] %}
 
-        {# No tabs: both groups are always visible and the sidebar scrolls
-           if they exceed its height. #}
-        <section class="cb-sidebar__group">
-            <h4 class="cb-sidebar__group-title">
-                {{ 'cb.section.settings.tab.general'|trans({}, 'content_blocks') }}
-            </h4>
-            <div class="cb-sidebar__group-body">
-                {# Beyond two and three columns, only "equal" is offered;
-                   the free inputs below cover the rest. #}
-                {% set equal_base = columnCount > 0 ? (100 / columnCount)|round(0, 'floor') : 0 %}
-                {% set equal_widths = [] %}
-                {% for i in 1..max(columnCount, 1) %}
-                    {% set equal_widths = equal_widths|merge([equal_base + (i <= 100 - equal_base * columnCount ? 1 : 0)]) %}
-                {% endfor %}
-                {% set width_presets = columnCount == 3
-                    ? [
-                        { label: 'cb.section.settings.column_widths_equal'|trans({}, 'content_blocks'), value: '34,33,33' },
-                        { label: '50/25/25', value: '50,25,25' },
-                        { label: '25/50/25', value: '25,50,25' },
-                        { label: '25/25/50', value: '25,25,50' },
-                        { label: '40/30/30', value: '40,30,30' },
-                      ]
-                    : (columnCount == 2
-                        ? [
-                            { label: '50/50', value: '50,50' },
-                            { label: '33/67', value: '33,67' },
-                            { label: '40/60', value: '40,60' },
-                            { label: '60/40', value: '60,40' },
-                            { label: '67/33', value: '67,33' },
-                          ]
-                        : [
-                            { label: 'cb.section.settings.column_widths_equal'|trans({}, 'content_blocks'), value: equal_widths|join(',') },
-                          ]) %}
-                {% for child in form %}
-                    {% if child.vars.name == 'styling' or child.vars.name == 'stylingCustom' %}
-                        {# Rendered in the Styling group below. #}
-                    {% elseif child.vars.name == 'display' %}
-                        {# One row, three panes: the viewport tabs pick which
-                           of the three display fields shows. #}
+        {# Tabs from `cb_group`, Structure by default; a host tab sits before
+           Style. Hidden fields are left to form_end(). #}
+        {% set order = [t_structure] %}
+        {% set buckets = { (t_structure): [], (t_styling): [] } %}
+        {% for child in form %}
+            {% if child.vars.name not in special and 'hidden' not in child.vars.block_prefixes %}
+                {% set raw = child.vars.cb_group ?? null %}
+                {% set label = raw is empty ? t_structure : raw|trans({}, 'content_blocks') %}
+                {% if label not in order and label != t_styling %}
+                    {% set order = order|merge([label]) %}
+                {% endif %}
+                {% set buckets = buckets|merge({ (label): (buckets[label] ?? [])|merge([child]) }) %}
+            {% endif %}
+        {% endfor %}
+        {% set order = order|merge([t_styling]) %}
+
+        {% set layout_invalid = not (form.display.vars.valid and form.displayTablet.vars.valid and form.displayMobile.vars.valid)
+            or (form.columnWidths is defined and not form.columnWidths.vars.valid) %}
+        {% set special_invalid = { (t_structure): layout_invalid } %}
+        {% set errors = order|map(label => (special_invalid[label] ?? false)
+            or buckets[label]|filter(c => not c.vars.valid)|length > 0) %}
+        {% set exclusive = form.vars.cb_panels_exclusive ?? true %}
+
+        <div class="cb-sidebar-tabs">
+            {{ sidebar.tablist(order, errors) }}
+
+            {% for label in order %}
+                {% set group = 'tab-' ~ loop.index0 %}
+                {% set panel_name = form.vars.id ~ '-' ~ group %}
+                <section class="cb-sidebar-tabs__panel"
+                         role="tabpanel"
+                         data-cb-tabs-target="panel"
+                         data-cb-tab="{{ loop.index0 }}"
+                         {% if not loop.first %}hidden{% endif %}>
+                    {% if label == t_structure %}
+                        {# Nameless inputs: each gesture is its own request.
+                           @see docs/internals/rendering.md#columns-and-tabs #}
+                        {% set structure_invalid = special_invalid[t_structure]
+                            or buckets[label]|filter(c => not c.vars.valid)|length > 0 %}
+                        {{ sidebar.panel_open('cb.section.columns.title'|trans({}, 'content_blocks'), group, {
+                            name: exclusive ? panel_name : null,
+                            open: not structure_invalid,
+                            summary: 'cb.section.columns.count'|trans({ '%count%': columns|length }, 'content_blocks'),
+                        }) }}
+                            <div class="cb-columns-editor"
+                                 data-i18n-cb-columns-last="{{ 'cb.section.columns.last_column'|trans({}, 'content_blocks') }}"
+                                 data-i18n-cb-columns-too-many="{{ 'cb.section.columns.too_many'|trans({ '%max%': maxColumns }, 'content_blocks') }}">
+                                <ol class="cb-columns-editor__list">
+                                    {% for column in columns %}
+                                        <li class="cb-columns-editor__item">
+                                            <input type="text"
+                                                   class="cb-form-control cb-columns-editor__label"
+                                                   maxlength="100"
+                                                   value="{{ column.label ?? '' }}"
+                                                   placeholder="{{ 'cb.builder.tree.column'|trans({ '%index%': loop.index }, 'content_blocks') }}"
+                                                   aria-label="{{ 'cb.section.columns.label_n'|trans({ '%n%': loop.index }, 'content_blocks') }}"
+                                                   data-cb-column-id="{{ column.id }}"
+                                                   data-cb-section-settings-form-target="columnLabel"
+                                                   data-action="input->cb-section-settings-form#onColumnLabelInput change->cb-section-settings-form#commitColumnLabel">
+                                            <button type="button"
+                                                    class="cb-form-btn cb-form-btn--sm cb-columns-editor__remove"
+                                                    data-cb-column-id="{{ column.id }}"
+                                                    data-action="cb-section-settings-form#removeColumn"
+                                                    aria-label="{{ 'cb.section.columns.remove_n'|trans({ '%n%': loop.index }, 'content_blocks') }}"
+                                                    title="{{ 'cb.section.columns.remove_n'|trans({ '%n%': loop.index }, 'content_blocks') }}"
+                                                    {% if columns|length <= 1 %}disabled{% endif %}>×</button>
+                                        </li>
+                                    {% endfor %}
+                                </ol>
+                                <button type="button"
+                                        class="cb-form-btn cb-form-btn--sm cb-columns-editor__add"
+                                        data-action="cb-section-settings-form#addColumn"
+                                        {% if columns|length >= maxColumns %}disabled{% endif %}>
+                                    + {{ 'cb.section.columns.add'|trans({}, 'content_blocks') }}
+                                </button>
+                                <p class="cb-form-help cb-columns-editor__help">
+                                    {{ 'cb.section.columns.help'|trans({}, 'content_blocks') }}
+                                </p>
+                            </div>
+                        {{ sidebar.panel_close() }}
+
+                        {# Display first, then every field it gates: one panel.
+                           See docs/guide/sidebar-fields.md#panels #}
+                        {% set display_row %}
                         <div class="cb-form-row cb-display-row">
                             <div class="cb-form-row__header">
                                 <span class="cb-form-label">{{ 'cb.section.settings.display'|trans({}, 'content_blocks') }}</span>
                                 {{ include('@ContentBlocks/form/_viewport_tabs.html.twig') }}
                             </div>
-                            <div data-viewport="desktop">{{ form_widget(child) }}</div>
+                            <div data-viewport="desktop">{{ form_widget(form.display) }}</div>
                             {% for field in ['displayTablet', 'displayMobile'] %}
                                 <div data-viewport="{{ field == 'displayTablet' ? 'tablet' : 'mobile' }}" hidden>
                                     {{ form_widget(form[field]) }}
@@ -107,73 +114,88 @@
                                 </div>
                             {% endfor %}
                         </div>
-                    {% elseif child.vars.name == 'displayTablet' or child.vars.name == 'displayMobile' %}
-                        {# Rendered in the display row. #}
-                    {% elseif child.vars.name == 'columnWidths' %}
-                        {# The hidden CSV is canonical; the number inputs
-                           carry no `name` and never reach the FormData. #}
-                        <div class="cb-form-row cb-col-widths" data-cb-condition="display:grid">
-                            <span class="cb-form-label">
-                                {{ 'cb.section.settings.column_widths'|trans({}, 'content_blocks') }}
-                            </span>
-                            {{ form_widget(child, { attr: { 'data-cb-section-settings-form-target': 'widthsField' } }) }}
-                            <div class="cb-col-widths__presets">
-                                {% for preset in width_presets %}
-                                    <button type="button"
-                                            class="cb-col-widths__preset"
-                                            data-action="cb-section-settings-form#applyWidthPreset"
-                                            data-cb-widths="{{ preset.value }}">{{ preset.label }}</button>
+                        {% endset %}
+                        {% set widths_row %}
+                            {% if form.columnWidths is defined %}
+                                {# Past three columns only "equal" is offered;
+                                   the free inputs below cover the rest. #}
+                                {% set equal_base = columnCount > 0 ? (100 / columnCount)|round(0, 'floor') : 0 %}
+                                {% set equal_widths = [] %}
+                                {% for i in 1..max(columnCount, 1) %}
+                                    {% set equal_widths = equal_widths|merge([equal_base + (i <= 100 - equal_base * columnCount ? 1 : 0)]) %}
                                 {% endfor %}
-                                {# Reveals the free inputs below. #}
-                                <button type="button"
-                                        class="cb-col-widths__preset cb-col-widths__preset--custom"
-                                        data-cb-section-settings-form-target="customToggle"
-                                        data-action="cb-section-settings-form#showCustomWidths">
-                                    {{ 'cb.section.settings.column_widths_custom'|trans({}, 'content_blocks') }}
-                                </button>
-                            </div>
-                            <div class="cb-col-widths__custom" data-cb-section-settings-form-target="customRow" hidden>
-                                {% for i in 1..columnCount %}
-                                    <span class="cb-col-widths__field">
-                                        <input type="number" min="1" max="99" step="1" inputmode="numeric"
-                                               class="cb-col-widths__input"
-                                               aria-label="{{ 'cb.section.settings.column_width_n'|trans({ '%n%': i }, 'content_blocks') }}"
-                                               data-cb-section-settings-form-target="widthInput"
-                                               data-action="input->cb-section-settings-form#onWidthInput change->cb-section-settings-form#onWidthCommit">
-                                        <span class="cb-col-widths__pct">%</span>
+                                {% set width_presets = columnCount == 3
+                                    ? [
+                                        { label: 'cb.section.settings.column_widths_equal'|trans({}, 'content_blocks'), value: '34,33,33' },
+                                        { label: '50/25/25', value: '50,25,25' },
+                                        { label: '25/50/25', value: '25,50,25' },
+                                        { label: '25/25/50', value: '25,25,50' },
+                                        { label: '40/30/30', value: '40,30,30' },
+                                      ]
+                                    : (columnCount == 2
+                                        ? [
+                                            { label: '50/50', value: '50,50' },
+                                            { label: '33/67', value: '33,67' },
+                                            { label: '40/60', value: '40,60' },
+                                            { label: '60/40', value: '60,40' },
+                                            { label: '67/33', value: '67,33' },
+                                          ]
+                                        : [
+                                            { label: 'cb.section.settings.column_widths_equal'|trans({}, 'content_blocks'), value: equal_widths|join(',') },
+                                          ]) %}
+                                <div class="cb-form-row cb-col-widths" data-cb-condition="display:grid">
+                                    <span class="cb-form-label">
+                                        {{ 'cb.section.settings.column_widths'|trans({}, 'content_blocks') }}
                                     </span>
-                                    {%- if not loop.last %}<span class="cb-col-widths__sep">/</span>{% endif -%}
-                                {% endfor %}
-                                <span class="cb-col-widths__total" data-cb-section-settings-form-target="widthsTotal" aria-live="polite"></span>
-                            </div>
-                        </div>
-                    {% elseif child.vars.name == 'maxWidth' %}
-                        {# Only meaningful when centered; the JS keeps this in
-                           sync with the radio after mount. #}
-                        <div data-cb-section-settings-form-target="maxWidthRow"
-                             {% if form.widthMode.vars.value != 'centered' %}hidden{% endif %}>
-                            {{ form_row(child) }}
-                        </div>
+                                    {{ form_widget(form.columnWidths, { attr: { 'data-cb-section-settings-form-target': 'widthsField' } }) }}
+                                    <div class="cb-col-widths__presets">
+                                        {% for preset in width_presets %}
+                                            <button type="button"
+                                                    class="cb-col-widths__preset"
+                                                    data-action="cb-section-settings-form#applyWidthPreset"
+                                                    data-cb-widths="{{ preset.value }}">{{ preset.label }}</button>
+                                        {% endfor %}
+                                        {# Reveals the free inputs below. #}
+                                        <button type="button"
+                                                class="cb-col-widths__preset cb-col-widths__preset--custom"
+                                                data-cb-section-settings-form-target="customToggle"
+                                                data-action="cb-section-settings-form#showCustomWidths">
+                                            {{ 'cb.section.settings.column_widths_custom'|trans({}, 'content_blocks') }}
+                                        </button>
+                                    </div>
+                                    <div class="cb-col-widths__custom" data-cb-section-settings-form-target="customRow" hidden>
+                                        {% for i in 1..columnCount %}
+                                            <span class="cb-col-widths__field">
+                                                <input type="number" min="1" max="99" step="1" inputmode="numeric"
+                                                       class="cb-col-widths__input"
+                                                       aria-label="{{ 'cb.section.settings.column_width_n'|trans({ '%n%': i }, 'content_blocks') }}"
+                                                       data-cb-section-settings-form-target="widthInput"
+                                                       data-action="input->cb-section-settings-form#onWidthInput change->cb-section-settings-form#onWidthCommit">
+                                                <span class="cb-col-widths__pct">%</span>
+                                            </span>
+                                            {%- if not loop.last %}<span class="cb-col-widths__sep">/</span>{% endif -%}
+                                        {% endfor %}
+                                        <span class="cb-col-widths__total" data-cb-section-settings-form-target="widthsTotal" aria-live="polite"></span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endset %}
+                        {{ sidebar.panels(buckets[label], group, {
+                            name: panel_name,
+                            exclusive: exclusive,
+                            open_first: false,
+                            slots: { ('cb.section.settings.panel.layout'|trans({}, 'content_blocks')): {
+                                before: display_row,
+                                after: widths_row,
+                                invalid: layout_invalid,
+                            } },
+                        }) }}
                     {% else %}
-                        {{ form_row(child) }}
+                        {{ sidebar.panels(buckets[label], group, { name: panel_name, exclusive: exclusive }) }}
                     {% endif %}
-                {% endfor %}
-            </div>
-        </section>
-
-        <section class="cb-sidebar__group">
-            <h4 class="cb-sidebar__group-title">
-                {{ 'cb.section.settings.tab.styling'|trans({}, 'content_blocks') }}
-            </h4>
-            <div class="cb-sidebar__group-body">
-                {# Off, the preset applies untouched and the server drops the
-                   subtree. See docs/internals/forms.md #}
-                {{ form_row(form.stylingCustom) }}
-                <div data-cb-condition="stylingCustom:true">
-                    {{ form_row(form.styling) }}
-                </div>
-            </div>
-        </section>
+                </section>
+            {% endfor %}
+        </div>
 
         {# Clicked by cb-autosave; the submit is hijacked into a fetch.
            Hidden, because autosave replaced the user-facing Save button. #}

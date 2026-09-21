@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { reveal } from './helpers/sidebar.js';
 
 /**
  * Layout options set from the sidebars: a block's text alignment, and a
@@ -47,8 +48,8 @@ test('a block is centred from its Style tab', async ({ page }) => {
     await addTitle(frame, column);
 
     const sidebar = page.locator('.cb-shell__sidebar');
-    await sidebar.locator('.cb-block__tab').last().click();
-    await sidebar.locator('input[name$="[styling][textAlign]"][value="center"]').check({ force: true });
+    await sidebar.locator('.cb-sidebar-tabs__tab').last().click();
+    await (await reveal(sidebar.locator('input[name$="[styling][textAlign]"][value="center"]'))).check();
 
     const block = column.locator('[data-cb-block-id]');
     await expect(block).toHaveClass(/cb-block--text-center/, { timeout: 10000 });
@@ -60,7 +61,7 @@ test('a section stacks its columns in reverse on mobile', async ({ page, context
     const frame = await openBuilder(page, builderUrl);
 
     await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="two_cols"]').click();
-    await page.locator('input[name$="[reverseOnMobile]"]').check();
+    await (await reveal(page.locator('input[name$="[reverseOnMobile]"]'))).check();
     const section = frame.locator('.cb-section').first();
     await expect(section).toHaveClass(/cb-section--reverse-mobile/);
 
@@ -95,10 +96,11 @@ test('a section gets a background image under a veil', async ({ page }) => {
 
     await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
     let save = saved();
-    await sidebar.locator('input[name$="[stylingCustom]"]').check();
+    await (await reveal(sidebar.locator('input[name$="[stylingCustom]"]'))).check();
     await save;
 
-    // The veil fields wait for an image.
+    // The veil fields wait for an image, in the Background panel.
+    await reveal(sidebar.locator('.cb-image-upload'));
     const opacity = sidebar.locator('input[name$="[styling][overlayOpacity]"]');
     await expect(opacity).toBeHidden();
     const upload = sidebar.locator('.cb-image-upload').first();

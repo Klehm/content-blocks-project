@@ -744,7 +744,7 @@ final class ButtonRelExtension implements BlockFormExtensionInterface
 }
 ```
 
-Auto-tagged with `content_blocks.block_form_extension` (autoconfigured); `BlockFormType` calls every matching extension after the block's own `buildForm()`, in `priority` order (`#[AsBlockFormExtension('button', priority: 10)]` — higher first). Keyed by block type **id**, so it survives block subclassing. The added field round-trips into `Block.data` like any other (block data is not pruned); render it via a host block-template override. Add `'attr' => ['data-cb-group' => 'SEO']` to the field to give it its own tab in the block sidebar.
+Auto-tagged with `content_blocks.block_form_extension` (autoconfigured); `BlockFormType` calls every matching extension after the block's own `buildForm()`, in `priority` order (`#[AsBlockFormExtension('button', priority: 10)]` — higher first). Keyed by block type **id**, so it survives block subclassing. The added field round-trips into `Block.data` like any other (block data is not pruned); render it via a host block-template override. Add `'cb_group' => 'SEO'` to the field to give it its own tab in the block sidebar, `cb_panel` to fold it into a collapsible panel, `cb_icons` to draw a choice as icon buttons — see [Laying out sidebar fields](https://klehm.github.io/content-blocks-project/guide/sidebar-fields).
 
 For a **global** extension, pair it with a block decorator (next section) rather than overriding every template: the decorator turns the stored key into a class / attribute / inline style for every block at once.
 

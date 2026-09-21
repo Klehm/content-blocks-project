@@ -81,7 +81,7 @@ final class AnchorIdExtension implements BlockFormExtensionInterface
         $builder->add('anchorId', TextType::class, [
             'required' => false,
             'data' => $data['anchorId'] ?? '',
-            'attr' => ['data-cb-group' => 'SEO'], // own tab in the block sidebar
+            'cb_group' => 'SEO', // own tab in the block sidebar
         ]);
     }
 }
@@ -101,7 +101,7 @@ final class AnchorIdBlockDecorator implements BlockDecoratorInterface
 ```
 
 ::: tip Group fields into a tab
-`attr: ['data-cb-group' => 'SEO']` puts the field in its own tab of the block edit sidebar (fields without the attribute fall into "General"; "Style" is always last). Handy to keep host-added fields out of the block's own field list.
+`'cb_group' => 'SEO'` puts the field in its own tab of the block edit sidebar (fields without it fall into "General"; "Style" is always last). Handy to keep host-added fields out of the block's own field list. `cb_panel` gathers fields into a collapsible panel inside a tab, and `cb_icons` draws a choice as icon buttons: see [Laying out sidebar fields](../sidebar-fields.md).
 :::
 
 ## Removing and reordering fields
@@ -151,7 +151,7 @@ final class ButtonFieldOrderExtension implements BlockFormExtensionInterface
 ```
 
 ::: warning Ordering only shows within a tab
-Fields are grouped into sidebar tabs by `data-cb-group`, so a reorder is visible **inside** a group, not across groups. And the styling sub-form is added by `BlockFormType` *after* every extension has run, so the "Style" tab is always last whatever an extension does.
+Fields are grouped into sidebar tabs by `cb_group`, so a reorder is visible **inside** a group, not across groups. And the styling sub-form is added by `BlockFormType` *after* every extension has run, so the "Style" tab is always last whatever an extension does.
 :::
 
 ::: tip Reference implementation

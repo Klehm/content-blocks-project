@@ -172,6 +172,26 @@ final class StylingSectionDecoratorTest extends TestCase
         $this->assertArrayNotHasKey('--cb-s-overlay', $decoration->inlineStyles);
     }
 
+    public function testTheImageCanBePinnedToACorner(): void
+    {
+        $decoration = (new StylingSectionDecorator())->decorate(['styling' => [
+            'backgroundImage' => '/uploads/hero.jpg',
+            'backgroundPosition' => 'top right',
+        ]], new Section());
+
+        $this->assertSame('top right', $decoration->inlineStyles['--cb-s-bg-pos']);
+    }
+
+    public function testAnUnknownPositionIsDropped(): void
+    {
+        $decoration = (new StylingSectionDecorator())->decorate(['styling' => [
+            'backgroundImage' => '/uploads/hero.jpg',
+            'backgroundPosition' => 'top; color: red',
+        ]], new Section());
+
+        $this->assertArrayNotHasKey('--cb-s-bg-pos', $decoration->inlineStyles);
+    }
+
     /** The host's resolver (CDN, LiipImagine) decides the URL. */
     public function testTheImageGoesThroughTheResolver(): void
     {

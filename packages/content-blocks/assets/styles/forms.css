@@ -908,10 +908,11 @@
     color: var(--cb-form-accent);
     outline: none;
 }
-.cb-shell .cb-col-widths__preset--active {
+.cb-shell .cb-col-widths__preset--active,
+.cb-shell .cb-col-widths__preset--active:hover {
     border-color: var(--cb-form-accent);
-    color: var(--cb-form-accent);
-    background: rgba(var(--cb-accent-rgb), 0.08);
+    color: var(--cb-on-solid);
+    background: var(--cb-form-accent);
 }
 .cb-shell .cb-col-widths__custom {
     display: flex;

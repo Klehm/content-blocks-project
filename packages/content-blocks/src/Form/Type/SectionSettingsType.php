@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Form\Type;
 
+use ContentBlocks\Form\Extension\IconChoiceTypeExtension;
 use ContentBlocks\Form\Type\Styling\StylingType;
 use ContentBlocks\Section\SectionDisplay;
 use ContentBlocks\Section\SectionStyleRegistry;
@@ -14,6 +15,8 @@ use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
@@ -33,6 +36,49 @@ final class SectionSettingsType extends AbstractType
         . '||displayMobile:inherit;displayTablet:grid'
         . '||displayMobile:inherit;displayTablet:inherit;display:grid';
 
+    public const TAB_STRUCTURE = 'cb.section.settings.tab.structure';
+    public const TAB_STYLING = 'cb.section.settings.tab.styling';
+    public const PANEL_LAYOUT = 'cb.section.settings.panel.layout';
+    public const PANEL_WIDTH = 'cb.section.settings.panel.width';
+    public const PANEL_ADVANCED = 'cb.section.settings.panel.advanced';
+
+    /**
+     * A field and the ones it gates share a panel. Unlisted fields, a host's
+     * among them, land on the first tab.
+     */
+    private const GROUPS = [
+        'styleName' => self::TAB_STYLING,
+        'stylingCustom' => self::TAB_STYLING,
+        'styling' => self::TAB_STYLING,
+    ];
+
+    private const PANELS = [
+        'display' => self::PANEL_LAYOUT,
+        SectionDisplay::SETTING_TABLET => self::PANEL_LAYOUT,
+        SectionDisplay::SETTING_MOBILE => self::PANEL_LAYOUT,
+        SectionDisplay::ACCORDION_SINGLE => self::PANEL_LAYOUT,
+        SectionDisplay::ACCORDION_COLLAPSED => self::PANEL_LAYOUT,
+        SectionDisplay::SLIDER_PER_VIEW => self::PANEL_LAYOUT,
+        SectionDisplay::SLIDER_CONTROLS => self::PANEL_LAYOUT,
+        SectionDisplay::SLIDER_AUTOPLAY => self::PANEL_LAYOUT,
+        SectionDisplay::SLIDER_LOOP => self::PANEL_LAYOUT,
+        'reverseOnMobile' => self::PANEL_LAYOUT,
+        'columnWidths' => self::PANEL_LAYOUT,
+        'widthMode' => self::PANEL_WIDTH,
+        'maxWidth' => self::PANEL_WIDTH,
+        'classes' => self::PANEL_ADVANCED,
+    ];
+
+    private const WIDTH_ICONS = ['full' => 'width-full', 'centered' => 'width-centered'];
+
+    private const DISPLAY_ICONS = [
+        SectionDisplay::INHERIT => 'auto',
+        SectionDisplay::GRID => 'display-grid',
+        SectionDisplay::SLIDER => 'display-slider',
+        SectionDisplay::TABS => 'display-tabs',
+        SectionDisplay::ACCORDION => 'display-accordion',
+    ];
+
     public function __construct(
         private readonly SectionStyleRegistry $styleRegistry,
         private readonly int $defaultMaxWidth = 1320,
@@ -42,12 +88,8 @@ final class SectionSettingsType extends AbstractType
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $widthMode = $options['data']['widthMode'] ?? $this->defaultWidthMode;
         $builder
-            ->add('classes', TextType::class, [
-                'required' => false,
-                'label' => 'cb.section.settings.classes',
-                'help' => 'cb.section.settings.classes_help',
-            ])
             ->add('display', ChoiceType::class, [
                 'required' => true,
                 'expanded' => true,
@@ -113,7 +155,7 @@ final class SectionSettingsType extends AbstractType
                     'cb.section.settings.width.centered' => 'centered',
                 ],
                 'label' => 'cb.section.settings.width',
-                'data' => $options['data']['widthMode'] ?? $this->defaultWidthMode,
+                'data' => $widthMode,
             ])
             ->add('maxWidth', IntegerType::class, [
                 'required' => false,
@@ -121,6 +163,14 @@ final class SectionSettingsType extends AbstractType
                 // Only seen once the user clears the field, but kept in sync
                 // with the configured default so the hint never lies.
                 'attr' => ['placeholder' => (string) $this->defaultMaxWidth],
+                // cb-section-settings-form keeps it in step with widthMode.
+                'row_attr' => ['data-cb-section-settings-form-target' => 'maxWidthRow']
+                    + ($widthMode === 'centered' ? [] : ['hidden' => 'hidden']),
+            ])
+            ->add('classes', TextType::class, [
+                'required' => false,
+                'label' => 'cb.section.settings.classes',
+                'help' => 'cb.section.settings.classes_help',
             ]);
 
         if ($options['column_count'] >= 2) {
@@ -159,13 +209,12 @@ final class SectionSettingsType extends AbstractType
             'help' => 'cb.section.settings.styling_custom_help',
         ]);
 
-        // Extensions targeting this type land in "General"; to reach
-        // "Styling", extend StylingType instead.
         $builder->add('styling', StylingType::class, [
             'include_min_height' => true,
             'include_alignment' => true,
             'include_gap' => true,
             'include_background_image' => true,
+            'row_attr' => ['data-cb-condition' => 'stylingCustom:true'],
         ]);
     }
 
@@ -188,6 +237,38 @@ final class SectionSettingsType extends AbstractType
             ],
             'label' => false,
         ];
+    }
+
+    /**
+     * Tabs, panels and icons as view vars rather than options, so a bare
+     * form factory still builds this type. A value a host set is kept.
+     */
+    public function finishView(FormView $view, FormInterface $form, array $options): void
+    {
+        foreach ($view->children as $name => $child) {
+            $child->vars['cb_group'] ??= self::GROUPS[$name] ?? self::TAB_STRUCTURE;
+            if (isset(self::PANELS[$name])) {
+                $child->vars['cb_panel'] ??= self::PANELS[$name];
+            }
+        }
+        foreach (['display', SectionDisplay::SETTING_TABLET, SectionDisplay::SETTING_MOBILE] as $name) {
+            if (isset($view->children[$name]) && ($view->children[$name]->vars['cb_icons'] ?? null) === null) {
+                IconChoiceTypeExtension::decorate($view->children[$name], self::DISPLAY_ICONS, 'grid', 4, true);
+            }
+        }
+        if (isset($view->children['widthMode']) && ($view->children['widthMode']->vars['cb_icons'] ?? null) === null) {
+            IconChoiceTypeExtension::decorate(
+                $view->children['widthMode'],
+                self::WIDTH_ICONS,
+                'row',
+                null,
+                true,
+            );
+        }
+        if (isset($view->children['stylingCustom'])) {
+            $view->children['stylingCustom']->vars['cb_help_tooltip']
+                ??= 'cb.section.settings.styling_custom_tooltip';
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void

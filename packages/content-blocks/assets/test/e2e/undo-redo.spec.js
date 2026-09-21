@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { reveal } from './helpers/sidebar.js';
 
 /**
  * E2E for the action history (Ctrl/Cmd-Z).
@@ -173,11 +174,12 @@ test.describe('action history — undoing without leaving the field', () => {
     async function openSectionSidebar(page, frame) {
         // Adding the section already opened a form, which the click replaces:
         // editing the first one would be lost to the second.
-        await expect(styleSelect(page)).toBeVisible();
+        await expect(await reveal(styleSelect(page))).toBeVisible();
         const previous = await styleSelect(page).elementHandle();
         await frame.locator('.cb-section-handle').first().click({ force: true });
         await expect.poll(() => previous.evaluate((node) => node.isConnected)).toBe(false);
         await expect(page.locator('.cb-shell__sidebar')).toHaveAttribute('data-cb-sidebar-section-id', /\d+/);
+        // The new form reopens on the tab last used, Style.
         await expect(styleSelect(page)).toBeVisible();
 
         return page.locator('.cb-shell__sidebar').getAttribute('data-cb-sidebar-section-id');

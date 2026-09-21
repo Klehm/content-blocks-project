@@ -223,7 +223,10 @@ final class ContentBlocksBundle extends AbstractBundle
                 ->scalarNode('backgroundColor')->end()
                 ->scalarNode('backgroundImage')->end()
                 ->enumNode('backgroundSize')->values(['cover', 'contain'])->end()
-                ->enumNode('backgroundPosition')->values(['center', 'top', 'bottom', 'left', 'right'])->end()
+                ->enumNode('backgroundPosition')->values([
+                    'center', 'top', 'bottom', 'left', 'right',
+                    'top left', 'top right', 'bottom left', 'bottom right',
+                ])->end()
                 ->scalarNode('overlayColor')->end()
                 ->integerNode('overlayOpacity')->min(0)->max(100)->end()
                 ->arrayNode('minHeight')
@@ -373,6 +376,8 @@ final class ContentBlocksBundle extends AbstractBundle
             ->addTag('content_blocks.section_style_provider');
         $container->registerForAutoconfiguration(ColorPaletteProviderInterface::class)
             ->addTag('content_blocks.color_palette_provider');
+        $container->registerForAutoconfiguration(Icon\UiIconProviderInterface::class)
+            ->addTag('content_blocks.ui_icon_provider');
         $container->registerForAutoconfiguration(SectionDecoratorInterface::class)
             ->addTag('content_blocks.section_decorator');
         $container->registerForAutoconfiguration(SectionSettingsDefaultsProviderInterface::class)

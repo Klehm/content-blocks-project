@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { reveal } from './helpers/sidebar.js';
 
 /**
  * The published page does not move until Publish is pressed.
@@ -240,7 +241,7 @@ test('column edits and the tabs display wait for Publish too', async ({ page, co
 
     // Showing the section as tabs.
     const saved = page.waitForResponse((r) => /\/section\/\d+\/settings$/.test(r.url()) && r.request().method() === 'POST');
-    await sidebar.locator('input[name$="[display]"][value="tabs"]').check();
+    await (await reveal(sidebar.locator('input[name$="[display]"][value="tabs"]'))).check();
     await saved;
     expect(await publicMarkup()).toBe(published);
 
