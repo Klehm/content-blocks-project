@@ -5,6 +5,14 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-RC15] - 2026-09-21
+
+Version bump only — no functional change in `klehm/content-blocks-kit`. The tag is cut
+across the monorepo so the three packages stay installable as one set; this
+candidate's change is in `klehm/content-blocks`: the sidebars are laid out in
+tabs and panels, with icon choices. No migration, nothing to wire. A kit block
+field can use the new `cb_group`, `cb_panel` and `cb_icons` options.
+
 ## [1.0.0-RC14] - 2026-09-17
 
 Version bump only — no functional change in `klehm/content-blocks-kit`. The tag is cut

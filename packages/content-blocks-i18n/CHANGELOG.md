@@ -5,6 +5,12 @@ All notable changes to `klehm/content-blocks-i18n` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-RC15] - 2026-09-21
+
+Version bump only — no functional change in `klehm/content-blocks-i18n`. This
+candidate's change is in `klehm/content-blocks`: the sidebars are laid out in
+tabs and panels, with icon choices. No migration, nothing to wire.
+
 ## [1.0.0-RC14] - 2026-09-17
 
 Version bump only — no functional change in `klehm/content-blocks-i18n`. This
