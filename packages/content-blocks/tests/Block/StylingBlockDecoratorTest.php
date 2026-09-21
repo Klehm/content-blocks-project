@@ -36,7 +36,19 @@ final class StylingBlockDecoratorTest extends TestCase
         $this->assertSame('10px', $decoration->inlineStyles['--cb-b-pad-d-t']);
         $this->assertSame('20px', $decoration->inlineStyles['--cb-b-pad-d-r']);
         $this->assertSame('5px', $decoration->inlineStyles['--cb-b-mar-m-t']);
-        $this->assertSame('0px', $decoration->inlineStyles['--cb-b-mar-m-r']);
+        $this->assertArrayNotHasKey('--cb-b-mar-m-r', $decoration->inlineStyles, 'the CSS default');
+        $this->assertContains('cb-block--styled', $decoration->classes);
+    }
+
+    public function testAllZeroSpacingKeepsTheStyledClassWithoutVars(): void
+    {
+        $zero = ['top' => 0, 'right' => 0, 'bottom' => 0, 'left' => 0];
+        $decoration = (new StylingBlockDecorator())->decorate(
+            ['styling' => ['margin' => ['desktop' => $zero]]],
+            new Block(),
+        );
+
+        $this->assertSame([], $decoration->inlineStyles);
         $this->assertContains('cb-block--styled', $decoration->classes);
     }
 

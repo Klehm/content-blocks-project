@@ -6,6 +6,7 @@ namespace ContentBlocks\Block;
 
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Palette\ColorTone;
+use ContentBlocks\Rendering\ViewportVars;
 
 /**
  * Reads the `styling` sub-form and emits the custom properties and classes
@@ -15,10 +16,6 @@ use ContentBlocks\Palette\ColorTone;
  */
 final class StylingBlockDecorator implements BlockDecoratorInterface
 {
-    private const SIDE_SHORT = ['top' => 't', 'right' => 'r', 'bottom' => 'b', 'left' => 'l'];
-    // Data keys are spelled out; emitted CSS var names stay terse (see
-    // StylingSectionDecorator). This map bridges the two.
-    private const VIEWPORT_SHORT = ['desktop' => 'd', 'tablet' => 't', 'mobile' => 'm'];
     private const TEXT_ALIGNS = ['start', 'center', 'end', 'justify'];
     private const ALIGN_SELF_MAP = [
         'start' => 'flex-start',
@@ -35,24 +32,14 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
 
         $vars = [];
         $classes = [];
+        $spaced = false;
 
         // Namespaced `--cb-b-*` so a section's `--cb-s-*` never inherits in.
         foreach (['padding' => 'b-pad', 'margin' => 'b-mar'] as $key => $short) {
-            $responsive = $styling[$key] ?? null;
-            if (!\is_array($responsive)) {
-                continue;
-            }
-            foreach (self::VIEWPORT_SHORT as $viewport => $vpShort) {
-                $box = $responsive[$viewport] ?? null;
-                if (!\is_array($box)) {
-                    continue;
-                }
-                foreach (self::SIDE_SHORT as $side => $sideShort) {
-                    $value = $box[$side] ?? null;
-                    if (\is_int($value)) {
-                        $vars["--cb-{$short}-{$vpShort}-{$sideShort}"] = $value . 'px';
-                    }
-                }
+            $box = ViewportVars::box($styling[$key] ?? null, $short);
+            if ($box !== null) {
+                $spaced = true;
+                $vars += $box;
             }
         }
 
@@ -90,8 +77,9 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
             }
         }
 
-        // `cb-block--styled` zeroes padding and margin, so only with values.
-        if ($vars !== []) {
+        // `cb-block--styled` zeroes padding and margin, so only with values;
+        // an all-zero box emits no variable but is one.
+        if ($vars !== [] || $spaced) {
             array_unshift($classes, 'cb-block--styled');
         }
 

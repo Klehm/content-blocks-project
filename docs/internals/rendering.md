@@ -125,6 +125,15 @@ path to per-viewport section styling.
 Section variables are namespaced `--cb-s-*` so they do not inherit into
 descendant blocks, which read `--cb-b-*`.
 
+Spacing variables (padding, margin, gap) go through `ViewportVars`, which drops
+any value the stylesheet's chain already yields: mobile falls back to tablet,
+tablet to desktop, desktop to `0` (gap: `1rem`, so desktop gap is always
+emitted). A tablet `0` under a desktop `40` is therefore kept. Only the
+variables go: an all-zero box still earns `--styled`, because that class is
+what zeroes the host's or kit's own spacing. The elision leans on nothing
+inheriting these variables from an ancestor, which holds as long as blocks do
+not nest styled blocks.
+
 The centered width mode is the same trick for a different reason: `--cb-row-max-w`
 constrains the inner `.cb-row`, not the `<section>`, so the section background
 still spans the viewport while its content stays capped. The decorator only has a

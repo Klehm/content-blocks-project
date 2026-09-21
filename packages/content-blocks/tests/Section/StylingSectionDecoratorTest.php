@@ -48,6 +48,43 @@ final class StylingSectionDecoratorTest extends TestCase
         $this->assertContains('cb-section--styled', $decoration->classes);
     }
 
+    public function testSpacingOmitsWhatTheStylesheetAlreadyResolves(): void
+    {
+        $settings = [
+            'styling' => [
+                'padding' => [
+                    'desktop' => ['top' => 40, 'right' => 12, 'bottom' => 0, 'left' => 12],
+                    'tablet' => ['top' => 40, 'right' => 12, 'bottom' => 0, 'left' => 12],
+                    'mobile' => ['top' => 20, 'right' => 12, 'bottom' => 0, 'left' => 12],
+                ],
+                'gap' => ['desktop' => 24, 'tablet' => 24, 'mobile' => 8],
+            ],
+        ];
+
+        $decoration = (new StylingSectionDecorator())->decorate($settings, new Section());
+
+        $this->assertSame([
+            '--cb-s-pad-d-t' => '40px',
+            '--cb-s-pad-m-t' => '20px',
+            '--cb-s-pad-d-r' => '12px',
+            '--cb-s-pad-d-l' => '12px',
+            '--cb-gap-d' => '24px',
+            '--cb-gap-m' => '8px',
+        ], $decoration->inlineStyles);
+    }
+
+    public function testAllZeroPaddingKeepsTheStyledClassWithoutVars(): void
+    {
+        $zero = ['top' => 0, 'right' => 0, 'bottom' => 0, 'left' => 0];
+        $decoration = (new StylingSectionDecorator())->decorate(
+            ['styling' => ['padding' => ['desktop' => $zero]]],
+            new Section(),
+        );
+
+        $this->assertSame([], $decoration->inlineStyles);
+        $this->assertContains('cb-section--styled', $decoration->classes);
+    }
+
     public function testMarginEmitsCssVarsUnderDifferentShortName(): void
     {
         $settings = [
