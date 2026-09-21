@@ -426,16 +426,40 @@
        send — the live action strips the root form prefix. #}
     {%- set attr = attr|merge({
         class: (attr.class|default('') ~ ' cb-form-collection')|trim,
-        'data-controller': ('cb-collection-sort ' ~ attr['data-controller']|default(''))|trim,
-        'data-cb-collection-sort-name-value': full_name,
+        'data-cb-collection-sort-target': 'list',
     }) -%}
-    {{ block('form_widget') }}
-    {%- if skip_add_button|default(false) is same as(false) and button_add is defined and not button_add.rendered -%}
-        {{ form_row(button_add, {row_attr: {class: 'cb-form-collection__add-row'}}) }}
-    {%- endif -%}
+    <div class="cb-form-collection-field"
+         data-controller="cb-collection-sort"
+         data-cb-collection-sort-name-value="{{ full_name }}">
+        {%- if form|length > 1 -%}
+            <div class="cb-form-collection__toolbar">
+                <button type="button"
+                        class="cb-form-collection__fold"
+                        data-action="cb-collection-sort#collapseAll">{{ 'cb.collection.collapse_all'|trans({}, 'content_blocks') }}</button>
+                <button type="button"
+                        class="cb-form-collection__fold"
+                        data-action="cb-collection-sort#expandAll">{{ 'cb.collection.expand_all'|trans({}, 'content_blocks') }}</button>
+            </div>
+        {%- endif -%}
+        {{ block('form_widget') }}
+        {%- if skip_add_button|default(false) is same as(false) and button_add is defined and not button_add.rendered -%}
+            {{ form_row(button_add, {row_attr: {class: 'cb-form-collection__add-row'}}) }}
+        {%- endif -%}
+    </div>
 {%- endblock live_collection_widget %}
 
 {% block live_collection_entry_row -%}
+    {# The folded header names the entry: its first image and first text. #}
+    {%- set cb_thumb = null -%}
+    {%- set cb_text = null -%}
+    {%- for child in form.children -%}
+        {%- set cb_value = child.vars.value -%}
+        {%- if cb_thumb is null and 'cb_image_upload' in child.vars.block_prefixes and cb_value is not iterable and cb_value is not empty -%}
+            {%- set cb_thumb = cb_value -%}
+        {%- elseif cb_text is null and ('text' in child.vars.block_prefixes or 'textarea' in child.vars.block_prefixes) and cb_value is not iterable and cb_value|striptags|trim != '' -%}
+            {%- set cb_text = cb_value|striptags|trim|slice(0, 120) -%}
+        {%- endif -%}
+    {%- endfor -%}
     <div class="cb-form-collection__item">
         {# A drag handle plus keyboard up/down. They carry no `name`, so
            they are never serialized into the form. #}
@@ -446,6 +470,18 @@
                     title="{{ 'cb.collection.reorder'|trans({}, 'content_blocks') }}"
                     tabindex="-1"
                     aria-hidden="true">⠿</button>
+            <button type="button"
+                    class="cb-form-collection__toggle"
+                    data-action="cb-collection-sort#toggle"
+                    aria-expanded="true"
+                    aria-controls="{{ id }}"
+                    title="{{ 'cb.collection.toggle'|trans({}, 'content_blocks') }}">
+                <span class="cb-form-collection__chevron" aria-hidden="true"></span>
+                {%- if cb_thumb -%}
+                    <img class="cb-form-collection__thumb" src="{{ cb_thumb }}" alt="">
+                {%- endif -%}
+                <span class="cb-form-collection__summary">{{ cb_text ?? 'cb.collection.item'|trans({'%n%': name + 1}, 'content_blocks') }}</span>
+            </button>
             <button type="button"
                     class="cb-form-collection__move cb-form-collection__move--up"
                     data-action="cb-collection-sort#moveUp"
