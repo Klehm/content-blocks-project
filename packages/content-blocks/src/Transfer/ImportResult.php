@@ -20,6 +20,7 @@ final class ImportResult
      *     blockType: string,
      *     unknownKeys: list<string>,
      * }> $unknownFields kept keys no registered type declares
+     * @param list<string> $missingAssets references no file here answers
      *
      * @internal hosts receive these objects, they do not build them; see
      *           FREEZE-AUDIT.md
@@ -29,11 +30,14 @@ final class ImportResult
         public readonly int $skippedBlockCount = 0,
         public readonly array $skippedBlockTypes = [],
         public readonly array $unknownFields = [],
+        public readonly array $missingAssets = [],
     ) {
     }
 
     public function hasWarnings(): bool
     {
-        return $this->skippedBlockCount > 0 || $this->unknownFields !== [];
+        return $this->skippedBlockCount > 0
+            || $this->unknownFields !== []
+            || $this->missingAssets !== [];
     }
 }

@@ -127,6 +127,7 @@ final class BuilderShellFragmentsTemplateTest extends TestCase
             'cb_history_state',
             static fn (ContentArea $area): array => ['canUndo' => false, 'canRedo' => false],
         ));
+        $env->addFunction(new TwigFunction('cb_import_max_bytes', static fn (): int => 0));
 
         return $env;
     }

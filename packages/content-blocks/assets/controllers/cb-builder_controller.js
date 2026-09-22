@@ -32,6 +32,7 @@ export default class extends Controller {
         'importExportPicker',
         'importFile',
         'importExportStatus',
+        'exportAssets',
         'actionsMenu',
         'actionsToggle',
         'actionsList',
@@ -2701,7 +2702,8 @@ export default class extends Controller {
     runExport(event) {
         if (event) event.preventDefault();
         const link = document.createElement('a');
-        link.href = `${this._apiBase}/area/${this.areaIdValue}/export`;
+        const bare = this.hasExportAssetsTarget && !this.exportAssetsTarget.checked;
+        link.href = `${this._apiBase}/area/${this.areaIdValue}/export${bare ? '?assets=0' : ''}`;
         link.rel = 'noopener';
         // Empty, so the server's Content-Disposition filename wins.
         link.download = '';
@@ -2723,6 +2725,11 @@ export default class extends Controller {
             this._setImportExportStatus(
                 this._t('cb.builder.import_export.no_file', 'Pick a JSON file first.'),
             );
+            return;
+        }
+        const maxBytes = this._importMaxBytes();
+        if (maxBytes > 0 && file.size > maxBytes) {
+            this._setImportExportStatus(this._tooLargeMessage(maxBytes, file.size));
             return;
         }
 
@@ -2762,9 +2769,10 @@ export default class extends Controller {
             payload = await response.json().catch(() => null);
             ok = response.ok && !response.redirected;
             if (!ok) {
-                const msg = payload && payload.error
-                    ? payload.error
-                    : this._t('cb.builder.import_export.error', 'Import failed.');
+                // A proxy's own 413 page is HTML: no payload to read from.
+                const msg = response.status === 413
+                    ? this._tooLargeMessage(payload?.maxBytes ?? this._importMaxBytes(), file.size)
+                    : payload?.error ?? this._t('cb.builder.import_export.error', 'Import failed.');
                 this._setImportExportStatus(msg);
                 return;
             }
@@ -2780,10 +2788,13 @@ export default class extends Controller {
 
         // Non-blocking: the import succeeded. Keep the panel open, since
         // closing it would blank the only element carrying the message.
-        const warning = this._restoreWarning(payload, {
-            skipped: ['cb.builder.import_export.skipped_blocks', 'Imported — %count% block(s) skipped, missing type(s): %types%'],
-            unknown: ['cb.builder.import_export.unknown_fields', 'Imported, but some stored fields are unknown on: %types%'],
-        });
+        const warning = [
+            this._restoreWarning(payload, {
+                skipped: ['cb.builder.import_export.skipped_blocks', 'Imported — %count% block(s) skipped, missing type(s): %types%'],
+                unknown: ['cb.builder.import_export.unknown_fields', 'Imported, but some stored fields are unknown on: %types%'],
+            }),
+            this._missingAssetsWarning(payload),
+        ].filter((line) => line !== null).join(' ') || null;
         this.importFileTarget.value = '';
         if (warning !== null) {
             this._setImportExportStatus(warning);
@@ -2824,6 +2835,39 @@ export default class extends Controller {
         }
 
         return null;
+    }
+
+    /** Media the import references but this site does not have. */
+    _missingAssetsWarning(payload) {
+        const missing = Array.isArray(payload?.missingAssets) ? payload.missingAssets : [];
+        if (missing.length === 0) return null;
+        const shown = missing.slice(0, 3).join(', ') + (missing.length > 3 ? ', …' : '');
+
+        return this._t(
+            'cb.builder.import_export.missing_assets',
+            '%count% media file(s) not found on this site: %paths%',
+        ).replace('%count%', String(missing.length)).replace('%paths%', shown);
+    }
+
+    /** The server's import cap, rendered on the panel; 0 when unknown. */
+    _importMaxBytes() {
+        if (!this.hasImportExportPickerTarget) return 0;
+        return parseInt(this.importExportPickerTarget.dataset.cbImportMaxBytes || '0', 10) || 0;
+    }
+
+    _tooLargeMessage(maxBytes, size) {
+        const mb = (bytes) => (bytes / 1024 / 1024).toFixed(1);
+        if (!(maxBytes > 0)) {
+            return this._t(
+                'cb.builder.import_export.too_large_unknown',
+                'This file is too large for the server.',
+            );
+        }
+
+        return this._t(
+            'cb.builder.import_export.too_large',
+            'This file is %size% MB; the server accepts up to %max% MB.',
+        ).replace('%size%', mb(size)).replace('%max%', mb(maxBytes));
     }
 
     _setImportExportStatus(text) {

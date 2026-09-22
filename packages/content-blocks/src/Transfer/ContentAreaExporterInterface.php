@@ -23,7 +23,7 @@ interface ContentAreaExporterInterface
 
     /**
      * Draft wins, soft-deleted entities are skipped, order is previewPosition.
-     * Assets are embedded; `contentVersion` is informative only.
+     * Without $embedAssets, stored paths stay as-is and `assets` is empty.
      *
      * @see docs/internals/transfer.md#what-is-exported
      *
@@ -40,5 +40,5 @@ interface ContentAreaExporterInterface
      *     extensions?: array<string, array<string, mixed>>,
      * }
      */
-    public function export(ContentArea $area): array;
+    public function export(ContentArea $area, bool $embedAssets = true): array;
 }

@@ -61,6 +61,14 @@ final class ContentAreaImporterTest extends TestCase
         );
     }
 
+    /** A real 1×1 PNG: the importer sniffs the bytes, not the claim. */
+    private static function png(string $salt = ''): string
+    {
+        return base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        ) . $salt;
+    }
+
     private function makePayload(array $sections = [], array $assets = []): array
     {
         return [
@@ -186,7 +194,7 @@ final class ContentAreaImporterTest extends TestCase
 
     public function testImportMaterializesAssetsAndRewritesTokens(): void
     {
-        $binary = 'imported-bytes';
+        $binary = self::png('imported');
         $hash = hash('sha256', $binary);
         $payload = $this->makePayload(
             [[
@@ -214,7 +222,7 @@ final class ContentAreaImporterTest extends TestCase
      */
     public function testImportRewritesAssetTokensEmbeddedInMarkup(): void
     {
-        $binary = 'inline-bytes';
+        $binary = self::png('inline');
         $hash = hash('sha256', $binary);
         $payload = $this->makePayload(
             [[
@@ -282,6 +290,69 @@ final class ContentAreaImporterTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Malformed asset entry');
         $this->importer()->import(new ContentArea(), $payload);
+    }
+
+    public function testTheStoredExtensionComesFromTheBytesNotTheClaim(): void
+    {
+        $binary = self::png();
+        $hash = hash('sha256', $binary);
+        $payload = $this->makePayload([], [
+            $hash => ['mimeType' => 'image/png', 'extension' => 'php', 'data' => base64_encode($binary)],
+        ]);
+        $extensions = [];
+        $resolver = $this->createMock(AssetResolverInterface::class);
+        $resolver->method('store')->willReturnCallback(
+            function (string $binary, string $extension) use (&$extensions): string {
+                $extensions[] = $extension;
+
+                return '/uploads/x.' . $extension;
+            },
+        );
+
+        $this->importer($resolver)->import(new ContentArea(), $payload);
+
+        $this->assertSame(['png'], $extensions);
+    }
+
+    public function testAScriptDressedAsAnImageIsRefusedAndNothingIsStored(): void
+    {
+        $png = self::png();
+        $payload = $this->makePayload([], [
+            hash('sha256', $png) => ['mimeType' => 'image/png', 'extension' => 'png', 'data' => base64_encode($png)],
+            'evil' => [
+                'mimeType' => 'image/png',
+                'extension' => 'php',
+                'data' => base64_encode('<?php system($_GET["c"]);'),
+            ],
+        ]);
+
+        try {
+            $this->importer()->import(new ContentArea(), $payload);
+            $this->fail('A PHP file must not be imported.');
+        } catch (\InvalidArgumentException $e) {
+            $this->assertStringContainsString('is not allowed', $e->getMessage());
+        }
+        $this->assertSame([], $this->stored, 'checked before anything is stored');
+    }
+
+    public function testAnAssetLargerThanTheUploadLimitIsRefused(): void
+    {
+        $binary = self::png(str_repeat('x', 2048));
+        $registry = new BlockTypeRegistry();
+        $importer = new ContentAreaImporter(
+            $this->makeResolver(),
+            $registry,
+            new BlockDataKeys($registry, Forms::createFormFactoryBuilder()
+                ->addType(new BlockFormType(new BlockFormExtensionCollection()))
+                ->getFormFactory()),
+            uploadMaxSize: 1024,
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('too large');
+        $importer->import(new ContentArea(), $this->makePayload([], [
+            'big' => ['mimeType' => 'image/png', 'extension' => 'png', 'data' => base64_encode($binary)],
+        ]));
     }
 
     public function testImportRejectsInvalidBase64AssetData(): void

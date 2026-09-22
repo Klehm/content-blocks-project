@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Transfer;
 
+use ContentBlocks\Asset\AssetReferenceCollector;
 use ContentBlocks\Asset\AssetResolverInterface;
 use ContentBlocks\Block\BlockDataKeys;
 use ContentBlocks\Block\BlockRestoreTally;
@@ -15,6 +16,7 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Section\ColumnSettings;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
+use Symfony\Component\Mime\MimeTypes;
 
 /**
  * Default {@see ContentAreaImporterInterface} — see it for the contract.
@@ -24,6 +26,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
 {
     /**
      * @param iterable<ContentAreaTransferExtensionInterface> $extensions
+     * @param list<string> $uploadAllowedMimeTypes
      */
     public function __construct(
         private readonly AssetResolverInterface $assetResolver,
@@ -32,6 +35,15 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
         private readonly iterable $extensions = [],
         private readonly ?CollectionIdBackfiller $collectionIds = null,
+        private readonly int $uploadMaxSize = 10 * 1024 * 1024,
+        private readonly array $uploadAllowedMimeTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+            'image/svg+xml',
+            'application/pdf',
+        ],
     ) {
     }
 
@@ -76,7 +88,34 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
             $tally->skippedCount(),
             $tally->skippedTypes(),
             $tally->unknownFields(),
+            [...$this->unreadablePaths($payload), ...$assets->unresolved()],
         );
+    }
+
+    /**
+     * Stored paths the payload carries as-is (an export without its media, or
+     * a file missing at export) that this installation cannot read.
+     *
+     * @param array<string, mixed> $payload
+     *
+     * @return list<string>
+     */
+    private function unreadablePaths(array $payload): array
+    {
+        $missing = [];
+        $collector = new AssetReferenceCollector($this->assetResolver);
+        $collector->map(
+            [$payload['contentArea'], $payload['extensions'] ?? null],
+            function (string $path) use (&$missing): string {
+                if (!isset($missing[$path]) && $this->assetResolver->read($path) === null) {
+                    $missing[$path] = true;
+                }
+
+                return $path;
+            },
+        );
+
+        return array_keys($missing);
     }
 
     /**
@@ -134,24 +173,68 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
             throw new \InvalidArgumentException('Invalid "assets" section (expected object).');
         }
 
-        $map = [];
+        // Every entry is checked before any is stored: a refused payload
+        // leaves no file behind. Decoded twice so only one blob is held.
+        $extensions = [];
         foreach ($assetsRaw as $hash => $asset) {
             if (!is_string($hash) || !is_array($asset)) {
                 throw new \InvalidArgumentException('Malformed asset entry.');
             }
-            $data = $asset['data'] ?? null;
-            $extension = $asset['extension'] ?? null;
-            if (!is_string($data) || !is_string($extension)) {
-                throw new \InvalidArgumentException(sprintf('Malformed asset entry for %s.', $hash));
-            }
-            $binary = base64_decode($data, true);
-            if ($binary === false) {
-                throw new \InvalidArgumentException(sprintf('Invalid base64 data for asset %s.', $hash));
-            }
-            $map[$hash] = $this->assetResolver->store($binary, $extension);
+            $extensions[$hash] = $this->checkAsset($hash, $this->decodeAsset($hash, $asset), $asset['extension']);
+        }
+
+        $map = [];
+        foreach ($extensions as $hash => $extension) {
+            $map[$hash] = $this->assetResolver->store($this->decodeAsset($hash, $assetsRaw[$hash]), $extension);
         }
 
         return $map;
+    }
+
+    /**
+     * @param array<mixed> $asset
+     */
+    private function decodeAsset(string $hash, array $asset): string
+    {
+        $data = $asset['data'] ?? null;
+        if (!is_string($data) || !is_string($asset['extension'] ?? null)) {
+            throw new \InvalidArgumentException(sprintf('Malformed asset entry for %s.', $hash));
+        }
+        $binary = base64_decode($data, true);
+        if ($binary === false) {
+            throw new \InvalidArgumentException(sprintf('Invalid base64 data for asset %s.', $hash));
+        }
+
+        return $binary;
+    }
+
+    /**
+     * The upload endpoint's policy, applied to the bytes: the payload's own
+     * `mimeType` and `extension` are claims, never trusted.
+     *
+     * @see docs/internals/transfer.md#an-imported-file-is-an-upload
+     */
+    private function checkAsset(string $hash, string $binary, string $claimed): string
+    {
+        if (\strlen($binary) > $this->uploadMaxSize) {
+            throw new \InvalidArgumentException(sprintf('Asset %s is too large (max %d MB).', $hash, intdiv($this->uploadMaxSize, 1024 * 1024), ));
+        }
+
+        $mime = (new \finfo(\FILEINFO_MIME_TYPE))->buffer($binary);
+        if (!is_string($mime) || !\in_array($mime, $this->uploadAllowedMimeTypes, true)) {
+            throw new \InvalidArgumentException(sprintf('Asset %s: file type "%s" is not allowed.', $hash, is_string($mime) ? $mime : 'unknown', ));
+        }
+
+        $known = MimeTypes::getDefault()->getExtensions($mime);
+        $claimed = strtolower(ltrim($claimed, '.'));
+        if (\in_array($claimed, $known, true)) {
+            return $claimed;
+        }
+        if ($known === []) {
+            throw new \InvalidArgumentException(sprintf('Asset %s: no extension for "%s".', $hash, $mime));
+        }
+
+        return $known[0];
     }
 
     /**

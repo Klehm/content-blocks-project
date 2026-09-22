@@ -80,7 +80,8 @@ return static function (ContainerConfigurator $container): void {
             'image/webp',
             'image/svg+xml',
             'application/pdf',
-        ]);
+        ])
+        ->set('content_blocks.import.max_size', 50 * 1024 * 1024);
 
     $services = $container->services()
         ->defaults()
@@ -95,7 +96,9 @@ return static function (ContainerConfigurator $container): void {
         ->bind('int $contentVersion', '%content_blocks.content_version%')
         // Upload limits: consumed by UploadController.
         ->bind('int $uploadMaxSize', '%content_blocks.upload.max_size%')
-        ->bind('array $uploadAllowedMimeTypes', '%content_blocks.upload.allowed_mime_types%');
+        ->bind('array $uploadAllowedMimeTypes', '%content_blocks.upload.allowed_mime_types%')
+        // Import file cap: consumed by ImportExportController.
+        ->bind('int $importMaxSize', '%content_blocks.import.max_size%');
 
     $services->set(BlockTypeRegistry::class)
         ->public();
@@ -388,6 +391,10 @@ return static function (ContainerConfigurator $container): void {
         ->tag('twig.extension');
 
     $services->set(\ContentBlocks\Twig\HistoryStateExtension::class)
+        ->tag('twig.extension');
+
+    $services->set(\ContentBlocks\Transfer\ImportSizeLimit::class);
+    $services->set(\ContentBlocks\Twig\ImportLimitExtension::class)
         ->tag('twig.extension');
 
     // ---------- Content translation (convention only) ----------

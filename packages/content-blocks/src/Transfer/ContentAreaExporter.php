@@ -34,9 +34,9 @@ final class ContentAreaExporter implements ContentAreaExporterInterface
     /**
      * @return array<string, mixed>
      */
-    public function export(ContentArea $area): array
+    public function export(ContentArea $area, bool $embedAssets = true): array
     {
-        $assets = new AssetTokenizer($this->collector, $this->assetResolver);
+        $assets = new AssetTokenizer($this->collector, $this->assetResolver, $embedAssets);
         $sections = $this->collectByPreviewPosition(
             $area->getSections()->toArray(),
         );

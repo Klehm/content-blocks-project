@@ -155,3 +155,11 @@ This is stricter than the two older restore paths (section-template insert, area
 ::: danger Raw-HTML caveat
 The kit's `html_raw` block renders `{{ html|raw }}`, so it trusts its editors. It is **disabled by default** (`content_blocks_kit.blocks.html_raw.enabled: false`) and must be explicitly opted in.
 :::
+
+## File upload
+
+The upload endpoint (`content_blocks_upload`) checks the CSRF token, the size (`content_blocks.upload.max_size`) and the MIME type sniffed from the file (`content_blocks.upload.allowed_mime_types`) before handing it to your `FileStorageInterface`.
+
+An **import** writes files too, and goes through the same two checks: each embedded file is decoded, its MIME type sniffed from the bytes and checked against the same list, and its stored extension derived from that type. The `mimeType` and `extension` written in the JSON file are ignored, so a forged export cannot place a `.php` or `.html` file under your public upload prefix. A file refused this way refuses the whole import, and nothing is stored.
+
+`image/svg+xml` is in the default list. An SVG can carry script, which runs when the file is opened directly from your domain. If your editors are not fully trusted, remove it from `allowed_mime_types`, or serve the upload directory with `Content-Security-Policy: script-src 'none'`.

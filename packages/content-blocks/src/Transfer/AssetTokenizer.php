@@ -30,6 +30,7 @@ final class AssetTokenizer
     public function __construct(
         private readonly AssetReferenceCollector $collector,
         private readonly AssetResolverInterface $assetResolver,
+        private readonly bool $embed = true,
     ) {
     }
 
@@ -39,6 +40,10 @@ final class AssetTokenizer
      */
     public function tokenize(mixed $value): mixed
     {
+        if (!$this->embed) {
+            return $value;
+        }
+
         return $this->collector->map($value, function (string $path): string {
             $binary = $this->assetResolver->read($path);
             if ($binary === null) {

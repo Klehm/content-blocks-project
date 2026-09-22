@@ -31,6 +31,8 @@ final class CrossRequestStateTest extends TestCase
             'Live Component: the component factory builds a fresh instance for every render.',
         \ContentBlocks\Transfer\AssetTokenizer::class =>
             'Per-export accumulator: the exporter constructs one per export and drops it.',
+        \ContentBlocks\Transfer\AssetRewriter::class =>
+            'Per-import rewriter: the importer constructs one per import and drops it.',
     ];
 
     /**
