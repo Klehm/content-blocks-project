@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { reveal } from './helpers/sidebar.js';
 
 /**
  * The translation workbench (klehm/content-blocks-i18n) against the sandbox.
@@ -62,7 +63,7 @@ async function buildPageWithTranslatableText(page) {
     await page.waitForTimeout(300); // let cb-autosave connect
 
     const title = sidebar.locator('.cb-form-collection__item input[type="text"]').first();
-    await title.fill(LONG_TITLE);
+    await (await reveal(title)).fill(LONG_TITLE);
     await title.blur();
     await page.waitForTimeout(1200); // autosave round-trip
 }

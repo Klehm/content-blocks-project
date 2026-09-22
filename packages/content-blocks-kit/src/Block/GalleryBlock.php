@@ -73,6 +73,7 @@ class GalleryBlock extends AbstractKitBlock implements BlockPreviewHintInterface
                 'required' => false,
             ])
             ->add('items', LiveCollectionType::class, [
+                'cb_open_entries' => 'none',
                 'label' => 'cb_kit.block.gallery.field.items',
                 'translation_domain' => 'content_blocks_kit',
                 'entry_type' => GalleryItemType::class,

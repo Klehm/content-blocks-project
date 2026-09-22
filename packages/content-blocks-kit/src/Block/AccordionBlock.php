@@ -49,6 +49,7 @@ class AccordionBlock extends AbstractKitBlock implements BlockPreviewHintInterfa
                 'required' => false,
             ])
             ->add('items', LiveCollectionType::class, [
+                'cb_open_entries' => 'none',
                 'label' => 'cb_kit.block.accordion.field.items',
                 'translation_domain' => 'content_blocks_kit',
                 'entry_type' => AccordionItemType::class,

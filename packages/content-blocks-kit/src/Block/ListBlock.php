@@ -48,6 +48,7 @@ class ListBlock extends AbstractKitBlock implements BlockPreviewHintInterface
                 'constraints' => [$this->choiceConstraint('style')],
             ])
             ->add('items', LiveCollectionType::class, [
+                'cb_open_entries' => 'none',
                 'label' => 'cb_kit.block.list.field.items',
                 'translation_domain' => 'content_blocks_kit',
                 'entry_type' => ListItemType::class,

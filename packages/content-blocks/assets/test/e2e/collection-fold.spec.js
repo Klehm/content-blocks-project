@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { reveal } from './helpers/sidebar.js';
 
 /**
  * Folding LiveCollection entries down to their header, so a long list can be
@@ -47,7 +48,7 @@ async function seedThreeTabs(page, sidebar) {
             await sidebar.locator('.cb-form-btn--primary').click();
             await expect(items).toHaveCount(i + 1);
         }
-        await titleOf(i).fill(label);
+        await (await reveal(titleOf(i))).fill(label);
         await titleOf(i).blur();
         await page.waitForTimeout(900);
     }
@@ -83,5 +84,38 @@ test.describe('builder shell — collection folding', () => {
 
         await sidebar.locator('[data-action="cb-collection-sort#expandAll"]').click();
         expect(await foldedStates(sidebar)).toEqual([false, false, false]);
+    });
+
+    test('kit entries open folded (cb_open_entries: none); an added one opens', async ({ page }) => {
+        const frame = await openBuilder(page);
+        let sidebar = await openTabsEditor(page, frame);
+        const items = sidebar.locator('.cb-form-collection__item');
+
+        expect(await foldedStates(sidebar)).toEqual([true]);
+        await expect(items.nth(0).locator('.cb-form-collection__toggle'))
+            .toHaveAttribute('aria-expanded', 'false');
+
+        await sidebar.locator('.cb-form-btn--primary').click();
+        await expect(items).toHaveCount(2);
+        expect(await foldedStates(sidebar)).toEqual([true, false]);
+        await items.nth(1).locator('input[type="text"]').first().fill('B');
+        await items.nth(1).locator('input[type="text"]').first().blur();
+        await page.waitForTimeout(900);
+
+        // A fresh sidebar starts from the server's render again.
+        await page.reload();
+        await page.locator('.cb-launcher__button').click();
+        await expect(page.locator('.cb-shell')).toBeVisible();
+        await expect(page.frameLocator('.cb-shell__iframe').locator('[data-cb-block-id]'))
+            .toHaveCount(1);
+        await page.waitForTimeout(300);
+        await page.locator('.cb-shell__iframe').evaluate((iframe) => {
+            iframe.contentDocument.querySelector('[data-cb-block-id]')?.dispatchEvent(
+                new MouseEvent('click', { bubbles: true, cancelable: true }),
+            );
+        });
+        sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await expect(sidebar.locator('.cb-form-collection__item')).toHaveCount(2);
+        expect(await foldedStates(sidebar)).toEqual([true, true]);
     });
 });

@@ -49,6 +49,7 @@ class ButtonGroupBlock extends AbstractKitBlock implements BlockPreviewHintInter
     {
         $builder
             ->add('items', LiveCollectionType::class, [
+                'cb_open_entries' => 'none',
                 'label' => 'cb_kit.block.button_group.field.items',
                 'translation_domain' => 'content_blocks_kit',
                 'entry_type' => ButtonGroupItemType::class,

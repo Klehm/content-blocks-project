@@ -63,6 +63,7 @@ class CardBlock extends AbstractKitBlock implements BlockPreviewHintInterface
                 'constraints' => [$this->choiceConstraint('columns')],
             ])
             ->add('items', LiveCollectionType::class, [
+                'cb_open_entries' => 'none',
                 'label' => 'cb_kit.block.card.field.items',
                 'translation_domain' => 'content_blocks_kit',
                 'entry_type' => CardItemType::class,

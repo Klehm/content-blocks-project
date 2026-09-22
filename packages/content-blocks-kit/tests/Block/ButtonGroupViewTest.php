@@ -68,6 +68,7 @@ final class ButtonGroupViewTest extends TestCase
         $factory = Forms::createFormFactoryBuilder()
             ->addExtension(new ValidatorExtension(Validation::createValidator()))
             ->addTypeExtension(new \ContentBlocks\Form\Extension\TranslatableFieldTypeExtension())
+            ->addTypeExtension(new \ContentBlocks\Form\Extension\CollectionFoldTypeExtension())
             ->getFormFactory();
         $builder = $factory->createBuilder(FormType::class, $block->getDefaultData());
         $block->buildForm($builder, $block->getDefaultData());

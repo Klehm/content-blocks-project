@@ -41,6 +41,7 @@ class BreadcrumbBlock extends AbstractKitBlock implements BlockPreviewHintInterf
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
         $builder->add('items', LiveCollectionType::class, [
+            'cb_open_entries' => 'none',
             'label' => 'cb_kit.block.breadcrumb.field.items',
             'translation_domain' => 'content_blocks_kit',
             'entry_type' => BreadcrumbItemType::class,

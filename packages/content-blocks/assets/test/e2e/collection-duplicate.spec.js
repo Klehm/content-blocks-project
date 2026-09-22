@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { reveal } from './helpers/sidebar.js';
 
 /**
  * Duplicating LiveCollection items via cb-collection-sort.
@@ -73,7 +74,7 @@ async function seedThreeTabs(page, sidebar) {
     const addBtn = sidebar.locator('.cb-form-btn--primary'); // "+ Add tab"
 
     const nameTab = async (i, label) => {
-        await titleOf(i).fill(label);
+        await (await reveal(titleOf(i))).fill(label);
         await titleOf(i).blur();
         await expect(titleOf(i)).toHaveValue(label);
         await page.waitForTimeout(900); // let the on-blur autosave settle

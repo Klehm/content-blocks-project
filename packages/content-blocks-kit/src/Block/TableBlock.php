@@ -47,6 +47,7 @@ class TableBlock extends AbstractKitBlock
                 'required' => false,
             ])
             ->add('columns', LiveCollectionType::class, [
+                'cb_open_entries' => 'none',
                 'label' => 'cb_kit.block.table.field.columns',
                 'translation_domain' => 'content_blocks_kit',
                 'entry_type' => TableColumnType::class,
@@ -65,6 +66,7 @@ class TableBlock extends AbstractKitBlock
                 'constraints' => [new Assert\Count(min: 1, max: 12)],
             ])
             ->add('rows', LiveCollectionType::class, [
+                'cb_open_entries' => 'none',
                 'label' => 'cb_kit.block.table.field.rows',
                 'translation_domain' => 'content_blocks_kit',
                 'entry_type' => TableRowType::class,
