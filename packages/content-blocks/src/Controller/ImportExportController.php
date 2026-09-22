@@ -12,6 +12,7 @@ use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Transfer\ContentAreaExporterInterface;
 use ContentBlocks\Transfer\ContentAreaImporterInterface;
 use ContentBlocks\Transfer\ImportResult;
+use ContentBlocks\Transfer\ImportSizeLimit;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -32,9 +33,6 @@ final class ImportExportController
 {
     use CsrfProtectedTrait;
 
-    /** Hard cap on uploaded JSON size (base64 inflates binary by ~33%). */
-    private const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
-
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly AccessCheckerInterface $accessChecker,
@@ -42,6 +40,7 @@ final class ImportExportController
         private readonly ContentAreaImporterInterface $importer,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ActionJournal $journal,
+        private readonly ImportSizeLimit $sizeLimit = new ImportSizeLimit(),
     ) {
     }
 
@@ -56,7 +55,7 @@ final class ImportExportController
         methods: ['GET'],
         requirements: ['id' => '\d+'],
     )]
-    public function export(int $id): Response
+    public function export(int $id, Request $request): Response
     {
         $area = $this->em->find(ContentArea::class, $id);
         if (!$area) {
@@ -66,7 +65,7 @@ final class ImportExportController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        $payload = $this->exporter->export($area);
+        $payload = $this->exporter->export($area, $request->query->get('assets') !== '0');
         $json = json_encode(
             $payload,
             \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE,
@@ -110,14 +109,11 @@ final class ImportExportController
         }
 
         $file = $request->files->get('file');
+        if ($this->isTooLarge($request, $file)) {
+            return $this->tooLarge();
+        }
         if (!$file instanceof UploadedFile || !$file->isValid()) {
             return new JsonResponse(['error' => 'Missing or invalid file upload.'], Response::HTTP_BAD_REQUEST);
-        }
-        if ($file->getSize() !== false && $file->getSize() > self::MAX_UPLOAD_BYTES) {
-            return new JsonResponse(
-                ['error' => sprintf('File too large (max %d MB).', (int) (self::MAX_UPLOAD_BYTES / 1024 / 1024))],
-                Response::HTTP_BAD_REQUEST,
-            );
         }
 
         $content = file_get_contents($file->getPathname());
@@ -156,7 +152,38 @@ final class ImportExportController
             'skippedBlockCount' => $result->skippedBlockCount,
             'skippedBlockTypes' => $result->skippedBlockTypes,
             'unknownFields' => $result->unknownFields,
+            'missingAssets' => $result->missingAssets,
             'hasUnpublishedChanges' => $target->hasUnpublishedChanges(),
         ]);
+    }
+
+    /**
+     * Past `post_max_size` PHP drops the whole body, so the file is simply
+     * absent: the declared length is what tells it apart from a missing file.
+     */
+    private function isTooLarge(Request $request, mixed $file): bool
+    {
+        if ($file instanceof UploadedFile) {
+            return \in_array($file->getError(), [\UPLOAD_ERR_INI_SIZE, \UPLOAD_ERR_FORM_SIZE], true)
+                || ($file->isValid() && $file->getSize() > $this->sizeLimit->bytes());
+        }
+
+        $postMax = ImportSizeLimit::postMaxSize();
+
+        return $postMax !== null && (int) $request->server->get('CONTENT_LENGTH') > $postMax;
+    }
+
+    private function tooLarge(): JsonResponse
+    {
+        $max = $this->sizeLimit->bytes();
+
+        return new JsonResponse([
+            'error' => sprintf(
+                'File too large (max %s MB, set by %s).',
+                round($max / 1024 / 1024, 1),
+                $this->sizeLimit->source(),
+            ),
+            'maxBytes' => $max,
+        ], Response::HTTP_REQUEST_ENTITY_TOO_LARGE);
     }
 }

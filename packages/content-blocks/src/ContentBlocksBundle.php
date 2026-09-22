@@ -134,6 +134,16 @@ final class ContentBlocksBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('import')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->integerNode('max_size')
+                            ->info('Largest import file accepted, in bytes. PHP\'s upload_max_filesize and post_max_size cap it further.')
+                            ->min(1)
+                            ->defaultValue(52428800)
+                        ->end()
+                    ->end()
+                ->end()
             ->end();
     }
 
@@ -300,7 +310,8 @@ final class ContentBlocksBundle extends AbstractBundle
             ->set('content_blocks.section_styles', $config['section_styles'])
             ->set('content_blocks.upload.public_prefix', $config['upload']['public_prefix'])
             ->set('content_blocks.upload.max_size', $config['upload']['max_size'])
-            ->set('content_blocks.upload.allowed_mime_types', $config['upload']['allowed_mime_types']);
+            ->set('content_blocks.upload.allowed_mime_types', $config['upload']['allowed_mime_types'])
+            ->set('content_blocks.import.max_size', $config['import']['max_size']);
 
         // Opting into an upload dir switches the storage alias from the
         // default NullFileStorage to a LocalFileStorage rooted there.

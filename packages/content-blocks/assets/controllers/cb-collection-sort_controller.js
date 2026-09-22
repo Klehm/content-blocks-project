@@ -22,6 +22,7 @@ export default class extends Controller {
         // Folded state by position: Live re-renders by position too, so it
         // is re-applied after each render and follows moves made here.
         this._connected = true;
+        this._state();
         this._onRender = () => this._applyCollapsed();
         this._onClick = (event) => this._forgetDeleted(event);
         this._list().addEventListener('click', this._onClick);
@@ -105,9 +106,12 @@ export default class extends Controller {
         return item ? this._items().indexOf(item) : -1;
     }
 
-    /** One boolean per entry, padded to the current count. */
+    /**
+     * One boolean per entry, seeded from the server's `cb_open_entries`
+     * render; entries added later are padded open.
+     */
     _state() {
-        this._collapsed ??= [];
+        this._collapsed ??= this._items().map((item) => item.classList.contains(COLLAPSED));
         while (this._collapsed.length < this._items().length) this._collapsed.push(false);
         return this._collapsed;
     }

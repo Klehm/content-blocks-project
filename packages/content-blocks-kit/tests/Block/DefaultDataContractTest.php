@@ -74,6 +74,7 @@ final class DefaultDataContractTest extends TestCase
             // instantiated by the registry straight from its class name.
             ->addExtension(new PreloadedExtension([$this->richTextEditorType()], []))
             ->addTypeExtension(new TranslatableFieldTypeExtension())
+            ->addTypeExtension(new \ContentBlocks\Form\Extension\CollectionFoldTypeExtension())
             ->getFormFactory()
             ->createBuilder(FormType::class, null, ['data_class' => null]);
 

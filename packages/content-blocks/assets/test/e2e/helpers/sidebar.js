@@ -1,9 +1,9 @@
 /**
- * Sidebar fields live in tabs (`cb_group`) and collapsible panels
- * (`cb_panel`): a spec reaching a field opens both, as an editor would.
+ * Sidebar fields live in tabs (`cb_group`), collapsible panels (`cb_panel`)
+ * and folded collection entries: a spec reaching a field opens all three.
  */
 
-/** Opens the tab, then every closed panel, holding the element. */
+/** Opens the tab, every closed panel, then every folded entry. */
 export async function reveal(locator) {
     await locator.first().evaluate((node) => {
         const panel = node.closest('[role="tabpanel"][data-cb-tab]');
@@ -19,6 +19,14 @@ export async function reveal(locator) {
         folds.forEach((fold) => {
             if (!fold.open) fold.querySelector(':scope > summary').click();
         });
+        const entries = [];
+        for (let entry = node.closest('.cb-form-collection__item--collapsed'); entry;
+            entry = entry.parentElement?.closest('.cb-form-collection__item--collapsed')) {
+            entries.unshift(entry);
+        }
+        entries.forEach((entry) => entry
+            .querySelector(':scope > .cb-form-collection__controls > .cb-form-collection__toggle')
+            .click());
     });
 
     return locator;

@@ -38,7 +38,11 @@ test('an uploaded image is served as WebP variants on the public page', async ({
 
     // Upload through the widget so the stored src is a real path under
     // /uploads/ — the only shape the resolver transforms.
-    const widget = page.locator('.cb-image-upload').first();
+    // The block's form, not the section sidebar it replaces (it has a
+    // background image upload too).
+    const form = page.locator('aside[data-cb-builder-target="sidebar"] .cb-block__edit-form');
+    await expect(form).toBeVisible();
+    const widget = form.locator('.cb-image-upload').first();
     await widget.locator('.cb-image-upload__file').setInputFiles({
         name: 'photo.png',
         mimeType: 'image/png',

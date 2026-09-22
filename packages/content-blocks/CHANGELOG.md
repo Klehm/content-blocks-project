@@ -5,6 +5,44 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- **An import could write any file type into the public upload directory.**
+  Each embedded file was stored under the `extension` written in the JSON, so
+  a forged export could drop a `.php` file (code execution where the upload
+  directory runs PHP) or an `.html` file (stored XSS). An import now applies
+  the upload policy: the MIME type is sniffed from the bytes and checked
+  against `content_blocks.upload.allowed_mime_types`, the extension is derived
+  from it, and `upload.max_size` applies per file. A refused file refuses the
+  whole import, and nothing is stored. Requires an editor account; upgrade.
+
+### Added
+
+- **Export without media.** The Import / Export panel has an *Include media
+  files* switch (on by default). Off, the file keeps this site's paths instead
+  of the base64 bytes (`GET …/export?assets=0`): far lighter, for a copy on the
+  same site or one sharing its uploads.
+- **Missing media are named after an import.** A stored path this site cannot
+  read, or a token with no bytes, comes back as `missingAssets` and is shown
+  in the panel, like skipped blocks.
+- **`content_blocks.import.max_size`** (default 50 MB, the former hard-coded
+  cap). The builder checks the file against the effective limit (this value,
+  `upload_max_filesize` and `post_max_size`) before sending it, and an
+  oversized request answers `413` with `maxBytes` instead of "Missing or
+  invalid file upload". See the new *Large imports* section of the host guide
+  for the PHP and web server settings.
+- **Which collection entries open.** A `LiveCollectionType` takes
+  `cb_open_entries`: `all` (default, unchanged), `first`, `last` or `none`.
+  The other entries render folded from the server, with no flash on load. An
+  entry added or duplicated later still opens.
+
+### Changed
+
+- **`ContentAreaExporterInterface::export()` takes `bool $embedAssets = true`.**
+  An implementation of your own must add the parameter.
+
 ## [1.0.0-RC16] - 2026-09-21
 
 ### Added

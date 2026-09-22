@@ -5,6 +5,15 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Collections open folded.** Every kit collection (gallery, tabs, accordion,
+  card, list, button group, breadcrumb, table columns, rows and cells) sets
+  `cb_open_entries: none`: the sidebar opens on the entries' headers. An
+  entry added or duplicated still opens. Needs the matching core release.
+
 ## [1.0.0-RC16] - 2026-09-21
 
 Version bump only — no functional change in `klehm/content-blocks-kit`. The tag is cut

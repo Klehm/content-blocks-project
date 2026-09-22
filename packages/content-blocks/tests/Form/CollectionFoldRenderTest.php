@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Form;
 
+use ContentBlocks\Form\Extension\CollectionFoldTypeExtension;
 use ContentBlocks\Form\Type\ImageUploadType;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\FormExtension;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
@@ -15,6 +17,8 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormRenderer;
 use Symfony\Component\Form\Forms;
+use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Contracts\Translation\TranslatorTrait;
 use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
@@ -71,12 +75,58 @@ final class CollectionFoldRenderTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<bool>}>
+     */
+    public static function openEntries(): iterable
+    {
+        yield 'all' => ['all', [false, false, false]];
+        yield 'first' => ['first', [false, true, true]];
+        yield 'last' => ['last', [true, true, false]];
+        yield 'none' => ['none', [true, true, true]];
+    }
+
+    /**
+     * @param list<bool> $folded
+     */
+    #[DataProvider('openEntries')]
+    public function testOpenEntriesDecidesWhichEntriesStartFolded(string $open, array $folded): void
+    {
+        $item = ['src' => '', 'alt' => 'a', 'caption' => ''];
+        $dom = $this->render([$item, $item, $item], $open);
+
+        $items = iterator_to_array($dom->query(
+            '//div[contains(concat(" ", @class, " "), " cb-form-collection__item ")]',
+        ));
+        $this->assertSame($folded, array_map(
+            static fn (\DOMElement $item): bool => str_contains($item->getAttribute('class'), '--collapsed'),
+            $items,
+        ));
+        $this->assertSame(
+            array_map(static fn (bool $f): string => $f ? 'false' : 'true', $folded),
+            array_map(
+                static fn (\DOMElement $t): string => $t->getAttribute('aria-expanded'),
+                iterator_to_array($dom->query('//button[contains(@class, "cb-form-collection__toggle")]')),
+            ),
+        );
+    }
+
+    public function testOpenEntriesRefusesAnUnknownValue(): void
+    {
+        $this->expectException(InvalidOptionsException::class);
+        $this->render([], 'second');
+    }
+
+    /**
      * @param list<array<string, string>> $items
      */
-    private function render(array $items): \DOMXPath
+    private function render(array $items, string $open = 'all'): \DOMXPath
     {
-        $form = Forms::createFormFactoryBuilder()->getFormFactory()
-            ->createNamed('gallery', GalleryFixtureType::class, ['items' => $items]);
+        $form = Forms::createFormFactoryBuilder()
+            ->addTypeExtension(new CollectionFoldTypeExtension())
+            ->getFormFactory()
+            ->createNamed('gallery', GalleryFixtureType::class, ['items' => $items], [
+                'cb_open_entries' => $open,
+            ]);
 
         $root = \dirname(__DIR__, 2);
         $files = new FilesystemLoader();
@@ -111,7 +161,13 @@ final class GalleryFixtureType extends AbstractType
             'entry_type' => GalleryItemFixtureType::class,
             'allow_add' => true,
             'allow_delete' => true,
+            'cb_open_entries' => $options['cb_open_entries'],
         ]);
+    }
+
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver->setDefault('cb_open_entries', 'all');
     }
 }
 

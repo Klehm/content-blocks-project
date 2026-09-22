@@ -150,14 +150,28 @@ A long help pushes every field below it down the sidebar. `cb_help_tooltip` keep
 
 It is translated like `help`, in the field's translation domain.
 
+## Collection entries
+
+Each entry of a `LiveCollectionType` folds down to a header naming it. `cb_open_entries` decides which entries are open when the sidebar opens: `all` (the default), `first`, `last` or `none`. The others start folded:
+
+```php
+$builder->add('slides', LiveCollectionType::class, [
+    'entry_type' => SlideType::class,
+    'cb_open_entries' => 'first',
+]);
+```
+
+It only sets the starting state. An entry added, or duplicated, afterwards opens so it can be filled in, and whatever the editor folds stays folded until the sidebar closes.
+
 ## Your own tests
 
-The core's fields carry their tab, panel and icons as view variables set by their parent type, so a test building `BlockFormType`, `SectionSettingsType` or `StylingType` with a bare `Forms::createFormFactoryBuilder()` keeps working. Your own fields that use the options need the two extensions registered in that factory:
+The core's fields carry their tab, panel and icons as view variables set by their parent type, so a test building `BlockFormType`, `SectionSettingsType` or `StylingType` with a bare `Forms::createFormFactoryBuilder()` keeps working. Your own fields that use the options need the matching extensions registered in that factory:
 
 ```php
 Forms::createFormFactoryBuilder()
     ->addTypeExtension(new \ContentBlocks\Form\Extension\SidebarLayoutTypeExtension())
     ->addTypeExtension(new \ContentBlocks\Form\Extension\IconChoiceTypeExtension())
+    ->addTypeExtension(new \ContentBlocks\Form\Extension\CollectionFoldTypeExtension())
     // …
 ```
 

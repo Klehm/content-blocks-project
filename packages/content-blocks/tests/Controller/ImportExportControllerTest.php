@@ -10,6 +10,7 @@ use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Transfer\ContentAreaExporter;
 use ContentBlocks\Transfer\ContentAreaImporter;
+use ContentBlocks\Transfer\ImportSizeLimit;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
@@ -32,9 +33,13 @@ final class ImportExportControllerTest extends ControllerTestCase
         EntityManagerInterface $em,
         bool $csrfValid = true,
         ?AccessCheckerInterface $accessChecker = null,
+        ?AssetResolverInterface $resolver = null,
+        int $importMaxSize = 50 * 1024 * 1024,
     ): ImportExportController {
-        $resolver = $this->createMock(AssetResolverInterface::class);
-        $resolver->method('isAssetPath')->willReturn(false);
+        if ($resolver === null) {
+            $resolver = $this->createMock(AssetResolverInterface::class);
+            $resolver->method('isAssetPath')->willReturn(false);
+        }
 
         return new ImportExportController(
             $em,
@@ -43,7 +48,22 @@ final class ImportExportControllerTest extends ControllerTestCase
             new ContentAreaImporter($resolver, $this->makeRegistry(), $this->makeDataKeys()),
             $this->makeCsrfManager($csrfValid),
             $this->makeJournal($em),
+            new ImportSizeLimit($importMaxSize),
         );
+    }
+
+    /** Resolves `/uploads/…`, and reads only `/uploads/here.png`. */
+    private function uploadsResolver(): AssetResolverInterface
+    {
+        $resolver = $this->createMock(AssetResolverInterface::class);
+        $resolver->method('isAssetPath')->willReturnCallback(
+            static fn (string $v): bool => str_starts_with($v, '/uploads/'),
+        );
+        $resolver->method('read')->willReturnCallback(
+            static fn (string $p): ?string => $p === '/uploads/here.png' ? 'bytes' : null,
+        );
+
+        return $resolver;
     }
 
     /** A POST request carrying `file` as an uploaded JSON document. */
@@ -91,7 +111,7 @@ final class ImportExportControllerTest extends ControllerTestCase
         $block->setDraftData(['content' => 'exported']);
         $controller = $this->makeController($this->makeEm([$area]));
 
-        $response = $controller->export(1);
+        $response = $controller->export(1, new Request());
 
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $this->assertSame('application/json', $response->headers->get('Content-Type'));
@@ -105,11 +125,28 @@ final class ImportExportControllerTest extends ControllerTestCase
         );
     }
 
+    public function testExportWithoutAssetsKeepsThePathsAndCarriesNoBytes(): void
+    {
+        $area = $this->makeArea(1);
+        $block = $this->makeBlock($this->makeColumn($this->makeSection($area, 2), 3), 4);
+        $block->setDraftData(['content' => '/uploads/here.png']);
+        $controller = $this->makeController($this->makeEm([$area]), resolver: $this->uploadsResolver());
+
+        $bare = json_decode((string) $controller->export(1, new Request(['assets' => '0']))->getContent(), true);
+        $full = json_decode((string) $controller->export(1, new Request())->getContent(), true);
+
+        $blockData = static fn (array $p): string => $p['contentArea']['sections'][0]['columns'][0]['blocks'][0]['data']['content'];
+        $this->assertSame('/uploads/here.png', $blockData($bare));
+        $this->assertSame([], $bare['assets']);
+        $this->assertStringStartsWith('asset://', $blockData($full));
+        $this->assertCount(1, $full['assets']);
+    }
+
     public function testExportReturns404ForAnUnknownArea(): void
     {
         $controller = $this->makeController($this->makeEm());
 
-        $response = $controller->export(9);
+        $response = $controller->export(9, new Request());
 
         $this->assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
     }
@@ -122,7 +159,7 @@ final class ImportExportControllerTest extends ControllerTestCase
         $controller = $this->makeController($this->makeEm([$area]), accessChecker: $denier);
 
         $this->expectException(ContentBlocksAccessDeniedException::class);
-        $controller->export(1);
+        $controller->export(1, new Request());
     }
 
     // ---------- import ----------
@@ -183,6 +220,62 @@ final class ImportExportControllerTest extends ControllerTestCase
         $this->assertSame(1, $this->flushCount, 'committed despite the warning');
         // The section came in, its only block did not.
         $this->assertCount(0, $area->getSections()[0]->getColumns()[0]->getBlocks());
+    }
+
+    public function testImportReportsTheMediaThisSiteDoesNotHave(): void
+    {
+        $area = $this->makeArea(1);
+        $json = json_encode([
+            'format' => ContentAreaExporter::FORMAT,
+            'contentArea' => ['sections' => [[
+                'layout' => 'full',
+                'columns' => [['preset' => 'col-12', 'blocks' => [
+                    ['type' => 'fake', 'data' => ['content' => '<img src="/uploads/here.png"><img src="/uploads/gone.png">']],
+                    ['type' => 'fake', 'data' => ['content' => 'asset://deadbeef']],
+                ]]],
+            ]]],
+            'assets' => [],
+        ], \JSON_THROW_ON_ERROR);
+        $controller = $this->makeController($this->makeEm([$area]), resolver: $this->uploadsResolver());
+
+        $response = $controller->import(1, $this->makeUploadRequest($json));
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $payload = json_decode((string) $response->getContent(), true);
+        $this->assertSame(['/uploads/gone.png', 'asset://deadbeef'], $payload['missingAssets']);
+        $this->assertSame(1, $this->flushCount, 'a warning, not a refusal');
+    }
+
+    public function testAFileOverTheConfiguredCapIsRefusedWith413(): void
+    {
+        $area = $this->makeArea(1);
+        $controller = $this->makeController($this->makeEm([$area]), importMaxSize: 16);
+
+        $response = $controller->import(1, $this->makeUploadRequest($this->exportPayloadJson()));
+
+        $this->assertSame(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, $response->getStatusCode());
+        $payload = json_decode((string) $response->getContent(), true);
+        $this->assertSame(16, $payload['maxBytes']);
+        $this->assertStringContainsString('content_blocks.import.max_size', $payload['error']);
+        $this->assertSame(0, $this->flushCount);
+    }
+
+    public function testABodyPhpDroppedIsReportedAsTooLargeNotAsMissing(): void
+    {
+        $area = $this->makeArea(1);
+        $controller = $this->makeController($this->makeEm([$area]));
+        $postMax = ImportSizeLimit::postMaxSize();
+        if ($postMax === null) {
+            $this->markTestSkipped('post_max_size is unlimited here.');
+        }
+        $request = Request::create('/_content-blocks/test', 'POST', server: [
+            'HTTP_X-CSRF-Token' => 'token',
+            'CONTENT_LENGTH' => (string) ($postMax + 1),
+        ]);
+
+        $response = $controller->import(1, $request);
+
+        $this->assertSame(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, $response->getStatusCode());
     }
 
     public function testImportRejectsInvalidCsrf(): void

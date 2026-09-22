@@ -1031,6 +1031,13 @@ body:has(.cb-builder-dialog[open]) {
 .cb-import-export-picker__hint--warning {
   color: var(--cb-badge-fg);
 }
+.cb-import-export-picker__option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
 .cb-import-export-picker__separator {
   border-top: 1px solid var(--cb-panel-2);
 }

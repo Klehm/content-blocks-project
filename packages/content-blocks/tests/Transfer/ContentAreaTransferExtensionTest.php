@@ -159,7 +159,8 @@ final class ContentAreaTransferExtensionTest extends TestCase
 
     public function testImportHandsTheBlocksItBuiltAndRewritesTheExtensionsAssets(): void
     {
-        $binary = 'row-bytes';
+        // Real PNG bytes: the importer sniffs them.
+        $binary = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
         $hash = hash('sha256', $binary);
         $resolver = $this->makeResolver();
 

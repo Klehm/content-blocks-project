@@ -59,6 +59,51 @@ Two failure modes are handled by leaving the value alone rather than dropping it
 A token can be the whole value (an image field) or sit inside markup, so the
 rewriter handles both, the second by substitution in place.
 
+### An imported file is an upload
+
+An import writes files into the public upload directory, so it is held to the
+upload endpoint's policy: `content_blocks.upload.max_size` and
+`allowed_mime_types`. The MIME type is sniffed from the decoded bytes, and the
+stored extension is derived from it. The payload's own `mimeType` and
+`extension` are claims written by whoever produced the file, and a file is
+trivially forged: trusting `extension` let a payload drop a `.php` or `.html`
+file under the public prefix, which is code execution on a server that runs
+PHP there, and stored XSS everywhere else.
+
+Every entry is checked before any is stored, so a refused payload leaves no
+file behind. The bytes are decoded twice — once to check, once to store — so
+that only one blob is held at a time rather than the whole set.
+
+### Export without media
+
+`?assets=0` on the export route (the panel's *Include media files* switch,
+checked by default) leaves stored paths as they are and `assets` empty. The file
+shrinks to the content alone. It only makes sense where those paths resolve: a
+copy on the same site, or between environments that share their uploads. It
+also avoids a duplicate of every file, since an import stores fresh copies.
+
+The import side needs no mode for it: a plain path already passes through
+unchanged. What it adds is the report. After an import, every stored path the
+payload carries that this installation cannot `read()`, and every token whose
+hash had no entry, comes back as `missingAssets` — a warning, like skipped
+blocks, not a refusal. A path the storage does not recognize at all (another
+site's prefix, an external URL) is not reported: nothing says it should be a
+file here.
+
+### Size
+
+The whole file is decoded in memory on both sides — there is no streaming.
+Peak memory is roughly 2.7× the media on export (the base64 strings, then the
+encoded JSON) and 3–4× the file on import. The import cap is
+`content_blocks.import.max_size`, further capped by PHP's `upload_max_filesize`
+and `post_max_size` (`ImportSizeLimit`). The builder reads the effective cap
+from the panel (`data-cb-import-max-bytes`) and refuses a larger file before
+sending it. Past `post_max_size`, PHP drops the whole body, so the endpoint
+tells an oversized request from a missing file by its `Content-Length` and
+answers `413` with `maxBytes`. The export has no cap of its own:
+`memory_limit` is its only limit. The host settings are listed in
+[Large imports](../guide/host-services.md#large-imports).
+
 ## What is stored beside a block
 
 Not everything that belongs to a block lives in `Block.data`. The i18n satellite

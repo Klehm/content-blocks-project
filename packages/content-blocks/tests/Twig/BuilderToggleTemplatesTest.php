@@ -60,6 +60,17 @@ final class BuilderToggleTemplatesTest extends TestCase
         $this->assertStringContainsString('cb-import-export-picker', $html);
     }
 
+    public function testThePanelCarriesTheImportCapAndAMediaSwitchOnByDefault(): void
+    {
+        $html = $this->renderShell([]);
+
+        $this->assertStringContainsString('data-cb-import-max-bytes="1234"', $html);
+        $this->assertMatchesRegularExpression(
+            '~<input type="checkbox" data-cb-builder-target="exportAssets" checked>~',
+            $html,
+        );
+    }
+
     public function testPublicLinkIsShownByDefault(): void
     {
         $html = $this->renderShell([]);
@@ -144,6 +155,9 @@ final class BuilderToggleTemplatesTest extends TestCase
         $env->addFunction(new TwigFunction(
             'cb_history_state',
             static fn (ContentArea $area): array => ['canUndo' => false, 'canRedo' => false],
+        ));
+        $env->addExtension(new \ContentBlocks\Twig\ImportLimitExtension(
+            new \ContentBlocks\Transfer\ImportSizeLimit(1234),
         ));
 
         return $env;

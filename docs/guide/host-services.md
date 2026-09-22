@@ -546,7 +546,7 @@ ContentBlocks\Versioning\ContentVersionUpgraderInterface: '@App\ContentBlocks\My
 Everything that acts on the area as a whole lives behind the topbar's single **Actions** menu. It ships two entries:
 
 - **Insert content** (`⇆`) — overwrite the area's content with a clone of another area's content (the replace-content flow).
-- **Import / Export** (`⇅`) — export a `ContentArea` to a self-contained JSON file (sections + blocks + base64-encoded assets) and re-import it elsewhere.
+- **Import / Export** (`⇅`) — export a `ContentArea` to a self-contained JSON file (sections + blocks + base64-encoded assets, or paths only — see [Large imports](#large-imports)) and re-import it elsewhere.
 
 Outside the menu, on the right of the topbar, **View page** (`↗`) opens the published page in a new tab — the URL your `ContentAreaUrlResolverInterface` returns, without the preview flag, so it shows what visitors see rather than the draft.
 
@@ -567,6 +567,31 @@ The first two options are **UI-only**: they hide the menu entry and its overlay.
 :::
 
 Turn both off and register no action of your own, and the Actions button is not rendered at all.
+
+### Large imports
+
+An export is one JSON file with every media file inside it, base64-encoded (+33%). A long page full of images makes a large file, and each layer between the browser and PHP has its own limit on what it accepts:
+
+| Setting | Default | What to set |
+|---|---|---|
+| `content_blocks.import.max_size` | 50 MB | The largest import you accept, in bytes. |
+| PHP `upload_max_filesize` | 2 MB | At least the import size. Usually the first limit hit. |
+| PHP `post_max_size` | 8 MB | A little above `upload_max_filesize`. Past it PHP drops the whole request. |
+| PHP `memory_limit` | 128 MB | About 4× the largest import, e.g. `512M` for 100 MB. The export needs about 3× the media it embeds. |
+| PHP `max_execution_time`, `max_input_time` | 30 s, 60 s | Enough for a slow upload of the largest file. |
+| nginx `client_max_body_size` | 1 MB | At least the import size. Apache: `LimitRequestBody`. |
+| A proxy or CDN in front | varies | Cloudflare's free plan stops at 100 MB. |
+
+The builder shows the smallest of the first three as the limit and refuses a larger file before sending it. When a layer it cannot see refuses the request (the web server or a proxy), the editor still reads "too large" rather than a generic failure.
+
+The media switch on the export (*Include media files*) is the lighter option when the content stays on the same site, or goes to an environment that shares its uploads: the file then carries paths instead of bytes. On an installation where those paths do not exist, the import says which files are missing.
+
+```yaml
+# config/packages/content_blocks.yaml
+content_blocks:
+    import:
+        max_size: 104857600   # 100 MB
+```
 
 ## Adding your own actions to the menu
 

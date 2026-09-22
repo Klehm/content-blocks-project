@@ -23,8 +23,8 @@ interface AssetResolverInterface
     public function read(string $publicPath): ?string;
 
     /**
-     * Stores raw contents and returns the new public path. The extension comes
-     * from the exported metadata, never guessed from the bytes.
+     * Stores raw contents and returns the new public path. The importer has
+     * checked the bytes' MIME type and derived the extension from it.
      */
     public function store(string $contents, string $extension): string;
 }

@@ -39,6 +39,7 @@ class TabsBlock extends AbstractKitBlock implements BlockPreviewHintInterface
     public function buildForm(FormBuilderInterface $builder, array $data): void
     {
         $builder->add('items', LiveCollectionType::class, [
+            'cb_open_entries' => 'none',
             'entry_type' => TabEntryType::class,
             'allow_add' => true,
             'allow_delete' => true,
