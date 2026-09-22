@@ -11,9 +11,9 @@ import { __setMockComponent } from './__stubs__/ux-live-component.js';
  * component is faked via the ux-live-component stub.
  */
 
-function setup({ name = 'content_block[items]', count = 3 } = {}) {
+function setup({ name = 'content_block[items]', count = 3, collapsed = [] } = {}) {
     const items = Array.from({ length: count }, (_, i) =>
-        `<div class="cb-form-collection__item">
+        `<div class="cb-form-collection__item${collapsed[i] ? ' cb-form-collection__item--collapsed' : ''}">
             <div class="cb-form-collection__controls">
                 <button class="cb-form-collection__drag-handle"></button>
                 <button class="cb-form-collection__toggle" aria-expanded="true"></button>
@@ -226,6 +226,30 @@ describe('cb-collection-sort', () => {
             controller._applyCollapsed();
 
             expect(folded(element)).toEqual([false, true]);
+        });
+
+        it('starts from the folds the server rendered', () => {
+            const { controller, element } = setup({ count: 3, collapsed: [true, true, false] });
+
+            controller.toggle({ currentTarget: fold(element.querySelectorAll('.cb-form-collection__item')[0]) });
+
+            expect(folded(element)).toEqual([false, true, false]);
+        });
+
+        it('an entry added after connect opens, whatever the server folds', async () => {
+            const { controller, element } = setup({ count: 2, collapsed: [true, true] });
+            const hooks = {};
+            __setMockComponent({ action: vi.fn(), on: (name, cb) => { hooks[name] = cb; }, off: vi.fn() });
+            controller.connect();
+            await Promise.resolve();
+            await Promise.resolve();
+
+            // What Live renders under `cb_open_entries: none`: all folded.
+            element.appendChild(element.querySelector('.cb-form-collection__item').cloneNode(true));
+            hooks['render:finished']();
+
+            expect(folded(element)).toEqual([true, true, false]);
+            controller.disconnect();
         });
 
         it('re-applies the folded state after every Live render', async () => {

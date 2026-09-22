@@ -5,6 +5,15 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Which collection entries open.** A `LiveCollectionType` takes
+  `cb_open_entries`: `all` (default, unchanged), `first`, `last` or `none`.
+  The other entries render folded from the server, with no flash on load. An
+  entry added or duplicated later still opens.
+
 ## [1.0.0-RC16] - 2026-09-21
 
 ### Added

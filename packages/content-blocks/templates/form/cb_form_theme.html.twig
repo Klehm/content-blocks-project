@@ -460,7 +460,8 @@
             {%- set cb_text = cb_value|striptags|trim|slice(0, 120) -%}
         {%- endif -%}
     {%- endfor -%}
-    <div class="cb-form-collection__item">
+    {%- set cb_folded = cb_folded|default(false) -%}
+    <div class="cb-form-collection__item{{ cb_folded ? ' cb-form-collection__item--collapsed' }}">
         {# A drag handle plus keyboard up/down. They carry no `name`, so
            they are never serialized into the form. #}
         <div class="cb-form-collection__controls">
@@ -473,7 +474,7 @@
             <button type="button"
                     class="cb-form-collection__toggle"
                     data-action="cb-collection-sort#toggle"
-                    aria-expanded="true"
+                    aria-expanded="{{ cb_folded ? 'false' : 'true' }}"
                     aria-controls="{{ id }}"
                     title="{{ 'cb.collection.toggle'|trans({}, 'content_blocks') }}">
                 <span class="cb-form-collection__chevron" aria-hidden="true"></span>

@@ -12,7 +12,7 @@ That second half is the part worth reading. In PHP almost everything is reachabl
 - **`AbstractBlockType`, `AbstractKitBlock`, `AbstractRichTextEditor`** and their documented extension points.
 - **The 17 kit block classes, as subclassable** — see [extending a kit block](../kit/#extending-a-kit-block).
 - **The `#[AsContentBlock]` attribute.**
-- **The sidebar form options** — `cb_group`, `cb_panel`, `cb_help_tooltip` and `cb_panels_exclusive` on every form type, `cb_icons`, `cb_icon_layout`, `cb_icon_columns` and `cb_icon_labels` on `ChoiceType` — and the **names of the shipped UI icons** they refer to ([Laying out sidebar fields](./sidebar-fields.md)). A name may gain a better drawing; it is not renamed or removed.
+- **The sidebar form options** — `cb_group`, `cb_panel`, `cb_help_tooltip` and `cb_panels_exclusive` on every form type, `cb_icons`, `cb_icon_layout`, `cb_icon_columns` and `cb_icon_labels` on `ChoiceType`, `cb_open_entries` on `LiveCollectionType` — and the **names of the shipped UI icons** they refer to ([Laying out sidebar fields](./sidebar-fields.md)). A name may gain a better drawing; it is not renamed or removed.
 - **Value objects and enums** — `RenderContext`, `PublishContext`, `RenderMode`, `ResolvedImage`, `BlockPreviewHint`, `FieldStatus`, `ImportResult`, `InstantiationResult`, `SectionTemplateSnapshot`. The last three are frozen as things you **read**; their constructors are `@internal` so the package can add fields to them.
 - **The entities** — `ContentArea`, `Section`, `Column`, `Block`, `SectionTemplate`, `BlockTranslation` — and their public accessors.
 
