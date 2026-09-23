@@ -1,0 +1,14 @@
+# ContentBlocks Kit — https://klehm.github.io/content-blocks-project/kit/configuration
+#
+# Every block is on by default, except html_raw (unescaped HTML: opt in with
+# `enabled: true`). Per block: enabled, options, choices and defaults.
+# `php bin/console content-blocks-kit:blocks` lists what each one accepts.
+#
+# content_blocks_kit:
+#     blocks:
+#         button:
+#             choices: { variant: [primary, secondary] }
+#         gallery:
+#             options: { max_columns: 4 }
+#         html_raw:
+#             enabled: false

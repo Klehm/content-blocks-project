@@ -941,26 +941,37 @@
             "dist": {
                 "type": "path",
                 "url": "packages/content-blocks",
-                "reference": "c71d99afbb73b4f878385890e95c20f35013918a"
+                "reference": "4634669b2ade5e985af0fb2c590aaff3d1a9d98c"
             },
             "require": {
-                "doctrine/orm": "^2.12 || ^3.0",
+                "doctrine/collections": "^1.8 || ^2.0",
+                "doctrine/doctrine-bundle": "^2.10 || ^3.0",
+                "doctrine/orm": "^2.15 || ^3.0",
                 "maennchen/zipstream-php": "^3.1",
                 "php": ">=8.2",
+                "symfony/config": "^6.4 || ^7.0 || ^8.0",
+                "symfony/console": "^6.4 || ^7.0 || ^8.0",
+                "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
+                "symfony/event-dispatcher": "^6.4 || ^7.0 || ^8.0",
                 "symfony/form": "^6.4 || ^7.0 || ^8.0",
                 "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
+                "symfony/http-foundation": "^6.4 || ^7.0 || ^8.0",
                 "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0",
                 "symfony/mime": "^6.4 || ^7.0 || ^8.0",
+                "symfony/options-resolver": "^6.4 || ^7.0 || ^8.0",
+                "symfony/property-access": "^6.4 || ^7.0 || ^8.0",
+                "symfony/routing": "^6.4 || ^7.0 || ^8.0",
                 "symfony/security-csrf": "^6.4 || ^7.0 || ^8.0",
-                "symfony/stimulus-bundle": "^2.0 || ^3.0",
+                "symfony/stimulus-bundle": "^2.36 || ^3.0",
+                "symfony/translation-contracts": "^2.5 || ^3.0",
                 "symfony/twig-bundle": "^6.4 || ^7.0 || ^8.0",
-                "symfony/ux-live-component": "^2.0 || ^3.0",
-                "symfony/ux-twig-component": "^2.0 || ^3.0",
+                "symfony/ux-live-component": "^2.36 || ^3.0",
+                "symfony/ux-twig-component": "^2.36 || ^3.0",
                 "symfony/validator": "^6.4 || ^7.0 || ^8.0",
                 "twig/twig": "^3.27"
             },
             "require-dev": {
-                "phpunit/phpunit": "^11.0"
+                "phpunit/phpunit": "^11.5"
             },
             "type": "symfony-bundle",
             "extra": {
@@ -968,7 +979,8 @@
                     "bundle": "ContentBlocks\\ContentBlocksBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "1.0.x-dev"
+                    "dev-master": "1.0.x-dev",
+                    "dev-main": "1.0.x-dev"
                 }
             },
             "autoload": {
@@ -978,8 +990,7 @@
             },
             "autoload-dev": {
                 "psr-4": {
-                    "ContentBlocks\\Tests\\": "tests/",
-                    "ContentBlocks\\Kit\\": "../content-blocks-kit/src/"
+                    "ContentBlocks\\Tests\\": "tests/"
                 }
             },
             "license": [
@@ -1018,7 +1029,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/content-blocks-i18n",
-                "reference": "fa3f9371be3dba145fd7649b075936dbd54dfee0"
+                "reference": "1b3340de3bccdc67e01dcd1e6a838c60ef497486"
             },
             "require": {
                 "doctrine/dbal": "^3.6 || ^4.0",
@@ -1033,11 +1044,16 @@
                 "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
                 "symfony/http-foundation": "^6.4 || ^7.0 || ^8.0",
                 "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0",
+                "symfony/routing": "^6.4 || ^7.0 || ^8.0",
                 "symfony/security-csrf": "^6.4 || ^7.0 || ^8.0",
-                "symfony/translation": "^6.4 || ^7.0 || ^8.0"
+                "symfony/translation": "^6.4 || ^7.0 || ^8.0",
+                "twig/twig": "^3.27"
+            },
+            "conflict": {
+                "symfony/twig-bridge": "<6.4.16 || >=7.0,<7.1.9"
             },
             "require-dev": {
-                "phpunit/phpunit": "^11.0"
+                "phpunit/phpunit": "^11.5"
             },
             "type": "symfony-bundle",
             "extra": {
@@ -1045,7 +1061,8 @@
                     "bundle": "ContentBlocks\\I18n\\ContentBlocksI18nBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "1.0.x-dev"
+                    "dev-master": "1.0.x-dev",
+                    "dev-main": "1.0.x-dev"
                 }
             },
             "autoload": {
@@ -1093,21 +1110,25 @@
             "dist": {
                 "type": "path",
                 "url": "packages/content-blocks-kit",
-                "reference": "edb14edb0272805dc61c3cc981cdb2c787764e02"
+                "reference": "136b2d5de45951ecda51539cf2995b8e094564c9"
             },
             "require": {
                 "klehm/content-blocks": "^1.0",
                 "php": ">=8.2",
+                "symfony/console": "^6.4 || ^7.0 || ^8.0",
                 "symfony/form": "^6.4 || ^7.0 || ^8.0",
                 "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
                 "symfony/html-sanitizer": "^6.4 || ^7.0 || ^8.0",
+                "symfony/options-resolver": "^6.4 || ^7.0 || ^8.0",
+                "symfony/routing": "^6.4 || ^7.0 || ^8.0",
                 "symfony/security-csrf": "^6.4 || ^7.0 || ^8.0",
                 "symfony/translation": "^6.4 || ^7.0 || ^8.0",
+                "symfony/ux-live-component": "^2.36 || ^3.0",
                 "symfony/validator": "^6.4 || ^7.0 || ^8.0",
                 "twig/twig": "^3.27"
             },
             "require-dev": {
-                "phpunit/phpunit": "^11.0",
+                "phpunit/phpunit": "^11.5",
                 "symfony/asset": "^6.4 || ^7.0 || ^8.0"
             },
             "type": "symfony-bundle",
@@ -1116,7 +1137,8 @@
                     "bundle": "ContentBlocks\\Kit\\ContentBlocksKitBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "1.0.x-dev"
+                    "dev-master": "1.0.x-dev",
+                    "dev-main": "1.0.x-dev"
                 }
             },
             "autoload": {
@@ -1138,7 +1160,7 @@
                     "email": "klehm.muller@gmail.com"
                 }
             ],
-            "description": "Ready-to-use block types for ContentBlocks (Text, Title, Image, Tabs).",
+            "description": "Nineteen ready-to-use, self-contained block types for ContentBlocks (title, text, rich text, image, gallery, button, card, tabs, video…).",
             "homepage": "https://github.com/klehm/content-blocks-project",
             "keywords": [
                 "blocks",

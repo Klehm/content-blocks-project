@@ -1,0 +1,9 @@
+{
+    "bundles": {
+        "ContentBlocks\\I18n\\ContentBlocksI18nBundle": ["all"]
+    },
+    "copy-from-recipe": {
+        "config/": "%CONFIG_DIR%/"
+    },
+    "aliases": ["content-blocks-i18n"]
+}

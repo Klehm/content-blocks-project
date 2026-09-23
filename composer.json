@@ -1,6 +1,6 @@
 {
     "name": "klehm/content-blocks-monorepo",
-    "description": "Monorepo ContentBlocks — Page builder modulaire pour Symfony",
+    "description": "ContentBlocks monorepo: a modular page builder for Symfony.",
     "type": "project",
     "license": "MIT",
     "repositories": [

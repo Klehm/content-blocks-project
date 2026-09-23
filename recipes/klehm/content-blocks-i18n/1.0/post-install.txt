@@ -1,0 +1,13 @@
+  <bg=blue;fg=white>                                   </>
+  <bg=blue;fg=white> ContentBlocks i18n is installed   </>
+  <bg=blue;fg=white>                                   </>
+
+  * <fg=blue>List your locales</> in <comment>config/packages/content_blocks_i18n.yaml</comment>.
+
+  * <fg=blue>Update your database schema</> (cb_block_translation, cb_column_translation):
+    <comment>php bin/console doctrine:migrations:diff</comment>
+
+  * Link the translation workbench from your admin:
+    <comment>{{ cb_i18n_workbench_url(page.contentArea, 'fr') }}</comment>
+
+  * Full docs: <href=https://klehm.github.io/content-blocks-project/guide/translation>Translation guide</>
