@@ -141,7 +141,7 @@ final class ContentAreaExporterTest extends TestCase
         $this->assertSame('alive', $blocks[0]['data']['content']);
     }
 
-    public function testExportEmbedsAssetsAsBase64AndDeduplicatesByHash(): void
+    public function testExportListsAssetsOnceByHashWithoutTheirBytes(): void
     {
         $binary = 'fake-image-bytes';
         $hash = hash('sha256', $binary);
@@ -159,8 +159,12 @@ final class ContentAreaExporterTest extends TestCase
         $this->assertSame('asset://' . $hash, $blocks[0]['data']['src']);
         $this->assertSame('asset://' . $hash, $blocks[1]['data']['src']);
         $this->assertCount(1, $payload['assets']);
-        $this->assertSame(base64_encode($binary), $payload['assets'][$hash]['data']);
-        $this->assertSame('png', $payload['assets'][$hash]['extension']);
+        $this->assertSame([
+            'mimeType' => 'text/plain',
+            'extension' => 'png',
+            'size' => \strlen($binary),
+            'path' => '/uploads/a.png',
+        ], $payload['assets'][$hash]);
     }
 
     public function testExportKeepsThePathWhenTheAssetIsMissingOnDisk(): void
@@ -204,7 +208,7 @@ final class ContentAreaExporterTest extends TestCase
      * image silently fell out of exports. Now the token replaces the path in
      * place and the surrounding markup is untouched.
      */
-    public function testExportEmbedsAnImageReferencedFromInsideRichTextMarkup(): void
+    public function testExportListsAnImageReferencedFromInsideRichTextMarkup(): void
     {
         $binary = 'inline-bytes';
         $hash = hash('sha256', $binary);
@@ -224,8 +228,7 @@ final class ContentAreaExporterTest extends TestCase
             $data['html'],
         );
         $this->assertCount(1, $payload['assets']);
-        $this->assertSame(base64_encode($binary), $payload['assets'][$hash]['data']);
-        $this->assertSame('png', $payload['assets'][$hash]['extension']);
+        $this->assertSame('/uploads/hero.png', $payload['assets'][$hash]['path']);
     }
 
     /**

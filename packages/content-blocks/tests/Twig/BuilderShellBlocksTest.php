@@ -91,7 +91,6 @@ final class BuilderShellBlocksTest extends TestCase
             'cb_history_state',
             static fn (): array => ['canUndo' => false, 'canRedo' => false],
         ));
-        $env->addFunction(new TwigFunction('cb_import_max_bytes', static fn (): int => 0));
 
         return $env;
     }

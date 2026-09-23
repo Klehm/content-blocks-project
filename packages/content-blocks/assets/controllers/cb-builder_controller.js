@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { TransferDialog } from '../transfer/transfer-dialog.js';
 
 /**
  * Bridges the parent admin window with the iframe preview and the sidebar, and
@@ -29,10 +30,7 @@ export default class extends Controller {
         'templatePickerSearch',
         'templatePickerList',
         'templatePickerStatus',
-        'importExportPicker',
-        'importFile',
-        'importExportStatus',
-        'exportAssets',
+        'transferDialog',
         'actionsMenu',
         'actionsToggle',
         'actionsList',
@@ -317,8 +315,9 @@ export default class extends Controller {
             this.closeReplacePicker();
             return true;
         }
-        if (this.hasImportExportPickerTarget && !this.importExportPickerTarget.hidden) {
-            this.closeImportExport();
+        // The Escape handler cancels the dialog's own close, so close it here.
+        if (this.hasTransferDialogTarget && this.transferDialogTarget.open) {
+            this._transfer?.close();
             return true;
         }
         // Last: the tree is a panel the editor works alongside, so it yields
@@ -2662,7 +2661,6 @@ export default class extends Controller {
         const sources = [];
         if (this.hasReplacePickerTarget) sources.push(this.replacePickerTarget);
         if (this.hasTemplatePickerTarget) sources.push(this.templatePickerTarget);
-        if (this.hasImportExportPickerTarget) sources.push(this.importExportPickerTarget);
         // Shell root: always present, carries topbar strings the pickers don't.
         sources.push(this.element);
         for (const el of sources) {
@@ -2672,142 +2670,37 @@ export default class extends Controller {
         return fallback;
     }
 
-    // ---------- Import / Export picker ----------
+    // ---------- Import / Export ----------
 
-    /**
-     * Pure show/hide: the panel is only a download button and a file picker,
-     * so there is nothing to fetch.
-     */
+    /** Action: the Actions menu entry. The dialog is built on first use. */
     openImportExport(event) {
         if (event) event.preventDefault();
-        if (!this.hasImportExportPickerTarget) return;
+        if (!this.hasTransferDialogTarget) return;
         this.closeActions();
-        this.importExportPickerTarget.hidden = false;
-        this._setBackdrop(true);
-        this._setImportExportStatus('');
+        this._transfer ??= new TransferDialog(this.transferDialogTarget, {
+            exportUrl: `${this._apiBase}/area/${this.areaIdValue}/export`,
+            request: (path, init = {}) => this._transferRequest(path, init),
+            onImported: (result) => {
+                this._replacePickerLoaded = false;
+                this._applyDraftState(result?.hasUnpublishedChanges ?? true);
+                this.reload();
+            },
+        });
+        this._transfer.open();
     }
 
-    /** Action: × button on the picker header. */
-    closeImportExport(event) {
-        if (event) event.preventDefault();
-        if (!this.hasImportExportPickerTarget) return;
-        this.importExportPickerTarget.hidden = true;
-        this._setBackdrop(false);
-    }
-
-    /**
-     * A programmatic `<a download>` click, so the browser's save dialog uses
-     * the server's Content-Disposition filename.
-     */
-    runExport(event) {
-        if (event) event.preventDefault();
-        const link = document.createElement('a');
-        const bare = this.hasExportAssetsTarget && !this.exportAssetsTarget.checked;
-        link.href = `${this._apiBase}/area/${this.areaIdValue}/export${bare ? '?assets=0' : ''}`;
-        link.rel = 'noopener';
-        // Empty, so the server's Content-Disposition filename wins.
-        link.download = '';
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-    }
-
-    /**
-     * Mirrors the replace-with flow: confirm, post as multipart, reload.
-     *
-     * @see docs/internals/transfer.md#import-is-a-replace-and-does-not-flush
-     */
-    async runImport(event) {
-        if (event) event.preventDefault();
-        if (!this.hasImportFileTarget) return;
-        const file = this.importFileTarget.files && this.importFileTarget.files[0];
-        if (!file) {
-            this._setImportExportStatus(
-                this._t('cb.builder.import_export.no_file', 'Pick a JSON file first.'),
-            );
-            return;
-        }
-        const maxBytes = this._importMaxBytes();
-        if (maxBytes > 0 && file.size > maxBytes) {
-            this._setImportExportStatus(this._tooLargeMessage(maxBytes, file.size));
-            return;
-        }
-
-        const confirmText = this._t(
-            'cb.builder.import_export.confirm',
-            'Are you sure you want to overwrite the current content with the imported one?',
-        );
-        if (!window.confirm(confirmText)) return;
-
-        this._setImportExportStatus(
-            this._t('cb.builder.import_export.importing', 'Importing…'),
-        );
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const csrfToken = this.element.dataset.cbCsrfToken || '';
-        this._beginLoading();
-        let payload = null;
-        let ok = false;
-        try {
-            const response = await fetch(
-                `${this._apiBase}/area/${this.areaIdValue}/import`,
-                {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'X-CSRF-Token': csrfToken,
-                        Accept: 'application/json',
-                    },
-                    body: formData,
-                },
-            );
-            if (this.constructor.isSessionLoss(response)) {
-                this._onSessionExpired();
-            }
-            payload = await response.json().catch(() => null);
-            ok = response.ok && !response.redirected;
-            if (!ok) {
-                // A proxy's own 413 page is HTML: no payload to read from.
-                const msg = response.status === 413
-                    ? this._tooLargeMessage(payload?.maxBytes ?? this._importMaxBytes(), file.size)
-                    : payload?.error ?? this._t('cb.builder.import_export.error', 'Import failed.');
-                this._setImportExportStatus(msg);
-                return;
-            }
-        } catch (e) {
-            console.error('[cb-builder] import failed', e);
-            this._setImportExportStatus(
-                this._t('cb.builder.import_export.error', 'Import failed.'),
-            );
-            return;
-        } finally {
-            this._endLoading();
-        }
-
-        // Non-blocking: the import succeeded. Keep the panel open, since
-        // closing it would blank the only element carrying the message.
-        const warning = [
-            this._restoreWarning(payload, {
-                skipped: ['cb.builder.import_export.skipped_blocks', 'Imported — %count% block(s) skipped, missing type(s): %types%'],
-                unknown: ['cb.builder.import_export.unknown_fields', 'Imported, but some stored fields are unknown on: %types%'],
-            }),
-            this._missingAssetsWarning(payload),
-        ].filter((line) => line !== null).join(' ') || null;
-        this.importFileTarget.value = '';
-        if (warning !== null) {
-            this._setImportExportStatus(warning);
-        } else {
-            this.closeImportExport();
-        }
-        this._replacePickerLoaded = false;
-        this._applyDraftState(
-            payload && payload.hasUnpublishedChanges !== undefined
-                ? payload.hasUnpublishedChanges
-                : true,
-        );
-        this.reload();
+    async _transferRequest(path, init) {
+        const response = await fetch(`${this._apiBase}/area/${this.areaIdValue}${path}`, {
+            credentials: 'same-origin',
+            ...init,
+            headers: {
+                Accept: 'application/json',
+                'X-CSRF-Token': this.element.dataset.cbCsrfToken || '',
+                ...(init.headers ?? {}),
+            },
+        });
+        if (this.constructor.isSessionLoss(response)) this._onSessionExpired();
+        return response;
     }
 
     /**
@@ -2835,44 +2728,6 @@ export default class extends Controller {
         }
 
         return null;
-    }
-
-    /** Media the import references but this site does not have. */
-    _missingAssetsWarning(payload) {
-        const missing = Array.isArray(payload?.missingAssets) ? payload.missingAssets : [];
-        if (missing.length === 0) return null;
-        const shown = missing.slice(0, 3).join(', ') + (missing.length > 3 ? ', …' : '');
-
-        return this._t(
-            'cb.builder.import_export.missing_assets',
-            '%count% media file(s) not found on this site: %paths%',
-        ).replace('%count%', String(missing.length)).replace('%paths%', shown);
-    }
-
-    /** The server's import cap, rendered on the panel; 0 when unknown. */
-    _importMaxBytes() {
-        if (!this.hasImportExportPickerTarget) return 0;
-        return parseInt(this.importExportPickerTarget.dataset.cbImportMaxBytes || '0', 10) || 0;
-    }
-
-    _tooLargeMessage(maxBytes, size) {
-        const mb = (bytes) => (bytes / 1024 / 1024).toFixed(1);
-        if (!(maxBytes > 0)) {
-            return this._t(
-                'cb.builder.import_export.too_large_unknown',
-                'This file is too large for the server.',
-            );
-        }
-
-        return this._t(
-            'cb.builder.import_export.too_large',
-            'This file is %size% MB; the server accepts up to %max% MB.',
-        ).replace('%size%', mb(size)).replace('%max%', mb(maxBytes));
-    }
-
-    _setImportExportStatus(text) {
-        if (!this.hasImportExportStatusTarget) return;
-        this.importExportStatusTarget.textContent = text;
     }
 
     // ---------- Sidebar resize ----------

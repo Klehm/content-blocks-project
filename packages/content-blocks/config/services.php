@@ -394,8 +394,9 @@ return static function (ContainerConfigurator $container): void {
         ->tag('twig.extension');
 
     $services->set(\ContentBlocks\Transfer\ImportSizeLimit::class);
-    $services->set(\ContentBlocks\Twig\ImportLimitExtension::class)
-        ->tag('twig.extension');
+    $services->set(\ContentBlocks\Transfer\AssetPolicy::class);
+    $services->set(\ContentBlocks\Transfer\ImportStaging::class);
+    $services->set(\ContentBlocks\Transfer\ZipExportWriter::class);
 
     // ---------- Content translation (convention only) ----------
 

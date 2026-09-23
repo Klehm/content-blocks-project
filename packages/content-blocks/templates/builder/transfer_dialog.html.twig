@@ -1,0 +1,121 @@
+{# Import / Export, driven by assets/transfer/transfer-dialog.js. The import
+   panel shows one step at a time: the dialog's data-step picks it. #}
+{% set t = 'content_blocks' %}
+{% set strings = {
+    reading: 'cb.builder.transfer.reading'|trans({}, t),
+    invalid: 'cb.builder.transfer.invalid'|trans({}, t),
+    content: 'cb.builder.transfer.content'|trans({}, t),
+    media_none: 'cb.builder.transfer.media_none'|trans({}, t),
+    media_here: 'cb.builder.transfer.media_here'|trans({}, t),
+    media_send: 'cb.builder.transfer.media_send'|trans({}, t),
+    media_missing: 'cb.builder.transfer.media_missing'|trans({}, t),
+    media_too_large: 'cb.builder.transfer.media_too_large'|trans({}, t),
+    unknown_types: 'cb.builder.transfer.unknown_types'|trans({}, t),
+    supply_refused: 'cb.builder.transfer.supply_refused'|trans({}, t),
+    sending: 'cb.builder.transfer.sending'|trans({}, t),
+    writing: 'cb.builder.transfer.writing'|trans({}, t),
+    done: 'cb.builder.transfer.done'|trans({}, t),
+    skipped_blocks: 'cb.builder.transfer.skipped_blocks'|trans({}, t),
+    unknown_fields: 'cb.builder.transfer.unknown_fields'|trans({}, t),
+    missing_assets: 'cb.builder.transfer.missing_assets'|trans({}, t),
+    error: 'cb.builder.transfer.error'|trans({}, t),
+    error_too_large: 'cb.builder.transfer.error_too_large'|trans({}, t),
+    error_refused: 'cb.builder.transfer.error_refused'|trans({}, t),
+    stats: 'cb.builder.transfer.stats'|trans({}, t),
+    units: 'cb.builder.transfer.units'|trans({}, t),
+} %}
+<dialog class="cb-transfer"
+        data-cb-builder-target="transferDialog"
+        aria-labelledby="cb-transfer-title"
+        data-cb-transfer-strings="{{ strings|json_encode }}">
+    <header class="cb-transfer__header">
+        <h2 class="cb-transfer__title" id="cb-transfer-title">{{ 'cb.builder.transfer.title'|trans({}, t) }}</h2>
+        <button type="button" class="cb-transfer__close" data-cb-transfer="close"
+                aria-label="{{ 'cb.builder.close'|trans({}, t) }}">×</button>
+    </header>
+
+    <div class="cb-transfer__tabs" role="tablist">
+        <button type="button" role="tab" class="cb-transfer__tab" id="cb-transfer-tab-export"
+                aria-controls="cb-transfer-export" aria-selected="true"
+                data-cb-transfer-tab="export">{{ 'cb.builder.transfer.tab_export'|trans({}, t) }}</button>
+        <button type="button" role="tab" class="cb-transfer__tab" id="cb-transfer-tab-import"
+                aria-controls="cb-transfer-import" aria-selected="false" tabindex="-1"
+                data-cb-transfer-tab="import">{{ 'cb.builder.transfer.tab_import'|trans({}, t) }}</button>
+    </div>
+
+    <section class="cb-transfer__panel" id="cb-transfer-export" role="tabpanel"
+             aria-labelledby="cb-transfer-tab-export" data-cb-transfer-panel="export">
+        <p class="cb-transfer__lead">{{ 'cb.builder.transfer.export_lead'|trans({}, t) }}</p>
+        <p class="cb-transfer__stats" data-cb-transfer="stats" aria-live="polite"></p>
+        <label class="cb-transfer__option">
+            <input type="checkbox" class="cb-transfer__switch" data-cb-transfer="media" checked>
+            <span class="cb-transfer__option-text">
+                <span class="cb-transfer__option-label">{{ 'cb.builder.transfer.include_media'|trans({}, t) }}</span>
+                <span class="cb-transfer__option-hint">{{ 'cb.builder.transfer.include_media_hint'|trans({}, t) }}</span>
+            </span>
+            <span class="cb-transfer__size" data-cb-transfer="size"></span>
+        </label>
+        <footer class="cb-transfer__actions">
+            <a class="cb-transfer__btn cb-transfer__btn--primary" data-cb-transfer="download"
+               href="{{ cb_api_base() }}/area/{{ area.id }}/export" download>
+                {{ 'cb.builder.transfer.download'|trans({}, t) }}
+            </a>
+        </footer>
+    </section>
+
+    <section class="cb-transfer__panel" id="cb-transfer-import" role="tabpanel"
+             aria-labelledby="cb-transfer-tab-import" data-cb-transfer-panel="import" hidden>
+        <div class="cb-transfer__step" data-cb-transfer-step="pick">
+            <label class="cb-transfer__drop" data-cb-transfer="drop">
+                <input type="file" class="cb-transfer__file" data-cb-transfer="file"
+                       accept=".zip,.json,application/zip,application/json">
+                <svg class="cb-transfer__drop-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 16V4m0 0-4.5 4.5M12 4l4.5 4.5M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+                </svg>
+                <span class="cb-transfer__drop-title">{{ 'cb.builder.transfer.drop_title'|trans({}, t) }}</span>
+                <span class="cb-transfer__drop-hint">{{ 'cb.builder.transfer.drop_hint'|trans({}, t) }}</span>
+            </label>
+            <p class="cb-transfer__message" data-cb-transfer="pick-message" role="alert"></p>
+        </div>
+
+        <div class="cb-transfer__step" data-cb-transfer-step="review">
+            <div class="cb-transfer__file-card">
+                <span class="cb-transfer__file-name" data-cb-transfer="file-name"></span>
+                <span class="cb-transfer__file-size" data-cb-transfer="file-size"></span>
+            </div>
+            <ul class="cb-transfer__checks" data-cb-transfer="checks"></ul>
+            <label class="cb-transfer__drop cb-transfer__drop--compact" data-cb-transfer="supply" hidden>
+                <input type="file" class="cb-transfer__file" data-cb-transfer="supply-file" multiple>
+                <span class="cb-transfer__drop-title">{{ 'cb.builder.transfer.supply_title'|trans({}, t) }}</span>
+                <span class="cb-transfer__drop-hint">{{ 'cb.builder.transfer.supply_hint'|trans({}, t) }}</span>
+            </label>
+            <p class="cb-transfer__message" data-cb-transfer="review-message" role="status"></p>
+            <p class="cb-transfer__warning">{{ 'cb.builder.transfer.replace_warning'|trans({}, t) }}</p>
+            <footer class="cb-transfer__actions">
+                <button type="button" class="cb-transfer__btn" data-cb-transfer="reset">{{ 'cb.builder.transfer.choose_other'|trans({}, t) }}</button>
+                <button type="button" class="cb-transfer__btn cb-transfer__btn--primary" data-cb-transfer="run">{{ 'cb.builder.transfer.import'|trans({}, t) }}</button>
+            </footer>
+        </div>
+
+        <div class="cb-transfer__step" data-cb-transfer-step="run">
+            <p class="cb-transfer__progress-label" data-cb-transfer="progress-label" aria-live="polite"></p>
+            <progress class="cb-transfer__progress" data-cb-transfer="progress" max="1" value="0"></progress>
+        </div>
+
+        <div class="cb-transfer__step" data-cb-transfer-step="done">
+            <p class="cb-transfer__result" data-cb-transfer="result" role="status"></p>
+            <ul class="cb-transfer__checks" data-cb-transfer="warnings"></ul>
+            <footer class="cb-transfer__actions">
+                <button type="button" class="cb-transfer__btn cb-transfer__btn--primary" data-cb-transfer="close">{{ 'cb.builder.transfer.close'|trans({}, t) }}</button>
+            </footer>
+        </div>
+
+        <div class="cb-transfer__step" data-cb-transfer-step="error">
+            <p class="cb-transfer__message cb-transfer__message--error" data-cb-transfer="error" role="alert"></p>
+            <footer class="cb-transfer__actions">
+                <button type="button" class="cb-transfer__btn" data-cb-transfer="reset">{{ 'cb.builder.transfer.choose_other'|trans({}, t) }}</button>
+                <button type="button" class="cb-transfer__btn cb-transfer__btn--primary" data-cb-transfer="retry">{{ 'cb.builder.transfer.retry'|trans({}, t) }}</button>
+            </footer>
+        </div>
+    </section>
+</dialog>

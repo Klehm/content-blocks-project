@@ -129,7 +129,6 @@ final class BuilderHistoryButtonsTest extends TestCase
             'cb_history_state',
             static fn (ContentArea $area): array => ['canUndo' => $canUndo, 'canRedo' => $canRedo],
         ));
-        $env->addFunction(new TwigFunction('cb_import_max_bytes', static fn (): int => 0));
 
         return $env;
     }

@@ -13,11 +13,13 @@ use ContentBlocks\Transfer\ContentAreaExporterInterface;
 use ContentBlocks\Transfer\ContentAreaImporterInterface;
 use ContentBlocks\Transfer\ImportResult;
 use ContentBlocks\Transfer\ImportSizeLimit;
+use ContentBlocks\Transfer\ZipExportWriter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
@@ -40,7 +42,8 @@ final class ImportExportController
         private readonly ContentAreaImporterInterface $importer,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ActionJournal $journal,
-        private readonly ImportSizeLimit $sizeLimit = new ImportSizeLimit(),
+        private readonly ImportSizeLimit $sizeLimit,
+        private readonly ZipExportWriter $zip,
     ) {
     }
 
@@ -49,6 +52,12 @@ final class ImportExportController
         return $this->csrfTokenManager;
     }
 
+    /**
+     * A zip streamed as it is written: `content.json`, then the media unless
+     * `?assets=0`. Its size is known first, so the browser shows progress.
+     *
+     * @see docs/internals/transfer.md#the-zip
+     */
     #[Route(
         '/area/{id}/export',
         name: 'content_blocks_export',
@@ -65,27 +74,68 @@ final class ImportExportController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        $payload = $this->exporter->export($area, $request->query->get('assets') !== '0');
-        $json = json_encode(
-            $payload,
-            \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE,
+        $output = fopen('php://output', 'wb');
+        if ($output === false) {
+            return new JsonResponse(['error' => 'Cannot open the output.'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+        [$size, $send] = $this->zip->prepare(
+            $this->exporter->export($area),
+            $request->query->get('assets') !== '0',
+            $output,
         );
-        if ($json === false) {
-            return new JsonResponse(
-                ['error' => 'Failed to encode export: ' . json_last_error_msg()],
-                Response::HTTP_INTERNAL_SERVER_ERROR,
-            );
+
+        return new StreamedResponse($send, Response::HTTP_OK, [
+            'Content-Type' => 'application/zip',
+            'Content-Length' => (string) $size,
+            'Content-Disposition' => sprintf(
+                'attachment; filename="content-area-%d-%s.zip"',
+                $id,
+                date('Ymd-His'),
+            ),
+            'Cache-Control' => 'no-store',
+            // nginx would otherwise hold the whole file before relaying it.
+            'X-Accel-Buffering' => 'no',
+        ]);
+    }
+
+    /** What an export will hold, for the panel to say before downloading. */
+    #[Route(
+        '/area/{id}/export/summary',
+        name: 'content_blocks_export_summary',
+        methods: ['GET'],
+        requirements: ['id' => '\d+'],
+    )]
+    public function exportSummary(int $id): JsonResponse
+    {
+        $area = $this->em->find(ContentArea::class, $id);
+        if (!$area) {
+            return new JsonResponse(['error' => 'ContentArea not found'], Response::HTTP_NOT_FOUND);
+        }
+        if (!$this->accessChecker->canView($area)) {
+            throw new ContentBlocksAccessDeniedException();
         }
 
-        $filename = sprintf('content-area-%d-%s.json', $id, date('Ymd-His'));
-        $response = new Response($json);
-        $response->headers->set('Content-Type', 'application/json');
-        $response->headers->set(
-            'Content-Disposition',
-            sprintf('attachment; filename="%s"', $filename),
-        );
+        $payload = $this->exporter->export($area);
+        $sections = $payload['contentArea']['sections'];
+        $blocks = 0;
+        foreach ($sections as $section) {
+            foreach ($section['columns'] ?? [] as $column) {
+                $blocks += \count($column['blocks'] ?? []);
+            }
+        }
+        $sizeOf = function (bool $withMedia) use ($payload): int {
+            $sink = fopen('php://memory', 'wb');
 
-        return $response;
+            return $sink === false ? 0 : $this->zip->prepare($payload, $withMedia, $sink)[0];
+        };
+
+        return new JsonResponse([
+            'sectionCount' => \count($sections),
+            'blockCount' => $blocks,
+            'mediaCount' => \count($payload['assets']),
+            'size' => $sizeOf(true),
+            'sizeWithoutMedia' => $sizeOf(false),
+        ]);
     }
 
     #[Route(

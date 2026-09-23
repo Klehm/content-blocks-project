@@ -154,7 +154,7 @@ final class ContentAreaTransferExtensionTest extends TestCase
             ['value' => 'asset://' . $hash],
             $payload['extensions']['acme/test']['tokenized'],
         );
-        $this->assertSame('row-bytes', base64_decode($payload['assets'][$hash]['data'], true));
+        $this->assertSame('/uploads/only-in-a-row.png', $payload['assets'][$hash]['path']);
     }
 
     public function testImportHandsTheBlocksItBuiltAndRewritesTheExtensionsAssets(): void

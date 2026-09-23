@@ -412,6 +412,36 @@ triggering a Live morph *between two keystrokes*. That mid-typing commit is the
 "jump" that makes the field hard to fill. The slider drag path keeps its
 immediate commit on release.
 
+## The Import / Export dialog
+
+A native `<dialog>` opened with `showModal()`, rather than one more absolutely
+positioned panel: focus is trapped and restored, the backdrop and `Escape` come
+with it, and it sits in the top layer above the builder's own `<dialog>`. The
+shell's `Escape` handler still sees the key first and cancels the default, so
+`_closeTopModal()` closes the dialog itself — except while an import runs, when
+closing would leave half the files sent.
+
+The logic is in `assets/transfer/`, as plain modules `cb-builder` imports, not
+as a Stimulus controller: a new controller name is one more line every host
+must add to `controllers.json`, and a relative import resolves under AssetMapper
+and Encore alike. `zip-reader.js` reads an archive's directory from a `Blob`
+(stored and deflated entries, ZIP64 included); `import-source.js` turns a zip or
+a pre-RC17 JSON into the same manifest-plus-files shape; `import-flow.js` runs
+the steps against the server and holds no DOM; `transfer-dialog.js` is the UI.
+
+**The import says what it will do before doing it.** The file is read and the
+plan asked for before the *Import* button: sections and blocks, media already
+here, to send, missing or too large, block types unknown here. That review
+replaces the `window.confirm` the panel used, which said nothing about the file.
+
+**The export is a link, not a fetch.** An `<a download>` pointing at the
+streamed zip lets the browser's own download UI show the progress the exact
+`Content-Length` allows, and keeps the archive out of the page's memory.
+
+The dialog's strings arrive as one JSON attribute (`data-cb-transfer-strings`)
+rather than one `data-i18n-*` attribute per key: there are some thirty, and the
+dialog is the only reader.
+
 ## Smaller decisions worth keeping
 
 **Autosave debounces the reload, not the save.** Typing fires many `cb:*:saved`

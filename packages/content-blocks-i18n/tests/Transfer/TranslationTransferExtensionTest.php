@@ -93,7 +93,7 @@ final class TranslationTransferExtensionTest extends TestCase
             ['body' => '<p><img src="asset://' . $hash . '"></p>'],
             $fragment['blocks']['s0.c0.b0']['fr']['values'],
         );
-        self::assertSame('french-bytes', base64_decode($tokenizer->assets()[$hash]['data'], true));
+        self::assertSame('/uploads/fr-hero.png', $tokenizer->assets()[$hash]['path']);
     }
 
     public function testExportIsEmptyWithoutRows(): void

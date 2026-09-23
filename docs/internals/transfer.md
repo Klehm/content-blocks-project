@@ -35,13 +35,14 @@ The payload also carries the emitting app's `contentVersion`, and it is
 installation that issued it, so the importer ignores it and stamps the target
 with the *local* version instead.
 
-## Assets travel as bytes, not paths
+## Assets travel beside the content
 
 Unlike a [section template](section-templates.md#what-a-snapshot-holds), which
 stays inside one app and keeps plain storage paths, an export may land in another
-installation where those paths mean nothing. So asset references are read from
-storage, embedded as base64 under their sha256 hash — identical binaries
-deduplicated — and replaced in place by an `asset://{hash}` token.
+installation where those paths mean nothing. So each asset reference is read from
+storage, hashed (sha256), and replaced in place by an `asset://{hash}` token. The
+payload's `assets` map lists each file once — `mimeType`, `extension`, `size` and
+the `path` it had here — and the bytes travel beside it, in the zip.
 
 Finding the references is `AssetReferenceCollector`'s job, shared with the
 garbage collector so the two cannot disagree about what counts as a reference.
@@ -49,60 +50,99 @@ That includes paths embedded in rich-text markup, replaced in place so the
 surrounding `<img src="…">` survives. See
 [assets.md](assets.md#one-definition-of-a-reference).
 
-Two failure modes are handled by leaving the value alone rather than dropping it:
+A token can be the whole value (an image field) or sit inside markup, so the
+rewriter handles both, the second by substitution in place. Two failure modes
+are handled by leaving a value readable rather than dropping it:
 
 - a reference that **cannot be read** at export keeps its original path, so the
   import side sees a broken reference rather than a silently missing field;
-- a token whose **hash is unknown** at import is left as-is, so the problem
-  surfaces in the UI instead of vanishing.
+- a token with **no file** at import is replaced by the source `path` the
+  manifest gives it, or left as the token when there is none, and reported in
+  `ImportResult::$missingAssets`.
 
-A token can be the whole value (an image field) or sit inside markup, so the
-rewriter handles both, the second by substitution in place.
+Before RC17 the bytes were inlined in the JSON as base64 (`data` on each entry).
+The importer still reads that shape, so an old export imports as it always did.
+
+## The zip
+
+`GET …/area/{id}/export` answers a zip: `content.json`, then one
+`media/{hash}.{ext}` per listed file (`ZipExportWriter`, on
+`maennchen/zipstream-php`). Everything is **stored, not deflated**: the media
+are already compressed formats, and a stored entry has a size known in advance.
+That buys the two properties the export needed:
+
+- **Constant memory.** One file is read at a time and written through; nothing
+  holds the archive. The tokenizer reads each file once to hash it, and the
+  writer reads it again to send it — twice the disk reads, one file in memory.
+- **An exact `Content-Length`.** The archive is laid out in `SIMULATE_STRICT`
+  mode first, which computes its size without reading a byte, then sent for
+  real. The browser shows a real progress bar, and the summary endpoint
+  (`…/export/summary`) reports the size of both variants for the dialog.
+
+Streaming has one cost: once the headers are sent, an error can no longer be
+reported, only cut the download short. Every file is read before the first byte
+(the hashing pass), so what could fail late is only a file deleted in between.
+The response carries `X-Accel-Buffering: no` so nginx relays it as it comes
+instead of holding it whole.
+
+`?assets=0` writes `content.json` alone: the manifest still lists every file,
+with its hash and path, so the other side can tell which it already holds —
+this site, or one that shares its uploads — and which are missing.
+
+The format string stays `content-blocks/v1`. The `data`-less entry is not
+something an older reader can get wrong: it refuses it, loudly, as a malformed
+entry. It could not open the zip anyway.
+
+## An import in steps
+
+The browser opens the dropped file itself — the zip's directory is read from
+the `File`, and a stored entry is a `Blob.slice()` of it, never loaded — and
+talks to the server in small requests (`StagedImportController`):
+
+1. **`POST …/import/plan`** — the manifest's hashes and paths, and the block
+   types. The server answers which files it **already holds**: bytes at the
+   listed path with the same hash (a copy on the same site sends nothing and
+   duplicates nothing), or a file an earlier, interrupted attempt stored. It
+   also names the block types unknown here and the largest file a request can
+   carry.
+2. **`POST …/import/asset`**, once per file to send. The server hashes the
+   bytes, checks them against the hash sent (if any) and against the files the
+   plan listed, applies the upload policy, stores the file and remembers where.
+   A file the editor drops for a missing one goes through the same request
+   without a hash: it is kept only if its bytes are a file of the export.
+3. **`POST …/import/commit`** — the manifest. The draft is replaced in one
+   journalled step, exactly like the single-request import.
+
+Between the steps, what the server verified lives in the session
+(`ImportStaging`, keyed by area): the hashes the plan expects and the path of
+each file checked or stored. The commit resolves tokens **only** from that map,
+never from anything in the request, so a forged manifest cannot point a token at
+a file of its choosing. The map is emptied by the commit.
+
+No request carries more than one file, so the size of the export no longer
+meets `upload_max_filesize` or `post_max_size`; only the largest single file
+does, and the plan reports that limit so the dialog can name an oversized file
+before sending anything. An abandoned import leaves stored files nothing
+references; the asset garbage collector takes them after its retention window.
+
+`POST …/import` — one multipart JSON, bytes inline — is kept for scripts. It
+takes the pre-RC17 payload and the zip's `content.json` alike, capped by
+`content_blocks.import.max_size` and PHP's own limits (`ImportSizeLimit`).
 
 ### An imported file is an upload
 
 An import writes files into the public upload directory, so it is held to the
-upload endpoint's policy: `content_blocks.upload.max_size` and
-`allowed_mime_types`. The MIME type is sniffed from the decoded bytes, and the
-stored extension is derived from it. The payload's own `mimeType` and
-`extension` are claims written by whoever produced the file, and a file is
-trivially forged: trusting `extension` let a payload drop a `.php` or `.html`
-file under the public prefix, which is code execution on a server that runs
-PHP there, and stored XSS everywhere else.
+upload endpoint's policy (`AssetPolicy`): `content_blocks.upload.max_size` and
+`allowed_mime_types`. The MIME type is sniffed from the bytes, and the stored
+extension is derived from it. The manifest's `mimeType` and `extension` are
+claims written by whoever produced the file, and a file is trivially forged:
+trusting `extension` let a payload drop a `.php` or `.html` file under the
+public prefix, which is code execution on a server that runs PHP there, and
+stored XSS everywhere else.
 
-Every entry is checked before any is stored, so a refused payload leaves no
-file behind. The bytes are decoded twice — once to check, once to store — so
-that only one blob is held at a time rather than the whole set.
-
-### Export without media
-
-`?assets=0` on the export route (the panel's *Include media files* switch,
-checked by default) leaves stored paths as they are and `assets` empty. The file
-shrinks to the content alone. It only makes sense where those paths resolve: a
-copy on the same site, or between environments that share their uploads. It
-also avoids a duplicate of every file, since an import stores fresh copies.
-
-The import side needs no mode for it: a plain path already passes through
-unchanged. What it adds is the report. After an import, every stored path the
-payload carries that this installation cannot `read()`, and every token whose
-hash had no entry, comes back as `missingAssets` — a warning, like skipped
-blocks, not a refusal. A path the storage does not recognize at all (another
-site's prefix, an external URL) is not reported: nothing says it should be a
-file here.
-
-### Size
-
-The whole file is decoded in memory on both sides — there is no streaming.
-Peak memory is roughly 2.7× the media on export (the base64 strings, then the
-encoded JSON) and 3–4× the file on import. The import cap is
-`content_blocks.import.max_size`, further capped by PHP's `upload_max_filesize`
-and `post_max_size` (`ImportSizeLimit`). The builder reads the effective cap
-from the panel (`data-cb-import-max-bytes`) and refuses a larger file before
-sending it. Past `post_max_size`, PHP drops the whole body, so the endpoint
-tells an oversized request from a missing file by its `Content-Length` and
-answers `413` with `maxBytes`. The export has no cap of its own:
-`memory_limit` is its only limit. The host settings are listed in
-[Large imports](../guide/host-services.md#large-imports).
+In the single-request import, every inline file is checked before any is
+stored, so a refused payload leaves no file behind. The bytes are decoded twice
+— once to check, once to store — so that only one blob is held at a time.
 
 ## What is stored beside a block
 
