@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * Host-configured section layouts: the sandbox declares `four_cols`
@@ -18,7 +19,7 @@ async function createFreshPage(page) {
 
 async function openBuilder(page) {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     const frame = page.frameLocator('.cb-shell__iframe');
     await expect(frame.locator('.cb-add-section-tray')).toBeVisible();
@@ -88,7 +89,7 @@ test.describe('section layouts from host config', () => {
         await expect.poll(() => frame.locator(liveSections).count()).toBe(1);
 
         await page.reload();
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
         const reloaded = page.frameLocator('.cb-shell__iframe');
         const section = reloaded.locator(liveSections).first();
         await expect(section.locator('[data-cb-column-id]')).toHaveCount(2);

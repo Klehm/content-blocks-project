@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * Dropping a file anywhere on an image field uploads it, exactly as picking it
@@ -39,7 +40,7 @@ async function dropFile(page, selector, { name, type, base64 }) {
 
 test('a dropped image uploads and fills the field', async ({ page }) => {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     const frame = page.frameLocator('.cb-shell__iframe');
 
@@ -71,7 +72,7 @@ test('a pasted path fills the field without an upload, and remove clears it', as
     });
 
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     const frame = page.frameLocator('.cb-shell__iframe');
 
     await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
@@ -110,7 +111,7 @@ test('a pasted path fills the field without an upload, and remove clears it', as
 
 test('a drag that carries no file leaves the widget alone', async ({ page }) => {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     const frame = page.frameLocator('.cb-shell__iframe');
 
     await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * In-place duplicate (no full iframe reload).
@@ -25,7 +26,7 @@ async function createFreshPage(page) {
 
 async function openBuilder(page) {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     return page.frameLocator('.cb-shell__iframe');
 }
@@ -88,7 +89,7 @@ test.describe('preview duplicate — in place', () => {
         // The duplicate was written to the draft: both blocks survive a real
         // reload.
         await page.reload();
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
         await expect(page.locator('.cb-shell')).toBeVisible();
         const reloaded = page.frameLocator('.cb-shell__iframe');
         await expect(reloaded.locator('[data-cb-block-id]').first()).toBeVisible();
@@ -126,7 +127,7 @@ test.describe('preview duplicate — in place', () => {
         // The duplicate was written to the draft: both sections survive a real
         // reload.
         await page.reload();
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
         await expect(page.locator('.cb-shell')).toBeVisible();
         const reloaded = page.frameLocator('.cb-shell__iframe');
         await expect(reloaded.locator('[data-cb-section-id]').first()).toBeVisible();

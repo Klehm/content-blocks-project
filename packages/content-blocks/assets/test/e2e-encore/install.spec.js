@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from '../e2e/helpers/builder.js';
 
 /**
  * The Webpack Encore install path, end to end.
@@ -30,7 +31,7 @@ async function createPage(page, title) {
 
 async function openBuilder(page, title) {
     await page.goto(await createPage(page, title));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
 
     return page.frameLocator('.cb-shell__iframe');
@@ -69,7 +70,7 @@ test.describe('Webpack Encore install path', () => {
 
         // Attached markup proves nothing on its own; the controller has to have
         // connected. Its click handler opening the dialog is the proof.
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
         await expect(page.locator('.cb-shell')).toBeVisible();
     });
 

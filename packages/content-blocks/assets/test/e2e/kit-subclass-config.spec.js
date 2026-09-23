@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * `content_blocks_kit.blocks.<type>` reaching a block a host has subclassed.
@@ -28,7 +29,7 @@ async function createFreshPage(page) {
 
 test('kit subclass — the host config reaches a subclassed block', async ({ page }) => {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     const frame = page.frameLocator('.cb-shell__iframe');
 

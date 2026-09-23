@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * The sandbox aliases `ImageUrlResolverInterface` to a LiipImagine-backed
@@ -25,7 +26,7 @@ async function createFreshPage(page) {
 test('an uploaded image is served as WebP variants on the public page', async ({ page }) => {
     const pageUrl = await createFreshPage(page);
     await page.goto(pageUrl);
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     const frame = page.frameLocator('.cb-shell__iframe');
 
@@ -120,7 +121,7 @@ test('a source the resolver does not own is left untouched', async ({ page }) =>
     });
 
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     const frame = page.frameLocator('.cb-shell__iframe');
     await page.locator('.cb-sidebar-library .cb-template-picker__search').fill(name);
     await expect.poll(() => page.locator('.cb-template-picker__item-btn').count()).toBe(1);

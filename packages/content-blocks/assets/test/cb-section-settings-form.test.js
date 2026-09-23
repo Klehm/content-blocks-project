@@ -283,6 +283,99 @@ describe('cb-section-settings-form — submit error feedback', () => {
     });
 });
 
+// ---------- One save in flight ----------
+
+describe('cb-section-settings-form — overlapping saves', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    /** A fetch whose responses the test releases one at a time. */
+    function deferredFetch() {
+        const bodies = [];
+        const releases = [];
+        const fetch = vi.fn((url, init) => {
+            bodies.push(init.body.get('x'));
+            return new Promise((resolve) => releases.push(resolve));
+        });
+        vi.stubGlobal('fetch', fetch);
+        return { fetch, bodies, release: (r = { ok: true }) => releases.shift()(r) };
+    }
+
+    /** Wired as connect() wires it, so a follow-up submit reaches it. */
+    function setup() {
+        const ctx = setupSubmit();
+        const submits = [];
+        ctx.form.addEventListener('submit', (e) => {
+            submits.push(e);
+            ctx.c._onSubmit(e);
+        });
+        const submit = () => ctx.form.dispatchEvent(new Event('submit', { cancelable: true }));
+        const input = ctx.form.querySelector('input');
+        return { ...ctx, submits, submit, input };
+    }
+
+    // The race that lost a colour: the older form landing after the newer.
+    it('holds a save asked for mid-flight until the first returns', async () => {
+        const { submit, input } = setup();
+        const { fetch, bodies, release } = deferredFetch();
+
+        submit();
+        input.value = '2';
+        submit();
+        expect(fetch).toHaveBeenCalledTimes(1);
+
+        release();
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+        release();
+
+        expect(bodies).toEqual(['1', '2']);
+    });
+
+    it('collapses several mid-flight requests into one, with the latest form', async () => {
+        const { submit, input } = setup();
+        const { fetch, bodies, release } = deferredFetch();
+
+        submit();
+        for (const v of ['2', '3', '4']) {
+            input.value = v;
+            submit();
+        }
+        release();
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+        release();
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(bodies).toEqual(['1', '4']);
+    });
+
+    // Symfony's stateless CSRF script stamps its token on `submit`.
+    it('sends the follow-up through a real submit event', async () => {
+        const { submit, submits } = setup();
+        const { fetch, release } = deferredFetch();
+
+        submit();
+        submit();
+        release();
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+
+        expect(submits).toHaveLength(3);
+        release();
+    });
+
+    it('sends no follow-up once a 422 has swapped the form out', async () => {
+        const { submit } = setup();
+        const { fetch, release } = deferredFetch();
+
+        submit();
+        submit();
+        release({ ok: false, status: 422, text: () => Promise.resolve('<div></div>') });
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(fetch).toHaveBeenCalledTimes(1);
+    });
+});
+
 // ---------- Columns: add, remove, label ----------
 
 function setupColumns({ labels = ['', 'Specs'] } = {}) {

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * Regression for the LiveCollection autosave bug: adding/removing a collection
@@ -25,7 +26,7 @@ async function createFreshPage(page) {
 
 async function openBuilder(page) {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     return page.frameLocator('.cb-shell__iframe');
 }
@@ -93,7 +94,7 @@ test.describe('builder shell — collection autosave', () => {
         // both tabs. With it, exactly one tab remains — and it's "Second", not
         // the default "Tab 1", proving the structural delete persisted.
         await page.reload();
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
         await expect(page.locator('.cb-shell')).toBeVisible();
         sidebar = await openBlockEditor(page, page.frameLocator('.cb-shell__iframe'));
 

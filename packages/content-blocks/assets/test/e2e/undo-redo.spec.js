@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 import { reveal } from './helpers/sidebar.js';
 
 /**
@@ -26,7 +27,7 @@ async function createFreshPage(page) {
 
 async function openBuilder(page, url) {
     await page.goto(url);
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
 
     return page.frameLocator('.cb-shell__iframe');
@@ -113,7 +114,7 @@ test.describe('action history — undo / redo', () => {
         await addBlock(page, frame);
 
         await page.reload();
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
         await expect(page.locator('.cb-shell')).toBeVisible();
         const reloaded = page.frameLocator('.cb-shell__iframe');
         await expect.poll(() => live(reloaded)).toBe(1);
@@ -259,7 +260,7 @@ test.describe('action history — the topbar buttons', () => {
         await addFullSection(page, frame);
 
         await page.reload();
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
         await expect(page.locator('.cb-shell')).toBeVisible();
 
         await expect(undoBtn(page)).toBeEnabled();
