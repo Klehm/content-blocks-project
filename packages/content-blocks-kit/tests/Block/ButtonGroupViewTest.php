@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Tests\Block;
 
 use ContentBlocks\Kit\Block\ButtonGroupBlock;
+use ContentBlocks\Kit\RichText\RichTextSanitizerFactory;
 use ContentBlocks\Kit\Twig\ChoiceTokenExtension;
+use ContentBlocks\Kit\Twig\SafeContentExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
@@ -85,6 +87,7 @@ final class ButtonGroupViewTest extends TestCase
         $loader->addPath(\dirname(__DIR__, 2) . '/templates', 'ContentBlocksKit');
         $env = new Environment($loader, ['strict_variables' => true]);
         $env->addExtension(new ChoiceTokenExtension());
+        $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
 
         return $env->render('@ContentBlocksKit/block/button_group/view.html.twig', [
             'data' => $data + (new ButtonGroupBlock())->getDefaultData(),

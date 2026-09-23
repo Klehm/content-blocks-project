@@ -7,8 +7,10 @@ namespace ContentBlocks\Kit\Tests\Block;
 use ContentBlocks\Image\PassthroughImageUrlResolver;
 use ContentBlocks\Kit\ContentBlocksKitBundle;
 use ContentBlocks\Kit\Icon\IconRegistry;
+use ContentBlocks\Kit\RichText\RichTextSanitizerFactory;
 use ContentBlocks\Kit\Twig\ChoiceTokenExtension;
 use ContentBlocks\Kit\Twig\IconExtension;
+use ContentBlocks\Kit\Twig\SafeContentExtension;
 use ContentBlocks\Twig\ImageExtension;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -198,6 +200,7 @@ final class ChoiceFieldCoverageTest extends TestCase
 
         $env = new Environment($loader, ['strict_variables' => false]);
         $env->addExtension(new ChoiceTokenExtension());
+        $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
         $env->addExtension(new IconExtension(new IconRegistry()));
         $env->addExtension(new ImageExtension(new PassthroughImageUrlResolver()));
         $env->addExtension(new TranslationExtension(new class () implements TranslatorInterface {

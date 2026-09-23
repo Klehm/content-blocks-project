@@ -1,7 +1,6 @@
-{# Renders the editor's HTML as-is: the toolbar constrains what is written,
-   but the stored value is not sanitized server-side. #}
+{# Sanitized at render: import, templates and translations skip the form. #}
 {% if data.content|default %}
-    <div class="cb-block-rich-text">{{ data.content|raw }}</div>
+    <div class="cb-block-rich-text">{{ data.content|cb_kit_rich_html }}</div>
 {% else %}
     <small style="color: #5b6478;">{{ 'cb_kit.block.rich_text.empty'|trans({}, 'content_blocks_kit') }}</small>
 {% endif %}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Kit\Form\Type;
 
+use ContentBlocks\Kit\Security\SafeLinkConstraint;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\UrlType;
@@ -32,7 +33,7 @@ final class BreadcrumbItemType extends AbstractType
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
                 'default_protocol' => null,
-                'constraints' => [new Assert\Length(max: 1024)],
+                'constraints' => [new Assert\Length(max: 1024), new SafeLinkConstraint()],
             ]);
     }
 

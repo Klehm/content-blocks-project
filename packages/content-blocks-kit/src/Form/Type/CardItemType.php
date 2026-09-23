@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Form\Type;
 
 use ContentBlocks\Form\Type\ImageUploadType;
+use ContentBlocks\Kit\Security\SafeLinkConstraint;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -46,7 +47,7 @@ final class CardItemType extends AbstractType
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
                 'default_protocol' => null,
-                'constraints' => [new Assert\Length(max: 1024)],
+                'constraints' => [new Assert\Length(max: 1024), new SafeLinkConstraint()],
             ])
             ->add('buttonText', TextType::class, [
                 'cb_translatable' => true,

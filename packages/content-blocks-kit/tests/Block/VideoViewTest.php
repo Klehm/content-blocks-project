@@ -8,7 +8,9 @@ use ContentBlocks\Image\ImageUrlResolverInterface;
 use ContentBlocks\Image\PassthroughImageUrlResolver;
 use ContentBlocks\Image\ResolvedImage;
 use ContentBlocks\Kit\Block\VideoBlock;
+use ContentBlocks\Kit\RichText\RichTextSanitizerFactory;
 use ContentBlocks\Kit\Twig\ChoiceTokenExtension;
+use ContentBlocks\Kit\Twig\SafeContentExtension;
 use ContentBlocks\Twig\ImageExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
@@ -110,6 +112,7 @@ final class VideoViewTest extends TestCase
 
         $env = new Environment($loader, ['strict_variables' => true]);
         $env->addExtension(new ChoiceTokenExtension());
+        $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
         $env->addExtension(new TranslationExtension(new class () implements TranslatorInterface {
             use TranslatorTrait;
         }));

@@ -130,6 +130,7 @@ final class LocalFileStorage implements FileStorageInterface, AssetInventoryInte
 
     /**
      * A stored path is editor input: it must name a file inside the upload dir.
+     *
      * @see docs/guide/security.md#stored-paths-are-confined
      */
     private function resolveExistingFile(string $publicPath): ?string

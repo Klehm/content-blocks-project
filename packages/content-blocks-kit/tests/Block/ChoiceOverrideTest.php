@@ -7,7 +7,9 @@ namespace ContentBlocks\Kit\Tests\Block;
 use ContentBlocks\Form\Extension\TranslatableFieldTypeExtension;
 use ContentBlocks\Kit\Block\AlertBlock;
 use ContentBlocks\Kit\Block\ButtonBlock;
+use ContentBlocks\Kit\RichText\RichTextSanitizerFactory;
 use ContentBlocks\Kit\Twig\ChoiceTokenExtension;
+use ContentBlocks\Kit\Twig\SafeContentExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\FormExtension;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
@@ -223,6 +225,7 @@ final class ChoiceOverrideTest extends TestCase
 
         $env = new Environment($loader, ['strict_variables' => false]);
         $env->addExtension(new ChoiceTokenExtension());
+        $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
         $env->addExtension(new TranslationExtension($this->translator()));
         $env->addExtension(new \ContentBlocks\Kit\Twig\IconExtension(new \ContentBlocks\Kit\Icon\IconRegistry()));
 

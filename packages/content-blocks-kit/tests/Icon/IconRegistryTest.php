@@ -8,8 +8,10 @@ use ContentBlocks\Kit\Block\IconBlock;
 use ContentBlocks\Kit\Icon\IconProviderInterface;
 use ContentBlocks\Kit\Icon\IconRegistry;
 use ContentBlocks\Kit\Icon\IconSet;
+use ContentBlocks\Kit\RichText\RichTextSanitizerFactory;
 use ContentBlocks\Kit\Twig\ChoiceTokenExtension;
 use ContentBlocks\Kit\Twig\IconExtension;
+use ContentBlocks\Kit\Twig\SafeContentExtension;
 use PHPUnit\Framework\TestCase;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
@@ -142,6 +144,7 @@ final class IconRegistryTest extends TestCase
         $env = new Environment($loader, ['strict_variables' => false]);
         $env->addExtension(new IconExtension($registry));
         $env->addExtension(new ChoiceTokenExtension());
+        $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
 
         return $env->render('@ContentBlocksKit/block/icon/view.html.twig', ['data' => $data]);
     }

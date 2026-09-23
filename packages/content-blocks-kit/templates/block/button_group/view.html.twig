@@ -8,7 +8,7 @@
         {% for item in buttons %}
             {% set variant = cb_kit_token(item.variant|default('primary'), 'primary') %}
             <a class="cb-kit-btn cb-kit-btn--{{ variant }} cb-kit-btn--{{ size }}"
-               href="{{ item.url|default('#') }}"
+               href="{{ item.url|default('#')|cb_kit_safe_url|default('#') }}"
                {%- if item.newTab|default(false) %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ item.text|trim }}</a>
         {% endfor %}
     </div>

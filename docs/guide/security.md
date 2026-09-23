@@ -156,6 +156,26 @@ This is stricter than the two older restore paths (section-template insert, area
 The kit's `html_raw` block renders `{{ html|raw }}`, so it trusts its editors. It is **disabled by default** (`content_blocks_kit.blocks.html_raw.enabled: false`) and must be explicitly opted in.
 :::
 
+### Editor HTML and links
+
+Some stored values reach a page without passing through the block's form — an
+import, a section template, a translation, machine-translation output — so the
+kit's views guard them again at render:
+
+- **`rich_text` is sanitized.** Its HTML goes through `cb_kit_rich_html`, backed
+  by `symfony/html-sanitizer`: the W3C safe elements, `class`, and a `style`
+  attribute reduced to formatting properties (colour, alignment, sizes, margins
+  — no positioning, no `url()`). Script, event handlers, `<iframe>` and unsafe
+  link schemes are removed. To sanitize differently, redefine the service
+  `content_blocks_kit.rich_text_sanitizer` with any `HtmlSanitizerInterface`.
+- **Links keep safe schemes only.** Every kit link (button, button group, image,
+  gallery, card, breadcrumb) goes through `cb_kit_safe_url`: http(s), `mailto:`,
+  `tel:` or a scheme-less URL. Anything else — `javascript:`, `data:` — renders
+  as no link (`#` for a button). The form refuses the same values on save
+  (`SafeLinkConstraint`). A custom block with a link field can use both.
+
+`html_raw` stays the one block that renders editor HTML untouched.
+
 ## File upload
 
 The upload endpoint (`content_blocks_upload`) checks the CSRF token, the size (`content_blocks.upload.max_size`) and the MIME type sniffed from the file (`content_blocks.upload.allowed_mime_types`) before handing it to your `FileStorageInterface`.

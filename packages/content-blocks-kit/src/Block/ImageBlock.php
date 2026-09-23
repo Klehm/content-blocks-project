@@ -9,6 +9,7 @@ use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\Form\Type\ImageUploadType;
 use ContentBlocks\Form\Type\Styling\BoxSpacingType;
+use ContentBlocks\Kit\Security\SafeLinkConstraint;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\RangeType;
@@ -116,7 +117,7 @@ class ImageBlock extends AbstractKitBlock implements BlockPreviewHintInterface
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
                 'default_protocol' => null,
-                'constraints' => [new Assert\Length(max: 1024)],
+                'constraints' => [new Assert\Length(max: 1024), new SafeLinkConstraint()],
             ])
             ->add('caption', TextType::class, [
                 'cb_translatable' => true,
