@@ -5,7 +5,7 @@ All notable changes to `klehm/content-blocks-i18n` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0-RC17] - 2026-09-23
 
 ### Security
 
@@ -31,6 +31,8 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **`klehm/content-blocks` is required at `^1.0.0-RC17`**, the first core
+  release with `StaticAssetResponse`, which serves the workbench's CSS and JS.
 - **The workbench's CSS and JS are linked by their content hash** and cached
   for a year; an upgrade changes the URL. They were cached an hour without
   revalidation, so the workbench could run on an old script after an upgrade.

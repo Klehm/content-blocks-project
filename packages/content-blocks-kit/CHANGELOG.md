@@ -5,7 +5,7 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0-RC17] - 2026-09-23
 
 ### Security
 
@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`klehm/content-blocks` is required at `^1.0.0-RC17`**, the first core
+  release with `StaticAssetResponse`, which serves `kit.css`.
 - **`symfony/ux-live-component` is required at `^2.36 || ^3.0`**, the versions
   the browser suite runs on, and `symfony/console`, `symfony/routing` and
   `symfony/options-resolver` are declared.
