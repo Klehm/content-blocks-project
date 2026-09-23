@@ -349,10 +349,33 @@ export default class extends Controller {
         return widths.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0);
     }
 
+    /**
+     * One save in flight; one asked for meanwhile goes out after it.
+     *
+     * @see docs/internals/frontend.md#sidebar-saves-are-serialized-too
+     */
     async _onSubmit(event) {
         event.preventDefault();
         if (!this.hasFormTarget) return;
+        if (this._inFlight) {
+            this._queued = true;
+            return;
+        }
 
+        this._inFlight = true;
+        try {
+            await this._post();
+        } finally {
+            this._inFlight = false;
+        }
+        if (this._queued && this.element.isConnected && this.hasFormTarget) {
+            this._queued = false;
+            // A real submit event, so the host's CSRF script stamps it too.
+            this.formTarget.requestSubmit();
+        }
+    }
+
+    async _post() {
         const csrfToken = this.element.closest('[data-cb-csrf-token]')?.dataset.cbCsrfToken || '';
         const formData = new FormData(this.formTarget);
 
