@@ -9,7 +9,9 @@ use ContentBlocks\Asset\AssetResolverInterface;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\I18n\Entity\BlockTranslation;
+use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Repository\BlockTranslationRepository;
+use ContentBlocks\I18n\Storage\TranslationWriter;
 use ContentBlocks\I18n\Tests\Fixtures\Entities;
 use ContentBlocks\I18n\Transfer\TranslationTransferExtension;
 use ContentBlocks\Transfer\AssetRewriter;
@@ -203,6 +205,47 @@ final class TranslationTransferExtensionTest extends TestCase
         self::assertSame([], $row->getDraftDigests(), 'no digest reads as never captured');
     }
 
+    // A non-string value replaced a string in block data at render: 500.
+    public function testOnlyTextValuesWithinTheCapAreImported(): void
+    {
+        $fragment = ['blocks' => ['s0.c0.b0' => ['fr' => ['values' => [
+            'title' => 'Bonjour',
+            'items[a].url' => ['x'],
+            'count' => 3,
+            'body' => str_repeat('a', TranslationWriter::MAX_VALUE_LENGTH + 1),
+        ], 'digests' => []]]]];
+
+        $this->extension([])->import(
+            new ContentArea(),
+            ['s0.c0.b0' => new Block()],
+            $fragment,
+            new AssetRewriter(),
+        );
+
+        $row = $this->persisted[0];
+        self::assertInstanceOf(BlockTranslation::class, $row);
+        self::assertSame(['title' => 'Bonjour'], $row->getDraftValues());
+    }
+
+    public function testOnlyConfiguredTargetLocalesAreImported(): void
+    {
+        $fragment = ['blocks' => ['s0.c0.b0' => [
+            'fr' => ['values' => ['title' => 'Bonjour'], 'digests' => []],
+            'xx' => ['values' => ['title' => 'unknown'], 'digests' => []],
+            str_repeat('d', 17) => ['values' => ['title' => 'too long'], 'digests' => []],
+        ]]];
+
+        $this->extension([], new TranslationLocales('en', ['fr', 'de']))->import(
+            new ContentArea(),
+            ['s0.c0.b0' => new Block()],
+            $fragment,
+            new AssetRewriter(),
+        );
+
+        self::assertCount(1, $this->persisted);
+        self::assertSame('fr', $this->persisted[0]->getLocale());
+    }
+
     /**
      * @param array<string, mixed>  $values
      * @param array<string, string> $digests
@@ -218,7 +261,7 @@ final class TranslationTransferExtensionTest extends TestCase
     /**
      * @param list<BlockTranslation> $rows
      */
-    private function extension(array $rows): TranslationTransferExtension
+    private function extension(array $rows, ?TranslationLocales $locales = null): TranslationTransferExtension
     {
         $repository = $this->createMock(BlockTranslationRepository::class);
         $repository->method('findForBlockIds')->willReturn($rows);
@@ -228,7 +271,7 @@ final class TranslationTransferExtensionTest extends TestCase
             $this->persisted[] = $entity;
         });
 
-        return new TranslationTransferExtension($repository, $em);
+        return new TranslationTransferExtension($repository, $em, null, $locales);
     }
 
     private function tokenizer(): AssetTokenizer

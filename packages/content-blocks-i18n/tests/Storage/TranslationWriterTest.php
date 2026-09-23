@@ -133,6 +133,16 @@ final class TranslationWriterTest extends TestCase
         $this->assertSame('', $row->getDraftValues()['body']);
     }
 
+    public function testRefusesAValueOverTheLengthCap(): void
+    {
+        $block = Entities::block(1, draft: $this->source());
+        $long = str_repeat('a', TranslationWriter::MAX_VALUE_LENGTH + 1);
+
+        $result = $this->writer()->write($block, 'fr', ['heading' => $long]);
+
+        $this->assertSame(['heading' => 'too_long'], $result->rejected);
+    }
+
     public function testAWhollyRejectedBatchLeavesNoRowBehind(): void
     {
         $writer = $this->writer();

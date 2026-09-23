@@ -21,6 +21,9 @@ use ContentBlocks\Translation\TranslatableFieldsInterface;
  */
 final class TranslationWriter
 {
+    /** Characters per value: well over any real field, short of a DoS. */
+    public const MAX_VALUE_LENGTH = 100_000;
+
     public function __construct(
         private readonly TranslationStore $store,
         private readonly TranslatableFieldsInterface $translatableFields,
@@ -70,6 +73,12 @@ final class TranslationWriter
             if ($value === null) {
                 $row->removeDraftValue($path);
                 $cleared[] = $path;
+
+                continue;
+            }
+
+            if (mb_strlen($value) > self::MAX_VALUE_LENGTH) {
+                $rejected[$path] = 'too_long';
 
                 continue;
             }

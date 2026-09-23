@@ -47,7 +47,8 @@ final class TranslationBlockDataResolver implements BlockDataResolverInterface
         $allowed = $this->translatableFields->forBlockType($block->getType(), $data);
 
         foreach ($payload['values'] as $path => $value) {
-            if (!\is_string($path) || !FieldPath::matchesAny($path, $allowed)) {
+            // A value is text: an array or a number would reshape the data.
+            if (!\is_string($path) || !\is_string($value) || !FieldPath::matchesAny($path, $allowed)) {
                 continue;
             }
 

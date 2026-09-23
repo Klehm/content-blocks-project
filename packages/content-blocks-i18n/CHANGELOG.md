@@ -5,6 +5,21 @@ All notable changes to `klehm/content-blocks-i18n` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- **Imported translations were not type-checked.** A value that was not text
+  replaced a string in block data at render (a 500 on the published page for
+  that language), a locale longer than the column failed the whole import,
+  and column labels skipped the writer's trim and cap. An import now keeps
+  text values of configured target locales only, labels are held to the
+  column-settings rules, and the renderer ignores any stored non-string value.
+- **Translation values are capped at 100 000 characters**
+  (`TranslationWriter::MAX_VALUE_LENGTH`), refused as `too_long` on save.
+  Translated rich text and links go through the kit's render-time guards like
+  their source.
+
 ## [1.0.0-RC16] - 2026-09-21
 
 Version bump only — no functional change in `klehm/content-blocks-i18n`. This

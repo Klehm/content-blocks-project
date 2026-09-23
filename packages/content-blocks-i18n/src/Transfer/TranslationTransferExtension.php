@@ -9,8 +9,11 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\I18n\Content\AreaWalker;
 use ContentBlocks\I18n\Entity\BlockTranslation;
 use ContentBlocks\I18n\Entity\ColumnTranslation;
+use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Repository\BlockTranslationRepository;
 use ContentBlocks\I18n\Repository\ColumnTranslationRepository;
+use ContentBlocks\I18n\Storage\TranslationWriter;
+use ContentBlocks\Section\ColumnSettings;
 use ContentBlocks\Transfer\AssetRewriter;
 use ContentBlocks\Transfer\AssetTokenizer;
 use ContentBlocks\Transfer\ContentAreaTransferExtensionInterface;
@@ -31,6 +34,7 @@ final class TranslationTransferExtension implements ContentAreaTransferExtension
         private readonly BlockTranslationRepository $repository,
         private readonly EntityManagerInterface $em,
         private readonly ?ColumnTranslationRepository $columnRepository = null,
+        private readonly ?TranslationLocales $locales = null,
     ) {
     }
 
@@ -141,11 +145,11 @@ final class TranslationTransferExtension implements ContentAreaTransferExtension
             }
 
             foreach ($byLocale as $locale => $entry) {
-                if (!is_string($locale) || $locale === '' || !is_array($entry)) {
+                if (!$this->acceptsLocale($locale) || !is_array($entry)) {
                     continue;
                 }
 
-                $values = $this->stringKeyed($assets->rewrite($entry['values'] ?? null));
+                $values = $this->texts($assets->rewrite($entry['values'] ?? null));
                 if ($values === []) {
                     continue;
                 }
@@ -187,17 +191,16 @@ final class TranslationTransferExtension implements ContentAreaTransferExtension
             }
 
             foreach ($byLocale as $locale => $entry) {
-                if (!is_string($locale) || $locale === '' || !is_array($entry)) {
+                if (!$this->acceptsLocale($locale) || !is_array($entry)) {
                     continue;
                 }
 
-                $values = array_intersect_key(
-                    $this->stringKeyed($assets->rewrite($entry['values'] ?? null)),
-                    [ColumnTranslation::LABEL => true],
-                );
-                if (!is_string($values[ColumnTranslation::LABEL] ?? null)) {
+                $label = $this->texts($assets->rewrite($entry['values'] ?? null))[ColumnTranslation::LABEL] ?? null;
+                $label = is_string($label) ? trim(mb_substr($label, 0, ColumnSettings::LABEL_MAX_LENGTH)) : '';
+                if ($label === '') {
                     continue;
                 }
+                $values = [ColumnTranslation::LABEL => $label];
 
                 $translation = new ColumnTranslation($column, $locale);
                 $translation->setDraftPayload($values, $this->digests($entry['digests'] ?? null));
@@ -226,6 +229,33 @@ final class TranslationTransferExtension implements ContentAreaTransferExtension
         }
 
         return $out;
+    }
+
+    /**
+     * The writer's rules for a travelled value: text, within the length cap.
+     *
+     * @return array<string, string>
+     */
+    private function texts(mixed $value): array
+    {
+        $out = [];
+        foreach ($this->stringKeyed($value) as $key => $item) {
+            if (is_string($item) && mb_strlen($item) <= TranslationWriter::MAX_VALUE_LENGTH) {
+                $out[$key] = $item;
+            }
+        }
+
+        return $out;
+    }
+
+    /** A configured target locale; without the config, one the column holds. */
+    private function acceptsLocale(mixed $locale): bool
+    {
+        if (!is_string($locale) || preg_match('/^[A-Za-z0-9_-]{1,16}$/', $locale) !== 1) {
+            return false;
+        }
+
+        return $this->locales?->isTarget($locale) ?? true;
     }
 
     /** @return array<string, string> */
