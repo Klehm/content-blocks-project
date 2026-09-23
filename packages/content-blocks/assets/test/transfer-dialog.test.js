@@ -61,6 +61,9 @@ function setup() {
             <button data-cb-transfer-tab="import" aria-selected="false"></button>
             <section data-cb-transfer-panel="export">
                 <p data-cb-transfer="stats"></p>
+                <dd data-cb-transfer="count-sections"></dd>
+                <dd data-cb-transfer="count-blocks"></dd>
+                <dd data-cb-transfer="count-media"></dd>
                 <input type="checkbox" data-cb-transfer="media" checked>
                 <span data-cb-transfer="size"></span>
                 <a data-cb-transfer="download"></a>
@@ -111,11 +114,15 @@ describe('transfer dialog', () => {
     });
 
     it('shows what the export holds, and follows the media switch', async () => {
-        const { transfer, el } = setup();
+        const { dialog, transfer, el } = setup();
         transfer.open();
         await flush();
 
+        expect(dialog.classList.contains('is-without-media')).toBe(false);
         expect(el('stats').textContent).toBe('2s 5b 3m');
+        expect(el('count-sections').textContent).toBe('2');
+        expect(el('count-blocks').textContent).toBe('5');
+        expect(el('count-media').textContent).toBe('3');
         expect(el('size').textContent).toBe('3 MB');
         expect(el('download').getAttribute('href')).toBe('/cb/area/7/export');
 
@@ -123,6 +130,7 @@ describe('transfer dialog', () => {
         el('media').dispatchEvent(new Event('change'));
 
         expect(el('size').textContent).toBe('2 KB');
+        expect(dialog.classList.contains('is-without-media')).toBe(true);
         expect(el('download').getAttribute('href')).toBe('/cb/area/7/export?assets=0');
     });
 

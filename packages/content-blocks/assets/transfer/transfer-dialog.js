@@ -166,6 +166,15 @@ export class TransferDialog {
                 media: summary.mediaCount,
             })
             : '';
+        for (const [name, key] of [
+            ['sections', 'sectionCount'],
+            ['blocks', 'blockCount'],
+            ['media', 'mediaCount'],
+        ]) {
+            const count = this._el(`count-${name}`);
+            if (count) count.textContent = summary ? String(summary[key]) : '–';
+        }
+        this.dialog.classList.toggle('is-without-media', !withMedia);
         this._el('size').textContent = summary
             ? this._size(withMedia ? summary.size : summary.sizeWithoutMedia)
             : '';
