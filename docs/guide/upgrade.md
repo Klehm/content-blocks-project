@@ -310,6 +310,16 @@ Only if you copied one of these into `templates/bundles/ContentBlocksBundle/`:
 
   Without it the builder falls back to `/_content-blocks`, which is correct only
   as long as you keep the default mount ([Mounting the routes](./routing.md)).
+
+  The Import / Export panel (`.cb-import-export-picker`) is replaced by a
+  dialog in its own template. Delete the panel from your copy and include it
+  instead, where the panel was:
+
+  ```twig
+  {% if enableImportExport ?? true %}
+      {{ include('@ContentBlocks/builder/transfer_dialog.html.twig', {area: area}) }}
+  {% endif %}
+  ```
 - **`render/content_area.html.twig`** — keep a single `.cb-add-section-tray`
   inside `.cb-content-area`: adding a section inserts it in place before that
   tray, and falls back to a full preview reload without it. Add the

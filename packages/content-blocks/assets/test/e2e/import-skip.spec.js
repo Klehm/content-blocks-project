@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { jsonFile, reviewImport, runImport } from './helpers/transfer.js';
 
 /**
  * E2E for the optimistic import: a payload from "another installation" carries
@@ -48,44 +49,22 @@ function exportPayload(blocks) {
     };
 }
 
-/**
- * Uploads the payload through the topbar panel and accepts the overwrite
- * confirm.
- */
-async function importPayload(page, payload) {
-    await page.locator('.cb-shell__actions-toggle').click();
-    await page.locator('.cb-shell__import-export').click();
-    const panel = page.locator('.cb-import-export-picker');
-    await expect(panel).toBeVisible();
-
-    await panel.locator('.cb-import-export-picker__file').setInputFiles({
-        name: 'area.json',
-        mimeType: 'application/json',
-        buffer: Buffer.from(JSON.stringify(payload)),
-    });
-
-    page.once('dialog', (dialog) => dialog.accept());
-    await panel.locator('.cb-import-export-picker__btn--primary').last().click();
-
-    return panel;
-}
-
 test.describe('import — unusable blocks are skipped, not silently kept', () => {
     test('an unknown block type is left out and reported, the rest comes in', async ({ page }) => {
         const frame = await openBuilder(page, await createFreshPage(page));
 
-        const panel = await importPayload(page, exportPayload([
+        const dialog = await reviewImport(page, jsonFile(exportPayload([
             { type: 'title', data: { text: 'Imported heading', size: 'h2', tag: 'h2', color: '' } },
             { type: 'countdown', data: { endsAt: '2027-01-01' } },
             { type: 'countdown', data: { endsAt: '2028-01-01' } },
-        ]));
+        ])));
 
-        // The panel stays open on its status line — closing it would blank the
-        // only element carrying the message.
-        await expect(panel).toBeVisible();
-        const status = panel.locator('.cb-import-export-picker__status');
-        await expect(status).toContainText('countdown');
-        await expect(status).toContainText('2', { timeout: 5000 });
+        // Said before anything is written, then again with the count after.
+        await expect(dialog.locator('[data-cb-transfer="checks"]')).toContainText('countdown');
+        await runImport(dialog);
+        const warnings = dialog.locator('[data-cb-transfer="warnings"]');
+        await expect(warnings).toContainText('countdown');
+        await expect(warnings).toContainText('2');
 
         // One section, and only the block this app can actually render.
         await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);
@@ -93,19 +72,17 @@ test.describe('import — unusable blocks are skipped, not silently kept', () =>
         await expect(frame.locator('[data-cb-block-type="title"]')).toHaveCount(1);
     });
 
-    test('a fully usable payload imports silently and closes the panel', async ({ page }) => {
-        // The counterpart: no warning means the panel gets out of the way, so
-        // the assertion above is about the skip and not about the panel always
-        // staying open. The block data must use the kit title block's real keys
-        // (text/size/tag/color) — anything else is an unknown field, which is
-        // itself a warning.
+    test('a fully usable payload imports without a warning', async ({ page }) => {
+        // The counterpart, so the assertion above is about the skip. The block
+        // data must use the kit title block's real keys (text/size/tag/color):
+        // anything else is an unknown field, which is itself a warning.
         const frame = await openBuilder(page, await createFreshPage(page));
 
-        const panel = await importPayload(page, exportPayload([
+        const dialog = await runImport(await reviewImport(page, jsonFile(exportPayload([
             { type: 'title', data: { text: 'All good', size: 'h2', tag: 'h2', color: '' } },
-        ]));
+        ]))));
 
-        await expect(panel).toBeHidden();
+        await expect(dialog.locator('[data-cb-transfer="warnings"] li')).toHaveCount(0);
         await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
     });
 });

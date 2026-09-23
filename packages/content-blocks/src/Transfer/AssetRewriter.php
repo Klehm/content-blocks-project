@@ -8,7 +8,7 @@ namespace ContentBlocks\Transfer;
  * Import half of the asset convention: tokens back to the paths this
  * installation stored the bytes at. One instance per import, never a service.
  *
- * @see docs/internals/transfer.md#assets-travel-as-bytes-not-paths
+ * @see docs/internals/transfer.md#assets-travel-beside-the-content
  */
 final class AssetRewriter
 {
@@ -16,15 +16,17 @@ final class AssetRewriter
     private array $unresolved = [];
 
     /**
-     * @param array<string, string> $assetMap hash => path it was stored at here
+     * @param array<string, string> $assetMap  hash => where it is stored here
+     * @param array<string, string> $fallbacks hash => its source path
      */
     public function __construct(
         private readonly array $assetMap = [],
+        private readonly array $fallbacks = [],
     ) {
     }
 
     /**
-     * Tokens met so far whose hash had no entry.
+     * What the tokens with no file here became: the source path, or the token.
      *
      * @return list<string>
      */
@@ -67,10 +69,12 @@ final class AssetRewriter
 
     private function resolve(string $hash): ?string
     {
-        if (!isset($this->assetMap[$hash])) {
-            $this->unresolved[AssetTokenizer::TOKEN_PREFIX . $hash] = true;
+        if (isset($this->assetMap[$hash])) {
+            return $this->assetMap[$hash];
         }
+        $fallback = $this->fallbacks[$hash] ?? null;
+        $this->unresolved[$fallback ?? AssetTokenizer::TOKEN_PREFIX . $hash] = true;
 
-        return $this->assetMap[$hash] ?? null;
+        return $fallback;
     }
 }

@@ -25,7 +25,7 @@ accidentally leave the page being edited. Everything else happens in the parent.
 
 ### The cb:* event contract
 
-**Five events are public API and stable across 1.x.** Four outbound, which a host
+**Six events are public API and stable across 1.x.** Four outbound, which a host
 may listen to on the builder element:
 
 | Event | Means |
@@ -35,13 +35,18 @@ may listen to on the builder element:
 | `cb:section:saved` | a section's draft was persisted |
 | `cb:builder:action` | a host-contributed topbar action was invoked |
 
-One is **inbound**, dispatched *at* the builder from the shell element or
-anything inside it — a [shell fragment](builder-extensions.md), say:
+Two are **inbound**, dispatched *at* the builder from the shell element or
+anything inside it — a [shell fragment](builder-extensions.md), say, or the
+target of a `cb:builder:action`:
 
 - `cb:area:changed` — the area was written server-side behind the builder's
   back (restored, replaced, mass-edited), so it reloads the preview and re-syncs
   Publish/Discard. `detail.hasUnpublishedChanges` is optional and **defaults to
   true**, since such a change is a draft write.
+- `cb:notify` — show `detail.message` in the builder's snackbar, with an
+  optional `detail.link` (`{ label, href }`) opened in a new tab. It exists
+  because the builder is a modal: a host action that reported its outcome in
+  its own page reported it under the modal, where nobody saw it.
 
 Every other `cb:*` event across these two files is **internal choreography** —
 the `…-requested`, `…:apply`, `…:patch`, `…:desync` and `cb:tree:*` families in
@@ -50,6 +55,13 @@ particular. They may be renamed, split or removed in any minor release.
 A `cb:area:changed` **supersedes** a pending debounced reload rather than
 coalescing with it: the area just changed wholesale, and waiting out the quiet
 period would show the stale preview for that much longer.
+
+A `cb:notify` takes the snackbar's one slot, so it disarms a pending undo offer
+exactly as the clipboard's messages do. The message is set as text, never
+markup, and a link whose `href` is not http(s) is dropped rather than rendered —
+a `javascript:` URL would run in the admin. With a link, the bar stays up 10 s
+instead of 6: there is something to reach for. The new tab is not a choice left
+to the host: following the link in place would close the builder.
 
 ## Endpoint URLs come from the router
 
@@ -411,6 +423,36 @@ still-focused field — clamping the partial value, snapping the slider and
 triggering a Live morph *between two keystrokes*. That mid-typing commit is the
 "jump" that makes the field hard to fill. The slider drag path keeps its
 immediate commit on release.
+
+## The Import / Export dialog
+
+A native `<dialog>` opened with `showModal()`, rather than one more absolutely
+positioned panel: focus is trapped and restored, the backdrop and `Escape` come
+with it, and it sits in the top layer above the builder's own `<dialog>`. The
+shell's `Escape` handler still sees the key first and cancels the default, so
+`_closeTopModal()` closes the dialog itself — except while an import runs, when
+closing would leave half the files sent.
+
+The logic is in `assets/transfer/`, as plain modules `cb-builder` imports, not
+as a Stimulus controller: a new controller name is one more line every host
+must add to `controllers.json`, and a relative import resolves under AssetMapper
+and Encore alike. `zip-reader.js` reads an archive's directory from a `Blob`
+(stored and deflated entries, ZIP64 included); `import-source.js` turns a zip or
+a pre-RC17 JSON into the same manifest-plus-files shape; `import-flow.js` runs
+the steps against the server and holds no DOM; `transfer-dialog.js` is the UI.
+
+**The import says what it will do before doing it.** The file is read and the
+plan asked for before the *Import* button: sections and blocks, media already
+here, to send, missing or too large, block types unknown here. That review
+replaces the `window.confirm` the panel used, which said nothing about the file.
+
+**The export is a link, not a fetch.** An `<a download>` pointing at the
+streamed zip lets the browser's own download UI show the progress the exact
+`Content-Length` allows, and keeps the archive out of the page's memory.
+
+The dialog's strings arrive as one JSON attribute (`data-cb-transfer-strings`)
+rather than one `data-i18n-*` attribute per key: there are some thirty, and the
+dialog is the only reader.
 
 ## Smaller decisions worth keeping
 

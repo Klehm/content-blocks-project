@@ -9,9 +9,9 @@ use ContentBlocks\Asset\AssetResolverInterface;
 
 /**
  * Export half of the asset convention: stored paths out, `asset://{hash}`
- * tokens in, bytes accumulated. One instance per export, never a service.
+ * tokens in, a manifest of the files. One instance per export, never a service.
  *
- * @see docs/internals/transfer.md#assets-travel-as-bytes-not-paths
+ * @see docs/internals/transfer.md#assets-travel-beside-the-content
  */
 final class AssetTokenizer
 {
@@ -22,63 +22,71 @@ final class AssetTokenizer
      * @var array<string, array{
      *     mimeType: string,
      *     extension: string,
-     *     data: string,
+     *     size: int,
+     *     path: string,
      * }>
      */
     private array $assets = [];
 
+    /** @var array<string, string> path => hash, so a file is read once */
+    private array $hashes = [];
+
     public function __construct(
         private readonly AssetReferenceCollector $collector,
         private readonly AssetResolverInterface $assetResolver,
-        private readonly bool $embed = true,
     ) {
     }
 
     /**
-     * Replaces every asset reference in $value with its token, registering the
-     * binary under that hash. Identical binaries are stored once.
+     * Replaces every asset reference in $value with its token, registering
+     * the file under that hash. Identical files are listed once.
      */
     public function tokenize(mixed $value): mixed
     {
-        if (!$this->embed) {
-            return $value;
-        }
-
         return $this->collector->map($value, function (string $path): string {
-            $binary = $this->assetResolver->read($path);
-            if ($binary === null) {
-                // Missing on disk — keep the path so the import side sees a
-                // broken reference rather than a silently dropped field.
-                return $path;
-            }
+            $hash = $this->hashes[$path] ??= $this->register($path);
 
-            $hash = hash('sha256', $binary);
-            if (!isset($this->assets[$hash])) {
-                $extension = pathinfo($path, \PATHINFO_EXTENSION);
-                $this->assets[$hash] = [
-                    'mimeType' => $this->guessMime($binary),
-                    'extension' => is_string($extension) && $extension !== '' ? $extension : 'bin',
-                    'data' => base64_encode($binary),
-                ];
-            }
-
-            return self::TOKEN_PREFIX . $hash;
+            // Missing on disk: the path stays, so the import side sees a
+            // broken reference rather than a silently dropped field.
+            return $hash === '' ? $path : self::TOKEN_PREFIX . $hash;
         });
     }
 
     /**
      * Read once the whole payload is walked — an extension contributing late
-     * still gets its bytes carried.
+     * still gets its files listed.
      *
      * @return array<string, array{
      *     mimeType: string,
      *     extension: string,
-     *     data: string,
+     *     size: int,
+     *     path: string,
      * }>
      */
     public function assets(): array
     {
         return $this->assets;
+    }
+
+    private function register(string $path): string
+    {
+        $binary = $this->assetResolver->read($path);
+        if ($binary === null) {
+            return '';
+        }
+
+        $hash = hash('sha256', $binary);
+        if (!isset($this->assets[$hash])) {
+            $extension = pathinfo($path, \PATHINFO_EXTENSION);
+            $this->assets[$hash] = [
+                'mimeType' => $this->guessMime($binary),
+                'extension' => $extension !== '' ? strtolower($extension) : 'bin',
+                'size' => \strlen($binary),
+                'path' => $path,
+            ];
+        }
+
+        return $hash;
     }
 
     private function guessMime(string $binary): string

@@ -1149,10 +1149,11 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks",
-                "reference": "54533e1826293068cf18dca946d45ab176356369"
+                "reference": "1158e1b10bf50ad3c9a3e018cfeccdbdcab19eb0"
             },
             "require": {
                 "doctrine/orm": "^2.12 || ^3.0",
+                "maennchen/zipstream-php": "^3.1",
                 "php": ">=8.2",
                 "symfony/form": "^6.4 || ^7.0 || ^8.0",
                 "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
@@ -1163,6 +1164,7 @@
                 "symfony/twig-bundle": "^6.4 || ^7.0 || ^8.0",
                 "symfony/ux-live-component": "^2.0 || ^3.0",
                 "symfony/ux-twig-component": "^2.0 || ^3.0",
+                "symfony/validator": "^6.4 || ^7.0 || ^8.0",
                 "twig/twig": "^3.10"
             },
             "require-dev": {
@@ -1174,7 +1176,7 @@
                     "bundle": "ContentBlocks\\ContentBlocksBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "0.1.x-dev"
+                    "dev-master": "1.0.x-dev"
                 }
             },
             "autoload": {
@@ -1224,10 +1226,10 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks-kit",
-                "reference": "d62bb232a0a57d964a9d1f2d3a8633b55de28f8a"
+                "reference": "fa479559674c83ef3c44b8dada9100ed5c3f75ba"
             },
             "require": {
-                "klehm/content-blocks": "^0.1",
+                "klehm/content-blocks": "^1.0",
                 "php": ">=8.2",
                 "symfony/form": "^6.4 || ^7.0 || ^8.0",
                 "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
@@ -1237,7 +1239,8 @@
                 "twig/twig": "^3.10"
             },
             "require-dev": {
-                "phpunit/phpunit": "^11.0"
+                "phpunit/phpunit": "^11.0",
+                "symfony/asset": "^6.4 || ^7.0 || ^8.0"
             },
             "type": "symfony-bundle",
             "extra": {
@@ -1245,7 +1248,7 @@
                     "bundle": "ContentBlocks\\Kit\\ContentBlocksKitBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "0.1.x-dev"
+                    "dev-master": "1.0.x-dev"
                 }
             },
             "autoload": {
@@ -1285,6 +1288,84 @@
                 "symlink": true,
                 "relative": true
             }
+        },
+        {
+            "name": "maennchen/zipstream-php",
+            "version": "3.2.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/maennchen/ZipStream-PHP.git",
+                "reference": "77bebeb4c6c340bb3c11c843b2cffd8bbfde4d5e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/maennchen/ZipStream-PHP/zipball/77bebeb4c6c340bb3c11c843b2cffd8bbfde4d5e",
+                "reference": "77bebeb4c6c340bb3c11c843b2cffd8bbfde4d5e",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "ext-zlib": "*",
+                "php-64bit": "^8.3"
+            },
+            "require-dev": {
+                "brianium/paratest": "^7.7",
+                "ext-zip": "*",
+                "friendsofphp/php-cs-fixer": "^3.86",
+                "guzzlehttp/guzzle": "^7.5",
+                "mikey179/vfsstream": "^1.6",
+                "php-coveralls/php-coveralls": "^2.5",
+                "phpunit/phpunit": "^12.0",
+                "vimeo/psalm": "^6.0"
+            },
+            "suggest": {
+                "guzzlehttp/psr7": "^2.4",
+                "psr/http-message": "^2.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "ZipStream\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Paul Duncan",
+                    "email": "pabs@pablotron.org"
+                },
+                {
+                    "name": "Jonatan Männchen",
+                    "email": "jonatan@maennchen.ch"
+                },
+                {
+                    "name": "Jesse Donat",
+                    "email": "donatj@gmail.com"
+                },
+                {
+                    "name": "András Kolesár",
+                    "email": "kolesar@kolesar.hu"
+                }
+            ],
+            "description": "ZipStream is a library for dynamically streaming dynamic zip files from PHP without writing to the disk at all on the server.",
+            "keywords": [
+                "stream",
+                "zip"
+            ],
+            "support": {
+                "issues": "https://github.com/maennchen/ZipStream-PHP/issues",
+                "source": "https://github.com/maennchen/ZipStream-PHP/tree/3.2.2"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/maennchen",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-04-11T18:38:28+00:00"
         },
         {
             "name": "psr/cache",

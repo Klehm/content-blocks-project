@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { test, expect } from '@playwright/test';
+import { fetchExport, jsonFile, reviewImport, runImport } from './helpers/transfer.js';
 
 /**
  * Translations across an export and an import (klehm/content-blocks-i18n).
@@ -78,21 +79,9 @@ async function openFreshBuilder(page) {
         .getAttribute('data-cb-builder-area-id-value');
 }
 
-async function importPayload(page, payload) {
-    await page.locator('.cb-shell__actions-toggle').click();
-    await page.locator('.cb-shell__import-export').click();
-    const panel = page.locator('.cb-import-export-picker');
-    await expect(panel).toBeVisible();
-
-    await panel.locator('.cb-import-export-picker__file').setInputFiles({
-        name: 'area.json',
-        mimeType: 'application/json',
-        buffer: Buffer.from(JSON.stringify(payload)),
-    });
-
-    page.once('dialog', (dialog) => dialog.accept());
-    await panel.locator('.cb-import-export-picker__btn--primary').last().click();
-    await expect(panel).toBeHidden();
+async function importFile(page, file) {
+    await runImport(await reviewImport(page, file));
+    await page.locator('dialog.cb-transfer [data-cb-transfer="close"]').last().click();
 }
 
 /**
@@ -113,14 +102,12 @@ async function expectWorkbenchShows(page, areaId, value) {
 test.describe('transfer — translations travel with the content', () => {
     test('an imported fragment lands on the block, and a re-export carries it back', async ({ page }) => {
         const source = await openFreshBuilder(page);
-        await importPayload(page, translatedPayload());
-        await expectWorkbenchShows(page, source, ENGLISH_TEXT);
+        await importFile(page, jsonFile(translatedPayload()));
 
         // Export what we just imported: the fragment is rebuilt from the rows,
         // addressed by the ref the payload gives that same block.
-        const response = await page.request.get(`/admin/content-blocks/area/${source}/export`);
-        expect(response.ok()).toBeTruthy();
-        const exported = await response.json();
+        const { bytes, manifest: exported } = await fetchExport(page);
+        await expectWorkbenchShows(page, source, ENGLISH_TEXT);
 
         const blockRef = exported.contentArea.sections[0].columns[0].blocks[0].ref;
         expect(exported.extensions[I18N_KEY].blocks[blockRef].en.values.text).toBe(ENGLISH_TEXT);
@@ -131,7 +118,7 @@ test.describe('transfer — translations travel with the content', () => {
         // And the loop closes: that export, imported into another area, is a
         // translated page again rather than an untranslated copy.
         const target = await openFreshBuilder(page);
-        await importPayload(page, exported);
+        await importFile(page, { name: 'area.zip', mimeType: 'application/zip', buffer: bytes });
         await expectWorkbenchShows(page, target, ENGLISH_TEXT);
     });
 });

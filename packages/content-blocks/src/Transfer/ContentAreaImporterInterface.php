@@ -18,10 +18,13 @@ interface ContentAreaImporterInterface
      *
      * @see docs/internals/transfer.md#import-is-a-replace-and-does-not-flush
      * @see docs/internals/transfer.md#what-is-stored-beside-a-block
+     * @see docs/internals/transfer.md#an-import-in-steps
      *
-     * @param array<string, mixed> $payload
+     * @param array<string, mixed>  $payload
+     * @param array<string, string> $storedAssets hash => path of a file this
+     *                                            site already holds, verified
      *
      * @throws \InvalidArgumentException on an unsupported or invalid envelope
      */
-    public function import(ContentArea $target, array $payload): ImportResult;
+    public function import(ContentArea $target, array $payload, array $storedAssets = []): ImportResult;
 }

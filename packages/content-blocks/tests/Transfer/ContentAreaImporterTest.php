@@ -345,7 +345,7 @@ final class ContentAreaImporterTest extends TestCase
             new BlockDataKeys($registry, Forms::createFormFactoryBuilder()
                 ->addType(new BlockFormType(new BlockFormExtensionCollection()))
                 ->getFormFactory()),
-            uploadMaxSize: 1024,
+            policy: new \ContentBlocks\Transfer\AssetPolicy(1024),
         );
 
         $this->expectException(\InvalidArgumentException::class);
@@ -353,6 +353,91 @@ final class ContentAreaImporterTest extends TestCase
         $importer->import(new ContentArea(), $this->makePayload([], [
             'big' => ['mimeType' => 'image/png', 'extension' => 'png', 'data' => base64_encode($binary)],
         ]));
+    }
+
+    /** @param array<string, string> $files path => bytes this site holds */
+    private function siteHolding(array $files): AssetResolverInterface
+    {
+        $resolver = $this->createMock(AssetResolverInterface::class);
+        $resolver->method('isAssetPath')->willReturnCallback(
+            static fn (string $v): bool => str_starts_with($v, '/uploads/'),
+        );
+        $resolver->method('read')->willReturnCallback(
+            static fn (string $p): ?string => $files[$p] ?? null,
+        );
+        $resolver->expects($this->never())->method('store');
+
+        return $resolver;
+    }
+
+    /** @return array<string, mixed> one image block per listed file */
+    private function manifest(array $assets): array
+    {
+        $blocks = array_map(
+            static fn (string $hash): array => ['type' => 'image', 'data' => ['src' => 'asset://' . $hash]],
+            array_keys($assets),
+        );
+
+        return $this->makePayload(
+            [['layout' => Section::LAYOUT_FULL, 'columns' => [['preset' => 'col-12', 'blocks' => $blocks]]]],
+            $assets,
+        );
+    }
+
+    /** @return list<string> */
+    private static function sources(ContentArea $target): array
+    {
+        return array_map(
+            static fn ($block): string => $block->getDraftData()['src'],
+            $target->getSections()[0]->getColumns()[0]->getBlocks()->toArray(),
+        );
+    }
+
+    public function testFilesTheServerStagedResolveTheirTokens(): void
+    {
+        $hash = hash('sha256', 'staged');
+        $target = new ContentArea();
+
+        $result = $this->importer($this->siteHolding([]))->import(
+            $target,
+            $this->manifest([$hash => ['extension' => 'png', 'size' => 6, 'path' => '/uploads/far.png']]),
+            [$hash => '/uploads/content-blocks/blocks/staged.png'],
+        );
+
+        $this->assertSame(['/uploads/content-blocks/blocks/staged.png'], self::sources($target));
+        $this->assertSame([], $result->missingAssets);
+    }
+
+    public function testASourcePathHoldingTheSameBytesHereIsReused(): void
+    {
+        $hash = hash('sha256', 'same-site');
+        $target = new ContentArea();
+
+        $result = $this->importer($this->siteHolding(['/uploads/here.png' => 'same-site']))->import(
+            $target,
+            $this->manifest([$hash => ['extension' => 'png', 'size' => 9, 'path' => '/uploads/here.png']]),
+        );
+
+        $this->assertSame(['/uploads/here.png'], self::sources($target));
+        $this->assertSame([], $result->missingAssets);
+    }
+
+    public function testAFileNotFoundHereFallsBackToItsPathAndIsReported(): void
+    {
+        $gone = hash('sha256', 'gone');
+        $other = hash('sha256', 'other bytes');
+        $target = new ContentArea();
+
+        $result = $this->importer($this->siteHolding(['/uploads/b.png' => 'not the same']))->import(
+            $target,
+            $this->manifest([
+                $gone => ['extension' => 'png', 'size' => 4, 'path' => '/uploads/a.png'],
+                $other => ['extension' => 'png', 'size' => 11, 'path' => '/uploads/b.png'],
+            ]),
+        );
+
+        $this->assertSame(['/uploads/a.png', '/uploads/b.png'], self::sources($target));
+        $this->assertSame(['/uploads/a.png', '/uploads/b.png'], $result->missingAssets);
     }
 
     public function testImportRejectsInvalidBase64AssetData(): void

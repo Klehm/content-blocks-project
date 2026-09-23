@@ -49,7 +49,7 @@ final class BuilderToggleTemplatesTest extends TestCase
         $html = $this->renderShell(['enableImportExport' => false]);
 
         $this->assertStringNotContainsString('cb-shell__import-export', $html);
-        $this->assertStringNotContainsString('cb-import-export-picker', $html);
+        $this->assertStringNotContainsString('<dialog class="cb-transfer"', $html);
     }
 
     public function testImportExportButtonIsShownByDefault(): void
@@ -57,18 +57,19 @@ final class BuilderToggleTemplatesTest extends TestCase
         $html = $this->renderShell([]);
 
         $this->assertStringContainsString('cb-shell__import-export', $html);
-        $this->assertStringContainsString('cb-import-export-picker', $html);
+        $this->assertStringContainsString('<dialog class="cb-transfer"', $html);
     }
 
-    public function testThePanelCarriesTheImportCapAndAMediaSwitchOnByDefault(): void
+    public function testTheDialogExportsWithMediaByDefault(): void
     {
         $html = $this->renderShell([]);
 
-        $this->assertStringContainsString('data-cb-import-max-bytes="1234"', $html);
         $this->assertMatchesRegularExpression(
-            '~<input type="checkbox" data-cb-builder-target="exportAssets" checked>~',
+            '~<input type="checkbox" class="cb-transfer__switch" data-cb-transfer="media" checked>~',
             $html,
         );
+        $this->assertStringContainsString('href="/_content-blocks/area/1/export"', $html);
+        $this->assertStringContainsString('data-cb-transfer-strings="{', $html);
     }
 
     public function testPublicLinkIsShownByDefault(): void
@@ -155,9 +156,6 @@ final class BuilderToggleTemplatesTest extends TestCase
         $env->addFunction(new TwigFunction(
             'cb_history_state',
             static fn (ContentArea $area): array => ['canUndo' => false, 'canRedo' => false],
-        ));
-        $env->addExtension(new \ContentBlocks\Twig\ImportLimitExtension(
-            new \ContentBlocks\Transfer\ImportSizeLimit(1234),
         ));
 
         return $env;

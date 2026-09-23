@@ -11,10 +11,12 @@ use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Transfer\ContentAreaExporter;
 use ContentBlocks\Transfer\ContentAreaImporter;
 use ContentBlocks\Transfer\ImportSizeLimit;
+use ContentBlocks\Transfer\ZipExportWriter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class ImportExportControllerTest extends ControllerTestCase
 {
@@ -49,6 +51,7 @@ final class ImportExportControllerTest extends ControllerTestCase
             $this->makeCsrfManager($csrfValid),
             $this->makeJournal($em),
             new ImportSizeLimit($importMaxSize),
+            new ZipExportWriter($resolver),
         );
     }
 
@@ -102,44 +105,98 @@ final class ImportExportControllerTest extends ControllerTestCase
 
     // ---------- export ----------
 
-    public function testExportStreamsAJsonAttachment(): void
+    /**
+     * Streams the response and reads the zip back.
+     *
+     * @return array<string, string> entry name => contents
+     */
+    private function unzip(Response $response): array
+    {
+        // Two levels: the writer flushes the inner buffer into the outer one.
+        ob_start();
+        ob_start();
+        $response->sendContent();
+        $inner = (string) ob_get_clean();
+        $bytes = ob_get_clean() . $inner;
+        $this->assertSame((int) $response->headers->get('Content-Length'), \strlen($bytes));
+
+        $path = (string) tempnam(sys_get_temp_dir(), 'cb-export-test-');
+        $this->tmpFiles[] = $path;
+        file_put_contents($path, $bytes);
+        $zip = new \ZipArchive();
+        $this->assertTrue($zip->open($path));
+        $entries = [];
+        for ($i = 0; $i < $zip->numFiles; ++$i) {
+            $name = (string) $zip->getNameIndex($i);
+            $entries[$name] = (string) $zip->getFromIndex($i);
+        }
+        $zip->close();
+
+        return $entries;
+    }
+
+    public function testExportStreamsAZipWithTheContentAndItsMedia(): void
     {
         $area = $this->makeArea(1);
-        $section = $this->makeSection($area, 2);
-        $column = $this->makeColumn($section, 3);
-        $block = $this->makeBlock($column, 4);
-        $block->setDraftData(['content' => 'exported']);
-        $controller = $this->makeController($this->makeEm([$area]));
+        $block = $this->makeBlock($this->makeColumn($this->makeSection($area, 2), 3), 4);
+        $block->setDraftData(['content' => '<img src="/uploads/here.png">']);
+        $controller = $this->makeController($this->makeEm([$area]), resolver: $this->uploadsResolver());
 
         $response = $controller->export(1, new Request());
 
-        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertSame('application/json', $response->headers->get('Content-Type'));
+        $this->assertInstanceOf(StreamedResponse::class, $response);
+        $this->assertSame('application/zip', $response->headers->get('Content-Type'));
         $this->assertStringContainsString('attachment; filename="content-area-1-', (string) $response->headers->get('Content-Disposition'));
+        $this->assertStringEndsWith('.zip"', (string) $response->headers->get('Content-Disposition'));
 
-        $payload = json_decode((string) $response->getContent(), true);
+        $entries = $this->unzip($response);
+        $hash = hash('sha256', 'bytes');
+        $this->assertSame(['content.json', 'media/' . $hash . '.png'], array_keys($entries));
+        $this->assertSame('bytes', $entries['media/' . $hash . '.png']);
+        $payload = json_decode($entries['content.json'], true);
         $this->assertSame(ContentAreaExporter::FORMAT, $payload['format']);
         $this->assertSame(
-            'exported',
+            '<img src="asset://' . $hash . '">',
             $payload['contentArea']['sections'][0]['columns'][0]['blocks'][0]['data']['content'],
         );
+        $this->assertSame('/uploads/here.png', $payload['assets'][$hash]['path']);
     }
 
-    public function testExportWithoutAssetsKeepsThePathsAndCarriesNoBytes(): void
+    public function testWithoutMediaTheZipHoldsOnlyTheContent(): void
     {
         $area = $this->makeArea(1);
         $block = $this->makeBlock($this->makeColumn($this->makeSection($area, 2), 3), 4);
         $block->setDraftData(['content' => '/uploads/here.png']);
         $controller = $this->makeController($this->makeEm([$area]), resolver: $this->uploadsResolver());
 
-        $bare = json_decode((string) $controller->export(1, new Request(['assets' => '0']))->getContent(), true);
-        $full = json_decode((string) $controller->export(1, new Request())->getContent(), true);
+        $entries = $this->unzip($controller->export(1, new Request(['assets' => '0'])));
 
-        $blockData = static fn (array $p): string => $p['contentArea']['sections'][0]['columns'][0]['blocks'][0]['data']['content'];
-        $this->assertSame('/uploads/here.png', $blockData($bare));
-        $this->assertSame([], $bare['assets']);
-        $this->assertStringStartsWith('asset://', $blockData($full));
-        $this->assertCount(1, $full['assets']);
+        $this->assertSame(['content.json'], array_keys($entries));
+        $payload = json_decode($entries['content.json'], true);
+        $this->assertSame('/uploads/here.png', $payload['assets'][hash('sha256', 'bytes')]['path']);
+    }
+
+    public function testTheSummaryCountsWhatTheExportWillHold(): void
+    {
+        $area = $this->makeArea(1);
+        $column = $this->makeColumn($this->makeSection($area, 2), 3);
+        $this->makeBlock($column, 4)->setDraftData(['content' => '/uploads/here.png']);
+        $this->makeBlock($column, 5, 1)->setDraftData(['content' => 'text']);
+        $controller = $this->makeController($this->makeEm([$area]), resolver: $this->uploadsResolver());
+
+        $summary = json_decode((string) $controller->exportSummary(1)->getContent(), true);
+
+        $this->assertSame(1, $summary['sectionCount']);
+        $this->assertSame(2, $summary['blockCount']);
+        $this->assertSame(1, $summary['mediaCount']);
+        $this->assertSame(
+            (int) $controller->export(1, new Request())->headers->get('Content-Length'),
+            $summary['size'],
+        );
+        $this->assertSame(
+            (int) $controller->export(1, new Request(['assets' => '0']))->headers->get('Content-Length'),
+            $summary['sizeWithoutMedia'],
+        );
     }
 
     public function testExportReturns404ForAnUnknownArea(): void

@@ -1004,12 +1004,22 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         layouts?: array<string, bool|array{ // Default: []
  *             enabled?: bool|Param, // Default: true
  *             label?: scalar|Param|null, // Text or translation key (content_blocks domain). Required for a new layout. // Default: null
- *             display?: "grid"|"tabs"|"accordion"|Param, // How a new section of this layout shows its columns: side by side (grid), one at a time (tabs) or as collapsible panels (accordion). // Default: null
+ *             display?: "grid"|"slider"|"tabs"|"accordion"|Param, // How a new section of this layout shows its columns: side by side (grid), scrolling (slider), one at a time (tabs) or as collapsible panels (accordion). // Default: null
  *             columns?: list<int|Param>,
  *         }>,
  *         initial_settings?: array{ // Settings written onto a section added from the builder, same shape as a preset's. Stored as the section's own values, so they render like anything the editor saved.
  *             classes?: scalar|Param|null,
- *             display?: "grid"|"tabs"|"accordion"|Param,
+ *             display?: "grid"|"slider"|"tabs"|"accordion"|Param,
+ *             displayTablet?: "grid"|"slider"|"tabs"|"accordion"|Param,
+ *             displayMobile?: "grid"|"slider"|"tabs"|"accordion"|Param,
+ *             sliderPerView?: array{
+ *                 desktop?: int|Param,
+ *                 tablet?: int|Param,
+ *                 mobile?: int|Param,
+ *             },
+ *             sliderControls?: "both"|"arrows"|"dots"|"none"|Param,
+ *             sliderAutoplay?: int|Param,
+ *             sliderLoop?: bool|Param,
  *             widthMode?: "full"|"centered"|Param,
  *             maxWidth?: int|Param,
  *             columnWidths?: scalar|Param|null,
@@ -1073,7 +1083,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *                 backgroundColor?: scalar|Param|null,
  *                 backgroundImage?: scalar|Param|null,
  *                 backgroundSize?: "cover"|"contain"|Param,
- *                 backgroundPosition?: "center"|"top"|"bottom"|"left"|"right"|Param,
+ *                 backgroundPosition?: "center"|"top"|"bottom"|"left"|"right"|"top left"|"top right"|"bottom left"|"bottom right"|Param,
  *                 overlayColor?: scalar|Param|null,
  *                 overlayOpacity?: int|Param,
  *                 minHeight?: array{
@@ -1096,7 +1106,17 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         css_class?: scalar|Param|null, // Default: ""
  *         settings?: array{ // Section settings applied by the preset (subset of a section's settings).
  *             classes?: scalar|Param|null,
- *             display?: "grid"|"tabs"|"accordion"|Param,
+ *             display?: "grid"|"slider"|"tabs"|"accordion"|Param,
+ *             displayTablet?: "grid"|"slider"|"tabs"|"accordion"|Param,
+ *             displayMobile?: "grid"|"slider"|"tabs"|"accordion"|Param,
+ *             sliderPerView?: array{
+ *                 desktop?: int|Param,
+ *                 tablet?: int|Param,
+ *                 mobile?: int|Param,
+ *             },
+ *             sliderControls?: "both"|"arrows"|"dots"|"none"|Param,
+ *             sliderAutoplay?: int|Param,
+ *             sliderLoop?: bool|Param,
  *             widthMode?: "full"|"centered"|Param,
  *             maxWidth?: int|Param,
  *             columnWidths?: scalar|Param|null,
@@ -1160,7 +1180,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *                 backgroundColor?: scalar|Param|null,
  *                 backgroundImage?: scalar|Param|null,
  *                 backgroundSize?: "cover"|"contain"|Param,
- *                 backgroundPosition?: "center"|"top"|"bottom"|"left"|"right"|Param,
+ *                 backgroundPosition?: "center"|"top"|"bottom"|"left"|"right"|"top left"|"top right"|"bottom left"|"bottom right"|Param,
  *                 overlayColor?: scalar|Param|null,
  *                 overlayOpacity?: int|Param,
  *                 minHeight?: array{
@@ -1178,6 +1198,9 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         public_prefix?: scalar|Param|null, // Default: "/uploads/content-blocks"
  *         max_size?: int|Param, // Default: 10485760
  *         allowed_mime_types?: list<scalar|Param|null>,
+ *     },
+ *     import?: array{
+ *         max_size?: int|Param, // Largest import file accepted, in bytes. PHP's upload_max_filesize and post_max_size cap it further. // Default: 52428800
  *     },
  * }
  * @psalm-type ContentBlocksKitConfig = array{

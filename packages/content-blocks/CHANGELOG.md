@@ -13,26 +13,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Each embedded file was stored under the `extension` written in the JSON, so
   a forged export could drop a `.php` file (code execution where the upload
   directory runs PHP) or an `.html` file (stored XSS). An import now applies
-  the upload policy: the MIME type is sniffed from the bytes and checked
-  against `content_blocks.upload.allowed_mime_types`, the extension is derived
-  from it, and `upload.max_size` applies per file. A refused file refuses the
-  whole import, and nothing is stored. Requires an editor account; upgrade.
+  the upload policy to every file: the MIME type is sniffed from the bytes and
+  checked against `content_blocks.upload.allowed_mime_types`, the extension is
+  derived from it, and `upload.max_size` applies. Requires an editor account;
+  upgrade.
 
 ### Added
 
-- **Export without media.** The Import / Export panel has an *Include media
-  files* switch (on by default). Off, the file keeps this site's paths instead
-  of the base64 bytes (`GET …/export?assets=0`): far lighter, for a copy on the
-  same site or one sharing its uploads.
-- **Missing media are named after an import.** A stored path this site cannot
-  read, or a token with no bytes, comes back as `missingAssets` and is shown
-  in the panel, like skipped blocks.
-- **`content_blocks.import.max_size`** (default 50 MB, the former hard-coded
-  cap). The builder checks the file against the effective limit (this value,
-  `upload_max_filesize` and `post_max_size`) before sending it, and an
-  oversized request answers `413` with `maxBytes` instead of "Missing or
-  invalid file upload". See the new *Large imports* section of the host guide
-  for the PHP and web server settings.
+- **`cb:notify`, a second inbound public event.** Dispatched at the builder,
+  it shows `detail.message` in the builder's snackbar, with an optional
+  `detail.link` (`{ label, href }`) opened in a new tab. A host action that
+  reported its outcome in its own page did so under the builder's modal, where
+  nobody saw it — the sandbox's *Save as model* looked like it did nothing.
+  Text only; a non-http(s) link is dropped.
+- **Export as a streamed zip.** `GET …/export` answers a `.zip` —
+  `content.json` plus one `media/{hash}.{ext}` per file, stored as-is —
+  written as it is sent (`maennchen/zipstream-php`, a new dependency). Memory
+  stays at one file whatever the page, and an exact `Content-Length` gives the
+  browser a real progress bar. `?assets=0` leaves the media out.
+  `GET …/export/summary` says what the archive will hold and weigh.
+- **Import in steps.** The builder opens the archive itself, asks which media
+  this site already holds (`POST …/import/plan`), sends the others one per
+  request (`POST …/import/asset`), then the content (`POST …/import/commit`),
+  one undoable step as before. A copy on the same site sends no media and
+  duplicates none; the export's size never meets `post_max_size`, only the
+  largest single file does. Each file is hashed on arrival and kept only if the
+  export lists it; the content is resolved only against files the server
+  checked.
+- **A new Import / Export dialog.** A native modal dialog with an Export and
+  an Import tab: what the archive holds and weighs, an *Include media files*
+  switch, a drop zone, a review of the file before anything is written (media
+  here, to send, missing or too large, block types unknown here), progress,
+  and the outcome. Media missing from the archive can be dropped in and are
+  checked against the export. It replaces the panel and its `window.confirm`.
+- **Missing media are named after an import** (`missingAssets`): a file
+  neither in the archive nor on this site keeps its source path.
+- **`content_blocks.import.max_size`** (default 50 MB) caps the single-request
+  `POST …/import`, kept for scripts, which answers `413` with `maxBytes` when
+  a file is too large for it or for PHP.
 - **Which collection entries open.** A `LiveCollectionType` takes
   `cb_open_entries`: `all` (default, unchanged), `first`, `last` or `none`.
   The other entries render folded from the server, with no flash on load. An
@@ -40,8 +58,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **`ContentAreaExporterInterface::export()` takes `bool $embedAssets = true`.**
-  An implementation of your own must add the parameter.
+- **The export's `assets` entries list files instead of carrying them**:
+  `mimeType`, `extension`, `size` and the source `path`, no `data`. The format
+  stays `content-blocks/v1`; a pre-RC17 export, bytes inline, still imports.
+- **`ContentAreaImporterInterface::import()` takes a third argument**,
+  `array $storedAssets = []` (hash ⇒ path of a file the server verified). An
+  implementation of your own must add it.
+- **The Import / Export panel moved** to
+  `builder/transfer_dialog.html.twig`; a copied `builder/shell.html.twig`
+  includes it instead (see the upgrade guide, 3a).
 
 ## [1.0.0-RC16] - 2026-09-21
 

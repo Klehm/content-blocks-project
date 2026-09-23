@@ -7,8 +7,8 @@ namespace ContentBlocks\Transfer;
 use ContentBlocks\Entity\ContentArea;
 
 /**
- * Serializes a ContentArea into a self-contained, JSON-encodable array. The
- * frozen contract is the payload shape, not this signature.
+ * Serializes a ContentArea into a JSON-encodable manifest; the files it lists
+ * travel beside it. The frozen contract is the payload shape, not this call.
  *
  * @see docs/internals/transfer.md#the-payload-shape-is-the-contract
  */
@@ -23,7 +23,7 @@ interface ContentAreaExporterInterface
 
     /**
      * Draft wins, soft-deleted entities are skipped, order is previewPosition.
-     * Without $embedAssets, stored paths stay as-is and `assets` is empty.
+     * `assets` lists the files, not their bytes: the zip carries them beside.
      *
      * @see docs/internals/transfer.md#what-is-exported
      *
@@ -35,10 +35,11 @@ interface ContentAreaExporterInterface
      *     assets: array<string, array{
      *         mimeType: string,
      *         extension: string,
-     *         data: string,
+     *         size: int,
+     *         path: string,
      *     }>,
      *     extensions?: array<string, array<string, mixed>>,
      * }
      */
-    public function export(ContentArea $area, bool $embedAssets = true): array;
+    public function export(ContentArea $area): array;
 }

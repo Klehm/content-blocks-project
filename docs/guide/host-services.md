@@ -546,7 +546,7 @@ ContentBlocks\Versioning\ContentVersionUpgraderInterface: '@App\ContentBlocks\My
 Everything that acts on the area as a whole lives behind the topbar's single **Actions** menu. It ships two entries:
 
 - **Insert content** (`⇆`) — overwrite the area's content with a clone of another area's content (the replace-content flow).
-- **Import / Export** (`⇅`) — export a `ContentArea` to a self-contained JSON file (sections + blocks + base64-encoded assets, or paths only — see [Large imports](#large-imports)) and re-import it elsewhere.
+- **Import / Export** (`⇅`) — export a `ContentArea` to a `.zip` (its content and its media, or its content alone) and import it into another page or another site. See [Large imports](#large-imports) for the server limits.
 
 Outside the menu, on the right of the topbar, **View page** (`↗`) opens the published page in a new tab — the URL your `ContentAreaUrlResolverInterface` returns, without the preview flag, so it shows what visitors see rather than the draft.
 
@@ -570,28 +570,26 @@ Turn both off and register no action of your own, and the Actions button is not 
 
 ### Large imports
 
-An export is one JSON file with every media file inside it, base64-encoded (+33%). A long page full of images makes a large file, and each layer between the browser and PHP has its own limit on what it accepts:
+An export is a `.zip`: `content.json` plus one file per medium, stored as it is. It is **streamed** as it is written, so the server holds one file at a time whatever the size of the page, and it announces its exact size, so the browser shows a real progress bar.
+
+The import does not send that archive in one request. The browser opens it, asks which media this site already holds, sends the others **one per request**, then the content. So the size of the export never meets a request limit; the largest single file does, and it has to fit the same limits as an ordinary upload:
 
 | Setting | Default | What to set |
 |---|---|---|
-| `content_blocks.import.max_size` | 50 MB | The largest import you accept, in bytes. |
-| PHP `upload_max_filesize` | 2 MB | At least the import size. Usually the first limit hit. |
+| `content_blocks.upload.max_size` | 10 MB | The largest file an editor can upload — and an import can bring. |
+| PHP `upload_max_filesize` | 2 MB | At least `upload.max_size`. Usually the first limit hit. |
 | PHP `post_max_size` | 8 MB | A little above `upload_max_filesize`. Past it PHP drops the whole request. |
-| PHP `memory_limit` | 128 MB | About 4× the largest import, e.g. `512M` for 100 MB. The export needs about 3× the media it embeds. |
-| PHP `max_execution_time`, `max_input_time` | 30 s, 60 s | Enough for a slow upload of the largest file. |
-| nginx `client_max_body_size` | 1 MB | At least the import size. Apache: `LimitRequestBody`. |
-| A proxy or CDN in front | varies | Cloudflare's free plan stops at 100 MB. |
+| nginx `client_max_body_size` | 1 MB | At least `upload.max_size`. Apache: `LimitRequestBody`. |
+| PHP `max_execution_time` | 30 s | Enough to stream the largest export over a slow connection. |
+| A proxy in front | varies | It must relay the streamed download as it comes: the response carries `X-Accel-Buffering: no` for nginx; a CDN may need the route excluded from buffering. |
 
-The builder shows the smallest of the first three as the limit and refuses a larger file before sending it. When a layer it cannot see refuses the request (the web server or a proxy), the editor still reads "too large" rather than a generic failure.
+`memory_limit` no longer grows with the page: a file at a time, on both sides.
 
-The media switch on the export (*Include media files*) is the lighter option when the content stays on the same site, or goes to an environment that shares its uploads: the file then carries paths instead of bytes. On an installation where those paths do not exist, the import says which files are missing.
+Before sending anything, the import names a file larger than the smallest of the first three limits, and the editor can still drop a lighter copy of it. When a layer the builder cannot see refuses a request (the web server, a proxy), the editor reads "too large" rather than a generic failure.
 
-```yaml
-# config/packages/content_blocks.yaml
-content_blocks:
-    import:
-        max_size: 104857600   # 100 MB
-```
+The export's *Include media files* switch is the lighter option when the content stays on the same site, or goes to an environment that shares its uploads: the archive then holds `content.json` alone. A copy on the same site does not need it — the import already recognises the media this site holds and sends none of them — but it saves the download.
+
+`POST …/import`, the single-request import kept for scripts, still takes the whole payload at once; `content_blocks.import.max_size` (50 MB) caps it, along with the PHP limits above.
 
 ## Adding your own actions to the menu
 
@@ -650,6 +648,39 @@ document.addEventListener('cb:builder:action', (event) => {
     // event.detail.areaId is the ContentArea being edited.
 });
 ```
+
+### Saying how it went
+
+The builder is a modal: whatever your listener writes into your own page lands
+*under* it, out of sight. Report back through the builder instead — dispatch
+`cb:notify` at the action event's target (or anything inside the shell), and the
+message appears in the builder's snackbar:
+
+```js
+document.addEventListener('cb:builder:action', async (event) => {
+    if (event.detail.key !== 'save-as-model') return;
+    const builder = event.target;
+    const response = await fetch(`/admin/area/${event.detail.areaId}/save-as-model`, { method: 'POST' });
+    const model = await response.json();
+
+    builder.dispatchEvent(new CustomEvent('cb:notify', {
+        bubbles: true,
+        detail: {
+            message: `Model created: ${model.title}`,
+            link: { label: 'Open', href: model.url },   // optional
+        },
+    }));
+});
+```
+
+| `detail` | |
+|---|---|
+| `message` | Required, plain text — it is never parsed as HTML. An empty one is ignored. |
+| `link` | Optional `{ label, href }`, opened **in a new tab** so the builder stays open. An `href` that is not http(s) is dropped. |
+
+The snackbar has one slot: a notification replaces whatever was showing,
+including a pending *Undo* offer. It hides after 6 seconds, 10 with a link.
+Translate the text yourself — the builder shows it as given.
 
 ::: tip Labels
 A `label` (or `title`) is run through `trans` at render, the same way block-type labels are, so all three of these work:
@@ -712,7 +743,7 @@ document.addEventListener('cb:builder:action', async (event) => {
 });
 ```
 
-`cb:area:changed` is the one **inbound** public event: dispatched at the builder from the shell element or anything inside it, it makes the builder reload the preview and re-sync Publish / Discard — the same landing as an import or an "Insert content". `detail.hasUnpublishedChanges` is optional and defaults to `true`, which is what a draft write means.
+`cb:area:changed` is one of the two **inbound** public events: dispatched at the builder from the shell element or anything inside it, it makes the builder reload the preview and re-sync Publish / Discard — the same landing as an import or an "Insert content". `detail.hasUnpublishedChanges` is optional and defaults to `true`, which is what a draft write means.
 
 ::: tip Where fragments show up
 The shell asks for its fragments itself (the `cb_shell_fragments(area)` Twig function), so a fragment renders whether the builder came from `ContentAreaType` or from a direct `{% include '@ContentBlocks/builder/launcher.html.twig' %}`. That differs from `BuilderActionProviderInterface`, whose actions are gathered by `ContentAreaType` and, on a direct include, have to be passed as `topbarActions` by the host.

@@ -272,66 +272,9 @@
     {# The section library is no longer a modal here: it lives in the empty
        sidebar, where an editor with nothing selected is already looking. #}
 
-    {# Same positioning rules as the replace picker, so the two overlays
-       read as siblings. Skipped when the feature is off. #}
+    {# A native <dialog>: focus, Escape and the backdrop come with it. #}
     {% if enableImportExport ?? true %}
-    <div class="cb-import-export-picker"
-         data-cb-builder-target="importExportPicker"
-         role="dialog"
-         aria-label="{{ 'cb.builder.import_export.title'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-import-export-confirm="{{ 'cb.builder.import_export.confirm'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-import-export-no-file="{{ 'cb.builder.import_export.no_file'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-import-export-importing="{{ 'cb.builder.import_export.importing'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-import-export-error="{{ 'cb.builder.import_export.error'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-import-export-skipped-blocks="{{ 'cb.builder.import_export.skipped_blocks'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-import-export-unknown-fields="{{ 'cb.builder.import_export.unknown_fields'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-import-export-missing-assets="{{ 'cb.builder.import_export.missing_assets'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-import-export-too-large="{{ 'cb.builder.import_export.too_large'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-builder-import-export-too-large-unknown="{{ 'cb.builder.import_export.too_large_unknown'|trans({}, 'content_blocks') }}"
-         data-cb-import-max-bytes="{{ cb_import_max_bytes() }}"
-         hidden>
-        <header class="cb-import-export-picker__header">
-            <h3 class="cb-import-export-picker__title">{{ 'cb.builder.import_export.title'|trans({}, 'content_blocks') }}</h3>
-            <button type="button"
-                    class="cb-import-export-picker__close"
-                    data-action="cb-builder#closeImportExport"
-                    aria-label="{{ 'cb.builder.close'|trans({}, 'content_blocks') }}">×</button>
-        </header>
-        <div class="cb-import-export-picker__body">
-            <section class="cb-import-export-picker__section">
-                <h4 class="cb-import-export-picker__heading">{{ 'cb.builder.import_export.export_heading'|trans({}, 'content_blocks') }}</h4>
-                <p class="cb-import-export-picker__hint">{{ 'cb.builder.import_export.export_hint'|trans({}, 'content_blocks') }}</p>
-                <label class="cb-import-export-picker__option">
-                    <input type="checkbox" data-cb-builder-target="exportAssets" checked>
-                    {{ 'cb.builder.import_export.export_assets'|trans({}, 'content_blocks') }}
-                </label>
-                <p class="cb-import-export-picker__hint">{{ 'cb.builder.import_export.export_assets_hint'|trans({}, 'content_blocks') }}</p>
-                <button type="button"
-                        class="cb-import-export-picker__btn cb-import-export-picker__btn--primary"
-                        data-action="cb-builder#runExport">
-                    {{ 'cb.builder.import_export.export_action'|trans({}, 'content_blocks') }}
-                </button>
-            </section>
-            <div class="cb-import-export-picker__separator" aria-hidden="true"></div>
-            <section class="cb-import-export-picker__section">
-                <h4 class="cb-import-export-picker__heading">{{ 'cb.builder.import_export.import_heading'|trans({}, 'content_blocks') }}</h4>
-                <p class="cb-import-export-picker__hint cb-import-export-picker__hint--warning">{{ 'cb.builder.import_export.import_hint'|trans({}, 'content_blocks') }}</p>
-                <input type="file"
-                       class="cb-import-export-picker__file"
-                       data-cb-builder-target="importFile"
-                       accept="application/json,.json">
-                <button type="button"
-                        class="cb-import-export-picker__btn cb-import-export-picker__btn--primary"
-                        data-action="cb-builder#runImport">
-                    {{ 'cb.builder.import_export.import_action'|trans({}, 'content_blocks') }}
-                </button>
-                <p class="cb-import-export-picker__status"
-                   data-cb-builder-target="importExportStatus"
-                   role="status"
-                   aria-live="polite"></p>
-            </section>
-        </div>
-    </div>
+        {{ include('@ContentBlocks/builder/transfer_dialog.html.twig', {area: area}) }}
     {% endif %}
 
     {# The sidebar is permanent: it always occupies its column and only its
@@ -421,6 +364,12 @@
                 data-action="cb-builder#undoDelete">
             {{ 'cb.builder.undo.action'|trans({}, 'content_blocks') }}
         </button>
+        {# Filled by an inbound cb:notify; a new tab keeps the builder open. #}
+        <a class="cb-shell__undo-link"
+           data-cb-builder-target="undoLink"
+           target="_blank"
+           rel="noopener"
+           hidden></a>
     </div>
 
     {# Last, so a fragment's overlay stacks above the chrome, and inside the

@@ -76,6 +76,18 @@
                 <source>app.ornament.sides_tooltip</source>
                 <target>Added by App\ContentBlocks\Form\SectionOrnamentExtension.</target>
             </trans-unit>
+            <trans-unit id="builder.model_created">
+                <source>app.builder.model_created</source>
+                <target>Model created: %title%</target>
+            </trans-unit>
+            <trans-unit id="builder.model_open">
+                <source>app.builder.model_open</source>
+                <target>Open</target>
+            </trans-unit>
+            <trans-unit id="builder.model_failed">
+                <source>app.builder.model_failed</source>
+                <target>The model could not be created.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

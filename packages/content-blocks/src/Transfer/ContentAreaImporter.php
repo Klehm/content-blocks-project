@@ -16,7 +16,6 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Section\ColumnSettings;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
-use Symfony\Component\Mime\MimeTypes;
 
 /**
  * Default {@see ContentAreaImporterInterface} — see it for the contract.
@@ -26,7 +25,6 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
 {
     /**
      * @param iterable<ContentAreaTransferExtensionInterface> $extensions
-     * @param list<string> $uploadAllowedMimeTypes
      */
     public function __construct(
         private readonly AssetResolverInterface $assetResolver,
@@ -35,26 +33,19 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
         private readonly iterable $extensions = [],
         private readonly ?CollectionIdBackfiller $collectionIds = null,
-        private readonly int $uploadMaxSize = 10 * 1024 * 1024,
-        private readonly array $uploadAllowedMimeTypes = [
-            'image/jpeg',
-            'image/png',
-            'image/gif',
-            'image/webp',
-            'image/svg+xml',
-            'application/pdf',
-        ],
+        private readonly AssetPolicy $policy = new AssetPolicy(),
     ) {
     }
 
     /**
      * @param array<string, mixed> $payload
+     * @param array<string, string> $storedAssets
      */
-    public function import(ContentArea $target, array $payload): ImportResult
+    public function import(ContentArea $target, array $payload, array $storedAssets = []): ImportResult
     {
         $payload = $this->normalizeEnvelope($payload);
 
-        $assets = new AssetRewriter($this->materializeAssets($payload['assets'] ?? []));
+        $assets = new AssetRewriter(...$this->materializeAssets($payload['assets'] ?? [], $storedAssets));
 
         $sectionsRaw = $payload['contentArea']['sections'] ?? null;
         if (!is_array($sectionsRaw)) {
@@ -159,36 +150,64 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     }
 
     /**
-     * Decodes and stores every asset blob, returning the hash → new public
-     * path map the rewriter patches `asset://` tokens with.
+     * Where each listed file is on this site: bytes carried inline are checked
+     * and stored, the rest come from $storedAssets or fall back to their path.
      *
-     * @return array<string, string>
+     * @param array<string, string> $storedAssets
+     *
+     * @return array{
+     *     array<string, string>,
+     *     array<string, string>,
+     * } found, fallbacks
      */
-    private function materializeAssets(mixed $assetsRaw): array
+    private function materializeAssets(mixed $assetsRaw, array $storedAssets): array
     {
         if ($assetsRaw === null || $assetsRaw === []) {
-            return [];
+            return [[], []];
         }
         if (!is_array($assetsRaw)) {
             throw new \InvalidArgumentException('Invalid "assets" section (expected object).');
         }
 
-        // Every entry is checked before any is stored: a refused payload
+        // Every inline file is checked before any is stored: a refused payload
         // leaves no file behind. Decoded twice so only one blob is held.
-        $extensions = [];
+        $inline = [];
+        $found = [];
+        $fallbacks = [];
         foreach ($assetsRaw as $hash => $asset) {
             if (!is_string($hash) || !is_array($asset)) {
                 throw new \InvalidArgumentException('Malformed asset entry.');
             }
-            $extensions[$hash] = $this->checkAsset($hash, $this->decodeAsset($hash, $asset), $asset['extension']);
+            if (array_key_exists('data', $asset)) {
+                $inline[$hash] = $this->policy->check($hash, $this->decodeAsset($hash, $asset), $asset['extension']);
+            } elseif (isset($storedAssets[$hash])) {
+                $found[$hash] = $storedAssets[$hash];
+            } elseif (is_string($asset['path'] ?? null)) {
+                $path = $asset['path'];
+                if ($this->holds($path, $hash)) {
+                    $found[$hash] = $path;
+                } else {
+                    $fallbacks[$hash] = $path;
+                }
+            }
         }
 
-        $map = [];
-        foreach ($extensions as $hash => $extension) {
-            $map[$hash] = $this->assetResolver->store($this->decodeAsset($hash, $assetsRaw[$hash]), $extension);
+        foreach ($inline as $hash => $extension) {
+            $found[$hash] = $this->assetResolver->store($this->decodeAsset($hash, $assetsRaw[$hash]), $extension);
         }
 
-        return $map;
+        return [$found, $fallbacks];
+    }
+
+    /** Whether this site stores exactly these bytes at $path. */
+    private function holds(string $path, string $hash): bool
+    {
+        if (!$this->assetResolver->isAssetPath($path)) {
+            return false;
+        }
+        $binary = $this->assetResolver->read($path);
+
+        return $binary !== null && hash_equals($hash, hash('sha256', $binary));
     }
 
     /**
@@ -206,35 +225,6 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         }
 
         return $binary;
-    }
-
-    /**
-     * The upload endpoint's policy, applied to the bytes: the payload's own
-     * `mimeType` and `extension` are claims, never trusted.
-     *
-     * @see docs/internals/transfer.md#an-imported-file-is-an-upload
-     */
-    private function checkAsset(string $hash, string $binary, string $claimed): string
-    {
-        if (\strlen($binary) > $this->uploadMaxSize) {
-            throw new \InvalidArgumentException(sprintf('Asset %s is too large (max %d MB).', $hash, intdiv($this->uploadMaxSize, 1024 * 1024), ));
-        }
-
-        $mime = (new \finfo(\FILEINFO_MIME_TYPE))->buffer($binary);
-        if (!is_string($mime) || !\in_array($mime, $this->uploadAllowedMimeTypes, true)) {
-            throw new \InvalidArgumentException(sprintf('Asset %s: file type "%s" is not allowed.', $hash, is_string($mime) ? $mime : 'unknown', ));
-        }
-
-        $known = MimeTypes::getDefault()->getExtensions($mime);
-        $claimed = strtolower(ltrim($claimed, '.'));
-        if (\in_array($claimed, $known, true)) {
-            return $claimed;
-        }
-        if ($known === []) {
-            throw new \InvalidArgumentException(sprintf('Asset %s: no extension for "%s".', $hash, $mime));
-        }
-
-        return $known[0];
     }
 
     /**
