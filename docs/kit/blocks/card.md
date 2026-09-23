@@ -6,6 +6,8 @@ title: Card block
 
 > Image / title / text / button tiles laid out as a grid or list.
 
+![The card block, rendered](/screenshots/kit/card.webp){.cb-kit-shot}
+
 A repeatable set of cards, each combining an image, a title, some text and an optional button. Lay them out as a **grid** (capped by the `max_columns` option) or a vertical **list**. Great for feature rows and teaser sections.
 
 ## When to use

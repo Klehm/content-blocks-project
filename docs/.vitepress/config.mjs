@@ -32,7 +32,7 @@ export default defineConfig({
   // internals/ is maintainer documentation — the rationale that used to sit in
   // long source docblocks. Read on GitHub, never published: it would otherwise
   // double the site with implementation detail no integrator needs.
-  srcExclude: ['internals/**'],
+  srcExclude: ['internals/**', 'scripts/**'],
 
   head: [
     ['meta', { name: 'theme-color', content: '#eb0540' }],

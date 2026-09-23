@@ -6,6 +6,8 @@ title: Table block
 
 > A data table from configurable columns and rows.
 
+![The table block, rendered](/screenshots/kit/table.webp){.cb-kit-shot}
+
 A straightforward data table: define columns and rows and the block renders a semantic `<table>`.
 
 ## When to use

@@ -6,6 +6,8 @@ title: Title block
 
 > Heading with a visual size decoupled from its semantic tag.
 
+![The title block, rendered](/screenshots/kit/title.webp){.cb-kit-shot}
+
 Renders a heading whose **visual size** (`size`) is independent of its **semantic tag** (`tag`). That split lets an editor place, say, an `<h2>`-looking title that is actually an `<h1>` for the document outline — or a large visual lead that is semantically a `<p>`. The text color is picked from the project color palette.
 
 ## When to use

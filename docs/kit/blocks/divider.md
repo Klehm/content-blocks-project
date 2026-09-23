@@ -6,6 +6,8 @@ title: Divider block
 
 > A horizontal rule with a configurable style and color.
 
+![The divider block, rendered](/screenshots/kit/divider.webp){.cb-kit-shot}
+
 A horizontal separator between content. The line style (solid/dashed/dotted) and its color (from the palette) are configurable.
 
 ## When to use

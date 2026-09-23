@@ -6,6 +6,8 @@ title: Tabs block
 
 > Tabbed panels.
 
+![The tabs block, rendered](/screenshots/kit/tabs.webp){.cb-kit-shot}
+
 A set of labeled tabs, each revealing its own panel of content.
 
 ## When to use

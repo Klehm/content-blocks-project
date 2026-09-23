@@ -6,6 +6,8 @@ title: Gallery block
 
 > A set of images as a responsive grid or an arrow slider.
 
+![The gallery block, rendered](/screenshots/kit/gallery.webp){.cb-kit-shot}
+
 Renders a collection of images either as a **grid** (column count is configurable) or as a **slider** with prev/next arrows. Shared controls: object-fit and rounded corners. The `max_columns` **option** caps how many columns the editor can choose.
 
 ## When to use

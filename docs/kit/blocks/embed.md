@@ -6,6 +6,8 @@ title: Embed block
 
 > A responsive YouTube / Vimeo video embed.
 
+![The embed block, rendered](/screenshots/kit/embed.webp){.cb-kit-shot}
+
 Embeds a YouTube or Vimeo video responsively (16:9 by default) from a paste-in URL. URL parsing uses the core `cb_embed_url` helper, so both watch-page and share URLs work.
 
 ## When to use

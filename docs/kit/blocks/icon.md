@@ -6,6 +6,8 @@ title: Icon block
 
 > A single icon from the shipped icon set, in a palette color.
 
+![The icon block, rendered](/screenshots/kit/icon.webp){.cb-kit-shot}
+
 Renders one icon from the kit's **self-contained icon set** (no external icon library needed). Size and color (from the palette) are configurable.
 
 ## When to use
