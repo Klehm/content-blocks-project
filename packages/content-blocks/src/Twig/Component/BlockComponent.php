@@ -23,6 +23,7 @@ use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\Attribute\PostHydrate;
 use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\LiveComponent\LiveCollectionTrait;
@@ -54,6 +55,16 @@ final class BlockComponent
         private readonly CollectionItemIds $collectionItemIds,
         private readonly ActionJournal $journal,
     ) {
+    }
+
+    /**
+     * Every request after the mount carries replayable props: a re-render or
+     * a collection add/remove shows the draft, so it is authorized too.
+     */
+    #[PostHydrate]
+    public function authorizeRequest(): void
+    {
+        $this->denyUnlessCanEdit();
     }
 
     public function getBlock(): Block

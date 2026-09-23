@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use ContentBlocks\Kit\Icon\IconRegistry;
 use ContentBlocks\Kit\RichText\RichTextEditorRegistry;
+use ContentBlocks\Kit\RichText\RichTextSanitizerFactory;
+use ContentBlocks\Kit\Twig\SafeContentExtension;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -33,8 +35,19 @@ return static function (ContainerConfigurator $container): void {
     // The view object is excluded: it is data, not a service.
     // `assets.packages` needs framework.assets, hence ignore-on-invalid.
     $services->load('ContentBlocks\\Kit\\RichText\\', '../src/RichText/')
-        ->exclude('../src/RichText/RichTextEditorView.php')
+        ->exclude([
+            '../src/RichText/RichTextEditorView.php',
+            '../src/RichText/RichTextSanitizerFactory.php',
+            '../src/RichText/RichTextStyleSanitizer.php',
+        ])
         ->bind('$assets', service('assets.packages')->ignoreOnInvalid());
+
+    // Redefine this id to sanitize rich text your own way.
+    $services->set('content_blocks_kit.rich_text_sanitizer')
+        ->class(\Symfony\Component\HtmlSanitizer\HtmlSanitizerInterface::class)
+        ->factory([RichTextSanitizerFactory::class, 'create']);
+    $services->set(SafeContentExtension::class)
+        ->args([service('content_blocks_kit.rich_text_sanitizer')]);
 
     $services->set(RichTextEditorRegistry::class)
         ->args([tagged_iterator('content_blocks_kit.rich_text_editor')]);

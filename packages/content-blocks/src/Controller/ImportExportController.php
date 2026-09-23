@@ -11,6 +11,7 @@ use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Transfer\ContentAreaExporterInterface;
 use ContentBlocks\Transfer\ContentAreaImporterInterface;
+use ContentBlocks\Transfer\ImportRefusedException;
 use ContentBlocks\Transfer\ImportResult;
 use ContentBlocks\Transfer\ImportSizeLimit;
 use ContentBlocks\Transfer\ZipExportWriter;
@@ -70,7 +71,7 @@ final class ImportExportController
         if (!$area) {
             return new JsonResponse(['error' => 'ContentArea not found'], Response::HTTP_NOT_FOUND);
         }
-        if (!$this->accessChecker->canView($area)) {
+        if (!$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
         }
 
@@ -111,7 +112,7 @@ final class ImportExportController
         if (!$area) {
             return new JsonResponse(['error' => 'ContentArea not found'], Response::HTTP_NOT_FOUND);
         }
-        if (!$this->accessChecker->canView($area)) {
+        if (!$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
         }
 
@@ -175,7 +176,7 @@ final class ImportExportController
             $payload = json_decode($content, true, 512, \JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
             return new JsonResponse(
-                ['error' => 'Invalid JSON: ' . $e->getMessage()],
+                ['error' => 'Invalid JSON.'],
                 Response::HTTP_BAD_REQUEST,
             );
         }
@@ -190,8 +191,11 @@ final class ImportExportController
 
                 return $imported;
             });
-        } catch (\InvalidArgumentException $e) {
+        } catch (ImportRefusedException $e) {
             return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        } catch (\InvalidArgumentException) {
+            // A library's message (an ORM entity dump) is not the client's.
+            return new JsonResponse(['error' => 'The import could not be completed.'], Response::HTTP_BAD_REQUEST);
         }
 
         // Non-blocking by design (see ImportResult): the import succeeded, and

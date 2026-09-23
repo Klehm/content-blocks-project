@@ -10,11 +10,14 @@ use ContentBlocks\Block\BlockDataKeys;
 use ContentBlocks\Block\BlockRestoreTally;
 use ContentBlocks\Block\CollectionIdBackfiller;
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Controller\ColumnsController;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Section\ColumnSettings;
+use ContentBlocks\Section\RestoredStructure;
+use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 
 /**
@@ -34,6 +37,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         private readonly iterable $extensions = [],
         private readonly ?CollectionIdBackfiller $collectionIds = null,
         private readonly AssetPolicy $policy = new AssetPolicy(),
+        private readonly SectionLayoutRegistry $layouts = new SectionLayoutRegistry(),
     ) {
     }
 
@@ -45,12 +49,16 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     {
         $payload = $this->normalizeEnvelope($payload);
 
-        $assets = new AssetRewriter(...$this->materializeAssets($payload['assets'] ?? [], $storedAssets));
-
         $sectionsRaw = $payload['contentArea']['sections'] ?? null;
         if (!is_array($sectionsRaw)) {
-            throw new \InvalidArgumentException('Missing or invalid "contentArea.sections" in payload.');
+            throw new ImportRefusedException('Missing or invalid "contentArea.sections" in payload.');
         }
+        if (RestoredStructure::tooLarge($sectionsRaw)) {
+            throw new ImportRefusedException(sprintf('The import holds more than a page can: at most %d sections, %d columns per section and %d blocks.', RestoredStructure::MAX_SECTIONS, ColumnsController::MAX_COLUMNS, RestoredStructure::MAX_BLOCKS, ));
+        }
+
+        // After the structure checks: a refused import must store no file.
+        $assets = new AssetRewriter(...$this->materializeAssets($payload['assets'] ?? [], $storedAssets));
 
         // Replace mode: soft-delete every existing section. The actual
         // em->remove() runs at publish time (see ContentAreaPublisher).
@@ -143,7 +151,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         $format = $payload['format'] ?? null;
 
         if (!is_string($format) || !$this->envelopes->supports($format, $target)) {
-            throw new \InvalidArgumentException(sprintf('Unsupported format: %s (expected %s).', is_scalar($format) ? (string) $format : '(invalid)', $target, ));
+            throw new ImportRefusedException(sprintf('Unsupported format: %s (expected %s).', is_scalar($format) ? (string) $format : '(invalid)', $target, ));
         }
 
         return $this->envelopes->upgrade($payload, $format, $target);
@@ -166,7 +174,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
             return [[], []];
         }
         if (!is_array($assetsRaw)) {
-            throw new \InvalidArgumentException('Invalid "assets" section (expected object).');
+            throw new ImportRefusedException('Invalid "assets" section (expected object).');
         }
 
         // Every inline file is checked before any is stored: a refused payload
@@ -176,7 +184,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         $fallbacks = [];
         foreach ($assetsRaw as $hash => $asset) {
             if (!is_string($hash) || !is_array($asset)) {
-                throw new \InvalidArgumentException('Malformed asset entry.');
+                throw new ImportRefusedException('Malformed asset entry.');
             }
             if (array_key_exists('data', $asset)) {
                 $inline[$hash] = $this->policy->check($hash, $this->decodeAsset($hash, $asset), $asset['extension']);
@@ -217,11 +225,11 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     {
         $data = $asset['data'] ?? null;
         if (!is_string($data) || !is_string($asset['extension'] ?? null)) {
-            throw new \InvalidArgumentException(sprintf('Malformed asset entry for %s.', $hash));
+            throw new ImportRefusedException(sprintf('Malformed asset entry for %s.', $hash));
         }
         $binary = base64_decode($data, true);
         if ($binary === false) {
-            throw new \InvalidArgumentException(sprintf('Invalid base64 data for asset %s.', $hash));
+            throw new ImportRefusedException(sprintf('Invalid base64 data for asset %s.', $hash));
         }
 
         return $binary;
@@ -234,8 +242,9 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     private function buildSection(array $raw, string $ref, AssetRewriter $assets, BlockRestoreTally $tally, array &$blocks): Section
     {
         $section = new Section();
-        if (isset($raw['layout']) && is_string($raw['layout'])) {
-            $section->setLayout($raw['layout']);
+        $layout = RestoredStructure::layout($raw['layout'] ?? null, $this->layouts);
+        if ($layout !== null) {
+            $section->setLayout($layout);
         }
 
         $settings = $raw['settings'] ?? null;
@@ -267,8 +276,9 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     private function buildColumn(array $raw, string $ref, AssetRewriter $assets, BlockRestoreTally $tally, array &$blocks): Column
     {
         $col = new Column();
-        if (isset($raw['preset']) && is_string($raw['preset'])) {
-            $col->setPreset($raw['preset']);
+        $preset = RestoredStructure::preset($raw['preset'] ?? null);
+        if ($preset !== null) {
+            $col->setPreset($preset);
         }
         $settings = ColumnSettings::sanitize($raw['settings'] ?? null);
         if ($settings !== []) {
@@ -318,7 +328,10 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     private function buildBlock(array $raw, AssetRewriter $assets, BlockRestoreTally $tally): ?Block
     {
         $type = $raw['type'] ?? null;
-        if (is_string($type) && !$this->registry->has($type)) {
+        if (!is_string($type)) {
+            return null;
+        }
+        if (!$this->registry->has($type)) {
             // Neither refused (a type this app lacks is expected from another
             // install) nor imported (it would leave an inert block).
             $tally->skip($type);
@@ -327,20 +340,16 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         }
 
         $block = new Block();
-        if (is_string($type)) {
-            $block->setType($type);
-        }
+        $block->setType($type);
 
         $data = $raw['data'] ?? null;
         if (is_array($data)) {
-            if (is_string($type)) {
-                $tally->noteUnknownKeys($type, $this->dataKeys->unknownIn($type, $data));
-            }
+            $tally->noteUnknownKeys($type, $this->dataKeys->unknownIn($type, $data));
             /** @var array<string, mixed> $rewritten */
             $rewritten = $assets->rewrite($data);
             // Kept verbatim, unknown keys included (they warn, never drop). Ids
             // the export carried stay: translations are keyed on them.
-            $block->setDraftData(is_string($type) && $this->collectionIds !== null
+            $block->setDraftData($this->collectionIds !== null
                 ? $this->collectionIds->backfill($type, $rewritten)
                 : $rewritten);
         }

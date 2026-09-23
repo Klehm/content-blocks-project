@@ -137,12 +137,12 @@ final class SectionTemplateController
 
         $rawQuery = $request->query->get('q');
         $filter = is_string($rawQuery) ? trim($rawQuery) : '';
-        $page = max(0, (int) $request->query->get('page', 0));
+        $page = ListQuery::page($request->query->get('page', 0));
         $pageSize = self::PAGE_SIZE;
 
         $qb = $this->em->getRepository(SectionTemplate::class)->createQueryBuilder('t');
         if ($filter !== '') {
-            $qb->andWhere('t.name LIKE :q')->setParameter('q', '%' . $filter . '%');
+            $qb->andWhere('t.name LIKE :q')->setParameter('q', ListQuery::contains($filter));
         }
         // One extra row detects hasMore without a separate count query.
         $qb->orderBy('t.createdAt', 'DESC')

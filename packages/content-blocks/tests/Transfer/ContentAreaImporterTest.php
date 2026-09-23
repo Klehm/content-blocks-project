@@ -12,8 +12,10 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Form\Extension\BlockFormExtensionCollection;
 use ContentBlocks\Form\Type\BlockFormType;
+use ContentBlocks\Section\RestoredStructure;
 use ContentBlocks\Transfer\ContentAreaExporter;
 use ContentBlocks\Transfer\ContentAreaImporter;
+use ContentBlocks\Transfer\ImportRefusedException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\Forms;
@@ -174,6 +176,62 @@ final class ContentAreaImporterTest extends TestCase
 
         $column = $target->getSections()->first()->getColumns()->first();
         $this->assertSame(['label' => 'Specs'], $column->getDraftSettings());
+    }
+
+    // A layout or preset this install cannot render, or longer than the
+    // column, would otherwise land verbatim.
+    public function testImportKeepsOnlyALayoutAndPresetsThisInstallRenders(): void
+    {
+        $target = new ContentArea();
+        $payload = $this->makePayload([
+            ['layout' => str_repeat('x', 200), 'columns' => [
+                ['preset' => 'col-6', 'blocks' => []],
+                ['preset' => 'col-6" onclick="x', 'blocks' => []],
+            ]],
+            ['layout' => Section::LAYOUT_TWO_COLS, 'columns' => []],
+        ]);
+
+        $this->importer()->import($target, $payload);
+
+        [$first, $second] = $target->getSections()->toArray();
+        $this->assertSame(Section::LAYOUT_FULL, $first->getLayout());
+        $this->assertSame(Section::LAYOUT_TWO_COLS, $second->getLayout());
+        $this->assertSame(['col-6', 'col-12'], array_map(
+            static fn ($c) => $c->getPreset(),
+            $first->getColumns()->toArray(),
+        ));
+    }
+
+    // Refused before any file is stored, so a refusal leaves nothing behind.
+    public function testAnImportLargerThanAPageIsRefusedBeforeStoringFiles(): void
+    {
+        $section = ['layout' => Section::LAYOUT_FULL, 'columns' => [['preset' => 'col-12',
+            'blocks' => array_fill(0, RestoredStructure::MAX_BLOCKS + 1, ['type' => 'text'])]]];
+
+        try {
+            $this->importer()->import(new ContentArea(), $this->makePayload(
+                [$section],
+                [str_repeat('a', 64) => ['data' => base64_encode(self::png()), 'extension' => 'png']],
+            ));
+            $this->fail('An oversized import must be refused.');
+        } catch (ImportRefusedException) {
+            $this->assertSame([], $this->stored);
+        }
+    }
+
+    public function testABlockWithoutATypeIsNotImported(): void
+    {
+        $target = new ContentArea();
+        $payload = $this->makePayload([
+            ['layout' => Section::LAYOUT_FULL, 'columns' => [['preset' => 'col-12', 'blocks' => [
+                ['data' => ['text' => 'orphan']],
+                ['type' => ['text'], 'data' => []],
+            ]]]],
+        ]);
+
+        $this->importer()->import($target, $payload);
+
+        $this->assertCount(0, $target->getSections()->first()->getColumns()->first()->getBlocks());
     }
 
     public function testImportAssignsDensePreviewPositions(): void

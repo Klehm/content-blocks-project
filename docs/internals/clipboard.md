@@ -5,9 +5,11 @@ Integrator-facing version: the *Copier / coller* section of
 
 ## Why the clipboard needs a replayer
 
-Section-template insert and area import read rows this application wrote
-itself, so they keep block data verbatim and only *warn* about keys the type no
-longer declares.
+Section-template insert and area import keep block data verbatim and only
+*warn* about keys the type no longer declares — collection ids and unknown keys
+must survive a round trip. Their structure (layout, presets, block type) is
+checked by `RestoredStructure`, and the kit guards HTML, links and colours at
+render, since an import file is input too.
 
 The clipboard is different in one decisive way: it lives in `localStorage`, so
 its payload is whatever the user — or anything running in their browser — put

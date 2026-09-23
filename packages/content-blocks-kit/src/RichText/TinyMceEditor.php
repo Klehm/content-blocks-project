@@ -12,6 +12,9 @@ namespace ContentBlocks\Kit\RichText;
  */
 final class TinyMceEditor extends AbstractRichTextEditor
 {
+    /** Pinned with its SRI hash: bump both together. */
+    public const CDN_VERSION = '7.9.3';
+
     public static function getName(): string
     {
         return 'tinymce';
@@ -24,6 +27,11 @@ final class TinyMceEditor extends AbstractRichTextEditor
 
     public static function getDefaultScriptUrl(): string
     {
-        return 'https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js';
+        return sprintf('https://cdn.jsdelivr.net/npm/tinymce@%s/tinymce.min.js', self::CDN_VERSION);
+    }
+
+    public static function getDefaultScriptIntegrity(): string
+    {
+        return 'sha384-Ovv1ZPEkpW4ElBKDKaEIPkNfTTadFpifFwNJOBnuStg0PQ0RBln5Lsf9AI8BsCmx';
     }
 }

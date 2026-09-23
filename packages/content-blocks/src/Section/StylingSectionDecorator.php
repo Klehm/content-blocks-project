@@ -8,6 +8,7 @@ use ContentBlocks\Entity\Section;
 use ContentBlocks\Image\ImageUrlResolverInterface;
 use ContentBlocks\Image\PassthroughImageUrlResolver;
 use ContentBlocks\Palette\ColorTone;
+use ContentBlocks\Palette\CssColor;
 use ContentBlocks\Rendering\ViewportVars;
 
 /**
@@ -62,9 +63,9 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
         // Set on the section, inherited by the inner .cb-row.
         $vars += ViewportVars::single($styling['gap'] ?? null, 'gap');
 
-        $bg = $styling['backgroundColor'] ?? null;
+        $bg = CssColor::safe($styling['backgroundColor'] ?? null);
         $tone = null;
-        if (\is_string($bg) && $bg !== '') {
+        if ($bg !== null) {
             $vars['--cb-s-bg'] = $bg;
             $tone = ColorTone::of($bg);
         }

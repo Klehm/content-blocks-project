@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Kit\Form\Type;
 
+use ContentBlocks\Kit\Security\SafeLinkConstraint;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -34,7 +35,7 @@ final class ButtonGroupItemType extends AbstractType
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
                 'default_protocol' => null,
-                'constraints' => [new Assert\Length(max: 1024)],
+                'constraints' => [new Assert\Length(max: 1024), new SafeLinkConstraint()],
             ])
             ->add('variant', ChoiceType::class, [
                 'label' => 'cb_kit.block.button.field.variant',

@@ -154,7 +154,7 @@ describe('cb-builder clipboard: paste', () => {
             'POST',
             '/_content-blocks/area/42/paste',
             { payload: SECTION_ENTRY, targetBlockId: 7, targetSectionId: 3 },
-            { tolerate: [422] },
+            { tolerate: [413, 422] },
         );
         expect(controller._afterStructuralOp).toHaveBeenCalled();
     });
@@ -188,6 +188,15 @@ describe('cb-builder clipboard: paste', () => {
         expect(controller._afterStructuralOp).not.toHaveBeenCalled();
         // The editor only has to select something — the copy is still good.
         expect(window.localStorage.getItem(CLIPBOARD_KEY)).not.toBeNull();
+    });
+
+    it('says why an oversized copy was refused, and drops it', async () => {
+        controller._jsonRequest = vi.fn().mockResolvedValue({ error: 'too_large' });
+
+        await controller.pasteClipboard();
+
+        expect(undoLabel.textContent).toContain('more than a page can');
+        expect(window.localStorage.getItem(CLIPBOARD_KEY)).toBeNull();
     });
 
     it('drops an entry the server will never accept', async () => {

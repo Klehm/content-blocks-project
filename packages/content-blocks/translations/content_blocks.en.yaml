@@ -210,6 +210,7 @@ cb:
             no_target: "Select a section or a block first — a copied block needs somewhere to go"
             stale_version: "This copy was made under another version of your content schema — copy it again"
             unreadable: "This copy cannot be read and was discarded"
+            too_large: "This copy holds more than a page can and was discarded"
             skipped_blocks: "Pasted — %count% block(s) skipped, missing type(s): %types%"
             dropped_fields: "Pasted, but some fields were reset on: %types%"
         history:

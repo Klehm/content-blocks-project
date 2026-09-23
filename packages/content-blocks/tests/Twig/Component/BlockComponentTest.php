@@ -255,6 +255,15 @@ final class BlockComponentTest extends TestCase
         $component->save();
     }
 
+    // A replayed props blob re-renders the draft: revoked rights must hold.
+    public function testEveryHydratedRequestIsAuthorized(): void
+    {
+        $component = $this->makeBareComponent($this->makeBlock(null, null));
+
+        $this->expectException(ContentBlocksAccessDeniedException::class);
+        $component->authorizeRequest();
+    }
+
     public function testGetBlockTypeLabelUnwrapsATranslatableLabel(): void
     {
         $registry = new BlockTypeRegistry();

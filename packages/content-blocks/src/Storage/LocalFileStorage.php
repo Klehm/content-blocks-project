@@ -30,21 +30,21 @@ final class LocalFileStorage implements FileStorageInterface, AssetInventoryInte
 
     public function remove(string $path): void
     {
-        $filePath = $this->resolveFilesystemPath($path);
-        if ($filePath !== null && is_file($filePath)) {
+        $filePath = $this->resolveExistingFile($path);
+        if ($filePath !== null) {
             unlink($filePath);
         }
     }
 
     public function isStoredPath(string $value): bool
     {
-        return str_starts_with($value, rtrim($this->publicPrefix, '/') . '/');
+        return $this->relativePath($value) !== null;
     }
 
     public function read(string $publicPath): ?string
     {
-        $filePath = $this->resolveFilesystemPath($publicPath);
-        if ($filePath === null || !is_file($filePath)) {
+        $filePath = $this->resolveExistingFile($publicPath);
+        if ($filePath === null) {
             return null;
         }
         $contents = file_get_contents($filePath);
@@ -128,14 +128,43 @@ final class LocalFileStorage implements FileStorageInterface, AssetInventoryInte
         return $publicPath . '/' . $filename;
     }
 
-    private function resolveFilesystemPath(string $publicPath): ?string
+    /**
+     * A stored path is editor input: it must name a file inside the upload dir.
+     *
+     * @see docs/guide/security.md#stored-paths-are-confined
+     */
+    private function resolveExistingFile(string $publicPath): ?string
     {
-        $prefix = rtrim($this->publicPrefix, '/');
-        if (!str_starts_with($publicPath, $prefix . '/')) {
+        $relative = $this->relativePath($publicPath);
+        $root = realpath($this->uploadDir);
+        if ($relative === null || $root === false) {
+            return null;
+        }
+
+        $real = realpath($root . '/' . $relative);
+        if ($real === false || !str_starts_with($real, $root . '/') || !is_file($real)) {
+            return null;
+        }
+
+        return $real;
+    }
+
+    private function relativePath(string $publicPath): ?string
+    {
+        $prefix = rtrim($this->publicPrefix, '/') . '/';
+        if (!str_starts_with($publicPath, $prefix)) {
             return null;
         }
         $relative = substr($publicPath, \strlen($prefix));
+        if ($relative === '' || strpbrk($relative, "\\\0") !== false) {
+            return null;
+        }
+        foreach (explode('/', $relative) as $segment) {
+            if ($segment === '' || $segment === '.' || $segment === '..') {
+                return null;
+            }
+        }
 
-        return rtrim($this->uploadDir, '/') . '/' . ltrim($relative, '/');
+        return $relative;
     }
 }

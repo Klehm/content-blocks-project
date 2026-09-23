@@ -94,6 +94,17 @@ final class TranslationBlockDataResolverTest extends TestCase
         $this->assertSame('Livraison rapide', $data['items'][0]['label']);
     }
 
+    // A row imported before values were type-checked must not reshape data.
+    public function testANonStringStoredValueIsIgnored(): void
+    {
+        $block = Entities::block(1);
+        $row = $this->row($block, ['heading' => ['x']]);
+
+        $data = $this->resolver($row, 'fr')->resolve($block, RenderContext::forPublic('fr'), $this->source());
+
+        $this->assertSame($this->source()['heading'], $data['heading']);
+    }
+
     public function testFallbackIsPerFieldNotPerBlock(): void
     {
         // A half-translated page must look incomplete, not broken — and

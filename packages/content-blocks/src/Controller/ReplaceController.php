@@ -70,7 +70,7 @@ final class ReplaceController
 
         $rawQuery = $request->query->get('q');
         $filter = is_string($rawQuery) ? $rawQuery : null;
-        $page = max(0, (int) $request->query->get('page', 0));
+        $page = ListQuery::page($request->query->get('page', 0));
         $pageSize = self::PAGE_SIZE;
 
         $qb = $this->provider->createQueryBuilder($filter);
@@ -95,6 +95,10 @@ final class ReplaceController
 
         $items = [];
         foreach ($rows as $row) {
+            // Replace-with needs edit rights on the source: offer none else.
+            if (!$this->accessChecker->canEdit($row)) {
+                continue;
+            }
             $items[] = [
                 'id' => $row->getId(),
                 'label' => $this->provider->getLabel($row),
@@ -141,9 +145,8 @@ final class ReplaceController
         if (!$source) {
             return new JsonResponse(['error' => 'Source ContentArea not found'], Response::HTTP_NOT_FOUND);
         }
-        // Without this the replace flow is an IDOR vector for copying private
-        // content out of areas the user cannot read.
-        if (!$this->accessChecker->canView($source)) {
+        // The clone copies the source's draft: reading it takes edit rights.
+        if (!$this->accessChecker->canEdit($source)) {
             throw new ContentBlocksAccessDeniedException();
         }
 

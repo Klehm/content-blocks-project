@@ -20,6 +20,7 @@ use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
@@ -48,6 +49,7 @@ final class WorkbenchPageController
         private readonly Environment $twig,
         private readonly LocalizedPageUrlResolverInterface $pageUrls,
         private readonly bool $publicLinks = true,
+        private readonly ?RequestStack $requestStack = null,
     ) {
     }
 
@@ -73,6 +75,12 @@ final class WorkbenchPageController
             return new Response('Unknown target locale', Response::HTTP_NOT_FOUND);
         }
 
+        // Lets this editor's preview pane switch language, and nobody else's.
+        $request = $this->requestStack?->getMainRequest();
+        if ($request !== null && $request->hasSession()) {
+            $request->getSession()->set(PreviewLocaleListener::SESSION_KEY, true);
+        }
+
         $views = $this->inspector->inspectArea($area, $locale);
         $progress = new TranslationProgress($locale);
 
@@ -94,7 +102,11 @@ final class WorkbenchPageController
             'publicLinks' => $this->publicLinks($area, $locale),
             'providers' => $this->providerChoices($locale),
             'csrfToken' => (string) $this->csrfTokenManager->getToken('content_blocks'),
-        ]));
+        ]), Response::HTTP_OK, [
+            // Its buttons write: a page framing it could steer the clicks.
+            'X-Frame-Options' => 'SAMEORIGIN',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     /**

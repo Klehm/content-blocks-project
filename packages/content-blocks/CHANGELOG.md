@@ -9,6 +9,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Any editor could read any file on the server through the export.** A
+  stored path was joined onto the upload directory without normalisation, so
+  `/uploads/content-blocks/../../../.env` typed into any field was read into
+  the export zip. `LocalFileStorage` now refuses `.`/`..`/empty segments,
+  backslashes and NUL bytes, and only reads or removes a real file under the
+  real upload directory. A custom `FileStorageInterface` must hold to the same
+  rule (docs/guide/security.md). Upgrade.
+- **Export and replace-with read the draft with only `canView()`.** Both copy
+  unpublished content, and the documented `canView()` returns `true`: behind a
+  single firewall the export was downloadable anonymously. Both now require
+  `canEdit()` — on the source area too for replace-with. A host that let a
+  view-only user export or copy from an area loses that; that was the bug.
+- **A colour could carry extra CSS declarations.** The custom picker of
+  `PaletteColorType` validated nothing, and `backgroundColor` went into
+  `style` verbatim: `red;position:fixed;inset:0;background:url(…)` covered the
+  public page. The picker now accepts `#rrggbb` only, and the styling
+  decorators emit a colour only if it is a single colour value
+  (`ContentBlocks\Palette\CssColor`, Twig `cb_css_color()`), which also covers
+  values arriving by import or template.
+- **SVG is no longer an allowed upload by default.** A scripted SVG served
+  from the site's origin runs when opened directly — stored XSS reachable by
+  any editor, through the upload endpoint or an import.
+  `upload.allowed_mime_types` defaults to JPEG, PNG, GIF, WebP and PDF. To keep
+  SVG, list it explicitly and serve the upload directory with
+  `Content-Security-Policy: sandbox` (docs/guide/security.md).
+- **An import or a pasted section wrote its layout and presets verbatim.**
+  A layout this install does not know, a preset that is not `col-1`…`col-12`,
+  or a block without a type landed as-is — a string longer than the column
+  answered 500. They now fall back to `full`, `col-12`, and no block. Block data
+  stays verbatim; the kit guards what it renders.
+- **`/upload` checked the CSRF token only.** Any session holding a
+  `content_blocks` token could write files. The upload widgets now post the
+  builder's `area` (from `data-cb-area-id`, added to the shell) and the
+  endpoint checks `canEdit()` on it; an upload without it answers 404. A host
+  posting to the endpoint from its own script must send `area` too.
+- **An access denial answered 500.** `ContentBlocksAccessDeniedException` now
+  extends `AccessDeniedHttpException`: 403, logged as a denial rather than a
+  crash. It is still a `\RuntimeException`.
+- **An import echoed library exception messages.** Only the importer's own
+  refusals (`ImportRefusedException`) are shown; anything else answers a
+  generic message.
+- **Preview responses are `private, no-store` and `X-Frame-Options:
+  SAMEORIGIN`** (`PreviewResponseListener`; a header the host set wins), so a
+  shared cache cannot store a draft and another origin cannot frame it.
+- **The block editor's Live Component re-checks `canEdit()` on every request**
+  (`#[PostHydrate]`), not only on its actions: a replayed props blob no longer
+  re-renders a draft after the rights were revoked.
+- **Replace-candidates lists only areas the user can edit**, the rule
+  replace-with itself now applies.
+- **Size limits on restore.** An import or a pasted section with more than
+  1 000 sections, 20 columns in a section or 5 000 blocks is refused before any
+  file is stored; a paste body over 5 MB answers 413.
+- **Small hardening.** A huge `?page=` no longer throws (clamped to 10 000), and
+  `%`/`_` in the section-template search match literally.
+- **`twig/twig` is required at `^3.27`**, past the advisories on earlier
+  releases.
 - **An import could write any file type into the public upload directory.**
   Each embedded file was stored under the `extension` written in the JSON, so
   a forged export could drop a `.php` file (code execution where the upload

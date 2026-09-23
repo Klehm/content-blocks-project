@@ -42,12 +42,13 @@
     {# Also a class, or a config-added size would be entirely inert: fluid,
        with nothing in the markup naming it. #}
     <figure class="cb-kit-image cb-kit-image--{{ align }} cb-kit-image--size-{{ cb_kit_token(size, 'md') }}{% if ratio_parts %} cb-kit-image--ratio-{{ ratio }}{% endif %}">
-        {% if data.url|default('')|trim is not empty %}<a href="{{ data.url }}">{% endif %}
+        {% set link = data.url|default('')|trim|cb_kit_safe_url %}
+        {% if link is not empty %}<a href="{{ link }}">{% endif %}
         <img class="cb-kit-image__img" src="{{ img.src }}" alt="{{ data.alt|default('') }}"
              {%- if img.srcset %} srcset="{{ img.srcset }}"{% endif %}{% if sizes %} sizes="{{ sizes }}"{% endif %}
              {%- if width %} width="{{ width }}"{% endif %}{% if height %} height="{{ height }}"{% endif %}
              {%- if img_style %} style="{{ img_style }}"{% endif %} loading="lazy" decoding="async">
-        {% if data.url|default('')|trim is not empty %}</a>{% endif %}
+        {% if link is not empty %}</a>{% endif %}
         {% if data.caption|default('')|trim is not empty %}
             <figcaption class="cb-kit-image__caption">{{ data.caption }}</figcaption>
         {% endif %}

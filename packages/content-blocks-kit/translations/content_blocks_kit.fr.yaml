@@ -1,4 +1,6 @@
 cb_kit:
+    link:
+        unsafe_scheme: "Seuls les liens http(s), mailto: et tel:, ou un chemin relatif, sont acceptés."
     block:
         field:
             align: "Alignement"

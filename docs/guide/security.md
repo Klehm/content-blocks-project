@@ -150,16 +150,70 @@ There is **no** `getAllowedDataKeys()` / `sanitizeData()` / `processData()` hook
 
 Copy/paste stores its entry in the browser's `localStorage`, which is what lets a copy survive leaving the page — and what makes the payload **user-writable**. So a paste is not a restore: every block in it is replayed through its own form (`ContentBlocks\Clipboard\BlockDataReplayer`) before anything is written. A key your block type does not declare never reaches `Block.data`; a value your `constraints` refuse is reset to the type's default and reported to the editor, rather than costing the whole block.
 
-This is stricter than the two older restore paths (section-template insert, area import), and deliberately so: those replay rows *this* application wrote, so they keep unknown keys and merely warn. Nothing extra to do in a custom block — the form you already wrote is the filter.
+This is stricter than the two older restore paths (section-template insert, area import), and deliberately so: they keep block data verbatim — unknown keys warn instead of dropping, and collection-entry ids survive so translations still match. An import file is still input, though, so what those paths keep is held elsewhere: the structure is checked on arrival (below), and the kit's views guard HTML, links and colours at render ([Editor HTML and links](#editor-html-and-links)). Nothing extra to do in a custom block — the form you already wrote is the filter for everything typed in the builder.
+
+### Restored structure
+
+An import, a section template and a pasted section all rebuild sections, columns and blocks from a payload. The structure is checked on the way in: a section layout is kept only if this install's `SectionLayoutRegistry` knows it (otherwise the section is `full`), a column preset only if it is `col-1` … `col-12` (otherwise `col-12`), and a block without a string `type` is dropped. Column settings go through `ColumnSettings::sanitize()`.
+
+Size is bounded too, since each block is replayed through its form: an import or a pasted section holding more than 1 000 sections, 20 columns in one section or 5 000 blocks is refused (`RestoredStructure::MAX_*`) before any file is stored, and a paste body over 5 MB answers 413.
 
 ::: danger Raw-HTML caveat
 The kit's `html_raw` block renders `{{ html|raw }}`, so it trusts its editors. It is **disabled by default** (`content_blocks_kit.blocks.html_raw.enabled: false`) and must be explicitly opted in.
 :::
 
+### Editor HTML and links
+
+Some stored values reach a page without passing through the block's form — an
+import, a section template, a translation, machine-translation output — so the
+kit's views guard them again at render:
+
+- **`rich_text` is sanitized.** Its HTML goes through `cb_kit_rich_html`, backed
+  by `symfony/html-sanitizer`: the W3C safe elements, `class`, and a `style`
+  attribute reduced to formatting properties (colour, alignment, sizes, margins
+  — no positioning, no `url()`). Script, event handlers, `<iframe>` and unsafe
+  link schemes are removed. To sanitize differently, redefine the service
+  `content_blocks_kit.rich_text_sanitizer` with any `HtmlSanitizerInterface`.
+- **Links keep safe schemes only.** Every kit link (button, button group, image,
+  gallery, card, breadcrumb) goes through `cb_kit_safe_url`: http(s), `mailto:`,
+  `tel:` or a scheme-less URL. Anything else — `javascript:`, `data:` — renders
+  as no link (`#` for a button). The form refuses the same values on save
+  (`SafeLinkConstraint`). A custom block with a link field can use both.
+
+`html_raw` stays the one block that renders editor HTML untouched.
+
 ## File upload
 
-The upload endpoint (`content_blocks_upload`) checks the CSRF token, the size (`content_blocks.upload.max_size`) and the MIME type sniffed from the file (`content_blocks.upload.allowed_mime_types`) before handing it to your `FileStorageInterface`.
+The upload endpoint (`content_blocks_upload`) checks the CSRF token, `canEdit()` on the area posted with the file (`area`, sent by the builder's upload widgets from `data-cb-area-id` on the shell), the size (`content_blocks.upload.max_size`) and the MIME type sniffed from the file (`content_blocks.upload.allowed_mime_types`) before handing it to your `FileStorageInterface`.
 
 An **import** writes files too, and goes through the same checks: each file's MIME type is sniffed from its bytes and checked against the same list, and its stored extension is derived from that type. The `mimeType` and `extension` written in the export are ignored, so a forged export cannot place a `.php` or `.html` file under your public upload prefix. Each file is also hashed on arrival and kept only if it is one the export lists, and the content is resolved only against files the server itself checked, so a forged manifest cannot point a block at a file of its choosing. A refused file stops the import before the content is written.
 
-`image/svg+xml` is in the default list. An SVG can carry script, which runs when the file is opened directly from your domain. If your editors are not fully trusted, remove it from `allowed_mime_types`, or serve the upload directory with `Content-Security-Policy: script-src 'none'`.
+`image/svg+xml` is **not** in the default list. An SVG can carry script, which runs when the file is opened directly from your domain — stored XSS on your own origin. Add it to `allowed_mime_types` only if your editors are fully trusted, and then serve the upload directory with `Content-Security-Policy: sandbox` (or `script-src 'none'`).
+
+### Stored paths are confined
+
+A stored file path is editor input: the image widget accepts a pasted path, and
+any text field can hold a string that starts with your public prefix. The
+exporter reads every such path into the zip, so a path must never resolve
+outside the upload directory. `LocalFileStorage` refuses `.`/`..`/empty
+segments, backslashes and NUL bytes, then requires the resolved real path to be
+a file under the real upload directory — a symlink pointing out is not
+followed.
+
+If you aliased `FileStorageInterface` to your own implementation, hold
+`read()`, `remove()` and `isStoredPath()` to the same rule. Flysystem already
+refuses path traversal by default (`PathTraversalDetected`).
+
+## Access denials and error messages
+
+A refused `canEdit()` throws `ContentBlocksAccessDeniedException`, an `AccessDeniedHttpException`: the kernel answers **403**, not 500. An import answers the reason of its own refusals (`ImportRefusedException`); any other exception during an import answers a generic message, so a library's text (an ORM entity dump, say) never reaches the client.
+
+## Preview responses
+
+A request carrying `cb_preview=1` holds the draft, so its response is sent `Cache-Control: private, no-store` and, unless your app already set one, `X-Frame-Options: SAMEORIGIN` (`PreviewResponseListener`). The builder frames the preview from the same origin, which that allows. The i18n workbench page sends the same two headers.
+
+The builder shell itself is rendered inside **your** admin page, so its framing policy is yours: send `X-Frame-Options: SAMEORIGIN` (or `Content-Security-Policy: frame-ancestors 'self'`) on the admin pages that include it, or a hostile page could frame Publish and Delete under a visitor's click.
+
+## Editor scripts from a CDN
+
+With `cdn: true` (the default), the kit loads TinyMCE (`7.9.3`) or CKEditor 5 (`48.3.1`) from a pinned version with a Subresource Integrity hash: if the CDN served different bytes, the browser refuses them. A `script_url` or `style_url` of your own carries no hash — it is your file. To avoid the CDN altogether, set `cdn: false` and bundle the editor.

@@ -4,6 +4,8 @@ import {
     loadStylesheet,
     mergeConfig,
     parseJsonValue,
+    loadScript,
+    readAreaId,
     readCsrfToken,
     resolveEditorGlobal,
     uploadFile,
@@ -127,10 +129,44 @@ describe('loadStylesheet', () => {
         expect(document.head.querySelectorAll('link[rel="stylesheet"]')).toHaveLength(1);
     });
 
+    it('pins the stylesheet to its SRI hash when one is given', () => {
+        loadStylesheet('https://cdn.example/pinned.css', 'sha384-abc');
+
+        const link = document.head.querySelector('link[rel="stylesheet"]');
+        expect(link.integrity).toBe('sha384-abc');
+        expect(link.crossOrigin).toBe('anonymous');
+    });
+
     it('does nothing without a URL', () => {
         loadStylesheet('');
 
         expect(document.head.querySelectorAll('link')).toHaveLength(0);
+    });
+});
+
+describe('loadScript', () => {
+    it('pins the script to its SRI hash when one is given', () => {
+        document.head.innerHTML = '';
+        loadScript('https://cdn.example/pinned.js', 'sha384-xyz');
+
+        const script = document.head.querySelector('script');
+        expect(script.integrity).toBe('sha384-xyz');
+        expect(script.crossOrigin).toBe('anonymous');
+    });
+
+    it('leaves a host URL without integrity', () => {
+        document.head.innerHTML = '';
+        loadScript('https://cdn.example/host.js');
+
+        expect(document.head.querySelector('script').hasAttribute('integrity')).toBe(false);
+    });
+});
+
+describe('readAreaId', () => {
+    it('reads the area the builder shell edits', () => {
+        document.body.innerHTML = '<div data-cb-area-id="7"><textarea></textarea></div>';
+
+        expect(readAreaId(document.querySelector('textarea'))).toBe('7');
     });
 });
 
@@ -157,6 +193,19 @@ describe('uploadFile', () => {
         expect(init.method).toBe('POST');
         expect(init.headers['X-CSRF-Token']).toBe('tok');
         expect(init.body.get('file')).toBeInstanceOf(File);
+    });
+
+    it('posts the area, which the endpoint checks edit rights on', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({ url: '/uploads/photo.png' }),
+        });
+        vi.stubGlobal('fetch', fetchMock);
+
+        await uploadFile(file, { uploadUrl: '/upload', csrfToken: 'tok', areaId: '7' });
+
+        expect(fetchMock.mock.calls[0][1].body.get('area')).toBe('7');
     });
 
     it('surfaces the endpoint\'s own error message', async () => {

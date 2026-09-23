@@ -27,6 +27,8 @@ final class CrossRequestStateTest extends TestCase
     private const NOT_A_SHARED_SERVICE = [
         \ContentBlocks\Kit\ContentBlocksKitBundle::class =>
             'Bundle: $blocksConfig is written while the container is compiled, never during a request.',
+        \ContentBlocks\Kit\Security\SafeLinkConstraint::class =>
+            'Constraint: a value object built per form field; $message is its option.',
     ];
 
     /**

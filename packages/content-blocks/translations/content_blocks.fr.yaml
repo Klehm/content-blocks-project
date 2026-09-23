@@ -210,6 +210,7 @@ cb:
             no_target: "Sélectionnez d'abord une section ou un bloc — un bloc copié a besoin d'une destination"
             stale_version: "Cette copie a été faite sous une autre version de votre schéma de contenu — recopiez-la"
             unreadable: "Cette copie est illisible et a été écartée"
+            too_large: "Cette copie contient plus qu'une page ne peut en porter, elle a été écartée"
             skipped_blocks: "Collé — %count% bloc(s) ignoré(s), type(s) manquant(s) : %types%"
             dropped_fields: "Collé, mais certains champs ont été réinitialisés sur : %types%"
         history:

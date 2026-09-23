@@ -8,6 +8,8 @@ use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Preview\PreviewLocaleListener;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
@@ -88,10 +90,28 @@ final class PreviewLocaleListenerTest extends TestCase
         $this->assertSame('fr', $request->getLocale());
     }
 
+    // cb_preview=1 is public: a visitor who types it gets the page as it is.
+    public function testASessionThatNeverOpenedTheWorkbenchIsLeftAlone(): void
+    {
+        foreach ([false, 'other'] as $marker) {
+            $request = $this->request(['cb_preview' => '1', 'cb_locale' => 'de'], $marker);
+
+            $this->listen($request);
+
+            $this->assertSame('fr', $request->getLocale());
+        }
+    }
+
     /** @param array<string, string> $query */
-    private function request(array $query): Request
+    private function request(array $query, bool|string $marker = true): Request
     {
         $request = Request::create('/page/1?' . http_build_query($query));
+        if ($marker !== false) {
+            $session = new Session(new MockArraySessionStorage());
+            $session->set(PreviewLocaleListener::SESSION_KEY, $marker === true ? true : null);
+            $request->setSession($session);
+            $request->cookies->set($session->getName(), 'id');
+        }
         // What the host app's own default_locale would have resolved to.
         $request->setLocale('fr');
 

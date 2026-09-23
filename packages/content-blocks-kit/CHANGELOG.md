@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **`rich_text` rendered stored HTML unsanitized.** The editor was the only
+  filter, and a direct POST, an import, a section template or a translation
+  skipped it: any editor could store script run by every visitor and by the
+  admins previewing the page. The view now sanitizes at render with
+  `symfony/html-sanitizer` (new dependency) — safe elements, `class`, and a
+  `style` reduced to formatting properties. Redefine the service
+  `content_blocks_kit.rich_text_sanitizer` to change the policy.
+- **Kit links accepted `javascript:` URLs.** Button, button group, image,
+  gallery, card and breadcrumb links now keep only http(s), `mailto:`, `tel:`
+  and scheme-less URLs, at render (`cb_kit_safe_url`) and on save
+  (`SafeLinkConstraint`).
+- **Title, text, divider and icon colours** go through the core's
+  `cb_css_color()`, so a stored value carrying CSS declarations is dropped.
+  Needs the matching core release.
+- **Editor scripts are pinned and checked.** TinyMCE loads from
+  `tinymce@7.9.3` instead of the floating `tinymce@7`, and both default CDN
+  files (TinyMCE, CKEditor script and stylesheet) carry a Subresource
+  Integrity hash, so a changed file on the CDN is refused. A host `script_url`
+  or `style_url` carries none.
+- **Editor image uploads post the area** they are for, which the core's upload
+  endpoint now checks rights on.
+- **`twig/twig` is required at `^3.27`.**
+
 ### Changed
 
 - **Collections open folded.** Every kit collection (gallery, tabs, accordion,

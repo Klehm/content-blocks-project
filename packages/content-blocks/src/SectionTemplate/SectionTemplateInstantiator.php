@@ -12,6 +12,8 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Section\ColumnSettings;
+use ContentBlocks\Section\RestoredStructure;
+use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 
 /**
@@ -25,6 +27,7 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
         private readonly BlockDataKeys $dataKeys,
         private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
         private readonly ?CollectionIdBackfiller $collectionIds = null,
+        private readonly SectionLayoutRegistry $layouts = new SectionLayoutRegistry(),
     ) {
     }
 
@@ -40,7 +43,7 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
 
         $section = new Section();
         $section->setLayout(
-            is_string($payload['layout'] ?? null) ? $payload['layout'] : Section::LAYOUT_FULL,
+            RestoredStructure::layout($payload['layout'] ?? null, $this->layouts) ?? Section::LAYOUT_FULL,
         );
 
         $settings = $payload['settings'] ?? null;
@@ -80,8 +83,9 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
     private function buildColumn(array $raw, BlockRestoreTally $tally): Column
     {
         $column = new Column();
-        if (isset($raw['preset']) && is_string($raw['preset'])) {
-            $column->setPreset($raw['preset']);
+        $preset = RestoredStructure::preset($raw['preset'] ?? null);
+        if ($preset !== null) {
+            $column->setPreset($preset);
         }
         $settings = ColumnSettings::sanitize($raw['settings'] ?? null);
         if ($settings !== []) {
@@ -117,25 +121,24 @@ final class SectionTemplateInstantiator implements SectionTemplateInstantiatorIn
     private function buildBlock(array $raw, BlockRestoreTally $tally): ?Block
     {
         $type = $raw['type'] ?? null;
-        if (is_string($type) && !$this->registry->has($type)) {
+        if (!is_string($type)) {
+            return null;
+        }
+        if (!$this->registry->has($type)) {
             $tally->skip($type);
 
             return null;
         }
 
         $block = new Block();
-        if (is_string($type)) {
-            $block->setType($type);
-        }
+        $block->setType($type);
 
         $data = $raw['data'] ?? null;
         if (is_array($data)) {
-            if (is_string($type)) {
-                $tally->noteUnknownKeys($type, $this->dataKeys->unknownIn($type, $data));
-            }
+            $tally->noteUnknownKeys($type, $this->dataKeys->unknownIn($type, $data));
             // Kept verbatim, including keys the type no longer declares — those
             // warn, they are never dropped. Missing entry ids are added.
-            $block->setDraftData(is_string($type) && $this->collectionIds !== null
+            $block->setDraftData($this->collectionIds !== null
                 ? $this->collectionIds->backfill($type, $data)
                 : $data);
         }

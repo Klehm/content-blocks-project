@@ -31,7 +31,7 @@
 {% endif %}
 
 {% macro item(item, fit) %}
-    {% set link = item.url|default('')|trim %}
+    {% set link = item.url|default('')|trim|cb_kit_safe_url %}
     {# Nothing truthful to derive a `sizes` from, so the resolver owns it
        if it returns candidates at all. #}
     {% set img = cb_image(item.src) %}

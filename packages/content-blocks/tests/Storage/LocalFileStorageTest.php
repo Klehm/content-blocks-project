@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Storage;
 
 use ContentBlocks\Storage\LocalFileStorage;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -69,6 +70,57 @@ final class LocalFileStorageTest extends TestCase
         $this->assertFalse($storage->isStoredPath('/other/prefix/x.png'));
         $this->assertFalse($storage->isStoredPath('https://cdn.example.com/x.png'));
         $this->assertNull($storage->read('/other/prefix/x.png'));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function escapingPaths(): iterable
+    {
+        yield 'parent segments' => ['/uploads/cb/../secret.txt'];
+        yield 'nested parent' => ['/uploads/cb/blocks/../../secret.txt'];
+        yield 'dot segment' => ['/uploads/cb/./blocks/../../secret.txt'];
+        yield 'empty segment' => ['/uploads/cb//secret.txt'];
+        yield 'backslash' => ['/uploads/cb/..\\secret.txt'];
+        yield 'nul byte' => ["/uploads/cb/x.png\0.txt"];
+        yield 'prefix only' => ['/uploads/cb/'];
+    }
+
+    #[DataProvider('escapingPaths')]
+    public function testAPathLeavingTheUploadDirIsNeitherStoredNorReadNorRemoved(
+        string $path,
+    ): void {
+        $storage = $this->makeStorage();
+        $storage->uploadFromString('inside', 'png', 'blocks');
+        $secret = $this->dir . '/../secret.txt';
+        file_put_contents($secret, 'APP_SECRET=leak');
+
+        try {
+            $this->assertFalse($storage->isStoredPath($path));
+            $this->assertNull($storage->read($path));
+            $storage->remove($path);
+            $this->assertFileExists($secret);
+        } finally {
+            @unlink($secret);
+        }
+    }
+
+    public function testASymlinkPointingOutOfTheUploadDirIsNotFollowed(): void
+    {
+        $storage = $this->makeStorage();
+        $storage->uploadFromString('inside', 'png', 'blocks');
+        $outside = tempnam(sys_get_temp_dir(), 'cb-outside');
+        file_put_contents($outside, 'APP_SECRET=leak');
+        symlink($outside, $this->dir . '/blocks/link.txt');
+
+        try {
+            $this->assertNull($storage->read('/uploads/cb/blocks/link.txt'));
+            $storage->remove('/uploads/cb/blocks/link.txt');
+            $this->assertFileExists($outside);
+        } finally {
+            @unlink($this->dir . '/blocks/link.txt');
+            @unlink($outside);
+        }
     }
 
     public function testListAssetsOnAStorageThatWasNeverWrittenToIsEmptyRatherThanAnError(): void

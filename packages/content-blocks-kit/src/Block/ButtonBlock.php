@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\Kit\Security\SafeLinkConstraint;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -55,7 +56,7 @@ class ButtonBlock extends AbstractKitBlock implements BlockPreviewHintInterface
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
                 'default_protocol' => null,
-                'constraints' => [new Assert\Length(max: 1024)],
+                'constraints' => [new Assert\Length(max: 1024), new SafeLinkConstraint()],
             ])
             ->add('variant', ChoiceType::class, [
                 'label' => 'cb_kit.block.button.field.variant',

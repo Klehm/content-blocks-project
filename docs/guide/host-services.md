@@ -38,7 +38,7 @@ final class PageAccessChecker implements AccessCheckerInterface
 }
 ```
 
-`canEdit()` is called by every controller and Live Component before any mutation, and is also what [preview-mode detection](./rendering.md#preview-vs-public-mode) hinges on. If your admin and front-office live behind separate firewalls, read the [cross-firewall auth detection](./security.md#cross-firewall-auth-detection) note carefully.
+`canEdit()` is called by every controller and Live Component before any mutation or any read of the unpublished draft (export, replace-with source, tree, copy), and is also what [preview-mode detection](./rendering.md#preview-vs-public-mode) hinges on. The package itself no longer calls `canView()`; it stays on the interface for hosts and satellites. If your admin and front-office live behind separate firewalls, read the [cross-firewall auth detection](./security.md#cross-firewall-auth-detection) note carefully.
 
 ### `ContentAreaUrlResolverInterface` — preview URL
 

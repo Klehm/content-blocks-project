@@ -13,9 +13,10 @@ services:
         exclude:
             - '../src/Kernel.php'
 
-    # Override ContentBlocks default (DenyAll) for sandbox development
+    # Override ContentBlocks default (DenyAll) for sandbox development: allows
+    # everything but the area the e2e suite names in a cookie.
     ContentBlocks\Security\AccessCheckerInterface:
-        class: ContentBlocks\Security\AllowAllAccessChecker
+        alias: App\Security\E2eAccessChecker
 
     # Override ContentBlocks default (DenyAll) so the section-template library
     # is manageable (rename/delete) in the sandbox

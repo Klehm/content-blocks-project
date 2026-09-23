@@ -41,6 +41,16 @@ final class ImportMaxSizeConfigTest extends TestCase
         ));
     }
 
+    // A scripted SVG on the site's origin is stored XSS: opt-in only.
+    public function testTheDefaultUploadTypesLeaveSvgOut(): void
+    {
+        $types = $this->build([])->getParameter('content_blocks.upload.allowed_mime_types');
+
+        $this->assertIsArray($types);
+        $this->assertContains('image/png', $types);
+        $this->assertNotContains('image/svg+xml', $types);
+    }
+
     public function testZeroIsRefused(): void
     {
         $this->expectException(InvalidConfigurationException::class);

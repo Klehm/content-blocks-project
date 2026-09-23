@@ -111,6 +111,17 @@ final class StylingSectionDecoratorTest extends TestCase
         $this->assertArrayNotHasKey('--cb-s-bg', $b->inlineStyles);
     }
 
+    // An import or a template bypasses the form: the value is checked again.
+    public function testABackgroundColorCarryingDeclarationsIsDropped(): void
+    {
+        $decoration = (new StylingSectionDecorator())->decorate(
+            ['styling' => ['backgroundColor' => 'red;position:fixed;inset:0']],
+            new Section(),
+        );
+
+        $this->assertArrayNotHasKey('--cb-s-bg', $decoration->inlineStyles);
+    }
+
     public function testGapEmitsPerViewportPxVars(): void
     {
         $settings = [

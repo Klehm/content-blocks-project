@@ -12,6 +12,7 @@ use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Machine\NullTranslationProvider;
 use ContentBlocks\I18n\Machine\TranslationProviderInterface;
 use ContentBlocks\I18n\Machine\TranslationProviderRegistry;
+use ContentBlocks\I18n\Preview\PreviewLocaleListener;
 use ContentBlocks\I18n\Progress\TranslationInspector;
 use ContentBlocks\I18n\Repository\BlockTranslationRepository;
 use ContentBlocks\I18n\Storage\TranslationStore;
@@ -26,6 +27,10 @@ use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Security\DenyAllAccessChecker;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Translation\Translator;
@@ -51,6 +56,28 @@ final class WorkbenchPageControllerTest extends TestCase
      * `cb_chrome=0` is the difference between a readable pane and the builder's
      * toolbars floating over a page with no builder behind them.
      */
+    // Its buttons write translations: another origin must not frame it.
+    public function testThePageIsFramedByItsOwnOriginOnlyAndNeverCached(): void
+    {
+        $response = $this->controller()->workbench(7, 'de');
+
+        $this->assertSame('SAMEORIGIN', $response->headers->get('X-Frame-Options'));
+        $this->assertTrue($response->headers->hasCacheControlDirective('no-store'));
+    }
+
+    // Opening the workbench is what lets this editor's preview relanguage.
+    public function testOpeningTheWorkbenchGrantsThePreviewLocaleToThisSession(): void
+    {
+        $request = new Request();
+        $request->setSession(new Session(new MockArraySessionStorage()));
+        $stack = new RequestStack();
+        $stack->push($request);
+
+        $this->controller(requestStack: $stack)->workbench(7, 'de');
+
+        $this->assertTrue($request->getSession()->get(PreviewLocaleListener::SESSION_KEY));
+    }
+
     public function testThePreviewUrlAsksForDraftContentWithoutTheEditingChrome(): void
     {
         $this->controller()->workbench(7, 'de');
@@ -245,6 +272,7 @@ final class WorkbenchPageControllerTest extends TestCase
         ?WorkbenchBackUrlResolverInterface $backUrlResolver = null,
         ?LocalizedPageUrlResolverInterface $pageUrls = null,
         bool $publicLinks = true,
+        ?RequestStack $requestStack = null,
     ): WorkbenchPageController {
         $this->context = [];
 
@@ -300,6 +328,7 @@ final class WorkbenchPageControllerTest extends TestCase
             $twig,
             $pageUrls ?? new NullLocalizedPageUrlResolver(),
             $publicLinks,
+            $requestStack,
         );
     }
 }
