@@ -649,6 +649,39 @@ document.addEventListener('cb:builder:action', (event) => {
 });
 ```
 
+### Saying how it went
+
+The builder is a modal: whatever your listener writes into your own page lands
+*under* it, out of sight. Report back through the builder instead — dispatch
+`cb:notify` at the action event's target (or anything inside the shell), and the
+message appears in the builder's snackbar:
+
+```js
+document.addEventListener('cb:builder:action', async (event) => {
+    if (event.detail.key !== 'save-as-model') return;
+    const builder = event.target;
+    const response = await fetch(`/admin/area/${event.detail.areaId}/save-as-model`, { method: 'POST' });
+    const model = await response.json();
+
+    builder.dispatchEvent(new CustomEvent('cb:notify', {
+        bubbles: true,
+        detail: {
+            message: `Model created: ${model.title}`,
+            link: { label: 'Open', href: model.url },   // optional
+        },
+    }));
+});
+```
+
+| `detail` | |
+|---|---|
+| `message` | Required, plain text — it is never parsed as HTML. An empty one is ignored. |
+| `link` | Optional `{ label, href }`, opened **in a new tab** so the builder stays open. An `href` that is not http(s) is dropped. |
+
+The snackbar has one slot: a notification replaces whatever was showing,
+including a pending *Undo* offer. It hides after 6 seconds, 10 with a link.
+Translate the text yourself — the builder shows it as given.
+
 ::: tip Labels
 A `label` (or `title`) is run through `trans` at render, the same way block-type labels are, so all three of these work:
 
@@ -710,7 +743,7 @@ document.addEventListener('cb:builder:action', async (event) => {
 });
 ```
 
-`cb:area:changed` is the one **inbound** public event: dispatched at the builder from the shell element or anything inside it, it makes the builder reload the preview and re-sync Publish / Discard — the same landing as an import or an "Insert content". `detail.hasUnpublishedChanges` is optional and defaults to `true`, which is what a draft write means.
+`cb:area:changed` is one of the two **inbound** public events: dispatched at the builder from the shell element or anything inside it, it makes the builder reload the preview and re-sync Publish / Discard — the same landing as an import or an "Insert content". `detail.hasUnpublishedChanges` is optional and defaults to `true`, which is what a draft write means.
 
 ::: tip Where fragments show up
 The shell asks for its fragments itself (the `cb_shell_fragments(area)` Twig function), so a fragment renders whether the builder came from `ContentAreaType` or from a direct `{% include '@ContentBlocks/builder/launcher.html.twig' %}`. That differs from `BuilderActionProviderInterface`, whose actions are gathered by `ContentAreaType` and, on a direct include, have to be passed as `topbarActions` by the host.

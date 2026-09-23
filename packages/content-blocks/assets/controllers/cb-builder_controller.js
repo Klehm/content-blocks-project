@@ -22,6 +22,7 @@ export default class extends Controller {
         'undoBar',
         'undoLabel',
         'undoButton',
+        'undoLink',
         'replacePicker',
         'replacePickerSearch',
         'replacePickerList',
@@ -105,6 +106,7 @@ export default class extends Controller {
      * @see docs/internals/frontend.md#feedback-what-stays-and-what-flashes
      */
     static UNDO_TIMEOUT_MS = 6000;
+    static NOTIFY_LINK_TIMEOUT_MS = 10000;
     /**
      * Below its target width a viewport button is hidden: emulating an
      * iPad-width preview on a phone screen only clips the iframe.
@@ -145,6 +147,7 @@ export default class extends Controller {
         this._onLiveConnect = this._onLiveConnect.bind(this);
         this._onSaveError = this._onSaveError.bind(this);
         this._onAreaChanged = this._onAreaChanged.bind(this);
+        this._onNotify = this._onNotify.bind(this);
         this._onDocumentPointerDown = this._onDocumentPointerDown.bind(this);
         this._onDocumentKeydown = this._onDocumentKeydown.bind(this);
         this._onTreeSelect = this._onTreeSelect.bind(this);
@@ -182,6 +185,7 @@ export default class extends Controller {
         // Inbound: a shell fragment (or the host) changed the area through
         // its own endpoints and asks the builder to catch up.
         this.element.addEventListener('cb:area:changed', this._onAreaChanged);
+        this.element.addEventListener('cb:notify', this._onNotify);
         // The tree panel signals; this controller acts, so every mutation
         // still goes through one queue. See docs/internals/frontend.md
         this.element.addEventListener('cb:tree:select', this._onTreeSelect);
@@ -219,6 +223,7 @@ export default class extends Controller {
         this.element.removeEventListener('live:connect', this._onLiveConnect);
         this.element.removeEventListener('cb:save:error', this._onSaveError);
         this.element.removeEventListener('cb:area:changed', this._onAreaChanged);
+        this.element.removeEventListener('cb:notify', this._onNotify);
         this.element.removeEventListener('cb:tree:select', this._onTreeSelect);
         this.element.removeEventListener('cb:tree:duplicate', this._onTreeDuplicate);
         this.element.removeEventListener('cb:tree:delete', this._onTreeDelete);
@@ -516,6 +521,30 @@ export default class extends Controller {
         this._applyDraftState(hasUnpublishedChanges);
         clearTimeout(this._reloadTimer);
         this.reload();
+    }
+
+    /**
+     * Inbound `cb:notify`: a host or fragment reports in the snackbar, since
+     * the page under the builder's modal is out of sight.
+     *
+     * @see docs/internals/frontend.md#the-cb-event-contract
+     */
+    _onNotify(event) {
+        const detail = event?.detail ?? {};
+        if (typeof detail.message !== 'string' || detail.message.trim() === '') return;
+        this._notify(detail.message, this._safeLink(detail.link));
+    }
+
+    /** Only http(s) targets: a `javascript:` href would run in the admin. */
+    _safeLink(link) {
+        if (!link || typeof link.href !== 'string' || typeof link.label !== 'string') return null;
+        try {
+            const url = new URL(link.href, window.location.href);
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+            return { href: url.href, label: link.label };
+        } catch (e) {
+            return null;
+        }
     }
 
     // ---------- Tree panel ----------
@@ -1572,23 +1601,33 @@ export default class extends Controller {
             this.undoLabelTarget.textContent = this.undoBarTarget.dataset[key] || '';
         }
         if (this.hasUndoButtonTarget) this.undoButtonTarget.hidden = false;
+        if (this.hasUndoLinkTarget) this.undoLinkTarget.hidden = true;
         this.undoBarTarget.hidden = false;
         clearTimeout(this._undoTimer);
         this._undoTimer = setTimeout(() => this._hideUndo(), this.constructor.UNDO_TIMEOUT_MS);
     }
 
     /**
-     * The same snackbar with nothing to click. It shares the slot with the undo
-     * offer, and clears it rather than leaving an invisible one armed.
+     * The same snackbar, at most a link to follow. It shares the slot with the
+     * undo offer, and clears it rather than leaving an invisible one armed.
      */
-    _notify(message) {
+    _notify(message, link = null) {
         if (!this.hasUndoBarTarget) return;
         this._pendingUndo = null;
         if (this.hasUndoLabelTarget) this.undoLabelTarget.textContent = message;
         if (this.hasUndoButtonTarget) this.undoButtonTarget.hidden = true;
+        if (this.hasUndoLinkTarget) {
+            this.undoLinkTarget.hidden = link === null;
+            this.undoLinkTarget.textContent = link?.label ?? '';
+            if (link) this.undoLinkTarget.href = link.href;
+            else this.undoLinkTarget.removeAttribute('href');
+        }
         this.undoBarTarget.hidden = false;
         clearTimeout(this._undoTimer);
-        this._undoTimer = setTimeout(() => this._hideUndo(), this.constructor.UNDO_TIMEOUT_MS);
+        const delay = link && this.hasUndoLinkTarget
+            ? this.constructor.NOTIFY_LINK_TIMEOUT_MS
+            : this.constructor.UNDO_TIMEOUT_MS;
+        this._undoTimer = setTimeout(() => this._hideUndo(), delay);
     }
 
     _hideUndo() {

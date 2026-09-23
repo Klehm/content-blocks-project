@@ -107,10 +107,17 @@ test.describe('builder topbar — host actions (cb:builder:action)', () => {
         await page.locator('.cb-shell__actions-toggle').click();
         await page.locator('.cb-shell__action--save-as-model').click();
 
-        // The host controller appends a link to the freshly-created model once
-        // the round-trip resolves. Waiting on the href implicitly waits for it.
-        const link = page.locator('[data-cb-host-actions-target="status"] a[data-cb-model-link]');
+        // The host answers through the inbound cb:notify: the builder's own
+        // snackbar, visible above the modal — not the page hidden beneath it.
+        const snackbar = page.locator('.cb-shell__undo');
+        await expect(snackbar).toBeVisible();
+        await expect(snackbar.locator('.cb-shell__undo-label')).toHaveText(/^Modèle créé : .+\(model\)$/);
+        const link = snackbar.locator('.cb-shell__undo-link');
+        await expect(link).toBeVisible();
+        await expect(link).toHaveText('Ouvrir');
         await expect(link).toHaveAttribute('href', /\/admin\/page\/\d+$/);
+        // A new tab: following it must not close the builder.
+        await expect(link).toHaveAttribute('target', '_blank');
 
         const sourceId = url.match(/\/admin\/page\/(\d+)/)[1];
         const modelHref = await link.getAttribute('href');

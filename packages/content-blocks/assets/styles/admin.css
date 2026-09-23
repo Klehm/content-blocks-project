@@ -1797,11 +1797,23 @@ body:has(.cb-builder-dialog[open]) {
   line-height: 1.2;
   box-shadow: 0 4px 16px rgba(var(--cb-shadow-rgb), 0.25);
   white-space: nowrap;
+  max-width: calc(100% - 2rem);
 }
 .cb-shell__undo[hidden] {
   display: none;
 }
-.cb-shell__undo-btn {
+.cb-shell__undo-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cb-shell__undo-link {
+  text-decoration: none;
+}
+.cb-shell__undo-link[hidden] {
+  display: none;
+}
+.cb-shell__undo-btn,
+.cb-shell__undo-link {
   background: transparent;
   border: 0;
   padding: 0.25rem 0.5rem;
@@ -1811,7 +1823,8 @@ body:has(.cb-builder-dialog[open]) {
   font-weight: 600;
   cursor: pointer;
 }
-.cb-shell__undo-btn:hover {
+.cb-shell__undo-btn:hover,
+.cb-shell__undo-link:hover {
   background: rgba(var(--cb-accent-soft-rgb), 0.12);
 }
 

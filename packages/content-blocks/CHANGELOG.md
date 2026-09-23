@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`cb:notify`, a second inbound public event.** Dispatched at the builder,
+  it shows `detail.message` in the builder's snackbar, with an optional
+  `detail.link` (`{ label, href }`) opened in a new tab. A host action that
+  reported its outcome in its own page did so under the builder's modal, where
+  nobody saw it — the sandbox's *Save as model* looked like it did nothing.
+  Text only; a non-http(s) link is dropped.
 - **Export as a streamed zip.** `GET …/export` answers a `.zip` —
   `content.json` plus one `media/{hash}.{ext}` per file, stored as-is —
   written as it is sent (`maennchen/zipstream-php`, a new dependency). Memory

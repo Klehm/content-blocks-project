@@ -24,6 +24,7 @@ function setupController(options = {}) {
                  hidden>
                 <span class="cb-shell__undo-label"></span>
                 <button type="button" class="cb-shell__undo-btn"></button>
+                <a class="cb-shell__undo-link" hidden></a>
             </div>
             <aside>
                 <button class="cb-shell__sidebar-toggle"></button>
@@ -37,6 +38,8 @@ function setupController(options = {}) {
     const saveError = element.querySelector('.cb-shell__save-error');
     const undoBar = element.querySelector('.cb-shell__undo');
     const undoLabel = element.querySelector('.cb-shell__undo-label');
+    const undoButton = element.querySelector('.cb-shell__undo-btn');
+    const undoLink = element.querySelector('.cb-shell__undo-link');
     const sidebar = element.querySelector('aside');
     const sidebarContent = sidebar.querySelector('.cb-shell__sidebar-content');
     const sidebarToggle = sidebar.querySelector('.cb-shell__sidebar-toggle');
@@ -60,6 +63,10 @@ function setupController(options = {}) {
     Object.defineProperty(controller, 'undoBarTarget', { value: undoBar });
     Object.defineProperty(controller, 'hasUndoLabelTarget', { value: true });
     Object.defineProperty(controller, 'undoLabelTarget', { value: undoLabel });
+    Object.defineProperty(controller, 'hasUndoButtonTarget', { value: true });
+    Object.defineProperty(controller, 'undoButtonTarget', { value: undoButton });
+    Object.defineProperty(controller, 'hasUndoLinkTarget', { value: true });
+    Object.defineProperty(controller, 'undoLinkTarget', { value: undoLink });
     Object.defineProperty(controller, 'areaIdValue', { value: options.areaId ?? 42 });
     Object.defineProperty(controller, 'iframeUrlValue', { value: options.iframeUrl ?? 'http://localhost/page/1?cb_preview=1' });
 
@@ -67,7 +74,7 @@ function setupController(options = {}) {
     // don't run connect() still need _resetSidebarToEmptyState to work.
     controller._sidebarEmptyHtml = sidebarContent.innerHTML;
 
-    return { controller, element, iframe, saveError, undoBar, undoLabel, sidebar, sidebarContent, sidebarToggle, sidebarResize };
+    return { controller, element, iframe, saveError, undoBar, undoLabel, undoButton, undoLink, sidebar, sidebarContent, sidebarToggle, sidebarResize };
 }
 
 function postMessage(data, origin = window.location.origin) {
@@ -1196,6 +1203,95 @@ describe('cb-builder: cb:area:changed (inbound)', () => {
         // The earlier timer must not fire a second, now-pointless reload.
         vi.advanceTimersByTime(Controller.SAVE_RELOAD_DEBOUNCE_MS + 10);
         expect(reloadSpy).toHaveBeenCalledTimes(1);
+    });
+});
+
+/**
+ * `cb:notify`, the second inbound event: a host action or a fragment reports
+ * its outcome in the snackbar, above the modal that hides the host page.
+ */
+describe('cb-builder: cb:notify (inbound)', () => {
+    let controller, undoBar, undoLabel, undoButton, undoLink;
+
+    beforeEach(() => {
+        ({ controller, undoBar, undoLabel, undoButton, undoLink } = setupController());
+        controller._onNotify = controller._onNotify.bind(controller);
+        controller.element.addEventListener('cb:notify', controller._onNotify);
+    });
+
+    afterEach(() => {
+        controller.element.removeEventListener('cb:notify', controller._onNotify);
+        vi.useRealTimers();
+    });
+
+    const notify = (target, detail) => target.dispatchEvent(
+        new CustomEvent('cb:notify', { bubbles: true, detail }),
+    );
+
+    it('shows the message from a descendant, with no undo to click', () => {
+        const action = document.createElement('button');
+        controller.element.appendChild(action);
+        controller._pendingUndo = { kind: 'block', id: 3 };
+
+        notify(action, { message: 'Model created' });
+
+        expect(undoBar.hidden).toBe(false);
+        expect(undoLabel.textContent).toBe('Model created');
+        expect(undoButton.hidden).toBe(true);
+        expect(undoLink.hidden).toBe(true);
+        // It takes the slot: the undo offer it replaced is disarmed.
+        expect(controller._pendingUndo).toBeNull();
+    });
+
+    it('adds a link, and leaves it up longer than a plain message', () => {
+        vi.useFakeTimers();
+        notify(controller.element, {
+            message: 'Model created',
+            link: { label: 'Open', href: '/admin/page/12' },
+        });
+
+        expect(undoLink.hidden).toBe(false);
+        expect(undoLink.textContent).toBe('Open');
+        expect(undoLink.getAttribute('href'))
+            .toBe(new URL('/admin/page/12', window.location.href).href);
+
+        vi.advanceTimersByTime(Controller.UNDO_TIMEOUT_MS + 10);
+        expect(undoBar.hidden).toBe(false);
+        vi.advanceTimersByTime(Controller.NOTIFY_LINK_TIMEOUT_MS);
+        expect(undoBar.hidden).toBe(true);
+    });
+
+    it('renders the message as text, never markup', () => {
+        notify(controller.element, { message: '<img src=x onerror=alert(1)>' });
+
+        expect(undoLabel.textContent).toBe('<img src=x onerror=alert(1)>');
+        expect(undoLabel.querySelector('img')).toBeNull();
+    });
+
+    it('drops a link that is not http(s)', () => {
+        notify(controller.element, {
+            message: 'Done',
+            link: { label: 'Open', href: 'javascript:alert(1)' },
+        });
+
+        expect(undoBar.hidden).toBe(false);
+        expect(undoLink.hidden).toBe(true);
+        expect(undoLink.hasAttribute('href')).toBe(false);
+    });
+
+    it('ignores an event without a message', () => {
+        notify(controller.element, {});
+        notify(controller.element, { message: '   ' });
+
+        expect(undoBar.hidden).toBe(true);
+    });
+
+    it('hides the link again when an undo offer takes the slot', () => {
+        notify(controller.element, { message: 'Done', link: { label: 'Open', href: '/x' } });
+        controller._offerUndo('block', 5);
+
+        expect(undoLink.hidden).toBe(true);
+        expect(undoButton.hidden).toBe(false);
     });
 });
 

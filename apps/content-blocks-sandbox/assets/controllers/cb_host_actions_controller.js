@@ -8,17 +8,16 @@ import { Controller } from '@hotwired/stimulus';
  * `cb:builder:action` event carrying `detail.key`. The bundle re-parents the
  * builder <dialog> to <body>, so the event bubbles all the way up to
  * `document` — we listen there, not on this element. The host owns the
- * behaviour: here "save-as-model" round-trips to a host endpoint and surfaces
- * a link to the freshly-created model page, and "translate" opens the i18n
+ * behaviour: here "save-as-model" round-trips to a host endpoint and reports
+ * back through the inbound `cb:notify` event, and "translate" opens the i18n
  * package's workbench.
  */
 export default class extends Controller {
     static values = {
         saveAsModelUrl: String,
         workbenchUrl: String,
+        messages: Object,
     };
-
-    static targets = ['status'];
 
     connect() {
         this._onAction = this._onAction.bind(this);
@@ -40,8 +39,9 @@ export default class extends Controller {
 
         if (key !== 'save-as-model') return;
 
-        this._setStatus('Saving as model…');
-
+        // The page under the builder's modal is out of sight: the answer goes
+        // to the builder's snackbar, dispatched back at the action's target.
+        const origin = event.target;
         let payload = null;
         try {
             const response = await fetch(this.saveAsModelUrlValue, {
@@ -53,11 +53,14 @@ export default class extends Controller {
             payload = await response.json();
         } catch (e) {
             console.error('[sandbox] save-as-model failed', e);
-            this._setStatus('Could not save as model.');
+            this._notify(origin, { message: this._message('failed') });
             return;
         }
 
-        this._renderSuccess(payload);
+        this._notify(origin, {
+            message: this._message('created').replace('%title%', payload.title),
+            link: { label: this._message('open'), href: payload.builderUrl },
+        });
     }
 
     /**
@@ -71,26 +74,11 @@ export default class extends Controller {
         window.open(this.workbenchUrlValue, '_blank', 'noopener');
     }
 
-    _renderSuccess(payload) {
-        if (!this.hasStatusTarget) return;
-        this.statusTarget.hidden = false;
-        this.statusTarget.innerHTML = '';
-
-        const label = document.createElement('span');
-        label.textContent = 'Model created: ';
-
-        const link = document.createElement('a');
-        link.href = payload.builderUrl;
-        link.textContent = `${payload.title} (#${payload.id})`;
-        link.setAttribute('data-cb-model-link', '');
-
-        this.statusTarget.appendChild(label);
-        this.statusTarget.appendChild(link);
+    _message(key) {
+        return this.messagesValue[key] ?? key;
     }
 
-    _setStatus(text) {
-        if (!this.hasStatusTarget) return;
-        this.statusTarget.hidden = false;
-        this.statusTarget.textContent = text;
+    _notify(origin, detail) {
+        origin.dispatchEvent(new CustomEvent('cb:notify', { bubbles: true, detail }));
     }
 }

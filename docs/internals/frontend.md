@@ -25,7 +25,7 @@ accidentally leave the page being edited. Everything else happens in the parent.
 
 ### The cb:* event contract
 
-**Five events are public API and stable across 1.x.** Four outbound, which a host
+**Six events are public API and stable across 1.x.** Four outbound, which a host
 may listen to on the builder element:
 
 | Event | Means |
@@ -35,13 +35,18 @@ may listen to on the builder element:
 | `cb:section:saved` | a section's draft was persisted |
 | `cb:builder:action` | a host-contributed topbar action was invoked |
 
-One is **inbound**, dispatched *at* the builder from the shell element or
-anything inside it — a [shell fragment](builder-extensions.md), say:
+Two are **inbound**, dispatched *at* the builder from the shell element or
+anything inside it — a [shell fragment](builder-extensions.md), say, or the
+target of a `cb:builder:action`:
 
 - `cb:area:changed` — the area was written server-side behind the builder's
   back (restored, replaced, mass-edited), so it reloads the preview and re-syncs
   Publish/Discard. `detail.hasUnpublishedChanges` is optional and **defaults to
   true**, since such a change is a draft write.
+- `cb:notify` — show `detail.message` in the builder's snackbar, with an
+  optional `detail.link` (`{ label, href }`) opened in a new tab. It exists
+  because the builder is a modal: a host action that reported its outcome in
+  its own page reported it under the modal, where nobody saw it.
 
 Every other `cb:*` event across these two files is **internal choreography** —
 the `…-requested`, `…:apply`, `…:patch`, `…:desync` and `cb:tree:*` families in
@@ -50,6 +55,13 @@ particular. They may be renamed, split or removed in any minor release.
 A `cb:area:changed` **supersedes** a pending debounced reload rather than
 coalescing with it: the area just changed wholesale, and waiting out the quiet
 period would show the stale preview for that much longer.
+
+A `cb:notify` takes the snackbar's one slot, so it disarms a pending undo offer
+exactly as the clipboard's messages do. The message is set as text, never
+markup, and a link whose `href` is not http(s) is dropped rather than rendered —
+a `javascript:` URL would run in the admin. With a link, the bar stays up 10 s
+instead of 6: there is something to reach for. The new tab is not a choice left
+to the host: following the link in place would close the builder.
 
 ## Endpoint URLs come from the router
 

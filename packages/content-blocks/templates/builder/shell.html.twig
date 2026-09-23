@@ -364,6 +364,12 @@
                 data-action="cb-builder#undoDelete">
             {{ 'cb.builder.undo.action'|trans({}, 'content_blocks') }}
         </button>
+        {# Filled by an inbound cb:notify; a new tab keeps the builder open. #}
+        <a class="cb-shell__undo-link"
+           data-cb-builder-target="undoLink"
+           target="_blank"
+           rel="noopener"
+           hidden></a>
     </div>
 
     {# Last, so a fragment's overlay stacks above the chrome, and inside the

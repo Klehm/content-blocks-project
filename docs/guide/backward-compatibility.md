@@ -38,7 +38,7 @@ Every shipped template path, since overriding one under `templates/bundles/` is 
 
 - The 15 **Stimulus controller names**, which hosts write into `assets/controllers.json`.
 - All 94 **`--cb-*` CSS custom properties** — the chrome tokens and form alias layer in [Styling](./styling#theming-the-builder-chrome), the kit's seven content tokens in the [Block Kit](../kit/#the-kits-own-tokens), the workbench's fifteen in [Translation](./translation#theming-the-workbench).
-- **Five `cb:*` events**: four outbound — `cb:ready`, `cb:block:saved`, `cb:section:saved`, `cb:builder:action` — and one inbound, `cb:area:changed`, which a [shell fragment](./host-services#adding-your-own-ui-to-the-builder-shell) or the host dispatches at the builder after changing the area server-side.
+- **Six `cb:*` events**: four outbound — `cb:ready`, `cb:block:saved`, `cb:section:saved`, `cb:builder:action` — and two inbound, which a [shell fragment](./host-services#adding-your-own-ui-to-the-builder-shell) or the host dispatches at the builder: `cb:area:changed` after changing the area server-side, `cb:notify` to say something in the builder's snackbar.
 
 The other 33 `cb:*` events are internal choreography between the preview overlay, the iframe and the builder shell — the `…-requested`, `…:apply`, `…:patch` and `…:desync` families. They are how the builder talks to itself, and they change as it changes.
 
