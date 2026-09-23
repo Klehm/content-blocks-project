@@ -6,6 +6,8 @@ title: List block
 
 > A bulleted, checkmark or numbered list.
 
+![The list block, rendered](/screenshots/kit/list.webp){.cb-kit-shot}
+
 A simple list of items rendered as bullets, checkmarks, or numbers depending on the chosen style. Each item is plain text.
 
 ## When to use

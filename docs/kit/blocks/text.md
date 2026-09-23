@@ -6,6 +6,8 @@ title: Text block
 
 > A plain paragraph of text with a palette-driven color.
 
+![The text block, rendered](/screenshots/kit/text.webp){.cb-kit-shot}
+
 A single block of plain paragraph text — no rich formatting, no HTML. For formatted copy (bold, links, lists) reach for [`rich_text`](./rich_text.md) instead. The text color is picked from the project palette.
 
 ## When to use

@@ -6,6 +6,8 @@ title: Button group block
 
 > One to three buttons in a row, sharing size and alignment.
 
+![The button_group block, rendered](/screenshots/kit/button_group.webp){.cb-kit-shot}
+
 A row of call-to-action buttons that sit side by side and wrap together. Each entry has its own label, URL and `variant`; the `size` and alignment are shared by the whole row, so the buttons always match. Links go through the same safe-URL guard as [`button`](./button.md).
 
 ## When to use

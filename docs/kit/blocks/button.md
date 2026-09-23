@@ -6,6 +6,8 @@ title: Button block
 
 > A call-to-action button with variants, sizes and alignment.
 
+![The button block, rendered](/screenshots/kit/button.webp){.cb-kit-shot}
+
 A styled link-button for calls to action. Choose a visual `variant` (e.g. primary/secondary/outline), a `size`, and horizontal alignment. The label and target URL are free text.
 
 ## When to use

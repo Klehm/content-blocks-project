@@ -6,6 +6,8 @@ title: Rich text block
 
 > WYSIWYG rich text, on TinyMCE or CKEditor.
 
+![The rich_text block, rendered](/screenshots/kit/rich_text.webp){.cb-kit-shot}
+
 A full WYSIWYG editor for formatted copy: bold/italic, links, lists, headings, colors and images. Which editor mounts it is the host's choice — **TinyMCE** (default) or **CKEditor 5** — set once in configuration. Whichever runs, the block stores the same `{ content: "<html>" }`, so switching editors is a config change and never a data migration. The color swatches are wired to the project palette (`cb_color_palette()`), so rich text stays on-brand under either.
 
 ## When to use

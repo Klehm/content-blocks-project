@@ -10,7 +10,7 @@
 // Regenerate:  npm run docs:blocks          (from committed blocks.json)
 //              npm run docs:blocks:refresh   (re-dumps blocks.json first, needs PHP)
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { blocksMeta } from './blocks-meta.mjs';
@@ -122,6 +122,11 @@ function page(type, b, meta) {
   out.push('');
   out.push(`> ${meta.tagline}`);
   out.push('');
+  // Taken by scripts/screenshots/, from the kit's own stylesheet.
+  if (existsSync(join(docsRoot, `public/screenshots/kit/${type}.webp`))) {
+    out.push(`![The ${type} block, rendered](/screenshots/kit/${type}.webp){.cb-kit-shot}`);
+    out.push('');
+  }
   if (b.disabledByDefault) {
     out.push('::: warning Disabled by default');
     out.push(`The \`${type}\` block is **not registered** unless you opt in with \`content_blocks_kit.blocks.${type}.enabled: true\`.`);

@@ -6,6 +6,8 @@ title: Image block
 
 > A single image with size, fit, alignment, link, caption and rounded corners.
 
+![The image block, rendered](/screenshots/kit/image.webp){.cb-kit-shot}
+
 Displays one image with a rich set of presentation controls: a size preset (`sm`/`md`/`lg`/`full`) or a fully custom width/height, object-fit (`cover`/`contain`), horizontal alignment, an optional link wrapper, a caption, and per-corner border radius. Uploads go through the core upload brick (`ImageUploadType` + `/_content-blocks/upload`).
 
 ## When to use

@@ -10,6 +10,8 @@ The kit is **self-contained**: no Tailwind, no Bootstrap, no LiipImagine, no ico
 
 ## The 19 blocks
 
+<KitGallery />
+
 | Block | What it is |
 |---|---|
 | [`title`](./blocks/title.md) | Heading with a visual size decoupled from its semantic tag |

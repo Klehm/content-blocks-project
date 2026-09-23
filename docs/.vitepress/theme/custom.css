@@ -1,0 +1,145 @@
+/* Screenshots sit on the page's own background: a hairline and a radius
+   keep a white shot apart from a white page. */
+.vp-doc img.cb-kit-shot,
+.cb-shot img {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+}
+
+.vp-doc img.cb-kit-shot {
+  margin: 1.5rem 0;
+}
+
+.cb-home-extra {
+  max-width: 1152px;
+  margin: 4rem auto 0;
+  padding: 0 24px;
+}
+
+.cb-home-extra h2 {
+  border-top: 1px solid var(--vp-c-divider);
+  padding-top: 2.5rem;
+  margin-top: 3rem;
+}
+
+.cb-home-extra table {
+  display: table;
+  width: 100%;
+}
+
+.cb-lead {
+  color: var(--vp-c-text-2);
+}
+
+/* Numbers: a figure over a caption, no boxes. */
+.vp-doc ul.cb-stats,
+.cb-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 2rem 1.5rem;
+  margin: 2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vp-doc .cb-stats li + li {
+  margin-top: 0;
+}
+
+.vp-doc .cb-stats li {
+  margin: 0;
+}
+
+.cb-stats strong {
+  display: block;
+  font-size: 2.25rem;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--vp-c-brand-1);
+}
+
+.cb-stats span {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--vp-c-text-2);
+}
+
+.cb-shot {
+  margin: 1.5rem 0 0;
+}
+
+.cb-shot figcaption {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--vp-c-text-2);
+}
+
+.cb-shot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem 1.5rem;
+}
+
+/* The kit gallery: each block's own render, linked to its page. */
+.cb-kit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.vp-doc .cb-kit-grid a,
+.cb-kit-grid a {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cb-kit-grid .cb-kit-thumb {
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  transition: border-color 0.2s;
+}
+
+.cb-kit-grid a:hover .cb-kit-thumb {
+  border-color: var(--vp-c-brand-1);
+}
+
+.cb-kit-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.cb-kit-grid .cb-kit-name {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cb-kit-grid .cb-kit-name code {
+  font-size: 0.85em;
+}
+
+@media (max-width: 640px) {
+  .cb-shot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cb-home-extra {
+    padding: 0 16px;
+  }
+}

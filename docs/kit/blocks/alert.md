@@ -6,6 +6,8 @@ title: Alert block
 
 > An info / success / warning / error callout.
 
+![The alert block, rendered](/screenshots/kit/alert.webp){.cb-kit-shot}
+
 A colored callout box for drawing attention: informational, success, warning or error variants, each with its own accent color and (optional) icon.
 
 ## When to use

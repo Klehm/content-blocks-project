@@ -6,6 +6,8 @@ title: Video block
 
 > A self-hosted video file in the browser's native player.
 
+![The video block, rendered](/screenshots/kit/video.webp){.cb-kit-shot}
+
 Plays a video file uploaded to the site, in the browser's own `<video>` player: no player script and no third party. It has a poster image, a size and an alignment like [`image`](./image.md), and playback options: autoplay, muted, controls and loop. For YouTube or Vimeo, use [`embed`](./embed.md).
 
 ## When to use

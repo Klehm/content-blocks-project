@@ -6,6 +6,8 @@ title: Breadcrumb block
 
 > A breadcrumb trail.
 
+![The breadcrumb block, rendered](/screenshots/kit/breadcrumb.webp){.cb-kit-shot}
+
 Renders a breadcrumb navigation trail from a list of label/URL pairs.
 
 ## When to use

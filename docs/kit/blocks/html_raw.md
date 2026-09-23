@@ -6,6 +6,8 @@ title: Html raw block
 
 > A raw-HTML escape hatch — renders unescaped markup.
 
+![The html_raw block, rendered](/screenshots/kit/html_raw.webp){.cb-kit-shot}
+
 ::: warning Disabled by default
 The `html_raw` block is **not registered** unless you opt in with `content_blocks_kit.blocks.html_raw.enabled: true`.
 :::

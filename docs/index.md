@@ -31,7 +31,7 @@ features:
     details: The optional kit ships title, text, rich text, image, gallery, button, card, list, icon, alert, divider, accordion, table, embed, video, breadcrumb, tabs and a raw-HTML escape hatch — all self-contained, zero CSS-framework dependency.
   - icon: 🔌
     title: Extensible by design
-    details: A block is one PHP class with a Symfony form. Tag it with #[AsContentBlock] and it auto-registers. The form IS the data whitelist and validator.
+    details: 'A block is one PHP class with a Symfony form. Tag it with #[AsContentBlock] and it auto-registers. The form IS the data whitelist and validator.'
   - icon: 🔒
     title: Secure by default
     details: DenyAll access checker out of the box, CSRF-guarded AJAX, IDOR protection on every mutation, and MIME/size-checked uploads. You wire your auth model; the bundle enforces it.
@@ -42,17 +42,49 @@ features:
 
 <div class="cb-home-extra">
 
+## By the numbers
+
+<ul class="cb-stats">
+  <li><strong>19</strong><span>ready-made blocks in the kit, one stylesheet, no CSS framework</span></li>
+  <li><strong>38</strong><span>public interfaces a host implements or replaces</span></li>
+  <li><strong>1,551</strong><span>PHPUnit tests across the three packages</span></li>
+  <li><strong>589</strong><span>Vitest tests for the Stimulus controllers</span></li>
+  <li><strong>202</strong><span>Playwright tests, on MySQL and PostgreSQL</span></li>
+  <li><strong>6.4 → 8</strong><span>Symfony versions in CI, on PHP 8.2 to 8.4</span></li>
+</ul>
+
 ## The builder
 
-A block's form in the sidebar, the page's real preview beside it.
+<p class="cb-lead">The editor works on your real page. A block's form sits in the sidebar, the page's preview beside it, and nothing reaches visitors before Publish.</p>
 
-![The builder](/screenshots/builder.webp)
+<figure class="cb-shot">
+  <img src="/screenshots/builder.webp" alt="The builder: a block's form in the sidebar, the page's real preview beside it">
+</figure>
 
-## The translation workbench
+<div class="cb-shot-grid">
+  <figure class="cb-shot">
+    <img src="/screenshots/section-sidebar.webp" alt="A section's sidebar, its layout panel open" loading="lazy">
+    <figcaption><strong>Sections.</strong> Layout, widths, display per viewport: grid, slider, tabs or accordion.</figcaption>
+  </figure>
+  <figure class="cb-shot">
+    <img src="/screenshots/navigator.webp" alt="The navigator floating over the preview" loading="lazy">
+    <figcaption><strong>Navigator.</strong> The whole page as a tree: drag, duplicate, delete.</figcaption>
+  </figure>
+  <figure class="cb-shot">
+    <img src="/screenshots/builder-mobile.webp" alt="The page previewed at phone width" loading="lazy">
+    <figcaption><strong>Every viewport.</strong> Preview on tablet and mobile, and reorder blocks there only.</figcaption>
+  </figure>
+  <figure class="cb-shot">
+    <img src="/screenshots/workbench.webp" alt="The translation workbench" loading="lazy">
+    <figcaption><strong>Translation.</strong> One layout, a value per language, previewed as you type.</figcaption>
+  </figure>
+</div>
 
-One layout, a value per language, the translated page previewed as you type.
+## The block kit
 
-![The translation workbench](/screenshots/workbench.webp)
+<p class="cb-lead">Each thumbnail is the block as your visitors get it, styled by the kit's stylesheet alone. Retheme it with seven CSS custom properties.</p>
+
+<KitGallery />
 
 ## Install in two commands
 
@@ -87,17 +119,3 @@ ContentArea  →  Section  →  Column  →  Block
 Installing is a short, deterministic path — and it's documented for AI coding agents too. See [`AGENTS.md`](https://github.com/klehm/content-blocks-project/blob/master/AGENTS.md) and the machine-readable [`llms.txt`](/llms.txt) index.
 
 </div>
-
-<style>
-.cb-home-extra {
-  max-width: 960px;
-  margin: 4rem auto 0;
-  padding: 0 24px;
-}
-.cb-home-extra h2 {
-  border-top: 1px solid var(--vp-c-divider);
-  padding-top: 2.5rem;
-  margin-top: 3rem;
-}
-.cb-home-extra table { display: table; width: 100%; }
-</style>

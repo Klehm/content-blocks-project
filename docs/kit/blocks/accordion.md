@@ -6,6 +6,8 @@ title: Accordion block
 
 > Collapsible panels built on native `<details>` — zero JavaScript.
 
+![The accordion block, rendered](/screenshots/kit/accordion.webp){.cb-kit-shot}
+
 A set of collapsible panels, each with a header and a body. Built on the **native `<details>`/`<summary>` elements**, so it needs no JavaScript at all and works even with JS disabled.
 
 ## When to use
