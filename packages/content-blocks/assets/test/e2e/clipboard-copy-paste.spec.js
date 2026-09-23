@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * E2E for the copy/paste clipboard.
@@ -29,7 +30,7 @@ async function createFreshPage(page) {
 
 async function openBuilder(page, url) {
     await page.goto(url);
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     return page.frameLocator('.cb-shell__iframe');
 }
@@ -123,7 +124,7 @@ test.describe('clipboard — copy / paste', () => {
 
         // Draft-written: it survives a real reload of the whole page.
         await page.reload();
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
         await expect(page.locator('.cb-shell')).toBeVisible();
         const reloaded = page.frameLocator('.cb-shell__iframe');
         await expect(reloaded.locator('[data-cb-block-id]').first()).toBeVisible();

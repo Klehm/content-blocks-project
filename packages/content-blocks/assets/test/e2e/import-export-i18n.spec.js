@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 import { fetchExport, jsonFile, reviewImport, runImport } from './helpers/transfer.js';
 
 /**
@@ -71,7 +72,7 @@ async function createFreshPage(page) {
 /** Opens the builder on a fresh page and returns its area id. */
 async function openFreshBuilder(page) {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
 
     return page.locator('[data-cb-builder-area-id-value]')

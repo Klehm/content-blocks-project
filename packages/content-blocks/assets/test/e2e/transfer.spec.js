@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 import { makeZip } from '../helpers/make-zip.js';
 import {
     fetchExport, jsonFile, openTransfer, reviewImport, runImport, shellInfo,
@@ -26,7 +27,7 @@ async function openFreshBuilder(page) {
         maxRedirects: 0,
     });
     await page.goto(response.headers()['location']);
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
 
     return page.frameLocator('.cb-shell__iframe');
