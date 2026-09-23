@@ -182,7 +182,7 @@ The upload endpoint (`content_blocks_upload`) checks the CSRF token, the size (`
 
 An **import** writes files too, and goes through the same checks: each file's MIME type is sniffed from its bytes and checked against the same list, and its stored extension is derived from that type. The `mimeType` and `extension` written in the export are ignored, so a forged export cannot place a `.php` or `.html` file under your public upload prefix. Each file is also hashed on arrival and kept only if it is one the export lists, and the content is resolved only against files the server itself checked, so a forged manifest cannot point a block at a file of its choosing. A refused file stops the import before the content is written.
 
-`image/svg+xml` is in the default list. An SVG can carry script, which runs when the file is opened directly from your domain. If your editors are not fully trusted, remove it from `allowed_mime_types`, or serve the upload directory with `Content-Security-Policy: script-src 'none'`.
+`image/svg+xml` is **not** in the default list. An SVG can carry script, which runs when the file is opened directly from your domain — stored XSS on your own origin. Add it to `allowed_mime_types` only if your editors are fully trusted, and then serve the upload directory with `Content-Security-Policy: sandbox` (or `script-src 'none'`).
 
 ### Stored paths are confined
 

@@ -128,7 +128,6 @@ final class ContentBlocksBundle extends AbstractBundle
                                 'image/png',
                                 'image/gif',
                                 'image/webp',
-                                'image/svg+xml',
                                 'application/pdf',
                             ])
                         ->end()

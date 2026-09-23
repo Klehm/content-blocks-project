@@ -51,6 +51,32 @@ final class UploadControllerTest extends ControllerTestCase
         $this->assertStringContainsString('not allowed', (string) $response->getContent());
     }
 
+    // A scripted SVG served from the site's origin is stored XSS.
+    public function testTheDefaultPolicyRefusesSvg(): void
+    {
+        $tmp = (string) tempnam(sys_get_temp_dir(), 'cbsvg');
+        file_put_contents($tmp, '<svg xmlns="http://www.w3.org/2000/svg" '
+            . 'onload="alert(1)"/>');
+        $svg = new UploadedFile($tmp, 'x.svg', 'image/svg+xml', null, test: true);
+        $controller = new UploadController(
+            new NullFileStorage(),
+            $this->makeCsrfManager(true),
+        );
+
+        $response = $controller->upload($this->makeUploadRequest($svg));
+
+        $this->assertSame(400, $response->getStatusCode());
+        $this->assertStringContainsString('not allowed', (string) $response->getContent());
+    }
+
+    public function testTheBundleDefaultsDoNotListSvg(): void
+    {
+        $policy = new \ContentBlocks\Transfer\AssetPolicy();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $policy->check('x.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>', 'svg');
+    }
+
     public function testStoresTheFileAndReturnsItsUrl(): void
     {
         $storage = new class () implements FileStorageInterface {

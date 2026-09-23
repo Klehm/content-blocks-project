@@ -78,7 +78,6 @@ return static function (ContainerConfigurator $container): void {
             'image/png',
             'image/gif',
             'image/webp',
-            'image/svg+xml',
             'application/pdf',
         ])
         ->set('content_blocks.import.max_size', 50 * 1024 * 1024);

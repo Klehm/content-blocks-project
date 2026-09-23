@@ -26,7 +26,6 @@ final class AssetPolicy
             'image/png',
             'image/gif',
             'image/webp',
-            'image/svg+xml',
             'application/pdf',
         ],
     ) {

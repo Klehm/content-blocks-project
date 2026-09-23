@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   decorators emit a colour only if it is a single colour value
   (`ContentBlocks\Palette\CssColor`, Twig `cb_css_color()`), which also covers
   values arriving by import or template.
+- **SVG is no longer an allowed upload by default.** A scripted SVG served
+  from the site's origin runs when opened directly — stored XSS reachable by
+  any editor, through the upload endpoint or an import.
+  `upload.allowed_mime_types` defaults to JPEG, PNG, GIF, WebP and PDF. To keep
+  SVG, list it explicitly and serve the upload directory with
+  `Content-Security-Policy: sandbox` (docs/guide/security.md).
 - **An import could write any file type into the public upload directory.**
   Each embedded file was stored under the `extension` written in the JSON, so
   a forged export could drop a `.php` file (code execution where the upload
