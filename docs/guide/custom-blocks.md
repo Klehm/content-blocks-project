@@ -19,12 +19,12 @@ use Symfony\Component\Form\FormBuilderInterface;
 #[AsContentBlock]
 final class MyBlock extends AbstractBlockType
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'my_block';
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'My Block';
     }
@@ -58,7 +58,7 @@ The block is detected automatically as long as its class lives in a namespace lo
 | `getLabel(): string\|TranslatableInterface` | ✅ | Label in the picker & block toolbar. String, or a `TranslatableMessage` for a custom translation domain — [see below](#translatable-labels). |
 | `buildForm(FormBuilderInterface, array $data): void` | ✅ | The edit form. **This is also the data whitelist & validator** — [see below](#the-form-is-your-data-whitelist). |
 | `getDefaultData(): array` | ✅ | Initial `data` for a freshly-added block. |
-| `getViewTemplate(): ?string` | default `null` | The Twig template that renders the block front-and-preview — [see below](#the-view-template). `null` ⇒ generic key/value dump. |
+| `getViewTemplate(): ?string` | default `null` | The Twig template that renders the block front-and-preview — [see below](#the-view-template). `null` ⇒ the block renders nothing. |
 | `getIcon(): ?string` | default `null` | Inline SVG shown in the picker — [see below](#an-icon-in-the-picker). `null` ⇒ generic glyph. |
 | `getFormTheme(): ?string` | default `null` | A custom Twig form theme for the edit form — [see below](#a-custom-form-theme). |
 | `supportsPreviewHotReload(): bool` | default `false` | Swap this block in place instead of reloading the iframe — [see below](#opting-into-preview-hot-reload). |
@@ -87,8 +87,16 @@ Where the file lives depends on how you ship the block:
 
 Symfony auto-registers a bundle's `templates/` directory under its `@YourBundle` Twig namespace — which is exactly how the kit points at `'@ContentBlocksKit/block/alert/view.html.twig'`.
 
+The view receives two variables, and nothing else from the page: `data`, the block's data, and `block_id`, its id. Use `block_id` for anything that must be unique on the page, such as a radio group's `name` or an ARIA id; unlike `random()`, it gives the same markup on every render, which keeps the page cacheable:
+
+```twig
+{% set uid = 'my-block-' ~ (block_id ?? random()) %}
+```
+
+`block_id` can be `null` when a view is rendered on its own, in a test for instance, hence the fallback.
+
 ::: warning A view template is effectively required for a real block
-`AbstractBlockType::getViewTemplate()` returns `null` by default, which renders a **generic key/value dump** of the block's data — fine as a placeholder, but not a real front-end. Any block you actually ship should return a template path.
+`AbstractBlockType::getViewTemplate()` returns `null` by default, and a `null` template renders **nothing**: the block's wrapper `<div>` is on the page, empty, and there is no generic fallback. Any block you actually ship must return a template path.
 :::
 
 Hosts (or the kit's users) can override your template without forking: drop a file at the matching path under `templates/bundles/YourBundle/…`. See [Overriding render templates](./rendering.md#overriding-render-templates).
@@ -102,7 +110,7 @@ Check that the block class sits in a namespace wired into the container. In the 
 `getIcon()` returns **self-contained inline SVG** shown next to the label in the "+ block" picker. Use `currentColor` for strokes/fills so the icon inherits the picker's theme color:
 
 ```php
-public static function getIcon(): ?string
+public function getIcon(): ?string
 {
     return <<<'SVG'
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -134,7 +142,7 @@ final class MyBlock extends AbstractBlockType { /* … */ }
 ```php
 use Symfony\Component\Translation\TranslatableMessage;
 
-public static function getLabel(): string|TranslatableInterface
+public function getLabel(): string|TranslatableInterface
 {
     return new TranslatableMessage('block.my_block.label', [], 'messages');
 }
@@ -152,6 +160,62 @@ public function getFormTheme(): ?string
 ```
 
 The kit uses this mechanism for its richer fields (image upload, palette color). For simple field tweaks you usually don't need it — a `row_attr`/`attr` on the field or the shared `cb-condition` controller is enough.
+
+## A field driven by JavaScript
+
+A color wheel, a map picker, an editor: a field whose widget is built by a
+script needs three things, because the sidebar form is a **Live Component**.
+Each save re-renders it on the server and *morphs* the new HTML into the page,
+and each field reaches the server through its input's `input` and `change`
+events.
+
+1. **A Stimulus controller on the widget**, not a script run once on load. The
+   morph can remove and re-add the element; `connect()` and `disconnect()` are
+   what follow it.
+2. **`data-live-ignore` on the element your script owns**, so the morph does not
+   replace the DOM the widget built with the server's plain `<input>`.
+3. **Events after every change you make in JavaScript.** Setting `input.value`
+   fires nothing, so Live would never see the value, and the next morph would
+   put the old one back. Dispatch them yourself, bubbling:
+
+```js
+// assets/controllers/color_wheel_controller.js
+import { Controller } from '@hotwired/stimulus';
+
+export default class extends Controller {
+    static targets = ['input'];
+
+    connect() {
+        this.wheel = new ColorWheel(this.element, {
+            value: this.inputTarget.value,
+            onChange: (color) => {
+                this.inputTarget.value = color;
+                // `input` is debounced by autosave, `change` saves now.
+                this.inputTarget.dispatchEvent(new Event('input', { bubbles: true }));
+                this.inputTarget.dispatchEvent(new Event('change', { bubbles: true }));
+            },
+        });
+    }
+
+    disconnect() {
+        this.wheel.destroy();
+    }
+}
+```
+
+```twig
+{# In the theme getFormTheme() returns, for a type whose prefix is color_wheel #}
+{% block color_wheel_widget %}
+    {%- set attr = attr|merge({'data-color-wheel-target': 'input'}) -%}
+    <div data-controller="color-wheel" data-live-ignore>
+        {{ block('form_widget_simple') }}
+    </div>
+{% endblock %}
+```
+
+The input stays a real form field inside the wrapper: it is what the form
+submits and validates. The kit's rich-text editors follow the same pattern
+(`rich_text_theme.html.twig`, `cb-tinymce_controller.js`).
 
 ## Injecting services
 

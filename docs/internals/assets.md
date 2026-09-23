@@ -139,6 +139,28 @@ router sees it. Content-Type headers do the MIME work.
 `@import`-ed — the file is served raw, with no bundler, and an `@import` would
 resolve against `/_content-blocks/public/`, where no route serves them.
 
+## Caching the served files
+
+The three packages serve their CSS and JS through a controller, so nothing puts
+a hash in the file name the way a bundler would. `StaticAssetResponse` (core,
+shared with the kit and i18n) does the equivalent from the content:
+
+- every response carries a strong ETag, the content's `xxh128` prefix, so a
+  revalidation is a `304` with no body;
+- a request whose `?v=` equals that ETag gets `max-age` of a year and
+  `immutable`: the URL names the content, so it can never go stale;
+- any other request, an unversioned one or an old version still cached in some
+  page, gets five minutes.
+
+The package templates link through `cb_asset_path()` (core) and the workbench
+through the versions its controller passes in; hosts get
+`cb_kit_stylesheet_url()` for `kit.css`. A plain `path()` still works: it just
+revalidates every five minutes instead of never.
+
+Hashing on every render costs a read and a hash of ~30 KB, which is cheaper
+than it sounds and keeps the classes stateless: a memoized version would be one
+more thing to declare for worker mode, and one that could outlive a deploy.
+
 ## Three seams, and why each is its own interface
 
 - **`AssetReferenceProviderInterface`** — the mark half. Same reasoning as

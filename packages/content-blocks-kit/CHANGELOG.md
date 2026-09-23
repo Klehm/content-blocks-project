@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Configuring `html_raw` switched it on.** The config tree defaulted
+  `enabled` to `true`, so an entry that only set `defaults` or `options` (or
+  `html_raw: ~`) registered the raw-HTML block. `enabled` now has no default:
+  absent, a block is on, except `html_raw`, which needs `enabled: true`.
 - **`rich_text` rendered stored HTML unsanitized.** The editor was the only
   filter, and a direct POST, an import, a section template or a translation
   skipped it: any editor could store script run by every visitor and by the
@@ -34,10 +38,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`symfony/ux-live-component` is required at `^2.36 || ^3.0`**, the versions
+  the browser suite runs on, and `symfony/console`, `symfony/routing` and
+  `symfony/options-resolver` are declared.
+- **`RichTextEditorInterface::getName()` and the blocks' `getType()`,
+  `getLabel()` and `getIcon()` are instance methods**, following the core. A
+  host subclass or editor of your own drops `static` from them. A kit
+  subclass's `getType()` is still read while the container compiles, so it must
+  return a constant.
 - **Collections open folded.** Every kit collection (gallery, tabs, accordion,
   card, list, button group, breadcrumb, table columns, rows and cells) sets
   `cb_open_entries: none`: the sidebar opens on the entries' headers. An
   entry added or duplicated still opens. Needs the matching core release.
+
+### Fixed
+
+- **Two one-at-a-time accordions with as many items were linked**: they
+  shared a `<details name>`, so opening a panel in one closed the other. The
+  group is now named after the block.
+- **`tabs` changed its markup on every render** (a `random()` id), which
+  defeated HTTP caching and byte-for-byte comparisons. The id comes from the
+  block.
+- **A misspelled key under `content_blocks_kit.blocks` configured nothing,
+  silently.** An unknown type now fails when the container is built, with the
+  closest match. Valid keys are the kit's types and the types of registered
+  kit subclasses; a key naming a block that is not a kit block is refused too.
+- **The kit tokens could not be set site-wide.** They were declared on the
+  components themselves, and `.cb-kit-btn` redeclared two of them with a real
+  specificity: since `kit.css` loads in the body, after the host's stylesheet,
+  the documented override lost. They are declared once on `:where(:root)`, so
+  `:root` or any container sets them.
+- **`--cb-kit-border` drives the divider, card, table and accordion rules and
+  the gallery arrows**, as documented; card, table and accordion lines were a
+  lighter hard-coded grey (`#e5e7eb`) and are now the token's `#d1d5db`.
+  Breadcrumb links follow `--cb-kit-primary`.
+- **YouTube links** with `v=` after another parameter (`watch?feature=share&v=`),
+  `/live/` and `youtube-nocookie.com` embeds are recognised.
+
+### Added
+
+- **`cb_kit_stylesheet_url()`**: the `kit.css` URL with its content hash,
+  cached for a year by browsers and CDNs and replaced by the next upgrade. A
+  plain `path('content_blocks_kit_asset_css')` still works, revalidated every
+  five minutes (it was re-downloaded every hour, and could stay stale as long).
+  Needs the matching core release.
+- **Captions on `video`.** A WebVTT file (path or URL) and its language render
+  as a default `<track kind="captions">`. Both are translatable, so each
+  language can have its own file. A path rather than an upload: a `.vtt` file
+  sniffs as `text/plain`, and a track served as such is refused by browsers.
+- **Accessible names in every language.** The gallery's arrows, the breadcrumb
+  landmark, an untitled tab and an untitled embed were named in English; they
+  are translated (`cb_kit.front.*`, English and French).
+- **A linked image always names its link.** With no alt text, the link was
+  empty for a screen reader. It is now labelled by the caption, else by its
+  target.
 
 ## [1.0.0-RC16] - 2026-09-21
 

@@ -21,6 +21,31 @@ a translated page cannot drift structurally from its source — move a section a
 every language moves with it — and it means adding a language costs text, not a
 second page to maintain.
 
+![The translation workbench](/screenshots/workbench.webp)
+
+## What this package does not do
+
+Worth knowing before you choose it, since each follows from the model rather
+than from a missing feature:
+
+- **No layout per language.** Sections, columns, order and styling are shared.
+  A block cannot be hidden in one language, and a block added to the page
+  appears in every language at once, in the source text until translated.
+- **Only tagged fields change.** An image file is shared by every language: its
+  alt text, link and caption translate, the picture does not, so a picture
+  with words in it stays in the source language. A video's captions file does
+  translate.
+- **No locale fallback chain.** A locale that is not configured renders the
+  source; `fr_CA` does not fall back to `fr`.
+- **Not your site's i18n.** It translates block content. Routes per locale,
+  your templates' strings, and `hreflang` tags stay with your app; the
+  rendering locale comes from your request through `RenderLocaleResolverInterface`.
+- **No machine translation engine.** The seam is there; the engine, and where a
+  page's text is sent, is your choice.
+- **Section templates and the clipboard do not carry translations yet.** A
+  section saved as a template, or copied, arrives untranslated. Duplicate,
+  *Insert content* and export/import do carry them.
+
 ## Configuration
 
 ```yaml
@@ -130,7 +155,7 @@ through it:
 ```php
 final class MyProvider implements TranslationProviderInterface
 {
-    public static function getName(): string { return 'mine'; }
+    public function getName(): string { return 'mine'; }
     public function getLabel(): string { return 'My engine'; }
     public function supports(string $source, string $target): bool { return true; }
 

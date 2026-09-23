@@ -22,10 +22,10 @@ this file is the condensed, unambiguous version.
 composer require klehm/content-blocks klehm/content-blocks-kit
 ```
 
-If the host is `minimum-stability: stable`, first set in `composer.json`:
+Until `1.0.0` is tagged, the latest release is a release candidate. If the host is `minimum-stability: stable`, first set in `composer.json`:
 
 ```json
-{ "minimum-stability": "beta", "prefer-stable": true }
+{ "minimum-stability": "RC", "prefer-stable": true }
 ```
 
 ## Step 2 — Register bundles & routes (skip if Symfony Flex did it)
@@ -158,7 +158,7 @@ Separate admin/front firewalls: see https://klehm.github.io/content-blocks-proje
 
 ## Optional: kit block configuration
 
-Restrict/tune the 17 blocks under `content_blocks_kit.blocks.<type>` (`enabled`,
+Restrict/tune the 19 blocks under `content_blocks_kit.blocks.<type>` (`enabled`,
 `options`, `choices`, `defaults`). Inspect any block's surface:
 
 ```bash

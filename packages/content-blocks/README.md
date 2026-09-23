@@ -2,13 +2,16 @@
 
 Modular page builder for Symfony. Build content areas from sections, columns and blocks, with an extensible block-type system.
 
-This package provides the core: entities, admin UI (Live Components + Stimulus), `ContentAreaType` form, and the block-type registry. Use it together with [`klehm/content-blocks-kit`](https://github.com/klehm/content-blocks-kit) for ready-to-use blocks (Text, Title, Image, Tabs).
+This package provides the core: entities, admin UI (Live Components + Stimulus), `ContentAreaType` form, and the block-type registry. Use it together with [`klehm/content-blocks-kit`](https://github.com/klehm/content-blocks-kit) for ready-to-use blocks.
+
+![The builder: a block's form in the sidebar, the page's real preview beside it](https://raw.githubusercontent.com/klehm/content-blocks-project/master/docs/public/screenshots/builder.webp)
 
 ## Requirements
 
 - PHP >= 8.2 (>= 8.4 for Symfony 8.0)
 - Symfony 6.4 LTS, 7.x or 8.x (including `symfony/validator`, pulled in as a dependency)
-- Doctrine ORM ^2.12 or ^3.0
+- Doctrine ORM ^2.15 or ^3.0, on MySQL 8.0 or PostgreSQL 16 (both tested in CI) or any database Doctrine supports
+- Symfony UX ^2.36 or ^3.0
 
 ## Installation
 
@@ -367,10 +370,6 @@ final class PageAccessChecker implements AccessCheckerInterface
         // Check that the current user owns the Page linked to this ContentArea
     }
 
-    public function canView(ContentArea $contentArea): bool
-    {
-        return true;
-    }
 }
 ```
 
@@ -988,8 +987,6 @@ final class PageAccessChecker implements AccessCheckerInterface
     {
         return $this->isAdmin() && $this->ownsArea($contentArea);
     }
-
-    public function canView(ContentArea $contentArea): bool { return true; }
 
     private function isAdmin(): bool
     {

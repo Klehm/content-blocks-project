@@ -31,14 +31,10 @@ final class PageAccessChecker implements AccessCheckerInterface
         // Check that the current user owns the Page linked to this ContentArea
     }
 
-    public function canView(ContentArea $contentArea): bool
-    {
-        return true;
-    }
 }
 ```
 
-`canEdit()` is called by every controller and Live Component before any mutation or any read of the unpublished draft (export, replace-with source, tree, copy), and is also what [preview-mode detection](./rendering.md#preview-vs-public-mode) hinges on. The package itself no longer calls `canView()`; it stays on the interface for hosts and satellites. If your admin and front-office live behind separate firewalls, read the [cross-firewall auth detection](./security.md#cross-firewall-auth-detection) note carefully.
+`canEdit()` is called by every controller and Live Component before any mutation or any read of the unpublished draft (export, replace-with source, tree, copy), and is also what [preview-mode detection](./rendering.md#preview-vs-public-mode) hinges on. The published page is never checked: whoever can open your page's route sees it, so protect that route as you would any other. If your admin and front-office live behind separate firewalls, read the [cross-firewall auth detection](./security.md#cross-firewall-auth-detection) note carefully.
 
 ### `ContentAreaUrlResolverInterface` — preview URL
 
@@ -777,3 +773,35 @@ classes (`cb-shell__public-link` above) makes an addition look native. The block
 **names** are covered by the [backward-compatibility promise](./backward-compatibility.md#twig);
 what surrounds them is not. The translation workbench carries the same kind of
 blocks, see [Translation](./translation.md#adding-to-the-workbench).
+
+## Builder events
+
+The builder speaks to the page it is mounted in through a handful of DOM
+events. These seven are covered by the
+[backward-compatibility promise](./backward-compatibility.md#front-end); every
+other `cb:*` event is the builder talking to itself.
+
+All of them bubble, so a listener on `document` hears every builder on the page.
+Outbound events carry ids rather than elements or entities: fetch what you need
+from them.
+
+| Event | Fired | `detail` |
+|---|---|---|
+| `cb:ready` | Once per preview load, when the preview is interactive: after the builder opens, and again after each full preview reload | `areaId` |
+| `cb:block:saved` | A block's sidebar form saved its draft | `blockId` |
+| `cb:section:saved` | A section's settings, or a column's name, saved | `sectionId` |
+| `cb:builder:action` | A [contributed action](#adding-your-own-actions-to-the-menu) was clicked | `key`, `areaId`, `button` (the clicked element) |
+| `cb:block:rendered` | A block's preview was refreshed in place; dispatched **inside the preview iframe**, on the block's new node | `blockId` |
+| `cb:area:changed` | *Inbound*: dispatch it at the builder after changing the area server-side | `hasUnpublishedChanges` (optional, default `true`) |
+| `cb:notify` | *Inbound*: dispatch it at the builder to [say something in its snackbar](#saying-how-it-went) | `message`, `link` (optional `{ label, href }`) |
+
+```js
+document.addEventListener('cb:block:saved', (event) => {
+    // A draft changed: refresh whatever your page shows about it.
+    myPageStatus.markDirty(event.detail.blockId);
+});
+```
+
+`cb:block:rendered` is the one to reach for from a block view that needs a
+little JavaScript, since the builder may replace a block's markup without
+reloading the page. See [Preview hot reload](./rendering.md#preview-hot-reload).

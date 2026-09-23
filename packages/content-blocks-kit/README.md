@@ -46,11 +46,13 @@ serves at a public route. Include it once in your front layout (it also flows
 into the builder preview):
 
 ```twig
-<link rel="stylesheet" href="{{ path('content_blocks_kit_asset_css') }}">
+<link rel="stylesheet" href="{{ cb_kit_stylesheet_url() }}">
 ```
 
-Retheme by overriding the `--cb-kit-*` custom properties (or the classes) in
-your own stylesheet loaded after it.
+The URL carries a hash of the file, so browsers and CDNs keep it for a year and fetch the new one after an upgrade. A plain `path('content_blocks_kit_asset_css')` works too, revalidated every five minutes.
+
+Retheme by overriding the `--cb-kit-*` custom properties (set them on
+`:root`), or the classes in your own stylesheet.
 
 ### Stimulus controllers
 
@@ -131,7 +133,7 @@ Drop a file at the matching relative path under `templates/bundles/ContentBlocks
 
 ## Extending a kit block
 
-Overriding a template changes what a block *renders*. When you need it to **edit** something the kit does not offer — one extra field, a different default, a narrower choice set — subclass the block instead. This is a supported path, not a loophole: the 17 block classes are deliberately non-final and their `protected` methods are public API under the package's semver guarantee.
+Overriding a template changes what a block *renders*. When you need it to **edit** something the kit does not offer — one extra field, a different default, a narrower choice set — subclass the block instead. This is a supported path, not a loophole: the 19 block classes are deliberately non-final and their `protected` methods are public API under the package's semver guarantee.
 
 Turn the kit's version off and register yours in its place, keeping the same type id so stored content keeps working:
 

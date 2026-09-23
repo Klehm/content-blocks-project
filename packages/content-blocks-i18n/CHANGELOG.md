@@ -29,6 +29,21 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The workbench page is sent `X-Frame-Options: SAMEORIGIN` and
   `Cache-Control: private, no-store`.**
 
+### Changed
+
+- **The workbench's CSS and JS are linked by their content hash** and cached
+  for a year; an upgrade changes the URL. They were cached an hour without
+  revalidation, so the workbench could run on an old script after an upgrade.
+- **`TranslationProviderInterface::getName()` is an instance method**, like
+  `getLabel()` beside it. A provider of your own drops `static` from it.
+
+### Fixed
+
+- **The workbench did not compile on `symfony/twig-bridge` before 6.4.16**
+  with the Twig 3.27 the packages require ("EmptyNode cannot have children").
+  Those versions are now a Composer `conflict` (as are 7.0 and early 7.1,
+  both end-of-life). `twig/twig` and `symfony/routing` are declared.
+
 ## [1.0.0-RC16] - 2026-09-21
 
 Version bump only — no functional change in `klehm/content-blocks-i18n`. This

@@ -322,9 +322,12 @@ Only if you copied one of these into `templates/bundles/ContentBlocksBundle/`:
   ```
 - **`render/content_area.html.twig`** — keep a single `.cb-add-section-tray`
   inside `.cb-content-area`: adding a section inserts it in place before that
-  tray, and falls back to a full preview reload without it. Add the
-  `add_section` and `empty_cta` entries to `window.__cbOverlayLabels` too, or
-  the tray label keeps its old wording when the area empties or fills.
+  tray, and falls back to a full preview reload without it. The block types
+  and the overlay labels are now JSON blocks (`#cb-block-types`,
+  `#cb-overlay-labels`) instead of inline scripts setting `window.__cb*`, so the
+  preview needs no CSP nonce; a copy that still sets the globals keeps working.
+  Include the `add_section` and `empty_cta` labels, or the tray label keeps its
+  old wording when the area empties or fills.
 
 ### 3b. Overridden translation workbench
 
@@ -504,6 +507,63 @@ hold a *collection* is knowledge that lives in the block types' forms, and SQL
 cannot ask them. A migration would have to hard-code a list of block-type/field
 pairs, which would be wrong the moment you ship your own collection block.
 
+## 9. Block types: `getType()`, `getLabel()` and `getIcon()` are instance methods
+
+Only relevant if you wrote **your own block type**, rich-text editor or
+translation provider. Remove `static` from these methods; nothing else changes:
+
+```php
+- public static function getType(): string
++ public function getType(): string
+
+- public static function getLabel(): string|TranslatableInterface
++ public function getLabel(): string|TranslatableInterface
+
+- public static function getIcon(): ?string
++ public function getIcon(): ?string
+```
+
+The same goes for `getName()` on a `RichTextEditorInterface` or a
+`TranslationProviderInterface`. A class that keeps `static` fails loudly when
+it is loaded (PHP refuses a static method implementing a non-static one), so
+nothing breaks silently. Call sites change from `$type::getLabel()` to
+`$type->getLabel()`.
+
+Being instance methods, they can now read what the service was built with: one
+class can serve two types, and a label or an icon can come from configuration or
+an injected service. A **kit subclass** is the exception: its `getType()` is
+read while the container compiles and must stay a constant.
+
+## 10. `AccessCheckerInterface::canView()` is gone
+
+Nothing called it: the published page is not checked by the package (your page's
+route is), and every read of the draft asks `canEdit()`. Delete your
+`canView()`, or leave it: an extra public method breaks nothing, it is simply
+never called.
+
+## 11. Security and behaviour changes of the last candidate
+
+A security review preceded the tag. Most of what it changed needs nothing from
+you, but these are visible:
+
+| Change | What to check |
+|---|---|
+| **SVG is no longer an allowed upload** (`content_blocks.upload.allowed_mime_types`) | If editors upload SVG, list `image/svg+xml` again and serve the upload directory with `Content-Security-Policy: sandbox` ([Security](./security.md)). |
+| **`/upload` needs the builder's `area`** and checks `canEdit()` on it | A script of your own posting to `content_blocks_upload` sends `area` (the id on `data-cb-area-id`). Without it: 404. |
+| **Export and *Insert content* need `canEdit()`**, on the source area too | A view-only user can no longer export or copy from an area. |
+| **The export is a zip** (`content.json` + `media/`) | An older JSON export still imports. A site still on an older candidate cannot import a new zip. |
+| **`ContentAreaImporterInterface::import()` has a third parameter**, `array $storedAssets = []` | Only if you implemented the interface yourself. |
+| **A custom colour is `#rrggbb` only**, and a stored colour carrying anything else is dropped at render | Values written by import or by hand in the database (`red;position:fixed…`) no longer reach `style`. |
+| **Kit `rich_text` is sanitized at render** (`symfony/html-sanitizer`) | Markup outside the safe set (scripts, event handlers, most `style` properties) disappears from the page. Redefine `content_blocks_kit.rich_text_sanitizer` to change the policy. |
+| **Kit links keep only http(s), `mailto:`, `tel:` and relative URLs** | A `javascript:` link renders as no link. |
+| **Kit collections open folded** in the sidebar | Set `cb_open_entries` on a subclass's field to change it. |
+| **An unknown key under `content_blocks_kit.blocks` fails the container build** | Fix the typo the message names. A key for a block that is not a kit block is refused too. |
+| **`html_raw` is only on with `enabled: true`** | A config entry that set only `defaults` or `options` used to switch it on. |
+| **Kit tokens are declared on `:root`**; card, table and accordion lines use `--cb-kit-border` (`#d1d5db`, slightly darker than before) | Set the tokens on `:root` or any container. |
+| **i18n: `?cb_locale=` only applies to a session that opened the workbench**, and `GET /providers` needs the CSRF token | Only if you linked a localized preview outside the workbench. |
+| **Dependency floors**: `twig/twig` ^3.27, `doctrine/orm` ^2.15, Symfony UX ^2.36; i18n conflicts with `symfony/twig-bridge` < 6.4.16 | `composer update` resolves them; an older lock needs the update. |
+| **New runtime dependencies**: `maennchen/zipstream-php` (core), `symfony/html-sanitizer` (kit) | Nothing to wire. |
+
 ---
 
 ## Additive (no action needed)
@@ -603,4 +663,7 @@ These landed in `1.0.0` but are backward-compatible — nothing to change:
 - [ ] Adjust any direct call to `import()` / `serialize()` to their value objects (§5).
 - [ ] Swap `RenderMode` for `RenderContext` if you call or implement the renderer (§6).
 - [ ] Run `content-blocks:backfill-collection-ids`; rename any own field starting with `_` (§8).
+- [ ] Optionally delete `canView()` from your access checker (§10).
+- [ ] Re-allow SVG if you need it, send `area` from any script posting to `/upload`, and check who exports (§11).
+- [ ] Remove `static` from `getType()` / `getLabel()` / `getIcon()` on your block types, and from `getName()` on your editors and translation providers (§9).
 - [ ] Rebuild the container and clear the cache; verify pages render.

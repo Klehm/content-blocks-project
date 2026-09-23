@@ -240,6 +240,18 @@ further wiring, and nothing in the kit changes.
     markup: '`.cb-kit-button` with a `--<variant>` modifier.',
     notes: ['Restrict the `variant` / `size` choice lists per host to enforce a design system (see [Configuration](../configuration.md)).'],
   },
+  button_group: {
+    order: 6.5,
+    tagline: 'One to three buttons in a row, sharing size and alignment.',
+    intro:
+      'A row of call-to-action buttons that sit side by side and wrap together. Each entry has its own label, URL and `variant`; the `size` and alignment are shared by the whole row, so the buttons always match. Links go through the same safe-URL guard as [`button`](./button.md).',
+    whenToUse: 'A primary and a secondary action next to each other ("Buy" / "Learn more"), store badges, a short list of equal choices.',
+    markup: '`.cb-kit-btn-group` with an alignment modifier, and `--stack` when *Stack on mobile* is on; each entry is a `.cb-kit-btn`.',
+    notes: [
+      'The `max_items` option caps the number of buttons (3 by default).',
+      '*Stack on mobile* puts the buttons one under the other on small screens.',
+    ],
+  },
   card: {
     order: 7,
     tagline: 'Image / title / text / button tiles laid out as a grid or list.',
@@ -312,6 +324,20 @@ further wiring, and nothing in the kit changes.
     whenToUse: 'Product videos, tutorials, any hosted video.',
     markup: '`.cb-kit-embed` with a responsive iframe wrapper.',
     notes: ['Only YouTube and Vimeo are recognized; other providers are not embedded.'],
+  },
+  video: {
+    order: 14.5,
+    tagline: 'A self-hosted video file in the browser\'s native player.',
+    intro:
+      'Plays a video file uploaded to the site, in the browser\'s own `<video>` player: no player script and no third party. It has a poster image, a size and an alignment like [`image`](./image.md), and playback options: autoplay, muted, controls and loop. For YouTube or Vimeo, use [`embed`](./embed.md).',
+    whenToUse: 'Short product clips, background-style loops, any video you host yourself.',
+    markup: '`.cb-kit-video` (a `<figure>`), `.cb-kit-video__player` on the `<video>`, `.cb-kit-video__caption` on the caption.',
+    notes: [
+      'Uploads need `video/mp4` and/or `video/webm` added to `content_blocks.upload.allowed_mime_types`: they are not in the default list.',
+      'Autoplay is always muted, since browsers refuse unmuted autoplay, and a video without autoplay always shows its controls, since it could not be started otherwise.',
+      'The poster goes through [`ImageUrlResolverInterface`](../../guide/host-services.md#imageurlresolverinterface-responsive-images).',
+      'Captions are a WebVTT file given by path or URL, rendered as a default `<track kind="captions">`. The file must be served as `text/vtt`. Both the file and its language are translatable, so each language can point at its own file.',
+    ],
   },
   breadcrumb: {
     order: 15,

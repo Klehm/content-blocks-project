@@ -66,7 +66,7 @@ final class LibreTranslateProvider implements TranslationProviderInterface
     ) {
     }
 
-    public static function getName(): string
+    public function getName(): string
     {
         return 'libretranslate';
     }

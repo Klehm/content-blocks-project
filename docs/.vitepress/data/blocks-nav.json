@@ -24,6 +24,10 @@
     "link": "/kit/blocks/button"
   },
   {
+    "text": "button_group — Button group",
+    "link": "/kit/blocks/button_group"
+  },
+  {
     "text": "card — Cards",
     "link": "/kit/blocks/card"
   },
@@ -54,6 +58,10 @@
   {
     "text": "embed — Video embed",
     "link": "/kit/blocks/embed"
+  },
+  {
+    "text": "video — Video",
+    "link": "/kit/blocks/video"
   },
   {
     "text": "breadcrumb — Breadcrumb",

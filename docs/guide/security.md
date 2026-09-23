@@ -94,8 +94,6 @@ final class PageAccessChecker implements AccessCheckerInterface
         return $this->isAdmin() && $this->ownsArea($contentArea);
     }
 
-    public function canView(ContentArea $contentArea): bool { return true; }
-
     private function isAdmin(): bool
     {
         // 1) Standard path: a token is in the current firewall's storage.
@@ -217,3 +215,46 @@ The builder shell itself is rendered inside **your** admin page, so its framing 
 ## Editor scripts from a CDN
 
 With `cdn: true` (the default), the kit loads TinyMCE (`7.9.3`) or CKEditor 5 (`48.3.1`) from a pinned version with a Subresource Integrity hash: if the CDN served different bytes, the browser refuses them. A `script_url` or `style_url` of your own carries no hash — it is your file. To avoid the CDN altogether, set `cdn: false` and bundle the editor.
+
+## Content Security Policy
+
+The packages run under a strict policy, with one allowance: **inline style
+attributes**. A section's spacing, a column's span or a gallery's column count
+is written as `style="--cb-…"` on the element itself, because it belongs to
+that element's stored data.
+
+On the **public page**:
+
+```
+default-src 'self';
+script-src 'self';
+style-src 'self';
+style-src-attr 'unsafe-inline';
+img-src 'self' data:;
+frame-src https://www.youtube.com https://player.vimeo.com;
+```
+
+- `style-src-attr` lets the attributes through while `<style>` elements and
+  stylesheets stay locked to your origin. A browser without CSP Level 3 ignores
+  it and falls back to `style-src`: there, add `'unsafe-inline'` to `style-src`
+  instead.
+- Scripts are files served by your own routes (the slider, the preview
+  overlay), never inline. The preview's data travels in
+  `<script type="application/json">` blocks, which are never run, so it needs
+  no nonce.
+- `frame-src` is for the kit's `embed` block; drop it if you disabled that
+  block. Add your image or video CDN to `img-src` and `media-src` if your
+  `ImageUrlResolverInterface` or uploads point there.
+
+In the **admin** page hosting the builder, add:
+
+- `frame-src 'self'` (the preview is a same-origin iframe), and
+  `frame-ancestors 'self'` (see [Preview responses](#preview-responses));
+- for the kit's rich text with `cdn: true`, the editor's CDN in `script-src`
+  and `style-src` (`https://cdn.jsdelivr.net` for TinyMCE,
+  `https://cdn.ckeditor.com` for CKEditor), and whatever the editor itself
+  requires: both inject styles into their UI, see their CSP notes. With
+  `cdn: false` the editor is one of your own bundles and needs nothing extra.
+
+The read-only asset report page (`content_blocks_asset_report`) carries an
+inline `<style>`; it is an admin page and never shown to visitors.
