@@ -523,9 +523,18 @@ an `Assert\Choice` from the field's full coded choice set for exactly this reaso
 trusts its editors — it is **disabled by default** (`content_blocks_kit.blocks.html_raw.enabled: false`)
 and must be opted in.
 
+**Render-time guards** — import, section templates and translations write block
+data without the form, so the views hold on their own: `rich_text` goes through
+`cb_kit_rich_html` (`symfony/html-sanitizer`, service
+`content_blocks_kit.rich_text_sanitizer`), every kit link through
+`cb_kit_safe_url` (http(s)/mailto/tel/scheme-less; `SafeLinkConstraint` on save),
+and every colour written into `style` through `CssColor::safe()` / `cb_css_color()`.
+An import keeps block data verbatim but its layout/preset/type go through
+`RestoredStructure`. Guide: [docs/guide/security.md](docs/guide/security.md).
+
 ### File Upload
 
-Upload endpoint `/_content-blocks/upload` (core, `ContentBlocks\Controller\UploadController`) validates: CSRF token, file size, MIME whitelist — both configurables via `content_blocks.upload.max_size` / `.allowed_mime_types`.
+Upload endpoint `/_content-blocks/upload` (core, `ContentBlocks\Controller\UploadController`) validates: CSRF token, file size, MIME whitelist — both configurables via `content_blocks.upload.max_size` / `.allowed_mime_types`. SVG is **not** in the default list (a scripted SVG on the site's origin is stored XSS). `LocalFileStorage` confines every stored path to the real upload directory (no `..`, no symlink out): a stored path is editor input, and the exporter reads it into the zip.
 
 `ContentBlocks\Storage\FileStorageInterface` is the abstraction for file storage (core — plus dans le kit) :
 - **Default**: `NullFileStorage` — throws (forces app to configure)
