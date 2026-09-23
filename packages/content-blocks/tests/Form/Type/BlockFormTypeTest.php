@@ -233,12 +233,12 @@ final class BlockFormTypeTest extends TestCase
     private function buttonBlock(): BlockTypeInterface
     {
         return new class () extends AbstractBlockType {
-            public static function getType(): string
+            public function getType(): string
             {
                 return 'button';
             }
 
-            public static function getLabel(): string
+            public function getLabel(): string
             {
                 return 'Button';
             }
@@ -259,12 +259,12 @@ final class BlockFormTypeTest extends TestCase
     private function multiFieldBlock(): BlockTypeInterface
     {
         return new class () extends AbstractBlockType {
-            public static function getType(): string
+            public function getType(): string
             {
                 return 'button';
             }
 
-            public static function getLabel(): string
+            public function getLabel(): string
             {
                 return 'Button';
             }
@@ -287,12 +287,12 @@ final class BlockFormTypeTest extends TestCase
     private function textBlock(): BlockTypeInterface
     {
         return new class () extends AbstractBlockType {
-            public static function getType(): string
+            public function getType(): string
             {
                 return 'text';
             }
 
-            public static function getLabel(): string
+            public function getLabel(): string
             {
                 return 'Text';
             }

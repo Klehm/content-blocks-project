@@ -81,7 +81,7 @@ final class RichTextEditorTest extends TestCase
     {
         $editor = $this->editor($name);
 
-        $this->assertSame($name, $editor::getName());
+        $this->assertSame($name, $editor->getName());
         $this->assertSame($controller, $editor->buildView(RichTextBlock::defaultOptions())->controller);
     }
 
@@ -254,7 +254,7 @@ final class RichTextEditorTest extends TestCase
     public function testAHostEditorRegistersLikeAShippedOne(): void
     {
         $custom = new class ($this->palette(), $this->urlGenerator()) extends AbstractRichTextEditor {
-            public static function getName(): string
+            public function getName(): string
             {
                 return 'quill';
             }
@@ -281,7 +281,7 @@ final class RichTextEditorTest extends TestCase
     public function testALaterEditorWinsItsName(): void
     {
         $replacement = new class ($this->palette(), $this->urlGenerator()) extends AbstractRichTextEditor {
-            public static function getName(): string
+            public function getName(): string
             {
                 return 'tinymce';
             }

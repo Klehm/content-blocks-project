@@ -63,11 +63,28 @@ final class TabsViewTest extends TestCase
 
     public function testTwoBlocksOnOnePageDoNotShareARadioGroup(): void
     {
-        $first = $this->render($this->tabs(2));
-        $second = $this->render($this->tabs(2));
+        $first = $this->render($this->tabs(2), 7);
+        $second = $this->render($this->tabs(2), 8);
 
         preg_match('/name="([^"]+)"/', $first, $a);
         preg_match('/name="([^"]+)"/', $second, $b);
+
+        $this->assertNotSame($a[1], $b[1]);
+    }
+
+    public function testTheSameBlockRendersTheSameMarkupTwice(): void
+    {
+        $this->assertSame(
+            $this->render($this->tabs(3), 42),
+            $this->render($this->tabs(3), 42),
+        );
+        $this->assertStringContainsString('name="cb-kit-tabs-42"', $this->render($this->tabs(1), 42));
+    }
+
+    public function testWithoutABlockIdTwoRendersStillDiffer(): void
+    {
+        preg_match('/name="([^"]+)"/', $this->render($this->tabs(2)), $a);
+        preg_match('/name="([^"]+)"/', $this->render($this->tabs(2)), $b);
 
         $this->assertNotSame($a[1], $b[1]);
     }
@@ -92,11 +109,11 @@ final class TabsViewTest extends TestCase
     }
 
     /** @param list<array<string, string>> $items */
-    private function render(array $items): string
+    private function render(array $items, ?int $blockId = null): string
     {
         return $this->makeTwig()->render(
             '@ContentBlocksKit/block/tabs/view.html.twig',
-            ['data' => ['items' => $items]],
+            ['data' => ['items' => $items], 'block_id' => $blockId],
         );
     }
 

@@ -92,6 +92,8 @@ cb_kit:
             label: "Video"
             no_video: "No video selected"
             file_help: "An MP4 or WebM file. For YouTube or Vimeo, use the Video embed block."
+            captions_help: "Path or URL of a .vtt file, served as text/vtt. Translated per language with the content."
+            captions_lang_help: "A language code, e.g. en or fr."
             field:
                 file: "Video file"
                 poster: "Poster image (optional)"
@@ -101,6 +103,8 @@ cb_kit:
                 loop: "Loop"
                 size: "Size"
                 caption: "Caption (optional)"
+                captions: "Captions file (WebVTT, optional)"
+                captions_lang: "Captions language"
         breadcrumb:
             label: "Breadcrumb"
             field:
@@ -206,3 +210,12 @@ cb_kit:
             field:
                 title: "Title"
                 content: "Content"
+    # Text read by visitors (assistive technology), on the published page.
+    front:
+        previous: "Previous"
+        next: "Next"
+        untitled_tab: "Untitled"
+        embedded_video: "Embedded video"
+        breadcrumb: "Breadcrumb"
+        linked_image: "Link: %url%"
+        captions: "Captions"

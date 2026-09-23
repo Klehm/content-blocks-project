@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Controller;
 
-use ContentBlocks\Controller\AssetController;
+use ContentBlocks\PublicAsset\AssetController;
+use ContentBlocks\PublicAsset\PackageAssets;
+use ContentBlocks\PublicAsset\StaticAssetResponse;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * These four routes serve files straight off disk into the *public* preview
@@ -21,7 +24,7 @@ final class AssetControllerTest extends TestCase
      */
     public function testBuilderCssShipsTheDesignTokensWithIt(): void
     {
-        $css = (new AssetController())->builderCss()->getContent();
+        $css = (new AssetController())->builderCss(new Request())->getContent();
 
         $this->assertIsString($css);
         $this->assertStringContainsString('--cb-accent-rgb:', $css, 'token definitions must be present');
@@ -43,17 +46,69 @@ final class AssetControllerTest extends TestCase
 
         // Content styles: they belong to the rendered page, not the chrome, so
         // they deliberately do not carry the builder's tokens.
-        $this->assertStringNotContainsString('--cb-accent-rgb:', (string) $controller->layoutCss()->getContent());
-        $this->assertStringNotContainsString('--cb-accent-rgb:', (string) $controller->stylingCss()->getContent());
+        $this->assertStringNotContainsString('--cb-accent-rgb:', (string) $controller->layoutCss(new Request())->getContent());
+        $this->assertStringNotContainsString('--cb-accent-rgb:', (string) $controller->stylingCss(new Request())->getContent());
 
-        foreach ([$controller->layoutCss(), $controller->stylingCss(), $controller->builderCss()] as $response) {
+        foreach ([$controller->layoutCss(new Request()), $controller->stylingCss(new Request()), $controller->builderCss(new Request())] as $response) {
             $this->assertSame(200, $response->getStatusCode());
             $this->assertSame('text/css; charset=UTF-8', $response->headers->get('Content-Type'));
             $this->assertSame('nosniff', $response->headers->get('X-Content-Type-Options'));
         }
 
-        $overlay = $controller->previewOverlay();
+        $overlay = $controller->previewOverlay(new Request());
         $this->assertSame(200, $overlay->getStatusCode());
         $this->assertSame('application/javascript; charset=UTF-8', $overlay->headers->get('Content-Type'));
+    }
+
+    public function testAnUnversionedUrlIsCachedBrieflyWithAnEtag(): void
+    {
+        $response = (new AssetController())->layoutCss(new Request());
+
+        $this->assertSame('"' . $this->version('layout') . '"', $response->getEtag());
+        $this->assertSame('300', $response->headers->getCacheControlDirective('max-age'));
+        $this->assertFalse($response->headers->hasCacheControlDirective('immutable'));
+        $this->assertTrue($response->headers->hasCacheControlDirective('public'));
+    }
+
+    // The URL names the content, so it can be kept for as long as it exists.
+    public function testAVersionedUrlIsImmutable(): void
+    {
+        $request = new Request(['v' => $this->version('slider')]);
+        $response = (new AssetController())->slider($request);
+
+        $this->assertSame('31536000', $response->headers->getCacheControlDirective('max-age'));
+        $this->assertTrue($response->headers->hasCacheControlDirective('immutable'));
+    }
+
+    // A stale version (an old page in a cache) is served, but not kept.
+    public function testAStaleVersionIsNotKeptForAYear(): void
+    {
+        $response = (new AssetController())->slider(new Request(['v' => 'stale']));
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('300', $response->headers->getCacheControlDirective('max-age'));
+    }
+
+    public function testAMatchingEtagAnswers304WithoutABody(): void
+    {
+        $request = new Request();
+        $request->headers->set('If-None-Match', '"' . $this->version('styling') . '"');
+
+        $response = (new AssetController())->stylingCss($request);
+
+        $this->assertSame(304, $response->getStatusCode());
+        $this->assertSame('', (string) $response->getContent());
+    }
+
+    public function testEveryPackageAssetIsReadable(): void
+    {
+        foreach (PackageAssets::names() as $name) {
+            $this->assertNotNull(PackageAssets::content($name), $name);
+        }
+    }
+
+    private function version(string $name): string
+    {
+        return StaticAssetResponse::version((string) PackageAssets::content($name));
     }
 }

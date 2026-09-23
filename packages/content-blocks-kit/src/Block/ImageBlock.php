@@ -29,17 +29,17 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 #[AsContentBlock(priority: 70)]
 class ImageBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'image';
     }
 
-    public static function getLabel(): TranslatableInterface
+    public function getLabel(): TranslatableInterface
     {
         return new TranslatableMessage('cb_kit.block.image.label', [], 'content_blocks_kit');
     }
 
-    public static function getIcon(): ?string
+    public function getIcon(): ?string
     {
         // Framed picture with horizon + sun.
         return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" '

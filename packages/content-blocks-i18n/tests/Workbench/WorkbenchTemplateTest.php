@@ -242,6 +242,8 @@ final class WorkbenchTemplateTest extends TestCase
         );
 
         $twig->addExtension(new RoutingExtension($urls));
+
+        $twig->addExtension(new \ContentBlocks\Twig\RoutingExtension($urls));
         $twig->addExtension(new TranslationExtension(new Translator('en')));
 
         $stack = new RequestStack();

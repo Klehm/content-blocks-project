@@ -97,12 +97,12 @@ final class TranslatableFieldsTest extends TestCase
 
 final class TranslatableFixtureBlock extends AbstractBlockType
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'fixture';
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Fixture';
     }

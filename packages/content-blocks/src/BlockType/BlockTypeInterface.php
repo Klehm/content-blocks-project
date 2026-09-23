@@ -12,7 +12,7 @@ interface BlockTypeInterface
     /**
      * Unique identifier of the block type (e.g. "text", "title", "image").
      */
-    public static function getType(): string;
+    public function getType(): string;
 
     /**
      * A plain string when already translated, or a TranslatableInterface when
@@ -20,7 +20,7 @@ interface BlockTypeInterface
      *
      * @see docs/internals/blocks.md#labels-and-icons-cross-a-trust-boundary
      */
-    public static function getLabel(): string|TranslatableInterface;
+    public function getLabel(): string|TranslatableInterface;
 
     /**
      * Self-contained inline SVG using `currentColor`, or null for a generic
@@ -28,7 +28,7 @@ interface BlockTypeInterface
      *
      * @see docs/internals/blocks.md#labels-and-icons-cross-a-trust-boundary
      */
-    public static function getIcon(): ?string;
+    public function getIcon(): ?string;
 
     /**
      * Builds the Symfony Form for this block type.

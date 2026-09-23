@@ -92,7 +92,7 @@ final class BlockComponent
 
         // getLabel() may return a TranslatableInterface, which is not itself
         // castable — templates localize the result with |trans.
-        $label = $blockType::getLabel();
+        $label = $blockType->getLabel();
 
         return match (true) {
             is_string($label) => $label,

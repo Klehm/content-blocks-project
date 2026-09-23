@@ -235,7 +235,7 @@ final class TranslationInspector
             return $type;
         }
 
-        $label = $this->blockTypes->get($type)::getLabel();
+        $label = $this->blockTypes->get($type)->getLabel();
 
         return $label instanceof TranslatableInterface
             ? $label->trans($this->translator)

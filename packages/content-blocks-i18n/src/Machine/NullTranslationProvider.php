@@ -14,7 +14,7 @@ final class NullTranslationProvider implements TranslationProviderInterface
 {
     public const NAME = 'null';
 
-    public static function getName(): string
+    public function getName(): string
     {
         return self::NAME;
     }

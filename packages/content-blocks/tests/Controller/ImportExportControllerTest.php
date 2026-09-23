@@ -238,7 +238,6 @@ final class ImportExportControllerTest extends ControllerTestCase
     private function viewOnlyChecker(): AccessCheckerInterface
     {
         $checker = $this->createMock(AccessCheckerInterface::class);
-        $checker->method('canView')->willReturn(true);
         $checker->method('canEdit')->willReturn(false);
 
         return $checker;

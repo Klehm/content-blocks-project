@@ -18,7 +18,7 @@ final class CkEditor extends AbstractRichTextEditor
      */
     public const CDN_VERSION = '48.3.1';
 
-    public static function getName(): string
+    public function getName(): string
     {
         return 'ckeditor';
     }

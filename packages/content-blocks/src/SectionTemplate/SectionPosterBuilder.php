@@ -182,7 +182,7 @@ final class SectionPosterBuilder
 
         return [
             'type' => $type,
-            'label' => $this->labelOf($blockType::getLabel()),
+            'label' => $this->labelOf($blockType->getLabel()),
             'kind' => $hint->kind,
             'text' => $hint->text,
             'image' => $this->safeImage($hint->image),

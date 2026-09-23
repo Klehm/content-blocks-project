@@ -92,6 +92,7 @@ class Section
         return $this->position;
     }
 
+    /** @internal Published state: written by publish() only. */
     public function setPosition(int $position): self
     {
         $this->position = $position;
@@ -200,7 +201,11 @@ class Section
         return $this->publishedSettings;
     }
 
-    /** @param array<string, mixed>|null $settings */
+    /**
+     * @param array<string, mixed>|null $settings
+     *
+     * @internal Published state: written by publish() only.
+     */
     public function setPublishedSettings(?array $settings): self
     {
         $this->publishedSettings = $settings;

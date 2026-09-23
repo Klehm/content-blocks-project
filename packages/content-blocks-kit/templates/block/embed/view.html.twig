@@ -5,7 +5,7 @@
     {% if embedUrl %}
         <div class="cb-kit-embed">
             <iframe src="{{ embedUrl }}"
-                    title="{{ data.title|default('Embedded video') }}"
+                    title="{{ data.title|default('')|trim ?: 'cb_kit.front.embedded_video'|trans({}, 'content_blocks_kit') }}"
                     loading="lazy"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowfullscreen></iframe>

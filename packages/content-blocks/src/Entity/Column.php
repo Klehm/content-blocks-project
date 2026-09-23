@@ -97,6 +97,7 @@ class Column
         return $this->publishedPreset;
     }
 
+    /** @internal Published state: written by publish() only. */
     public function setPublishedPreset(?string $preset): self
     {
         $this->publishedPreset = $preset;
@@ -118,6 +119,7 @@ class Column
         return $this->position;
     }
 
+    /** @internal Published state: written by publish() only. */
     public function setPosition(int $position): self
     {
         $this->position = $position;
@@ -231,7 +233,11 @@ class Column
         return $this->publishedSettings;
     }
 
-    /** @param array<string, mixed>|null $settings */
+    /**
+     * @param array<string, mixed>|null $settings
+     *
+     * @internal Published state: written by publish() only.
+     */
     public function setPublishedSettings(?array $settings): self
     {
         $this->publishedSettings = $settings;

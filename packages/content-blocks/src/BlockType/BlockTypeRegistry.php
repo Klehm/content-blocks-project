@@ -13,7 +13,7 @@ final class BlockTypeRegistry
 
     public function register(BlockTypeInterface $blockType): void
     {
-        $this->blockTypes[$blockType::getType()] = $blockType;
+        $this->blockTypes[$blockType->getType()] = $blockType;
     }
 
     public function get(string $type): BlockTypeInterface
@@ -46,7 +46,7 @@ final class BlockTypeRegistry
     {
         $choices = [];
         foreach ($this->blockTypes as $type => $blockType) {
-            $choices[$type] = $blockType::getLabel();
+            $choices[$type] = $blockType->getLabel();
         }
 
         return $choices;

@@ -6,6 +6,6 @@
     {% if block.inlineStyle %}style="{{ block.inlineStyle }}"{% endif %}
     {% for k, v in block.extraAttributes %} {{ k }}="{{ v }}"{% endfor %}>
     {% if block.viewTemplate %}
-        {{ include(block.viewTemplate, { data: block.data }, with_context = false) }}
+        {{ include(block.viewTemplate, { data: block.data, block_id: block.id }, with_context = false) }}
     {% endif %}
 </div>

@@ -98,6 +98,10 @@ final class WorkbenchPageController
             'blocks' => array_map(static fn (BlockTranslationView|ColumnTranslationView $v): array => $v->toArray(), $views),
             'progress' => $progress->toArray(),
             'previewUrl' => $this->previewUrl($area, $locale),
+            'assetVersions' => [
+                'css' => AssetController::version('workbench.css'),
+                'js' => AssetController::version('workbench.js'),
+            ],
             'backUrl' => $this->backUrlResolver->resolve($area, $locale),
             'publicLinks' => $this->publicLinks($area, $locale),
             'providers' => $this->providerChoices($locale),

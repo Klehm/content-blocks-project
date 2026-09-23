@@ -28,6 +28,11 @@ final class TranslationAssetReferenceProviderTest extends TestCase
      */
     private function makeProvider(array $rows): TranslationAssetReferenceProvider
     {
+        // Doctrine ORM 2.x declares Query final: the lowest-deps leg cannot
+        // double it.
+        if ((new \ReflectionClass(Query::class))->isFinal()) {
+            self::markTestSkipped('Doctrine\\ORM\\Query is final in this ORM version.');
+        }
         $query = $this->createMock(Query::class);
         $query->method('toIterable')->willReturn($rows);
 

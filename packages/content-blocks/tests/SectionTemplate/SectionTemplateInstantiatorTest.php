@@ -70,12 +70,12 @@ final class SectionTemplateInstantiatorTest extends TestCase
         // The registry keys by the *static* getType(), so each fake type needs
         // its own class rather than a constructor-parameterized factory.
         $text = new class () extends AbstractBlockType {
-            public static function getType(): string
+            public function getType(): string
             {
                 return 'text';
             }
 
-            public static function getLabel(): string
+            public function getLabel(): string
             {
                 return 'Text';
             }
@@ -91,12 +91,12 @@ final class SectionTemplateInstantiatorTest extends TestCase
         };
 
         $title = new class () extends AbstractBlockType {
-            public static function getType(): string
+            public function getType(): string
             {
                 return 'title';
             }
 
-            public static function getLabel(): string
+            public function getLabel(): string
             {
                 return 'Title';
             }

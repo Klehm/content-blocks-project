@@ -92,6 +92,8 @@ cb_kit:
             label: "Vidéo"
             no_video: "Aucune vidéo"
             file_help: "Un fichier MP4 ou WebM. Pour YouTube ou Vimeo, utilisez le bloc Vidéo intégrée."
+            captions_help: "Chemin ou URL d'un fichier .vtt, servi en text/vtt. Se traduit par langue avec le contenu."
+            captions_lang_help: "Un code de langue, par ex. fr ou en."
             field:
                 file: "Fichier vidéo"
                 poster: "Image d'aperçu (optionnel)"
@@ -101,6 +103,8 @@ cb_kit:
                 loop: "Lecture en boucle"
                 size: "Taille"
                 caption: "Légende (optionnel)"
+                captions: "Fichier de sous-titres (WebVTT, optionnel)"
+                captions_lang: "Langue des sous-titres"
         breadcrumb:
             label: "Fil d'Ariane"
             field:
@@ -206,3 +210,12 @@ cb_kit:
             field:
                 title: "Titre"
                 content: "Contenu"
+    # Text read by visitors (assistive technology), on the published page.
+    front:
+        previous: "Précédent"
+        next: "Suivant"
+        untitled_tab: "Sans titre"
+        embedded_video: "Vidéo intégrée"
+        breadcrumb: "Fil d'Ariane"
+        linked_image: "Lien : %url%"
+        captions: "Sous-titres"

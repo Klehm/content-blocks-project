@@ -9,6 +9,7 @@ use ContentBlocks\Kit\Block\RichTextBlock;
 use ContentBlocks\Kit\Block\TitleBlock;
 use ContentBlocks\Kit\DependencyInjection\KitBlockConfigPass;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 
@@ -90,11 +91,17 @@ final class KitBlockConfigPassTest extends TestCase
         $this->assertSame([], $container->getDefinition('app.title')->getArguments());
     }
 
-    public function testABlockThatIsNotAKitBlockIsIgnored(): void
+    // The kit's config never reaches a block that is not a kit block, so a
+    // key naming one configures nothing: it is refused like a typo.
+    public function testConfiguringABlockThatIsNotAKitBlockIsRefused(): void
     {
         $container = $this->containerWith([PlainHostBlock::class => 'app.plain']);
 
-        $this->process($container, ['plain' => ['options' => ['x' => 1]]]);
+        try {
+            $this->process($container, ['plain' => ['options' => ['x' => 1]]]);
+            $this->fail('A key naming a non-kit block must be refused.');
+        } catch (InvalidConfigurationException) {
+        }
 
         $this->assertSame([], $container->getDefinition('app.plain')->getArguments());
     }
@@ -108,6 +115,42 @@ final class KitBlockConfigPassTest extends TestCase
         $this->process($container, ['fancy_title' => ['defaults' => ['size' => 'h4']]]);
 
         $this->assertSame(['size' => 'h4'], $container->getDefinition('app.renamed')->getArgument('$defaultOverrides'));
+    }
+
+    public function testAMisspelledTypeIsRefusedWithASuggestion(): void
+    {
+        $container = $this->containerWith([TitleBlock::class => 'kit.title']);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('Unknown block type "tittle" under "content_blocks_kit.blocks" (did you mean "title"?)');
+
+        $this->process($container, ['tittle' => ['enabled' => false]]);
+    }
+
+    // `html_raw` is registered by nothing unless enabled, yet its key is valid.
+    public function testAKitTypeWithNoRegisteredServiceIsStillKnown(): void
+    {
+        $container = $this->containerWith([]);
+
+        $this->process($container, ['html_raw' => ['enabled' => false]]);
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function testAHostSubclassTypeIsKnown(): void
+    {
+        $container = $this->containerWith([RenamedBlock::class => 'app.renamed']);
+
+        $this->process($container, ['fancy_title' => ['defaults' => []]]);
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function testATypeFarFromAnyGetsNoSuggestion(): void
+    {
+        $this->expectExceptionMessageMatches('/"carousel" under "content_blocks_kit\.blocks"\. Known/');
+
+        $this->process($this->containerWith([]), ['carousel' => []]);
     }
 
     /** @param array<class-string, string> $services class => service id */
@@ -150,7 +193,7 @@ final class HostRichTextBlock extends RichTextBlock
 
 final class RenamedBlock extends TitleBlock
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'fancy_title';
     }
@@ -159,12 +202,12 @@ final class RenamedBlock extends TitleBlock
 /** Not a kit block at all — a host block type of its own. */
 final class PlainHostBlock extends \ContentBlocks\BlockType\AbstractBlockType
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'plain';
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Plain';
     }

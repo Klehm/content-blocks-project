@@ -17,17 +17,17 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 #[AsContentBlock(priority: 5)]
 class HtmlRawBlock extends AbstractKitBlock
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'html_raw';
     }
 
-    public static function getLabel(): TranslatableInterface
+    public function getLabel(): TranslatableInterface
     {
         return new TranslatableMessage('cb_kit.block.html_raw.label', [], 'content_blocks_kit');
     }
 
-    public static function getIcon(): ?string
+    public function getIcon(): ?string
     {
         return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" '
             . 'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'

@@ -1439,6 +1439,26 @@ describe('cb-builder: runAction (host topbar actions)', () => {
         expect(event.detail.button).toBe(button);
     });
 
+    it('re-dispatches the preview cb:ready as a bubbling DOM event', () => {
+        const received = [];
+        document.addEventListener('cb:ready', (e) => received.push(e));
+
+        controller._onMessage(postMessage({ type: 'cb:ready' }));
+
+        expect(received).toHaveLength(1);
+        expect(received[0].bubbles).toBe(true);
+        expect(received[0].detail.areaId).toBe(42);
+    });
+
+    it('ignores a cross-origin cb:ready', () => {
+        const spy = vi.fn();
+        element.addEventListener('cb:ready', spy);
+
+        controller._onMessage(postMessage({ type: 'cb:ready' }, 'https://evil.com'));
+
+        expect(spy).not.toHaveBeenCalled();
+    });
+
     it('does nothing when the action key is missing', () => {
         const spy = vi.fn();
         element.addEventListener('cb:builder:action', spy);

@@ -897,15 +897,15 @@ final class BlockRendererTest extends TestCase
         $area = $this->makeArea();
         $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
         $column = $this->makeColumn($section, position: 0, previewPosition: 0);
-        $block = $this->makeBlock($column, type: 'custom', publishedData: ['title' => 'Hello'], position: 0, previewPosition: 0);
+        $this->makeBlock($column, type: 'custom', publishedData: ['title' => 'Hello'], position: 0, previewPosition: 0, id: 77);
 
         $registry = new BlockTypeRegistry();
         $registry->register(new class () extends AbstractBlockType {
-            public static function getType(): string
+            public function getType(): string
             {
                 return 'custom';
             }
-            public static function getLabel(): string
+            public function getLabel(): string
             {
                 return 'Custom';
             }
@@ -923,7 +923,7 @@ final class BlockRendererTest extends TestCase
         });
 
         $renderer = new BlockRenderer(
-            $this->makeTwig(extraTemplates: ['custom_block.html.twig' => '<p class="cb-custom">Custom: {{ data.title }}</p>']),
+            $this->makeTwig(extraTemplates: ['custom_block.html.twig' => '<p class="cb-custom" id="b{{ block_id }}">Custom: {{ data.title }}</p>']),
             new RequestStack(),
             new AllowAllAccessChecker(),
             $registry,
@@ -938,7 +938,8 @@ final class BlockRendererTest extends TestCase
 
         $html = $renderer->render($area, new RenderContext(RenderMode::PUBLIC));
 
-        $this->assertStringContainsString('<p class="cb-custom">Custom: Hello</p>', $html);
+        // The view also gets the block id, for anchors and ARIA ids.
+        $this->assertStringContainsString('<p class="cb-custom" id="b77">Custom: Hello</p>', $html);
     }
 
     /**
@@ -1135,11 +1136,11 @@ final class BlockRendererTest extends TestCase
     private function textBlockType(): AbstractBlockType
     {
         return new class () extends AbstractBlockType {
-            public static function getType(): string
+            public function getType(): string
             {
                 return 'text';
             }
-            public static function getLabel(): string
+            public function getLabel(): string
             {
                 return 'Text';
             }
@@ -1230,6 +1231,7 @@ final class BlockRendererTest extends TestCase
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
         $env->addExtension(new SectionLayoutExtension(new SectionLayoutRegistry()));
         $env->addExtension(new RoutingExtension($this->makeUrlGenerator()));
+        $env->addExtension(new \ContentBlocks\Twig\RoutingExtension($this->makeUrlGenerator()));
 
         return $env;
     }

@@ -12,6 +12,10 @@ use ContentBlocks\Kit\Block\TabsBlock;
 use ContentBlocks\Kit\Block\TitleBlock;
 use ContentBlocks\Kit\ContentBlocksKitBundle;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\Definition\ConfigurationInterface;
+use Symfony\Component\Config\Definition\Processor;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Extension\ConfigurationExtensionInterface;
 
 final class ContentBlocksKitBundleTest extends TestCase
 {
@@ -19,7 +23,7 @@ final class ContentBlocksKitBundleTest extends TestCase
     {
         foreach (ContentBlocksKitBundle::BLOCKS as $type => $class) {
             $this->assertTrue(is_subclass_of($class, AbstractKitBlock::class), "$class must extend AbstractKitBlock");
-            $this->assertSame($type, $class::getType(), "BLOCKS key '$type' must match {$class}::getType()");
+            $this->assertSame($type, (new $class())->getType(), "BLOCKS key '$type' must match {$class}::getType()");
         }
     }
 
@@ -60,6 +64,32 @@ final class ContentBlocksKitBundleTest extends TestCase
             'blocks' => ['html_raw' => ['enabled' => true]],
         ]);
         $this->assertArrayHasKey(HtmlRawBlock::class, $optedIn);
+    }
+
+    /**
+     * A config entry that only sets defaults or options must not switch the
+     * raw-HTML block on: the tree once defaulted `enabled` to true.
+     */
+    public function testHtmlRawStaysOffWhenConfiguredWithoutEnabled(): void
+    {
+        foreach ([null, ['defaults' => ['html' => '']], ['options' => []]] as $entry) {
+            $config = $this->processConfig(['blocks' => ['html_raw' => $entry]]);
+
+            $this->assertArrayNotHasKey(
+                HtmlRawBlock::class,
+                ContentBlocksKitBundle::resolveBlocks($config),
+            );
+        }
+
+        $config = $this->processConfig(['blocks' => ['html_raw' => ['enabled' => true]]]);
+        $this->assertArrayHasKey(HtmlRawBlock::class, ContentBlocksKitBundle::resolveBlocks($config));
+    }
+
+    public function testAConfiguredBlockStaysOnWithoutEnabled(): void
+    {
+        $config = $this->processConfig(['blocks' => ['title' => ['defaults' => ['level' => 'h3']]]]);
+
+        $this->assertArrayHasKey(TitleBlock::class, ContentBlocksKitBundle::resolveBlocks($config));
     }
 
     public function testDisablingABlockUnregistersIt(): void
@@ -115,5 +145,20 @@ final class ContentBlocksKitBundleTest extends TestCase
             $this->assertArrayHasKey('choices', $config);
             $this->assertArrayHasKey('defaults', $config);
         }
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     *
+     * @return array<string, mixed>
+     */
+    private function processConfig(array $config): array
+    {
+        $extension = (new ContentBlocksKitBundle())->getContainerExtension();
+        \assert($extension instanceof ConfigurationExtensionInterface);
+        $configuration = $extension->getConfiguration([], new ContainerBuilder());
+        \assert($configuration instanceof ConfigurationInterface);
+
+        return (new Processor())->processConfiguration($configuration, [$config]);
     }
 }

@@ -31,8 +31,8 @@ final class TreeController
     }
 
     /**
-     * canEdit(), not canView(): the panel exists to move, duplicate and
-     * delete, and it is only ever rendered inside the builder.
+     * The draft order, so canEdit(): the panel moves, duplicates and deletes,
+     * and it is only ever rendered inside the builder.
      */
     #[Route('/area/{id}/tree', name: 'content_blocks_area_tree', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function tree(int $id): JsonResponse

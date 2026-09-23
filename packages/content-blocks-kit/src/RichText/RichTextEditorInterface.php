@@ -16,7 +16,7 @@ interface RichTextEditorInterface
      * The name hosts select this editor by. Static, so the registry indexes
      * implementations without instantiating them.
      */
-    public static function getName(): string;
+    public function getName(): string;
 
     /**
      * Everything the browser needs to mount this editor: which controller to

@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
  * `data-i18n-*` attributes off: it runs as a plain module inside the preview
  * iframe, so every string it renders has to be translated in
  * `render/content_area.html.twig` and handed over on
- * `window.__cbOverlayLabels`.
+ * the `cb-overlay-labels` JSON block.
  *
  * That indirection is exactly what let "Duplicate", "Delete", "Move up", "Move
  * down" and "Save as template" sit hardcoded in the overlay for as long as they
@@ -42,8 +42,8 @@ final class PreviewOverlayLabelsTest extends TestCase
     private function keysEmittedByTemplate(): array
     {
         $twig = (string) file_get_contents(self::TEMPLATE);
-        if (!preg_match('/__cbOverlayLabels = \{\{ \{(.+?)\}\|json_encode/s', $twig, $block)) {
-            self::fail('The template no longer emits window.__cbOverlayLabels as an inline map.');
+        if (!preg_match('/id="cb-overlay-labels">\{\{ \{(.+?)\}\|json_encode/s', $twig, $block)) {
+            self::fail('The template no longer emits the cb-overlay-labels map.');
         }
         preg_match_all("/([a-z_]+):\s*'([^']+)'\|trans/", $block[1], $m, PREG_SET_ORDER);
 

@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Twig;
 
+use ContentBlocks\PublicAsset\PackageAssets;
+use ContentBlocks\PublicAsset\StaticAssetResponse;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 /**
  * `cb_api_base()`: where the host mounted the builder's endpoints, read from
- * the router so the builder's JS never spells `/_content-blocks` itself.
+ * the router; `cb_asset_path()`: a package asset's versioned URL.
  *
  * @see docs/internals/frontend.md#endpoint-urls-come-from-the-router
  */
@@ -32,6 +34,7 @@ final class RoutingExtension extends AbstractExtension
     {
         return [
             new TwigFunction('cb_api_base', [$this, 'apiBase']),
+            new TwigFunction('cb_asset_path', [$this, 'assetPath']),
         ];
     }
 
@@ -51,5 +54,17 @@ final class RoutingExtension extends AbstractExtension
         }
 
         return substr($anchor, 0, -\strlen(self::ANCHOR_PATH));
+    }
+
+    /**
+     * A package asset's URL with its content hash, which the asset route
+     * answers with a year of cache.
+     */
+    public function assetPath(string $name): string
+    {
+        $content = PackageAssets::content($name);
+        $params = $content === null ? [] : ['v' => StaticAssetResponse::version($content)];
+
+        return $this->urlGenerator->generate('content_blocks_asset_' . $name, $params);
     }
 }

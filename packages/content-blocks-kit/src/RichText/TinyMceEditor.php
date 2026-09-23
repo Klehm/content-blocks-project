@@ -15,7 +15,7 @@ final class TinyMceEditor extends AbstractRichTextEditor
     /** Pinned with its SRI hash: bump both together. */
     public const CDN_VERSION = '7.9.3';
 
-    public static function getName(): string
+    public function getName(): string
     {
         return 'tinymce';
     }

@@ -17,11 +17,11 @@
 
     {% if layout == 'slider' %}
         <div class="cb-kit-gallery cb-kit-gallery--slider" style="{{ vars }}" data-controller="cb-gallery">
-            <button type="button" class="cb-kit-gallery__nav cb-kit-gallery__nav--prev" data-cb-gallery-target="prev" data-action="cb-gallery#prev" aria-label="Previous">{{ cb_kit_icon('arrow-right', 22)|raw }}</button>
+            <button type="button" class="cb-kit-gallery__nav cb-kit-gallery__nav--prev" data-cb-gallery-target="prev" data-action="cb-gallery#prev" aria-label="{{ 'cb_kit.front.previous'|trans({}, 'content_blocks_kit') }}">{{ cb_kit_icon('arrow-right', 22)|raw }}</button>
             <div class="cb-kit-gallery__track" data-cb-gallery-target="track">
                 {% for item in items %}{{ gallery.item(item, fit) }}{% endfor %}
             </div>
-            <button type="button" class="cb-kit-gallery__nav cb-kit-gallery__nav--next" data-cb-gallery-target="next" data-action="cb-gallery#next" aria-label="Next">{{ cb_kit_icon('arrow-right', 22)|raw }}</button>
+            <button type="button" class="cb-kit-gallery__nav cb-kit-gallery__nav--next" data-cb-gallery-target="next" data-action="cb-gallery#next" aria-label="{{ 'cb_kit.front.next'|trans({}, 'content_blocks_kit') }}">{{ cb_kit_icon('arrow-right', 22)|raw }}</button>
         </div>
     {% else %}
         <div class="cb-kit-gallery cb-kit-gallery--{{ layout }}" style="{{ vars }}">
@@ -36,7 +36,9 @@
        if it returns candidates at all. #}
     {% set img = cb_image(item.src) %}
     <figure class="cb-kit-gallery__item">
-        {% if link is not empty %}<a href="{{ link }}">{% endif %}
+        {# An image without alt text would leave the link with no name. #}
+        {% set name = item.alt|default('')|trim is empty ? (item.caption|default('')|trim ?: 'cb_kit.front.linked_image'|trans({'%url%': link}, 'content_blocks_kit')) : null %}
+        {% if link is not empty %}<a href="{{ link }}"{% if name %} aria-label="{{ name }}"{% endif %}>{% endif %}
         <img class="cb-kit-gallery__img" src="{{ img.src }}" alt="{{ item.alt|default('') }}"
              {%- if img.srcset %} srcset="{{ img.srcset }}"{% endif %}{% if img.sizes %} sizes="{{ img.sizes }}"{% endif %} loading="lazy" decoding="async">
         {% if link is not empty %}</a>{% endif %}

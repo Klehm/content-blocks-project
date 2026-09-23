@@ -9,6 +9,7 @@ use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\Form\Type\ImageUploadType;
 use ContentBlocks\Form\Type\VideoUploadType;
+use ContentBlocks\Kit\Security\SafeLinkConstraint;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -26,17 +27,17 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 #[AsContentBlock(priority: 32)]
 class VideoBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'video';
     }
 
-    public static function getLabel(): TranslatableInterface
+    public function getLabel(): TranslatableInterface
     {
         return new TranslatableMessage('cb_kit.block.video.label', [], 'content_blocks_kit');
     }
 
-    public static function getIcon(): ?string
+    public function getIcon(): ?string
     {
         // Film strip with a play triangle.
         return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" '
@@ -100,6 +101,25 @@ class VideoBlock extends AbstractKitBlock implements BlockPreviewHintInterface
                 'translation_domain' => 'content_blocks_kit',
                 'required' => false,
                 'constraints' => [new Assert\Length(max: 255)],
+            ])
+            // A path, not an upload: a .vtt sniffs as text/plain, and a
+            // track served that way is refused by the browser.
+            ->add('captions', TextType::class, [
+                'cb_translatable' => true,
+                'label' => 'cb_kit.block.video.field.captions',
+                'translation_domain' => 'content_blocks_kit',
+                'help' => 'cb_kit.block.video.captions_help',
+                'required' => false,
+                'constraints' => [new Assert\Length(max: 1024), new SafeLinkConstraint()],
+            ])
+            ->add('captionsLang', TextType::class, [
+                'cb_translatable' => true,
+                'label' => 'cb_kit.block.video.field.captions_lang',
+                'translation_domain' => 'content_blocks_kit',
+                'help' => 'cb_kit.block.video.captions_lang_help',
+                'required' => false,
+                'row_attr' => ['data-cb-condition' => 'captions'],
+                'constraints' => [new Assert\Regex('/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/')],
             ]);
     }
 
@@ -128,6 +148,8 @@ class VideoBlock extends AbstractKitBlock implements BlockPreviewHintInterface
             'size' => 'full',
             'align' => 'center',
             'caption' => '',
+            'captions' => '',
+            'captionsLang' => '',
         ];
     }
 

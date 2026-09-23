@@ -15,8 +15,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ 'cb_i18n.workbench.title'|trans }} — {{ localeLabel }}</title>
-    <link rel="stylesheet" href="{{ path('content_blocks_i18n_asset_css') }}">
-    <script type="module" src="{{ path('content_blocks_i18n_asset_js') }}" defer></script>
+    <link rel="stylesheet" href="{{ path('content_blocks_i18n_asset_css', {v: assetVersions.css ?? null}) }}">
+    <script type="module" src="{{ path('content_blocks_i18n_asset_js', {v: assetVersions.js ?? null}) }}" defer></script>
     {# Empty on purpose: host additions, e.g. a stylesheet redeclaring the
        --cb-wb-* tokens. See docs/guide/translation.md#adding-to-the-workbench #}
     {% block cb_wb_head %}{% endblock %}

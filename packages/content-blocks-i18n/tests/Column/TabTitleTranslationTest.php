@@ -330,7 +330,7 @@ final class TabTitleTranslationTest extends TestCase
             /** @var list<TranslationRequest> */
             public array $received = [];
 
-            public static function getName(): string
+            public function getName(): string
             {
                 return 'recording';
             }

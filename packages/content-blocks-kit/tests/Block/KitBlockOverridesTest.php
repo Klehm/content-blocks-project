@@ -107,12 +107,12 @@ final class KitBlockOverridesTest extends TestCase
  */
 final class ProbeKitBlock extends AbstractKitBlock
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'probe';
     }
 
-    public static function getLabel(): TranslatableInterface
+    public function getLabel(): TranslatableInterface
     {
         return new TranslatableMessage('probe');
     }

@@ -5,7 +5,8 @@
  * @see docs/internals/kit.md#blocks-are-autonomous
  */
 
-:where(.cb-kit-btn, .cb-kit-alert, .cb-kit-list, .cb-kit-icon) {
+/* On the root at zero specificity: set once on :root, or on any container. */
+:where(:root) {
     --cb-kit-primary: #4f46e5;
     --cb-kit-primary-contrast: #ffffff;
     --cb-kit-secondary: #64748b;
@@ -42,8 +43,6 @@
 .cb-kit-btn-wrap--end { justify-content: flex-end; }
 
 .cb-kit-btn {
-    --cb-kit-primary: #4f46e5;
-    --cb-kit-secondary: #64748b;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -140,14 +139,14 @@
 /* ---------- Breadcrumb ---------- */
 .cb-kit-breadcrumb__list { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: 0; padding: 0; list-style: none; }
 .cb-kit-breadcrumb__item { display: inline-flex; align-items: center; gap: .4rem; }
-.cb-kit-breadcrumb__link { color: #4f46e5; text-decoration: none; }
+.cb-kit-breadcrumb__link { color: var(--cb-kit-primary, #4f46e5); text-decoration: none; }
 .cb-kit-breadcrumb__link:hover { text-decoration: underline; }
 .cb-kit-breadcrumb__current { color: #6b7280; }
 .cb-kit-breadcrumb__sep { color: #9ca3af; }
 
 /* ---------- Accordion (native <details>) ---------- */
-.cb-kit-accordion { display: flex; flex-direction: column; border: 1px solid #e5e7eb; border-radius: var(--cb-kit-radius, 8px); overflow: hidden; }
-.cb-kit-accordion__item + .cb-kit-accordion__item { border-top: 1px solid #e5e7eb; }
+.cb-kit-accordion { display: flex; flex-direction: column; border: 1px solid var(--cb-kit-border, #d1d5db); border-radius: var(--cb-kit-radius, 8px); overflow: hidden; }
+.cb-kit-accordion__item + .cb-kit-accordion__item { border-top: 1px solid var(--cb-kit-border, #d1d5db); }
 .cb-kit-accordion__summary { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .9rem 1.1rem; font-weight: 600; cursor: pointer; list-style: none; }
 .cb-kit-accordion__summary::-webkit-details-marker { display: none; }
 .cb-kit-accordion__marker { line-height: 0; color: #6b7280; transition: transform .2s ease; transform: rotate(90deg); }
@@ -161,7 +160,7 @@
 
 /* That is what replaced a per-instance <style> tag no host could override
    without !important. Tokens sit in :where(), so any host selector wins. */
-:where(.cb-kit-tabs) {
+:where(:root) {
     --cb-kit-tabs-line: #e5e7eb;
     --cb-kit-tabs-tab: #6b7280;
     --cb-kit-tabs-tab-active: #1f2937;
@@ -233,7 +232,7 @@
 .cb-kit-gallery--slider { display: flex; align-items: center; gap: .5rem; }
 .cb-kit-gallery--slider .cb-kit-gallery__track { display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; flex: 1 1 auto; scrollbar-width: thin; }
 .cb-kit-gallery--slider .cb-kit-gallery__item { flex: 0 0 calc((100% - (var(--cb-kit-cols, 3) - 1) * 1rem) / var(--cb-kit-cols, 3)); scroll-snap-align: start; }
-.cb-kit-gallery__nav { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; border: 1px solid #d1d5db; border-radius: 999px; background: #fff; color: #374151; cursor: pointer; line-height: 0; }
+.cb-kit-gallery__nav { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; border: 1px solid var(--cb-kit-border, #d1d5db); border-radius: 999px; background: #fff; color: #374151; cursor: pointer; line-height: 0; }
 .cb-kit-gallery__nav:disabled { opacity: .35; cursor: default; }
 .cb-kit-gallery__nav--prev { transform: rotate(180deg); }
 
@@ -241,7 +240,7 @@
 .cb-kit-cards--grid { display: grid; gap: 1.25rem; grid-template-columns: repeat(var(--cb-kit-cols, 3), minmax(0, 1fr)); }
 @media (max-width: 640px) { .cb-kit-cards--grid { grid-template-columns: 1fr; } }
 .cb-kit-cards--list { display: flex; flex-direction: column; gap: 1rem; }
-.cb-kit-card { display: flex; flex-direction: column; border: 1px solid #e5e7eb; border-radius: var(--cb-kit-radius, 8px); overflow: hidden; background: #fff; }
+.cb-kit-card { display: flex; flex-direction: column; border: 1px solid var(--cb-kit-border, #d1d5db); border-radius: var(--cb-kit-radius, 8px); overflow: hidden; background: #fff; }
 .cb-kit-cards--list .cb-kit-card { flex-direction: row; }
 .cb-kit-card__media img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .cb-kit-cards--list .cb-kit-card__media { flex: 0 0 33%; max-width: 220px; }
@@ -253,7 +252,7 @@
 /* ---------- Table ---------- */
 .cb-kit-table-wrap { overflow-x: auto; }
 .cb-kit-table { width: 100%; border-collapse: collapse; }
-.cb-kit-table th, .cb-kit-table td { padding: .6rem .8rem; border-bottom: 1px solid #e5e7eb; }
+.cb-kit-table th, .cb-kit-table td { padding: .6rem .8rem; border-bottom: 1px solid var(--cb-kit-border, #d1d5db); }
 .cb-kit-table thead th { background: #f9fafb; font-weight: 700; }
 .cb-kit-table--striped tbody tr:nth-child(odd) { background: #f9fafb; }
 .cb-kit-table--l { text-align: left; }

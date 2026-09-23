@@ -1,7 +1,7 @@
 {# BreadcrumbBlock view. Empty url → current page (plain text). #}
 {% set items = data.items|default([])|filter(i => i.label|default('')|trim is not empty) %}
 {% if items|length > 0 %}
-    <nav class="cb-kit-breadcrumb" aria-label="Breadcrumb">
+    <nav class="cb-kit-breadcrumb" aria-label="{{ 'cb_kit.front.breadcrumb'|trans({}, 'content_blocks_kit') }}">
         <ol class="cb-kit-breadcrumb__list">
             {% for item in items %}
                 <li class="cb-kit-breadcrumb__item">

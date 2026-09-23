@@ -18,7 +18,14 @@
                {%- if autoplay %} autoplay playsinline{% endif %}
                {%- if muted %} muted{% endif %}
                {%- if data.loop ?? false %} loop{% endif %}
-               {%- if width %} style="width:{{ width }}px"{% endif %} preload="metadata"></video>
+               {%- if width %} style="width:{{ width }}px"{% endif %} preload="metadata">
+            {%- set captions = data.captions|default('')|trim|cb_kit_safe_url %}
+            {%- if captions is not empty %}
+                {%- set lang = data.captionsLang|default('')|trim %}
+                <track kind="captions" src="{{ captions }}" label="{{ 'cb_kit.front.captions'|trans({}, 'content_blocks_kit') }}"
+                       {%- if lang matches '/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/' %} srclang="{{ lang }}"{% endif %} default>
+            {%- endif -%}
+        </video>
         {% if data.caption|default('')|trim is not empty %}
             <figcaption class="cb-kit-video__caption">{{ data.caption }}</figcaption>
         {% endif %}

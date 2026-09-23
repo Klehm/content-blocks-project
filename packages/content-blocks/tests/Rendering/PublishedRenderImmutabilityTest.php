@@ -674,6 +674,7 @@ final class PublishedRenderImmutabilityTest extends TestCase
         $env->addExtension(new TranslationExtension($this->translator()));
         $env->addExtension(new SectionLayoutExtension(new SectionLayoutRegistry()));
         $env->addExtension(new RoutingExtension($this->urlGenerator()));
+        $env->addExtension(new \ContentBlocks\Twig\RoutingExtension($this->urlGenerator()));
 
         return $env;
     }
@@ -682,11 +683,11 @@ final class PublishedRenderImmutabilityTest extends TestCase
     {
         $registry = new BlockTypeRegistry();
         $registry->register(new class () extends AbstractBlockType {
-            public static function getType(): string
+            public function getType(): string
             {
                 return 'text';
             }
-            public static function getLabel(): string
+            public function getLabel(): string
             {
                 return 'Text';
             }

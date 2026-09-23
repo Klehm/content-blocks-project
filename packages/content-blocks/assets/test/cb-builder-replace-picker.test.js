@@ -298,3 +298,78 @@ describe('cb-builder replace picker: translation fallback', () => {
         expect(controller._t('cb.builder.replace.loading', 'Loading…')).toBe('Loading…');
     });
 });
+
+describe('cb-builder replace picker: focus', () => {
+    let controller, picker, search, element;
+
+    beforeEach(() => {
+        ({ controller, picker, search, element } = setupController());
+        picker.innerHTML = '<button class="close">×</button><input class="q"><button class="last">x</button>';
+        global.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ items: [], hasMore: false }),
+        }));
+    });
+
+    function tab(shiftKey = false) {
+        const event = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, cancelable: true });
+        controller.onReplacePickerKeydown(event);
+        return event;
+    }
+
+    it('gives focus back to the button that opened it', async () => {
+        const opener = element.querySelector('.cb-shell__replace');
+        opener.focus();
+
+        await controller.openReplacePicker({ preventDefault: () => {} });
+        expect(document.activeElement).toBe(search);
+
+        controller.closeReplacePicker();
+        expect(document.activeElement).toBe(opener);
+    });
+
+    it('does not throw when the opener is gone', async () => {
+        const opener = element.querySelector('.cb-shell__replace');
+        opener.focus();
+        await controller.openReplacePicker({ preventDefault: () => {} });
+        opener.remove();
+
+        expect(() => controller.closeReplacePicker()).not.toThrow();
+    });
+
+    it('wraps Tab from the last control to the first', () => {
+        picker.hidden = false;
+        picker.querySelector('.last').focus();
+
+        const event = tab();
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(document.activeElement).toBe(picker.querySelector('.close'));
+    });
+
+    it('wraps Shift-Tab from the first control to the last', () => {
+        picker.hidden = false;
+        picker.querySelector('.close').focus();
+
+        const event = tab(true);
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(document.activeElement).toBe(picker.querySelector('.last'));
+    });
+
+    it('lets Tab move normally between inner controls', () => {
+        picker.hidden = false;
+        picker.querySelector('.q').focus();
+
+        expect(tab().defaultPrevented).toBe(false);
+    });
+
+    it('pulls focus back in when it had escaped the picker', () => {
+        picker.hidden = false;
+        element.querySelector('.cb-shell__replace').focus();
+
+        tab();
+
+        expect(document.activeElement).toBe(picker.querySelector('.close'));
+    });
+});

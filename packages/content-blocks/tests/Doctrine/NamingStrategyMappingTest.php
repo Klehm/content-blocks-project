@@ -6,6 +6,7 @@ namespace ContentBlocks\Tests\Doctrine;
 
 use ContentBlocks\Entity\Block;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Exception\ConnectionException;
 use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Mapping\DefaultNamingStrategy;
@@ -59,15 +60,22 @@ final class NamingStrategyMappingTest extends TestCase
             $config->enableNativeLazyObjects(true);
         }
 
-        // Never connects: a pinned server version gives the platform offline.
+        // A pinned server version gives the platform offline on current DBAL.
         $connection = DriverManager::getConnection(
             ['driver' => 'pdo_mysql', 'serverVersion' => '8.0.0'],
             $config,
         );
         $em = new EntityManager($connection, $config);
 
-        return array_values((new SchemaTool($em))->getCreateSchemaSql(
-            $em->getMetadataFactory()->getAllMetadata(),
-        ));
+        try {
+            $sql = (new SchemaTool($em))->getCreateSchemaSql(
+                $em->getMetadataFactory()->getAllMetadata(),
+            );
+        } catch (ConnectionException) {
+            // ORM 2.15 on DBAL 3.6 asks the server for the schema name.
+            self::markTestSkipped('This Doctrine version needs a database here.');
+        }
+
+        return array_values($sql);
     }
 }

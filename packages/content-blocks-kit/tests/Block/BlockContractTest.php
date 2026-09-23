@@ -36,7 +36,7 @@ final class BlockContractTest extends TestCase
         'table' => ['striped', 'columns', 'rows'],
         'embed' => ['url', 'title'],
         'button_group' => ['items', 'size', 'align', 'stackOnMobile'],
-        'video' => ['src', 'poster', 'autoplay', 'muted', 'controls', 'loop', 'size', 'align', 'caption'],
+        'video' => ['src', 'poster', 'autoplay', 'muted', 'controls', 'loop', 'size', 'align', 'caption', 'captions', 'captionsLang'],
         'breadcrumb' => ['items'],
         'html_raw' => ['html'],
         'tabs' => ['items'],
@@ -45,9 +45,10 @@ final class BlockContractTest extends TestCase
     public function testEveryBlockHasTypeLabelAndIcon(): void
     {
         foreach (ContentBlocksKitBundle::BLOCKS as $type => $class) {
-            $this->assertNotSame('', $class::getType());
-            $this->assertNotNull($class::getLabel());
-            $icon = $class::getIcon();
+            $block = new $class();
+            $this->assertNotSame('', $block->getType());
+            $this->assertNotNull($block->getLabel());
+            $icon = $block->getIcon();
             $this->assertNotNull($icon, "$type should ship an icon");
             $this->assertStringContainsString('<svg', $icon);
         }

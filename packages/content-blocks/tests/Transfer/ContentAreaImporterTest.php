@@ -643,12 +643,12 @@ final class ContentAreaImporterTest extends TestCase
  */
 final class FakeTextBlockType extends AbstractBlockType
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'text';
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Text';
     }
@@ -665,12 +665,12 @@ final class FakeTextBlockType extends AbstractBlockType
 
 final class FakeImageBlockType extends AbstractBlockType
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'image';
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Image';
     }

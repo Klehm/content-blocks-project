@@ -33,7 +33,7 @@ final class BlockFormType extends AbstractType
 
         // After the block's own fields, so they can reference or override
         // them; before the styling tab, which stays last.
-        $this->extensions->applyTo($builder, $options['block_data'], $blockType::getType());
+        $this->extensions->applyTo($builder, $options['block_data'], $blockType->getType());
 
         // Lands under the `styling` key of Block.data, which is why a block
         // type's getDefaultData() never declares it.

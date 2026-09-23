@@ -110,11 +110,11 @@ final class BlockComponentTest extends TestCase
 
         $registry = new BlockTypeRegistry();
         $registry->register(new class () extends AbstractBlockType {
-            public static function getType(): string
+            public function getType(): string
             {
                 return 'test';
             }
-            public static function getLabel(): string
+            public function getLabel(): string
             {
                 return 'Test';
             }
@@ -175,11 +175,11 @@ final class BlockComponentTest extends TestCase
 
         $registry = new BlockTypeRegistry();
         $registry->register(new class () extends AbstractBlockType {
-            public static function getType(): string
+            public function getType(): string
             {
                 return 'test';
             }
-            public static function getLabel(): string
+            public function getLabel(): string
             {
                 return 'Test';
             }
@@ -268,12 +268,12 @@ final class BlockComponentTest extends TestCase
     {
         $registry = new BlockTypeRegistry();
         $registry->register(new class () extends AbstractBlockType {
-            public static function getType(): string
+            public function getType(): string
             {
                 return 'test';
             }
 
-            public static function getLabel(): string|TranslatableInterface
+            public function getLabel(): string|TranslatableInterface
             {
                 // symfony/translation is not a core dependency, so stand in for
                 // TranslatableMessage: translatable and Stringable, as it is.
@@ -346,11 +346,11 @@ final class BlockComponentTest extends TestCase
 
         $registry = new BlockTypeRegistry();
         $registry->register(new class () extends AbstractBlockType {
-            public static function getType(): string
+            public function getType(): string
             {
                 return 'test';
             }
-            public static function getLabel(): string
+            public function getLabel(): string
             {
                 return 'Test';
             }

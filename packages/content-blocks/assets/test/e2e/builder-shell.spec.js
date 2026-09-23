@@ -872,8 +872,8 @@ test.describe('builder shell — focus + permanent affordances', () => {
 
     test('overlay toolbar buttons are labelled from the translated catalog, not the JS fallbacks', async ({ page }) => {
         // The overlay runs as a plain module inside the preview iframe, with no
-        // Stimulus element to carry `data-i18n-*`. Its labels come from
-        // `window.__cbOverlayLabels`, translated server-side — and when that
+        // Stimulus element to carry `data-i18n-*`. Its labels come from the
+        // `cb-overlay-labels` JSON block, translated server-side — and when that
         // wiring is missing, nothing breaks visibly: the buttons just quietly
         // render their English fallbacks. Which is how "Duplicate" survived in
         // a French UI. Asserted against the injected values rather than literal
@@ -886,7 +886,7 @@ test.describe('builder shell — focus + permanent affordances', () => {
         const observed = await page.locator('.cb-shell__iframe').evaluate((iframe) => {
             const doc = iframe.contentDocument;
             return {
-                labels: doc.defaultView.__cbOverlayLabels,
+                labels: JSON.parse(doc.getElementById('cb-overlay-labels').textContent),
                 buttons: [...doc.querySelectorAll('.cb-overlay-toolbar__btn')].map((b) => ({
                     action: b.dataset.cbAction,
                     title: b.title,

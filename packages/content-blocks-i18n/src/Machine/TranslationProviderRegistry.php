@@ -69,7 +69,7 @@ final class TranslationProviderRegistry
         $out = [];
 
         foreach ($this->services as $provider) {
-            $out[$provider::getName()] = $provider;
+            $out[$provider->getName()] = $provider;
         }
 
         return $this->providers = $out;

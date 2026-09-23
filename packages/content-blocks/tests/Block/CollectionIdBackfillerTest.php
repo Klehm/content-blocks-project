@@ -74,12 +74,12 @@ final class CollectionIdBackfillerTest extends TestCase
 
 final class GridFixtureBlock extends AbstractBlockType
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'grid';
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Grid';
     }

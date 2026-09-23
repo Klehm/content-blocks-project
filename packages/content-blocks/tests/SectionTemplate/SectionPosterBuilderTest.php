@@ -381,12 +381,12 @@ abstract class PosterTestBlock extends AbstractBlockType
 
 final class PosterHeadingBlock extends PosterTestBlock implements BlockPreviewHintInterface
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'poster_heading';
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Heading block';
     }
@@ -399,12 +399,12 @@ final class PosterHeadingBlock extends PosterTestBlock implements BlockPreviewHi
 
 final class PosterPictureBlock extends PosterTestBlock implements BlockPreviewHintInterface
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'poster_picture';
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Picture block';
     }
@@ -418,12 +418,12 @@ final class PosterPictureBlock extends PosterTestBlock implements BlockPreviewHi
 /** Implements nothing: the "existing block types keep working" case. */
 final class PosterMuteBlock extends PosterTestBlock
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'poster_mute';
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Muted block';
     }
@@ -431,12 +431,12 @@ final class PosterMuteBlock extends PosterTestBlock
 
 final class PosterExplodingBlock extends PosterTestBlock implements BlockPreviewHintInterface
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'poster_boom';
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Exploding block';
     }

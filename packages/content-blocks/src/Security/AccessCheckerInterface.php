@@ -14,7 +14,9 @@ use ContentBlocks\Entity\ContentArea;
  */
 interface AccessCheckerInterface
 {
+    /**
+     * Guards every builder action and every read of the unpublished draft.
+     * The published page is not checked: the host protects its own route.
+     */
     public function canEdit(ContentArea $contentArea): bool;
-
-    public function canView(ContentArea $contentArea): bool;
 }

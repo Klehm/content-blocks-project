@@ -43,7 +43,9 @@
        with nothing in the markup naming it. #}
     <figure class="cb-kit-image cb-kit-image--{{ align }} cb-kit-image--size-{{ cb_kit_token(size, 'md') }}{% if ratio_parts %} cb-kit-image--ratio-{{ ratio }}{% endif %}">
         {% set link = data.url|default('')|trim|cb_kit_safe_url %}
-        {% if link is not empty %}<a href="{{ link }}">{% endif %}
+        {# An image without alt text would leave the link with no name. #}
+        {% set name = data.alt|default('')|trim is empty ? (data.caption|default('')|trim ?: 'cb_kit.front.linked_image'|trans({'%url%': link}, 'content_blocks_kit')) : null %}
+        {% if link is not empty %}<a href="{{ link }}"{% if name %} aria-label="{{ name }}"{% endif %}>{% endif %}
         <img class="cb-kit-image__img" src="{{ img.src }}" alt="{{ data.alt|default('') }}"
              {%- if img.srcset %} srcset="{{ img.srcset }}"{% endif %}{% if sizes %} sizes="{{ sizes }}"{% endif %}
              {%- if width %} width="{{ width }}"{% endif %}{% if height %} height="{{ height }}"{% endif %}

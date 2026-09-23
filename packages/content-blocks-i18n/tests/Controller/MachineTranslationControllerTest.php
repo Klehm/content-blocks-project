@@ -73,7 +73,7 @@ final class MachineTranslationControllerTest extends TestCase
             $symfonyTranslator,
         );
         $providers = new TranslationProviderRegistry([new class () implements TranslationProviderInterface {
-            public static function getName(): string
+            public function getName(): string
             {
                 return 'recording';
             }
