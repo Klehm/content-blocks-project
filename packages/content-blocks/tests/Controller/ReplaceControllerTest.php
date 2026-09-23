@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Controller\ReplaceController;
+use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Replace\ContentAreaProviderInterface;
 use ContentBlocks\Section\SectionCloner;
 use ContentBlocks\Security\AccessCheckerInterface;
@@ -122,15 +123,17 @@ final class ReplaceControllerTest extends ControllerTestCase
         $this->assertSame(Response::HTTP_FORBIDDEN, $response->getStatusCode());
     }
 
-    public function testReplaceWithDeniesAnUnreadableSource(): void
+    // The clone copies the source's draft, so a source the user can only
+    // view is refused: that draft is not theirs to read.
+    public function testReplaceWithDeniesASourceTheUserCannotEdit(): void
     {
-        // IDOR guard: the user can edit the target but must NOT be able to
-        // copy content out of a source they cannot view.
         $target = $this->makeArea(1);
         $source = $this->makeArea(2);
         $checker = $this->createMock(AccessCheckerInterface::class);
-        $checker->method('canEdit')->willReturn(true);
-        $checker->method('canView')->willReturn(false);
+        $checker->method('canEdit')->willReturnCallback(
+            static fn (ContentArea $area): bool => $area === $target,
+        );
+        $checker->method('canView')->willReturn(true);
         $controller = $this->makeController($this->makeEm([$target, $source]), accessChecker: $checker);
 
         $this->expectException(ContentBlocksAccessDeniedException::class);

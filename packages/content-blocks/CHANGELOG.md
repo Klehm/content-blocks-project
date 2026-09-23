@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Any editor could read any file on the server through the export.** A
+  stored path was joined onto the upload directory without normalisation, so
+  `/uploads/content-blocks/../../../.env` typed into any field was read into
+  the export zip. `LocalFileStorage` now refuses `.`/`..`/empty segments,
+  backslashes and NUL bytes, and only reads or removes a real file under the
+  real upload directory. A custom `FileStorageInterface` must hold to the same
+  rule (docs/guide/security.md). Upgrade.
+- **Export and replace-with read the draft with only `canView()`.** Both copy
+  unpublished content, and the documented `canView()` returns `true`: behind a
+  single firewall the export was downloadable anonymously. Both now require
+  `canEdit()` — on the source area too for replace-with. A host that let a
+  view-only user export or copy from an area loses that; that was the bug.
 - **An import could write any file type into the public upload directory.**
   Each embedded file was stored under the `extension` written in the JSON, so
   a forged export could drop a `.php` file (code execution where the upload

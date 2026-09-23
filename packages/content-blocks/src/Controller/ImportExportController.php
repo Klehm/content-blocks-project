@@ -70,7 +70,7 @@ final class ImportExportController
         if (!$area) {
             return new JsonResponse(['error' => 'ContentArea not found'], Response::HTTP_NOT_FOUND);
         }
-        if (!$this->accessChecker->canView($area)) {
+        if (!$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
         }
 
@@ -111,7 +111,7 @@ final class ImportExportController
         if (!$area) {
             return new JsonResponse(['error' => 'ContentArea not found'], Response::HTTP_NOT_FOUND);
         }
-        if (!$this->accessChecker->canView($area)) {
+        if (!$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
         }
 

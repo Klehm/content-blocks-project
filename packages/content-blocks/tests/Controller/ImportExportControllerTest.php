@@ -208,15 +208,38 @@ final class ImportExportControllerTest extends ControllerTestCase
         $this->assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
     }
 
-    public function testExportDeniesAccessWhenViewIsRefused(): void
+    // An export holds the unpublished draft: viewing the page is not enough.
+    public function testExportDeniesAViewerWhoCannotEdit(): void
     {
         $area = $this->makeArea(1);
-        $denier = $this->createMock(AccessCheckerInterface::class);
-        $denier->method('canView')->willReturn(false);
-        $controller = $this->makeController($this->makeEm([$area]), accessChecker: $denier);
+        $controller = $this->makeController(
+            $this->makeEm([$area]),
+            accessChecker: $this->viewOnlyChecker(),
+        );
 
         $this->expectException(ContentBlocksAccessDeniedException::class);
         $controller->export(1, new Request());
+    }
+
+    public function testExportSummaryDeniesAViewerWhoCannotEdit(): void
+    {
+        $area = $this->makeArea(1);
+        $controller = $this->makeController(
+            $this->makeEm([$area]),
+            accessChecker: $this->viewOnlyChecker(),
+        );
+
+        $this->expectException(ContentBlocksAccessDeniedException::class);
+        $controller->exportSummary(1);
+    }
+
+    private function viewOnlyChecker(): AccessCheckerInterface
+    {
+        $checker = $this->createMock(AccessCheckerInterface::class);
+        $checker->method('canView')->willReturn(true);
+        $checker->method('canEdit')->willReturn(false);
+
+        return $checker;
     }
 
     // ---------- import ----------

@@ -141,9 +141,8 @@ final class ReplaceController
         if (!$source) {
             return new JsonResponse(['error' => 'Source ContentArea not found'], Response::HTTP_NOT_FOUND);
         }
-        // Without this the replace flow is an IDOR vector for copying private
-        // content out of areas the user cannot read.
-        if (!$this->accessChecker->canView($source)) {
+        // The clone copies the source's draft: reading it takes edit rights.
+        if (!$this->accessChecker->canEdit($source)) {
             throw new ContentBlocksAccessDeniedException();
         }
 
