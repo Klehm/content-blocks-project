@@ -449,7 +449,7 @@ Endpoints `POST /_content-blocks/area/{id}/{undo,redo}` (CSRF + canEdit), always
 ContentBlocks does not know the host app's auth model. It exposes an `AccessCheckerInterface` that the app must implement.
 
 - **Default**: `DenyAllAccessChecker` — blocks all access (secure by default)
-- **Dev/sandbox**: `AllowAllAccessChecker` — allows everything
+- **Dev/sandbox**: `AllowAllAccessChecker` — allows everything. The main sandbox wires `App\Security\E2eAccessChecker` instead: the same, except the area named by the `cb_e2e_deny_area` cookie (debug only), so Playwright can pin a refused `canEdit()` (`replace-candidates-access.spec.js`)
 
 **Setup in host app:**
 ```yaml
