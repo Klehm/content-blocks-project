@@ -332,15 +332,15 @@ final class LoadDemoPagesCommand extends Command
     ): array {
         $styling = [
             'padding' => [
-                'd' => ['top' => $padTop, 'right' => 24, 'bottom' => $padBottom, 'left' => 24],
-                'm' => ['top' => (int) round($padTop * 0.6), 'right' => 20, 'bottom' => (int) round($padBottom * 0.6), 'left' => 20],
+                'desktop' => ['top' => $padTop, 'right' => 24, 'bottom' => $padBottom, 'left' => 24],
+                'mobile' => ['top' => (int) round($padTop * 0.6), 'right' => 20, 'bottom' => (int) round($padBottom * 0.6), 'left' => 20],
             ],
         ];
         if ($bg !== '') {
             $styling['backgroundColor'] = $bg;
         }
         if ($gap !== null) {
-            $styling['gap'] = ['d' => $gap];
+            $styling['gap'] = ['desktop' => $gap];
         }
         if ($verticalAlign !== null) {
             $styling['verticalAlign'] = $verticalAlign;
