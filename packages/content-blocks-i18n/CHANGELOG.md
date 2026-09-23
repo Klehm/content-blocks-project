@@ -19,6 +19,15 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`TranslationWriter::MAX_VALUE_LENGTH`), refused as `too_long` on save.
   Translated rich text and links go through the kit's render-time guards like
   their source.
+- **`?cb_preview=1&cb_locale=` changed the language of a page for anyone.**
+  The locale now applies only for a session that opened the workbench (which
+  checked `canEdit()`); a visitor typing the parameters keeps the page's own
+  language, and no session is started for them.
+- **`GET /providers` answered anyone.** It now needs the builder's CSRF token,
+  and an unknown `provider` in a translate request is a 400
+  `unknown_provider` instead of a 500 whose message listed every provider.
+- **The workbench page is sent `X-Frame-Options: SAMEORIGIN` and
+  `Cache-Control: private, no-store`.**
 
 ## [1.0.0-RC16] - 2026-09-21
 

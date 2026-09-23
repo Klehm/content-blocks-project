@@ -11,8 +11,8 @@ use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Turns `?cb_locale=de` into the request locale, **only** on a request already
- * carrying `cb_preview=1` — so it can never relanguage a public page.
+ * Turns `?cb_locale=de` into the request locale, on a `cb_preview=1` request
+ * from a session that opened the workbench — never for a visitor.
  *
  * @see docs/internals/i18n.md#the-preview-pane
  */
@@ -20,6 +20,9 @@ use Symfony\Component\HttpKernel\KernelEvents;
 final class PreviewLocaleListener
 {
     public const PARAM = 'cb_locale';
+
+    /** Set by the workbench page, which checked `canEdit()` to render. */
+    public const SESSION_KEY = 'cb_i18n.preview_locale';
 
     public function __construct(
         private readonly TranslationLocales $locales,
@@ -35,6 +38,11 @@ final class PreviewLocaleListener
         $request = $event->getRequest();
 
         if ($request->query->get(BlockRendererInterface::QUERY_PARAM) !== '1') {
+            return;
+        }
+
+        // hasPreviousSession(): reading must not start a session for a visitor.
+        if (!$request->hasPreviousSession() || $request->getSession()->get(self::SESSION_KEY) !== true) {
             return;
         }
 

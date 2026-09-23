@@ -43,10 +43,17 @@ final class MachineTranslationController
     ) {
     }
 
-    /** The providers wired on this installation, for the picker. */
+    /**
+     * The providers wired on this installation, for the picker. Same token as
+     * the writes: only a page that rendered the builder may ask.
+     */
     #[Route('/providers', name: 'content_blocks_i18n_providers', methods: ['GET'])]
-    public function providers(): JsonResponse
+    public function providers(Request $request): JsonResponse
     {
+        if ($csrf = $this->csrfFailureOrNull($request)) {
+            return $csrf;
+        }
+
         $out = [];
 
         foreach ($this->providers->all() as $name => $provider) {
@@ -91,6 +98,9 @@ final class MachineTranslationController
         }
 
         $payload = $this->payload($request);
+        if ($unknown = $this->unknownProviderOrNull($payload)) {
+            return $unknown;
+        }
         // array_values: a JSON object would otherwise arrive keyed, not a list.
         $paths = \is_array($payload['paths'] ?? null)
             ? array_values(array_map(strval(...), $payload['paths']))
@@ -135,6 +145,9 @@ final class MachineTranslationController
         }
 
         $payload = $this->payload($request);
+        if ($unknown = $this->unknownProviderOrNull($payload)) {
+            return $unknown;
+        }
         $paths = \is_array($payload['paths'] ?? null)
             ? array_values(array_map(strval(...), $payload['paths']))
             : null;
@@ -181,6 +194,9 @@ final class MachineTranslationController
         }
 
         $payload = $this->payload($request);
+        if ($unknown = $this->unknownProviderOrNull($payload)) {
+            return $unknown;
+        }
 
         $result = $this->translator->translateArea(
             $area,
@@ -211,6 +227,22 @@ final class MachineTranslationController
         $name = $payload['provider'] ?? null;
 
         return \is_string($name) && $name !== '' ? $name : null;
+    }
+
+    /**
+     * An unknown name is the caller's mistake: a 400, not an exception whose
+     * message lists the registered providers.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function unknownProviderOrNull(array $payload): ?JsonResponse
+    {
+        $name = $this->providerName($payload);
+        if ($name === null || $this->providers->has($name)) {
+            return null;
+        }
+
+        return new JsonResponse(['error' => 'unknown_provider'], Response::HTTP_BAD_REQUEST);
     }
 
     private function csrfFailureOrNull(Request $request): ?JsonResponse
