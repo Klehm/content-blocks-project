@@ -8,7 +8,7 @@ Every kit block exposes **four levers** under `content_blocks_kit.blocks.<type>`
 
 | Key | Purpose |
 |---|---|
-| `enabled` | `false` un-registers the block's service — it never reaches the picker. |
+| `enabled` | `false` un-registers the block's service — it never reaches the picker. Omitted, a block is on, except `html_raw`, which only `enabled: true` turns on. |
 | `options` | Block-level knobs (e.g. `max_columns`), merged over the block's coded ones. |
 | `choices` | Per-field choice override: **restrict** a `ChoiceType` field, or **replace** its set outright — including with values the kit never coded. |
 | `defaults` | Per-field overrides of a block's initial data (what a new block starts with). |
@@ -31,6 +31,8 @@ content_blocks_kit:
         title:
             defaults: { size: h1 }              # new titles default to h1 size
 ```
+
+The `<type>` key is checked when the container is built: it must name a kit block, or a host subclass of one carrying its own type. A misspelled key (`tittle`) fails with the closest match rather than configuring nothing.
 
 ## How the levers behave
 

@@ -158,7 +158,7 @@ final class AreaTreeBuilder
         }
 
         $blockType = $this->blockTypeRegistry->get($type);
-        $typeLabel = $this->labelOf($blockType::getLabel());
+        $typeLabel = $this->labelOf($blockType->getLabel());
         $hint = null;
 
         if ($blockType instanceof BlockPreviewHintInterface) {
@@ -178,7 +178,7 @@ final class AreaTreeBuilder
             'typeLabel' => $typeLabel,
             'label' => $hint->text ?? $typeLabel,
             'kind' => $hint->kind,
-            'icon' => $blockType::getIcon(),
+            'icon' => $blockType->getIcon(),
             'missing' => false,
         ];
     }

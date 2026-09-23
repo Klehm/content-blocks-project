@@ -272,7 +272,6 @@ final class LoadDemoPagesCommand extends Command
         $section = new Section();
         $section->setContentArea($area);
         $section->setLayout($layout);
-        $section->setPosition($position);
         $section->setPreviewPosition($position);
         $settings = $settingsExtra;
         if ($styleName !== null) {
@@ -280,7 +279,6 @@ final class LoadDemoPagesCommand extends Command
         }
         if ($settings !== []) {
             $section->setDraftSettings($settings);
-            $section->setPublishedSettings($settings);
         }
         $section->publish();
         $area->addSection($section);
@@ -293,7 +291,6 @@ final class LoadDemoPagesCommand extends Command
         $column = new Column();
         $column->setSection($section);
         $column->setPreset($preset);
-        $column->setPosition($position);
         $column->setPreviewPosition($position);
         $column->publish();
         $section->addColumn($column);
@@ -310,8 +307,6 @@ final class LoadDemoPagesCommand extends Command
         $block->setColumn($column);
         $block->setType($type);
         $block->setDraftData($data);
-        $block->setPublishedData($data);
-        $block->setPosition($position);
         $block->setPreviewPosition($position);
         $block->publish();
         $column->addBlock($block);

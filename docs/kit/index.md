@@ -4,11 +4,11 @@ title: Block Kit
 
 # Block Kit
 
-`klehm/content-blocks-kit` is an optional package of **17 ready-to-use block types** for [ContentBlocks](/guide/). Install it and you get a full block palette out of the box — no configuration required.
+`klehm/content-blocks-kit` is an optional package of **19 ready-to-use block types** for [ContentBlocks](/guide/). Install it and you get a full block palette out of the box — no configuration required.
 
 The kit is **self-contained**: no Tailwind, no Bootstrap, no LiipImagine, no icon library. Every block renders neutral `cb-kit-*` markup styled by a single shipped stylesheet, so it drops into any host regardless of its CSS setup.
 
-## The 17 blocks
+## The 19 blocks
 
 | Block | What it is |
 |---|---|
@@ -18,6 +18,7 @@ The kit is **self-contained**: no Tailwind, no Bootstrap, no LiipImagine, no ico
 | [`image`](./blocks/image.md) | Image with size, fit, align, link, caption, rounded corners |
 | [`gallery`](./blocks/gallery.md) | Image grid or arrow slider |
 | [`button`](./blocks/button.md) | Call-to-action button (variants, sizes, alignment) |
+| [`button_group`](./blocks/button_group.md) | One to three buttons in a row, sharing size and alignment |
 | [`card`](./blocks/card.md) | Image/title/text/button tiles as a grid or list |
 | [`list`](./blocks/list.md) | Bulleted / checkmark / numbered list |
 | [`icon`](./blocks/icon.md) | A single icon from the shipped icon set |
@@ -26,6 +27,7 @@ The kit is **self-contained**: no Tailwind, no Bootstrap, no LiipImagine, no ico
 | [`accordion`](./blocks/accordion.md) | Collapsible panels (native `<details>`, zero JS) |
 | [`table`](./blocks/table.md) | Columns + rows data table |
 | [`embed`](./blocks/embed.md) | Responsive YouTube / Vimeo embed |
+| [`video`](./blocks/video.md) | Self-hosted video file in a native `<video>` player |
 | [`breadcrumb`](./blocks/breadcrumb.md) | Breadcrumb trail |
 | [`tabs`](./blocks/tabs.md) | Tabbed panels |
 | [`html_raw`](./blocks/html_raw.md) | Raw-HTML escape hatch (**disabled by default**) |
@@ -45,10 +47,12 @@ The blocks are auto-registered via Symfony autoconfiguration — no config neede
 Kit blocks render with neutral `cb-kit-*` classes styled by a stylesheet the kit serves at a public route. Include it once in your front layout (it also flows into the builder preview):
 
 ```twig
-<link rel="stylesheet" href="{{ path('content_blocks_kit_asset_css') }}">
+<link rel="stylesheet" href="{{ cb_kit_stylesheet_url() }}">
 ```
 
-Retheme by overriding the `--cb-kit-*` custom properties (or the classes) in your own stylesheet loaded after it.
+The URL carries a hash of the file, so browsers and CDNs keep it for a year and fetch the new one after an upgrade. A plain `path('content_blocks_kit_asset_css')` works too, revalidated every five minutes.
+
+Retheme by overriding the `--cb-kit-*` custom properties (set them on `:root`), or the classes in your own stylesheet.
 
 ### Stimulus controllers
 
@@ -77,23 +81,29 @@ The palette covers what an *editor* picks per block. What a **developer** sets o
 
 | Token | Default | Drives |
 |---|---|---|
-| `--cb-kit-primary` | `#4f46e5` | primary button fill, list markers, icon default |
+| `--cb-kit-primary` | `#4f46e5` | primary button fill, list markers, icon default, breadcrumb links |
 | `--cb-kit-primary-contrast` | `#ffffff` | text on a primary fill |
 | `--cb-kit-secondary` | `#64748b` | secondary button fill |
 | `--cb-kit-secondary-contrast` | `#ffffff` | text on a secondary fill |
-| `--cb-kit-border` | `#d1d5db` | alert, table and card rules |
-| `--cb-kit-text` | `#1f2937` | body text inside kit components |
+| `--cb-kit-border` | `#d1d5db` | divider, card, table and accordion rules, gallery arrows |
+| `--cb-kit-text` | `#1f2937` | alert text |
 | `--cb-kit-radius` | `8px` | corner radius across the kit |
 
-They are declared inside `:where(.cb-kit-btn, .cb-kit-alert, .cb-kit-list, .cb-kit-icon)`, and `:where()` carries **zero specificity** — a single rule anywhere in your theme wins without `!important`:
+They are declared once, on `:where(:root)`, and `:where()` carries **zero specificity**. Set them on `:root` for the whole site, or on any container for part of it; either wins without `!important`, whatever order the stylesheets load in:
 
 ```css
-/* your front stylesheet, loaded after kit.css */
-.cb-kit-btn, .cb-kit-alert, .cb-kit-list, .cb-kit-icon {
+/* your front stylesheet */
+:root {
     --cb-kit-primary: #eb0540;
     --cb-kit-radius: 2px;
 }
+
+.dark-band {
+    --cb-kit-border: #334155;
+}
 ```
+
+An alert's colours come from its tone (info, success, warning, error), not from these tokens: restyle `.cb-kit-alert--<tone>` for those.
 
 These names are public surface, covered by the package's semver guarantee. Note they style **content**, on the published page — they have nothing to do with the `--cb-*` tokens that theme the builder chrome ([styling guide](../guide/styling.md#theming-the-builder-chrome)).
 
@@ -107,11 +117,11 @@ One block adds tokens of its own, because its colors have no equivalent elsewher
 | `--cb-kit-tabs-panel-bg` | `#ffffff` | panel fill, reused by the open tab so it joins the panel |
 | `--cb-kit-tabs-accent` | `#4f46e5` | keyboard focus ring |
 
-Same rule as above: declared inside `:where(.cb-kit-tabs)`, so `.cb-kit-tabs { --cb-kit-tabs-line: … }` in your stylesheet wins.
+Same rule as above: declared on `:where(:root)`, so `:root` or `.cb-kit-tabs { --cb-kit-tabs-line: … }` in your stylesheet wins.
 
 ## Extending a kit block
 
-Overriding a template changes what a block *renders*. When you need it to **edit** something the kit does not offer — one extra field, a different default, a narrower choice set — subclass the block instead. This is a supported path: the 17 block classes are deliberately non-final, and their `protected` methods are covered by the package's semver guarantee.
+Overriding a template changes what a block *renders*. When you need it to **edit** something the kit does not offer — one extra field, a different default, a narrower choice set — subclass the block instead. This is a supported path: the 19 block classes are deliberately non-final, and their `protected` methods are covered by the package's semver guarantee.
 
 Disable the kit's service and register yours in its place, keeping the same type id so stored content keeps working:
 
@@ -156,6 +166,8 @@ Four things to know before you do:
 
   A subclass that gives itself a new `getType()` is configured under that new id instead — the config is keyed by the type, never by the class.
 
+  The type is read while the container is compiled, before any service exists, so a kit subclass's `getType()` must return a constant: it cannot depend on its constructor.
+
 - **In tests, take the block from the registry.** Since the config arrives through the constructor, `new YourBlock()` yields the *coded* surface — the block as its class defines it, with none of your YAML. That is the right object for a unit test of `defaults()` or `choiceFields()`, and the wrong one for asserting anything you configured: the assertion then describes the class, not the application, and passes or fails for a reason that has nothing to do with your config. Ask `BlockTypeRegistry` instead, and you get the instance the app actually renders with:
 
   ```php
@@ -179,5 +191,5 @@ The per-block reference pages in this section are **generated** from that JSON, 
 ## Next
 
 - **[Configuring blocks](./configuration.md)** — the four per-block levers (`enabled`, `options`, `choices`, `defaults`) and how they combine.
-- **Individual block pages** — see the sidebar for all 17.
+- **Individual block pages** — see the sidebar for all 19.
 - **[Overriding block templates](./configuration.md#overriding-block-templates)** — swap any block's markup.

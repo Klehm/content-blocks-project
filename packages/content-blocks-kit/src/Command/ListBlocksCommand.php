@@ -107,7 +107,7 @@ final class ListBlocksCommand extends Command
             /** @var AbstractKitBlock $block */
             $block = new $class();
             $desc = $block->describe();
-            $label = $block::getLabel();
+            $label = $block->getLabel();
 
             $choices = [];
             foreach ($desc['choices'] as $field => $map) {
@@ -135,7 +135,7 @@ final class ListBlocksCommand extends Command
         /** @var AbstractKitBlock $block */
         $coded = $block->describe();
         $desc = $block->describeConfigured();
-        $label = $block::getLabel();
+        $label = $block->getLabel();
         $labelStr = $label instanceof TranslatableInterface ? $label->trans($this->translator, $locale) : (string) $label;
 
         $suffix = \in_array($type, ContentBlocksKitBundle::DEFAULT_DISABLED, true) ? '  (disabled by default — opt in with enabled: true)' : '';

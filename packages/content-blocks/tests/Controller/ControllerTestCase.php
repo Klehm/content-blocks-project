@@ -225,12 +225,12 @@ final class FakeBlockType extends AbstractBlockType
 {
     public const TYPE = 'fake';
 
-    public static function getType(): string
+    public function getType(): string
     {
         return self::TYPE;
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Fake';
     }

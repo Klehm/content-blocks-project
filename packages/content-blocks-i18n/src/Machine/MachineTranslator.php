@@ -162,7 +162,7 @@ final class MachineTranslator
     {
         $provider = $providerName === null ? $this->providers->getDefault() : $this->providers->get($providerName);
         $source = $this->locales->getSourceLocale();
-        $name = $provider::getName();
+        $name = $provider->getName();
 
         if (!$this->locales->isTarget($locale)) {
             return new TranslationRunResult($locale, $name, failed: ['*' => 'unknown_locale']);

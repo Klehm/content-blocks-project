@@ -10,25 +10,18 @@ ContentBlocks is the core package for the Symfony page builder: entities, admin 
 
 - PHP >= 8.2 (>= 8.4 for Symfony 8.0)
 - Symfony 6.4 LTS, 7.x or 8.x
-- Doctrine ORM ^2.12 or ^3.0
+- Doctrine ORM ^2.15 or ^3.0, on a database Doctrine supports: CI runs the whole browser suite on **MySQL 8.0** and **PostgreSQL 16**
+- Symfony UX (Live Component, Twig Component, Stimulus bundle) ^2.36 or ^3.0
 - An asset build: **AssetMapper** or **Webpack Encore** — both are supported, see [Stimulus controllers & admin CSS](#stimulus-controllers-admin-css)
 
-## Pre-release stability
-
-The packages are published as `0.1.0-beta.*` pre-releases. If your project is `stable`-only, allow beta packages by lowering the minimum stability while keeping stable dependencies preferred:
-
-```json
-{
-    "minimum-stability": "beta",
-    "prefer-stable": true
-}
-```
-
-Then require both packages:
+## Require the packages
 
 ```bash
 composer require klehm/content-blocks klehm/content-blocks-kit
+composer require klehm/content-blocks-i18n   # optional: translated content
 ```
+
+Until `1.0.0` is tagged, the latest release is a release candidate: require `klehm/content-blocks:^1.0@RC` (and the same for the other two), or set `"minimum-stability": "RC"` with `"prefer-stable": true`.
 
 ## With the Flex recipe (recommended)
 
@@ -40,9 +33,9 @@ composer config extra.symfony.endpoint \
 composer require klehm/content-blocks klehm/content-blocks-kit
 ```
 
-Each package has its own recipe: requiring only `klehm/content-blocks` applies only its recipe; the kit's recipe (its bundle, upload route and file-storage config template) is applied when `klehm/content-blocks-kit` is required.
+Each package has its own recipe, applied when that package is required: the kit's registers its bundle and its stylesheet route, and the i18n package's registers its bundle, its routes and a `config/packages/content_blocks_i18n.yaml` for your locales.
 
-The recipe registers the bundles, mounts the `/_content-blocks/*` routes, and copies a documented `config/packages/content_blocks.yaml` where the two **required** host services are wired (see [host services](./host-services.md)). Flex itself (independently of the recipe) syncs the Stimulus controllers and the `sortablejs` importmap entry into your `assets/controllers.json`.
+The recipe registers the bundles, mounts the `/_content-blocks/*` routes, and copies a `config/packages/content_blocks.yaml` that stores uploads under `public/uploads/content-blocks` and shows how to wire the two **required** host services (see [host services](./host-services.md)). Flex itself (independently of the recipe) syncs the Stimulus controllers and the `sortablejs` importmap entry into your `assets/controllers.json`.
 
 ## Without Flex
 

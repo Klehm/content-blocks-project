@@ -16,9 +16,4 @@ final class DenyAllAccessChecker implements AccessCheckerInterface
     {
         return false;
     }
-
-    public function canView(ContentArea $contentArea): bool
-    {
-        return false;
-    }
 }

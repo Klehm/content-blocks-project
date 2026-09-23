@@ -11,10 +11,7 @@ use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
  * @see docs/guide/routing.md
  */
 return static function (RoutingConfigurator $routes): void {
-    $routes->import(
-        __DIR__ . '/../../src/Controller/',
-        'attribute',
-        false,
-        __DIR__ . '/../../src/Controller/AssetController.php',
-    );
+    // The public asset routes live outside src/Controller/, so no `exclude`
+    // is needed: symfony/routing 6.4.0 ignores it on a directory import.
+    $routes->import(__DIR__ . '/../../src/Controller/', 'attribute');
 };

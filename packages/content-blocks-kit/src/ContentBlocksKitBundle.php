@@ -101,7 +101,11 @@ final class ContentBlocksKitBundle extends AbstractBundle
                     ->arrayPrototype()
                         ->addDefaultsIfNotSet()
                         ->children()
-                            ->booleanNode('enabled')->defaultTrue()->end()
+                            // No default: an absent key falls back to
+                            // DEFAULT_DISABLED in resolveBlocks().
+                            ->booleanNode('enabled')
+                                ->info('Registers the block. Defaults to true, except for html_raw.')
+                            ->end()
                             ->variableNode('options')
                                 ->info('Block-specific knobs (e.g. max_columns); merged over the block\'s coded defaults.')
                                 ->defaultValue([])

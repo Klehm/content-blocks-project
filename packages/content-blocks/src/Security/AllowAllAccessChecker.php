@@ -15,9 +15,4 @@ final class AllowAllAccessChecker implements AccessCheckerInterface
     {
         return true;
     }
-
-    public function canView(ContentArea $contentArea): bool
-    {
-        return true;
-    }
 }

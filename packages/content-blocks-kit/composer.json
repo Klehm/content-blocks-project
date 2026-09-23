@@ -1,6 +1,6 @@
 {
     "name": "klehm/content-blocks-kit",
-    "description": "Ready-to-use block types for ContentBlocks (Text, Title, Image, Tabs).",
+    "description": "Nineteen ready-to-use, self-contained block types for ContentBlocks (title, text, rich text, image, gallery, button, card, tabs, video…).",
     "keywords": [
         "blocks",
         "content-blocks",
@@ -25,16 +25,20 @@
     "require": {
         "php": ">=8.2",
         "klehm/content-blocks": "^1.0",
+        "symfony/console": "^6.4 || ^7.0 || ^8.0",
         "symfony/form": "^6.4 || ^7.0 || ^8.0",
         "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
+        "symfony/html-sanitizer": "^6.4 || ^7.0 || ^8.0",
+        "symfony/options-resolver": "^6.4 || ^7.0 || ^8.0",
+        "symfony/routing": "^6.4 || ^7.0 || ^8.0",
         "symfony/security-csrf": "^6.4 || ^7.0 || ^8.0",
-        "symfony/validator": "^6.4 || ^7.0 || ^8.0",
         "symfony/translation": "^6.4 || ^7.0 || ^8.0",
-        "twig/twig": "^3.27",
-        "symfony/html-sanitizer": "^6.4 || ^7.0 || ^8.0"
+        "symfony/ux-live-component": "^2.36 || ^3.0",
+        "symfony/validator": "^6.4 || ^7.0 || ^8.0",
+        "twig/twig": "^3.27"
     },
     "require-dev": {
-        "phpunit/phpunit": "^11.0",
+        "phpunit/phpunit": "^11.5",
         "symfony/asset": "^6.4 || ^7.0 || ^8.0"
     },
     "autoload": {
@@ -52,15 +56,16 @@
             "bundle": "ContentBlocks\\Kit\\ContentBlocksKitBundle"
         },
         "branch-alias": {
-            "dev-master": "1.0.x-dev"
+            "dev-master": "1.0.x-dev",
+            "dev-main": "1.0.x-dev"
         }
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
     "repositories": {
         "core": {
             "type": "path",
             "url": "../content-blocks"
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

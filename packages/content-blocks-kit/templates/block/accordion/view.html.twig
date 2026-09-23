@@ -1,8 +1,8 @@
 {# Native <details>/<summary>, no JS. `exclusive` shares one `name` across
-   the panels, which is what opens them one at a time. #}
+   the panels, which opens them one at a time: it must be unique per block. #}
 {% set items = data.items|default([])|filter(i => i.title|default('')|trim is not empty) %}
 {% if items|length > 0 %}
-    {% set group = data.exclusive|default(false) ? ('cb-acc-' ~ items|length) : null %}
+    {% set group = data.exclusive|default(false) ? ('cb-acc-' ~ (block_id ?? random())) : null %}
     <div class="cb-kit-accordion">
         {% for item in items %}
             <details class="cb-kit-accordion__item"{% if group %} name="{{ group }}"{% endif %}>

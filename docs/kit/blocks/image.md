@@ -23,6 +23,7 @@ Selectable values. Restrict or reorder them per host with `choices:` (the defaul
 | Field | Values |
 | --- | --- |
 | `size` | `sm`, **`md`**, `lg`, `full`, `custom` |
+| `ratio` | **`auto`**, `16-9`, `4-3`, `3-2`, `1-1`, `3-4` |
 | `fit` | **`cover`**, `contain` |
 | `align` | `start`, **`center`**, `end` |
 
@@ -38,6 +39,7 @@ Initial values for a new block. Override per host with `defaults:`.
 | `customWidth` | `600` |
 | `customHeightAuto` | `true` |
 | `customHeight` | `400` |
+| `ratio` | `auto` |
 | `fit` | `cover` |
 | `align` | `center` |
 | `url` | `''` |

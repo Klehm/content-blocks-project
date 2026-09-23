@@ -80,7 +80,7 @@ jobs:
     steps:
       # fetch-depth: 0 so the path-repo'd klehm/content-blocks resolves during
       # `composer update`: without tags composer versions the sibling core as
-      # `dev-<sha>`, which does not satisfy the kit's `klehm/content-blocks: ^0.1`
+      # `dev-<sha>`, which does not satisfy the kit's `klehm/content-blocks: ^1.0`
       # (same reason as the Playwright job below).
       - uses: actions/checkout@v6
         with:
@@ -128,7 +128,7 @@ jobs:
     steps:
       # fetch-depth: 0 for the same reason as the kit job: without tags,
       # composer versions the path-repo'd sibling core as `dev-<sha>`, which
-      # does not satisfy `klehm/content-blocks: ^0.1`.
+      # does not satisfy `klehm/content-blocks: ^1.0`.
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
@@ -254,6 +254,75 @@ jobs:
       - name: docs/internals pointers resolve
         run: ./docs/scripts/check-internal-links.sh
 
+      # Known vulnerabilities in any committed lock. Abandoned packages are
+      # reported, not fatal: the Encore and Sylius sandboxes reproduce older
+      # hosts on purpose.
+      - name: Security audit (composer)
+        run: |
+          for dir in . apps/content-blocks-sandbox apps/content-blocks-encore-sandbox apps/content-blocks-sylius-sandbox; do
+            echo "::group::$dir"
+            composer audit --locked --abandoned=report --working-dir="$dir"
+            echo "::endgroup::"
+          done
+
+  lowest-deps:
+    name: PHPUnit lowest (${{ matrix.package }} · PHP 8.2)
+    runs-on: ubuntu-latest
+
+    # The floors in each composer.json are a promise too: resolve every
+    # dependency at the lowest version they allow, and run the suite.
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [content-blocks, content-blocks-kit, content-blocks-i18n]
+
+    steps:
+      # fetch-depth: 0 for the path-repo'd core, as in the kit job.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, intl, mbstring, zip
+          coverage: none
+
+      - name: Install the lowest dependencies
+        working-directory: packages/${{ matrix.package }}
+        run: composer update --prefer-lowest --prefer-stable --no-progress --no-interaction
+
+      - name: Run PHPUnit
+        working-directory: packages/${{ matrix.package }}
+        run: ./vendor/bin/phpunit
+
+  docs-build:
+    name: Docs site build
+    runs-on: ubuntu-latest
+
+    # Deploying stays in docs.yml, on master. This catches a dead link or a
+    # broken page on the pull request that caused it.
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install dependencies
+        working-directory: docs
+        run: npm ci
+
+      - name: Generate block pages
+        working-directory: docs
+        run: npm run docs:blocks
+
+      - name: Build
+        working-directory: docs
+        run: npm run docs:build
+
   i18n-js-tests:
     name: Vitest i18n
     runs-on: ubuntu-latest
@@ -311,7 +380,7 @@ jobs:
     steps:
       # fetch-depth: 0 so the path-repo'd klehm packages resolve during
       # `composer update`: without tags, composer versions the local package as
-      # `dev-<sha>`, which does not satisfy the kit's `klehm/content-blocks: ^0.1`
+      # `dev-<sha>`, which does not satisfy the kit's `klehm/content-blocks: ^1.0`
       # constraint and the update fails. Full history lets it derive a matching
       # version. (The `install` baseline reads the lock and is unaffected.)
       - uses: actions/checkout@v6
@@ -346,6 +415,16 @@ jobs:
           php bin/console doctrine:database:create --if-not-exists
           php bin/console doctrine:schema:create
 
+      # The block reference pages are generated from a committed dump of the
+      # kit's surface; a block change that forgot to refresh it fails here.
+      - name: Block docs match the kit
+        if: matrix.composer == 'install'
+        working-directory: apps/content-blocks-sandbox
+        run: |
+          php bin/console content-blocks-kit:blocks --format=json \
+            | diff -u ../../docs/.vitepress/data/blocks.json - \
+            || { echo '::error::Run `npm run docs:blocks:refresh` in docs/.'; exit 1; }
+
       - name: Install JS dependencies
         working-directory: packages/content-blocks
         run: npm ci
@@ -363,6 +442,75 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report-php${{ matrix.php }}
+          path: |
+            packages/content-blocks/test-results/
+          retention-days: 7
+
+  postgres-e2e-tests:
+    name: Playwright PostgreSQL (PHP 8.3 · PostgreSQL 16)
+    runs-on: ubuntu-latest
+
+    # The entities are plain Doctrine; this leg is what makes "any database
+    # Doctrine supports" a tested statement rather than a hope.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, intl, mbstring, gd
+          coverage: none
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: packages/content-blocks/package-lock.json
+
+      - name: Install sandbox dependencies
+        working-directory: apps/content-blocks-sandbox
+        run: composer install --no-progress --no-interaction
+
+      - name: Configure the sandbox database
+        working-directory: apps/content-blocks-sandbox
+        run: |
+          echo 'DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/content_blocks_sandbox?serverVersion=16&charset=utf8"' > .env.local
+          php bin/console doctrine:database:create --if-not-exists
+          php bin/console doctrine:schema:create
+          php bin/console doctrine:schema:validate
+
+      - name: Install JS dependencies
+        working-directory: packages/content-blocks
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: packages/content-blocks
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright
+        working-directory: packages/content-blocks
+        run: npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-postgres
           path: |
             packages/content-blocks/test-results/
           retention-days: 7
@@ -449,7 +597,7 @@ jobs:
   packages_split:
     name: Split ${{ matrix.package.split_repository }}
     runs-on: ubuntu-latest
-    needs: [php-tests, kit-php-tests, i18n-php-tests, js-tests, kit-js-tests, i18n-js-tests, static-analysis, e2e-tests, encore-e2e-tests]
+    needs: [php-tests, kit-php-tests, i18n-php-tests, lowest-deps, js-tests, kit-js-tests, i18n-js-tests, static-analysis, docs-build, e2e-tests, postgres-e2e-tests, encore-e2e-tests]
     # PRs never split; only pushes to master and v* tags do.
     if: github.event_name == 'push'
 

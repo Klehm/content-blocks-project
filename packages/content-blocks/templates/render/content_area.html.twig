@@ -4,10 +4,10 @@
 {# `is defined`, not |default(): the filter treats `false` as empty and
    would flip the chrome back on. See docs/internals/rendering.md #}
 {% set chrome = chrome is defined ? chrome : isPreview %}
-<link rel="stylesheet" href="{{ path('content_blocks_asset_layout') }}">
-<link rel="stylesheet" href="{{ path('content_blocks_asset_styling') }}">
+<link rel="stylesheet" href="{{ cb_asset_path('layout') }}">
+<link rel="stylesheet" href="{{ cb_asset_path('styling') }}">
 {% if chrome %}
-    <link rel="stylesheet" href="{{ path('content_blocks_asset_builder') }}">
+    <link rel="stylesheet" href="{{ cb_asset_path('builder') }}">
 {% endif %}
 {# Without the chrome there is nothing to explain a struck-through section, so
    what is pending deletion is simply left out — the published shape. #}
@@ -22,7 +22,7 @@
 {% endfor %}
 {# Always in the builder, where a section can turn into a slider in place. #}
 {% if chrome or visibleSections|filter(s => s.slider ?? null) is not empty %}
-    <script type="module" src="{{ path('content_blocks_asset_slider') }}"></script>
+    <script type="module" src="{{ cb_asset_path('slider') }}"></script>
 {% endif %}
 {% if chrome %}
     {% set trayLabel = isEmpty
@@ -51,10 +51,13 @@
             {{ 'cb.builder.template.insert'|trans({}, 'content_blocks') }}
         </button>
     </aside>
-    <script>window.__cbBlockTypes = {{ blockTypes|json_encode|raw }};</script>
+    {# Data, not script: a JSON block is never run, so a strict CSP needs
+       no nonce for the preview. HEX flags keep `</script>` inside a string. #}
+    {% set cb_json = constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') %}
+    <script type="application/json" id="cb-block-types">{{ blockTypes|json_encode(cb_json)|raw }}</script>
     {# The overlay has no Stimulus element to hang `data-i18n-*` off, so its
        labels are translated here. Anything it hardcodes ships untranslated. #}
-    <script>window.__cbOverlayLabels = {{ {
+    <script type="application/json" id="cb-overlay-labels">{{ {
         add_block: 'cb.block.add_title'|trans({}, 'content_blocks'),
         add_section: 'cb.builder.add_section'|trans({}, 'content_blocks'),
         empty_cta: 'cb.builder.empty_cta'|trans({}, 'content_blocks'),
@@ -67,7 +70,7 @@
         section_duplicate: 'cb.section.duplicate'|trans({}, 'content_blocks'),
         section_save_template: 'cb.builder.template.save'|trans({}, 'content_blocks'),
         section_delete: 'cb.section.remove'|trans({}, 'content_blocks'),
-    }|json_encode|raw }};</script>
-    <script type="module" src="{{ path('content_blocks_asset_preview_overlay') }}"></script>
+    }|json_encode(cb_json)|raw }}</script>
+    <script type="module" src="{{ cb_asset_path('preview_overlay') }}"></script>
 {% endif %}
 </div>

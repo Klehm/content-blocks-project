@@ -82,6 +82,9 @@ final class GalleryCardImageSeamTest extends TestCase
         // Kit views pass choice values through cb_kit_token() instead of
         // re-listing them inline; see ChoiceTokenExtension.
         $env->addExtension(new ChoiceTokenExtension());
+        $env->addExtension(new \Symfony\Bridge\Twig\Extension\TranslationExtension(new class () implements \Symfony\Contracts\Translation\TranslatorInterface {
+            use \Symfony\Contracts\Translation\TranslatorTrait;
+        }));
         $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
         $env->addExtension(new ColorToneExtension());
         $env->addExtension(new ImageExtension($resolver ?? new PassthroughImageUrlResolver()));

@@ -37,6 +37,7 @@ final class ReferenceProviderTest extends TestCase
      */
     private function makeEm(array $resultSets): EntityManagerInterface
     {
+        self::skipWhenQueryIsFinal();
         $queries = [];
         foreach ($resultSets as $rows) {
             $query = $this->createMock(Query::class);
@@ -174,6 +175,7 @@ final class ReferenceProviderTest extends TestCase
      */
     public function testNoRowIsFilteredOutSoSoftDeletedContentStillHoldsItsReferences(): void
     {
+        self::skipWhenQueryIsFinal();
         $seen = [];
         $query = $this->createMock(Query::class);
         $query->method('toIterable')->willReturn([]);
@@ -213,5 +215,14 @@ final class ReferenceProviderTest extends TestCase
         );
 
         $this->assertSame(['/uploads/in-library.png'], $paths);
+    }
+
+    // Doctrine ORM 2.x declares Query final: the lowest-deps CI leg has no
+    // way to double it.
+    private static function skipWhenQueryIsFinal(): void
+    {
+        if ((new \ReflectionClass(Query::class))->isFinal()) {
+            self::markTestSkipped('Doctrine\\ORM\\Query is final in this ORM version.');
+        }
     }
 }

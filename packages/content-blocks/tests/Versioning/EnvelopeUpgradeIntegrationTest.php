@@ -167,12 +167,12 @@ final class EnvelopeUpgradeIntegrationTest extends TestCase
 
 final class EnvelopeFixtureTextBlock extends AbstractBlockType
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'text';
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Text';
     }

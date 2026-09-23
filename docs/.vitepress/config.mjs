@@ -12,6 +12,13 @@ try {
   blockNav = [];
 }
 
+// The release the docs describe: the asset package version, bumped at every
+// tag (AssetPackageVersionTest holds it to the CHANGELOG).
+const release = JSON.parse(readFileSync(
+  fileURLToPath(new URL('../../packages/content-blocks/assets/package.json', import.meta.url)),
+  'utf8',
+)).version;
+
 export default defineConfig({
   title: 'ContentBlocks',
   description: 'A modular, framework-native page builder for Symfony.',
@@ -39,10 +46,11 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/quickstart' },
       { text: 'Block Kit', link: '/kit/' },
       {
-        text: 'v1.0.0-RC1',
+        text: `v${release}`,
         items: [
           { text: 'Changelog (core)', link: 'https://github.com/klehm/content-blocks/blob/main/CHANGELOG.md' },
           { text: 'Changelog (kit)', link: 'https://github.com/klehm/content-blocks-kit/blob/main/CHANGELOG.md' },
+          { text: 'Changelog (i18n)', link: 'https://github.com/klehm/content-blocks-i18n/blob/main/CHANGELOG.md' },
         ],
       },
     ],

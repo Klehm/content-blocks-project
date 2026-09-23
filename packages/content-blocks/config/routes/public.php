@@ -11,5 +11,5 @@ use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
  * @see docs/guide/routing.md
  */
 return static function (RoutingConfigurator $routes): void {
-    $routes->import(__DIR__ . '/../../src/Controller/AssetController.php', 'attribute');
+    $routes->import(__DIR__ . '/../../src/PublicAsset/AssetController.php', 'attribute');
 };

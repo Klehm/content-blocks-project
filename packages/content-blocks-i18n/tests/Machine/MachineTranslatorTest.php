@@ -42,7 +42,7 @@ final class RecordingProvider implements TranslationProviderInterface
     ) {
     }
 
-    public static function getName(): string
+    public function getName(): string
     {
         return 'recording';
     }

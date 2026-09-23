@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Kit\Controller;
 
+use ContentBlocks\PublicAsset\StaticAssetResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -12,22 +14,22 @@ use Symfony\Component\Routing\Attribute\Route;
  * endpoints does not 404 its own front page.
  *
  * @see docs/internals/kit.md#blocks-are-autonomous
+ *
+ * @internal The route is the contract, not this class.
  */
 final class AssetController
 {
+    public const STYLESHEET = __DIR__ . '/../../assets/styles/kit.css';
+
     #[Route(
         '/_content-blocks-kit/public/kit',
         name: 'content_blocks_kit_asset_css',
         methods: ['GET'],
     )]
-    public function kitCss(): Response
+    public function kitCss(Request $request): Response
     {
-        $path = \dirname(__DIR__, 2) . '/assets/styles/kit.css';
-        $body = is_file($path) ? (string) file_get_contents($path) : '';
+        $body = is_file(self::STYLESHEET) ? (string) file_get_contents(self::STYLESHEET) : '';
 
-        return new Response($body, 200, [
-            'Content-Type' => 'text/css; charset=UTF-8',
-            'Cache-Control' => 'public, max-age=3600',
-        ]);
+        return StaticAssetResponse::create($request, $body, 'text/css; charset=UTF-8');
     }
 }

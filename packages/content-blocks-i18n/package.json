@@ -1,6 +1,6 @@
 {
     "name": "@klehm/content-blocks-i18n",
-    "description": "Content translation for klehm/content-blocks — translation workbench.",
+    "description": "Development tooling for klehm/content-blocks-i18n: Vitest for the workbench script.",
     "license": "MIT",
     "version": "0.1.0",
     "private": true,

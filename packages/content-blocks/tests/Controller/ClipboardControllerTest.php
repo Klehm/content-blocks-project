@@ -441,12 +441,12 @@ final class ClipboardFixtureBlock extends AbstractBlockType
 {
     public const TYPE = 'clip_fixture';
 
-    public static function getType(): string
+    public function getType(): string
     {
         return self::TYPE;
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Clipboard fixture';
     }

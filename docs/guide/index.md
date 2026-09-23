@@ -11,7 +11,7 @@ It ships as two Composer packages:
 | Package | What it gives you |
 |---|---|
 | [`klehm/content-blocks`](https://github.com/klehm/content-blocks) | The core: Doctrine entities, the admin builder UI (Live Components + Stimulus), the `ContentAreaType` form, and the extensible block-type system. |
-| [`klehm/content-blocks-kit`](https://github.com/klehm/content-blocks-kit) | An optional set of **17 ready-to-use, self-contained blocks** (title, text, image, gallery, button…). See the [Block Kit](/kit/). |
+| [`klehm/content-blocks-kit`](https://github.com/klehm/content-blocks-kit) | An optional set of **19 ready-to-use, self-contained blocks** (title, text, image, gallery, button…). See the [Block Kit](/kit/). |
 
 ## The core idea
 
@@ -62,4 +62,4 @@ The goal is a page builder that feels like **a native part of a Symfony applicat
 - **[Quick start](./quickstart.md)** — from `composer require` to a rendered content area in five minutes.
 - **[Installation](./installation.md)** — the full install, with and without Symfony Flex.
 - **[Core concepts](./concepts.md)** — the data model, the block-type system, and the Live Components + Stimulus split.
-- **[Block Kit](/kit/)** — the 17 shipped blocks, documented one by one.
+- **[Block Kit](/kit/)** — the 19 shipped blocks, documented one by one.

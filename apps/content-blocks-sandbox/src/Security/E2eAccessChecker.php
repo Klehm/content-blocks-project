@@ -37,9 +37,4 @@ final class E2eAccessChecker implements AccessCheckerInterface
 
         return $denied === null || (string) $contentArea->getId() !== $denied;
     }
-
-    public function canView(ContentArea $contentArea): bool
-    {
-        return true;
-    }
 }

@@ -23,7 +23,7 @@ Initial values for a new block. Override per host with `defaults:`.
 | Field | Default |
 | --- | --- |
 | `striped` | `true` |
-| `columns` | `[{"label":"Name","align":"left"},{"label":"Value","align":"right"}]` |
+| `columns` | `[{"label":"Name","align":"start"},{"label":"Value","align":"end"}]` |
 | `rows` | `[{"cells":[{"content":"Row 1"},{"content":"—"}]}]` |
 
 #### Example

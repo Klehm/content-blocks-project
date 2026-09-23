@@ -70,6 +70,7 @@ class Block
         return $this->publishedColumnId;
     }
 
+    /** @internal Published state: written by publish() only. */
     public function setPublishedColumnId(?int $columnId): self
     {
         $this->publishedColumnId = $columnId;
@@ -141,7 +142,11 @@ class Block
         return $this->publishedData;
     }
 
-    /** @param array<string, mixed>|null $data */
+    /**
+     * @param array<string, mixed>|null $data
+     *
+     * @internal Published state: written by publish() only.
+     */
     public function setPublishedData(?array $data): self
     {
         $this->publishedData = $data;
@@ -168,6 +173,7 @@ class Block
         return $this->position;
     }
 
+    /** @internal Published state: written by publish() only. */
     public function setPosition(int $position): self
     {
         $this->position = $position;

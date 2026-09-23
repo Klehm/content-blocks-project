@@ -133,7 +133,6 @@ final class ReplaceControllerTest extends ControllerTestCase
         $checker->method('canEdit')->willReturnCallback(
             static fn (ContentArea $area): bool => $area === $target,
         );
-        $checker->method('canView')->willReturn(true);
         $controller = $this->makeController($this->makeEm([$target, $source]), accessChecker: $checker);
 
         $this->expectException(ContentBlocksAccessDeniedException::class);

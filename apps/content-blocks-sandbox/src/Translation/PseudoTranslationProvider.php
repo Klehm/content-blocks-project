@@ -40,7 +40,7 @@ final class PseudoTranslationProvider implements TranslationProviderInterface
 {
     public const NAME = 'pseudo';
 
-    public static function getName(): string
+    public function getName(): string
     {
         return self::NAME;
     }

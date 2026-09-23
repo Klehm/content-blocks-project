@@ -22,17 +22,17 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
 #[AsContentBlock(priority: 50)]
 class AccordionBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'accordion';
     }
 
-    public static function getLabel(): TranslatableInterface
+    public function getLabel(): TranslatableInterface
     {
         return new TranslatableMessage('cb_kit.block.accordion.label', [], 'content_blocks_kit');
     }
 
-    public static function getIcon(): ?string
+    public function getIcon(): ?string
     {
         return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" '
             . 'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'

@@ -238,7 +238,9 @@
     {% if enableReplace ?? true %}
     <div class="cb-replace-picker"
          data-cb-builder-target="replacePicker"
+         data-action="keydown->cb-builder#onReplacePickerKeydown"
          role="dialog"
+         aria-modal="true"
          aria-label="{{ 'cb.builder.replace.title'|trans({}, 'content_blocks') }}"
          data-i18n-cb-builder-replace-loading="{{ 'cb.builder.replace.loading'|trans({}, 'content_blocks') }}"
          data-i18n-cb-builder-replace-empty="{{ 'cb.builder.replace.empty'|trans({}, 'content_blocks') }}"

@@ -10,10 +10,13 @@ builder preview alike — the wrapper around it differs, the view does not.
 Returning null renders **nothing**: the wrapper `<div>` comes out empty. There is
 no generic fallback, so a block meant to be seen has to name a template.
 
-The template is included with `with_context = false` and receives exactly one
-variable, `data` — the payload after every registered `BlockDataResolverInterface`
-has had its say. The block entity and the block type are deliberately out of
-reach: a view renders stored values, it does not query the model.
+The template is included with `with_context = false` and receives two
+variables: `data`, the payload after every registered `BlockDataResolverInterface`
+has had its say, and `block_id`, the block's id. The id is there for markup that
+must be unique on the page and identical from one render to the next (a radio
+group's `name`, an ARIA id); `random()` gave the first and broke the second.
+The block entity and the block type stay out of reach: a view renders stored
+values, it does not query the model.
 
 Return a plain-namespace path (`@ContentBlocksKit/block/alert/view.html.twig`) so
 a host can override it from `templates/bundles/`.

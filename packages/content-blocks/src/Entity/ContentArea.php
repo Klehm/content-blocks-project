@@ -55,6 +55,7 @@ class ContentArea
         return $this->updatedAt;
     }
 
+    /** @internal Stamped by ContentAreaTouchListener. */
     public function setUpdatedAt(?\DateTimeImmutable $updatedAt): self
     {
         $this->updatedAt = $updatedAt;

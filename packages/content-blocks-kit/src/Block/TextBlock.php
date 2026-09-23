@@ -16,17 +16,17 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 #[AsContentBlock(priority: 90)]
 class TextBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'text';
     }
 
-    public static function getLabel(): TranslatableInterface
+    public function getLabel(): TranslatableInterface
     {
         return new TranslatableMessage('cb_kit.block.text.label', [], 'content_blocks_kit');
     }
 
-    public static function getIcon(): ?string
+    public function getIcon(): ?string
     {
         // Paragraph lines.
         return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" '

@@ -16,11 +16,11 @@ A condensed, deterministic version of this path lives in [`AGENTS.md`](https://g
 composer require klehm/content-blocks klehm/content-blocks-kit
 ```
 
-If your project is `minimum-stability: stable`, allow beta pre-releases:
+Until `1.0.0` is tagged, the latest release is a release candidate. If your project is `minimum-stability: stable`, allow it:
 
 ```json
 {
-    "minimum-stability": "beta",
+    "minimum-stability": "RC",
     "prefer-stable": true
 }
 ```
@@ -66,6 +66,20 @@ services:
 
 See [Host services](./host-services.md) for the (small) implementations.
 
+### Where uploads go
+
+Images and files uploaded in the builder need a storage; without one the upload fails. The Flex recipe sets this for you, otherwise add:
+
+```yaml
+# config/packages/content_blocks.yaml
+content_blocks:
+    upload:
+        directory: '%kernel.project_dir%/public/uploads/content-blocks'
+        public_prefix: '/uploads/content-blocks'
+```
+
+For S3 or any other storage, alias `FileStorageInterface` instead ([File storage](./host-services.md#file-storage)).
+
 ## 4. Add the builder to a form
 
 ```php
@@ -95,8 +109,10 @@ The widget renders the "Edit content" launcher. On a brand-new entity that hasn'
 The kit's blocks render neutral markup styled by one shipped stylesheet. Include it once in your front layout:
 
 ```twig
-<link rel="stylesheet" href="{{ path('content_blocks_kit_asset_css') }}">
+<link rel="stylesheet" href="{{ cb_kit_stylesheet_url() }}">
 ```
+
+The URL carries a hash of the file, so browsers and CDNs keep it for a year and fetch the new one after an upgrade. A plain `path('content_blocks_kit_asset_css')` works too, revalidated every five minutes.
 
 ## Done
 

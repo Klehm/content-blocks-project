@@ -76,6 +76,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A block view receives `block_id`**, next to `data`: markup that must be
+  unique on the page and identical from one render to the next (a radio
+  group's `name`, an ARIA id) uses it instead of `random()`.
+- **The *Insert content* picker keeps focus inside while open** (`aria-modal`,
+  Tab wraps around) and gives it back to the button that opened it.
+- **`cb:ready` is a DOM event.** It was only a message from the preview iframe
+  to the builder, out of a host's reach although it was listed as public. The
+  builder now re-dispatches it on its element (bubbling, `detail.areaId`) each
+  time the preview becomes interactive.
 - **`cb:notify`, a second inbound public event.** Dispatched at the builder,
   it shows `detail.message` in the builder's snackbar, with an optional
   `detail.link` (`{ label, href }`) opened in a new tab. A host action that
@@ -114,6 +123,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The preview runs under a strict Content Security Policy.** Its block
+  types and overlay labels travel in `<script type="application/json">` blocks
+  instead of inline scripts setting `window.__cb*`, so no nonce is needed. A
+  copied `render/content_area.html.twig` that still sets the globals keeps
+  working. The security guide now documents the policy the packages need.
+- **Dependency floors raised to what is tested.** CI now resolves every
+  dependency at its lowest allowed version and runs the suite. It showed
+  `doctrine/orm` 2.12 lacks `OnFlushEventArgs::getObjectManager()`, which the
+  touch listener calls (now `^2.15`), and UX 2.0 lacks `ComponentToolsTrait`.
+  The Live Component JavaScript is only exercised by the browser suite, on UX
+  2.36 and 3.x, so `symfony/ux-live-component`, `ux-twig-component` and
+  `stimulus-bundle` require `^2.36 || ^3.0`.
+- **PostgreSQL is tested.** The whole browser suite also runs on PostgreSQL
+  16 in CI; the entities were already plain Doctrine.
+- **Direct dependencies are declared**: `doctrine/doctrine-bundle`,
+  `symfony/console`, `symfony/routing`, `symfony/options-resolver`,
+  `symfony/property-access`, `doctrine/collections` and friends only arrived
+  through other packages.
+- **The public CSS and JS are cached properly.** Each served file carries an
+  ETag, so a revalidation is a `304`; the package templates link it with its
+  content hash (`?v=`), which is answered with a year of `immutable` cache.
+  After an upgrade the new hash is a new URL: no stale stylesheet for five
+  minutes, and no re-download every five minutes either.
+- **`AccessCheckerInterface::canView()` is removed.** Nothing called it since
+  export and replace-with moved to `canEdit()`, so it read as a protection it
+  never gave. Every draft read asks `canEdit()`; the published page is guarded
+  by the host's own route. An implementation that keeps the method still
+  satisfies the interface.
+- **`BlockTypeInterface::getType()`, `getLabel()` and `getIcon()` are no longer
+  static.** As static methods they could not read what the service was built
+  with: one class could not serve two types, and a label or an icon could not
+  come from configuration. Remove `static` from them on your block types;
+  a class that keeps it fails loudly when loaded. Call `$type->getLabel()`
+  rather than `$type::getLabel()`. See the upgrade guide, §9.
+- **The backward-compatibility page is rewritten from the code.** It now lists
+  what hosts were already told to use: `ContentAreaType` and its options, the
+  field types, `BlockTypeRegistry`, `#[AsBlockFormExtension]`, the value
+  objects an implementation builds, the exceptions, eight tables, sixteen
+  Stimulus controllers, seven events with their `detail`. The HTTP promise is
+  narrowed: every route name is stable, but payloads only for the routes a host
+  calls itself (upload, export, import, publish, discard, public assets).
+- **Setters of published state are `@internal`**: `Block::setPublishedData()`,
+  `setPublishedColumnId()` and `setPosition()`, `Section` / `Column`
+  `setPublishedSettings()` and `setPosition()`, `Column::setPublishedPreset()`,
+  and `ContentArea::setUpdatedAt()`. Code building content writes the draft and
+  calls `publish()`, which is what these methods bypassed.
 - **The export's `assets` entries list files instead of carrying them**:
   `mimeType`, `extension`, `size` and the source `path`, no `data`. The format
   stays `content-blocks/v1`; a pre-RC17 export, bytes inline, still imports.
@@ -123,6 +178,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The Import / Export panel moved** to
   `builder/transfer_dialog.html.twig`; a copied `builder/shell.html.twig`
   includes it instead (see the upgrade guide, 3a).
+
+### Fixed
+
+- **`config/routes/editor.php` also mounted the public asset routes** on
+  `symfony/routing` before 6.4.x, which ignores the `exclude` of a directory
+  import: the public CSS and JS landed under the admin prefix, out of a
+  visitor's reach. The asset controller moved out of `src/Controller/`
+  (`@internal`, no host change), so the import no longer needs an `exclude`.
 
 ## [1.0.0-RC16] - 2026-09-21
 

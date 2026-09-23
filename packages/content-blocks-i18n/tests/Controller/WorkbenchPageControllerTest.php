@@ -339,7 +339,7 @@ final class WorkbenchPageControllerTest extends TestCase
  */
 final class GermanOnlyTranslationProvider implements TranslationProviderInterface
 {
-    public static function getName(): string
+    public function getName(): string
     {
         return 'german_only';
     }
@@ -363,7 +363,7 @@ final class GermanOnlyTranslationProvider implements TranslationProviderInterfac
 /** A provider that is registered and usable — unlike the null one beside it. */
 final class FakeTranslationProvider implements TranslationProviderInterface
 {
-    public static function getName(): string
+    public function getName(): string
     {
         return 'fake';
     }

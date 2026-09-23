@@ -1,0 +1,24 @@
+# ContentBlocks — https://klehm.github.io/content-blocks-project/guide/installation
+content_blocks:
+    # Where uploaded images and files are stored. Remove `directory` (or set it
+    # to null) and alias FileStorageInterface to use your own storage (S3, …).
+    upload:
+        directory: '%kernel.project_dir%/public/uploads/content-blocks'
+        public_prefix: '/uploads/content-blocks'
+
+# The bundle is secure by default and ships NO working implementation for
+# these two services: the builder refuses every request and the preview throws
+# until you wire them.
+#
+# services:
+#     # REQUIRED — authorization: canEdit() guards every builder action.
+#     ContentBlocks\Security\AccessCheckerInterface:
+#         class: App\Security\PageAccessChecker
+#
+#     # REQUIRED — the public URL of the page owning a ContentArea (preview).
+#     ContentBlocks\Preview\ContentAreaUrlResolverInterface:
+#         class: App\Preview\PageContentAreaUrlResolver
+#
+#     # OPTIONAL — search and labels in the "Insert content" picker.
+#     # ContentBlocks\Replace\ContentAreaProviderInterface:
+#     #     class: App\ContentBlocks\PageContentAreaProvider

@@ -7,6 +7,7 @@ namespace ContentBlocks\I18n\Tests\Entity;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\I18n\Entity\BlockTranslation;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Exception\ConnectionException;
 use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Mapping\DefaultNamingStrategy;
@@ -67,8 +68,15 @@ final class BlockTranslationMappingTest extends TestCase
         );
         $em = new EntityManager($connection, $config);
 
-        return array_values((new SchemaTool($em))->getCreateSchemaSql(
-            $em->getMetadataFactory()->getAllMetadata(),
-        ));
+        try {
+            $sql = (new SchemaTool($em))->getCreateSchemaSql(
+                $em->getMetadataFactory()->getAllMetadata(),
+            );
+        } catch (ConnectionException) {
+            // ORM 2.15 on DBAL 3.6 asks the server for the schema name.
+            self::markTestSkipped('This Doctrine version needs a database here.');
+        }
+
+        return array_values($sql);
     }
 }

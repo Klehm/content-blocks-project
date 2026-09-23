@@ -269,17 +269,17 @@ final class TreeHeadingBlock extends AbstractBlockType implements BlockPreviewHi
 {
     public const TYPE = 'tree_heading';
 
-    public static function getType(): string
+    public function getType(): string
     {
         return self::TYPE;
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Heading';
     }
 
-    public static function getIcon(): ?string
+    public function getIcon(): ?string
     {
         return '<svg data-heading></svg>';
     }
@@ -304,12 +304,12 @@ final class TreeMuteBlock extends AbstractBlockType
 {
     public const TYPE = 'tree_mute';
 
-    public static function getType(): string
+    public function getType(): string
     {
         return self::TYPE;
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Mute';
     }
@@ -328,12 +328,12 @@ final class TreeExplodingBlock extends AbstractBlockType implements BlockPreview
 {
     public const TYPE = 'tree_boom';
 
-    public static function getType(): string
+    public function getType(): string
     {
         return self::TYPE;
     }
 
-    public static function getLabel(): string
+    public function getLabel(): string
     {
         return 'Exploding';
     }

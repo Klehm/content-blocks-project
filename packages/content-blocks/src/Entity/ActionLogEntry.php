@@ -11,6 +11,8 @@ use Doctrine\ORM\Mapping as ORM;
  * draft between before and after.
  *
  * @see docs/internals/history.md#what-an-entry-holds
+ *
+ * @internal The table name is covered by the BC promise, not the class.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'cb_action_log')]

@@ -1,6 +1,6 @@
 {
     "name": "@klehm/content-blocks",
-    "description": "Page builder modulaire pour Symfony — Stimulus controllers & tests.",
+    "description": "Development tooling for klehm/content-blocks: Vitest and Playwright. The published asset package is assets/package.json.",
     "license": "MIT",
     "version": "0.1.0",
     "private": true,
@@ -14,55 +14,6 @@
         "test:e2e:ui": "npm run pretest:e2e && playwright test --ui",
         "pretest:e2e:encore": "cd ../../apps/content-blocks-encore-sandbox && php bin/console cache:clear -q && npm run build",
         "test:e2e:encore": "npm run pretest:e2e:encore && playwright test --config=playwright.encore.config.js"
-    },
-    "symfony": {
-        "controllers": {
-            "cb-builder-launcher": {
-                "main": "controllers/cb-builder-launcher_controller.js",
-                "name": "cb-builder-launcher",
-                "fetch": "eager",
-                "enabled": true,
-                "autoimport": {
-                    "@klehm/content-blocks/styles/admin.css": true
-                }
-            },
-            "cb-builder": {
-                "main": "controllers/cb-builder_controller.js",
-                "name": "cb-builder",
-                "fetch": "eager",
-                "enabled": true
-            },
-            "cb-autosave": {
-                "main": "controllers/cb-autosave_controller.js",
-                "name": "cb-autosave",
-                "fetch": "eager",
-                "enabled": true
-            },
-            "cb-section-settings-form": {
-                "main": "controllers/cb-section-settings-form_controller.js",
-                "name": "cb-section-settings-form",
-                "fetch": "eager",
-                "enabled": true
-            },
-            "cb-block-styling-form": {
-                "main": "controllers/cb-block-styling-form_controller.js",
-                "name": "cb-block-styling-form",
-                "fetch": "eager",
-                "enabled": true
-            },
-            "cb-spacing-link": {
-                "main": "controllers/cb-spacing-link_controller.js",
-                "name": "cb-spacing-link",
-                "fetch": "eager",
-                "enabled": true
-            },
-            "cb-viewport-tabs": {
-                "main": "controllers/cb-viewport-tabs_controller.js",
-                "name": "cb-viewport-tabs",
-                "fetch": "eager",
-                "enabled": true
-            }
-        }
     },
     "devDependencies": {
         "@hotwired/stimulus": "^3.2.0",

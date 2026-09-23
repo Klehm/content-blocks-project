@@ -50,7 +50,7 @@ final class RichTextEditorRegistry
         if ($this->byName === null) {
             $this->byName = [];
             foreach ($this->editors as $editor) {
-                $this->byName[$editor::getName()] = $editor;
+                $this->byName[$editor->getName()] = $editor;
             }
         }
 

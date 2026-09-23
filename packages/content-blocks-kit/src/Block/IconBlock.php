@@ -34,17 +34,17 @@ class IconBlock extends AbstractKitBlock
         parent::__construct($options, $choiceOverrides, $defaultOverrides);
     }
 
-    public static function getType(): string
+    public function getType(): string
     {
         return 'icon';
     }
 
-    public static function getLabel(): TranslatableInterface
+    public function getLabel(): TranslatableInterface
     {
         return new TranslatableMessage('cb_kit.block.icon.label', [], 'content_blocks_kit');
     }
 
-    public static function getIcon(): ?string
+    public function getIcon(): ?string
     {
         return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" '
             . 'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'

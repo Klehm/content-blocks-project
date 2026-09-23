@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\DependencyInjection;
 
 use ContentBlocks\Kit\Block\AbstractKitBlock;
+use ContentBlocks\Kit\ContentBlocksKitBundle;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -41,6 +43,8 @@ final class KitBlockConfigPass implements CompilerPassInterface
             return;
         }
 
+        $known = array_keys(ContentBlocksKitBundle::BLOCKS);
+
         foreach ($container->findTaggedServiceIds('content_blocks.block_type') as $id => $tags) {
             $definition = $container->getDefinition($id);
             $class = $definition->getClass();
@@ -55,7 +59,13 @@ final class KitBlockConfigPass implements CompilerPassInterface
                 continue;
             }
 
-            $blockConfig = $blocksConfig[$class::getType()] ?? null;
+            // No container yet: a kit block's type cannot depend on its
+            // constructor, which the kit docs state for subclasses.
+            $type = (new \ReflectionClass($class))
+                ->newInstanceWithoutConstructor()
+                ->getType();
+            $known[] = $type;
+            $blockConfig = $blocksConfig[$type] ?? null;
 
             if ($blockConfig === null) {
                 continue;
@@ -66,6 +76,39 @@ final class KitBlockConfigPass implements CompilerPassInterface
             $this->argue($definition, '$options', array_replace($class::defaultOptions(), $blockConfig['options'] ?? []));
             $this->argue($definition, '$choiceOverrides', $blockConfig['choices'] ?? []);
             $this->argue($definition, '$defaultOverrides', $blockConfig['defaults'] ?? []);
+        }
+
+        $this->refuseUnknown(array_keys($blocksConfig), $known);
+    }
+
+    /**
+     * A misspelled type used to configure nothing, silently.
+     *
+     * @param list<string|int> $configured
+     * @param list<string>     $known
+     */
+    private function refuseUnknown(array $configured, array $known): void
+    {
+        foreach ($configured as $type) {
+            $type = (string) $type;
+            if (\in_array($type, $known, true)) {
+                continue;
+            }
+
+            $close = array_filter(
+                array_unique($known),
+                static fn (string $k): bool => levenshtein($type, $k) <= 2,
+            );
+
+            $hint = $close === []
+                ? ''
+                : sprintf(' (did you mean "%s"?)', implode('", "', $close));
+            $message = 'Unknown block type "%s" under "content_blocks_kit.blocks"%s.'
+                . ' Known kit block types: %s.';
+
+            $list = implode(', ', array_unique($known));
+
+            throw new InvalidConfigurationException(sprintf($message, $type, $hint, $list));
         }
     }
 

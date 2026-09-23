@@ -1,0 +1,6 @@
+# ContentBlocks i18n — https://klehm.github.io/content-blocks-project/guide/translation
+content_blocks_i18n:
+    # The locale block data is written in.
+    source_locale: '%kernel.default_locale%'
+    # The locales editors translate into.
+    locales: []

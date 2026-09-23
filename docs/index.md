@@ -27,7 +27,7 @@ features:
     title: In-context live preview
     details: The builder opens your real public page in an iframe and edits it in place. What editors see is what visitors get — no separate "preview" that drifts.
   - icon: 📦
-    title: 17 ready-made blocks
+    title: 19 ready-made blocks
     details: The optional kit ships title, text, rich text, image, gallery, button, card, list, icon, alert, divider, accordion, table, embed, video, breadcrumb, tabs and a raw-HTML escape hatch — all self-contained, zero CSS-framework dependency.
   - icon: 🔌
     title: Extensible by design
@@ -41,6 +41,18 @@ features:
 ---
 
 <div class="cb-home-extra">
+
+## The builder
+
+A block's form in the sidebar, the page's real preview beside it.
+
+![The builder](/screenshots/builder.webp)
+
+## The translation workbench
+
+One layout, a value per language, the translated page previewed as you type.
+
+![The translation workbench](/screenshots/workbench.webp)
 
 ## Install in two commands
 

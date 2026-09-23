@@ -58,11 +58,26 @@
     let focusedKind = null;
     let hideTimer = null;
 
+    /**
+     * Server data from a `<script type="application/json">` block, or the
+     * `window` global an older copied template still sets.
+     */
+    function serverData(id, legacyGlobal) {
+        const el = document.getElementById(id);
+        if (el) {
+            try {
+                return JSON.parse(el.textContent);
+            } catch {
+                return null;
+            }
+        }
+        return window[legacyGlobal] ?? null;
+    }
+
     // Injected server-side. The English fallbacks are a safety net, not the
     // source: a string that only exists here can never be translated.
-    const LABELS = (window.__cbOverlayLabels && typeof window.__cbOverlayLabels === 'object')
-        ? window.__cbOverlayLabels
-        : {};
+    const labelData = serverData('cb-overlay-labels', '__cbOverlayLabels');
+    const LABELS = (labelData && typeof labelData === 'object') ? labelData : {};
 
     function t(key, fallback) {
         const value = LABELS[key];
@@ -103,7 +118,8 @@
         '<path d="M12 8v8M8 12h8"/></svg>';
 
     function openBlockTypePopover(triggerBtn, columnId) {
-        const types = Array.isArray(window.__cbBlockTypes) ? window.__cbBlockTypes : [];
+        const typeData = serverData('cb-block-types', '__cbBlockTypes');
+        const types = Array.isArray(typeData) ? typeData : [];
         if (types.length === 0) return;
 
         popover.innerHTML = '';

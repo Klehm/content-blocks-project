@@ -161,7 +161,7 @@ Requires `klehm/content-blocks >= 0.1.0-alpha.4` for overrides to take priority.
 | `@ContentBlocks/render/content_area.html.twig` | `sections` (array), `mode` (`RenderMode`), `blockTypes` (array) | Top-level wrapper, layout/builder CSS `<link>`s, sections loop, preview-only section tray + overlay scripts. |
 | `@ContentBlocks/render/section.html.twig` | `section` (`Section`), `isPreview` (bool) | `<section class="cb-section …">` element, inline styles + extra attributes from section decorators, columns loop. |
 | `@ContentBlocks/render/column.html.twig` | `column` (`Column`), `isPreview` (bool) | `<div class="cb-col …">` element, blocks loop, preview-only "+ block" inline button. |
-| `@ContentBlocks/render/block.html.twig` | `block` (`Block`), `isPreview` (bool) | `<div class="cb-block …">` element, include of `block.viewTemplate` with `data`. |
+| `@ContentBlocks/render/block.html.twig` | `block` (`Block`), `isPreview` (bool) | `<div class="cb-block …">` element, include of `block.viewTemplate` with `data` and `block_id`. |
 
 Sub-templates are included with `with_context = false` — the listed variables are the contract; anything else from the parent scope is not available.
 

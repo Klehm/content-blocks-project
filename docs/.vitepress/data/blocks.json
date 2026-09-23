@@ -83,6 +83,17 @@
                 ],
                 "default": "md"
             },
+            "ratio": {
+                "values": [
+                    "auto",
+                    "16-9",
+                    "4-3",
+                    "3-2",
+                    "1-1",
+                    "3-4"
+                ],
+                "default": "auto"
+            },
             "fit": {
                 "values": [
                     "cover",
@@ -106,6 +117,7 @@
             "customWidth": 600,
             "customHeightAuto": true,
             "customHeight": 400,
+            "ratio": "auto",
             "fit": "cover",
             "align": "center",
             "url": "",
@@ -205,6 +217,60 @@
             "align": "start",
             "fullWidth": false,
             "newTab": false
+        }
+    },
+    "button_group": {
+        "type": "button_group",
+        "label": "Button group",
+        "disabledByDefault": false,
+        "options": {
+            "max_items": 3
+        },
+        "choices": {
+            "variant": {
+                "values": [
+                    "primary",
+                    "secondary",
+                    "outline",
+                    "link"
+                ],
+                "default": null
+            },
+            "size": {
+                "values": [
+                    "sm",
+                    "md",
+                    "lg"
+                ],
+                "default": "md"
+            },
+            "align": {
+                "values": [
+                    "start",
+                    "center",
+                    "end"
+                ],
+                "default": "start"
+            }
+        },
+        "defaults": {
+            "items": [
+                {
+                    "text": "Learn more",
+                    "url": "",
+                    "variant": "primary",
+                    "newTab": false
+                },
+                {
+                    "text": "Contact us",
+                    "url": "",
+                    "variant": "outline",
+                    "newTab": false
+                }
+            ],
+            "size": "md",
+            "align": "start",
+            "stackOnMobile": false
         }
     },
     "card": {
@@ -388,11 +454,11 @@
             "columns": [
                 {
                     "label": "Name",
-                    "align": "left"
+                    "align": "start"
                 },
                 {
                     "label": "Value",
-                    "align": "right"
+                    "align": "end"
                 }
             ],
             "rows": [
@@ -418,6 +484,44 @@
         "defaults": {
             "url": "",
             "title": ""
+        }
+    },
+    "video": {
+        "type": "video",
+        "label": "Video",
+        "disabledByDefault": false,
+        "options": {},
+        "choices": {
+            "size": {
+                "values": [
+                    "sm",
+                    "md",
+                    "lg",
+                    "full"
+                ],
+                "default": "full"
+            },
+            "align": {
+                "values": [
+                    "start",
+                    "center",
+                    "end"
+                ],
+                "default": "center"
+            }
+        },
+        "defaults": {
+            "src": "",
+            "poster": "",
+            "autoplay": false,
+            "muted": false,
+            "controls": true,
+            "loop": false,
+            "size": "full",
+            "align": "center",
+            "caption": "",
+            "captions": "",
+            "captionsLang": ""
         }
     },
     "breadcrumb": {

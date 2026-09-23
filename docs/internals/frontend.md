@@ -25,8 +25,9 @@ accidentally leave the page being edited. Everything else happens in the parent.
 
 ### The cb:* event contract
 
-**Six events are public API and stable across 1.x.** Four outbound, which a host
-may listen to on the builder element:
+**Seven events are public API and stable across 1.x**; their `detail` shapes
+are in the host guide (`docs/guide/host-services.md#builder-events`). Five
+outbound, which a host may listen to:
 
 | Event | Means |
 |---|---|
@@ -34,6 +35,10 @@ may listen to on the builder element:
 | `cb:block:saved` | a block's draft was persisted |
 | `cb:section:saved` | a section's draft was persisted |
 | `cb:builder:action` | a host-contributed topbar action was invoked |
+| `cb:block:rendered` | a block was hot-reloaded (inside the iframe) |
+
+`cb:ready` travels twice: the overlay posts it to the builder, which re-emits it
+as a DOM event on its element — a `postMessage` is out of a host's reach.
 
 Two are **inbound**, dispatched *at* the builder from the shell element or
 anything inside it — a [shell fragment](builder-extensions.md), say, or the

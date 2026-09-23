@@ -420,4 +420,6 @@ return static function (ContainerConfigurator $container): void {
 
     $services->load('ContentBlocks\\Controller\\', '../src/Controller/')
         ->tag('controller.service_arguments');
+    $services->set(\ContentBlocks\PublicAsset\AssetController::class)
+        ->tag('controller.service_arguments');
 };

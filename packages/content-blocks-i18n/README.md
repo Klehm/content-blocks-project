@@ -15,7 +15,32 @@ no target locale resolved, every block renders its own data exactly as before.
 composer require klehm/content-blocks-i18n
 ```
 
+![The translation workbench: source and translation side by side, the translated page previewed live](https://raw.githubusercontent.com/klehm/content-blocks-project/master/docs/public/screenshots/workbench.webp)
+
 ---
+
+## What this package does not do
+
+Worth knowing before you choose it, since each follows from the model rather
+than from a missing feature:
+
+- **No layout per language.** Sections, columns, order and styling are shared.
+  A block cannot be hidden in one language, and a block added to the page
+  appears in every language at once, in the source text until translated.
+- **Only tagged fields change.** An image file is shared by every language: its
+  alt text, link and caption translate, the picture does not, so a picture
+  with words in it stays in the source language. A video's captions file does
+  translate.
+- **No locale fallback chain.** A locale that is not configured renders the
+  source; `fr_CA` does not fall back to `fr`.
+- **Not your site's i18n.** It translates block content. Routes per locale,
+  your templates' strings, and `hreflang` tags stay with your app; the
+  rendering locale comes from your request through `RenderLocaleResolverInterface`.
+- **No machine translation engine.** The seam is there; the engine, and where a
+  page's text is sent, is your choice.
+- **Section templates and the clipboard do not carry translations yet.** A
+  section saved as a template, or copied, arrives untranslated. Duplicate,
+  *Insert content* and export/import do carry them.
 
 ## Configuration
 
@@ -250,7 +275,7 @@ use ContentBlocks\I18n\Machine\TranslationProviderInterface;
 
 final class MyProvider implements TranslationProviderInterface
 {
-    public static function getName(): string { return 'mine'; }
+    public function getName(): string { return 'mine'; }
     public function getLabel(): string { return 'My engine'; }
     public function supports(string $source, string $target): bool { return true; }
 
@@ -392,7 +417,7 @@ run `content-blocks:backfill-collection-ids` to normalize it.
 ## Requirements
 
 - PHP >= 8.2
-- `klehm/content-blocks` ^0.1
+- `klehm/content-blocks` ^1.0
 - Symfony 6.4 LTS, 7.x or 8.x
 
 No HTTP client, no vendor SDK: the package talks to no third-party service. A

@@ -1,7 +1,8 @@
 {# CSS-only tabs: a radio, its label, its panel, ordered by flex so the
    active state is two static rules rather than one per tab. #}
 {% if data.items is defined and data.items is iterable and data.items|length > 0 %}
-    {% set uid = 'cb-kit-tabs-' ~ random() %}
+    {# The block id keeps the markup identical from one render to the next. #}
+    {% set uid = 'cb-kit-tabs-' ~ (block_id ?? random()) %}
     <div class="cb-kit-tabs">
         {% for tab in data.items %}
             {# Offscreen, not `display:none`: a radio group gives arrow-key
@@ -14,7 +15,7 @@
                    {% if loop.first %}checked{% endif %}>
             <label for="{{ uid }}-{{ loop.index0 }}"
                    id="{{ uid }}-{{ loop.index0 }}-label"
-                   class="cb-kit-tabs__tab">{{ tab.title|default('Untitled') }}</label>
+                   class="cb-kit-tabs__tab">{{ tab.title|default('')|trim ?: 'cb_kit.front.untitled_tab'|trans({}, 'content_blocks_kit') }}</label>
             {# A labelled region rather than a half-built tablist, so the
                radios keep their native semantics. #}
             <div class="cb-kit-tabs__panel"

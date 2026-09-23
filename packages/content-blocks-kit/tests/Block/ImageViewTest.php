@@ -204,6 +204,30 @@ final class ImageViewTest extends TestCase
         $this->assertStringNotContainsString('color:red', $html);
     }
 
+    // An image is a link's only content: without alt text the link had no
+    // accessible name.
+    public function testALinkedImageWithoutAltIsNamedByItsCaption(): void
+    {
+        $html = $this->render(['src' => '/a.jpg', 'url' => '/shop', 'caption' => 'Our shop']);
+
+        $this->assertStringContainsString('<a href="/shop" aria-label="Our shop">', $html);
+    }
+
+    public function testALinkedImageWithoutAltOrCaptionIsNamedByItsTarget(): void
+    {
+        $html = $this->render(['src' => '/a.jpg', 'url' => '/shop']);
+
+        $this->assertMatchesRegularExpression('/<a href="\/shop" aria-label="[^"]+">/', $html);
+    }
+
+    public function testAltTextNamesTheLinkOnItsOwn(): void
+    {
+        $html = $this->render(['src' => '/a.jpg', 'url' => '/shop', 'alt' => 'Shop front']);
+
+        $this->assertStringContainsString('<a href="/shop">', $html);
+        $this->assertStringContainsString('alt="Shop front"', $html);
+    }
+
     private function srcsetOnlyResolver(): ImageUrlResolverInterface
     {
         return new class () implements ImageUrlResolverInterface {

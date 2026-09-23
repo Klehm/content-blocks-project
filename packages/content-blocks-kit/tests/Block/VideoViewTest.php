@@ -90,6 +90,36 @@ final class VideoViewTest extends TestCase
         $this->assertStringNotContainsString('bogus', $html);
     }
 
+    public function testCaptionsBecomeADefaultTrack(): void
+    {
+        $html = $this->render(['src' => '/v.mp4', 'captions' => '/subs/fr.vtt', 'captionsLang' => 'fr']);
+
+        $this->assertMatchesRegularExpression(
+            '#<video[^>]*>\s*<track kind="captions" src="/subs/fr.vtt" label="[^"]+" srclang="fr" default>\s*</video>#',
+            $html,
+        );
+    }
+
+    public function testNoCaptionsNoTrack(): void
+    {
+        $this->assertStringNotContainsString('<track', $this->render(['src' => '/v.mp4']));
+    }
+
+    public function testAnUnsafeCaptionsUrlIsDropped(): void
+    {
+        $html = $this->render(['src' => '/v.mp4', 'captions' => 'javascript:alert(1)']);
+
+        $this->assertStringNotContainsString('<track', $html);
+    }
+
+    public function testAMalformedLanguageIsLeftOut(): void
+    {
+        $html = $this->render(['src' => '/v.mp4', 'captions' => '/a.vtt', 'captionsLang' => 'fr" onload="x']);
+
+        $this->assertStringContainsString('<track kind="captions" src="/a.vtt"', $html);
+        $this->assertStringNotContainsString('srclang', $html);
+    }
+
     public function testNoFileRendersThePlaceholder(): void
     {
         $html = $this->render(['src' => '  ']);

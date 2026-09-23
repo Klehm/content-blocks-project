@@ -1,0 +1,5 @@
+# Mounted under /_content-blocks/i18n. To mount it under your admin prefix
+# instead, import '@ContentBlocksI18nBundle/config/routes/bare.php' with a
+# `prefix:`; route names stay the same.
+content_blocks_i18n:
+    resource: '@ContentBlocksI18nBundle/config/routes.php'

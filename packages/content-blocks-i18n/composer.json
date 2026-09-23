@@ -25,10 +25,10 @@
     ],
     "require": {
         "php": ">=8.2",
-        "klehm/content-blocks": "^1.0",
         "doctrine/dbal": "^3.6 || ^4.0",
-        "doctrine/orm": "^2.15 || ^3.0",
         "doctrine/doctrine-bundle": "^2.10 || ^3.0",
+        "doctrine/orm": "^2.15 || ^3.0",
+        "klehm/content-blocks": "^1.0",
         "symfony/config": "^6.4 || ^7.0 || ^8.0",
         "symfony/console": "^6.4 || ^7.0 || ^8.0",
         "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
@@ -36,11 +36,16 @@
         "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
         "symfony/http-foundation": "^6.4 || ^7.0 || ^8.0",
         "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0",
+        "symfony/routing": "^6.4 || ^7.0 || ^8.0",
         "symfony/security-csrf": "^6.4 || ^7.0 || ^8.0",
-        "symfony/translation": "^6.4 || ^7.0 || ^8.0"
+        "symfony/translation": "^6.4 || ^7.0 || ^8.0",
+        "twig/twig": "^3.27"
     },
     "require-dev": {
-        "phpunit/phpunit": "^11.0"
+        "phpunit/phpunit": "^11.5"
+    },
+    "conflict": {
+        "symfony/twig-bridge": "<6.4.16 || >=7.0,<7.1.9"
     },
     "autoload": {
         "psr-4": {
@@ -57,15 +62,16 @@
             "bundle": "ContentBlocks\\I18n\\ContentBlocksI18nBundle"
         },
         "branch-alias": {
-            "dev-master": "1.0.x-dev"
+            "dev-master": "1.0.x-dev",
+            "dev-main": "1.0.x-dev"
         }
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
     "repositories": {
         "core": {
             "type": "path",
             "url": "../content-blocks"
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

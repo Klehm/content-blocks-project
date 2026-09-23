@@ -15,7 +15,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 #[AsContentBlock(priority: 80)]
 class RichTextBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
-    public static function getType(): string
+    public function getType(): string
     {
         return 'rich_text';
     }
@@ -49,12 +49,12 @@ class RichTextBlock extends AbstractKitBlock implements BlockPreviewHintInterfac
         ];
     }
 
-    public static function getLabel(): TranslatableInterface
+    public function getLabel(): TranslatableInterface
     {
         return new TranslatableMessage('cb_kit.block.rich_text.label', [], 'content_blocks_kit');
     }
 
-    public static function getIcon(): ?string
+    public function getIcon(): ?string
     {
         // Pilcrow — formatted/rich text.
         return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" '

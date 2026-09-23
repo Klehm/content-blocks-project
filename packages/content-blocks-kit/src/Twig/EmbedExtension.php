@@ -29,7 +29,10 @@ final class EmbedExtension extends AbstractExtension
             return 'https://www.youtube.com/embed/' . $url;
         }
 
-        if (preg_match('#(?:youtube\.com/(?:watch\?v=|embed/|shorts/)|youtu\.be/)([A-Za-z0-9_-]{11})#', $url, $m) === 1) {
+        // `v=` may follow other parameters (`watch?feature=share&v=…`).
+        $youtube = '~(?:youtube(?:-nocookie)?\.com/(?:watch\?(?:[^#]*&)?v=|embed/|shorts/|live/)'
+            . '|youtu\.be/)([A-Za-z0-9_-]{11})~';
+        if (preg_match($youtube, $url, $m) === 1) {
             return 'https://www.youtube.com/embed/' . $m[1];
         }
 

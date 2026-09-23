@@ -1753,6 +1753,11 @@ export default class extends Controller {
 
         switch (data.type) {
             case 'cb:ready':
+                // Public event: the iframe's message is out of a host's reach.
+                this.element.dispatchEvent(new CustomEvent('cb:ready', {
+                    bubbles: true,
+                    detail: { areaId: this.areaIdValue },
+                }));
                 break;
             case 'cb:block:edit':
                 this._mountSidebar(data.blockId);
@@ -2204,6 +2209,8 @@ export default class extends Controller {
     async openReplacePicker(event) {
         if (event) event.preventDefault();
         if (!this.hasReplacePickerTarget) return;
+        // Focus goes back where it came from on close.
+        this._replacePickerOpener = document.activeElement;
         this.closeActions();
         this.replacePickerTarget.hidden = false;
         this._setBackdrop(true);
@@ -2228,6 +2235,42 @@ export default class extends Controller {
         if (!this.hasReplacePickerTarget) return;
         this.replacePickerTarget.hidden = true;
         this._setBackdrop(false);
+        const opener = this._replacePickerOpener;
+        this._replacePickerOpener = null;
+        if (opener?.isConnected && typeof opener.focus === 'function') {
+            opener.focus({ preventScroll: true });
+        }
+    }
+
+    /** Action: keydown on the picker. It is modal, so Tab stays inside. */
+    onReplacePickerKeydown(event) {
+        if (event.key !== 'Tab' || !this.hasReplacePickerTarget) return;
+        this.constructor.trapTab(this.replacePickerTarget, event);
+    }
+
+    /**
+     * Wraps Tab / Shift-Tab around the focusable elements of `container`.
+     */
+    static trapTab(container, event) {
+        const focusable = [...container.querySelectorAll(
+            'a[href], button:not([disabled]), input:not([disabled]), '
+            + 'select:not([disabled]), textarea:not([disabled]), '
+            + '[tabindex]:not([tabindex="-1"])',
+        )].filter((el) => !el.hidden && !el.closest('[hidden]'));
+        if (focusable.length === 0) {
+            event.preventDefault();
+            return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const active = container.ownerDocument.activeElement;
+        if (event.shiftKey && (active === first || !container.contains(active))) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && (active === last || !container.contains(active))) {
+            event.preventDefault();
+            first.focus();
+        }
     }
 
     /** Action: input event on the picker's search field (debounced). */

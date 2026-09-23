@@ -21,7 +21,7 @@ interface TranslationProviderInterface
      * Stable id used in config (`content_blocks_i18n.machine.default`), on the
      * command line and in the API — so it is a slug, not a display name.
      */
-    public static function getName(): string;
+    public function getName(): string;
 
     /** Shown in the provider picker. */
     public function getLabel(): string|TranslatableInterface;
