@@ -12,8 +12,10 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Form\Extension\BlockFormExtensionCollection;
 use ContentBlocks\Form\Type\BlockFormType;
+use ContentBlocks\Section\RestoredStructure;
 use ContentBlocks\Transfer\ContentAreaExporter;
 use ContentBlocks\Transfer\ContentAreaImporter;
+use ContentBlocks\Transfer\ImportRefusedException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\Forms;
@@ -198,6 +200,23 @@ final class ContentAreaImporterTest extends TestCase
             static fn ($c) => $c->getPreset(),
             $first->getColumns()->toArray(),
         ));
+    }
+
+    // Refused before any file is stored, so a refusal leaves nothing behind.
+    public function testAnImportLargerThanAPageIsRefusedBeforeStoringFiles(): void
+    {
+        $section = ['layout' => Section::LAYOUT_FULL, 'columns' => [['preset' => 'col-12',
+            'blocks' => array_fill(0, RestoredStructure::MAX_BLOCKS + 1, ['type' => 'text'])]]];
+
+        try {
+            $this->importer()->import(new ContentArea(), $this->makePayload(
+                [$section],
+                [str_repeat('a', 64) => ['data' => base64_encode(self::png()), 'extension' => 'png']],
+            ));
+            $this->fail('An oversized import must be refused.');
+        } catch (ImportRefusedException) {
+            $this->assertSame([], $this->stored);
+        }
     }
 
     public function testABlockWithoutATypeIsNotImported(): void

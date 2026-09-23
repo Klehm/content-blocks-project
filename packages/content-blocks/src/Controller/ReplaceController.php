@@ -70,7 +70,7 @@ final class ReplaceController
 
         $rawQuery = $request->query->get('q');
         $filter = is_string($rawQuery) ? $rawQuery : null;
-        $page = max(0, (int) $request->query->get('page', 0));
+        $page = ListQuery::page($request->query->get('page', 0));
         $pageSize = self::PAGE_SIZE;
 
         $qb = $this->provider->createQueryBuilder($filter);
@@ -95,6 +95,10 @@ final class ReplaceController
 
         $items = [];
         foreach ($rows as $row) {
+            // Replace-with needs edit rights on the source: offer none else.
+            if (!$this->accessChecker->canEdit($row)) {
+                continue;
+            }
             $items[] = [
                 'id' => $row->getId(),
                 'label' => $this->provider->getLabel($row),

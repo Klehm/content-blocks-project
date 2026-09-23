@@ -13,6 +13,7 @@ use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Transfer\AssetPolicy;
 use ContentBlocks\Transfer\ContentAreaImporterInterface;
+use ContentBlocks\Transfer\ImportRefusedException;
 use ContentBlocks\Transfer\ImportResult;
 use ContentBlocks\Transfer\ImportSizeLimit;
 use ContentBlocks\Transfer\ImportStaging;
@@ -156,7 +157,7 @@ final class StagedImportController
         if ($path === null) {
             try {
                 $extension = $this->policy->check($hash, $contents, $file->getClientOriginalExtension());
-            } catch (\InvalidArgumentException $e) {
+            } catch (ImportRefusedException $e) {
                 return $this->refuse('refused', $e->getMessage());
             }
             $path = $this->assetResolver->store($contents, $extension);
@@ -196,8 +197,11 @@ final class StagedImportController
 
                 return $imported;
             });
-        } catch (\InvalidArgumentException $e) {
+        } catch (ImportRefusedException $e) {
             return new JsonResponse(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        } catch (\InvalidArgumentException) {
+            // A library's message (an ORM entity dump) is not the client's.
+            return new JsonResponse(['error' => 'The import could not be completed.'], Response::HTTP_BAD_REQUEST);
         }
         $this->staging->clear($area);
 

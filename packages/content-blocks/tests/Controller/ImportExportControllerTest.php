@@ -10,6 +10,7 @@ use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Transfer\ContentAreaExporter;
 use ContentBlocks\Transfer\ContentAreaImporter;
+use ContentBlocks\Transfer\ContentAreaImporterInterface;
 use ContentBlocks\Transfer\ImportSizeLimit;
 use ContentBlocks\Transfer\ZipExportWriter;
 use Doctrine\ORM\EntityManagerInterface;
@@ -37,6 +38,7 @@ final class ImportExportControllerTest extends ControllerTestCase
         ?AccessCheckerInterface $accessChecker = null,
         ?AssetResolverInterface $resolver = null,
         int $importMaxSize = 50 * 1024 * 1024,
+        ?ContentAreaImporterInterface $importer = null,
     ): ImportExportController {
         if ($resolver === null) {
             $resolver = $this->createMock(AssetResolverInterface::class);
@@ -47,7 +49,7 @@ final class ImportExportControllerTest extends ControllerTestCase
             $em,
             $accessChecker ?? $this->makeAccessChecker(),
             new ContentAreaExporter($resolver),
-            new ContentAreaImporter($resolver, $this->makeRegistry(), $this->makeDataKeys()),
+            $importer ?? new ContentAreaImporter($resolver, $this->makeRegistry(), $this->makeDataKeys()),
             $this->makeCsrfManager($csrfValid),
             $this->makeJournal($em),
             new ImportSizeLimit($importMaxSize),
@@ -406,6 +408,23 @@ final class ImportExportControllerTest extends ControllerTestCase
 
         $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
         $this->assertStringContainsString('Invalid JSON', (string) $response->getContent());
+    }
+
+    // An ORM exception is an InvalidArgumentException too; its text can hold
+    // an entity dump, so only the importer's own refusals are shown.
+    public function testALibraryExceptionMessageIsNotSentToTheClient(): void
+    {
+        $area = $this->makeArea(1);
+        $importer = $this->createMock(ContentAreaImporterInterface::class);
+        $importer->method('import')->willThrowException(
+            new \InvalidArgumentException('Entity ContentBlocks\\Entity\\Block@42 secret'),
+        );
+        $controller = $this->makeController($this->makeEm([$area]), importer: $importer);
+
+        $response = $controller->import(1, $this->makeUploadRequest($this->exportPayloadJson()));
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+        $this->assertStringNotContainsString('secret', (string) $response->getContent());
     }
 
     public function testImportRejectsANonObjectPayload(): void

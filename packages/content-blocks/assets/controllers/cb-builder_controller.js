@@ -1320,7 +1320,7 @@ export default class extends Controller {
                 ...(sectionId ? { targetSectionId: sectionId } : {}),
             },
             // A reason the editor can act on, not a failed save.
-            { tolerate: [422] },
+            { tolerate: [413, 422] },
         );
         if (result === null) return;
 
@@ -1347,6 +1347,7 @@ export default class extends Controller {
             incompatible_content_version: ['cb.builder.clipboard.stale_version', 'This copy was made under another version of your content schema — copy it again'],
             incompatible_clipboard: ['cb.builder.clipboard.unreadable', 'This copy cannot be read and was discarded'],
             unreadable_clipboard: ['cb.builder.clipboard.unreadable', 'This copy cannot be read and was discarded'],
+            too_large: ['cb.builder.clipboard.too_large', 'This copy holds more than a page can and was discarded'],
         };
         const [key, fallback] = messages[error] ?? messages.unreadable_clipboard;
         // An unreadable or stale entry will never paste anywhere; keeping

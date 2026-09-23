@@ -39,6 +39,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or a block without a type landed as-is — a string longer than the column
   answered 500. They now fall back to `full`, `col-12`, and no block. Block data
   stays verbatim; the kit guards what it renders.
+- **`/upload` checked the CSRF token only.** Any session holding a
+  `content_blocks` token could write files. The upload widgets now post the
+  builder's `area` (from `data-cb-area-id`, added to the shell) and the
+  endpoint checks `canEdit()` on it; an upload without it answers 404. A host
+  posting to the endpoint from its own script must send `area` too.
+- **An access denial answered 500.** `ContentBlocksAccessDeniedException` now
+  extends `AccessDeniedHttpException`: 403, logged as a denial rather than a
+  crash. It is still a `\RuntimeException`.
+- **An import echoed library exception messages.** Only the importer's own
+  refusals (`ImportRefusedException`) are shown; anything else answers a
+  generic message.
+- **Preview responses are `private, no-store` and `X-Frame-Options:
+  SAMEORIGIN`** (`PreviewResponseListener`; a header the host set wins), so a
+  shared cache cannot store a draft and another origin cannot frame it.
+- **The block editor's Live Component re-checks `canEdit()` on every request**
+  (`#[PostHydrate]`), not only on its actions: a replayed props blob no longer
+  re-renders a draft after the rights were revoked.
+- **Replace-candidates lists only areas the user can edit**, the rule
+  replace-with itself now applies.
+- **Size limits on restore.** An import or a pasted section with more than
+  1 000 sections, 20 columns in a section or 5 000 blocks is refused before any
+  file is stored; a paste body over 5 MB answers 413.
+- **Small hardening.** A huge `?page=` no longer throws (clamped to 10 000), and
+  `%`/`_` in the section-template search match literally.
+- **`twig/twig` is required at `^3.27`**, past the advisories on earlier
+  releases.
 - **An import could write any file type into the public upload directory.**
   Each embedded file was stored under the `extension` written in the JSON, so
   a forged export could drop a `.php` file (code execution where the upload

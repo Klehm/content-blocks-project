@@ -17,6 +17,7 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
+use ContentBlocks\Section\RestoredStructure;
 use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
 use ContentBlocks\SectionTemplate\UnsupportedTemplateFormatException;
@@ -40,6 +41,9 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class ClipboardController
 {
     use CsrfProtectedTrait;
+
+    /** A copied section weighs kilobytes; this is room, not a target. */
+    private const MAX_BODY_BYTES = 5 * 1024 * 1024;
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -130,6 +134,10 @@ final class ClipboardController
             throw new ContentBlocksAccessDeniedException();
         }
 
+        if (\strlen($request->getContent()) > self::MAX_BODY_BYTES) {
+            return new JsonResponse(['error' => 'too_large'], Response::HTTP_REQUEST_ENTITY_TOO_LARGE);
+        }
+
         $body = json_decode($request->getContent(), true);
         $raw = is_array($body) ? ($body['payload'] ?? null) : null;
         if (!is_array($raw)) {
@@ -147,6 +155,11 @@ final class ClipboardController
                 'copiedVersion' => $e->getCopiedVersion(),
                 'currentVersion' => $e->getCurrentVersion(),
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if ($envelope->scope === ClipboardEnvelope::SCOPE_SECTION
+            && RestoredStructure::tooLarge([$envelope->payload])) {
+            return new JsonResponse(['error' => 'too_large'], Response::HTTP_REQUEST_ENTITY_TOO_LARGE);
         }
 
         // Resolved against the target area, so a forged body cannot use an

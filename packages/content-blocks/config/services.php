@@ -108,6 +108,8 @@ return static function (ContainerConfigurator $container): void {
 
     // A login redirect answering a builder fetch becomes a readable 401.
     $services->set(\ContentBlocks\Security\SessionExpiredResponseListener::class);
+    // A preview is the draft: private, and framed by its own origin only.
+    $services->set(\ContentBlocks\Security\PreviewResponseListener::class);
 
     // Throws: the host must override this too.
     $services->set(NullContentAreaUrlResolver::class);

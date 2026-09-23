@@ -10,6 +10,7 @@ use ContentBlocks\Block\BlockDataKeys;
 use ContentBlocks\Block\BlockRestoreTally;
 use ContentBlocks\Block\CollectionIdBackfiller;
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Controller\ColumnsController;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
@@ -48,12 +49,16 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     {
         $payload = $this->normalizeEnvelope($payload);
 
-        $assets = new AssetRewriter(...$this->materializeAssets($payload['assets'] ?? [], $storedAssets));
-
         $sectionsRaw = $payload['contentArea']['sections'] ?? null;
         if (!is_array($sectionsRaw)) {
-            throw new \InvalidArgumentException('Missing or invalid "contentArea.sections" in payload.');
+            throw new ImportRefusedException('Missing or invalid "contentArea.sections" in payload.');
         }
+        if (RestoredStructure::tooLarge($sectionsRaw)) {
+            throw new ImportRefusedException(sprintf('The import holds more than a page can: at most %d sections, %d columns per section and %d blocks.', RestoredStructure::MAX_SECTIONS, ColumnsController::MAX_COLUMNS, RestoredStructure::MAX_BLOCKS, ));
+        }
+
+        // After the structure checks: a refused import must store no file.
+        $assets = new AssetRewriter(...$this->materializeAssets($payload['assets'] ?? [], $storedAssets));
 
         // Replace mode: soft-delete every existing section. The actual
         // em->remove() runs at publish time (see ContentAreaPublisher).
@@ -146,7 +151,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         $format = $payload['format'] ?? null;
 
         if (!is_string($format) || !$this->envelopes->supports($format, $target)) {
-            throw new \InvalidArgumentException(sprintf('Unsupported format: %s (expected %s).', is_scalar($format) ? (string) $format : '(invalid)', $target, ));
+            throw new ImportRefusedException(sprintf('Unsupported format: %s (expected %s).', is_scalar($format) ? (string) $format : '(invalid)', $target, ));
         }
 
         return $this->envelopes->upgrade($payload, $format, $target);
@@ -169,7 +174,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
             return [[], []];
         }
         if (!is_array($assetsRaw)) {
-            throw new \InvalidArgumentException('Invalid "assets" section (expected object).');
+            throw new ImportRefusedException('Invalid "assets" section (expected object).');
         }
 
         // Every inline file is checked before any is stored: a refused payload
@@ -179,7 +184,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         $fallbacks = [];
         foreach ($assetsRaw as $hash => $asset) {
             if (!is_string($hash) || !is_array($asset)) {
-                throw new \InvalidArgumentException('Malformed asset entry.');
+                throw new ImportRefusedException('Malformed asset entry.');
             }
             if (array_key_exists('data', $asset)) {
                 $inline[$hash] = $this->policy->check($hash, $this->decodeAsset($hash, $asset), $asset['extension']);
@@ -220,11 +225,11 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     {
         $data = $asset['data'] ?? null;
         if (!is_string($data) || !is_string($asset['extension'] ?? null)) {
-            throw new \InvalidArgumentException(sprintf('Malformed asset entry for %s.', $hash));
+            throw new ImportRefusedException(sprintf('Malformed asset entry for %s.', $hash));
         }
         $binary = base64_decode($data, true);
         if ($binary === false) {
-            throw new \InvalidArgumentException(sprintf('Invalid base64 data for asset %s.', $hash));
+            throw new ImportRefusedException(sprintf('Invalid base64 data for asset %s.', $hash));
         }
 
         return $binary;

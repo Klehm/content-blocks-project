@@ -156,6 +156,8 @@ This is stricter than the two older restore paths (section-template insert, area
 
 An import, a section template and a pasted section all rebuild sections, columns and blocks from a payload. The structure is checked on the way in: a section layout is kept only if this install's `SectionLayoutRegistry` knows it (otherwise the section is `full`), a column preset only if it is `col-1` … `col-12` (otherwise `col-12`), and a block without a string `type` is dropped. Column settings go through `ColumnSettings::sanitize()`.
 
+Size is bounded too, since each block is replayed through its form: an import or a pasted section holding more than 1 000 sections, 20 columns in one section or 5 000 blocks is refused (`RestoredStructure::MAX_*`) before any file is stored, and a paste body over 5 MB answers 413.
+
 ::: danger Raw-HTML caveat
 The kit's `html_raw` block renders `{{ html|raw }}`, so it trusts its editors. It is **disabled by default** (`content_blocks_kit.blocks.html_raw.enabled: false`) and must be explicitly opted in.
 :::
@@ -182,7 +184,7 @@ kit's views guard them again at render:
 
 ## File upload
 
-The upload endpoint (`content_blocks_upload`) checks the CSRF token, the size (`content_blocks.upload.max_size`) and the MIME type sniffed from the file (`content_blocks.upload.allowed_mime_types`) before handing it to your `FileStorageInterface`.
+The upload endpoint (`content_blocks_upload`) checks the CSRF token, `canEdit()` on the area posted with the file (`area`, sent by the builder's upload widgets from `data-cb-area-id` on the shell), the size (`content_blocks.upload.max_size`) and the MIME type sniffed from the file (`content_blocks.upload.allowed_mime_types`) before handing it to your `FileStorageInterface`.
 
 An **import** writes files too, and goes through the same checks: each file's MIME type is sniffed from its bytes and checked against the same list, and its stored extension is derived from that type. The `mimeType` and `extension` written in the export are ignored, so a forged export cannot place a `.php` or `.html` file under your public upload prefix. Each file is also hashed on arrival and kept only if it is one the export lists, and the content is resolved only against files the server itself checked, so a forged manifest cannot point a block at a file of its choosing. A refused file stops the import before the content is written.
 
@@ -201,3 +203,17 @@ followed.
 If you aliased `FileStorageInterface` to your own implementation, hold
 `read()`, `remove()` and `isStoredPath()` to the same rule. Flysystem already
 refuses path traversal by default (`PathTraversalDetected`).
+
+## Access denials and error messages
+
+A refused `canEdit()` throws `ContentBlocksAccessDeniedException`, an `AccessDeniedHttpException`: the kernel answers **403**, not 500. An import answers the reason of its own refusals (`ImportRefusedException`); any other exception during an import answers a generic message, so a library's text (an ORM entity dump, say) never reaches the client.
+
+## Preview responses
+
+A request carrying `cb_preview=1` holds the draft, so its response is sent `Cache-Control: private, no-store` and, unless your app already set one, `X-Frame-Options: SAMEORIGIN` (`PreviewResponseListener`). The builder frames the preview from the same origin, which that allows. The i18n workbench page sends the same two headers.
+
+The builder shell itself is rendered inside **your** admin page, so its framing policy is yours: send `X-Frame-Options: SAMEORIGIN` (or `Content-Security-Policy: frame-ancestors 'self'`) on the admin pages that include it, or a hostile page could frame Publish and Delete under a visitor's click.
+
+## Editor scripts from a CDN
+
+With `cdn: true` (the default), the kit loads TinyMCE (`7.9.3`) or CKEditor 5 (`48.3.1`) from a pinned version with a Subresource Integrity hash: if the CDN served different bytes, the browser refuses them. A `script_url` or `style_url` of your own carries no hash — it is your file. To avoid the CDN altogether, set `cdn: false` and bundle the editor.

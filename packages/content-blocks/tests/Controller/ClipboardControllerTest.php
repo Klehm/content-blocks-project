@@ -15,6 +15,7 @@ use ContentBlocks\Clipboard\BlockSnapshotSerializerInterface;
 use ContentBlocks\Clipboard\ClipboardEnvelope;
 use ContentBlocks\Clipboard\ClipboardPaster;
 use ContentBlocks\Controller\ClipboardController;
+use ContentBlocks\Controller\ColumnsController;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Form\Extension\BlockFormExtensionCollection;
@@ -250,6 +251,23 @@ final class ClipboardControllerTest extends ControllerTestCase
 
         $this->controller([$area], accessChecker: new DenyAllAccessChecker())
             ->paste(1, $this->makeJsonRequest(['payload' => $this->sectionEnvelope()]));
+    }
+
+    // Every pasted block is replayed through its form: the count is bounded.
+    public function testASectionHoldingMoreThanAPageCanIsRefused(): void
+    {
+        [$area] = $this->areaWithSections(1);
+        $envelope = $this->sectionEnvelope();
+        $envelope['payload']['columns'] = array_fill(
+            0,
+            ColumnsController::MAX_COLUMNS + 1,
+            ['preset' => 'col-1', 'blocks' => []],
+        );
+
+        $response = $this->pasteResponse([$area], $envelope);
+
+        $this->assertSame(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, $response->getStatusCode());
+        $this->assertSame(0, $this->flushCount);
     }
 
     public function testPasteRequiresACsrfToken(): void
