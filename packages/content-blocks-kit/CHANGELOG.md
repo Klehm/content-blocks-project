@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   gallery, card and breadcrumb links now keep only http(s), `mailto:`, `tel:`
   and scheme-less URLs, at render (`cb_kit_safe_url`) and on save
   (`SafeLinkConstraint`).
+- **Title, text, divider and icon colours** go through the core's
+  `cb_css_color()`, so a stored value carrying CSS declarations is dropped.
+  Needs the matching core release.
 
 ### Changed
 

@@ -11,7 +11,7 @@
 
 {% if svg is not empty %}
     {% set align = cb_kit_token(data.align|default('center'), 'center') %}
-    {% set color = data.color|default('') %}
+    {% set color = cb_css_color(data.color|default('')) %}
     <div class="cb-kit-icon cb-kit-icon--{{ align }}"
          {%- if color is not empty %} style="color: {{ color|e('html_attr') }}"{% endif %}>
         {{ svg|raw }}

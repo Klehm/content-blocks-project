@@ -54,6 +54,8 @@ final class PaletteColorType extends AbstractType implements DataMapperInterface
             ])
             ->add(self::CUSTOM, ColorType::class, [
                 'required' => false,
+                // Enforces #rrggbb: the value lands in a style attribute.
+                'html5' => true,
                 'label' => false,
                 'row_attr' => ['data-cb-condition' => 'palette:' . self::CUSTOM],
             ])

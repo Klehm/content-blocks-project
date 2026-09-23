@@ -10,6 +10,7 @@ use ContentBlocks\Image\ResolvedImage;
 use ContentBlocks\Kit\RichText\RichTextSanitizerFactory;
 use ContentBlocks\Kit\Twig\ChoiceTokenExtension;
 use ContentBlocks\Kit\Twig\SafeContentExtension;
+use ContentBlocks\Twig\ColorToneExtension;
 use ContentBlocks\Twig\ImageExtension;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -82,6 +83,7 @@ final class GalleryCardImageSeamTest extends TestCase
         // re-listing them inline; see ChoiceTokenExtension.
         $env->addExtension(new ChoiceTokenExtension());
         $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
+        $env->addExtension(new ColorToneExtension());
         $env->addExtension(new ImageExtension($resolver ?? new PassthroughImageUrlResolver()));
         // The gallery's slider arrows call the kit's icon helper; the grid
         // layout under test does not, but the function must still exist.

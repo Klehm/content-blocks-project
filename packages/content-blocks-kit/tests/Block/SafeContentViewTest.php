@@ -8,6 +8,7 @@ use ContentBlocks\Image\PassthroughImageUrlResolver;
 use ContentBlocks\Kit\RichText\RichTextSanitizerFactory;
 use ContentBlocks\Kit\Twig\ChoiceTokenExtension;
 use ContentBlocks\Kit\Twig\SafeContentExtension;
+use ContentBlocks\Twig\ColorToneExtension;
 use ContentBlocks\Twig\ImageExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
@@ -106,6 +107,21 @@ final class SafeContentViewTest extends TestCase
         }
     }
 
+    public function testAColourCarryingDeclarationsIsDropped(): void
+    {
+        $colour = 'red;position:fixed;inset:0';
+        foreach (['title' => ['text' => 'T'], 'text' => ['content' => 'T'],
+            'divider' => [], 'icon' => ['icon' => 'star']] as $type => $data) {
+            $html = $this->render($type, $data + ['color' => $colour]);
+            $this->assertStringNotContainsString('position', $html, $type);
+        }
+
+        $this->assertStringContainsString(
+            'style="color: &#x23;eb0540"',
+            $this->render('title', ['text' => 'T', 'color' => '#eb0540']),
+        );
+    }
+
     public function testLinkedViewsKeepASafeLink(): void
     {
         $html = $this->render('breadcrumb', ['items' => [['label' => 'Home', 'url' => '/']]]);
@@ -121,6 +137,7 @@ final class SafeContentViewTest extends TestCase
         $env = new Environment($loader, ['strict_variables' => false]);
         $env->addExtension(new ChoiceTokenExtension());
         $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
+        $env->addExtension(new ColorToneExtension());
         $env->addExtension(new TranslationExtension(new class () implements TranslatorInterface {
             use TranslatorTrait;
         }));

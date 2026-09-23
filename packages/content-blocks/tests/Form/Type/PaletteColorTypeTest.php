@@ -72,6 +72,15 @@ final class PaletteColorTypeTest extends TypeTestCase
         $this->assertSame('#0000ff', $form->getData());
     }
 
+    // The value lands in a style attribute: only #rrggbb is accepted.
+    public function testSubmitCustomRefusesAnythingButAHexColour(): void
+    {
+        $form = $this->factory->create(PaletteColorType::class);
+        $form->submit(['palette' => 'custom', 'custom' => 'red;position:fixed']);
+
+        $this->assertFalse($form->isValid());
+    }
+
     public function testSubmitCustomWithoutValueStoresEmpty(): void
     {
         $form = $this->factory->create(PaletteColorType::class);

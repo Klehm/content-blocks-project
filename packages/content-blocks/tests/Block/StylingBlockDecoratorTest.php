@@ -18,6 +18,17 @@ final class StylingBlockDecoratorTest extends TestCase
         $this->assertSame([], $decoration->inlineStyles);
     }
 
+    // An import or a template bypasses the form: the value is checked again.
+    public function testABackgroundColorCarryingDeclarationsIsDropped(): void
+    {
+        $decoration = (new StylingBlockDecorator())->decorate(
+            ['styling' => ['backgroundColor' => 'red;background:url(//evil/x)']],
+            new Block(),
+        );
+
+        $this->assertArrayNotHasKey('--cb-b-bg', $decoration->inlineStyles);
+    }
+
     public function testPaddingAndMarginEmitVars(): void
     {
         $data = [

@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Tests\Block;
 use ContentBlocks\Kit\RichText\RichTextSanitizerFactory;
 use ContentBlocks\Kit\Twig\ChoiceTokenExtension;
 use ContentBlocks\Kit\Twig\SafeContentExtension;
+use ContentBlocks\Twig\ColorToneExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -105,6 +106,7 @@ final class EditorHtmlImageCapTest extends TestCase
         // re-listing them inline; see ChoiceTokenExtension.
         $env->addExtension(new ChoiceTokenExtension());
         $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
+        $env->addExtension(new ColorToneExtension());
         $env->addExtension(new TranslationExtension(new class () implements TranslatorInterface {
             use TranslatorTrait;
         }));

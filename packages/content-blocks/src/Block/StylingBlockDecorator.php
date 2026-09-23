@@ -6,6 +6,7 @@ namespace ContentBlocks\Block;
 
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Palette\ColorTone;
+use ContentBlocks\Palette\CssColor;
 use ContentBlocks\Rendering\ViewportVars;
 
 /**
@@ -43,8 +44,8 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
             }
         }
 
-        $bg = $styling['backgroundColor'] ?? null;
-        if (\is_string($bg) && $bg !== '') {
+        $bg = CssColor::safe($styling['backgroundColor'] ?? null);
+        if ($bg !== null) {
             $vars['--cb-b-bg'] = $bg;
             $tone = ColorTone::of($bg);
             if ($tone !== null) {

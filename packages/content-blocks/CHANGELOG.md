@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   single firewall the export was downloadable anonymously. Both now require
   `canEdit()` — on the source area too for replace-with. A host that let a
   view-only user export or copy from an area loses that; that was the bug.
+- **A colour could carry extra CSS declarations.** The custom picker of
+  `PaletteColorType` validated nothing, and `backgroundColor` went into
+  `style` verbatim: `red;position:fixed;inset:0;background:url(…)` covered the
+  public page. The picker now accepts `#rrggbb` only, and the styling
+  decorators emit a colour only if it is a single colour value
+  (`ContentBlocks\Palette\CssColor`, Twig `cb_css_color()`), which also covers
+  values arriving by import or template.
 - **An import could write any file type into the public upload directory.**
   Each embedded file was stored under the `extension` written in the JSON, so
   a forged export could drop a `.php` file (code execution where the upload

@@ -12,6 +12,7 @@ use ContentBlocks\Kit\RichText\RichTextSanitizerFactory;
 use ContentBlocks\Kit\Twig\ChoiceTokenExtension;
 use ContentBlocks\Kit\Twig\IconExtension;
 use ContentBlocks\Kit\Twig\SafeContentExtension;
+use ContentBlocks\Twig\ColorToneExtension;
 use PHPUnit\Framework\TestCase;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
@@ -145,6 +146,7 @@ final class IconRegistryTest extends TestCase
         $env->addExtension(new IconExtension($registry));
         $env->addExtension(new ChoiceTokenExtension());
         $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
+        $env->addExtension(new ColorToneExtension());
 
         return $env->render('@ContentBlocksKit/block/icon/view.html.twig', ['data' => $data]);
     }

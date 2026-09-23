@@ -10,6 +10,7 @@ use ContentBlocks\Image\ResolvedImage;
 use ContentBlocks\Kit\RichText\RichTextSanitizerFactory;
 use ContentBlocks\Kit\Twig\ChoiceTokenExtension;
 use ContentBlocks\Kit\Twig\SafeContentExtension;
+use ContentBlocks\Twig\ColorToneExtension;
 use ContentBlocks\Twig\ImageExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
@@ -231,6 +232,7 @@ final class ImageViewTest extends TestCase
         // re-listing them inline; see ChoiceTokenExtension.
         $env->addExtension(new ChoiceTokenExtension());
         $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
+        $env->addExtension(new ColorToneExtension());
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
         $env->addExtension(new ImageExtension($resolver ?? new PassthroughImageUrlResolver()));
 
