@@ -22,12 +22,6 @@ this file is the condensed, unambiguous version.
 composer require klehm/content-blocks klehm/content-blocks-kit
 ```
 
-Until `1.0.0` is tagged, the latest release is a release candidate. If the host is `minimum-stability: stable`, first set in `composer.json`:
-
-```json
-{ "minimum-stability": "RC", "prefer-stable": true }
-```
-
 ## Step 2 — Register bundles & routes (skip if Symfony Flex did it)
 
 ```php

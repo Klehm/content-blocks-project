@@ -5,6 +5,15 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-09-23
+
+The first stable release. No code change since 1.0.0-RC17, which a production
+host has run without a finding. From here, everything the
+[backward compatibility](https://klehm.github.io/content-blocks-project/guide/backward-compatibility) page lists is stable until 2.0: a 1.x release
+adds, fixes and deprecates, and removes nothing before 2.0.
+
+Coming from a beta or a candidate, the [upgrade guide](https://klehm.github.io/content-blocks-project/guide/upgrade) lists each step.
+
 ## [1.0.0-RC17] - 2026-09-23
 
 ### Security

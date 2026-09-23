@@ -24,7 +24,7 @@
     ],
     "require": {
         "php": ">=8.2",
-        "klehm/content-blocks": "^1.0.0-RC17",
+        "klehm/content-blocks": "^1.0",
         "symfony/console": "^6.4 || ^7.0 || ^8.0",
         "symfony/form": "^6.4 || ^7.0 || ^8.0",
         "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",

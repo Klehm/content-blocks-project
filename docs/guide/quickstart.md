@@ -16,15 +16,6 @@ A condensed, deterministic version of this path lives in [`AGENTS.md`](https://g
 composer require klehm/content-blocks klehm/content-blocks-kit
 ```
 
-Until `1.0.0` is tagged, the latest release is a release candidate. If your project is `minimum-stability: stable`, allow it:
-
-```json
-{
-    "minimum-stability": "RC",
-    "prefer-stable": true
-}
-```
-
 Register the bundles (Flex does this automatically — otherwise add them to `config/bundles.php`) and mount the routes. See [Installation](./installation.md#without-flex) for the manual snippets, and [Stimulus controllers & admin CSS](./installation.md#stimulus-controllers-admin-css) for the required `assets/controllers.json` entries.
 
 ## 2. Attach a ContentArea to your entity

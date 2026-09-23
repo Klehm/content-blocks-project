@@ -21,8 +21,6 @@ composer require klehm/content-blocks klehm/content-blocks-kit
 composer require klehm/content-blocks-i18n   # optional: translated content
 ```
 
-Until `1.0.0` is tagged, the latest release is a release candidate: require `klehm/content-blocks:^1.0@RC` (and the same for the other two), or set `"minimum-stability": "RC"` with `"prefer-stable": true`.
-
 ## With the Flex recipe (recommended)
 
 A self-hosted Flex recipe endpoint automates the bundle registration, route mounts and config templates. Add it **before** requiring the packages:

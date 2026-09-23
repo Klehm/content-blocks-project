@@ -35,7 +35,9 @@ The cost of a side table is that nothing carries its rows for free, so every flo
 
 ---
 
-## Release — the RC cycle, then 1.0 🅿️
+## Release — the RC cycle, then 1.0 ✅
+
+**`v1.0.0` shipped on 23 Sep**, once RC17 had run on the production host without a finding. What follows is the record of how it got there.
 
 **Context.** The candidates are out: `v1.0.0-RC1` (13 Aug), `v1.0.0-RC2` (14 Aug), `v1.0.0-RC3` (24 Aug), `v1.0.0-RC4` (31 Aug), `v1.0.0-RC5` (10 Sep), `v1.0.0-RC6` (14 Sep), `v1.0.0-RC7` (14 Sep), `v1.0.0-RC8` (16 Sep), `v1.0.0-RC9` (16 Sep), `v1.0.0-RC10` (16 Sep), `v1.0.0-RC11` (17 Sep), `v1.0.0-RC12` (17 Sep), `v1.0.0-RC13` (17 Sep), `v1.0.0-RC14` (17 Sep), `v1.0.0-RC15` (21 Sep), `v1.0.0-RC16` (21 Sep), `v1.0.0-RC17` (23 Sep). The public surface is frozen as described in the [backward compatibility page](docs/guide/backward-compatibility.md), and the work that had to land *before* the freeze did: the 1.0 seams (`RenderContext`, `BlockDataResolverInterface`, collection `_id`, the `_` reserved prefix), the `Block.data` key unification, the kit's rich-text editors, the image-optimization seam, and the translation package.
 
@@ -85,9 +87,9 @@ All of these are right to make before the freeze, and they are exactly why it sh
 - [x] **Security audit** ([#51](https://github.com/klehm/content-blocks-project/pull/51)): path confinement, `canEdit()` on export / replace-with / upload, CSS-safe colours, no SVG by default, restored structure checked, rich text sanitized at render, safe link schemes, pinned editor CDN files with SRI, 403 on denial, private previews, size caps
 - [x] **Transfer rewrite** ([#50](https://github.com/klehm/content-blocks-project/pull/50), [#49](https://github.com/klehm/content-blocks-project/pull/49)): streamed zip export, staged import, Import / Export dialog, imported files held to the upload policy; `cb:notify`; `cb_open_entries`
 - [x] **`v1.0.0-RC17`**: the two items above plus the pre-1.0 review below. Carries BC breaks against RC16 (see above). No migration
-- [ ] The last host migration, finished, on RC17: the go/no-go for stable
-- [ ] Finalize docs site + stable release notes
-- [ ] Tag `v1.0.0`, verify Packagist split
+- [x] The last host migration, finished, on RC17: the go/no-go for stable
+- [x] Finalize docs site + stable release notes
+- [x] Tag `v1.0.0`, verify Packagist split
 
 ### Found by the pre-1.0 review (2026-09-23)
 
