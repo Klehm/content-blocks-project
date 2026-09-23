@@ -176,6 +176,45 @@ final class ContentAreaImporterTest extends TestCase
         $this->assertSame(['label' => 'Specs'], $column->getDraftSettings());
     }
 
+    // A layout or preset this install cannot render, or longer than the
+    // column, would otherwise land verbatim.
+    public function testImportKeepsOnlyALayoutAndPresetsThisInstallRenders(): void
+    {
+        $target = new ContentArea();
+        $payload = $this->makePayload([
+            ['layout' => str_repeat('x', 200), 'columns' => [
+                ['preset' => 'col-6', 'blocks' => []],
+                ['preset' => 'col-6" onclick="x', 'blocks' => []],
+            ]],
+            ['layout' => Section::LAYOUT_TWO_COLS, 'columns' => []],
+        ]);
+
+        $this->importer()->import($target, $payload);
+
+        [$first, $second] = $target->getSections()->toArray();
+        $this->assertSame(Section::LAYOUT_FULL, $first->getLayout());
+        $this->assertSame(Section::LAYOUT_TWO_COLS, $second->getLayout());
+        $this->assertSame(['col-6', 'col-12'], array_map(
+            static fn ($c) => $c->getPreset(),
+            $first->getColumns()->toArray(),
+        ));
+    }
+
+    public function testABlockWithoutATypeIsNotImported(): void
+    {
+        $target = new ContentArea();
+        $payload = $this->makePayload([
+            ['layout' => Section::LAYOUT_FULL, 'columns' => [['preset' => 'col-12', 'blocks' => [
+                ['data' => ['text' => 'orphan']],
+                ['type' => ['text'], 'data' => []],
+            ]]]],
+        ]);
+
+        $this->importer()->import($target, $payload);
+
+        $this->assertCount(0, $target->getSections()->first()->getColumns()->first()->getBlocks());
+    }
+
     public function testImportAssignsDensePreviewPositions(): void
     {
         $target = new ContentArea();

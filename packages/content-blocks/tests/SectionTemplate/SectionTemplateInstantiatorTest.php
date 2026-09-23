@@ -354,6 +354,36 @@ final class SectionTemplateInstantiatorTest extends TestCase
         $this->assertNull($columns[0]->getPublishedSettings());
     }
 
+    // A pasted section is a template payload from localStorage.
+    public function testALayoutOrPresetThisInstallCannotRenderIsNotKept(): void
+    {
+        $payload = $this->payload([
+            ['preset' => 'col-4', 'blocks' => []],
+            ['preset' => 'col-99', 'blocks' => []],
+        ]);
+        $payload['layout'] = 'made-up';
+
+        $section = $this->instantiator()->instantiate($payload)->section;
+
+        $this->assertSame(Section::LAYOUT_FULL, $section->getLayout());
+        $this->assertSame(['col-4', 'col-12'], array_map(
+            static fn ($c) => $c->getPreset(),
+            $section->getColumns()->toArray(),
+        ));
+    }
+
+    public function testABlockWithoutATypeIsDropped(): void
+    {
+        $section = $this->instantiator()->instantiate($this->payload([
+            ['preset' => 'col-12', 'blocks' => [
+                ['type' => 'text', 'data' => ['content' => 'kept']],
+                ['data' => ['content' => 'orphan']],
+            ]],
+        ]))->section;
+
+        $this->assertCount(1, $section->getColumns()->first()->getBlocks());
+    }
+
     public function testRoundTripsThroughTheSerializer(): void
     {
         $source = new Section();

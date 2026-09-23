@@ -150,7 +150,11 @@ There is **no** `getAllowedDataKeys()` / `sanitizeData()` / `processData()` hook
 
 Copy/paste stores its entry in the browser's `localStorage`, which is what lets a copy survive leaving the page — and what makes the payload **user-writable**. So a paste is not a restore: every block in it is replayed through its own form (`ContentBlocks\Clipboard\BlockDataReplayer`) before anything is written. A key your block type does not declare never reaches `Block.data`; a value your `constraints` refuse is reset to the type's default and reported to the editor, rather than costing the whole block.
 
-This is stricter than the two older restore paths (section-template insert, area import), and deliberately so: those replay rows *this* application wrote, so they keep unknown keys and merely warn. Nothing extra to do in a custom block — the form you already wrote is the filter.
+This is stricter than the two older restore paths (section-template insert, area import), and deliberately so: they keep block data verbatim — unknown keys warn instead of dropping, and collection-entry ids survive so translations still match. An import file is still input, though, so what those paths keep is held elsewhere: the structure is checked on arrival (below), and the kit's views guard HTML, links and colours at render ([Editor HTML and links](#editor-html-and-links)). Nothing extra to do in a custom block — the form you already wrote is the filter for everything typed in the builder.
+
+### Restored structure
+
+An import, a section template and a pasted section all rebuild sections, columns and blocks from a payload. The structure is checked on the way in: a section layout is kept only if this install's `SectionLayoutRegistry` knows it (otherwise the section is `full`), a column preset only if it is `col-1` … `col-12` (otherwise `col-12`), and a block without a string `type` is dropped. Column settings go through `ColumnSettings::sanitize()`.
 
 ::: danger Raw-HTML caveat
 The kit's `html_raw` block renders `{{ html|raw }}`, so it trusts its editors. It is **disabled by default** (`content_blocks_kit.blocks.html_raw.enabled: false`) and must be explicitly opted in.

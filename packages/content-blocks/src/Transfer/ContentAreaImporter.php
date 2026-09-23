@@ -15,6 +15,8 @@ use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Section\ColumnSettings;
+use ContentBlocks\Section\RestoredStructure;
+use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 
 /**
@@ -34,6 +36,7 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         private readonly iterable $extensions = [],
         private readonly ?CollectionIdBackfiller $collectionIds = null,
         private readonly AssetPolicy $policy = new AssetPolicy(),
+        private readonly SectionLayoutRegistry $layouts = new SectionLayoutRegistry(),
     ) {
     }
 
@@ -234,8 +237,9 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     private function buildSection(array $raw, string $ref, AssetRewriter $assets, BlockRestoreTally $tally, array &$blocks): Section
     {
         $section = new Section();
-        if (isset($raw['layout']) && is_string($raw['layout'])) {
-            $section->setLayout($raw['layout']);
+        $layout = RestoredStructure::layout($raw['layout'] ?? null, $this->layouts);
+        if ($layout !== null) {
+            $section->setLayout($layout);
         }
 
         $settings = $raw['settings'] ?? null;
@@ -267,8 +271,9 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     private function buildColumn(array $raw, string $ref, AssetRewriter $assets, BlockRestoreTally $tally, array &$blocks): Column
     {
         $col = new Column();
-        if (isset($raw['preset']) && is_string($raw['preset'])) {
-            $col->setPreset($raw['preset']);
+        $preset = RestoredStructure::preset($raw['preset'] ?? null);
+        if ($preset !== null) {
+            $col->setPreset($preset);
         }
         $settings = ColumnSettings::sanitize($raw['settings'] ?? null);
         if ($settings !== []) {
@@ -318,7 +323,10 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
     private function buildBlock(array $raw, AssetRewriter $assets, BlockRestoreTally $tally): ?Block
     {
         $type = $raw['type'] ?? null;
-        if (is_string($type) && !$this->registry->has($type)) {
+        if (!is_string($type)) {
+            return null;
+        }
+        if (!$this->registry->has($type)) {
             // Neither refused (a type this app lacks is expected from another
             // install) nor imported (it would leave an inert block).
             $tally->skip($type);
@@ -327,20 +335,16 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         }
 
         $block = new Block();
-        if (is_string($type)) {
-            $block->setType($type);
-        }
+        $block->setType($type);
 
         $data = $raw['data'] ?? null;
         if (is_array($data)) {
-            if (is_string($type)) {
-                $tally->noteUnknownKeys($type, $this->dataKeys->unknownIn($type, $data));
-            }
+            $tally->noteUnknownKeys($type, $this->dataKeys->unknownIn($type, $data));
             /** @var array<string, mixed> $rewritten */
             $rewritten = $assets->rewrite($data);
             // Kept verbatim, unknown keys included (they warn, never drop). Ids
             // the export carried stay: translations are keyed on them.
-            $block->setDraftData(is_string($type) && $this->collectionIds !== null
+            $block->setDraftData($this->collectionIds !== null
                 ? $this->collectionIds->backfill($type, $rewritten)
                 : $rewritten);
         }

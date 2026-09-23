@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `upload.allowed_mime_types` defaults to JPEG, PNG, GIF, WebP and PDF. To keep
   SVG, list it explicitly and serve the upload directory with
   `Content-Security-Policy: sandbox` (docs/guide/security.md).
+- **An import or a pasted section wrote its layout and presets verbatim.**
+  A layout this install does not know, a preset that is not `col-1`…`col-12`,
+  or a block without a type landed as-is — a string longer than the column
+  answered 500. They now fall back to `full`, `col-12`, and no block. Block data
+  stays verbatim; the kit guards what it renders.
 - **An import could write any file type into the public upload directory.**
   Each embedded file was stored under the `extension` written in the JSON, so
   a forged export could drop a `.php` file (code execution where the upload
