@@ -93,7 +93,7 @@ final class RichTextEditorTest extends TestCase
         // The form theme renders whatever keys it is given, so this is the
         // contract a host-written adapter can rely on being enough.
         $this->assertSame(
-            ['script-url', 'style-url', 'upload-url', 'config', 'palette'],
+            ['script-url', 'style-url', 'script-integrity', 'style-integrity', 'upload-url', 'config', 'palette'],
             array_keys($values),
         );
         foreach ($values as $key => $value) {
@@ -196,6 +196,28 @@ final class RichTextEditorTest extends TestCase
         ]);
 
         $this->assertSame('{}', $this->tinymce()->buildView($options)->values['config']);
+    }
+
+    // The pinned CDN file carries its hash: a changed file is refused.
+    public function testTheDefaultCdnFilesCarryTheirSriHash(): void
+    {
+        $tiny = $this->tinymce()->buildView(RichTextBlock::defaultOptions())->values;
+        $ck = $this->ckeditor()->buildView(RichTextBlock::defaultOptions())->values;
+
+        $this->assertStringContainsString('tinymce@' . TinyMceEditor::CDN_VERSION . '/', $tiny['script-url']);
+        $this->assertSame(TinyMceEditor::getDefaultScriptIntegrity(), $tiny['script-integrity']);
+        $this->assertStringStartsWith('sha384-', $ck['script-integrity']);
+        $this->assertStringStartsWith('sha384-', $ck['style-integrity']);
+    }
+
+    // A host URL is the host's file: the pinned hash would refuse it.
+    public function testAHostScriptUrlCarriesNoHash(): void
+    {
+        $values = $this->tinymce()->buildView(
+            ['script_url' => 'https://cdn.example.com/tinymce.min.js'] + RichTextBlock::defaultOptions(),
+        )->values;
+
+        $this->assertSame('', $values['script-integrity']);
     }
 
     public function testOptionsAreReadDefensivelyWhenTheBlockWasBuiltWithout(): void

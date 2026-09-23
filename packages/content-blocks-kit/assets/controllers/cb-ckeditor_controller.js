@@ -4,6 +4,7 @@ import {
     loadStylesheet,
     mergeConfig,
     parseJsonValue,
+    readAreaId,
     readCsrfToken,
     resolveEditorGlobal,
     uploadFile,
@@ -123,12 +124,12 @@ export function buildCkEditorConfig(ckeditor, { palette, uploads }) {
  * Delegates to the same endpoint — and the same CSRF, MIME and size checks —
  * as every other kit upload, mapping its `{ url }` onto CKEditor's shape.
  */
-export function createUploadAdapter({ uploadUrl, csrfToken }) {
+export function createUploadAdapter({ uploadUrl, csrfToken, areaId }) {
     return (loader) => ({
         async upload() {
             const file = await loader.file;
 
-            return { default: await uploadFile(file, { uploadUrl, csrfToken }) };
+            return { default: await uploadFile(file, { uploadUrl, csrfToken, areaId }) };
         },
         abort() {
             // The upload runs on fetch without an abort signal; CKEditor
@@ -152,6 +153,8 @@ export default class extends Controller {
     static values = {
         scriptUrl: String,
         styleUrl: String,
+        scriptIntegrity: String,
+        styleIntegrity: String,
         uploadUrl: String,
         config: String,
         palette: String,
@@ -164,8 +167,8 @@ export default class extends Controller {
         this._detachedUi = adoptDetachedUi(textarea, '.ck-body-wrapper');
 
         try {
-            loadStylesheet(this.styleUrlValue);
-            const ckeditor = await resolveEditorGlobal('CKEDITOR', this.scriptUrlValue);
+            loadStylesheet(this.styleUrlValue, this.styleIntegrityValue);
+            const ckeditor = await resolveEditorGlobal('CKEDITOR', this.scriptUrlValue, this.scriptIntegrityValue);
             if (!this.hasTextareaTarget) return; // disconnected while loading
 
             const uploads = Boolean(this.uploadUrlValue);
@@ -192,6 +195,7 @@ export default class extends Controller {
                     uploadAdapterPlugin({
                         uploadUrl: this.uploadUrlValue,
                         csrfToken: readCsrfToken(textarea),
+                        areaId: readAreaId(textarea),
                     }),
                 ];
             }

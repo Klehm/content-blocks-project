@@ -167,6 +167,8 @@ export default class extends Controller {
 
         const formData = new FormData();
         formData.append('file', file);
+        // The endpoint checks edit rights on the area the file is for.
+        formData.append('area', this.element.closest('[data-cb-area-id]')?.dataset.cbAreaId || '');
 
         try {
             const response = await fetch(this._getUploadUrl(), {

@@ -48,6 +48,17 @@ abstract class AbstractRichTextEditor implements RichTextEditorInterface
         return null;
     }
 
+    /** SRI hash of the default script; checked only while that URL is used. */
+    public static function getDefaultScriptIntegrity(): ?string
+    {
+        return null;
+    }
+
+    public static function getDefaultStyleIntegrity(): ?string
+    {
+        return null;
+    }
+
     public function buildView(array $options): RichTextEditorView
     {
         return new RichTextEditorView(static::getController(), $this->buildValues($options));
@@ -64,9 +75,17 @@ abstract class AbstractRichTextEditor implements RichTextEditorInterface
         // "the host bundled the editor, expect the global".
         $cdn = (bool) ($options['cdn'] ?? true);
 
+        $script = $cdn ? $this->assetUrl($options, 'script_url', 'cdn_url', static::getDefaultScriptUrl()) : '';
+        $style = $cdn ? $this->assetUrl($options, 'style_url', 'cdn_style_url', static::getDefaultStyleUrl() ?? '') : '';
+
         return [
-            'script-url' => $cdn ? $this->assetUrl($options, 'script_url', 'cdn_url', static::getDefaultScriptUrl()) : '',
-            'style-url' => $cdn ? $this->assetUrl($options, 'style_url', 'cdn_style_url', static::getDefaultStyleUrl() ?? '') : '',
+            'script-url' => $script,
+            'style-url' => $style,
+            // A host URL is the host's file: the pinned hash would refuse it.
+            'script-integrity' => $script !== '' && $script === static::getDefaultScriptUrl()
+                ? (static::getDefaultScriptIntegrity() ?? '') : '',
+            'style-integrity' => $style !== '' && $style === static::getDefaultStyleUrl()
+                ? (static::getDefaultStyleIntegrity() ?? '') : '',
             // Empty upload URL is how the controller learns uploads are off —
             // one value carrying both the flag and its target.
             'upload-url' => ($options['uploads'] ?? true) ? $this->urlGenerator->generate('content_blocks_upload') : '',

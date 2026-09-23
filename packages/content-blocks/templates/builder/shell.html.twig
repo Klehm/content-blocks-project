@@ -9,6 +9,7 @@
      data-cb-builder-area-id-value="{{ area.id }}"
      data-cb-builder-iframe-url-value="{{ iframeUrl }}"
      data-cb-csrf-token="{{ csrf_token('content_blocks') }}"
+     data-cb-area-id="{{ area.id }}"
      data-cb-api-base="{{ cb_api_base() }}"
      data-i18n-cb-builder-discard-confirm="{{ 'cb.builder.discard_confirm'|trans({}, 'content_blocks') }}"
      {# On the shell root, not the library panel: this flow starts from the
@@ -29,6 +30,7 @@
      data-i18n-cb-builder-viewport-order-reset-mobile="{{ 'cb.builder.viewport_order.reset_mobile'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-viewport-order-column="{{ 'cb.builder.viewport_order.column'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-unreadable="{{ 'cb.builder.clipboard.unreadable'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-clipboard-too-large="{{ 'cb.builder.clipboard.too_large'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-skipped-blocks="{{ 'cb.builder.clipboard.skipped_blocks'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-dropped-fields="{{ 'cb.builder.clipboard.dropped_fields'|trans({}, 'content_blocks') }}"
      {# Ctrl/Cmd-Z is keyboard-only too, so the snackbar carries every word

@@ -55,10 +55,14 @@ const zipFile = (manifest, media = {}) => ({
 
 /** Uploads through the builder's own endpoint, as the image widget does. */
 async function upload(page, bytes) {
-    const { api, csrf } = await shellInfo(page);
+    const { api, areaId, csrf } = await shellInfo(page);
     const response = await page.request.post(`${api}/upload`, {
         headers: { 'X-CSRF-Token': csrf },
-        multipart: { file: { name: 'dot.png', mimeType: 'image/png', buffer: bytes } },
+        multipart: {
+            file: { name: 'dot.png', mimeType: 'image/png', buffer: bytes },
+            // The endpoint checks edit rights on the area the file is for.
+            area: areaId,
+        },
     });
 
     return (await response.json()).url;

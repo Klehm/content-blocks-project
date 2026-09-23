@@ -3,6 +3,7 @@ import {
     adoptDetachedUi,
     mergeConfig,
     parseJsonValue,
+    readAreaId,
     readCsrfToken,
     resolveEditorGlobal,
     uploadFile,
@@ -88,6 +89,7 @@ export default class extends Controller {
     static values = {
         scriptUrl: String,
         styleUrl: String,
+        scriptIntegrity: String,
         uploadUrl: String,
         config: String,
         palette: String,
@@ -100,7 +102,7 @@ export default class extends Controller {
         this._detachedUi = adoptDetachedUi(textarea, '.tox-tinymce-aux');
 
         try {
-            const tinymce = await resolveEditorGlobal('tinymce', this.scriptUrlValue);
+            const tinymce = await resolveEditorGlobal('tinymce', this.scriptUrlValue, this.scriptIntegrityValue);
             if (!this.hasTextareaTarget) return; // disconnected while loading
 
             const config = mergeConfig(
@@ -151,7 +153,11 @@ export default class extends Controller {
      * upload endpoint: the dialog's "browse" button, and paste / drag-drop.
      */
     _uploadHandlers(textarea) {
-        const target = { uploadUrl: this.uploadUrlValue, csrfToken: readCsrfToken(textarea) };
+        const target = {
+            uploadUrl: this.uploadUrlValue,
+            csrfToken: readCsrfToken(textarea),
+            areaId: readAreaId(textarea),
+        };
 
         return {
             images_upload_handler: (blobInfo) => uploadFile(blobInfo.blob(), {

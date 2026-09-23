@@ -9,7 +9,7 @@ import Controller from '../controllers/cb-file-upload_controller.js';
 
 function setup({ accept = 'image/*', value = '' } = {}) {
     document.body.innerHTML = `
-        <div data-cb-csrf-token="tok-123">
+        <div data-cb-csrf-token="tok-123" data-cb-area-id="42">
             <div id="root" class="cb-image-upload${value === '' ? ' cb-image-upload--empty' : ''}">
                 <div id="wrapper" class="cb-image-upload__preview">
                     <img id="preview"${value === '' ? ' hidden' : ` src="${value}"`}>
@@ -87,6 +87,8 @@ describe('cb-file-upload', () => {
         expect(url).toBe('/_content-blocks/upload');
         expect(options.headers['X-CSRF-Token']).toBe('tok-123');
         expect(options.body.get('file')).toBeInstanceOf(File);
+        // The endpoint checks edit rights on this area.
+        expect(options.body.get('area')).toBe('42');
         // Same post-upload wiring as the picker: preview shown, hidden input
         // set.
         expect(document.getElementById('hidden').value).toBe('/uploads/dropped.png');

@@ -10,15 +10,20 @@
 const scriptLoaders = new Map();
 
 /**
- * Load a script once per URL. Resolves when it has executed.
+ * Load a script once per URL. Resolves when it has executed. With an SRI hash
+ * the browser refuses a file whose bytes changed on the CDN.
  */
-export function loadScript(url) {
+export function loadScript(url, integrity = '') {
     if (scriptLoaders.has(url)) return scriptLoaders.get(url);
 
     const loader = new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = url;
         script.referrerPolicy = 'origin';
+        if (integrity) {
+            script.integrity = integrity;
+            script.crossOrigin = 'anonymous';
+        }
         script.onload = () => resolve();
         script.onerror = () => {
             // Drop the rejected promise so a later connect can retry rather
@@ -38,7 +43,7 @@ export function loadScript(url) {
  * Add a stylesheet once per URL. Fire-and-forget: a missing stylesheet
  * degrades the editor's looks, it does not stop it from working.
  */
-export function loadStylesheet(url) {
+export function loadStylesheet(url, integrity = '') {
     if (!url) return;
 
     // Attribute by attribute, not through a selector: a URL with a quote
@@ -49,6 +54,10 @@ export function loadStylesheet(url) {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = url;
+    if (integrity) {
+        link.integrity = integrity;
+        link.crossOrigin = 'anonymous';
+    }
     document.head.appendChild(link);
 }
 
@@ -56,7 +65,7 @@ export function loadStylesheet(url) {
  * An empty `scriptUrl` is the `cdn: false` contract — the host bundled the
  * editor. Saying so beats a TypeError three frames deeper.
  */
-export async function resolveEditorGlobal(globalName, scriptUrl) {
+export async function resolveEditorGlobal(globalName, scriptUrl, integrity = '') {
     if (window[globalName]) return window[globalName];
 
     if (!scriptUrl) {
@@ -67,7 +76,7 @@ export async function resolveEditorGlobal(globalName, scriptUrl) {
         );
     }
 
-    await loadScript(scriptUrl);
+    await loadScript(scriptUrl, integrity);
 
     if (!window[globalName]) {
         throw new Error(`Loaded ${scriptUrl} but window.${globalName} is still undefined.`);
@@ -120,15 +129,21 @@ export function readCsrfToken(element) {
     return element.closest('[data-cb-csrf-token]')?.dataset.cbCsrfToken || '';
 }
 
+/** The area the builder edits: the upload endpoint checks rights on it. */
+export function readAreaId(element) {
+    return element.closest('[data-cb-area-id]')?.dataset.cbAreaId || '';
+}
+
 /**
  * Same contract as `cb-file-upload`, and shared by both editors — so an image
  * dropped in either lands in the same storage through the same validation.
  */
-export async function uploadFile(file, { uploadUrl, csrfToken, filename }) {
+export async function uploadFile(file, { uploadUrl, csrfToken, areaId, filename }) {
     if (!uploadUrl) throw new Error('Uploads are disabled for this block.');
 
     const formData = new FormData();
     formData.append('file', file, filename || file.name || 'upload');
+    formData.append('area', areaId || '');
 
     let response;
     try {

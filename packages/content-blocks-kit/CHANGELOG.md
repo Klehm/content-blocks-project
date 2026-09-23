@@ -23,6 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Title, text, divider and icon colours** go through the core's
   `cb_css_color()`, so a stored value carrying CSS declarations is dropped.
   Needs the matching core release.
+- **Editor scripts are pinned and checked.** TinyMCE loads from
+  `tinymce@7.9.3` instead of the floating `tinymce@7`, and both default CDN
+  files (TinyMCE, CKEditor script and stylesheet) carry a Subresource
+  Integrity hash, so a changed file on the CDN is refused. A host `script_url`
+  or `style_url` carries none.
+- **Editor image uploads post the area** they are for, which the core's upload
+  endpoint now checks rights on.
+- **`twig/twig` is required at `^3.27`.**
 
 ### Changed
 

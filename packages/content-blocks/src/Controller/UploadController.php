@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Controller;
 
+use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Security\AccessCheckerInterface;
+use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Storage\FileStorageInterface;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,8 +16,8 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
- * AJAX upload endpoint behind `cb-file-upload`. Size cap and MIME allow-list
- * come from `content_blocks.upload.*`, storage from FileStorageInterface.
+ * AJAX upload endpoint behind `cb-file-upload`, for an editor of the `area`
+ * posted with the file. Limits come from `content_blocks.upload.*`.
  *
  * @see docs/guide/security.md#file-upload
  *
@@ -28,6 +32,8 @@ final class UploadController
     public function __construct(
         private readonly FileStorageInterface $fileStorage,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly EntityManagerInterface $em,
+        private readonly AccessCheckerInterface $accessChecker,
         private readonly int $uploadMaxSize = 10 * 1024 * 1024,
         private readonly array $uploadAllowedMimeTypes = [
             'image/jpeg',
@@ -49,6 +55,17 @@ final class UploadController
     {
         if ($error = $this->csrfFailureOrNull($request)) {
             return $error;
+        }
+
+        $areaId = $request->request->get('area');
+        $area = \is_string($areaId) && ctype_digit($areaId)
+            ? $this->em->find(ContentArea::class, (int) $areaId)
+            : null;
+        if ($area === null) {
+            return new JsonResponse(['error' => 'ContentArea not found'], Response::HTTP_NOT_FOUND);
+        }
+        if (!$this->accessChecker->canEdit($area)) {
+            throw new ContentBlocksAccessDeniedException();
         }
 
         $file = $request->files->get('file');

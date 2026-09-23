@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Controller\UploadController;
+use ContentBlocks\Security\AccessCheckerInterface;
+use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Storage\FileStorageInterface;
 use ContentBlocks\Storage\NullFileStorage;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -22,6 +24,26 @@ final class UploadControllerTest extends ControllerTestCase
         $response = $controller->upload($this->makeUploadRequest($this->makeGif()));
 
         $this->assertSame(403, $response->getStatusCode());
+    }
+
+    // The token alone is not a right to write files: the area is checked.
+    public function testRefusesAnUploadWithoutAnArea(): void
+    {
+        $controller = $this->makeUploadController();
+
+        $response = $controller->upload($this->makeUploadRequest($this->makeGif(), null));
+
+        $this->assertSame(404, $response->getStatusCode());
+    }
+
+    public function testRefusesAnUploadForAnAreaTheUserCannotEdit(): void
+    {
+        $denier = $this->createMock(AccessCheckerInterface::class);
+        $denier->method('canEdit')->willReturn(false);
+        $controller = $this->makeUploadController(accessChecker: $denier);
+
+        $this->expectException(ContentBlocksAccessDeniedException::class);
+        $controller->upload($this->makeUploadRequest($this->makeGif()));
     }
 
     public function testRejectsMissingFile(): void
@@ -61,6 +83,8 @@ final class UploadControllerTest extends ControllerTestCase
         $controller = new UploadController(
             new NullFileStorage(),
             $this->makeCsrfManager(true),
+            $this->makeEm([$this->makeArea(1)]),
+            $this->makeAccessChecker(),
         );
 
         $response = $controller->upload($this->makeUploadRequest($svg));
@@ -140,10 +164,13 @@ final class UploadControllerTest extends ControllerTestCase
         bool $csrfValid = true,
         int $maxSize = 10 * 1024 * 1024,
         array $allowedMimeTypes = ['image/gif', 'image/png'],
+        ?AccessCheckerInterface $accessChecker = null,
     ): UploadController {
         return new UploadController(
             $storage ?? new NullFileStorage(),
             $this->makeCsrfManager($csrfValid),
+            $this->makeEm([$this->makeArea(1)]),
+            $accessChecker ?? $this->makeAccessChecker(),
             $maxSize,
             $allowedMimeTypes,
         );
@@ -157,11 +184,12 @@ final class UploadControllerTest extends ControllerTestCase
         return new UploadedFile($tmp, 'pixel.gif', 'image/gif', null, test: true);
     }
 
-    private function makeUploadRequest(?UploadedFile $file): Request
+    private function makeUploadRequest(?UploadedFile $file, ?string $area = '1'): Request
     {
         return Request::create(
             '/_content-blocks/upload',
             'POST',
+            $area === null ? [] : ['area' => $area],
             files: $file ? ['file' => $file] : [],
             server: ['HTTP_X-CSRF-Token' => 'token'],
         );
