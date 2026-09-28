@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-28
+
+This release carries two changes:
+
+- **Fixed: concurrent section saves** (`klehm/content-blocks`). Two
+  section-setting autosaves in quick succession could overlap, and the older
+  one could overwrite the newer. The section sidebar now sends one save at a
+  time.
+- **Added: host-supplied translation locales** (`klehm/content-blocks-i18n`).
+  The new interface
+  `ContentBlocks\I18n\Locale\TargetLocalesProviderInterface` lets a host
+  service supply the locales editors translate into, for example from the
+  database. The default implementation,
+  `ContentBlocks\I18n\Locale\ConfiguredTargetLocalesProvider`, keeps reading
+  `content_blocks_i18n.locales`.
+
+Nothing to migrate. The three packages are tagged together.
+
 ### Fixed
 
 - **A section setting changed right after another could be lost.** The section
