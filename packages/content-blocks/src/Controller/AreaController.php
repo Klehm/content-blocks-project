@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Controller;
 
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Event\ActionRefusedException;
 use ContentBlocks\Publishing\ContentAreaPublisherInterface;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
@@ -48,7 +49,11 @@ final class AreaController
             return $area;
         }
 
-        $this->publisher->publish($area);
+        try {
+            $this->publisher->publish($area);
+        } catch (ActionRefusedException $e) {
+            return self::refused($e);
+        }
 
         return new JsonResponse(['hasUnpublishedChanges' => $area->hasUnpublishedChanges()]);
     }
@@ -61,9 +66,22 @@ final class AreaController
             return $area;
         }
 
-        $this->publisher->discardDraft($area);
+        try {
+            $this->publisher->discardDraft($area);
+        } catch (ActionRefusedException $e) {
+            return self::refused($e);
+        }
 
         return new JsonResponse(['hasUnpublishedChanges' => $area->hasUnpublishedChanges()]);
+    }
+
+    /** A listener said no: a 409 the builder shows in its snackbar. */
+    private static function refused(ActionRefusedException $e): JsonResponse
+    {
+        return new JsonResponse(
+            ['error' => 'refused', 'message' => $e->getMessage(), 'reasons' => $e->reasons],
+            Response::HTTP_CONFLICT,
+        );
     }
 
     #[Route('/area/{id}/state', name: 'content_blocks_area_state', methods: ['GET'], requirements: ['id' => '\d+'])]

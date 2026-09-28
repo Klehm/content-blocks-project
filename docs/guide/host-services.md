@@ -776,6 +776,9 @@ blocks, see [Translation](./translation.md#adding-to-the-workbench).
 
 ## Builder events
 
+These are browser events. For what happens on the server (publish, discard, a
+block saved or deleted), listen to the [Symfony events](./events.md) instead.
+
 The builder speaks to the page it is mounted in through a handful of DOM
 events. These seven are covered by the
 [backward-compatibility promise](./backward-compatibility.md#front-end); every

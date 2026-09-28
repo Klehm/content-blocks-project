@@ -158,6 +158,7 @@ cb:
         publish: "Publish"
         discard: "Revert to published"
         discard_confirm: "Revert to the published version? Every unpublished change will be lost, and this cannot be undone."
+        refused: "This action was refused"
         add_section: "Add a section:"
         empty_cta: "Start by adding a section"
         draft_pending: "Draft pending"

@@ -8,9 +8,10 @@ use ContentBlocks\Entity\ContentArea;
 
 /**
  * Promotes a ContentArea's draft to published, or discards it. Both flush.
- * Hosts decorate this seam for audit trails and cache purges.
+ * To follow a publish rather than change it, listen to its events.
  *
  * @see docs/internals/publishing.md#publish-and-discard-semantics
+ * @see docs/guide/events.md
  */
 interface ContentAreaPublisherInterface
 {

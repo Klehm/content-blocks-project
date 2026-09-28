@@ -48,6 +48,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
   - translation: the kit's `RichTextEditorView`; i18n's `TranslationRequest`, `TranslationOutcome`, `TranslationJob` and `FieldStatus`
 - **Values you read but do not build.** `ImportResult`, `InstantiationResult`, `SectionTemplateSnapshot`, and the transfer helpers `AssetTokenizer` and `AssetRewriter` handed to a `ContentAreaTransferExtensionInterface`. Their public reads are frozen; their constructors are `@internal`, so the package can add fields to them.
 - **Services you inject.** `BlockTypeRegistry` (`get()`, `has()`, `all()`, `getChoices()`), and the shipped implementations named as defaults in the guides: `LocalFileStorage`, `PassthroughImageUrlResolver`, `DenyOnMismatchUpgrader`, `AllowAllAccessChecker` and `DenyAllAccessChecker`. They are covered as services to alias or decorate; their constructors are not.
+- **Symfony events you listen to**, with their public properties and the moment each is dispatched ([Server-side events](./events.md)): `BeforeContentAreaPublishEvent`, `AfterContentAreaPublishEvent`, `BeforeContentAreaDiscardEvent`, `AfterContentAreaDiscardEvent`, `BeforeBlockSaveEvent`, `AfterBlockSaveEvent`, `BeforeBlockDeleteEvent`, `AfterBlockDeleteEvent`; their base `RefusableEvent` (`refuse()`, `isRefused()`, `getReasons()`) and `ActionRefusedException`. A later version may add properties or events, but will not remove or rename one.
 - **Exceptions you throw or catch.** `ContentBlocksAccessDeniedException` (a 403), `IncompatibleContentVersionException`, `ImportRefusedException`, `UnsupportedTemplateFormatException`, `IncompatibleTemplateException`.
 - **`ContentBlocks\Testing\CrossRequestStateScanner`**, for pointing the [worker-mode](./worker-mode.md) check at your own code.
 - **The entities** and their public accessors: `ContentArea`, `Section`, `Column`, `Block`, `SectionTemplate`, and i18n's `BlockTranslation` and `ColumnTranslation`. The exception is the setters of **published state**, which carry `@internal`. `publish()` is the only writer of a published field, so code building content writes the draft and calls `publish()`.
@@ -66,7 +67,7 @@ Every key of the three semantic config trees (`content_blocks`, `content_blocks_
   | `content_blocks_upload` | `POST` multipart: `file` and `area`, the `X-CSRF-Token` header; the JSON answer's `url` (and `error` on a refusal) |
   | `content_blocks_export` | `GET` on an area, answering the export archive; `?assets=0` |
   | `content_blocks_import` | `POST` of an export in one request, the single-request path kept for scripts |
-  | `content_blocks_area_publish`, `content_blocks_area_discard` | `POST` with the CSRF header |
+  | `content_blocks_area_publish`, `content_blocks_area_discard` | `POST` with the CSRF header; a `409` with `error: "refused"`, `message` and `reasons` when a [listener refused](./events.md#refusing-an-action) |
   | `content_blocks_asset_layout`, `content_blocks_asset_styling`, `content_blocks_asset_slider`, `content_blocks_kit_asset_css` | `GET`, the stylesheet or script a public page links; `?v=` with the content's version is cached for a year |
   | `content_blocks_asset_report` | `GET`, the read-only asset report page |
   | `content_blocks_i18n_workbench` | `GET`, the translation workbench page |
@@ -134,6 +135,7 @@ Some defaults are load-bearing enough to be API:
 - **Secure by default.** `AccessCheckerInterface` defaults to `DenyAllAccessChecker`, `ContentAreaUrlResolverInterface` to a resolver that throws, `SectionTemplateManagerInterface` to one that denies, and `AssetReportViewerInterface` to a viewer that denies (the report route 404s rather than 403s). They stay that way.
 - **No uploaded file is ever deleted as a side effect of a builder action**: not on block delete, not on publish, not on discard. Reclaiming storage is an explicit, separate act; see [Asset lifecycle](./asset-lifecycle.md).
 - **Nothing the builder does changes the published page** until Publish.
+- **The publish and discard events are dispatched for whatever publisher the interface points to**: the *before* event ahead of every decorator, the *after* event once all of them have run. A refused action writes nothing.
 - **The kit's `html_raw` block is registered only with `enabled: true`**, whatever else its config entry holds.
 - **`ContentAreaType::buildView()` writes nothing** to the database on a GET.
 

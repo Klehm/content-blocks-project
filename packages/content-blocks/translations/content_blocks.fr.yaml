@@ -158,6 +158,7 @@ cb:
         publish: "Publier"
         discard: "Revenir à la version publiée"
         discard_confirm: "Revenir à la version publiée ? Toutes les modifications non publiées seront perdues, et cette action est irréversible."
+        refused: "Cette action a été refusée"
         add_section: "Ajouter une section :"
         empty_cta: "Commencez par ajouter une section"
         draft_pending: "Brouillon en attente"

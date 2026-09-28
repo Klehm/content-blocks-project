@@ -767,22 +767,45 @@ The services that carry the builder's core behaviour are each registered as a co
 | `SectionTemplate\SectionTemplateSerializerInterface` | `SectionTemplateSerializer` | section → reusable library snapshot |
 | `SectionTemplate\SectionTemplateInstantiatorInterface` | `SectionTemplateInstantiator` | snapshot → detached draft section |
 
+To react to a publish (audit trail, cache invalidation, webhook), you do not need to decorate anything: listen to `AfterContentAreaPublishEvent`, one of the [server-side events](../../docs/guide/events.md).
+
 ```php
+use ContentBlocks\Event\AfterContentAreaPublishEvent;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+
+#[AsEventListener]
+final class PurgeOnPublish
+{
+    public function __invoke(AfterContentAreaPublishEvent $event): void
+    {
+        // … your audit trail, cache invalidation, webhook …
+    }
+}
+```
+
+To stop a publish, refuse `BeforeContentAreaPublishEvent`. Decorate the publisher only to change what a publish does:
+
+```php
+use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Publishing\ContentAreaPublisherInterface;
+use ContentBlocks\Publishing\PublishContext;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 
 #[AsDecorator(ContentAreaPublisherInterface::class)]
-final class AuditedPublisher implements ContentAreaPublisherInterface
+final class GuardedPublisher implements ContentAreaPublisherInterface
 {
     public function __construct(private readonly ContentAreaPublisherInterface $inner) {}
 
-    public function publish(ContentArea $area): void
+    public function publish(ContentArea $area, ?PublishContext $context = null): void
     {
-        $this->inner->publish($area);
-        // … your audit trail, cache invalidation, webhook …
+        // … prepare something before the inner publish …
+        $this->inner->publish($area, $context);
     }
 
-    public function discardDraft(ContentArea $area): void { $this->inner->discardDraft($area); }
+    public function discardDraft(ContentArea $area, ?PublishContext $context = null): void
+    {
+        $this->inner->discardDraft($area, $context);
+    }
 }
 ```
 
