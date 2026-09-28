@@ -50,7 +50,7 @@ final class TranslationStatusCommand extends Command
         $targets = $this->locales->getTargetLocales();
 
         if ($targets === []) {
-            $io->warning('No target locales configured (content_blocks_i18n.locales).');
+            $io->warning('No target locales (content_blocks_i18n.locales, or the TargetLocalesProviderInterface service).');
 
             return Command::SUCCESS;
         }

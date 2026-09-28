@@ -5,6 +5,24 @@ All notable changes to `klehm/content-blocks-i18n` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **The target locales can come from a host service.** Alias
+  `TargetLocalesProviderInterface` (for example with `#[AsAlias]`) to return the
+  locales from the database instead of copying them into
+  `content_blocks_i18n.locales`. The default, `ConfiguredTargetLocalesProvider`,
+  returns the configured codes, so nothing changes for a host that aliases
+  nothing. The config's labels still apply to a provider's codes. The provider
+  is called once per container: under a worker runtime, a new locale appears
+  after the workers restart.
+
+### Changed
+
+- **`content-blocks:i18n:status` and `content-blocks:i18n:translate` name the
+  provider** in their "no target locales" warning, next to the config key.
+
 ## [1.0.0] - 2026-09-23
 
 The first stable release, with `klehm/content-blocks` 1.0.0. No code change

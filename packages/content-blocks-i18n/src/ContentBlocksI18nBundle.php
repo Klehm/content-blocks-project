@@ -36,7 +36,7 @@ final class ContentBlocksI18nBundle extends AbstractBundle
                     ->cannotBeEmpty()
                 ->end()
                 ->arrayNode('locales')
-                    ->info('Locales editors can translate into. Accepts bare codes or { code, label } maps; the source locale is ignored if listed.')
+                    ->info('Locales editors can translate into. Accepts bare codes or { code, label } maps; the source locale is ignored if listed. A host aliasing TargetLocalesProviderInterface replaces the codes; the labels still apply.')
                     ->beforeNormalization()
                         // A flat list of codes or a map with labels: both
                         // spellings are natural, so accept either.
