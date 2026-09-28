@@ -153,6 +153,8 @@ Everything missing from the lists above is internal. These are named because the
 
 Additive changes land in minor releases: a new interface, a new config key, a new optional constructor argument on a shipped implementation, a new field in an event's `detail` or a value object.
 
+CI holds the PHP part of this page to it: every change is compared with the last release by [roave/backward-compatibility-check](https://github.com/Roave/BackwardCompatibilityCheck), on the classes listed above.
+
 A breaking change to anything on this page waits for the next major. Where a change is unavoidable within `1.x`, the old path is kept working and marked `@deprecated` with the version that will remove it, and the CHANGELOG says so.
 
 Two consequences worth spelling out, because they are the ones that catch hosts:

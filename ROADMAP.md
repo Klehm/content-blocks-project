@@ -151,7 +151,6 @@ None of these breaks anything when it lands, which is why they wait. They are wh
   - split `cb-builder_controller.js` (2 867 lines, ~148 methods, 13 feature areas) into modules, as `transfer/` already is
   - `@layer content-blocks` on the public CSS so a host overrides it without out-specifying 7-compound selectors
   - a guide for JS-backed fields inside a Live-morphed form
-- **Tooling**: a BC-break checker (`roave/backward-compatibility-check`) in CI once the promise is live.
 
 ---
 

@@ -820,6 +820,19 @@ vendor/bin/php-cs-fixer fix --dry-run --diff       # style, doit être vert
   disparaître un faux « Dead catch » sur une branche bien vivante de
   [ClipboardController](packages/content-blocks/src/Controller/ClipboardController.php).
 
+### BC check (roave)
+
+```bash
+scripts/bc-check/run.sh            # the three packages vs the last v* tag
+```
+
+Runs `roave/backward-compatibility-check` on a copy of each package, restricted
+to the classes named under *What is covered* in
+[docs/guide/backward-compatibility.md](docs/guide/backward-compatibility.md)
+(the rest is marked `@internal` in the copy). CI job `bc-check` gates the split.
+An intended break goes in `scripts/bc-check/baseline/<package>.xml`. Rationale:
+[docs/internals/bc-check.md](docs/internals/bc-check.md).
+
 ### Worker mode (FrankenPHP)
 
 ```bash
