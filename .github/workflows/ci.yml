@@ -265,6 +265,27 @@ jobs:
             echo "::endgroup::"
           done
 
+  bc-check:
+    name: BC check (roave, against the last tag)
+    runs-on: ubuntu-latest
+
+    # Compares each package with the last v* tag, on the classes the backward
+    # compatibility page promises. See docs/internals/bc-check.md.
+    steps:
+      # fetch-depth: 0 so `git describe` finds the last tag.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: intl, mbstring
+          coverage: none
+
+      - name: Check each package
+        run: ./scripts/bc-check/run.sh
+
   lowest-deps:
     name: PHPUnit lowest (${{ matrix.package }} · PHP 8.2)
     runs-on: ubuntu-latest
@@ -597,7 +618,7 @@ jobs:
   packages_split:
     name: Split ${{ matrix.package.split_repository }}
     runs-on: ubuntu-latest
-    needs: [php-tests, kit-php-tests, i18n-php-tests, lowest-deps, js-tests, kit-js-tests, i18n-js-tests, static-analysis, docs-build, e2e-tests, postgres-e2e-tests, encore-e2e-tests]
+    needs: [php-tests, kit-php-tests, i18n-php-tests, lowest-deps, bc-check, js-tests, kit-js-tests, i18n-js-tests, static-analysis, docs-build, e2e-tests, postgres-e2e-tests, encore-e2e-tests]
     # PRs never split; only pushes to master and v* tags do.
     if: github.event_name == 'push'
 
