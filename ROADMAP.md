@@ -126,31 +126,38 @@ What does not hold is the **promise**. The backward compatibility page has drift
 
 ---
 
-## After 1.0 — additive, from the same review 🤔
+## After 1.0 — additive, by priority 🤔
 
-None of these breaks anything when it lands, which is why they wait. They are what a reviewer comparing ContentBlocks to Sulu, Sonata Page or a Sylius CMS plugin will list:
+None of these breaks anything when it lands, which is why they wait. They are what a reviewer comparing ContentBlocks to Sulu, Sonata Page or a Sylius CMS plugin will list.
 
-- **Symfony events** around publish, discard, block save and delete. Today a cache purge or a webhook means decorating `ContentAreaPublisherInterface`, and a block save has no hook at all.
-- **Building content from code.** The create / move / duplicate logic lives in controllers, so fixtures and CMS migrations hand-set `position`, `previewPosition`, `_id`s and stamps, or go through the import envelope. A small content-manipulation service would fix that, and would move domain logic out of the controllers.
-- **Block authoring.**
-  - Pass `block` / `context` to the view template (it receives `data` only, so no stable anchors or ARIA ids).
-  - Per-block CSS/JS declaration.
-  - A per-block data migration hook (`ContentVersionUpgraderInterface` covers snapshots only).
-  - Picker categories.
+All of them fit in 1.x under three rules:
+- **No method is added to an existing interface.** A new capability is a new optional interface, the way `BlockPreviewHintInterface` is. The `bc-check` CI job holds the PHP side.
+- **A host that does nothing sees the same page.** A change to what a page renders is opt-in, behind a config key; making it the default waits for 2.0.
+- **Template variables and parameters are added, never removed or renamed.**
+
+Ranked, highest first:
+
+1. **Symfony events** around publish, discard, block save and delete. Today a cache purge or a webhook means decorating `ContentAreaPublisherInterface`, and a block save has no hook at all. Dispatched from the shipped implementations, so a host that replaced the publisher outright gets no publish events: say so in the guide.
+2. **Building content from code.** The create / move / duplicate logic lives in controllers, so fixtures and CMS migrations hand-set `position`, `previewPosition`, `_id`s and stamps, or go through the import envelope. A small content-manipulation service would fix that, and would move domain logic out of the controllers.
+3. **Split `cb-builder_controller.js`** (2 910 lines, ~148 methods, 13 feature areas) into modules, as `transfer/` already is.
+4. **Translation**, everything still open:
+   - section templates and the clipboard carrying translations, and per-locale publishing (see [Translation](#translation--multilingual--what-is-still-open-) above). Templates and the clipboard go through a new extension interface, as export/import does, not through `SectionTemplateSerializerInterface`, which is frozen; the extra payload key must leave older templates loadable
+   - an `hreflang` / `<link rel=alternate>` helper (`LocalizedPageUrlResolverInterface` already holds the data)
+   - `lang` on fields that fall back to the source. Needs item 6, so the view knows which field fell back
+   - a locale fallback chain (`fr_CA` → `fr`). **Opt-in in 1.x**: today an untranslated `fr_CA` field shows the source text, and showing the `fr` one instead changes the page of a host that has both
+5. **`@layer content-blocks` on the public CSS**, so a host overrides it without out-specifying 7-compound selectors. **Opt-in in 1.x, default in 2.0.** Layered rules lose to every unlayered rule whatever their specificity, so turning it on for everyone would let a host's existing global CSS (`img`, `a`, a reset) start winning over the package's rules: no signature changes, but pages render differently. A config key that wraps the served stylesheets keeps 1.x safe; meanwhile a host can already write `@import url(…) layer(content-blocks)` itself.
+6. **Pass the block and the render context to the view template.** It is included with `with_context = false` and receives `data` and `block_id` only (`render/block.html.twig`): `block_id` already gives stable anchors and ARIA ids, but a view cannot tell the render mode or the locale. New variables only, so no existing view breaks.
+7. **Per-block CSS/JS declaration**, through an optional interface on the block type.
+8. **A per-block data migration hook.** `ContentVersionUpgraderInterface` covers snapshots only. An optional interface on the block type; `DenyOnMismatchUpgrader` keeps its default, which is part of the promise.
+9. **Picker categories**, through an optional `category` argument on `#[AsContentBlock]` or an optional interface. A block without one lands in a default group.
+
+Not ranked yet:
+
 - **Headless / JSON rendering**: the renderer produces HTML only.
-- **Translation:**
-  - an `hreflang` / `<link rel=alternate>` helper (`LocalizedPageUrlResolverInterface` already holds the data)
-  - `lang` on fields that fall back to the source
-  - a locale fallback chain (`fr_CA` → `fr`)
-  - translations carried by section templates and the clipboard (above)
 - **Kit:**
   - dark mode and logical properties (RTL)
   - WebVTT uploads for video captions: a `.vtt` sniffs as `text/plain`, so captions are a path or URL today
   - common blocks still missing: quote / testimonial, spacer, map, social links, code
-- **Front end:**
-  - split `cb-builder_controller.js` (2 867 lines, ~148 methods, 13 feature areas) into modules, as `transfer/` already is
-  - `@layer content-blocks` on the public CSS so a host overrides it without out-specifying 7-compound selectors
-  - a guide for JS-backed fields inside a Live-morphed form
 
 ---
 
