@@ -4,12 +4,6 @@ title: Upgrade guide (beta → 1.0)
 
 # Upgrade guide: `0.1.0-beta.x` → `1.0.0`
 
-::: warning `1.0.0` is not released yet
-Release candidates are tagged (`composer require klehm/content-blocks:^1.0@RC`);
-the stable `1.0.0` is not. Everything below applies to the candidates, and the
-per-candidate detail lives in each package's CHANGELOG.
-:::
-
 The `1.0.0` release freezes the public surface — `Block.data` JSON keys, config
 YAML keys, and the styling `settings` shape become a stable contract. Converging
 onto it from the beta line means a few **breaking changes**, grouped below by the
