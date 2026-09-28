@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Symfony events around publish, discard, block save and block delete**, in
+  before/after pairs. A cache purge or a webhook used to mean decorating
+  `ContentAreaPublisherInterface`, a block save had no hook at all, and
+  nothing could stop an action. Eight events in `ContentBlocks\Event`:
+  - `Before…` events are dispatched before anything is written, and a
+    listener can refuse the action with `$event->refuse('Why.')`. The builder
+    then shows the reason and changes nothing: in the snackbar for publish,
+    discard and delete, above the form for a block save.
+    `BeforeBlockSaveEvent` carries the data about to be written.
+  - `After…` events are dispatched after the flush.
+  - `BeforeContentAreaPublishEvent` / `AfterContentAreaPublishEvent` and
+    `BeforeContentAreaDiscardEvent` / `AfterContentAreaDiscardEvent` carry the
+    area and the `PublishContext`. They come from the outermost decorator of
+    the publisher, so they bracket every other decorator (translations are
+    committed by the time the *after* event runs) and still fire when the host
+    replaced the publisher. A refusal throws `ActionRefusedException` to a
+    caller in PHP, and answers `409` to the builder.
+  - `BeforeBlockSaveEvent` / `AfterBlockSaveEvent` and `BeforeBlockDeleteEvent`
+    / `AfterBlockDeleteEvent` carry the block and its area. They are draft
+    events: only a publish changes the public page.
+
+  Nothing to migrate, and nothing changes for a host that listens to nothing.
+  See [Server-side events](../../docs/guide/events.md).
+
 ## [1.1.0] - 2026-09-28
 
 This release carries two changes:

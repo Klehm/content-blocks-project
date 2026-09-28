@@ -34,6 +34,13 @@
 
         {{ form_start(form) }}
 
+            {# A listener refused the last save: the draft kept its value. #}
+            {% if this.refusal %}
+                <ul class="cb-form-errors cb-form-errors--root" role="alert" data-cb-block-refusal>
+                    {% for reason in this.refusal %}<li>{{ reason }}</li>{% endfor %}
+                </ul>
+            {% endif %}
+
             {# Tabs from `cb_group` (or the older `data-cb-group`), styling
                always trailing. Hidden tabs stay in the DOM for autosave. #}
             {% import '@ContentBlocks/form/_sidebar.html.twig' as sidebar %}

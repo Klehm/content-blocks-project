@@ -29,6 +29,8 @@ final class CrossRequestStateTest extends TestCase
             'Per-operation tally: the publisher constructs one per restore and drops it.',
         \ContentBlocks\Twig\Component\BlockComponent::class =>
             'Live Component: the component factory builds a fresh instance for every render.',
+        \ContentBlocks\Event\RefusableEvent::class =>
+            'Event object: dispatched once per action, collecting the refusals of that dispatch.',
         \ContentBlocks\Transfer\AssetTokenizer::class =>
             'Per-export accumulator: the exporter constructs one per export and drops it.',
         \ContentBlocks\Transfer\AssetRewriter::class =>

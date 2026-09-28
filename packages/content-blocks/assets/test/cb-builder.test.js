@@ -741,7 +741,7 @@ describe('cb-builder: structural AJAX handlers', () => {
 
         await controller._deleteBlock(42);
 
-        expect(reqSpy).toHaveBeenCalledWith('DELETE', '/_content-blocks/block/42');
+        expect(reqSpy).toHaveBeenCalledWith('DELETE', '/_content-blocks/block/42', undefined, { tolerate: [409] });
         expect(removeSpy).toHaveBeenCalledWith(42);
         expect(reloadSpy).not.toHaveBeenCalled();
     });
@@ -752,6 +752,18 @@ describe('cb-builder: structural AJAX handlers', () => {
 
         await controller._deleteBlock(42);
 
+        expect(removeSpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_deleteBlock says a refusal and keeps the block', async () => {
+        reqSpy.mockResolvedValueOnce({ error: 'refused', message: 'This block is required.' });
+        const removeSpy = vi.spyOn(controller, '_removeBlockFromPreview').mockImplementation(() => {});
+        const notifySpy = vi.spyOn(controller, '_notify').mockImplementation(() => {});
+
+        await controller._deleteBlock(42);
+
+        expect(notifySpy).toHaveBeenCalledWith('This block is required.');
         expect(removeSpy).not.toHaveBeenCalled();
         expect(reloadSpy).not.toHaveBeenCalled();
     });
@@ -1023,7 +1035,7 @@ describe('cb-builder: host-mounted routes', () => {
         await controller.publish();
         await controller._deleteSection(5);
 
-        expect(reqSpy).toHaveBeenCalledWith('POST', '/admin/cb/area/99/publish');
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/admin/cb/area/99/publish', undefined, { tolerate: [409] });
         expect(reqSpy).toHaveBeenCalledWith('DELETE', '/admin/cb/section/5');
     });
 
@@ -1064,7 +1076,7 @@ describe('cb-builder: publish/discard', () => {
 
         await controller.publish({ preventDefault: () => {} });
 
-        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/publish');
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/publish', undefined, { tolerate: [409] });
         expect(applySpy).toHaveBeenCalledWith(false);
         expect(reloadSpy).toHaveBeenCalled();
     });
@@ -1075,7 +1087,7 @@ describe('cb-builder: publish/discard', () => {
 
         await controller.discard({ preventDefault: () => {} });
 
-        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/discard');
+        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/discard', undefined, { tolerate: [409] });
         expect(applySpy).toHaveBeenCalledWith(false);
         expect(reloadSpy).toHaveBeenCalled();
     });
@@ -1105,6 +1117,31 @@ describe('cb-builder: publish/discard', () => {
 
         await controller.publish();
 
+        expect(applySpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('publish says a refusal and changes nothing', async () => {
+        reqSpy.mockResolvedValue({ error: 'refused', message: 'The page needs a title.' });
+        const notifySpy = vi.spyOn(controller, '_notify').mockImplementation(() => {});
+
+        await controller.publish();
+
+        expect(notifySpy).toHaveBeenCalledWith('The page needs a title.');
+        expect(applySpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('discard says a refusal and changes nothing', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
+        reqSpy.mockResolvedValue({ error: 'refused', message: '' });
+        controller.element.setAttribute('data-i18n-cb-builder-refused', 'Refusé');
+        const notifySpy = vi.spyOn(controller, '_notify').mockImplementation(() => {});
+
+        await controller.discard();
+
+        // An empty reason falls back to the shell's localized sentence.
+        expect(notifySpy).toHaveBeenCalledWith('Refusé');
         expect(applySpy).not.toHaveBeenCalled();
         expect(reloadSpy).not.toHaveBeenCalled();
     });
@@ -1292,6 +1329,21 @@ describe('cb-builder: cb:notify (inbound)', () => {
 
         expect(undoLink.hidden).toBe(true);
         expect(undoButton.hidden).toBe(false);
+    });
+});
+
+describe('cb-builder: waiting for a flushed save', () => {
+    it('stops waiting when a listener refused the save', async () => {
+        const { controller } = setupController();
+        vi.useFakeTimers();
+        let settled = false;
+        controller._nextSaveSettled().then(() => { settled = true; });
+
+        controller.element.dispatchEvent(new CustomEvent('cb:block:refused', { bubbles: true }));
+        await Promise.resolve();
+
+        expect(settled).toBe(true);
+        vi.useRealTimers();
     });
 });
 

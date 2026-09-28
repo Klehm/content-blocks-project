@@ -8,6 +8,8 @@ use ContentBlocks\Block\CollectionItemIds;
 use ContentBlocks\BlockType\BlockTypeInterface;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
+use ContentBlocks\Event\AfterBlockSaveEvent;
+use ContentBlocks\Event\BeforeBlockSaveEvent;
 use ContentBlocks\Form\Type\BlockFormType;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
@@ -19,6 +21,7 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
@@ -46,6 +49,14 @@ final class BlockComponent
     #[LiveProp]
     public int $blockId;
 
+    /**
+     * Why a listener refused the last save; not a LiveProp, so the next
+     * request starts without it.
+     *
+     * @var list<string>
+     */
+    public array $refusal = [];
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly BlockTypeRegistry $blockTypeRegistry,
@@ -54,6 +65,7 @@ final class BlockComponent
         private readonly \ContentBlocks\Block\BlockDataDefaults $blockDataDefaults,
         private readonly CollectionItemIds $collectionItemIds,
         private readonly ActionJournal $journal,
+        private readonly ?EventDispatcherInterface $events = null,
     ) {
     }
 
@@ -214,8 +226,20 @@ final class BlockComponent
         // The one place that can guarantee every collection entry carries its
         // stable id, including ones just added or duplicated.
         $form = $this->getForm();
-        $write = function () use ($block, $form): void {
-            $block->setDraftData($this->collectionItemIds->backfill($form, $form->getData()));
+        $data = $this->collectionItemIds->backfill($form, $form->getData());
+
+        if ($area !== null && $this->events !== null) {
+            $before = $this->events->dispatch(new BeforeBlockSaveEvent($block, $area, $data));
+            if ($before->isRefused()) {
+                $this->refusal = $before->getReasons();
+                $this->dispatchBrowserEvent('cb:block:refused', ['blockId' => $this->blockId]);
+
+                return;
+            }
+        }
+
+        $write = function () use ($block, $data): void {
+            $block->setDraftData($data);
             $this->em->flush();
         };
 
@@ -231,6 +255,7 @@ final class BlockComponent
                 $write,
                 'block.data:' . $this->blockId,
             );
+            $this->events?->dispatch(new AfterBlockSaveEvent($block, $area));
         }
 
         $this->dispatchBrowserEvent('cb:block:saved', ['blockId' => $this->blockId]);

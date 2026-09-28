@@ -98,6 +98,10 @@ export default class extends Controller {
     static SAVE_RELOAD_DEBOUNCE_MS = 500;
     /** How long an undo waits for the edit it just committed to land. */
     static SAVE_FLUSH_TIMEOUT_MS = 2000;
+    /** Any of these ends the wait: saved, failed, or refused by a listener. */
+    static SAVE_SETTLED_EVENTS = [
+        'cb:block:saved', 'cb:section:saved', 'cb:save:error', 'cb:block:refused',
+    ];
     static MOBILE_BREAKPOINT = '(max-width: 768px)';
     /**
      * The editor's only one-click recovery from a delete short of discarding
@@ -483,8 +487,10 @@ export default class extends Controller {
 
     async publish(event) {
         if (event) event.preventDefault();
-        const result = await this._jsonRequest('POST', `${this._apiBase}/area/${this.areaIdValue}/publish`);
-        if (result === null) return;
+        const result = await this._jsonRequest(
+            'POST', `${this._apiBase}/area/${this.areaIdValue}/publish`, undefined, { tolerate: [409] },
+        );
+        if (result === null || this._saidRefused(result)) return;
         // Publish physically removed soft-deleted rows — a pending undo
         // offer can no longer be honoured.
         this._hideUndo();
@@ -498,13 +504,28 @@ export default class extends Controller {
         // irreversible — unlike a delete, which has its own Undo.
         const confirmText = this._t('cb.builder.discard_confirm', this.constructor.DISCARD_CONFIRM_FALLBACK);
         if (!window.confirm(confirmText)) return;
-        const result = await this._jsonRequest('POST', `${this._apiBase}/area/${this.areaIdValue}/discard`);
-        if (result === null) return;
+        const result = await this._jsonRequest(
+            'POST', `${this._apiBase}/area/${this.areaIdValue}/discard`, undefined, { tolerate: [409] },
+        );
+        if (result === null || this._saidRefused(result)) return;
         // Discard already reverted every draft deletion (or removed
         // never-published rows) — the undo offer is moot either way.
         this._hideUndo();
         this._applyDraftState(result.hasUnpublishedChanges);
         this.reload();
+    }
+
+    /**
+     * A server-side listener refused the action: say its reason in the
+     * snackbar. True when it did, so the caller stops there.
+     *
+     * @see docs/guide/events.md#refusing-an-action
+     */
+    _saidRefused(result) {
+        if (result?.error !== 'refused') return false;
+        this._notify(result.message || this._t('cb.builder.refused', 'This action was refused'));
+
+        return true;
     }
 
     /**
@@ -802,9 +823,11 @@ export default class extends Controller {
 
     async _deleteBlock(blockId) {
         if (!blockId) return;
-        const result = await this._jsonRequest('DELETE', `${this._apiBase}/block/${blockId}`);
-        // Delete failed (CSRF/access/network) — leave the preview untouched.
-        if (result === null) return;
+        const result = await this._jsonRequest(
+            'DELETE', `${this._apiBase}/block/${blockId}`, undefined, { tolerate: [409] },
+        );
+        // Delete failed or refused — leave the preview untouched.
+        if (result === null || this._saidRefused(result)) return;
         if (this._isSidebarFocusedOnBlock(blockId)) {
             this._resetSidebarToEmptyState();
         }
@@ -1562,13 +1585,13 @@ export default class extends Controller {
         return new Promise((resolve) => {
             const done = () => {
                 clearTimeout(timer);
-                for (const name of ['cb:block:saved', 'cb:section:saved', 'cb:save:error']) {
+                for (const name of this.constructor.SAVE_SETTLED_EVENTS) {
                     this.element.removeEventListener(name, done);
                 }
                 resolve();
             };
             const timer = setTimeout(done, this.constructor.SAVE_FLUSH_TIMEOUT_MS);
-            for (const name of ['cb:block:saved', 'cb:section:saved', 'cb:save:error']) {
+            for (const name of this.constructor.SAVE_SETTLED_EVENTS) {
                 this.element.addEventListener(name, done);
             }
         });

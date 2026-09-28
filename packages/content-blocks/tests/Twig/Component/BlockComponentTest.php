@@ -7,6 +7,11 @@ namespace ContentBlocks\Tests\Twig\Component;
 use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
+use ContentBlocks\Entity\Column;
+use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Entity\Section;
+use ContentBlocks\Event\AfterBlockSaveEvent;
+use ContentBlocks\Event\BeforeBlockSaveEvent;
 use ContentBlocks\Form\Type\BlockFormType;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\BuilderSession;
@@ -18,20 +23,26 @@ use ContentBlocks\Twig\Component\BlockComponent;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\Form\Extension\Core\Type\FormType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Form\Forms;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Validation;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\UX\LiveComponent\LiveResponder;
 
 /**
- * Unit tests for BlockComponent::instantiateForm() — the data fallback chain.
- *
- * Full save/cancel flow tests live in the integration suite (phase 2 onward),
- * since they exercise the LiveCollectionTrait's form lifecycle which is too
- * tightly coupled to the Live Component framework to mock cleanly here.
+ * Unit tests for BlockComponent: the form's data fallback chain, access, and
+ * the save's side effects through a real one-field form. The editing flow in
+ * a browser is the Playwright suite's.
  */
 final class BlockComponentTest extends TestCase
 {
@@ -253,6 +264,144 @@ final class BlockComponentTest extends TestCase
 
         $this->expectException(ContentBlocksAccessDeniedException::class);
         $component->save();
+    }
+
+    public function testSaveIsBracketedByItsTwoEvents(): void
+    {
+        [$component, $block, $area, $events] = $this->makeSavingComponent();
+        $seen = [];
+        $events->addListener(
+            BeforeBlockSaveEvent::class,
+            function (BeforeBlockSaveEvent $e) use (&$seen): void {
+                $seen[] = ['before', $e->block, $e->area, $e->data, $e->block->getDraftData()];
+            },
+        );
+        $events->addListener(
+            AfterBlockSaveEvent::class,
+            function (AfterBlockSaveEvent $e) use (&$seen): void {
+                $seen[] = ['after', $e->block, $e->area, $e->block->getDraftData()];
+            },
+        );
+        $component->formValues = ['text' => 'hello'];
+
+        $component->save();
+
+        $this->assertSame([
+            ['before', $block, $area, ['text' => 'hello'], null],
+            ['after', $block, $area, ['text' => 'hello']],
+        ], $seen);
+        $this->assertSame([], $component->refusal);
+    }
+
+    public function testARefusedSaveKeepsTheDraftAndSaysWhy(): void
+    {
+        [$component, $block, , $events] = $this->makeSavingComponent();
+        $block->setDraftData(['text' => 'before']);
+        $events->addListener(
+            BeforeBlockSaveEvent::class,
+            function (BeforeBlockSaveEvent $e): void {
+                if ($e->data['text'] === 'forbidden') {
+                    $e->refuse('That word is not allowed.');
+                }
+            },
+        );
+        $after = 0;
+        $events->addListener(AfterBlockSaveEvent::class, function () use (&$after): void {
+            ++$after;
+        });
+        $component->formValues = ['text' => 'forbidden'];
+
+        $component->save();
+
+        $this->assertSame(['text' => 'before'], $block->getDraftData());
+        $this->assertSame(['That word is not allowed.'], $component->refusal);
+        $this->assertSame(0, $after);
+    }
+
+    public function testAnInvalidSaveDispatchesNothing(): void
+    {
+        [$component, $block, , $events] = $this->makeSavingComponent();
+        $seen = 0;
+        foreach ([BeforeBlockSaveEvent::class, AfterBlockSaveEvent::class] as $name) {
+            $events->addListener($name, function () use (&$seen): void {
+                ++$seen;
+            });
+        }
+        $component->formValues = ['text' => ''];
+
+        $component->save();
+
+        $this->assertSame(0, $seen);
+        $this->assertNull($block->getDraftData());
+    }
+
+    /**
+     * A block in a full area graph, edited through a real one-field form.
+     *
+     * @return array{
+     *     0: BlockComponent, 1: Block, 2: ContentArea, 3: EventDispatcher,
+     * }
+     */
+    private function makeSavingComponent(): array
+    {
+        $area = new ContentArea();
+        $section = new Section();
+        $area->addSection($section);
+        $column = new Column();
+        $section->addColumn($column);
+        $block = $this->makeBlock(null, null);
+        $column->addBlock($block);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('find')->willReturn($block);
+
+        $registry = new BlockTypeRegistry();
+        $registry->register(new class () extends AbstractBlockType {
+            public function getType(): string
+            {
+                return 'test';
+            }
+            public function getLabel(): string
+            {
+                return 'Test';
+            }
+            public function buildForm(FormBuilderInterface $builder, array $data): void
+            {
+            }
+            public function getDefaultData(): array
+            {
+                return [];
+            }
+        });
+
+        $form = Forms::createFormFactoryBuilder()
+            ->addExtension(new ValidatorExtension(Validation::createValidator()))
+            ->getFormFactory()
+            ->createNamedBuilder('content_block', FormType::class)
+            ->add('text', TextType::class, ['constraints' => [new NotBlank()]])
+            ->getForm();
+        $factory = $this->createMock(FormFactoryInterface::class);
+        $factory->method('create')->willReturn($form);
+
+        $events = new EventDispatcher();
+        $component = new BlockComponent(
+            $em,
+            $registry,
+            $factory,
+            new AllowAllAccessChecker(),
+            new \ContentBlocks\Block\BlockDataDefaults(),
+            new \ContentBlocks\Block\CollectionItemIds(),
+            new ActionJournal(
+                new DoctrineActionLogStore($em),
+                new StateApplier($em),
+                new BuilderSession(new RequestStack()),
+            ),
+            $events,
+        );
+        $component->setLiveResponder(new LiveResponder());
+        $component->blockId = 1;
+
+        return [$component, $block, $area, $events];
     }
 
     // A replayed props blob re-renders the draft: revoked rights must hold.

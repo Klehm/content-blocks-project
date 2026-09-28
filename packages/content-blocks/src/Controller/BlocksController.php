@@ -8,6 +8,8 @@ use ContentBlocks\Block\CollectionIdBackfiller;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
+use ContentBlocks\Event\AfterBlockDeleteEvent;
+use ContentBlocks\Event\BeforeBlockDeleteEvent;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
 use ContentBlocks\Rendering\BlockRendererInterface;
@@ -21,6 +23,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -44,6 +47,7 @@ final class BlocksController
         private readonly BlockRendererInterface $blockRenderer,
         private readonly ActionJournal $journal,
         private readonly ?CollectionIdBackfiller $collectionIds = null,
+        private readonly ?EventDispatcherInterface $events = null,
     ) {
     }
 
@@ -278,7 +282,16 @@ final class BlocksController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        return $this->journal->record($area, 'block.delete', JournalScope::structure(), function () use ($block): JsonResponse {
+        $before = $this->events?->dispatch(new BeforeBlockDeleteEvent($block, $area));
+        if ($before?->isRefused()) {
+            return new JsonResponse([
+                'error' => 'refused',
+                'message' => implode(' ', $before->getReasons()),
+                'reasons' => $before->getReasons(),
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $response = $this->journal->record($area, 'block.delete', JournalScope::structure(), function () use ($block): JsonResponse {
             // Real removal happens at Publish, or at Discard if the block was
             // never published.
             $block->setDeleted(true);
@@ -286,6 +299,9 @@ final class BlocksController
 
             return new JsonResponse(['deleted' => true]);
         });
+        $this->events?->dispatch(new AfterBlockDeleteEvent($block, $area));
+
+        return $response;
     }
 
     /**

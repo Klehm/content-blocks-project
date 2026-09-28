@@ -91,6 +91,38 @@ draft. Once Publish ran, the row was physically removed and the endpoint 404s.
 
 `@internal` on these classes means the **routes** are the contract, not the PHP.
 
+## Publish events
+
+`EventDispatchingPublisher` decorates `ContentAreaPublisherInterface` at
+priority -1024, so it wraps every other decorator. That is why it is a
+decorator, rather than a line in `ContentAreaPublisher` or `AreaController`:
+
+- **A refusal happens before anything runs.** The *before* event is
+  dispatched ahead of every decorator, so a refused publish reaches neither
+  the i18n decorator nor a host's, and nothing has to be rolled back.
+- **An *after* listener sees the committed state.** The i18n decorator writes
+  the translations around the core publish; dispatching from the core would
+  hand a listener an area whose translations are not settled yet.
+- **A replaced publisher still dispatches.** Decorating the interface wraps
+  whatever the host aliased it to. Dispatching from the controller would have
+  missed a publish run from a command or from the host's own code.
+
+A refusal has to reach a PHP caller as well as the builder, and the seam
+returns `void`, so the decorator throws `ActionRefusedException`;
+`AreaController` turns it into a `409`. The exception is not thrown from a
+listener on purpose: a listener that threw would stop the listeners after it,
+where `refuse()` lets each one add its reason.
+
+The block events are dispatched where the one write happens
+(`BlockComponent::persistDraft()`, `BlocksController::delete()`), the *before*
+event ahead of the journal, so a refused action records no undo step. A refused
+save is not a form error: the form was valid, and the reason is shown above it
+through `BlockComponent::$refusal`, which is not a LiveProp so the next request
+starts without it. `cb:block:refused` exists only so an undo waiting for the
+save stops waiting. The events are limited to the editor's gesture on purpose:
+the other flows that write blocks all end in the draft, which the publish event
+covers. Pinned by `PublisherDecorationOrderTest` and `event-refusal.spec.js`.
+
 ## Why publish() takes a context object
 
 `PublishContext` exists for the same reason `RenderContext` does: the publish

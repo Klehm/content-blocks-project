@@ -48,6 +48,7 @@ use ContentBlocks\Versioning\DenyOnMismatchUpgrader;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 return static function (ContainerConfigurator $container): void {
@@ -199,6 +200,12 @@ return static function (ContainerConfigurator $container): void {
     // (what content-blocks-i18n does) still wraps this one.
     $services->set(JournalPruningPublisher::class)
         ->decorate(\ContentBlocks\Publishing\ContentAreaPublisher::class);
+
+    // Lowest priority = outermost: "before" precedes every other decorator,
+    // "after" follows them, and a replaced publisher still dispatches.
+    $services->set(\ContentBlocks\Publishing\EventDispatchingPublisher::class)
+        ->decorate(ContentAreaPublisherInterface::class, null, -1024)
+        ->arg('$inner', service('.inner'));
 
     // Empty by default; cloning is unchanged without an observer. See
     // docs/internals/rendering.md#why-the-clone-notification-is-an-observer

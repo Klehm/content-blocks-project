@@ -7,9 +7,12 @@ namespace ContentBlocks\Tests\Controller;
 use ContentBlocks\Controller\BlocksController;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
+use ContentBlocks\Event\AfterBlockDeleteEvent;
+use ContentBlocks\Event\BeforeBlockDeleteEvent;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -19,6 +22,7 @@ final class BlocksControllerTest extends ControllerTestCase
         EntityManagerInterface $em,
         bool $csrfValid = true,
         ?AccessCheckerInterface $accessChecker = null,
+        ?EventDispatcher $events = null,
     ): BlocksController {
         return new BlocksController(
             $em,
@@ -28,6 +32,8 @@ final class BlocksControllerTest extends ControllerTestCase
             $this->createMock(TranslatorInterface::class),
             $this->makeUnusedRenderer(),
             $this->makeJournal($em),
+            null,
+            $events,
         );
     }
 
@@ -332,6 +338,87 @@ final class BlocksControllerTest extends ControllerTestCase
         $this->assertSame(1, $this->flushCount);
         $payload = json_decode((string) $response->getContent(), true);
         $this->assertTrue($payload['deleted']);
+    }
+
+    public function testDeleteIsBracketedByItsTwoEvents(): void
+    {
+        $column = $this->makeGraph();
+        $block = $this->makeBlock($column, 10);
+        $events = new EventDispatcher();
+        $seen = [];
+        foreach ([BeforeBlockDeleteEvent::class, AfterBlockDeleteEvent::class] as $name) {
+            $events->addListener(
+                $name,
+                function (object $e) use (&$seen, $name): void {
+                    $seen[] = [$name, $e->block, $e->area->getId(), $this->flushCount];
+                },
+            );
+        }
+        $controller = $this->makeController(
+            $this->makeEm([$column, $block]),
+            events: $events,
+        );
+
+        $controller->delete(10, $this->makeJsonRequest());
+
+        $this->assertSame([
+            [BeforeBlockDeleteEvent::class, $block, 1, 0],
+            [AfterBlockDeleteEvent::class, $block, 1, 1],
+        ], $seen);
+    }
+
+    public function testARefusedDeleteAnswers409AndKeepsTheBlock(): void
+    {
+        $column = $this->makeGraph();
+        $block = $this->makeBlock($column, 10);
+        $events = new EventDispatcher();
+        $events->addListener(
+            BeforeBlockDeleteEvent::class,
+            fn (BeforeBlockDeleteEvent $e) => $e->refuse('This block is required.'),
+        );
+        $after = 0;
+        $events->addListener(AfterBlockDeleteEvent::class, function () use (&$after): void {
+            ++$after;
+        });
+        $controller = $this->makeController(
+            $this->makeEm([$column, $block]),
+            events: $events,
+        );
+
+        $response = $controller->delete(10, $this->makeJsonRequest());
+
+        $this->assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        $payload = json_decode((string) $response->getContent(), true);
+        $this->assertSame('refused', $payload['error']);
+        $this->assertSame('This block is required.', $payload['message']);
+        $this->assertFalse($block->isDeleted());
+        $this->assertSame(0, $this->flushCount);
+        $this->assertSame(0, $after);
+    }
+
+    public function testDeleteDispatchesNothingWhenRefused(): void
+    {
+        $column = $this->makeGraph();
+        $block = $this->makeBlock($column, 10);
+        $events = new EventDispatcher();
+        $seen = 0;
+        foreach ([BeforeBlockDeleteEvent::class, AfterBlockDeleteEvent::class] as $name) {
+            $events->addListener($name, function () use (&$seen): void {
+                ++$seen;
+            });
+        }
+
+        $badCsrf = $this->makeController(
+            $this->makeEm([$column, $block]),
+            csrfValid: false,
+            events: $events,
+        );
+        $badCsrf->delete(10, $this->makeJsonRequest());
+        $missing = $this->makeController($this->makeEm([$column]), events: $events);
+        $missing->delete(99, $this->makeJsonRequest());
+
+        $this->assertSame(0, $seen);
+        $this->assertFalse($block->isDeleted());
     }
 
     public function testRestoreClearsTheSoftDeleteFlag(): void
