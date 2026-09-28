@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 import { reveal } from './helpers/sidebar.js';
 
 /**
@@ -20,7 +21,7 @@ async function createFreshPage(page) {
 
 async function openBuilder(page, url) {
     await page.goto(url);
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     const frame = page.frameLocator('.cb-shell__iframe');
     await expect(frame.locator('.cb-add-section-tray')).toBeVisible();
@@ -40,6 +41,19 @@ const liveColumns = '[data-cb-column-id]:not([data-cb-deleted="1"])';
 /** An empty panel has no height, so visibility is read from `display`. */
 function shown(locator) {
     return locator.evaluate((el) => getComputedStyle(el).display !== 'none');
+}
+
+/**
+ * Reloads the preview and waits for the new document: until it commits, the
+ * old one still answers, then vanishes under the next evaluate().
+ */
+async function reloadPreview(page) {
+    const iframe = page.locator('.cb-shell__iframe');
+    const frame = await (await iframe.elementHandle()).contentFrame();
+    const navigated = page.waitForEvent('framenavigated', (f) => f === frame);
+    await iframe.evaluate((el) => el.contentWindow.location.reload());
+    await navigated;
+    await frame.waitForLoadState();
 }
 
 test('columns are added, named and removed from the section sidebar', async ({ page }) => {
@@ -113,7 +127,7 @@ test('a section shows its columns as tabs, in the builder and on the page', asyn
     await panels.nth(1).locator('.cb-add-block-inline').click({ position: { x: 8, y: 3 } });
     await frame.locator('.cb-overlay-popover button', { hasText: /^(Titre|Title)$/ }).click();
     await expect(panels.nth(1).locator('[data-cb-block-id]')).toHaveCount(1);
-    await page.locator('.cb-shell__iframe').evaluate((el) => el.contentWindow.location.reload());
+    await reloadPreview(page);
     await expect(frame.locator('.cb-section--display-tabs .cb-tabs__tab')).toHaveCount(3);
     await expect(frame.locator('.cb-section--display-tabs > .cb-row > [data-cb-column-id]').nth(1).locator('[data-cb-block-id]')).toBeVisible();
 
@@ -211,7 +225,7 @@ test('a section shows its columns as an accordion, in the builder and on the pag
     await panels.nth(1).locator('.cb-add-block-inline').click({ position: { x: 8, y: 3 } });
     await frame.locator('.cb-overlay-popover button', { hasText: /^(Titre|Title)$/ }).click();
     await expect(panels.nth(1).locator('[data-cb-block-id]')).toHaveCount(1);
-    await page.locator('.cb-shell__iframe').evaluate((el) => el.contentWindow.location.reload());
+    await reloadPreview(page);
     await expect(headers).toHaveCount(3);
     await expect.poll(() => shown(panels.nth(1))).toBe(true);
     expect(await shown(panels.nth(0))).toBe(false);
@@ -273,7 +287,7 @@ test('an accordion can open one panel at a time and start closed', async ({ page
     await header(1).click();
     await expect.poll(() => shown(panels.nth(1))).toBe(false);
     expect(await shown(panels.nth(0))).toBe(false);
-    await page.locator('.cb-shell__iframe').evaluate((el) => el.contentWindow.location.reload());
+    await reloadPreview(page);
     await expect(section.locator('.cb-accordion__header:visible')).toHaveCount(3);
     expect(await shown(panels.nth(0))).toBe(false);
 

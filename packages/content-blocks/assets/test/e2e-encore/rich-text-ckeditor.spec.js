@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from '../e2e/helpers/builder.js';
 
 /**
  * The rich-text block on CKEditor, bundled by the host.
@@ -25,7 +26,7 @@ async function openRichTextEditor(page) {
     if (!location) throw new Error('Page create did not redirect');
 
     await page.goto(location);
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
 
     const frame = page.frameLocator('.cb-shell__iframe');

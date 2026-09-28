@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * The kit's video block: a pasted path reaches both the sidebar's <video>
@@ -15,7 +16,7 @@ async function createFreshPage(page) {
 
 test('a video block renders a native player from a pasted path', async ({ page }) => {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     const frame = page.frameLocator('.cb-shell__iframe');
 

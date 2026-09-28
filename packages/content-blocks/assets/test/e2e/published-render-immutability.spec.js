@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 import { reveal } from './helpers/sidebar.js';
 
 /**
@@ -33,7 +34,7 @@ async function createFreshPage(page) {
 
 async function openBuilder(page, url) {
     await page.goto(url);
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
 
     return page.frameLocator('.cb-shell__iframe');
@@ -132,7 +133,7 @@ test('no builder action changes the published page until Publish', async ({ page
     // Drag a published block into the other column.
     await moveBlockToColumn(page, frame, 0, 1);
     await page.reload();
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     expect(await publicMarkup()).toBe(published);
 

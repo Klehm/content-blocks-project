@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * E2E for bundle-contributed shell fragments (BuilderShellExtensionInterface).
@@ -29,7 +30,7 @@ async function createFreshPage(page) {
 async function openBuilder(page) {
     const url = await createFreshPage(page);
     await page.goto(url);
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     return url;
 }

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * The sandbox mounts the builder's endpoints under `/admin/content-blocks`
@@ -18,7 +19,7 @@ async function openBuilder(page) {
     const location = response.headers()['location'];
     if (!location) throw new Error('Page create did not redirect');
     await page.goto(location);
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     return page.frameLocator('.cb-shell__iframe');
 }

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 import { reveal } from './helpers/sidebar.js';
 
 /**
@@ -25,9 +26,7 @@ async function createFreshPage(page) {
 async function openBuilder(page) {
     const url = await createFreshPage(page);
     await page.goto(url);
-    await page.locator('.cb-launcher__button').click();
-    await expect(page.locator('.cb-shell')).toBeVisible();
-    return page.frameLocator('.cb-shell__iframe');
+    return launchBuilder(page);
 }
 
 /** Adds a 1-column section by clicking the in-iframe add-section tray. */
@@ -159,6 +158,8 @@ test.describe('builder shell — basics', () => {
 
         const dialog = page.locator('.cb-builder-dialog');
         await expect(dialog).not.toHaveAttribute('open');
+        // Connected once its dialog has moved under <body>.
+        await expect(page.locator('body > dialog.cb-builder-dialog')).toBeAttached();
 
         await launcher.click();
 
@@ -170,7 +171,7 @@ test.describe('builder shell — basics', () => {
     test('iframe loads the preview URL with cb_preview=1 and the overlay comes up', async ({ page }) => {
         const url = await createFreshPage(page);
         await page.goto(url);
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
 
         const iframe = page.locator('.cb-shell__iframe');
         await expect(iframe).toHaveAttribute('src', /\/page\/\d+\?cb_preview=1$/);
@@ -186,7 +187,7 @@ test.describe('builder shell — basics', () => {
     test('the viewport switcher sits in the right cluster, ahead of publish', async ({ page }) => {
         const url = await createFreshPage(page);
         await page.goto(url);
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
 
         // It belongs to the right cluster, not a centre one: the topbar has no
         // centre column any more, because a switcher centred on the *window*
@@ -530,8 +531,8 @@ test.describe('builder shell — blocks', () => {
         // implicit change) — leaves focus on the input at the end.
         await field.pressSequentially(typed, { delay: 5 });
         await expect(field).toBeFocused();
-        // Let the debounced autosave fire and the save round-trip complete.
-        await page.waitForTimeout(1500);
+        // The preview re-renders the block once the autosave has landed.
+        await expect(frame.locator('[data-cb-block-id]').first()).toContainText(typed);
 
         // Revert the sidebar to empty, then reopen: if autosave persisted, the
         // input should now show the typed value.
@@ -956,7 +957,7 @@ test.describe('builder shell — polish', () => {
     test('the topbar links the published page', async ({ page }) => {
         const url = await createFreshPage(page);
         await page.goto(url);
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
 
         const link = page.locator('.cb-shell__public-link');
         await expect(link).toBeVisible();
@@ -981,7 +982,7 @@ test.describe('builder shell — polish', () => {
         const before = await overflow();
         expect(before).not.toEqual(['hidden', 'hidden']);
 
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
         await expect(page.locator('.cb-shell')).toBeVisible();
         expect(await overflow()).toEqual(['hidden', 'hidden']);
 
@@ -1187,7 +1188,7 @@ test.describe('builder shell — column widths', () => {
 
         // Reopen the builder: the weight is persisted to the draft.
         await page.reload();
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
         await expect(page.locator('.cb-shell')).toBeVisible();
         const reloaded = page.frameLocator('.cb-shell__iframe');
         await expect

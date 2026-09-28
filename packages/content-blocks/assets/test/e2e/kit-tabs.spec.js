@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * The kit's Tabs block, whose switching is pure CSS.
@@ -24,7 +25,7 @@ async function createFreshPage(page) {
 /** Builds a page holding one Tabs block with two valid tabs. */
 async function buildTwoTabPage(page) {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     const frame = page.frameLocator('.cb-shell__iframe');
 

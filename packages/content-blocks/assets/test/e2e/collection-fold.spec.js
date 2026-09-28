@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 import { reveal } from './helpers/sidebar.js';
 
 /**
@@ -15,7 +16,7 @@ async function openBuilder(page) {
         maxRedirects: 0,
     });
     await page.goto(response.headers()['location']);
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     return page.frameLocator('.cb-shell__iframe');
 }
@@ -104,7 +105,7 @@ test.describe('builder shell — collection folding', () => {
 
         // A fresh sidebar starts from the server's render again.
         await page.reload();
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
         await expect(page.locator('.cb-shell')).toBeVisible();
         await expect(page.frameLocator('.cb-shell__iframe').locator('[data-cb-block-id]'))
             .toHaveCount(1);

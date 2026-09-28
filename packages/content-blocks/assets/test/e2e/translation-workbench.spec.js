@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 import { reveal } from './helpers/sidebar.js';
 
 /**
@@ -38,7 +39,7 @@ async function createFreshPage(page) {
  */
 async function buildPageWithTranslatableText(page) {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
 
     const frame = page.frameLocator('.cb-shell__iframe');
@@ -265,7 +266,7 @@ test.describe('translation workbench', () => {
 test('a tab title is translated in the workbench and served in its locale', async ({ page, context }) => {
     const builderUrl = await createFreshPage(page);
     await page.goto(builderUrl);
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     const frame = page.frameLocator('.cb-shell__iframe');
     await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="tabs"]').click();
     await expect(frame.locator('.cb-section--display-tabs')).toHaveCount(1);
@@ -297,7 +298,7 @@ test('a tab title is translated in the workbench and served in its locale', asyn
     // Publish carries the translation with the page.
     await page.bringToFront();
     await page.reload();
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     const publish = page.locator('.cb-shell__publish');
     await expect(publish).toBeEnabled();
     await publish.click();
@@ -315,7 +316,7 @@ test('a tab title is translated in the workbench and served in its locale', asyn
 /** Collection entries get their ids when the block is added, not edited. */
 test('a table added and never edited is listed in the workbench', async ({ page }) => {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     const frame = page.frameLocator('.cb-shell__iframe');
     await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
     await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);

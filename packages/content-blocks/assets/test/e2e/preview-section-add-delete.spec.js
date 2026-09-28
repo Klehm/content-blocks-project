@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * Adding and deleting a section patch the preview in place: the new, empty
@@ -19,7 +20,7 @@ async function createFreshPage(page) {
 
 async function openBuilder(page) {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     const frame = page.frameLocator('.cb-shell__iframe');
     await expect(frame.locator('.cb-add-section-tray')).toBeVisible();
@@ -76,7 +77,7 @@ test.describe('preview section add/delete — in place', () => {
         await expect.poll(() => second.locator('[data-cb-block-id]').count()).toBe(1);
 
         await page.reload();
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
         const reloaded = page.frameLocator('.cb-shell__iframe');
         await expect(reloaded.locator(liveSections).first()).toBeVisible();
         await expect.poll(() => reloaded.locator(liveSections).count()).toBe(2);
@@ -118,7 +119,7 @@ test.describe('preview section add/delete — in place', () => {
 
         // A reload renders the very same state.
         await page.reload();
-        await page.locator('.cb-launcher__button').click();
+        await launchBuilder(page);
         const reloaded = page.frameLocator('.cb-shell__iframe');
         await expect(reloaded.locator('.cb-add-section-tray')).toBeVisible();
         await expect(reloaded.locator('.cb-content-area')).toHaveClass(/cb-content-area--empty/);

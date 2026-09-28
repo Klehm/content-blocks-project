@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 import { openTab, reveal } from './helpers/sidebar.js';
 
 /**
@@ -21,7 +22,7 @@ async function createFreshPage(page) {
 
 async function openBuilder(page, url) {
     await page.goto(url);
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     const frame = page.frameLocator('.cb-shell__iframe');
     await expect(frame.locator('.cb-add-section-tray')).toBeVisible();
@@ -30,8 +31,11 @@ async function openBuilder(page, url) {
 
 /** Adds a two-column section; its settings open in the sidebar. */
 async function addSection(page, frame) {
-    await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="two_cols"]').click();
     const sidebar = page.locator('.cb-shell__sidebar');
+    // The previous section's sidebar has tabs too: wait for the new one.
+    const previous = await sidebar.getAttribute('data-cb-sidebar-section-id');
+    await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="two_cols"]').click();
+    await expect(sidebar).not.toHaveAttribute('data-cb-sidebar-section-id', previous ?? '');
     await expect(sidebar.locator('.cb-sidebar__section-settings .cb-sidebar-tabs__tab').first()).toBeVisible();
     // Let cb-autosave connect before editing.
     await page.waitForTimeout(300);

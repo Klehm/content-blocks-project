@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * End-to-end coverage for the per-block form extension seam
@@ -29,7 +30,7 @@ async function createFreshPage(page) {
 
 async function openBuilder(page, url) {
     await page.goto(url);
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     return page.frameLocator('.cb-shell__iframe');
 }

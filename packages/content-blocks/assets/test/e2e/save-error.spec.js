@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 
 /**
  * Save-failure feedback: any failed save path must surface the persistent
@@ -17,7 +18,7 @@ async function createFreshPage(page) {
 
 async function openBuilder(page) {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     return page.frameLocator('.cb-shell__iframe');
 }

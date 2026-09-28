@@ -128,6 +128,26 @@ with nothing selected, a copy from another content generation) opts its status
 out of the generic banner through `tolerate`, and the caller reads the body to
 say something specific.
 
+### Sidebar saves are serialized too
+
+The section sidebar posts its whole form on every autosave, and nothing used to
+stop two posts overlapping: ticking *Customise style* and picking a colour right
+after sent both. Whichever the server handled last won, so with several PHP
+workers the older form could land second and wipe the colour. The editor still
+saw it selected and had no reason to pick it again.
+
+`cb-section-settings-form` now keeps one post in flight. A save asked for
+meanwhile is not dropped (cb-autosave has already moved its baseline, so it
+would never ask twice): it goes out once the current one returns, built from
+the form as it is then. Several requests during one post collapse into that
+single follow-up. The block sidebar needs none of this, since Live queues its
+own requests.
+
+The follow-up goes out through `requestSubmit()`, not by calling the fetch
+again: other scripts listen to `submit` too. Symfony's stateless CSRF script
+stamps a fresh token and cookie on each submit, and the previous response
+clears that cookie, so a post sent without the event came back 422.
+
 ## Hot reload and when it is refused
 
 Five flows patch the preview in place instead of reloading it: block insert,

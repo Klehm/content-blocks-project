@@ -5,6 +5,17 @@ All notable changes to `klehm/content-blocks` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **A section setting changed right after another could be lost.** The section
+  sidebar posted each autosave as it came, so two saves could overlap, and
+  when the server handled the older one last it overwrote the newer: ticking
+  *Customise style* then picking a colour kept the tick and dropped the
+  colour, while the sidebar still showed it selected. The sidebar now keeps
+  one save in flight and sends what changed meanwhile once it returns.
+
 ## [1.0.0] - 2026-09-23
 
 The first stable release. No code change since 1.0.0-RC17, which a production

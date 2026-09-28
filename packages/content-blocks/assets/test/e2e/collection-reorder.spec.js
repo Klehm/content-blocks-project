@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { launchBuilder } from './helpers/builder.js';
 import { reveal } from './helpers/sidebar.js';
 
 /**
@@ -30,7 +31,7 @@ async function createFreshPage(page) {
 
 async function openBuilder(page) {
     await page.goto(await createFreshPage(page));
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     return page.frameLocator('.cb-shell__iframe');
 }
@@ -98,7 +99,7 @@ async function seedThreeTabs(page, sidebar) {
 
 async function reopenSidebar(page) {
     await page.reload();
-    await page.locator('.cb-launcher__button').click();
+    await launchBuilder(page);
     await expect(page.locator('.cb-shell')).toBeVisible();
     return openBlockEditor(page, page.frameLocator('.cb-shell__iframe'));
 }
