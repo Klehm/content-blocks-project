@@ -5,6 +5,27 @@ All notable changes to `klehm/content-blocks-kit` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.1.0] - 2026-09-28
+
+This release carries two changes:
+
+- **Fixed: concurrent section saves** (`klehm/content-blocks`). Two
+  section-setting autosaves in quick succession could overlap, and the older
+  one could overwrite the newer. The section sidebar now sends one save at a
+  time.
+- **Added: host-supplied translation locales** (`klehm/content-blocks-i18n`).
+  The new interface
+  `ContentBlocks\I18n\Locale\TargetLocalesProviderInterface` lets a host
+  service supply the locales editors translate into, for example from the
+  database. The default implementation,
+  `ContentBlocks\I18n\Locale\ConfiguredTargetLocalesProvider`, keeps reading
+  `content_blocks_i18n.locales`.
+
+No change in the kit itself. Nothing to migrate. The three packages are
+tagged together.
+
 ## [1.0.0] - 2026-09-23
 
 The first stable release, with `klehm/content-blocks` 1.0.0. No code change
