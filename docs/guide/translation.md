@@ -68,6 +68,42 @@ You also need the `cb_block_translation` table — the bundle maps the entity, t
 migration is yours. Copy
 [the sandbox's](https://github.com/klehm/content-blocks-project/blob/master/apps/content-blocks-sandbox/migrations/Version20260812120000.php).
 
+## Locales from the host
+
+When your locales already live somewhere else, typically in the database as in
+Sylius, don't copy them into `locales`. Alias
+`TargetLocalesProviderInterface` instead; no configuration line is needed:
+
+```php
+use ContentBlocks\I18n\Locale\TargetLocalesProviderInterface;
+use Symfony\Component\DependencyInjection\Attribute\AsAlias;
+
+#[AsAlias(TargetLocalesProviderInterface::class)]
+final class ChannelTargetLocales implements TargetLocalesProviderInterface
+{
+    public function __construct(private readonly LocaleRepository $locales) {}
+
+    public function getTargetLocales(): array
+    {
+        return array_map(
+            static fn (Locale $locale): string => $locale->getCode(),
+            $this->locales->findBy(['enabled' => true], ['position' => 'ASC']),
+        );
+    }
+}
+```
+
+- **The list may include the source locale.** It is dropped, as it is from the
+  config.
+- **The order you return is the order of the workbench and the commands.**
+- **The codes under `locales` are ignored once you alias the provider, but
+  their labels still apply.** Keep `- { code: de, label: 'Deutsch' }` entries to
+  name a language your provider returns. Without a label, `ext-intl` names it.
+- **It is called once per container.** Under PHP-FPM that means once per
+  request, so keep it to one cheap query. Under a [worker runtime](./worker-mode.md)
+  it is called once for the worker's whole lifetime: a locale you add appears
+  after the workers restart.
+
 ## Tagging a field
 
 Use the core's `cb_translatable` form option — the convention frozen at 1.0, so

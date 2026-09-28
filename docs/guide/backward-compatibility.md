@@ -28,7 +28,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 
 **Kit**: `RichTextEditorInterface`, `IconProviderInterface`.
 
-**i18n**: `TranslationProviderInterface`, `RenderLocaleResolverInterface`, `WorkbenchBackUrlResolverInterface`, `LocalizedPageUrlResolverInterface`.
+**i18n**: `TranslationProviderInterface`, `RenderLocaleResolverInterface`, `WorkbenchBackUrlResolverInterface`, `LocalizedPageUrlResolverInterface`, `TargetLocalesProviderInterface`.
 
 ### PHP — classes you extend, construct or reference
 

@@ -13,11 +13,14 @@ use ContentBlocks\I18n\Field\FieldMetadataReader;
 use ContentBlocks\I18n\Field\TranslatableFieldCatalog;
 use ContentBlocks\I18n\Lifecycle\TranslationCloneObserver;
 use ContentBlocks\I18n\Lifecycle\TranslationPublisher;
+use ContentBlocks\I18n\Locale\ConfiguredTargetLocalesProvider;
 use ContentBlocks\I18n\Locale\LocalizedPageUrlResolverInterface;
 use ContentBlocks\I18n\Locale\NullLocalizedPageUrlResolver;
 use ContentBlocks\I18n\Locale\RenderLocaleResolverInterface;
 use ContentBlocks\I18n\Locale\RequestRenderLocaleResolver;
+use ContentBlocks\I18n\Locale\TargetLocalesProviderInterface;
 use ContentBlocks\I18n\Locale\TranslationLocales;
+use ContentBlocks\I18n\Locale\TranslationLocalesFactory;
 use ContentBlocks\I18n\Machine\MachineTranslator;
 use ContentBlocks\I18n\Machine\NullTranslationProvider;
 use ContentBlocks\I18n\Machine\TranslationProviderRegistry;
@@ -57,10 +60,15 @@ return static function (ContainerConfigurator $container): void {
 
     // ---------- Locales ----------
 
+    $services->set(ConfiguredTargetLocalesProvider::class)
+        ->args([param('content_blocks_i18n.locales')]);
+    $services->alias(TargetLocalesProviderInterface::class, ConfiguredTargetLocalesProvider::class);
+
     $services->set(TranslationLocales::class)
+        ->factory([TranslationLocalesFactory::class, 'create'])
         ->args([
             param('content_blocks_i18n.source_locale'),
-            param('content_blocks_i18n.locales'),
+            service(TargetLocalesProviderInterface::class),
             param('content_blocks_i18n.locale_labels'),
         ])
         ->public();
