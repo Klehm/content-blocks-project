@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Entity\Page;
-use ContentBlocks\Entity\Block;
-use ContentBlocks\Entity\Column;
+use ContentBlocks\Content\ContentManipulatorInterface;
 use ContentBlocks\Entity\ContentArea;
-use ContentBlocks\Entity\Section;
 use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Machine\MachineTranslator;
 use ContentBlocks\I18n\Progress\TranslationInspector;
@@ -46,6 +44,7 @@ final class CreateI18nDemoPageCommand extends Command
         private readonly TranslationInspector $inspector,
         private readonly TranslationLocales $locales,
         private readonly BlockRendererInterface $renderer,
+        private readonly ContentManipulatorInterface $content,
     ) {
         parent::__construct();
     }
@@ -145,30 +144,17 @@ final class CreateI18nDemoPageCommand extends Command
     private function seed(): Page
     {
         $area = new ContentArea();
-        $section = new Section();
-        $column = new Column();
-        $section->addColumn($column);
-        $area->addSection($section);
+        $column = $this->content->addSection($area)->getColumns()->first();
 
         // Source content is French: the sandbox's `default_locale`, and what
         // `content_blocks_i18n.source_locale` declares.
-        $title = new Block();
-        $title->setType('title');
-        $title->setDraftData(['tag' => 'h2', 'size' => 'h2', 'text' => 'Bienvenue dans notre boutique']);
-        $column->addBlock($title);
-
-        $text = new Block();
-        $text->setType('text');
-        $text->setDraftData(['content' => 'Nous livrons partout en Europe sous 48 heures.']);
-        $column->addBlock($text);
+        $this->content->addBlock($column, 'title', ['tag' => 'h2', 'size' => 'h2', 'text' => 'Bienvenue dans notre boutique']);
+        $this->content->addBlock($column, 'text', ['content' => 'Nous livrons partout en Europe sous 48 heures.']);
 
         // A collection block, so the demo exercises the part of the schema that
-        // keys translations by entry `_id` rather than by position.
-        $card = new Block();
-        $card->setType('card');
-        $card->setDraftData(['items' => [
+        // keys translations by entry `_id`, which addBlock() mints.
+        $this->content->addBlock($column, 'card', ['items' => [
             [
-                '_id' => bin2hex(random_bytes(6)),
                 'title' => 'Livraison rapide',
                 'content' => 'Expédié le jour même.',
                 'url' => '/livraison',
@@ -176,7 +162,6 @@ final class CreateI18nDemoPageCommand extends Command
                 'src' => '',
             ],
             [
-                '_id' => bin2hex(random_bytes(6)),
                 'title' => 'Retours gratuits',
                 'content' => 'Sous 30 jours, sans justificatif.',
                 'url' => '/retours',
@@ -184,7 +169,6 @@ final class CreateI18nDemoPageCommand extends Command
                 'src' => '',
             ],
         ]]);
-        $column->addBlock($card);
 
         $page = new Page();
         $page->setTitle('Démo multilingue');

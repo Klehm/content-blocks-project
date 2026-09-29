@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace ContentBlocks\Controller;
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
-use ContentBlocks\Entity\Column;
+use ContentBlocks\Content\ContentManipulator;
+use ContentBlocks\Content\ContentManipulatorInterface;
+use ContentBlocks\Content\DraftOrder;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\History\ActionJournal;
@@ -13,7 +15,6 @@ use ContentBlocks\History\JournalScope;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Section\SectionClonerInterface;
-use ContentBlocks\Section\SectionDisplay;
 use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
@@ -35,18 +36,30 @@ final class SectionsController
 {
     use CsrfProtectedTrait;
 
+    private readonly ContentManipulatorInterface $content;
+
+    /**
+     * @param array<string, mixed> $initialSectionSettings
+     */
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly AccessCheckerInterface $accessChecker,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
-        private readonly SectionClonerInterface $sectionCloner,
+        SectionClonerInterface $sectionCloner,
         private readonly BlockRendererInterface $blockRenderer,
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly ActionJournal $journal,
-        /** @var array<string, mixed> */
-        private readonly array $initialSectionSettings = [],
+        array $initialSectionSettings = [],
         private readonly SectionLayoutRegistry $sectionLayouts = new SectionLayoutRegistry(),
+        ?ContentManipulatorInterface $content = null,
     ) {
+        $this->content = $content ?? new ContentManipulator(
+            $em,
+            $blockTypeRegistry,
+            $sectionLayouts,
+            $initialSectionSettings,
+            $sectionCloner,
+        );
     }
 
     private function getCsrfTokenManager(): CsrfTokenManagerInterface
@@ -79,26 +92,7 @@ final class SectionsController
         }
 
         return $this->journal->record($area, 'section.create', JournalScope::structure(), function () use ($area, $layout): JsonResponse {
-            $section = new Section();
-            $section->setLayout($layout->name);
-            $section->setPreviewPosition($this->nextPreviewPosition($area));
-            $settings = $this->initialSectionSettings;
-            if ($layout->display !== SectionDisplay::GRID) {
-                $settings[SectionDisplay::SETTING] = $layout->display;
-            }
-            if ($settings !== []) {
-                $section->setDraftSettings($settings);
-            }
-            $area->addSection($section);
-
-            foreach ($layout->presets() as $i => $preset) {
-                $column = new Column();
-                $column->setPreset($preset);
-                $column->setPreviewPosition($i);
-                $section->addColumn($column);
-            }
-
-            $this->em->persist($section);
+            $section = $this->content->addSection($area, $layout->name);
             $this->em->flush();
 
             // No blocks yet, so no script that would need a full reload.
@@ -132,11 +126,7 @@ final class SectionsController
         $rawPosition = $payload['position'] ?? null;
 
         return $this->journal->record($area, 'section.move', JournalScope::structure(), function () use ($area, $section, $direction, $rawPosition): JsonResponse {
-            $sections = array_values(array_filter(
-                $area->getSections()->toArray(),
-                fn (Section $s) => !$s->isDeleted(),
-            ));
-            usort($sections, fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
+            $sections = DraftOrder::sections($area);
             $index = array_search($section, $sections, true);
 
             // Two dialects: `direction=up|down` for the toolbar arrows (kept
@@ -145,13 +135,7 @@ final class SectionsController
                 if ($index === false) {
                     return new JsonResponse(['moved' => false]);
                 }
-                $without = $sections;
-                array_splice($without, $index, 1);
-                $insertAt = max(0, min($rawPosition, \count($without)));
-                array_splice($without, $insertAt, 0, [$section]);
-                foreach ($without as $i => $s) {
-                    $s->setPreviewPosition($i);
-                }
+                $this->content->moveSection($section, $rawPosition);
                 $this->em->flush();
 
                 return new JsonResponse(['moved' => true]);
@@ -197,26 +181,8 @@ final class SectionsController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        return $this->journal->record($area, 'section.duplicate', JournalScope::structure(), function () use ($area, $section): JsonResponse {
-            // Inserted right after the source, siblings re-indexed so positions
-            // stay dense. The cloner is shared with the replace-content flow.
-            $copy = $this->sectionCloner->cloneSection($section);
-
-            $siblings = array_values(array_filter(
-                $area->getSections()->toArray(),
-                fn (Section $s) => !$s->isDeleted(),
-            ));
-            usort($siblings, fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
-
-            $sourceIndex = array_search($section, $siblings, true);
-            $insertAt = $sourceIndex === false ? \count($siblings) : $sourceIndex + 1;
-            array_splice($siblings, $insertAt, 0, [$copy]);
-            foreach ($siblings as $i => $s) {
-                $s->setPreviewPosition($i);
-            }
-
-            $area->addSection($copy);
-            $this->em->persist($copy);
+        return $this->journal->record($area, 'section.duplicate', JournalScope::structure(), function () use ($section): JsonResponse {
+            $copy = $this->content->duplicateSection($section);
             $this->em->flush();
 
             // `sourceId` tells the overlay which node to anchor the copy after.
@@ -274,7 +240,7 @@ final class SectionsController
 
         return $this->journal->record($area, 'section.delete', JournalScope::structure(), function () use ($section): JsonResponse {
             // Soft-delete in draft. The em->remove() runs at publish time.
-            $section->setDeleted(true);
+            $this->content->deleteSection($section);
             $this->em->flush();
 
             return new JsonResponse(['deleted' => true]);
@@ -304,20 +270,10 @@ final class SectionsController
         }
 
         return $this->journal->record($area, 'section.restore', JournalScope::structure(), function () use ($section): JsonResponse {
-            $section->setDeleted(false);
+            $this->content->restoreSection($section);
             $this->em->flush();
 
             return new JsonResponse(['restored' => true]);
         });
-    }
-
-    private function nextPreviewPosition(ContentArea $area): int
-    {
-        $max = -1;
-        foreach ($area->getSections() as $section) {
-            $max = max($max, $section->getPreviewPosition());
-        }
-
-        return $max + 1;
     }
 }

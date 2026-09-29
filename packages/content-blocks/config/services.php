@@ -221,6 +221,10 @@ return static function (ContainerConfigurator $container): void {
     $services->set(SectionCloner::class);
     $services->alias(SectionClonerInterface::class, SectionCloner::class);
 
+    // Building content from code, and what the structural endpoints run.
+    $services->set(ContentBlocks\Content\ContentManipulator::class);
+    $services->alias(ContentBlocks\Content\ContentManipulatorInterface::class, ContentBlocks\Content\ContentManipulator::class);
+
     // Empty by default; an export carries the same payload it always did
     // until a bundle stores rows beside a block. See transfer.md.
     $services->set(ContentAreaExporter::class)

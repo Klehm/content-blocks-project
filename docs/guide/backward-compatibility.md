@@ -12,7 +12,7 @@ ContentBlocks follows [semantic versioning](https://semver.org/). From `1.0.0`, 
 
 These are the extension surface: implement them, alias them, decorate them. Their method signatures are frozen, and so is the meaning of what they return.
 
-**Core** (`klehm/content-blocks`), 40 interfaces:
+**Core** (`klehm/content-blocks`), 41 interfaces:
 
 | Area | Interfaces |
 |---|---|
@@ -20,7 +20,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 | Blocks | `BlockTypeInterface`, `BlockPreviewHintInterface`, `BlockDataDefaultsProviderInterface`, `BlockDecoratorInterface`, `BlockFormExtensionInterface`, `TranslatableFieldsInterface` |
 | Sections and columns | `SectionDecoratorInterface`, `SectionSettingsDefaultsProviderInterface`, `SectionStyleProviderInterface`, `SectionClonerInterface`, `BlockCloneObserverInterface`, `ColumnCloneObserverInterface` |
 | Rendering | `BlockRendererInterface`, `BlockDataResolverInterface`, `ColumnSettingsResolverInterface`, `ImageUrlResolverInterface` |
-| Publishing | `ContentAreaPublisherInterface`, `UnpublishedChangesProviderInterface` |
+| Content and publishing | `ContentManipulatorInterface`, `ContentAreaPublisherInterface`, `UnpublishedChangesProviderInterface` |
 | Builder UI | `BuilderActionProviderInterface`, `BuilderShellExtensionInterface`, `UiIconProviderInterface`, `ColorPaletteProviderInterface` |
 | Storage and assets | `FileStorageInterface`, `AssetInventoryInterface`, `AssetResolverInterface`, `AssetReferenceProviderInterface` |
 | Clipboard, templates, transfer | `BlockSnapshotSerializerInterface`, `SectionTemplateSerializerInterface`, `SectionTemplateInstantiatorInterface`, `ContentAreaExporterInterface`, `ContentAreaImporterInterface`, `ContentAreaTransferExtensionInterface`, `SnapshotExtensionInterface` |
@@ -49,7 +49,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 - **Values you read but do not build.** `ImportResult`, `InstantiationResult`, `SectionTemplateSnapshot`, and the transfer helpers `AssetTokenizer` and `AssetRewriter` handed to a `ContentAreaTransferExtensionInterface`. Their public reads are frozen; their constructors are `@internal`, so the package can add fields to them.
 - **Services you inject.** `BlockTypeRegistry` (`get()`, `has()`, `all()`, `getChoices()`), and the shipped implementations named as defaults in the guides: `LocalFileStorage`, `PassthroughImageUrlResolver`, `DenyOnMismatchUpgrader`, `AllowAllAccessChecker` and `DenyAllAccessChecker`. They are covered as services to alias or decorate; their constructors are not.
 - **Symfony events you listen to**, with their public properties and the moment each is dispatched ([Server-side events](./events.md)): `BeforeContentAreaPublishEvent`, `AfterContentAreaPublishEvent`, `BeforeContentAreaDiscardEvent`, `AfterContentAreaDiscardEvent`, `BeforeBlockSaveEvent`, `AfterBlockSaveEvent`, `BeforeBlockDeleteEvent`, `AfterBlockDeleteEvent`; their base `RefusableEvent` (`refuse()`, `isRefused()`, `getReasons()`) and `ActionRefusedException`. A later version may add properties or events, but will not remove or rename one.
-- **Exceptions you throw or catch.** `ContentBlocksAccessDeniedException` (a 403), `IncompatibleContentVersionException`, `ImportRefusedException`, `UnsupportedTemplateFormatException`, `IncompatibleTemplateException`.
+- **Exceptions you throw or catch.** `ContentBlocksAccessDeniedException` (a 403), `IncompatibleContentVersionException`, `ImportRefusedException`, `UnsupportedTemplateFormatException`, `IncompatibleTemplateException`, `ContentManipulationException` and its `reason` codes.
 - **`ContentBlocks\Testing\CrossRequestStateScanner`**, for pointing the [worker-mode](./worker-mode.md) check at your own code.
 - **The entities** and their public accessors: `ContentArea`, `Section`, `Column`, `Block`, `SectionTemplate`, and i18n's `BlockTranslation` and `ColumnTranslation`. The exception is the setters of **published state**, which carry `@internal`. `publish()` is the only writer of a published field, so code building content writes the draft and calls `publish()`.
 

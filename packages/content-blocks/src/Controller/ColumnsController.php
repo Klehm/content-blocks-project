@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Controller;
 
+use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Content\ContentManipulationException;
+use ContentBlocks\Content\ContentManipulator;
+use ContentBlocks\Content\ContentManipulatorInterface;
+use ContentBlocks\Content\DraftOrder;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
@@ -31,15 +36,18 @@ final class ColumnsController
 {
     use CsrfProtectedTrait;
 
-    /** Past this, neither a grid nor a tab bar is usable. */
-    public const MAX_COLUMNS = 20;
+    public const MAX_COLUMNS = ContentManipulator::MAX_COLUMNS;
+
+    private readonly ContentManipulatorInterface $content;
 
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly AccessCheckerInterface $accessChecker,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ActionJournal $journal,
+        ?ContentManipulatorInterface $content = null,
     ) {
+        $this->content = $content ?? new ContentManipulator($em, new BlockTypeRegistry());
     }
 
     private function getCsrfTokenManager(): CsrfTokenManagerInterface
@@ -61,25 +69,15 @@ final class ColumnsController
 
         $area = $this->editableArea($section);
 
-        if (\count(self::liveColumns($section)) >= self::MAX_COLUMNS) {
+        if (\count(DraftOrder::columns($section)) >= self::MAX_COLUMNS) {
             return new JsonResponse(['error' => 'too_many_columns'], Response::HTTP_BAD_REQUEST);
         }
 
         return $this->journal->record($area, 'column.create', JournalScope::structure(), function () use ($section): JsonResponse {
-            $position = 0;
-            foreach ($section->getColumns() as $existing) {
-                $position = max($position, $existing->getPreviewPosition() + 1);
-            }
-
-            $column = new Column();
-            $column->setPreviewPosition($position);
-            $section->addColumn($column);
-            $this->em->persist($column);
-
-            $count = self::rebalance($section);
+            $column = $this->content->addColumn($section);
             $this->em->flush();
 
-            return new JsonResponse(['id' => $column->getId(), 'columnCount' => $count]);
+            return new JsonResponse(['id' => $column->getId(), 'columnCount' => \count(DraftOrder::columns($section))]);
         });
     }
 
@@ -102,18 +100,21 @@ final class ColumnsController
         }
 
         // A section with no column would have nowhere to put a block.
-        if (\count(self::liveColumns($section)) <= 1) {
+        if (\count(DraftOrder::columns($section)) <= 1) {
             return new JsonResponse(['error' => 'last_column'], Response::HTTP_BAD_REQUEST);
         }
 
         return $this->journal->record($area, 'column.delete', JournalScope::structure(), function () use ($column, $section): JsonResponse {
             // A flag, like every delete: the blocks go with the column, the
             // public page keeps both until Publish, Discard brings them back.
-            $column->setDeleted(true);
-            $count = self::rebalance($section);
+            try {
+                $this->content->deleteColumn($column);
+            } catch (ContentManipulationException $e) {
+                return new JsonResponse(['error' => $e->reason], Response::HTTP_BAD_REQUEST);
+            }
             $this->em->flush();
 
-            return new JsonResponse(['deleted' => true, 'columnCount' => $count]);
+            return new JsonResponse(['deleted' => true, 'columnCount' => \count(DraftOrder::columns($section))]);
         });
     }
 
@@ -165,34 +166,5 @@ final class ColumnsController
         }
 
         return $area;
-    }
-
-    /** @return list<Column> */
-    private static function liveColumns(Section $section): array
-    {
-        $columns = array_values(array_filter(
-            $section->getColumns()->toArray(),
-            static fn (Column $c): bool => !$c->isDeleted(),
-        ));
-        usort($columns, static fn (Column $a, Column $b): int => $a->getPreviewPosition() <=> $b->getPreviewPosition());
-
-        return $columns;
-    }
-
-    /**
-     * Equal spans for the live columns: a count change resets an uneven
-     * layout, and undo brings it back. Returns the live count.
-     */
-    private static function rebalance(Section $section): int
-    {
-        $columns = self::liveColumns($section);
-        $preset = 'col-' . max(1, intdiv(12, max(1, \count($columns))));
-        foreach ($columns as $column) {
-            if ($column->getPreset() !== $preset) {
-                $column->setPreset($preset);
-            }
-        }
-
-        return \count($columns);
     }
 }
