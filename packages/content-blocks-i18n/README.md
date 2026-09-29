@@ -27,10 +27,10 @@ than from a missing feature:
 - **No layout per language.** Sections, columns, order and styling are shared.
   A block cannot be hidden in one language, and a block added to the page
   appears in every language at once, in the source text until translated.
-- **Only tagged fields change.** An image file is shared by every language: its
-  alt text, link and caption translate, the picture does not, so a picture
-  with words in it stays in the source language. A video's captions file does
-  translate.
+- **Only tagged fields change.** Text, links, and the kit's image and video
+  files are tagged; enums, sizes and colours are not. A file stays shared
+  until an editor replaces it for a language ([Localized images and
+  videos](../../docs/guide/translation.md#localized-images-and-videos)).
 - **No locale fallback chain.** A locale that is not configured renders the
   source; `fr_CA` does not fall back to `fr`.
 - **Not your site's i18n.** It translates block content. Routes per locale,

@@ -98,9 +98,11 @@ body {
     border: 2px solid currentColor; border-right-color: transparent;
     animation: cb-wb-spin .7s linear infinite;
 }
-.cb-wb__btn.is-busy > [aria-hidden="true"]::after { border-color: #fff; border-right-color: transparent; }
 .cb-wb__icon.is-busy { position: relative; }
-.cb-wb__icon.is-busy::after { border-color: var(--cb-wb-accent); border-right-color: transparent; }
+.cb-wb__btn.is-busy > [aria-hidden="true"]::after, .cb-wb__icon.is-busy::after {
+    border-color: var(--cb-wb-accent); border-right-color: transparent;
+}
+.cb-wb__btn--accent.is-busy > [aria-hidden="true"]::after { border-color: #fff; border-right-color: transparent; }
 @keyframes cb-wb-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
     .cb-wb__btn.is-busy > [aria-hidden="true"]::after, .cb-wb__icon.is-busy::after { animation-duration: 2s; }
@@ -234,6 +236,32 @@ body {
 /* "Still current" only means something while the row is flagged. */
 .cb-wb__icon--approve { display: none; }
 .cb-wb__row--outdated .cb-wb__icon--approve { display: inline-flex; color: var(--cb-wb-outdated); }
+
+/* ---- localized media ------------------------------------------------- */
+
+/* Same file as the source: nothing to do, so no status colour either. */
+.cb-wb__row--shared { border-left-color: var(--cb-wb-border); }
+
+.cb-wb__media { margin-top: 6px; }
+.cb-wb__media img, .cb-wb__media video {
+    display: block; max-width: 100%; max-height: 160px;
+    border-radius: var(--cb-wb-radius); background: var(--cb-wb-bg);
+}
+.cb-wb__media [hidden] { display: none; }
+
+.cb-wb__media--target {
+    flex: 1 1 auto; margin-top: 0; padding: 8px;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+    border: 1px dashed var(--cb-wb-border); border-radius: var(--cb-wb-radius);
+}
+.cb-wb__media--target.is-over { border-color: var(--cb-wb-accent); background: var(--cb-wb-accent-soft); }
+.cb-wb__media-shared, .cb-wb__media-hint { margin: 0; font-size: 12px; color: var(--cb-wb-muted); }
+.cb-wb__row--media:not(.cb-wb__row--shared) .cb-wb__media-shared { display: none; }
+
+.cb-wb__media-choose { position: relative; padding: 4px 10px; font-size: 13px; }
+.cb-wb__media-choose:focus-within { outline: 2px solid var(--cb-wb-accent); outline-offset: 1px; }
+/* The source's file is already what renders: nothing to go back to. */
+.cb-wb__row--shared .cb-wb__icon--media-reset { visibility: hidden; }
 
 /* ---- toast ----------------------------------------------------------- */
 

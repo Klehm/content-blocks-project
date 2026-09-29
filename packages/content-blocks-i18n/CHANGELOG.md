@@ -7,6 +7,17 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Images and videos can be replaced per language.** A file field tagged
+  `cb_translatable` (an `ImageUploadType` or `VideoUploadType`) appears in the
+  workbench as a row with both files, an upload button and a drop zone. Until
+  it is replaced, the file is *shared*: it shows the source's file and does not
+  count against progress. Machine translation never sends a file path to a
+  provider. The writer only accepts a scheme-less path or an http(s) URL for
+  these fields (`invalid_media` otherwise), and a blank value clears. No
+  migration.
+
 ### Fixed
 
 - **The workbench preview showed the source text on hosts that set the request

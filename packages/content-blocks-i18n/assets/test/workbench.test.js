@@ -33,6 +33,21 @@ function row({ block = '1', path = 'heading', status = 'missing', value = '', wi
         </div>`;
 }
 
+/** An image row, matching the template's media_row macro. */
+function mediaRow({ block = '2', path = 'src', status = 'shared', value = '', kind = 'image' } = {}) {
+    return `
+        <div class="cb-wb__row cb-wb__row--${status} cb-wb__row--media" data-target="row"
+             data-status="${status}" data-block="${block}" data-path="${path}" data-media="${kind}">
+            <div data-target="mediaDrop">
+                <img data-target="mediaPreview" ${value ? `src="${value}"` : 'hidden'}>
+                <label class="cb-wb__btn cb-wb__media-choose"><span aria-hidden="true">⇪</span>
+                    <input type="file" data-target="mediaFile"></label>
+            </div>
+            <input type="hidden" data-target="input" value="${value}">
+            <button type="button" data-act="reset"></button>
+        </div>`;
+}
+
 /**
  * The endpoint URLs Twig generates per block. They carry a mount prefix here on
  * purpose: the package's routes can be mounted anywhere, and a test that used
@@ -61,6 +76,8 @@ function mount({ rows = [row()], providers = true } = {}) {
              data-cb-i18n-workbench-locale-value="de"
              data-cb-translate-all-url="${MOUNT}/area/7/de/translate"
              data-cb-csrf-token="tok-123"
+             data-cb-upload-url="/admin/content-blocks/upload"
+             data-i18n-upload-failed="Envoi impossible"
              data-i18n-saved="Enregistré"
              data-i18n-save-failed="Échec"
              data-i18n-translating="Traduction…"
@@ -465,6 +482,117 @@ describe('machine translation', () => {
         answer({ ok: false, json: () => Promise.resolve({}) });
         await vi.advanceTimersByTimeAsync(0);
         expect(button.classList.contains('is-busy')).toBe(false);
+    });
+});
+
+describe('localized media', () => {
+    function file() {
+        return new File(['x'], 'de.jpg', { type: 'image/jpeg' });
+    }
+
+    /** Upload answers with a path, save answers with the row now stored. */
+    function stubUpload({ ok = true } = {}) {
+        const calls = [];
+        global.fetch = vi.fn((url, options = {}) => {
+            calls.push({ url, options });
+            if (url.endsWith('/upload')) {
+                return Promise.resolve({
+                    ok,
+                    json: () => Promise.resolve(ok ? { url: '/uploads/de.jpg' } : { error: 'File type "x" is not allowed' }),
+                });
+            }
+            const body = url.includes('/render')
+                ? { hotReload: true, html: '<div data-cb-block-id="2">neu</div>' }
+                : { block: { blockId: 2, fields: [{ path: 'src', status: 'translated', value: '/uploads/de.jpg' }] } };
+
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+        });
+
+        return calls;
+    }
+
+    function pick(root, picked) {
+        const input = root.querySelector('[data-target="mediaFile"]');
+        Object.defineProperty(input, 'files', { value: [picked], configurable: true });
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    it('uploads a picked file for the area, then saves its path at once', async () => {
+        const root = mount({ rows: [row(), mediaRow()] });
+        const calls = stubUpload();
+        new Workbench(root);
+
+        pick(root, file());
+        await vi.advanceTimersByTimeAsync(0);
+        await vi.advanceTimersByTimeAsync(0);
+
+        const [upload, save] = calls;
+        expect(upload.url).toBe('/admin/content-blocks/upload');
+        expect(upload.options.headers['X-CSRF-Token']).toBe('tok-123');
+        expect(upload.options.body.get('area')).toBe('7');
+        expect(upload.options.body.get('file').name).toBe('de.jpg');
+
+        // No debounce: the file is already on the server.
+        expect(save.url).toBe(`${MOUNT}/block/2/de`);
+        expect(JSON.parse(save.options.body)).toEqual({ values: { src: '/uploads/de.jpg' } });
+
+        const media = root.querySelector('[data-media]');
+        expect(media.dataset.status).toBe('translated');
+        expect(media.querySelector('[data-target="mediaPreview"]').getAttribute('src')).toBe('/uploads/de.jpg');
+        expect(media.querySelector('[data-target="mediaPreview"]').hidden).toBe(false);
+    });
+
+    it('says why an upload was refused, and saves nothing', async () => {
+        const root = mount({ rows: [mediaRow()] });
+        const calls = stubUpload({ ok: false });
+        new Workbench(root);
+
+        pick(root, file());
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(calls).toHaveLength(1);
+        const toast = root.querySelector('[data-target="toast"]');
+        expect(toast.textContent).toBe('Envoi impossible — File type "x" is not allowed');
+        expect(toast.classList.contains('cb-wb__toast--error')).toBe(true);
+        expect(root.querySelector('.cb-wb__media-choose').classList.contains('is-busy')).toBe(false);
+    });
+
+    it('takes a file dropped on the zone, and only a file', async () => {
+        const root = mount({ rows: [mediaRow()] });
+        const calls = stubUpload();
+        new Workbench(root);
+        const zone = root.querySelector('[data-target="mediaDrop"]');
+
+        const drop = (types, files) => {
+            const event = new Event('drop', { bubbles: true, cancelable: true });
+            event.dataTransfer = { types, files };
+            zone.dispatchEvent(event);
+            return event;
+        };
+
+        expect(drop(['text/uri-list'], []).defaultPrevented).toBe(false);
+        expect(drop(['Files'], [file()]).defaultPrevented).toBe(true);
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(calls[0].url).toBe('/admin/content-blocks/upload');
+    });
+
+    // Back to the source's file: a blank preview, and out of the count.
+    it('reset makes the row shared again and leaves it out of progress', async () => {
+        const root = mount({ rows: [row({ status: 'translated' }), mediaRow({ status: 'translated', value: '/uploads/de.jpg' })] });
+        const calls = stubFetch({ block: { blockId: 2, fields: [{ path: 'src', status: 'missing', value: null }] } });
+        new Workbench(root);
+
+        root.querySelector('[data-media] [data-act="reset"]').click();
+        await settle();
+
+        expect(calls[0].body).toEqual({ values: { src: null } });
+        const media = root.querySelector('[data-media]');
+        expect(media.dataset.status).toBe('shared');
+        expect(media.classList.contains('cb-wb__row--shared')).toBe(true);
+        expect(media.querySelector('[data-target="mediaPreview"]').hidden).toBe(true);
+        expect(root.querySelector('[data-target="percent"]').textContent).toBe('100%');
+        expect(root.querySelector('[data-target="countMissing"]').textContent).toBe('0');
     });
 });
 

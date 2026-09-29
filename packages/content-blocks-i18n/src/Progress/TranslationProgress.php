@@ -33,6 +33,10 @@ final class TranslationProgress
         $missing = 0;
 
         foreach ($fields as $field) {
+            if (!$field->countsTowardProgress()) {
+                continue;
+            }
+
             match ($field->status) {
                 FieldStatus::TRANSLATED => ++$translated,
                 FieldStatus::OUTDATED => ++$outdated,

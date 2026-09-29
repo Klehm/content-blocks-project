@@ -31,10 +31,10 @@ than from a missing feature:
 - **No layout per language.** Sections, columns, order and styling are shared.
   A block cannot be hidden in one language, and a block added to the page
   appears in every language at once, in the source text until translated.
-- **Only tagged fields change.** An image file is shared by every language: its
-  alt text, link and caption translate, the picture does not, so a picture
-  with words in it stays in the source language. A video's captions file does
-  translate.
+- **Only tagged fields change.** Text, links, and the kit's image and video
+  files are tagged; enums, sizes and colours are not. A file stays shared
+  until an editor replaces it for a language ([Localized images and
+  videos](#localized-images-and-videos)).
 - **No locale fallback chain.** A locale that is not configured renders the
   source; `fr_CA` does not fall back to `fr`.
 - **Not your site's i18n.** It translates block content. Routes per locale,
@@ -142,6 +142,35 @@ $renderer->render($area, RenderContext::forPublic('de'));
 text while its neighbours render translated. The alternative makes a
 half-translated page look broken rather than incomplete, and makes incremental
 translation pointless since nothing shows until everything is done.
+
+## Localized images and videos
+
+A picture with words in it, or a video recorded in one language, can be replaced
+per language. The kit tags the files of `image`, `gallery`, `card` and `video`
+(file and poster). A block of yours does the same by tagging its upload field:
+
+```php
+$builder->add('src', ImageUploadType::class, ['cb_translatable' => true]);
+```
+
+A file field behaves differently from a text field in four ways:
+
+- **Shared is not missing.** Most pictures are the same in every language. A
+  file with no localized version shows *Same file as the source* and does not
+  count against the page's progress. Once replaced, it is *translated*, and it
+  turns *outdated* when the source file changes.
+- **Never sent to an engine.** Machine translation skips file fields, whatever
+  the provider.
+- **Uploaded, not typed.** The workbench row shows both files, with a button and
+  a drop zone. Uploads go through the core's upload endpoint, with its size and
+  MIME limits and its `canEdit()` check. ⨯ goes back to the source's file.
+- **A path, checked.** A value is a scheme-less path or an http(s) URL. Anything
+  else is refused with `invalid_media`, and a blank value clears.
+
+Stored like any translation, a localized file is published with the page, kept
+by the asset sweep, and embedded in an export. `VideoUploadType` and
+`ImageUploadType` (or a type whose parent chain reaches one) are what mark a
+field as a file.
 
 ## Draft, published, and why translations have no buttons of their own
 

@@ -339,3 +339,63 @@ test('a table added and never edited is listed in the workbench', async ({ page 
     expect((await saved).ok()).toBe(true);
     await expect(row).toHaveAttribute('data-status', 'translated');
 });
+
+const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const png = (name) => ({ name, mimeType: 'image/png', buffer: Buffer.from(PNG_BASE64, 'base64') });
+
+/** A picture with words in it differs per language: the file is localized. */
+test('an image is replaced for one language and served in its locale', async ({ page, context }) => {
+    const builderUrl = await createFreshPage(page);
+    await page.goto(builderUrl);
+    await launchBuilder(page);
+    const frame = page.frameLocator('.cb-shell__iframe');
+    await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
+    await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);
+    await page.waitForTimeout(300);
+    await frame.locator('.cb-add-block-inline').first().click();
+    await frame.locator('.cb-overlay-popover button', { hasText: /^Image$/ }).click();
+    await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
+
+    const form = page.locator('aside[data-cb-builder-target="sidebar"] .cb-block__edit-form');
+    const widget = form.locator('.cb-image-upload').first();
+    await widget.locator('.cb-image-upload__file').setInputFiles(png('fr.png'));
+    await expect(widget.locator('input[type=hidden]')).toHaveValue(/^\/uploads\/.+\.png$/);
+    const sourcePath = await widget.locator('input[type=hidden]').inputValue();
+    await expect.poll(() => frame.locator('.cb-kit-image__img').count(), { timeout: 10000 }).toBe(1);
+
+    const workbench = await openWorkbench(page);
+    const row = workbench.locator('.cb-wb__row[data-media="image"]');
+
+    // Same file as the source: listed, but not work, so the page is done.
+    await expect(row).toHaveAttribute('data-status', 'shared');
+    await expect(workbench.locator('[data-target="percent"]')).toHaveText('100%');
+    await expect(row.locator('[data-act="translateField"]')).toHaveCount(0);
+
+    const saved = workbench.waitForResponse((r) => r.request().method() === 'POST' && /\/block\/\d+\/en$/.test(r.url()));
+    await row.locator('[data-target="mediaFile"]').setInputFiles(png('en.png'));
+    expect((await saved).ok()).toBe(true);
+    await expect(row).toHaveAttribute('data-status', 'translated');
+    const localizedPath = await row.locator('[data-target="input"]').inputValue();
+    expect(localizedPath).toMatch(/^\/uploads\/.+\.png$/);
+    expect(localizedPath).not.toBe(sourcePath);
+
+    // The preview swaps the block in the target language.
+    const preview = workbench.frameLocator('.cb-wb__preview iframe');
+    await expect(preview.locator('.cb-kit-image__img')).toHaveAttribute('src', new RegExp(localizedPath.slice(1)));
+
+    await page.bringToFront();
+    await page.reload();
+    await launchBuilder(page);
+    const publish = page.locator('.cb-shell__publish');
+    await expect(publish).toBeEnabled();
+    await publish.click();
+    await expect(publish).toBeDisabled({ timeout: 10000 });
+
+    const pageId = builderUrl.match(/\/admin\/page\/(\d+)/)[1];
+    const viewer = await context.newPage();
+    await viewer.goto(`/en/page/${pageId}`);
+    await expect(viewer.locator('.cb-kit-image__img')).toHaveAttribute('src', new RegExp(localizedPath.slice(1)));
+    await viewer.goto(`/page/${pageId}`);
+    await expect(viewer.locator('.cb-kit-image__img')).toHaveAttribute('src', new RegExp(sourcePath.slice(1)));
+    await viewer.close();
+});

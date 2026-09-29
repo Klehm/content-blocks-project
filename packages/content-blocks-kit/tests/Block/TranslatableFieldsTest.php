@@ -9,10 +9,14 @@ use ContentBlocks\Kit\Block\AlertBlock;
 use ContentBlocks\Kit\Block\ButtonBlock;
 use ContentBlocks\Kit\Block\EmbedBlock;
 use ContentBlocks\Kit\Block\HtmlRawBlock;
+use ContentBlocks\Kit\Block\ImageBlock;
 use ContentBlocks\Kit\Block\RichTextBlock;
+use ContentBlocks\Kit\Block\VideoBlock;
 use ContentBlocks\Kit\Form\Type\AccordionItemType;
 use ContentBlocks\Kit\Form\Type\BreadcrumbItemType;
 use ContentBlocks\Kit\Form\Type\ButtonGroupItemType;
+use ContentBlocks\Kit\Form\Type\CardItemType;
+use ContentBlocks\Kit\Form\Type\GalleryItemType;
 use ContentBlocks\Kit\Form\Type\ListItemType;
 use ContentBlocks\Kit\Form\Type\RichTextEditorType;
 use ContentBlocks\Kit\Form\Type\TabEntryType;
@@ -34,11 +38,11 @@ use Symfony\Component\Validator\Validation;
  * {@see TranslatableFieldTypeExtension} for the tagging rule).
  *
  * Scope note: only blocks and item types built from stock Symfony form types
- * are exercised here — the rest pull in `PaletteColorType`, `ImageUploadType`
- * or `LiveCollectionType`, whose container dependencies are out of reach of a
- * unit test. What that costs is coverage of *which* fields those blocks tag;
- * what it does not cost is the mechanism, which is identical everywhere and
- * pinned by the cases below.
+ * (and the core's dependency-free upload types) are exercised here — the rest
+ * pull in `PaletteColorType` or `LiveCollectionType`, whose container
+ * dependencies are out of reach of a unit test. What that costs is coverage
+ * of *which* fields those blocks tag; what it does not cost is the mechanism,
+ * which is identical everywhere and pinned by the cases below.
  */
 final class TranslatableFieldsTest extends TestCase
 {
@@ -65,6 +69,12 @@ final class TranslatableFieldsTest extends TestCase
         yield 'embed' => [$block(new EmbedBlock()), ['url', 'title']];
         yield 'rich_text' => [$block(new RichTextBlock()), ['content']];
         yield 'html_raw' => [$block(new HtmlRawBlock()), ['html']];
+
+        // The file too: a picture with words in it differs per language.
+        yield 'image' => [$block(new ImageBlock()), ['src', 'alt', 'url', 'caption']];
+        yield 'video' => [$block(new VideoBlock()), ['src', 'poster', 'caption', 'captions', 'captionsLang']];
+        yield 'gallery item' => [$type(GalleryItemType::class), ['src', 'alt', 'caption', 'url']];
+        yield 'card item' => [$type(CardItemType::class), ['src', 'title', 'content', 'url', 'buttonText']];
 
         yield 'list item' => [$type(ListItemType::class), ['text']];
         yield 'button group item' => [$type(ButtonGroupItemType::class), ['text', 'url']];
