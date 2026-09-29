@@ -30,6 +30,7 @@ final class PreviewLocaleListenerTest extends TestCase
         $this->listen($request);
 
         $this->assertSame('de', $request->getLocale());
+        $this->assertSame('de', $request->attributes->get(PreviewLocaleListener::ATTRIBUTE));
     }
 
     /**
@@ -45,6 +46,7 @@ final class PreviewLocaleListenerTest extends TestCase
         $this->listen($request);
 
         $this->assertSame('fr', $request->getLocale());
+        $this->assertFalse($request->attributes->has(PreviewLocaleListener::ATTRIBUTE));
     }
 
     /**

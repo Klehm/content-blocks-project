@@ -87,6 +87,25 @@ body {
    repaint the button pale while `color: #fff` stayed. */
 .cb-wb__btn--accent:hover { background: var(--cb-wb-accent); filter: brightness(1.08); }
 
+/* A running provider call: the glyph gives way to a spinner. */
+.cb-wb__btn.is-busy, .cb-wb__icon.is-busy { cursor: progress; }
+.cb-wb__btn--accent.is-busy { filter: none; opacity: .85; }
+.cb-wb__btn.is-busy > [aria-hidden="true"], .cb-wb__icon.is-busy { color: transparent; }
+.cb-wb__btn.is-busy > [aria-hidden="true"] { position: relative; display: inline-block; }
+.cb-wb__btn.is-busy > [aria-hidden="true"]::after, .cb-wb__icon.is-busy::after {
+    content: ''; position: absolute; inset: 0; margin: auto;
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid currentColor; border-right-color: transparent;
+    animation: cb-wb-spin .7s linear infinite;
+}
+.cb-wb__btn.is-busy > [aria-hidden="true"]::after { border-color: #fff; border-right-color: transparent; }
+.cb-wb__icon.is-busy { position: relative; }
+.cb-wb__icon.is-busy::after { border-color: var(--cb-wb-accent); border-right-color: transparent; }
+@keyframes cb-wb-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+    .cb-wb__btn.is-busy > [aria-hidden="true"]::after, .cb-wb__icon.is-busy::after { animation-duration: 2s; }
+}
+
 /* ---- progress -------------------------------------------------------- */
 
 .cb-wb__meter {

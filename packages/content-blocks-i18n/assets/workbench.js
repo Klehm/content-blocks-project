@@ -280,12 +280,13 @@ class Workbench {
     async translateField(row) {
         if (!row) return;
 
-        this._toast(this._message('translating'));
-
-        const response = await this._post(
-            this._url(row.dataset.block, 'cbTranslateUrl'),
-            { paths: [row.dataset.path], provider: this._provider() },
-            'translate_failed',
+        const response = await this._busy(
+            row.querySelector('[data-act="translateField"]'),
+            () => this._post(
+                this._url(row.dataset.block, 'cbTranslateUrl'),
+                { paths: [row.dataset.path], provider: this._provider() },
+                'translate_failed',
+            ),
         );
 
         if (!response) return;
@@ -298,19 +299,46 @@ class Workbench {
     async translateAll() {
         if (!window.confirm(this._message('translate_all_confirm'))) return;
 
-        this._toast(this._message('translating'));
-
-        const response = await this._post(
+        const button = this.root.querySelector('[data-act="translateAll"]');
+        const response = await this._busy(button, () => this._post(
             this.root.dataset.cbTranslateAllUrl,
             { provider: this._provider() },
             'translate_failed',
-        );
+        ));
 
         if (!response) return;
+
+        // Still busy until the page is gone: a second run would pay twice.
+        this._setBusy(button, true);
 
         // A whole-page run touches most rows, so reloading the list is both
         // simpler and less work than reconciling every row by hand.
         window.location.reload();
+    }
+
+    /**
+     * A provider call takes seconds to minutes, far longer than a toast lasts,
+     * so the button that started it says it is still running.
+     */
+    async _busy(button, run) {
+        if (button?.getAttribute('aria-busy') === 'true') return null;
+
+        this._setBusy(button, true);
+        this._toast(this._message('translating'));
+
+        try {
+            return await run();
+        } finally {
+            this._setBusy(button, false);
+        }
+    }
+
+    _setBusy(button, busy) {
+        if (!button) return;
+
+        button.disabled = busy;
+        button.classList.toggle('is-busy', busy);
+        button.setAttribute('aria-busy', String(busy));
     }
 
     _provider() {
