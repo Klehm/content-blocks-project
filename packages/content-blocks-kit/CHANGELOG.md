@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-29
+
+This release carries, across the three packages:
+
+- **Content from code** (`klehm/content-blocks`).
+  `ContentManipulatorInterface` adds, moves, duplicates and deletes sections,
+  columns and blocks the way the builder does, for fixtures, migrations and
+  seed commands.
+- **Server-side events** (`klehm/content-blocks`). Before/after pairs around
+  publish, discard, block save and block delete; a *before* listener can
+  refuse the action, and the builder says why.
+- **Translation** (`klehm/content-blocks-i18n`). Publish one language from the
+  workbench, replace images and videos per language, carry translations
+  through section templates and the clipboard, an opt-in locale fallback
+  chain, hreflang links, and a translation-only change can now be published
+  from the builder.
+
+No database migration. `klehm/content-blocks-i18n` 1.2 requires
+`klehm/content-blocks` `^1.2`: carrying translations through section
+templates and the clipboard is on by default, never missing. A host
+that copied `builder/shell.html.twig` or `launcher.html.twig` should switch to
+`cb_has_unpublished_changes(area)`. The three packages are tagged together.
+
 ### Added
 
 - **Image and video files are translatable.** `src` on `image`, `gallery`,

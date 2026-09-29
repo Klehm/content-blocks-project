@@ -7,6 +7,37 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-09-29
+
+This release carries, across the three packages:
+
+- **Content from code** (`klehm/content-blocks`).
+  `ContentManipulatorInterface` adds, moves, duplicates and deletes sections,
+  columns and blocks the way the builder does, for fixtures, migrations and
+  seed commands.
+- **Server-side events** (`klehm/content-blocks`). Before/after pairs around
+  publish, discard, block save and block delete; a *before* listener can
+  refuse the action, and the builder says why.
+- **Translation** (`klehm/content-blocks-i18n`). Publish one language from the
+  workbench, replace images and videos per language, carry translations
+  through section templates and the clipboard, an opt-in locale fallback
+  chain, hreflang links, and a translation-only change can now be published
+  from the builder.
+
+No database migration. `klehm/content-blocks-i18n` 1.2 requires
+`klehm/content-blocks` `^1.2`: carrying translations through section
+templates and the clipboard is on by default, never missing. A host
+that copied `builder/shell.html.twig` or `launcher.html.twig` should switch to
+`cb_has_unpublished_changes(area)`. The three packages are tagged together.
+
+### Changed
+
+- **`klehm/content-blocks` is required at `^1.2`.** Translations carried by
+  section templates and the clipboard, and the builder's Publish lighting up
+  for a translation-only change, rely on two interfaces the core gained in
+  1.2. They used to be registered only when the core had them, so on an older
+  core they were silently missing; they are now always on.
+
 ### Added
 
 - **Progress says when there is nothing to translate.** `cb_i18n_progress()`
@@ -56,9 +87,7 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A translation-only change could not be published.** On an already
   published page, translating a field left the builder's Publish button
   disabled: the area's draft state does not see the translation table. It now
-  does, through the core's new `UnpublishedChangesProviderInterface`. Needs
-  `klehm/content-blocks` 1.2; on an older core the package still boots, without
-  this fix and without the two additions above.
+  does, through the core's new `UnpublishedChangesProviderInterface`.
 
 - **The workbench preview showed the source text on hosts that set the request
   locale themselves.** Sylius resets the request locale after the preview
