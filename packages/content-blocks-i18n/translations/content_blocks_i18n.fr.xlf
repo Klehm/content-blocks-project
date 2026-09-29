@@ -166,6 +166,42 @@
                 <source>cb_i18n.workbench.uploading</source>
                 <target>Envoi du fichier…</target>
             </trans-unit>
+            <trans-unit id="workbench.publish_locale">
+                <source>cb_i18n.workbench.publish_locale</source>
+                <target>Publier %locale%</target>
+            </trans-unit>
+            <trans-unit id="workbench.discard_locale">
+                <source>cb_i18n.workbench.discard_locale</source>
+                <target>Annuler les modifications</target>
+            </trans-unit>
+            <trans-unit id="workbench.discard_confirm">
+                <source>cb_i18n.workbench.discard_confirm</source>
+                <target>Annuler les traductions %locale% non publiées ? Celles en ligne restent.</target>
+            </trans-unit>
+            <trans-unit id="workbench.published">
+                <source>cb_i18n.workbench.published</source>
+                <target>%locale% publié</target>
+            </trans-unit>
+            <trans-unit id="workbench.discarded">
+                <source>cb_i18n.workbench.discarded</source>
+                <target>Modifications %locale% annulées</target>
+            </trans-unit>
+            <trans-unit id="workbench.source_unpublished">
+                <source>cb_i18n.workbench.source_unpublished</source>
+                <target>La page a des modifications non publiées : publiez-la depuis le builder, traductions comprises.</target>
+            </trans-unit>
+            <trans-unit id="workbench.source_unpublished_short">
+                <source>cb_i18n.workbench.source_unpublished_short</source>
+                <target>Page modifiée : publiez depuis le builder</target>
+            </trans-unit>
+            <trans-unit id="workbench.publish_failed">
+                <source>cb_i18n.workbench.publish_failed</source>
+                <target>Échec de la publication</target>
+            </trans-unit>
+            <trans-unit id="workbench.nothing_to_publish">
+                <source>cb_i18n.workbench.nothing_to_publish</source>
+                <target>Rien à publier : toutes les traductions %locale% sont déjà en ligne.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

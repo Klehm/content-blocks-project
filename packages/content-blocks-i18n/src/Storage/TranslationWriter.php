@@ -43,6 +43,34 @@ final class TranslationWriter
      */
     public function write(Block $block, string $locale, array $values): TranslationWriteResult
     {
+        return $this->writeValues($block, $locale, $values, null);
+    }
+
+    /**
+     * A copy's translations, through the same gates as {@see self::write()},
+     * with their digests carried: an outdated one stays outdated.
+     *
+     * @param array<string, mixed> $values  path => text
+     * @param array<string, mixed> $digests path => digest as captured
+     */
+    public function restore(Block $block, string $locale, array $values, array $digests): TranslationWriteResult
+    {
+        $clean = [];
+        foreach ($values as $path => $value) {
+            if (\is_string($value)) {
+                $clean[(string) $path] = $value;
+            }
+        }
+
+        return $this->writeValues($block, $locale, $clean, $digests);
+    }
+
+    /**
+     * @param array<string, string|null> $values
+     * @param array<string, mixed>|null  $digests null: measured now
+     */
+    private function writeValues(Block $block, string $locale, array $values, ?array $digests): TranslationWriteResult
+    {
         if (!$this->locales->isTarget($locale)) {
             return new TranslationWriteResult(rejected: array_fill_keys(array_keys($values), 'unknown_locale'));
         }
@@ -101,7 +129,12 @@ final class TranslationWriter
                 continue;
             }
 
-            $row->setDraftValue($path, $value, SourceDigest::of(FieldPath::read($sourceData, $path)));
+            // No digest reads as current, the convention an import follows.
+            $digest = $digests === null
+                ? SourceDigest::of(FieldPath::read($sourceData, $path))
+                : (\is_string($digests[$path] ?? null) ? $digests[$path] : '');
+
+            $row->setDraftValue($path, $value, $digest);
             $written[] = $path;
         }
 
@@ -193,6 +226,25 @@ final class TranslationWriter
         }
 
         return new TranslationWriteResult($written, $cleared, $rejected);
+    }
+
+    /**
+     * A copied tab title, digest carried as for {@see self::restore()}.
+     */
+    public function restoreColumn(Column $column, string $locale, mixed $value, mixed $digest): bool
+    {
+        $source = $this->store->columnSourceLabel($column);
+        if (!$this->locales->isTarget($locale) || $source === null || !\is_string($value)) {
+            return false;
+        }
+
+        $this->store->findOrCreateColumn($column, $locale)->setDraftValue(
+            ColumnTranslation::LABEL,
+            trim(mb_substr($value, 0, ColumnSettings::LABEL_MAX_LENGTH)),
+            \is_string($digest) ? $digest : '',
+        );
+
+        return true;
     }
 
     /** @param list<string> $paths */

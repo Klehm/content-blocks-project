@@ -35,8 +35,8 @@ use ContentBlocks\I18n\Transfer\TranslationTransferExtension;
 use ContentBlocks\I18n\Twig\I18nExtension;
 use ContentBlocks\I18n\Workbench\PageBackUrlResolver;
 use ContentBlocks\I18n\Workbench\WorkbenchBackUrlResolverInterface;
-use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Publishing\ContentAreaPublisherInterface;
+use ContentBlocks\Rendering\BlockRendererInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
@@ -79,7 +79,7 @@ return static function (ContainerConfigurator $container): void {
     // ---------- Storage ----------
 
     $services->set(BlockTranslationRepository::class)->tag('doctrine.repository_service');
-    $services->set(\ContentBlocks\I18n\Repository\ColumnTranslationRepository::class)->tag('doctrine.repository_service');
+    $services->set(ContentBlocks\I18n\Repository\ColumnTranslationRepository::class)->tag('doctrine.repository_service');
     $services->set(TranslationStore::class)->public();
     $services->set(TranslationWriter::class)->public();
 
@@ -99,7 +99,7 @@ return static function (ContainerConfigurator $container): void {
         ->tag('content_blocks.block_data_resolver', ['priority' => TranslationBlockDataResolver::PRIORITY]);
 
     // A tab title in the render locale; autoconfigured through its interface.
-    $services->set(\ContentBlocks\I18n\Rendering\TranslationColumnSettingsResolver::class);
+    $services->set(ContentBlocks\I18n\Rendering\TranslationColumnSettingsResolver::class);
 
     // Warms the store with one query per area so the resolver above never
     // issues a query of its own. Purely an optimization — see the class.
@@ -114,6 +114,18 @@ return static function (ContainerConfigurator $container): void {
         ->args([service('.inner')]);
 
     $services->set(TranslationCloneObserver::class);
+
+    // Tells the builder a translation is waiting, and which locales.
+    $services->set(ContentBlocks\I18n\Lifecycle\TranslationDrafts::class)->public();
+
+    // Both implement a core seam newer than this package's floor, so they are
+    // registered only when the core has it.
+    if (interface_exists(ContentBlocks\Publishing\UnpublishedChangesProviderInterface::class)) {
+        $services->set(ContentBlocks\I18n\Lifecycle\TranslationUnpublishedChanges::class);
+    }
+    if (interface_exists(ContentBlocks\Snapshot\SnapshotExtensionInterface::class)) {
+        $services->set(ContentBlocks\I18n\Snapshot\TranslationSnapshotExtension::class);
+    }
 
     // The same duty for a payload that leaves the installation. See
     // docs/internals/i18n.md#translations-in-an-export
@@ -166,6 +178,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(WorkbenchController::class)->tag('controller.service_arguments');
     $services->set(MachineTranslationController::class)->tag('controller.service_arguments');
+    $services->set(ContentBlocks\I18n\Controller\LocalePublishController::class)->tag('controller.service_arguments');
     $services->set(AssetController::class)->tag('controller.service_arguments');
 
     $services->set(TranslateAreaCommand::class);

@@ -10,7 +10,7 @@
             class="cb-launcher__button"
             data-action="cb-builder-launcher#open">
         {{ 'cb.builder.open'|trans({}, 'content_blocks') }}
-        {% if area.hasUnpublishedChanges %}
+        {% if cb_has_unpublished_changes(area) %}
             <span class="cb-launcher__badge">
                 {{ 'cb.builder.draft_pending'|trans({}, 'content_blocks') }}
             </span>

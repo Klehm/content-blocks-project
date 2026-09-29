@@ -38,9 +38,6 @@ than from a missing feature:
   rendering locale comes from your request through `RenderLocaleResolverInterface`.
 - **No machine translation engine.** The seam is there; the engine, and where a
   page's text is sent, is your choice.
-- **Section templates and the clipboard do not carry translations yet.** A
-  section saved as a template, or copied, arrives untranslated. Duplicate,
-  *Insert content* and export/import do carry them.
 
 ## Configuration
 
@@ -404,7 +401,7 @@ Concretely, **an export carries its translations**: the payload grows an
 the stored values and the staleness digests captured with them. Importing that
 file into an installation without this package simply skips the fragment; a
 block the importer skips takes its translations with it. Copy/paste and saved
-section templates do **not** carry translations yet.
+section templates carry them too, so a translated section arrives translated.
 
 **Collection entries are keyed by their `_id`, never by position.** Reordering,
 duplicating or deleting a card shifts every position after it; keying per-entry

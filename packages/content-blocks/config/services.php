@@ -16,33 +16,33 @@ use ContentBlocks\History\BuilderSession;
 use ContentBlocks\History\DoctrineActionLogStore;
 use ContentBlocks\History\SidebarOutcome;
 use ContentBlocks\History\StateApplier;
-use ContentBlocks\Publishing\JournalPruningPublisher;
 use ContentBlocks\Palette\ColorPaletteRegistry;
 use ContentBlocks\Palette\ConfigColorPaletteProvider;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Preview\NullContentAreaUrlResolver;
+use ContentBlocks\Publishing\ContentAreaPublisherInterface;
+use ContentBlocks\Publishing\JournalPruningPublisher;
 use ContentBlocks\Replace\ContentAreaProviderInterface;
 use ContentBlocks\Replace\DefaultContentAreaProvider;
 use ContentBlocks\Section\BuiltInSectionDecorator;
+use ContentBlocks\Section\SectionCloner;
+use ContentBlocks\Section\SectionClonerInterface;
 use ContentBlocks\Section\SectionDecoratorCollection;
 use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyleRegistry;
+use ContentBlocks\SectionTemplate\DenyAllSectionTemplateManager;
+use ContentBlocks\SectionTemplate\SectionPosterBuilder;
+use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
+use ContentBlocks\SectionTemplate\SectionTemplateInstantiatorInterface;
+use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
+use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
+use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\DenyAllAccessChecker;
-use ContentBlocks\SectionTemplate\DenyAllSectionTemplateManager;
-use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\Transfer\ContentAreaExporter;
 use ContentBlocks\Transfer\ContentAreaExporterInterface;
 use ContentBlocks\Transfer\ContentAreaImporter;
 use ContentBlocks\Transfer\ContentAreaImporterInterface;
-use ContentBlocks\Publishing\ContentAreaPublisherInterface;
-use ContentBlocks\Section\SectionCloner;
-use ContentBlocks\Section\SectionClonerInterface;
-use ContentBlocks\SectionTemplate\SectionPosterBuilder;
-use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
-use ContentBlocks\SectionTemplate\SectionTemplateInstantiatorInterface;
-use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
-use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
 use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
 use ContentBlocks\Versioning\DenyOnMismatchUpgrader;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
@@ -62,7 +62,7 @@ return static function (ContainerConfigurator $container): void {
         // Written onto a section the builder creates. See SectionsController.
         ->set('content_blocks.section.initial_settings', [])
         // Resolved list; normally fed by `content_blocks.section.layouts`.
-        ->set('content_blocks.section.layouts', \ContentBlocks\Section\SectionLayoutRegistry::resolve([]))
+        ->set('content_blocks.section.layouts', ContentBlocks\Section\SectionLayoutRegistry::resolve([]))
         // List of {label, color} entries; normally fed by the bundle's
         // semantic config (`content_blocks.palette`) via loadExtension().
         ->set('content_blocks.palette', [])
@@ -108,9 +108,9 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(AccessCheckerInterface::class, DenyAllAccessChecker::class);
 
     // A login redirect answering a builder fetch becomes a readable 401.
-    $services->set(\ContentBlocks\Security\SessionExpiredResponseListener::class);
+    $services->set(ContentBlocks\Security\SessionExpiredResponseListener::class);
     // A preview is the draft: private, and framed by its own origin only.
-    $services->set(\ContentBlocks\Security\PreviewResponseListener::class);
+    $services->set(ContentBlocks\Security\PreviewResponseListener::class);
 
     // Throws: the host must override this too.
     $services->set(NullContentAreaUrlResolver::class);
@@ -120,71 +120,71 @@ return static function (ContainerConfigurator $container): void {
 
     // Throws on upload. A host opts in through `upload.directory`, or by
     // aliasing the interface to its own storage.
-    $services->set(\ContentBlocks\Storage\NullFileStorage::class);
-    $services->alias(\ContentBlocks\Storage\FileStorageInterface::class, \ContentBlocks\Storage\NullFileStorage::class);
+    $services->set(ContentBlocks\Storage\NullFileStorage::class);
+    $services->alias(ContentBlocks\Storage\FileStorageInterface::class, ContentBlocks\Storage\NullFileStorage::class);
 
     // Bridges export/import to FileStorageInterface, so with the null
     // storage behind it an export simply sees no assets.
     $services->set(NullAssetResolver::class);
-    $services->set(\ContentBlocks\Asset\FileStorageAssetResolver::class);
-    $services->alias(AssetResolverInterface::class, \ContentBlocks\Asset\FileStorageAssetResolver::class);
+    $services->set(ContentBlocks\Asset\FileStorageAssetResolver::class);
+    $services->alias(AssetResolverInterface::class, ContentBlocks\Asset\FileStorageAssetResolver::class);
 
     // The single definition of "this references a stored file".
     // See docs/internals/assets.md#one-definition-of-a-reference
-    $services->set(\ContentBlocks\Asset\AssetReferenceCollector::class);
+    $services->set(ContentBlocks\Asset\AssetReferenceCollector::class);
 
     // The package's own sources go through the same autoconfigured
     // interface a host uses — no privileged internal path.
-    $services->set(\ContentBlocks\Asset\ContentAreaAssetReferenceProvider::class);
-    $services->set(\ContentBlocks\Asset\SectionTemplateAssetReferenceProvider::class);
+    $services->set(ContentBlocks\Asset\ContentAreaAssetReferenceProvider::class);
+    $services->set(ContentBlocks\Asset\SectionTemplateAssetReferenceProvider::class);
 
     // Sweep phase. Never runs on its own: the only caller is the console
     // command, and even that reports unless given --force.
-    $services->set(\ContentBlocks\Asset\AssetGarbageCollector::class)
+    $services->set(ContentBlocks\Asset\AssetGarbageCollector::class)
         ->arg('$referenceProviders', tagged_iterator('content_blocks.asset_reference_provider'));
 
-    $services->set(\ContentBlocks\Command\CollectAssetsCommand::class);
+    $services->set(ContentBlocks\Command\CollectAssetsCommand::class);
 
     // Denied by default, and the route 404s until a host aliases it.
     // See docs/internals/assets.md#asset-routes-are-public-on-purpose
-    $services->set(\ContentBlocks\Asset\DenyAllAssetReportViewer::class);
+    $services->set(ContentBlocks\Asset\DenyAllAssetReportViewer::class);
     $services->alias(
-        \ContentBlocks\Asset\AssetReportViewerInterface::class,
-        \ContentBlocks\Asset\DenyAllAssetReportViewer::class,
+        ContentBlocks\Asset\AssetReportViewerInterface::class,
+        ContentBlocks\Asset\DenyAllAssetReportViewer::class,
     );
 
     // Passthrough by default — byte-for-byte the markup that predates it.
     // See docs/internals/assets.md#the-image-seam-ships-a-passthrough
-    $services->set(\ContentBlocks\Image\PassthroughImageUrlResolver::class);
-    $services->alias(\ContentBlocks\Image\ImageUrlResolverInterface::class, \ContentBlocks\Image\PassthroughImageUrlResolver::class);
+    $services->set(ContentBlocks\Image\PassthroughImageUrlResolver::class);
+    $services->alias(ContentBlocks\Image\ImageUrlResolverInterface::class, ContentBlocks\Image\PassthroughImageUrlResolver::class);
 
     $services->load('ContentBlocks\\Twig\\Component\\', '../src/Twig/Component/')
         ->tag('twig.component');
 
-    $services->set(\ContentBlocks\Twig\ContentBlocksExtension::class)
+    $services->set(ContentBlocks\Twig\ContentBlocksExtension::class)
         ->tag('twig.extension');
 
-    $services->set(\ContentBlocks\Twig\ImageExtension::class)
+    $services->set(ContentBlocks\Twig\ImageExtension::class)
         ->tag('twig.extension');
 
-    $services->set(\ContentBlocks\Twig\RoutingExtension::class)
+    $services->set(ContentBlocks\Twig\RoutingExtension::class)
         ->tag('twig.extension');
 
-    $services->set(\ContentBlocks\Section\SectionLayoutRegistry::class)
+    $services->set(ContentBlocks\Section\SectionLayoutRegistry::class)
         ->args(['%content_blocks.section.layouts%']);
-    $services->set(\ContentBlocks\Twig\SectionLayoutExtension::class)
+    $services->set(ContentBlocks\Twig\SectionLayoutExtension::class)
         ->tag('twig.extension');
-    $services->set(\ContentBlocks\Twig\ColorToneExtension::class)
+    $services->set(ContentBlocks\Twig\ColorToneExtension::class)
         ->tag('twig.extension');
 
-    $services->set(\ContentBlocks\Rendering\BlockRenderer::class);
+    $services->set(ContentBlocks\Rendering\BlockRenderer::class);
     // Rendering override seam: host decorates/replaces via the interface.
-    $services->alias(\ContentBlocks\Rendering\BlockRendererInterface::class, \ContentBlocks\Rendering\BlockRenderer::class);
+    $services->alias(ContentBlocks\Rendering\BlockRendererInterface::class, ContentBlocks\Rendering\BlockRenderer::class);
 
     // Each registered as its class and aliased to its interface, so a host
     // can decorate any of them without touching the package.
-    $services->set(\ContentBlocks\Publishing\ContentAreaPublisher::class);
-    $services->alias(ContentAreaPublisherInterface::class, \ContentBlocks\Publishing\ContentAreaPublisher::class);
+    $services->set(ContentBlocks\Publishing\ContentAreaPublisher::class);
+    $services->alias(ContentAreaPublisherInterface::class, ContentBlocks\Publishing\ContentAreaPublisher::class);
 
     // ---------- Action history (Ctrl/Cmd-Z) ----------
 
@@ -199,22 +199,22 @@ return static function (ContainerConfigurator $container): void {
     // Decorates the concrete publisher, so a host decoration of the interface
     // (what content-blocks-i18n does) still wraps this one.
     $services->set(JournalPruningPublisher::class)
-        ->decorate(\ContentBlocks\Publishing\ContentAreaPublisher::class);
+        ->decorate(ContentBlocks\Publishing\ContentAreaPublisher::class);
 
     // Lowest priority = outermost: "before" precedes every other decorator,
     // "after" follows them, and a replaced publisher still dispatches.
-    $services->set(\ContentBlocks\Publishing\EventDispatchingPublisher::class)
+    $services->set(ContentBlocks\Publishing\EventDispatchingPublisher::class)
         ->decorate(ContentAreaPublisherInterface::class, null, -1024)
         ->arg('$inner', service('.inner'));
 
     // Empty by default; cloning is unchanged without an observer. See
     // docs/internals/rendering.md#why-the-clone-notification-is-an-observer
-    $services->set(\ContentBlocks\Section\BlockCloneObserverCollection::class)
+    $services->set(ContentBlocks\Section\BlockCloneObserverCollection::class)
         ->args([tagged_iterator('content_blocks.block_clone_observer')])
         ->public();
 
     // Same seam, for what is stored beside a column (a translated tab title).
-    $services->set(\ContentBlocks\Section\ColumnCloneObserverCollection::class)
+    $services->set(ContentBlocks\Section\ColumnCloneObserverCollection::class)
         ->args([tagged_iterator('content_blocks.column_clone_observer')])
         ->public();
 
@@ -242,7 +242,7 @@ return static function (ContainerConfigurator $container): void {
     // implementing BlockPreviewHintInterface.
     $services->set(SectionPosterBuilder::class);
     // Same seam, one level up: the tree's block rows read the same hint.
-    $services->set(\ContentBlocks\Builder\AreaTreeBuilder::class);
+    $services->set(ContentBlocks\Builder\AreaTreeBuilder::class);
 
     // Nothing here stores a clipboard: it lives in localStorage, which is
     // what makes the payload untrusted. See docs/internals/clipboard.md
@@ -281,7 +281,7 @@ return static function (ContainerConfigurator $container): void {
         ->public();
 
     // Before any host provider, so a PHP provider re-using a name wins.
-    $services->set(\ContentBlocks\Section\ConfigSectionStyleProvider::class)
+    $services->set(ContentBlocks\Section\ConfigSectionStyleProvider::class)
         ->args(['%content_blocks.section_styles%']);
 
     // ---------- Color palette ----------
@@ -298,15 +298,15 @@ return static function (ContainerConfigurator $container): void {
 
     // Tagged by hand at the lowest priority: a host provider, autoconfigured
     // at 0, is read first and so redraws any core icon it names.
-    $services->set(\ContentBlocks\Icon\CoreUiIcons::class)
+    $services->set(ContentBlocks\Icon\CoreUiIcons::class)
         ->autoconfigure(false)
         ->tag('content_blocks.ui_icon_provider', ['priority' => -1000]);
 
-    $services->set(\ContentBlocks\Icon\UiIconRegistry::class)
+    $services->set(ContentBlocks\Icon\UiIconRegistry::class)
         ->args([tagged_iterator('content_blocks.ui_icon_provider')])
         ->public();
 
-    $services->set(\ContentBlocks\Twig\UiIconExtension::class)
+    $services->set(ContentBlocks\Twig\UiIconExtension::class)
         ->tag('twig.extension');
 
     // Built-in decorator runs first so host extensions can react to or
@@ -315,15 +315,15 @@ return static function (ContainerConfigurator $container): void {
 
     // Reads the `styling` sub-form from settings and emits CSS vars +
     // classes consumed by styling.css.
-    $services->set(\ContentBlocks\Section\StylingSectionDecorator::class);
+    $services->set(ContentBlocks\Section\StylingSectionDecorator::class);
 
     // Pre-populates the styling sub-form; `backgroundColor` is `''`. See
     // docs/internals/forms.md#the-transparent-background-default
-    $services->set(\ContentBlocks\Section\CoreStylingDefaults::class);
+    $services->set(ContentBlocks\Section\CoreStylingDefaults::class);
 
     // The root-level mirror of CoreStylingDefaults, so a centered section
     // with no explicit value still picks a cap.
-    $services->set(\ContentBlocks\Section\CoreSectionDefaults::class);
+    $services->set(ContentBlocks\Section\CoreSectionDefaults::class);
 
     $services->set(SectionDecoratorCollection::class)
         ->args([tagged_iterator('content_blocks.section_decorator')])
@@ -337,17 +337,17 @@ return static function (ContainerConfigurator $container): void {
 
     // Auto-configured: any class implementing BlockDecoratorInterface
     // is tagged `content_blocks.block_decorator` (see ContentBlocksBundle).
-    $services->set(\ContentBlocks\Block\StylingBlockDecorator::class);
+    $services->set(ContentBlocks\Block\StylingBlockDecorator::class);
 
-    $services->set(\ContentBlocks\Block\BlockDecoratorCollection::class)
+    $services->set(ContentBlocks\Block\BlockDecoratorCollection::class)
         ->args([tagged_iterator('content_blocks.block_decorator')])
         ->public();
 
     // The block-side mirror; `backgroundColor` is `''` here too. See
     // docs/internals/forms.md#the-transparent-background-default
-    $services->set(\ContentBlocks\Block\CoreBlockStylingDefaults::class);
+    $services->set(ContentBlocks\Block\CoreBlockStylingDefaults::class);
 
-    $services->set(\ContentBlocks\Block\BlockDataDefaults::class)
+    $services->set(ContentBlocks\Block\BlockDataDefaults::class)
         ->args([tagged_iterator('content_blocks.block_data_defaults')])
         ->public();
 
@@ -355,69 +355,81 @@ return static function (ContainerConfigurator $container): void {
 
     // Tagged by hand for its priority, hence autoconfigure(false):
     // autoconfiguration would tag it twice and it would run twice.
-    $services->set(\ContentBlocks\Rendering\CoreBlockDataResolver::class)
+    $services->set(ContentBlocks\Rendering\CoreBlockDataResolver::class)
         ->autoconfigure(false)
         ->tag('content_blocks.block_data_resolver', ['priority' => 256]);
 
-    $services->set(\ContentBlocks\Rendering\BlockDataResolverCollection::class)
+    $services->set(ContentBlocks\Rendering\BlockDataResolverCollection::class)
         ->args([tagged_iterator('content_blocks.block_data_resolver')])
         ->public();
 
     // Empty by default: a column renders its own settings.
-    $services->set(\ContentBlocks\Rendering\ColumnSettingsResolverCollection::class)
+    $services->set(ContentBlocks\Rendering\ColumnSettingsResolverCollection::class)
         ->args([tagged_iterator('content_blocks.column_settings_resolver')])
         ->public();
 
     // Shared by both restore paths, so the union rule lives in one place.
     // See docs/internals/clipboard.md#which-keys-a-block-type-can-hold
-    $services->set(\ContentBlocks\Block\BlockDataKeys::class);
+    $services->set(ContentBlocks\Block\BlockDataKeys::class);
 
     // Minted on the draft-write path, so a reorder never shifts what
     // per-entry information points at. See docs/internals/clipboard.md
-    $services->set(\ContentBlocks\Block\CollectionItemIds::class);
-    $services->set(\ContentBlocks\Block\CollectionIdBackfiller::class);
+    $services->set(ContentBlocks\Block\CollectionItemIds::class);
+    $services->set(ContentBlocks\Block\CollectionIdBackfiller::class);
 
     // One-off normalization of content stored before `_id` existed. The
     // #[AsCommand] attribute is picked up by console.command autoconfiguration.
-    $services->set(\ContentBlocks\Command\BackfillCollectionIdsCommand::class);
+    $services->set(ContentBlocks\Command\BackfillCollectionIdsCommand::class);
 
     // ---------- Builder topbar actions ----------
 
     // Merges provider contributions and a form's own `topbar_actions`.
     // See docs/internals/builder-extensions.md#ordering-and-collisions
-    $services->set(\ContentBlocks\Builder\BuilderActionCollection::class)
+    $services->set(ContentBlocks\Builder\BuilderActionCollection::class)
         ->args([tagged_iterator('content_blocks.builder_action_provider')])
         ->public();
 
     // Read by the shell template itself, so they appear wherever it renders.
     // See docs/internals/builder-extensions.md#two-halves-of-one-seam
-    $services->set(\ContentBlocks\Builder\BuilderShellFragmentCollection::class)
+    $services->set(ContentBlocks\Builder\BuilderShellFragmentCollection::class)
         ->args([tagged_iterator('content_blocks.builder_shell_extension')])
         ->public();
 
-    $services->set(\ContentBlocks\Twig\ShellFragmentsExtension::class)
+    $services->set(ContentBlocks\Twig\ShellFragmentsExtension::class)
         ->tag('twig.extension');
 
-    $services->set(\ContentBlocks\Twig\HistoryStateExtension::class)
+    $services->set(ContentBlocks\Twig\HistoryStateExtension::class)
         ->tag('twig.extension');
 
-    $services->set(\ContentBlocks\Transfer\ImportSizeLimit::class);
-    $services->set(\ContentBlocks\Transfer\AssetPolicy::class);
-    $services->set(\ContentBlocks\Transfer\ImportStaging::class);
-    $services->set(\ContentBlocks\Transfer\ZipExportWriter::class);
+    // The area's draft, or one a bundle keeps beside it (a translation).
+    $services->set(ContentBlocks\Publishing\UnpublishedChanges::class)
+        ->args([tagged_iterator('content_blocks.unpublished_changes_provider')])
+        ->public();
+    $services->set(ContentBlocks\Twig\UnpublishedChangesExtension::class)
+        ->tag('twig.extension');
+
+    // What templates and the clipboard carry beside a block. See
+    // docs/internals/section-templates.md#rows-kept-beside-a-block
+    $services->set(ContentBlocks\Snapshot\SnapshotExtensions::class)
+        ->args([tagged_iterator('content_blocks.snapshot_extension')]);
+
+    $services->set(ContentBlocks\Transfer\ImportSizeLimit::class);
+    $services->set(ContentBlocks\Transfer\AssetPolicy::class);
+    $services->set(ContentBlocks\Transfer\ImportStaging::class);
+    $services->set(ContentBlocks\Transfer\ZipExportWriter::class);
 
     // ---------- Content translation (convention only) ----------
 
     // Neither has a consumer here: the core ships the convention so it
     // freezes with 1.0. See docs/internals/forms.md
-    $services->set(\ContentBlocks\Form\Extension\TranslatableFieldTypeExtension::class)
+    $services->set(ContentBlocks\Form\Extension\TranslatableFieldTypeExtension::class)
         ->tag('form.type_extension');
 
 
-    $services->set(\ContentBlocks\Translation\TranslatableFields::class);
+    $services->set(ContentBlocks\Translation\TranslatableFields::class);
     $services->alias(
-        \ContentBlocks\Translation\TranslatableFieldsInterface::class,
-        \ContentBlocks\Translation\TranslatableFields::class,
+        ContentBlocks\Translation\TranslatableFieldsInterface::class,
+        ContentBlocks\Translation\TranslatableFields::class,
     );
 
     // The attribute is a marker read by reflection, never instantiated,
@@ -427,6 +439,6 @@ return static function (ContainerConfigurator $container): void {
 
     $services->load('ContentBlocks\\Controller\\', '../src/Controller/')
         ->tag('controller.service_arguments');
-    $services->set(\ContentBlocks\PublicAsset\AssetController::class)
+    $services->set(ContentBlocks\PublicAsset\AssetController::class)
         ->tag('controller.service_arguments');
 };

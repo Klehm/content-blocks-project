@@ -9,6 +9,17 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Publish one language from the workbench.** *Publish EN* and *Discard
+  changes* act on the workbench's language only
+  (`PublishContext::withLocales()`, routes `content_blocks_i18n_area_publish`
+  and `content_blocks_i18n_area_discard`). They are off, and the server answers
+  `409 source_unpublished`, while the page has unpublished changes of its own:
+  publishing would put them live too. Publish events fire as for the builder's.
+- **Section templates and the clipboard carry translations.** A translated
+  section saved to the library, or copied, arrives translated, tab titles
+  included. Collection paths are kept by entry position, since a pasted block
+  gets new entry ids, and every value goes through the writer's checks.
+
 - **Images and videos can be replaced per language.** A file field tagged
   `cb_translatable` (an `ImageUploadType` or `VideoUploadType`) appears in the
   workbench as a row with both files, an upload button and a drop zone. Until
@@ -19,6 +30,13 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   migration.
 
 ### Fixed
+
+- **A translation-only change could not be published.** On an already
+  published page, translating a field left the builder's Publish button
+  disabled: the area's draft state does not see the translation table. It now
+  does, through the core's new `UnpublishedChangesProviderInterface`. Needs
+  `klehm/content-blocks` 1.2; on an older core the package still boots, without
+  this fix and without the two additions above.
 
 - **The workbench preview showed the source text on hosts that set the request
   locale themselves.** Sylius resets the request locale after the preview

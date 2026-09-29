@@ -50,6 +50,8 @@ class Workbench {
             else if (act === 'approve') this.approve(this._rowOf(button));
             else if (act === 'reset') this.reset(this._rowOf(button));
             else if (act === 'copySource') this.copySource(this._rowOf(button));
+            else if (act === 'publishLocale') this.publishLocale(button);
+            else if (act === 'discardLocale') this.discardLocale(button);
         });
 
         this.root.addEventListener('input', (event) => {
@@ -241,6 +243,7 @@ class Workbench {
 
         if (response) {
             this._applyBlockState(response.block);
+            this._applyLocalePending(response);
             this._toast(this._message('saved'));
         }
     }
@@ -260,6 +263,7 @@ class Workbench {
         if (!response) return;
 
         this._applyBlockState(response.block);
+        this._applyLocalePending(response);
         this._refreshBlockPreview(blockId);
     }
 
@@ -376,6 +380,99 @@ class Workbench {
         preview.hidden = !value;
     }
 
+    // ---- publishing one language ----------------------------------------
+
+    /**
+     * This language live, the page untouched: refused server-side while the
+     * page has a draft, which would go live with it.
+     *
+     * @see docs/internals/i18n.md#publishing-one-language
+     */
+    async publishLocale(button) {
+        // Off, but hoverable so its title says why: the click is ignored here.
+        if (button.getAttribute('aria-disabled') === 'true') return;
+
+        // What is typed and not yet saved is part of what the editor sees.
+        await Promise.all([...this.pending.keys()].map((blockId) => this._flush(blockId)));
+
+        const result = await this._busy(button, () => this._publishCall(this.root.dataset.cbPublishUrl), null);
+        if (!result?.ok) return;
+
+        this._setPublishState({ localePending: Boolean(result.data.pending) });
+        this._toast(this._message('published'));
+    }
+
+    async discardLocale(button) {
+        if (!window.confirm(this._message('discard_confirm'))) return;
+
+        // Saved after the discard, an edit still waiting would undo it.
+        for (const entry of this.pending.values()) window.clearTimeout(entry.timer);
+        this.pending.clear();
+
+        const result = await this._busy(button, () => this._publishCall(this.root.dataset.cbDiscardUrl), null);
+        if (!result?.ok) return;
+
+        // Every row may have changed back; the list is rebuilt, as after a run.
+        window.location.reload();
+    }
+
+    /** @returns {Promise<{ok: boolean, data: object}|null>} */
+    async _publishCall(url) {
+        let response;
+        let data = {};
+        try {
+            response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': this.csrf },
+            });
+            data = await response.json().catch(() => ({}));
+        } catch {
+            this._toast(this._message('publish_failed'), true);
+            return null;
+        }
+
+        if (response.ok) return { ok: true, data };
+
+        if (data.error === 'source_unpublished') {
+            this._setPublishState({ sourcePending: true });
+            this._toast(this._message('source_unpublished'), true);
+        } else if (data.error === 'refused' && typeof data.message === 'string') {
+            this._toast(data.message, true);
+        } else {
+            this._toast(this._message('publish_failed'), true);
+        }
+
+        return { ok: false, data };
+    }
+
+    _applyLocalePending(response) {
+        if (typeof response?.localePending === 'boolean') {
+            this._setPublishState({ localePending: response.localePending });
+        }
+    }
+
+    _setPublishState({ sourcePending, localePending } = {}) {
+        const group = this.root.querySelector('[data-target="publish"]');
+        if (!group) return;
+
+        if (sourcePending !== undefined) group.dataset.sourcePending = sourcePending ? '1' : '0';
+        if (localePending !== undefined) group.dataset.localePending = localePending ? '1' : '0';
+
+        const blocked = group.dataset.sourcePending === '1';
+        const actionable = group.dataset.localePending === '1' && !blocked;
+        group.classList.toggle('is-blocked', blocked);
+
+        const publish = group.querySelector('[data-act="publishLocale"]');
+        if (publish) {
+            publish.setAttribute('aria-disabled', String(!actionable));
+            if (actionable) publish.removeAttribute('title');
+            else publish.title = this._message(blocked ? 'source_unpublished' : 'nothing_to_publish');
+        }
+
+        const discard = group.querySelector('[data-act="discardLocale"]');
+        if (discard) discard.hidden = !actionable;
+    }
+
     // ---- machine translation ---------------------------------------------
 
     async translateField(row) {
@@ -393,6 +490,7 @@ class Workbench {
         if (!response) return;
 
         this._applyBlockState(response.block);
+        this._applyLocalePending(response);
         this._refreshBlockPreview(row.dataset.block);
         this._reportFailures(response.result);
     }
@@ -425,12 +523,14 @@ class Workbench {
         if (button?.getAttribute('aria-busy') === 'true') return null;
 
         this._setBusy(button, true);
-        this._toast(this._message(message));
+        if (message) this._toast(this._message(message));
 
         try {
             return await run();
         } finally {
             this._setBusy(button, false);
+            // Whether it has work left is the state's call, not the call's.
+            if (button?.closest('[data-target="publish"]')) this._setPublishState();
         }
     }
 

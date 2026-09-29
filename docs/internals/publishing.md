@@ -151,6 +151,16 @@ prevent: a French heading live on the public site describing an English heading
 nobody has seen. Holding a translation back is safe and expressible; running it
 ahead of its source is neither.
 
+## Drafts kept beside the area
+
+`ContentArea::hasUnpublishedChanges()` sees sections, columns and blocks. A
+bundle keeping a draft of its own — a translation — is invisible to it, so a
+page whose only change is such a draft looked clean and could not be published.
+`UnpublishedChangesProviderInterface` is the optional seam: `UnpublishedChanges`
+reads the area first and asks the providers only if it is clean, and the shell,
+the launcher badge and every endpoint answering `hasUnpublishedChanges` use it.
+The entity method is unchanged, and still means *this area's own draft*.
+
 ## Why the touch listener hooks onFlush
 
 `ContentAreaTouchListener` sets `ContentArea::updatedAt` and stamps

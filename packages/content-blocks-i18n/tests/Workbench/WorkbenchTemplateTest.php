@@ -163,6 +163,29 @@ final class WorkbenchTemplateTest extends TestCase
         $this->assertSame(1, substr_count($html, 'data-act="copySource"'));
     }
 
+    // Nothing waiting, or the page's own draft in the way: no publish.
+    public function testThePerLanguagePublishIsOnlyLiveWithWorkToDo(): void
+    {
+        $button = static fn (string $html): string => preg_match('/<button[^>]*data-act="publishLocale"[^>]*>/', $html, $m) === 1 ? $m[0] : '';
+
+        // aria-disabled keeps the hover, so the title can say why it is off.
+        $idle = $this->render(providers: []);
+        $this->assertStringContainsString('data-cb-publish-url="/mnt/content_blocks_i18n_area_publish/7/de"', $idle);
+        $this->assertStringContainsString('aria-disabled="true"', $button($idle));
+        $this->assertStringContainsString('title="cb_i18n.workbench.nothing_to_publish"', $button($idle));
+        $this->assertStringNotContainsString(' disabled', $button($idle));
+
+        $ready = $this->render(providers: [], publishing: ['sourcePending' => false, 'localePending' => true]);
+        $this->assertStringContainsString('aria-disabled="false"', $button($ready));
+        $this->assertStringNotContainsString('title=', $button($ready));
+        $this->assertStringNotContainsString('is-blocked', $ready);
+
+        $blocked = $this->render(providers: [], publishing: ['sourcePending' => true, 'localePending' => true]);
+        $this->assertStringContainsString('aria-disabled="true"', $button($blocked));
+        $this->assertStringContainsString('title="cb_i18n.workbench.source_unpublished"', $button($blocked));
+        $this->assertStringContainsString('cb-wb__publish is-blocked', $blocked);
+    }
+
     /** The arrow is the resolver's URL verbatim, not one derived from preview. */
     public function testTheBackArrowUsesTheResolvedBackUrl(): void
     {
@@ -221,7 +244,7 @@ final class WorkbenchTemplateTest extends TestCase
      * @param list<array{name: string, label: string}> $providers
      * @param list<array<string, mixed>> $publicLinks
      */
-    private function render(array $providers, array $publicLinks = [], ?string $host = null, array $extraBlocks = []): string
+    private function render(array $providers, array $publicLinks = [], ?string $host = null, array $extraBlocks = [], ?array $publishing = null): string
     {
         $template = '@ContentBlocksI18n/workbench/workbench.html.twig';
 
@@ -261,6 +284,7 @@ final class WorkbenchTemplateTest extends TestCase
             'publicLinks' => $publicLinks,
             'providers' => $providers,
             'csrfToken' => 'tok',
+            ...($publishing === null ? [] : ['publishing' => $publishing]),
         ]);
     }
 

@@ -8,6 +8,7 @@ use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\HistoryResult;
 use ContentBlocks\History\SidebarOutcome;
+use ContentBlocks\Publishing\UnpublishedChanges;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -35,6 +36,7 @@ final class HistoryController
         private readonly ActionJournal $journal,
         private readonly SidebarOutcome $sidebarOutcome,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly UnpublishedChanges $unpublishedChanges = new UnpublishedChanges(),
     ) {
     }
 
@@ -77,7 +79,7 @@ final class HistoryController
         $openId = \is_int($open['id'] ?? null) ? $open['id'] : null;
 
         return new JsonResponse($result->toArray() + [
-            'hasUnpublishedChanges' => $area->hasUnpublishedChanges(),
+            'hasUnpublishedChanges' => $this->unpublishedChanges->of($area),
             'sidebar' => $this->sidebarOutcome->decide($result->appliedOps, $type, $openId),
         ]);
     }

@@ -102,11 +102,20 @@ body {
 .cb-wb__btn.is-busy > [aria-hidden="true"]::after, .cb-wb__icon.is-busy::after {
     border-color: var(--cb-wb-accent); border-right-color: transparent;
 }
-.cb-wb__btn--accent.is-busy > [aria-hidden="true"]::after { border-color: #fff; border-right-color: transparent; }
+.cb-wb__btn--accent.is-busy > [aria-hidden="true"]::after,
+.cb-wb__btn--primary.is-busy > [aria-hidden="true"]::after { border-color: #fff; border-right-color: transparent; }
 @keyframes cb-wb-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
     .cb-wb__btn.is-busy > [aria-hidden="true"]::after, .cb-wb__icon.is-busy::after { animation-duration: 2s; }
 }
+
+/* One language live: the publish action, and why it is off when it is. */
+.cb-wb__btn--primary { background: var(--cb-wb-text); border-color: var(--cb-wb-text); color: #fff; }
+.cb-wb__btn--primary:hover { background: var(--cb-wb-text); filter: brightness(1.25); }
+.cb-wb__btn:disabled, .cb-wb__btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; filter: none; }
+.cb-wb__publish { display: flex; align-items: center; gap: 8px; }
+.cb-wb__publish-hint { display: none; font-size: 12px; color: var(--cb-wb-outdated); }
+.cb-wb__publish.is-blocked .cb-wb__publish-hint { display: inline; }
 
 /* ---- progress -------------------------------------------------------- */
 

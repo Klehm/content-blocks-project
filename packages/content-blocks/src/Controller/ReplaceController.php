@@ -7,6 +7,7 @@ namespace ContentBlocks\Controller;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
+use ContentBlocks\Publishing\UnpublishedChanges;
 use ContentBlocks\Replace\ContentAreaProviderInterface;
 use ContentBlocks\Section\SectionClonerInterface;
 use ContentBlocks\Security\AccessCheckerInterface;
@@ -40,6 +41,7 @@ final class ReplaceController
         private readonly SectionClonerInterface $sectionCloner,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ActionJournal $journal,
+        private readonly UnpublishedChanges $unpublishedChanges = new UnpublishedChanges(),
     ) {
     }
 
@@ -180,7 +182,7 @@ final class ReplaceController
             return new JsonResponse([
                 'replaced' => true,
                 'sectionCount' => \count($sourceSections),
-                'hasUnpublishedChanges' => $target->hasUnpublishedChanges(),
+                'hasUnpublishedChanges' => $this->unpublishedChanges->of($target),
             ]);
         });
     }

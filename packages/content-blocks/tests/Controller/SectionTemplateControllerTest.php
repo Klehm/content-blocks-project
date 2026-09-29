@@ -15,7 +15,10 @@ use ContentBlocks\SectionTemplate\SectionTemplateManagerInterface;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
+use ContentBlocks\Snapshot\SnapshotExtensionInterface;
+use ContentBlocks\Snapshot\SnapshotExtensions;
 use ContentBlocks\Tests\Fixtures\EchoTranslator;
+use ContentBlocks\Tests\Fixtures\RecordingSnapshotExtension;
 use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
 use ContentBlocks\Versioning\DenyOnMismatchUpgrader;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
@@ -36,6 +39,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
         ?AccessCheckerInterface $accessChecker = null,
         ?SectionTemplateManagerInterface $manager = null,
         ?ContentVersionUpgraderInterface $upgrader = null,
+        ?SnapshotExtensionInterface $extension = null,
     ): SectionTemplateController {
         return new SectionTemplateController(
             $em,
@@ -50,6 +54,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
             $this->makeJournal($em),
             new EnvelopeUpgradeChain(),
             5,
+            new SnapshotExtensions($extension === null ? [] : [$extension], $this->makeRegistry()),
         );
     }
 
@@ -98,6 +103,42 @@ final class SectionTemplateControllerTest extends ControllerTestCase
         // A snapshot is frozen, so its stamp keeps describing its payload.
         $this->assertSame(5, $template->getContentVersion());
         $this->assertSame(1, $this->flushCount);
+    }
+
+    // A translation of the section's text is part of what was saved.
+    public function testSaveKeepsWhatExtensionsCarryBesideTheBlocks(): void
+    {
+        $area = $this->makeArea(1);
+        $section = $this->makeSection($area, 10);
+        $column = $this->makeColumn($section, 11);
+        $this->makeBlock($column, 12)->setDraftData(['title' => 'Hello']);
+
+        $this->makeController($this->makeEm([$section]), extension: new RecordingSnapshotExtension())
+            ->save(10, $this->makeJsonRequest(['name' => 'Hero']));
+
+        $this->assertSame(
+            ['blocks' => ['c0.b0' => 'Hello'], 'columns' => ['c0' => 'col-12']],
+            $this->persisted[0]->getPayload()[SnapshotExtensions::PAYLOAD_KEY]['acme/recording'],
+        );
+    }
+
+    public function testInsertHandsTheNewSectionToTheExtensionsAfterTheFlush(): void
+    {
+        $area = $this->makeArea(1);
+        $payload = $this->payloadWith([
+            ['type' => 'gone', 'data' => []],
+            ['type' => 'fake', 'data' => ['content' => 'x']],
+        ]);
+        $payload[SnapshotExtensions::PAYLOAD_KEY] = ['acme/recording' => ['blocks' => ['c0.b1' => 'x']]];
+        $template = $this->makeTemplate(7, $payload, ['gone', 'fake']);
+        $extension = new RecordingSnapshotExtension();
+
+        $this->makeController($this->makeEm([$area, $template]), extension: $extension)
+            ->insert(1, 7, $this->makeJsonRequest());
+
+        $this->assertCount(1, $extension->restored);
+        $this->assertSame(['c0.b1'], array_keys($extension->restored[0]['blocks']));
+        $this->assertSame(2, $this->flushCount, 'the section, then what was restored');
     }
 
     public function testSaveRejectsBlankName(): void

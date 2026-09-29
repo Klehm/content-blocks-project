@@ -23,6 +23,7 @@ use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
 use ContentBlocks\SectionTemplate\UnsupportedTemplateFormatException;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
+use ContentBlocks\Snapshot\SnapshotExtensions;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -54,6 +55,7 @@ final class ClipboardController
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ActionJournal $journal,
         private readonly int $contentVersion = 1,
+        private readonly SnapshotExtensions $snapshots = new SnapshotExtensions(),
     ) {
     }
 
@@ -80,9 +82,12 @@ final class ClipboardController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        $snapshot = $this->sectionSerializer->serialize($section);
+        $payload = $this->withExtensions(
+            $this->sectionSerializer->serialize($section)->payload,
+            $this->snapshots->captureSection($section),
+        );
 
-        return new JsonResponse($this->envelope(ClipboardEnvelope::SCOPE_SECTION, $snapshot->payload));
+        return new JsonResponse($this->envelope(ClipboardEnvelope::SCOPE_SECTION, $payload));
     }
 
     #[Route(
@@ -103,9 +108,12 @@ final class ClipboardController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        return new JsonResponse(
-            $this->envelope(ClipboardEnvelope::SCOPE_BLOCK, $this->blockSerializer->serialize($block)),
+        $payload = $this->withExtensions(
+            $this->blockSerializer->serialize($block),
+            $this->snapshots->captureBlock($block),
         );
+
+        return new JsonResponse($this->envelope(ClipboardEnvelope::SCOPE_BLOCK, $payload));
     }
 
     /**
@@ -184,6 +192,14 @@ final class ClipboardController
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (UnsupportedTemplateFormatException | UnreadableClipboardException) {
             return $this->unreadable('payload');
+        }
+
+        // After the flush: what is kept beside a block needs its id.
+        $restored = $result->entity instanceof Section
+            ? $this->snapshots->restoreSection($result->entity, $envelope->payload)
+            : $this->snapshots->restoreBlock($result->entity, $envelope->payload);
+        if ($restored) {
+            $this->em->flush();
         }
 
         $section = $result->entity instanceof Section
@@ -292,6 +308,21 @@ final class ClipboardController
     private function envelope(string $scope, array $payload): array
     {
         return (new ClipboardEnvelope($scope, $payload, $this->contentVersion))->toArray();
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $extensions
+     *
+     * @return array<string, mixed>
+     */
+    private function withExtensions(array $payload, array $extensions): array
+    {
+        if ($extensions !== []) {
+            $payload[SnapshotExtensions::PAYLOAD_KEY] = $extensions;
+        }
+
+        return $payload;
     }
 
     private function unreadable(string $part): JsonResponse

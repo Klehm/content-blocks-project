@@ -7,6 +7,7 @@ namespace ContentBlocks\I18n\Controller;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\I18n\Lifecycle\TranslationDrafts;
 use ContentBlocks\I18n\Machine\MachineTranslator;
 use ContentBlocks\I18n\Machine\TranslationProviderRegistry;
 use ContentBlocks\I18n\Progress\TranslationInspector;
@@ -40,6 +41,7 @@ final class MachineTranslationController
         private readonly TranslationInspector $inspector,
         private readonly TranslatorInterface $symfonyTranslator,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly ?TranslationDrafts $drafts = null,
     ) {
     }
 
@@ -119,6 +121,7 @@ final class MachineTranslationController
         return new JsonResponse([
             'result' => $result->toArray(),
             'block' => $this->inspector->inspectBlock($block, $locale)?->toArray(),
+            'localePending' => $this->drafts?->hasPending($area, $locale) ?? false,
         ]);
     }
 
@@ -165,6 +168,7 @@ final class MachineTranslationController
         return new JsonResponse([
             'result' => $result->toArray(),
             'block' => $this->inspector->inspectColumn($column, $locale)?->toArray(),
+            'localePending' => $this->drafts?->hasPending($area, $locale) ?? false,
         ]);
     }
 
