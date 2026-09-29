@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Page;
+use ContentBlocks\Content\ContentManipulatorInterface;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Section\SectionClonerInterface;
@@ -21,6 +22,7 @@ final class PageController
         private readonly Environment $twig,
         private readonly EntityManagerInterface $em,
         private readonly SectionClonerInterface $sectionCloner,
+        private readonly ContentManipulatorInterface $content,
     ) {
     }
 
@@ -105,11 +107,8 @@ final class PageController
             static fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition(),
         );
 
-        foreach ($sections as $i => $section) {
-            $copy = $this->sectionCloner->cloneSection($section);
-            $copy->setPreviewPosition($i);
-            $area->addSection($copy);
-            $this->em->persist($copy);
+        foreach ($sections as $section) {
+            $this->content->insertSection($area, $this->sectionCloner->cloneSection($section));
         }
 
         // cascade: ['persist'] on Page::$contentArea commits the new area too.

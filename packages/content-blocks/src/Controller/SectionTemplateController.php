@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Controller;
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Content\ContentManipulator;
+use ContentBlocks\Content\ContentManipulatorInterface;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Entity\SectionTemplate;
@@ -46,6 +48,8 @@ final class SectionTemplateController
 
     private const MAX_NAME_LENGTH = 255;
 
+    private readonly ContentManipulatorInterface $content;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly AccessCheckerInterface $accessChecker,
@@ -60,7 +64,9 @@ final class SectionTemplateController
         private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
         private readonly int $contentVersion = 1,
         private readonly SnapshotExtensions $snapshots = new SnapshotExtensions(),
+        ?ContentManipulatorInterface $content = null,
     ) {
+        $this->content = $content ?? new ContentManipulator($em, $blockTypeRegistry);
     }
 
     private function getCsrfTokenManager(): CsrfTokenManagerInterface
@@ -258,9 +264,7 @@ final class SectionTemplateController
 
         $section = $result->section;
         $this->journal->record($area, 'section.insert', JournalScope::structure(), function () use ($area, $section): void {
-            $section->setPreviewPosition($this->nextPreviewPosition($area));
-            $area->addSection($section);
-            $this->em->persist($section);
+            $this->content->insertSection($area, $section);
             $this->em->flush();
         });
 
@@ -379,15 +383,5 @@ final class SectionTemplateController
         }
 
         return mb_substr($name, 0, self::MAX_NAME_LENGTH);
-    }
-
-    private function nextPreviewPosition(ContentArea $area): int
-    {
-        $max = -1;
-        foreach ($area->getSections() as $section) {
-            $max = max($max, $section->getPreviewPosition());
-        }
-
-        return $max + 1;
     }
 }

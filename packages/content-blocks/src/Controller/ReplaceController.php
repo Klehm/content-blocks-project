@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Controller;
 
+use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Content\ContentManipulator;
+use ContentBlocks\Content\ContentManipulatorInterface;
+use ContentBlocks\Content\DraftOrder;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
@@ -34,6 +38,8 @@ final class ReplaceController
     /** Default page size for the picker. */
     private const PAGE_SIZE = 10;
 
+    private readonly ContentManipulatorInterface $content;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly AccessCheckerInterface $accessChecker,
@@ -42,7 +48,9 @@ final class ReplaceController
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ActionJournal $journal,
         private readonly UnpublishedChanges $unpublishedChanges = new UnpublishedChanges(),
+        ?ContentManipulatorInterface $content = null,
     ) {
+        $this->content = $content ?? new ContentManipulator($em, new BlockTypeRegistry());
     }
 
     private function getCsrfTokenManager(): CsrfTokenManagerInterface
@@ -161,20 +169,10 @@ final class ReplaceController
 
             // previewPosition order, skipping soft-deleted: the copy follows
             // the source's draft order, the intent the user can see.
-            $sourceSections = array_values(array_filter(
-                $source->getSections()->toArray(),
-                fn ($section) => !$section->isDeleted(),
-            ));
-            usort(
-                $sourceSections,
-                fn ($a, $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition(),
-            );
+            $sourceSections = DraftOrder::sections($source);
 
             foreach ($sourceSections as $i => $sourceSection) {
-                $copy = $this->sectionCloner->cloneSection($sourceSection);
-                $copy->setPreviewPosition($i);
-                $target->addSection($copy);
-                $this->em->persist($copy);
+                $this->content->insertSection($target, $this->sectionCloner->cloneSection($sourceSection), $i);
             }
 
             $this->em->flush();

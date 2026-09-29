@@ -72,6 +72,7 @@ export default defineConfig({
           text: 'Integrating',
           items: [
             { text: 'Host services', link: '/guide/host-services' },
+            { text: 'Content from code', link: '/guide/content-from-code' },
             { text: 'Server-side events', link: '/guide/events' },
             { text: 'Rendering & preview', link: '/guide/rendering' },
             { text: 'Styling', link: '/guide/styling' },

@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace ContentBlocks\Clipboard;
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Content\ContentManipulator;
+use ContentBlocks\Content\ContentManipulatorInterface;
+use ContentBlocks\Content\DraftOrder;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
@@ -20,11 +23,15 @@ use ContentBlocks\SectionTemplate\SectionTemplateInstantiatorInterface;
  */
 final class ClipboardPaster
 {
+    private readonly ContentManipulatorInterface $content;
+
     public function __construct(
         private readonly SectionTemplateInstantiatorInterface $instantiator,
         private readonly BlockTypeRegistry $registry,
         private readonly BlockDataReplayer $replayer,
+        ?ContentManipulatorInterface $content = null,
     ) {
+        $this->content = $content ?? new ContentManipulator(null, $registry);
     }
 
     /**
@@ -50,9 +57,7 @@ final class ClipboardPaster
             }
         }
 
-        $siblings = $this->alive($area->getSections()->toArray());
-        $this->spliceAfter($siblings, $section, $after);
-        $area->addSection($section);
+        $this->content->insertSection($area, $section, DraftOrder::after(DraftOrder::sections($area), $after));
 
         return new PasteResult($section, $result->skippedBlockCount, $result->skippedBlockTypes, $dropped);
     }
@@ -82,9 +87,7 @@ final class ClipboardPaster
         $block->setDraftData(is_array($payload['data'] ?? null) ? $payload['data'] : []);
         $fields = $this->replayInto($block);
 
-        $siblings = $this->alive($column->getBlocks()->toArray());
-        $this->spliceAfter($siblings, $block, $after);
-        $column->addBlock($block);
+        $this->content->insertBlock($column, $block, DraftOrder::after(DraftOrder::blocks($column), $after));
 
         return new PasteResult(
             $block,
@@ -111,41 +114,5 @@ final class ClipboardPaster
         $block->setDraftData($result->data);
 
         return $result->droppedFields;
-    }
-
-    /**
-     * @template T of Section|Block|Column
-     *
-     * @param array<int, T> $items
-     *
-     * @return list<T>
-     */
-    private function alive(array $items): array
-    {
-        $alive = array_values(array_filter($items, static fn ($item) => !$item->isDeleted()));
-        usort($alive, static fn ($a, $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
-
-        return $alive;
-    }
-
-    /**
-     * Inserts $entity right after $after among $siblings — at the end when
-     * $after is null or no longer among them — then re-indexes the lot.
-     *
-     * @template T of Section|Block
-     *
-     * @param list<T> $siblings
-     * @param T       $entity
-     * @param T|null  $after
-     */
-    private function spliceAfter(array $siblings, Section|Block $entity, Section|Block|null $after): void
-    {
-        $index = $after === null ? false : array_search($after, $siblings, true);
-        $insertAt = $index === false ? \count($siblings) : $index + 1;
-        array_splice($siblings, $insertAt, 0, [$entity]);
-
-        foreach ($siblings as $i => $sibling) {
-            $sibling->setPreviewPosition($i);
-        }
     }
 }

@@ -10,12 +10,12 @@ use ContentBlocks\Block\BlockDataKeys;
 use ContentBlocks\Block\BlockRestoreTally;
 use ContentBlocks\Block\CollectionIdBackfiller;
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Content\ContentManipulator;
+use ContentBlocks\Content\ContentManipulatorInterface;
 use ContentBlocks\Controller\ColumnsController;
 use ContentBlocks\Entity\Block;
-use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
-use ContentBlocks\Entity\Section;
-use ContentBlocks\Section\ColumnSettings;
+use ContentBlocks\Section\RestoredSectionBuilder;
 use ContentBlocks\Section\RestoredStructure;
 use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
@@ -26,19 +26,26 @@ use ContentBlocks\Versioning\EnvelopeUpgradeChain;
  */
 final class ContentAreaImporter implements ContentAreaImporterInterface
 {
+    private readonly RestoredSectionBuilder $builder;
+
+    private readonly ContentManipulatorInterface $content;
+
     /**
      * @param iterable<ContentAreaTransferExtensionInterface> $extensions
      */
     public function __construct(
         private readonly AssetResolverInterface $assetResolver,
-        private readonly BlockTypeRegistry $registry,
-        private readonly BlockDataKeys $dataKeys,
+        BlockTypeRegistry $registry,
+        BlockDataKeys $dataKeys,
         private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
         private readonly iterable $extensions = [],
-        private readonly ?CollectionIdBackfiller $collectionIds = null,
+        ?CollectionIdBackfiller $collectionIds = null,
         private readonly AssetPolicy $policy = new AssetPolicy(),
-        private readonly SectionLayoutRegistry $layouts = new SectionLayoutRegistry(),
+        SectionLayoutRegistry $layouts = new SectionLayoutRegistry(),
+        ?ContentManipulatorInterface $content = null,
     ) {
+        $this->builder = new RestoredSectionBuilder($registry, $dataKeys, $collectionIds, $layouts);
+        $this->content = $content ?? new ContentManipulator(null, $registry, $layouts);
     }
 
     /**
@@ -74,9 +81,8 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
             if (!is_array($sectionRaw)) {
                 continue;
             }
-            $section = $this->buildSection($sectionRaw, 's' . $i, $assets, $tally, $blocks);
-            $section->setPreviewPosition($i);
-            $target->addSection($section);
+            $section = $this->builder->build($sectionRaw, $tally, $assets->rewrite(...), 's' . $i, $blocks);
+            $this->content->insertSection($target, $section, $i);
             ++$count;
         }
 
@@ -233,129 +239,5 @@ final class ContentAreaImporter implements ContentAreaImporterInterface
         }
 
         return $binary;
-    }
-
-    /**
-     * @param array<string, mixed> $raw
-     * @param array<string, Block> $blocks
-     */
-    private function buildSection(array $raw, string $ref, AssetRewriter $assets, BlockRestoreTally $tally, array &$blocks): Section
-    {
-        $section = new Section();
-        $layout = RestoredStructure::layout($raw['layout'] ?? null, $this->layouts);
-        if ($layout !== null) {
-            $section->setLayout($layout);
-        }
-
-        $settings = $raw['settings'] ?? null;
-        if (is_array($settings) && $settings !== []) {
-            /** @var array<string, mixed> $rewritten */
-            $rewritten = $assets->rewrite($settings);
-            $section->setDraftSettings($rewritten);
-        }
-
-        $cols = $raw['columns'] ?? null;
-        if (is_array($cols)) {
-            foreach (array_values($cols) as $i => $colRaw) {
-                if (!is_array($colRaw)) {
-                    continue;
-                }
-                $col = $this->buildColumn($colRaw, $ref . '.c' . $i, $assets, $tally, $blocks);
-                $col->setPreviewPosition($i);
-                $section->addColumn($col);
-            }
-        }
-
-        return $section;
-    }
-
-    /**
-     * @param array<string, mixed> $raw
-     * @param array<string, Block> $blocks
-     */
-    private function buildColumn(array $raw, string $ref, AssetRewriter $assets, BlockRestoreTally $tally, array &$blocks): Column
-    {
-        $col = new Column();
-        $preset = RestoredStructure::preset($raw['preset'] ?? null);
-        if ($preset !== null) {
-            $col->setPreset($preset);
-        }
-        $settings = ColumnSettings::sanitize($raw['settings'] ?? null);
-        if ($settings !== []) {
-            $col->setDraftSettings($settings);
-        }
-
-        $blocksRaw = $raw['blocks'] ?? null;
-        if (is_array($blocksRaw)) {
-            // Positions come from the *kept* blocks so a skipped one doesn't
-            // leave a hole in the sequence; refs count payload entries.
-            $position = 0;
-            foreach (array_values($blocksRaw) as $i => $blockRaw) {
-                if (!is_array($blockRaw)) {
-                    continue;
-                }
-                $block = $this->buildBlock($blockRaw, $assets, $tally);
-                if ($block === null) {
-                    continue;
-                }
-                $block->setPreviewPosition($position++);
-                $col->addBlock($block);
-                $blocks[$this->refOf($blockRaw, $ref . '.b' . $i)] = $block;
-            }
-        }
-
-        return $col;
-    }
-
-    /**
-     * The payload's own ref wins; the positional fallback is what an export
-     * predating the key would have been given.
-     *
-     * @param array<string, mixed> $raw
-     */
-    private function refOf(array $raw, string $fallback): string
-    {
-        $ref = $raw['ref'] ?? null;
-
-        return is_string($ref) && $ref !== '' ? $ref : $fallback;
-    }
-
-    /**
-     * @param array<string, mixed> $raw
-     *
-     * @return Block|null null when the block's type is not registered here
-     */
-    private function buildBlock(array $raw, AssetRewriter $assets, BlockRestoreTally $tally): ?Block
-    {
-        $type = $raw['type'] ?? null;
-        if (!is_string($type)) {
-            return null;
-        }
-        if (!$this->registry->has($type)) {
-            // Neither refused (a type this app lacks is expected from another
-            // install) nor imported (it would leave an inert block).
-            $tally->skip($type);
-
-            return null;
-        }
-
-        $block = new Block();
-        $block->setType($type);
-
-        $data = $raw['data'] ?? null;
-        if (is_array($data)) {
-            $tally->noteUnknownKeys($type, $this->dataKeys->unknownIn($type, $data));
-            /** @var array<string, mixed> $rewritten */
-            $rewritten = $assets->rewrite($data);
-            // Kept verbatim, unknown keys included (they warn, never drop). Ids
-            // the export carried stay: translations are keyed on them.
-            $block->setDraftData($this->collectionIds !== null
-                ? $this->collectionIds->backfill($type, $rewritten)
-                : $rewritten);
-        }
-
-        $tally->keep();
-
-        return $block;
     }
 }

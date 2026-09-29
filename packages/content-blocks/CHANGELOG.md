@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`ContentManipulatorInterface`: build content from code.** Fixtures, CMS
+  migrations and seed commands used to set `previewPosition`, collection
+  `_id`s and settings by hand. The service adds, moves, duplicates, deletes
+  and restores sections, columns and blocks the way the builder does, because
+  the builder's endpoints now run it: a section gets its layout's columns and
+  the configured `initial_settings`, a block starts from its type's defaults
+  with `_id`s minted, order is kept. It writes the draft only and never
+  flushes; `publish()` puts the result live. `insertSection()` and
+  `insertBlock()` place a node built elsewhere; paste, section templates,
+  import and "Insert content" go through them, so a decorator of the service
+  sees every structural change. A refusal throws
+  `ContentManipulationException` with a stable `reason`. See
+  [Content from code](../../docs/guide/content-from-code.md).
+
 - **Symfony events around publish, discard, block save and block delete**, in
   before/after pairs. A cache purge or a webhook used to mean decorating
   `ContentAreaPublisherInterface`, a block save had no hook at all, and
@@ -44,6 +58,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   what a bundle stores beside a block, as `ContentAreaTransferExtensionInterface`
   does for an export, under `extensions.<key>` of the snapshot. Older templates
   and clipboard entries read as before, and the serializers are unchanged.
+
+### Fixed
+
+- **Duplicating a block kept none of its translations**, while duplicating its
+  section kept them. A duplicated block now notifies the clone observers too.
 
 ## [1.1.0] - 2026-09-28
 

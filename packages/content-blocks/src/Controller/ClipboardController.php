@@ -11,6 +11,7 @@ use ContentBlocks\Clipboard\IncompatibleClipboardVersionException;
 use ContentBlocks\Clipboard\NoPasteTargetException;
 use ContentBlocks\Clipboard\PasteResult;
 use ContentBlocks\Clipboard\UnreadableClipboardException;
+use ContentBlocks\Content\DraftOrder;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
@@ -267,13 +268,7 @@ final class ClipboardController
             return null;
         }
 
-        $columns = array_values(array_filter(
-            $section->getColumns()->toArray(),
-            static fn (Column $column) => !$column->isDeleted(),
-        ));
-        usort($columns, static fn (Column $a, Column $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
-
-        return $columns[0] ?? null;
+        return DraftOrder::columns($section)[0] ?? null;
     }
 
     private function resolveSection(mixed $id, ContentArea $area): ?Section
