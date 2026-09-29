@@ -24,6 +24,9 @@ final class PreviewLocaleListener
     /** Set by the workbench page, which checked `canEdit()` to render. */
     public const SESSION_KEY = 'cb_i18n.preview_locale';
 
+    /** Read by the render resolver: a host listener may reset the locale. */
+    public const ATTRIBUTE = '_cb_preview_locale';
+
     public function __construct(
         private readonly TranslationLocales $locales,
     ) {
@@ -52,6 +55,7 @@ final class PreviewLocaleListener
             return;
         }
 
+        $request->attributes->set(self::ATTRIBUTE, $locale);
         $request->setLocale($locale);
     }
 }

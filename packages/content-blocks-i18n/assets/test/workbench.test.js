@@ -420,6 +420,52 @@ describe('machine translation', () => {
         expect(window.confirm).toHaveBeenCalledWith('Sûr ?');
         expect(calls).toHaveLength(0);
     });
+
+    // A page run outlasts any toast: the button itself says it is running.
+    it('marks the page button busy while the run is pending', async () => {
+        const root = mount();
+        let answer;
+        global.fetch = vi.fn(() => new Promise((resolve) => { answer = resolve; }));
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
+        new Workbench(root);
+
+        const button = root.querySelector('[data-act="translateAll"]');
+        button.click();
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(button.disabled).toBe(true);
+        expect(button.getAttribute('aria-busy')).toBe('true');
+        expect(button.classList.contains('is-busy')).toBe(true);
+
+        // A second click while busy sends nothing more.
+        button.disabled = false;
+        button.click();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+
+        answer({ ok: false, json: () => Promise.resolve({}) });
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(button.disabled).toBe(false);
+        expect(button.getAttribute('aria-busy')).toBe('false');
+        expect(root.querySelector('[data-target="toast"]').textContent).toBe('Traduction impossible');
+    });
+
+    it('marks a field button busy while its translation is pending', async () => {
+        const root = mount();
+        let answer;
+        global.fetch = vi.fn(() => new Promise((resolve) => { answer = resolve; }));
+        new Workbench(root);
+
+        const button = root.querySelector('[data-act="translateField"]');
+        button.click();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(button.classList.contains('is-busy')).toBe(true);
+
+        answer({ ok: false, json: () => Promise.resolve({}) });
+        await vi.advanceTimersByTimeAsync(0);
+        expect(button.classList.contains('is-busy')).toBe(false);
+    });
 });
 
 describe('the list', () => {

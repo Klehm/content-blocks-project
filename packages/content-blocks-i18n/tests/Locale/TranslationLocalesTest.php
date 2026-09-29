@@ -6,6 +6,7 @@ namespace ContentBlocks\I18n\Tests\Locale;
 
 use ContentBlocks\I18n\Locale\RequestRenderLocaleResolver;
 use ContentBlocks\I18n\Locale\TranslationLocales;
+use ContentBlocks\I18n\Preview\PreviewLocaleListener;
 use ContentBlocks\Rendering\RenderContext;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -79,6 +80,27 @@ final class TranslationLocalesTest extends TestCase
         $resolver = new RequestRenderLocaleResolver($stack, new TranslationLocales('en', ['fr', 'de']));
 
         $this->assertSame('de', $resolver->resolve(new RenderContext()));
+    }
+
+    public function testThePreviewLocaleSurvivesAHostResettingTheRequest(): void
+    {
+        // Sylius's RequestLocaleSetter runs after the preview listener and
+        // puts the channel locale back; the preview must still render `de`.
+        $stack = new RequestStack();
+        $main = Request::create('/');
+        $main->attributes->set(PreviewLocaleListener::ATTRIBUTE, 'de');
+        $main->setLocale('fr');
+        $stack->push($main);
+
+        // A fragment rendered through a sub-request sees the same pin.
+        $sub = Request::create('/_fragment');
+        $sub->setLocale('fr');
+        $stack->push($sub);
+
+        $resolver = new RequestRenderLocaleResolver($stack, new TranslationLocales('en', ['fr', 'de']));
+
+        $this->assertSame('de', $resolver->resolve(new RenderContext()));
+        $this->assertSame('fr', $resolver->resolve(RenderContext::forPublic('fr')));
     }
 
     public function testAnUnconfiguredLocaleResolvesToNoTranslation(): void

@@ -7,6 +7,18 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The workbench preview showed the source text on hosts that set the request
+  locale themselves.** Sylius resets the request locale after the preview
+  listener runs, so the whole page stayed in the source language, and only a
+  field you had just edited showed its translation. The preview locale is now
+  kept on the request, and translated content is read in that locale whatever
+  the host does to the request locale.
+- **Machine translation now shows it is running.** "Translate the page" and a
+  field's ⚡ button show a spinner and are disabled until the provider answers,
+  so a run cannot be started twice.
+
 ## [1.1.0] - 2026-09-28
 
 This release carries two changes:
