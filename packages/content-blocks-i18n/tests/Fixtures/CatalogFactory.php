@@ -36,6 +36,11 @@ final class CatalogFactory
         );
     }
 
+    public static function metadata(): FieldMetadataReader
+    {
+        return new FieldMetadataReader(self::registry(), self::formFactory());
+    }
+
     public static function translatableFields(): TranslatableFieldsInterface
     {
         return new TranslatableFields(self::registry(), self::formFactory());
@@ -45,6 +50,7 @@ final class CatalogFactory
     {
         $registry = new BlockTypeRegistry();
         $registry->register(new TranslatableFixtureBlock());
+        $registry->register(new MediaFixtureBlock());
 
         return $registry;
     }

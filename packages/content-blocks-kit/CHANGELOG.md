@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Image and video files are translatable.** `src` on `image`, `gallery`,
+  `card` and `video`, and the video's `poster`, carry `cb_translatable`. With
+  `klehm/content-blocks-i18n`, an editor can replace them for one language in
+  the workbench; without it, nothing changes. Stored block data is unchanged.
+
 ## [1.1.0] - 2026-09-28
 
 This release carries two changes:

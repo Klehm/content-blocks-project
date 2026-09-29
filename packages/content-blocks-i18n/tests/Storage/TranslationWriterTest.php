@@ -34,7 +34,51 @@ final class TranslationWriterTest extends TestCase
             $this->store,
             CatalogFactory::translatableFields(),
             new TranslationLocales('en', ['fr', 'de']),
+            CatalogFactory::metadata(),
         );
+    }
+
+    public function testALocalizedImageOrVideoPathIsStored(): void
+    {
+        $writer = $this->writer();
+        $block = Entities::block(1, 'media_fixture', draft: ['src' => '/uploads/en.jpg', 'video' => '/uploads/en.mp4']);
+
+        $result = $writer->write($block, 'fr', [
+            'src' => ' /uploads/fr.jpg ',
+            'video' => 'https://cdn.example.com/fr.mp4',
+        ]);
+
+        $this->assertSame(['src', 'video'], $result->written);
+        $this->assertSame(
+            ['src' => '/uploads/fr.jpg', 'video' => 'https://cdn.example.com/fr.mp4'],
+            $this->store->find($block, 'fr')->getDraftValues(),
+        );
+    }
+
+    // Written raw to `src`: the form that guards block data never sees it.
+    public function testAMediaValueWithAScriptSchemeIsRefused(): void
+    {
+        $writer = $this->writer();
+        $block = Entities::block(1, 'media_fixture', draft: ['src' => '/uploads/en.jpg']);
+
+        foreach (['javascript:alert(1)', "java\tscript:x", 'data:image/svg+xml,<svg/>', "/a\n.jpg"] as $value) {
+            $result = $writer->write($block, 'fr', ['src' => $value]);
+
+            $this->assertSame(['src' => 'invalid_media'], $result->rejected, $value);
+        }
+    }
+
+    // `""` stores a blank text, but a blank picture means "use the source's".
+    public function testABlankMediaValueClearsInsteadOfStoring(): void
+    {
+        $writer = $this->writer();
+        $block = Entities::block(1, 'media_fixture', draft: ['src' => '/uploads/en.jpg']);
+        $writer->write($block, 'fr', ['src' => '/uploads/fr.jpg']);
+
+        $result = $writer->write($block, 'fr', ['src' => '  ']);
+
+        $this->assertSame(['src'], $result->cleared);
+        $this->assertSame([], $this->store->find($block, 'fr')->getDraftValues());
     }
 
     /** @return array<string, mixed> */

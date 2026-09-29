@@ -6,6 +6,8 @@ namespace ContentBlocks\I18n\Field;
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Form\Type\BlockFormType;
+use ContentBlocks\Form\Type\ImageUploadType;
+use ContentBlocks\Form\Type\VideoUploadType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\UrlType;
@@ -153,6 +155,19 @@ final class FieldMetadataReader implements ResetInterface
 
     private function widgetOf(FormBuilderInterface $builder): string
     {
+        // Up the parent chain: an upload type is composed, not extended.
+        for ($resolved = $builder->getType(); $resolved !== null; $resolved = $resolved->getParent()) {
+            $inner = $resolved->getInnerType();
+
+            if ($inner instanceof VideoUploadType) {
+                return 'video';
+            }
+
+            if ($inner instanceof ImageUploadType) {
+                return 'image';
+            }
+        }
+
         $type = $builder->getType()->getInnerType();
 
         foreach (self::WIDGETS as $class => $widget) {

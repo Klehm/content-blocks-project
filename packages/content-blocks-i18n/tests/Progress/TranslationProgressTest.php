@@ -25,6 +25,29 @@ final class TranslationProgressTest extends TestCase
         return new TranslatableField('p', 'p', 'L', null, 'text', 'src', null, $status);
     }
 
+    // Most pictures are the same in every language: shared is not unfinished.
+    public function testASharedMediaFieldIsLeftOutOfProgress(): void
+    {
+        $media = static fn (FieldStatus $status): TranslatableField => new TranslatableField('src', 'src', 'L', null, 'image', '/a.jpg', null, $status);
+
+        $progress = TranslationProgress::of('fr', [
+            $this->field(FieldStatus::TRANSLATED),
+            $media(FieldStatus::MISSING),
+        ]);
+        $this->assertSame(1, $progress->getTotal());
+        $this->assertSame(100, $progress->getPercent());
+
+        // A localized picture whose source changed still needs a look.
+        $progress = TranslationProgress::of('fr', [
+            $this->field(FieldStatus::TRANSLATED),
+            $media(FieldStatus::OUTDATED),
+            $media(FieldStatus::TRANSLATED),
+        ]);
+        $this->assertSame(3, $progress->getTotal());
+        $this->assertSame(1, $progress->outdated);
+        $this->assertFalse($progress->isComplete());
+    }
+
     public function testOutdatedCountsAgainstCompletionRatherThanTowardsIt(): void
     {
         // A page whose source was rewritten drops back below 100% — the honest

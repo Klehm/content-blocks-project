@@ -142,6 +142,30 @@
                 <source>cb_i18n.workbench.panel_n</source>
                 <target>Panel %n%</target>
             </trans-unit>
+            <trans-unit id="workbench.media_shared">
+                <source>cb_i18n.workbench.media_shared</source>
+                <target>Same file as the source</target>
+            </trans-unit>
+            <trans-unit id="workbench.media_choose">
+                <source>cb_i18n.workbench.media_choose</source>
+                <target>Replace for this language</target>
+            </trans-unit>
+            <trans-unit id="workbench.media_drop">
+                <source>cb_i18n.workbench.media_drop</source>
+                <target>or drop a file here</target>
+            </trans-unit>
+            <trans-unit id="workbench.media_reset">
+                <source>cb_i18n.workbench.media_reset</source>
+                <target>Use the source file again</target>
+            </trans-unit>
+            <trans-unit id="workbench.upload_failed">
+                <source>cb_i18n.workbench.upload_failed</source>
+                <target>Upload failed</target>
+            </trans-unit>
+            <trans-unit id="workbench.uploading">
+                <source>cb_i18n.workbench.uploading</source>
+                <target>Uploading…</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

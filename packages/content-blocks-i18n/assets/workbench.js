@@ -60,9 +60,21 @@ class Workbench {
         // `focusin` rather than `focus`: focus does not bubble, and delegating
         // is what keeps this working for rows added after first paint.
         this.root.addEventListener('focusin', (event) => {
-            const input = event.target.closest('[data-target="input"]');
-            if (input) this.focusField(this._rowOf(input));
+            const row = this._rowOf(event.target);
+            if (row && (event.target.matches('[data-target="input"]') || row.dataset.media)) {
+                this.focusField(row);
+            }
         });
+
+        this.root.addEventListener('change', (event) => {
+            const picker = event.target.closest('[data-target="mediaFile"]');
+            if (!picker?.files?.length) return;
+
+            this.uploadMedia(this._rowOf(picker), picker.files[0]);
+            picker.value = '';
+        });
+
+        this._bindMediaDrop();
 
         const localeSelect = this.root.querySelector('[data-act="switchLocale"]');
         if (localeSelect) {
@@ -275,6 +287,95 @@ class Workbench {
         this.pending.clear();
     }
 
+    // ---- localized media --------------------------------------------------
+
+    /**
+     * Through the core's upload endpoint, then saved at once: there is no
+     * typing to debounce, and the file is already on the server.
+     */
+    async uploadMedia(row, file) {
+        if (!row || !file) return;
+
+        const url = await this._busy(
+            row.querySelector('.cb-wb__media-choose'),
+            () => this._upload(file),
+            'uploading',
+        );
+        if (!url) return;
+
+        const input = row.querySelector('[data-target="input"]');
+        if (input) input.value = url;
+        this._paintMedia(row, url);
+
+        this.edit(row, url);
+        await this._flush(row.dataset.block);
+    }
+
+    async _upload(file) {
+        const body = new FormData();
+        body.append('file', file);
+        // The endpoint checks edit rights on the area the file is for.
+        body.append('area', this.areaId ?? '');
+
+        try {
+            const response = await fetch(this.root.dataset.cbUploadUrl, {
+                method: 'POST',
+                headers: { 'X-CSRF-Token': this.csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                body,
+            });
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok || typeof data.url !== 'string') {
+                const reason = typeof data.error === 'string' ? ` — ${data.error}` : '';
+                this._toast(this._message('upload_failed') + reason, true);
+                return null;
+            }
+
+            return data.url;
+        } catch {
+            this._toast(this._message('upload_failed'), true);
+            return null;
+        }
+    }
+
+    /** Only file drags are taken: a dragged link or text keeps its default. */
+    _bindMediaDrop() {
+        const zoneOf = (event) => event.target.closest?.('[data-target="mediaDrop"]');
+        const carriesFiles = (event) => [...(event.dataTransfer?.types ?? [])].includes('Files');
+
+        this.root.addEventListener('dragover', (event) => {
+            const zone = zoneOf(event);
+            if (!zone || !carriesFiles(event)) return;
+            event.preventDefault();
+            zone.classList.add('is-over');
+        });
+
+        this.root.addEventListener('dragleave', (event) => {
+            const zone = zoneOf(event);
+            if (zone && !zone.contains(event.relatedTarget)) zone.classList.remove('is-over');
+        });
+
+        this.root.addEventListener('drop', (event) => {
+            const zone = zoneOf(event);
+            if (!zone || !carriesFiles(event)) return;
+            event.preventDefault();
+            zone.classList.remove('is-over');
+
+            const file = event.dataTransfer.files?.[0];
+            if (file) this.uploadMedia(this._rowOf(zone), file);
+        });
+    }
+
+    /** No value is the source's file: the target shows "shared" instead. */
+    _paintMedia(row, value) {
+        const preview = row.querySelector('[data-target="mediaPreview"]');
+        if (!preview) return;
+
+        if (value) preview.setAttribute('src', value);
+        else preview.removeAttribute('src');
+        preview.hidden = !value;
+    }
+
     // ---- machine translation ---------------------------------------------
 
     async translateField(row) {
@@ -320,11 +421,11 @@ class Workbench {
      * A provider call takes seconds to minutes, far longer than a toast lasts,
      * so the button that started it says it is still running.
      */
-    async _busy(button, run) {
+    async _busy(button, run, message = 'translating') {
         if (button?.getAttribute('aria-busy') === 'true') return null;
 
         this._setBusy(button, true);
-        this._toast(this._message('translating'));
+        this._toast(this._message(message));
 
         try {
             return await run();
@@ -505,12 +606,19 @@ class Workbench {
             );
             if (!row) continue;
 
-            row.classList.remove('cb-wb__row--missing', 'cb-wb__row--translated', 'cb-wb__row--outdated', 'is-dirty');
-            row.classList.add(`cb-wb__row--${field.status}`);
-            row.dataset.status = field.status;
+            // A file left as the source's is shared, not missing work.
+            const status = row.dataset.media && field.status === 'missing' ? 'shared' : field.status;
+
+            row.classList.remove(
+                'cb-wb__row--missing', 'cb-wb__row--translated', 'cb-wb__row--outdated',
+                'cb-wb__row--shared', 'is-dirty',
+            );
+            row.classList.add(`cb-wb__row--${status}`);
+            row.dataset.status = status;
 
             const input = row.querySelector('[data-target="input"]');
             if (input && document.activeElement !== input) input.value = field.value ?? '';
+            if (row.dataset.media) this._paintMedia(row, field.value ?? '');
 
             const stale = row.querySelector('.cb-wb__stale');
             if (stale) stale.hidden = field.status !== 'outdated';
@@ -531,7 +639,8 @@ class Workbench {
         const translated = count('translated');
         const outdated = count('outdated');
         const missing = count('missing');
-        const total = rows.length;
+        // Shared files are rows, not work: the server leaves them out too.
+        const total = translated + outdated + missing;
         const percent = total === 0 ? 100 : Math.round((translated / total) * 100);
 
         this._set('countTranslated', translated);

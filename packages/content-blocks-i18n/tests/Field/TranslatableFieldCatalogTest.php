@@ -60,6 +60,28 @@ final class TranslatableFieldCatalogTest extends TestCase
         $this->assertArrayNotHasKey('items[aa11].src', $fields);
     }
 
+    // Found up the parent chain: VideoUploadType is composed on the image one.
+    public function testUploadFieldsAreReadAsImageAndVideo(): void
+    {
+        $fields = CatalogFactory::create()->build('media_fixture', [
+            'src' => '/uploads/a.jpg',
+            'video' => '/uploads/a.mp4',
+            'caption' => 'A shop',
+        ]);
+
+        $widgets = [];
+        foreach ($fields as $field) {
+            $widgets[$field->path] = [$field->widget, $field->isMedia()];
+        }
+
+        $this->assertSame([
+            'src' => ['image', true],
+            'video' => ['video', true],
+            'caption' => ['text', false],
+        ], $widgets);
+        $this->assertTrue($fields[0]->toArray()['media']);
+    }
+
     public function testAFieldWithNoStoredValueIsMissing(): void
     {
         $fields = $this->byPath(CatalogFactory::create()->build('fixture', $this->source()));

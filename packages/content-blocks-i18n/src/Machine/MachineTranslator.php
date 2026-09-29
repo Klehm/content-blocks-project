@@ -182,6 +182,11 @@ final class MachineTranslator
                     continue;
                 }
 
+                // A file path is no text, and not work to skip either.
+                if ($field->isMedia()) {
+                    continue;
+                }
+
                 if (!$this->shouldTranslate($field, $overwrite)) {
                     ++$skipped;
 

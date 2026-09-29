@@ -66,6 +66,7 @@ Rendered markup: `.cb-kit-video` (a `<figure>`), `.cb-kit-video__player` on the 
 - Autoplay is always muted, since browsers refuse unmuted autoplay, and a video without autoplay always shows its controls, since it could not be started otherwise.
 - The poster goes through [`ImageUrlResolverInterface`](../../guide/host-services.md#imageurlresolverinterface-responsive-images).
 - Captions are a WebVTT file given by path or URL, rendered as a default `<track kind="captions">`. The file must be served as `text/vtt`. Both the file and its language are translatable, so each language can point at its own file.
+- The video file and its poster are translatable too: with `klehm/content-blocks-i18n`, a language can [replace them](../../guide/translation.md#localized-images-and-videos).
 
 ---
 

@@ -152,6 +152,24 @@ final class MachineTranslatorTest extends TestCase
         $this->assertSame([], array_filter($paths, static fn (string $p) => str_contains($p, 'src')));
     }
 
+    // A file path sent to an engine comes back as `[fr] /uploads/a.jpg`.
+    public function testMediaFieldsAreNeitherSentNorCountedAsSkipped(): void
+    {
+        $provider = new RecordingProvider();
+        $block = Entities::block(1, 'media_fixture', draft: [
+            'src' => '/uploads/a.jpg',
+            'video' => '/uploads/a.mp4',
+            'caption' => 'A shop',
+        ]);
+
+        $result = $this->translator($provider)->translateBlock($block, 'fr');
+
+        $paths = array_map(static fn (TranslationRequest $r): string => $r->path, $provider->received);
+        $this->assertSame(['1#caption'], $paths);
+        $this->assertSame(0, $result->toArray()['skipped'] ?? 0);
+        $this->assertSame(['caption'], array_keys($this->store->find($block, 'fr')->getDraftValues()));
+    }
+
     public function testAlreadyCorrectFieldsAreSkipped(): void
     {
         // Re-translating a field an editor hand-corrected is the fastest way to

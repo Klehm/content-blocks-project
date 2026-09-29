@@ -9,6 +9,48 @@
    @var publicLinks array
 #}
 {% trans_default_domain 'content_blocks_i18n' %}
+{% macro media_thumb(kind, src, target) %}
+    {%- if kind == 'video' -%}
+        <video {% if target %}data-target="mediaPreview" {% endif %}{% if src %}src="{{ src }}"{% endif %} muted preload="metadata" {{ src ? '' : 'hidden' }}></video>
+    {%- else -%}
+        <img {% if target %}data-target="mediaPreview" {% endif %}{% if src %}src="{{ src }}"{% endif %} alt="" {{ src ? '' : 'hidden' }}>
+    {%- endif -%}
+{% endmacro %}
+{# An image or video row: thumbnails instead of text, an upload instead of a
+   text box. See docs/internals/i18n.md#localized-media #}
+{% macro media_row(field) %}
+    {% trans_default_domain 'content_blocks_i18n' %}
+    <div class="cb-wb__source">
+        <span class="cb-wb__label">
+            {{ field.labelDomain ? field.label|trans({}, field.labelDomain) : field.label }}
+            {%- if field.entryIndex %} <span class="cb-wb__entry">#{{ field.entryIndex }}</span>{% endif %}
+        </span>
+        <div class="cb-wb__media">{{ _self.media_thumb(field.widget, field.source, false) }}</div>
+        <p class="cb-wb__stale" {{ field.status != 'outdated' ? 'hidden' : '' }}>⟲ {{ 'cb_i18n.workbench.source_changed'|trans }}</p>
+    </div>
+
+    <div class="cb-wb__target">
+        <div class="cb-wb__media cb-wb__media--target" data-target="mediaDrop">
+            {{ _self.media_thumb(field.widget, field.value, true) }}
+            <p class="cb-wb__media-shared">{{ 'cb_i18n.workbench.media_shared'|trans }}</p>
+            <label class="cb-wb__btn cb-wb__media-choose">
+                <span aria-hidden="true">⇪</span> {{ 'cb_i18n.workbench.media_choose'|trans }}
+                <input type="file" class="cb-wb__sr" data-target="mediaFile"
+                       accept="{{ field.widget == 'video' ? 'video/mp4,video/webm,video/ogg' : 'image/*' }}">
+            </label>
+            <p class="cb-wb__media-hint">{{ 'cb_i18n.workbench.media_drop'|trans }}</p>
+        </div>
+        <input type="hidden" data-target="input" value="{{ field.value }}">
+
+        <div class="cb-wb__row-actions">
+            <button type="button" class="cb-wb__icon cb-wb__icon--approve" data-act="approve"
+                    title="{{ 'cb_i18n.workbench.mark_current'|trans }}">✓</button>
+            <button type="button" class="cb-wb__icon cb-wb__icon--media-reset" data-act="reset"
+                    title="{{ 'cb_i18n.workbench.media_reset'|trans }}"
+                    aria-label="{{ 'cb_i18n.workbench.media_reset'|trans }}">⨯</button>
+        </div>
+    </div>
+{% endmacro %}
 <!DOCTYPE html>
 <html lang="{{ app.request.locale|default('en') }}">
 <head>
@@ -28,10 +70,13 @@
      data-cb-i18n-workbench-locale-value="{{ locale }}"
      data-cb-translate-all-url="{{ path('content_blocks_i18n_area_translate', { id: area.id, locale: locale }) }}"
      data-cb-csrf-token="{{ csrfToken }}"
+     data-cb-upload-url="{{ path('content_blocks_upload') }}"
      data-i18n-saved="{{ 'cb_i18n.workbench.saved'|trans }}"
      data-i18n-save-failed="{{ 'cb_i18n.workbench.save_failed'|trans }}"
      data-i18n-translating="{{ 'cb_i18n.workbench.translating'|trans }}"
      data-i18n-translate-failed="{{ 'cb_i18n.workbench.translate_failed'|trans }}"
+     data-i18n-uploading="{{ 'cb_i18n.workbench.uploading'|trans }}"
+     data-i18n-upload-failed="{{ 'cb_i18n.workbench.upload_failed'|trans }}"
      data-i18n-translate-all-confirm="{{ 'cb_i18n.workbench.translate_all_confirm'|trans }}">
 
     <header class="cb-wb__topbar">
@@ -156,11 +201,17 @@
                     </h2>
 
                     {% for field in block.fields %}
-                        <div class="cb-wb__row cb-wb__row--{{ field.status }}"
+                        {# A file left as the source's is shared. #}
+                        {% set status = (field.media ?? false) and field.status == 'missing' ? 'shared' : field.status %}
+                        <div class="cb-wb__row cb-wb__row--{{ status }}{% if field.media ?? false %} cb-wb__row--media{% endif %}"
                              data-target="row"
-                             data-status="{{ field.status }}"
+                             data-status="{{ status }}"
                              data-block="{{ block.key ?? block.blockId }}"
-                             data-path="{{ field.path }}">
+                             data-path="{{ field.path }}"
+                             {% if field.media ?? false %}data-media="{{ field.widget }}"{% endif %}>
+                            {% if field.media ?? false %}
+                                {{ _self.media_row(field) }}
+                            {% else %}
 
                             <div class="cb-wb__source">
                                 <span class="cb-wb__label">
@@ -195,6 +246,7 @@
                                             title="{{ 'cb_i18n.workbench.reset'|trans }}">⨯</button>
                                 </div>
                             </div>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 </article>

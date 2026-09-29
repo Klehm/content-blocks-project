@@ -7,8 +7,11 @@ namespace ContentBlocks\I18n\Storage;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\I18n\Entity\ColumnTranslation;
+use ContentBlocks\I18n\Field\FieldMetadataReader;
 use ContentBlocks\I18n\Field\FieldPath;
+use ContentBlocks\I18n\Field\MediaPath;
 use ContentBlocks\I18n\Field\SourceDigest;
+use ContentBlocks\I18n\Field\TranslatableField;
 use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\Section\ColumnSettings;
 use ContentBlocks\Translation\TranslatableFieldsInterface;
@@ -28,6 +31,7 @@ final class TranslationWriter
         private readonly TranslationStore $store,
         private readonly TranslatableFieldsInterface $translatableFields,
         private readonly TranslationLocales $locales,
+        private readonly ?FieldMetadataReader $metadata = null,
     ) {
     }
 
@@ -45,6 +49,7 @@ final class TranslationWriter
 
         $sourceData = $this->store->sourceDataOf($block);
         $allowed = $this->translatableFields->forBlockType($block->getType(), $sourceData);
+        $widgets = $this->metadata?->forBlockType($block->getType(), $sourceData) ?? [];
 
         $written = [];
         $cleared = [];
@@ -64,6 +69,19 @@ final class TranslationWriter
                 $rejected[$path] = 'unknown_path';
 
                 continue;
+            }
+
+            $widget = $widgets[FieldPath::patternOf($path)]['widget'] ?? null;
+
+            // A blank file is no translation: it goes back to the source's.
+            if ($value !== null && \in_array($widget, TranslatableField::MEDIA_WIDGETS, true)) {
+                $value = trim($value) === '' ? null : trim($value);
+
+                if ($value !== null && !MediaPath::isSafe($value)) {
+                    $rejected[$path] = 'invalid_media';
+
+                    continue;
+                }
             }
 
             // Created lazily so a wholly-rejected batch leaves no empty row

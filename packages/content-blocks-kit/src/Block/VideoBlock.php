@@ -50,11 +50,13 @@ class VideoBlock extends AbstractKitBlock implements BlockPreviewHintInterface
     {
         $builder
             ->add('src', VideoUploadType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.video.field.file',
                 'translation_domain' => 'content_blocks_kit',
                 'help' => 'cb_kit.block.video.file_help',
             ])
             ->add('poster', ImageUploadType::class, [
+                'cb_translatable' => true,
                 'label' => 'cb_kit.block.video.field.poster',
                 'translation_domain' => 'content_blocks_kit',
             ])

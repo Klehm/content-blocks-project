@@ -122,6 +122,47 @@ final class WorkbenchTemplateTest extends TestCase
         $this->assertSame(1, substr_count($html, 'data-cb-render-url='), 'only the block entry has one');
     }
 
+    // An image row: thumbnails and an upload, no text box and no ⚡.
+    public function testAMediaFieldRendersAsAnUploadRow(): void
+    {
+        $media = static fn (string $widget, ?string $value, string $status): array => [
+            'path' => $widget === 'video' ? 'video' : 'src',
+            'pattern' => 'src',
+            'label' => 'Image',
+            'labelDomain' => null,
+            'widget' => $widget,
+            'source' => '/uploads/fr.jpg',
+            'value' => $value,
+            'status' => $status,
+            'entryIndex' => null,
+            'media' => true,
+        ];
+
+        $html = $this->render(providers: [['name' => 'mine', 'label' => 'Mine']], extraBlocks: [[
+            'blockId' => 2,
+            'blockType' => 'image',
+            'blockLabel' => 'Image',
+            'sectionId' => 10,
+            'sectionNumber' => 1,
+            'blockNumber' => 2,
+            'fields' => [
+                $media('image', null, 'missing'),
+                $media('video', '/uploads/de.mp4', 'translated'),
+            ],
+            'progress' => ['locale' => 'de', 'total' => 1, 'translated' => 1, 'outdated' => 0, 'missing' => 0, 'percent' => 100, 'complete' => true],
+        ]]);
+
+        $this->assertStringContainsString('data-cb-upload-url="/mnt/content_blocks_upload"', $html);
+        $this->assertMatchesRegularExpression('/data-status="shared"[^>]*data-media="image"/', $html);
+        $this->assertMatchesRegularExpression('/data-status="translated"[^>]*data-media="video"/', $html);
+        $this->assertStringContainsString('<img src="/uploads/fr.jpg"', $html);
+        $this->assertStringContainsString('<video data-target="mediaPreview" src="/uploads/de.mp4"', $html);
+        $this->assertStringContainsString('accept="video/mp4,video/webm,video/ogg"', $html);
+        // One ⚡ for the text row only: a file is never sent to an engine.
+        $this->assertSame(1, substr_count($html, 'data-act="translateField"'));
+        $this->assertSame(1, substr_count($html, 'data-act="copySource"'));
+    }
+
     /** The arrow is the resolver's URL verbatim, not one derived from preview. */
     public function testTheBackArrowUsesTheResolvedBackUrl(): void
     {
