@@ -12,7 +12,7 @@ fact most of this design follows from.
 | | Runs | Does |
 |---|---|---|
 | `preview-overlay.js` | inside the iframe | signals intents, never acts |
-| `cb-builder_controller.js` | the parent window | owns every AJAX call and all state |
+| `cb-builder_controller.js` + `builder/` | the parent window | owns every AJAX call and all state |
 
 The overlay is **plain JS, not Stimulus**, so the host's front theme does not
 have to carry a Stimulus loader. `BlockRenderer` injects it, and `builder.css`
@@ -67,6 +67,42 @@ markup, and a link whose `href` is not http(s) is dropped rather than rendered â
 a `javascript:` URL would run in the admin. With a link, the bar stays up 10 s
 instead of 6: there is something to reach for. The new tab is not a choice left
 to the host: following the link in place would close the builder.
+
+## The builder controller is split by feature
+
+`cb-builder` grew to 2 900 lines in one class. It is now a short controller
+(targets, values, `connect()` / `disconnect()`, and `_onMessage()`, the table of
+what the preview can ask for) plus one file per feature in `assets/builder/`:
+requests, session, save status, snackbar, preview, structure, publishing,
+history, clipboard, keyboard, actions menu, viewport, sidebar, sidebar resize,
+replace picker, template library, template poster, tree, import/export, strings.
+
+Each file is a class that is **never instantiated**. `mix()` copies its
+methods, accessors and statics onto the controller, so `this` in any of them is
+the controller, exactly as before the split. Two reasons for mixins over
+collaborator objects:
+
+- **The features are not independent.** Almost every one of them calls
+  `_jsonRequest()`, `_notify()`, `_applyDraftState()`, `reload()` and `_t()`.
+  Collaborators would each need a handle on most of the others, which moves the
+  coupling into constructor arguments without removing it.
+- **The tests stay the safety net.** The Vitest suites spy on the controller's
+  own methods (`vi.spyOn(controller, '_jsonRequest')`, 125 spies, and about
+  300 direct calls to private methods). With
+  mixins the split left every test untouched, which is what shows it changed
+  no behaviour.
+
+`mix()` throws when two parts, or a part and the controller, define the same
+name: with one namespace shared by twenty files, a silent override would be the
+likely bug. The statics stay readable off the controller (`isSessionLoss`,
+`shortcutIntent`, the timeouts), and a subclass can still override them, since
+the parts read them through `this.constructor`.
+
+A new feature gets its own file and one line in the `mix()` call. The files are
+plain modules imported by relative path, like `transfer/`, so nothing changes
+for a host: no new controller name, nothing to add to `controllers.json`.
+`cb-builder-modules.test.js` checks that every `cb-builder#â€¦` action in the
+templates still resolves to a method.
 
 ## Endpoint URLs come from the router
 
