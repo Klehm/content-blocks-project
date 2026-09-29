@@ -13,7 +13,9 @@ use ContentBlocks\I18n\Field\FieldMetadataReader;
 use ContentBlocks\I18n\Field\TranslatableFieldCatalog;
 use ContentBlocks\I18n\Lifecycle\TranslationCloneObserver;
 use ContentBlocks\I18n\Lifecycle\TranslationPublisher;
+use ContentBlocks\I18n\Locale\ConfiguredLocaleFallbacksProvider;
 use ContentBlocks\I18n\Locale\ConfiguredTargetLocalesProvider;
+use ContentBlocks\I18n\Locale\LocaleFallbacksProviderInterface;
 use ContentBlocks\I18n\Locale\LocalizedPageUrlResolverInterface;
 use ContentBlocks\I18n\Locale\NullLocalizedPageUrlResolver;
 use ContentBlocks\I18n\Locale\RenderLocaleResolverInterface;
@@ -50,6 +52,7 @@ return static function (ContainerConfigurator $container): void {
         ->set('content_blocks_i18n.source_locale', 'en')
         ->set('content_blocks_i18n.locales', [])
         ->set('content_blocks_i18n.locale_labels', [])
+        ->set('content_blocks_i18n.fallbacks', [])
         ->set('content_blocks_i18n.machine.default', null)
         ->set('content_blocks_i18n.workbench.public_links', true);
 
@@ -64,12 +67,17 @@ return static function (ContainerConfigurator $container): void {
         ->args([param('content_blocks_i18n.locales')]);
     $services->alias(TargetLocalesProviderInterface::class, ConfiguredTargetLocalesProvider::class);
 
+    $services->set(ConfiguredLocaleFallbacksProvider::class)
+        ->args([param('content_blocks_i18n.fallbacks')]);
+    $services->alias(LocaleFallbacksProviderInterface::class, ConfiguredLocaleFallbacksProvider::class);
+
     $services->set(TranslationLocales::class)
         ->factory([TranslationLocalesFactory::class, 'create'])
         ->args([
             param('content_blocks_i18n.source_locale'),
             service(TargetLocalesProviderInterface::class),
             param('content_blocks_i18n.locale_labels'),
+            service(LocaleFallbacksProviderInterface::class),
         ])
         ->public();
 
@@ -173,6 +181,10 @@ return static function (ContainerConfigurator $container): void {
     // ---------- Twig ----------
 
     $services->set(I18nExtension::class)->tag('twig.extension');
+
+    // hreflang alternates for the host's public <head>.
+    $services->set(ContentBlocks\I18n\Locale\AlternatePageLinks::class);
+    $services->set(ContentBlocks\I18n\Twig\HreflangExtension::class)->tag('twig.extension');
 
     // ---------- HTTP + CLI ----------
 

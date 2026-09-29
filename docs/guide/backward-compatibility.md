@@ -28,7 +28,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 
 **Kit**: `RichTextEditorInterface`, `IconProviderInterface`.
 
-**i18n**: `TranslationProviderInterface`, `RenderLocaleResolverInterface`, `WorkbenchBackUrlResolverInterface`, `LocalizedPageUrlResolverInterface`, `TargetLocalesProviderInterface`.
+**i18n**: `TranslationProviderInterface`, `RenderLocaleResolverInterface`, `WorkbenchBackUrlResolverInterface`, `LocalizedPageUrlResolverInterface`, `TargetLocalesProviderInterface`, `LocaleFallbacksProviderInterface`.
 
 ### PHP — classes you extend, construct or reference
 
@@ -88,7 +88,7 @@ For `content-blocks:assets:gc`, the *shape* of the safety design is part of the 
 - **Functions**:
   - core: `cb_render_content_area`, `cb_preview_url`, `cb_public_url`, `cb_api_base`, `cb_color_palette`, `cb_color_tone`, `cb_color_is_dark`, `cb_css_color`, `cb_image`, `cb_ui_icon`, `cb_shell_fragments`, `cb_has_unpublished_changes`
   - kit: `cb_embed_url`, `cb_kit_icon`, `cb_kit_token`, `cb_kit_stylesheet_url`
-  - i18n: `cb_i18n_workbench_url`, `cb_i18n_locales`, `cb_i18n_progress`
+  - i18n: `cb_i18n_workbench_url`, `cb_i18n_locales`, `cb_i18n_progress`, `cb_i18n_hreflang`, `cb_i18n_alternates`
 - **Filters** (kit): `cb_kit_safe_url`, `cb_kit_rich_html`. A template override of a kit view keeps the same guards by using them.
 - **Template paths.** Every shipped template path, since overriding one under `templates/bundles/` is a supported integration. Their *contents* are not frozen, and a template may be restructured, but the path will resolve.
 - **Block names.** The block names a host overrides keep working, including the empty blocks shipped for host additions:

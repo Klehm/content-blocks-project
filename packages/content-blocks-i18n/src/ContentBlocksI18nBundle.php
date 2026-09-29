@@ -21,8 +21,8 @@ final class ContentBlocksI18nBundle extends AbstractBundle
     protected string $extensionAlias = 'content_blocks_i18n';
 
     /**
-     * Semantic config: `source_locale`, `locales`, the workbench's public links,
-     * and a default machine provider. No engine adapter ships here.
+     * Semantic config: `source_locale`, `locales`, `fallbacks`, the workbench's
+     * public links, and a default machine provider. No engine adapter here.
      *
      * @see docs/internals/i18n.md#config-and-mounting
      */
@@ -58,6 +58,16 @@ final class ContentBlocksI18nBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('fallbacks')
+                    ->info('Where an untranslated field of a locale is read from before the source, e.g. { fr_CA: fr } or { pt_BR: [pt_PT, es] }. Each chain is complete: fallbacks are not followed transitively. Empty by default, so an untranslated field shows the source text. A host aliasing LocaleFallbacksProviderInterface replaces these chains.')
+                    ->useAttributeAsKey('locale')
+                    // Keys are locale tags: `zh-Hant` must stay `zh-Hant`.
+                    ->normalizeKeys(false)
+                    ->arrayPrototype()
+                        ->beforeNormalization()->castToArray()->end()
+                        ->scalarPrototype()->cannotBeEmpty()->end()
+                    ->end()
+                ->end()
                 ->arrayNode('workbench')
                     ->addDefaultsIfNotSet()
                     ->children()
@@ -77,7 +87,37 @@ final class ContentBlocksI18nBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+            ->end()
+            ->validate()
+                // The source ends every chain already; naming it, or a locale
+                // as its own fallback, says the config was misread.
+                ->ifTrue(static fn (array $config): bool => self::misreadFallback($config) !== null)
+                ->then(static function (array $config): array {
+                    throw new \InvalidArgumentException(self::misreadFallback($config) ?? '');
+                })
             ->end();
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    private static function misreadFallback(array $config): ?string
+    {
+        $source = $config['source_locale'];
+
+        foreach ($config['fallbacks'] ?? [] as $locale => $chain) {
+            if ($locale === $source) {
+                return \sprintf('content_blocks_i18n.fallbacks: "%s" is the source locale, which has no translations to fall back from.', $locale);
+            }
+
+            foreach ($chain as $fallback) {
+                if ($fallback === $source || $fallback === $locale) {
+                    return \sprintf('content_blocks_i18n.fallbacks.%s: "%s" cannot be listed; the source locale ends every chain already.', $locale, $fallback);
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -102,6 +142,7 @@ final class ContentBlocksI18nBundle extends AbstractBundle
             ->set('content_blocks_i18n.source_locale', $config['source_locale'])
             ->set('content_blocks_i18n.locales', $codes)
             ->set('content_blocks_i18n.locale_labels', $labels)
+            ->set('content_blocks_i18n.fallbacks', $config['fallbacks'])
             ->set('content_blocks_i18n.machine.default', $config['machine']['default'])
             ->set('content_blocks_i18n.workbench.public_links', $config['workbench']['public_links']);
     }

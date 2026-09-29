@@ -31,11 +31,11 @@ than from a missing feature:
   files are tagged; enums, sizes and colours are not. A file stays shared
   until an editor replaces it for a language ([Localized images and
   videos](../../docs/guide/translation.md#localized-images-and-videos)).
-- **No locale fallback chain.** A locale that is not configured renders the
-  source; `fr_CA` does not fall back to `fr`.
-- **Not your site's i18n.** It translates block content. Routes per locale,
-  your templates' strings, and `hreflang` tags stay with your app; the
-  rendering locale comes from your request through `RenderLocaleResolverInterface`.
+- **No implicit fallback between locales.** An untranslated field shows the
+  source text; `fr_CA` reads `fr` first only if you say so under `fallbacks`.
+- **Not your site's i18n.** It translates block content. Routes per locale and
+  your templates' strings stay with your app; the rendering locale comes from
+  your request through `RenderLocaleResolverInterface`.
 - **No machine translation engine.** The seam is there; the engine, and where a
   page's text is sent, is your choice.
 
@@ -54,6 +54,11 @@ content_blocks_i18n:
         - fr
         - { code: de, label: 'Deutsch' }
         - es
+
+    # Optional: where an untranslated field of a locale is read from before
+    # the source. Empty by default: an untranslated field shows the source.
+    fallbacks:
+        fr_CA: fr
 
     # Link each language's published page from the workbench topbar. Only
     # does something once you implement LocalizedPageUrlResolverInterface.
@@ -123,6 +128,30 @@ $html = $renderer->render($area, RenderContext::forPublic('de'));
 text while its neighbours render translated, so a half-translated page looks
 incomplete rather than broken — and incremental translation shows something
 before it is finished.
+
+**A regional locale can read its parent first.** With `fallbacks: { fr_CA: fr }`,
+an untranslated `fr_CA` field shows the `fr` translation, and the source only
+when `fr` has none either. A chain is complete as written (`{ pt_BR: [pt_PT, es] }`),
+never followed transitively. The workbench still lists the `fr_CA` field as
+missing: the fallback is what the page shows, not a translation. To compute the
+chains from your own locales instead of listing them, alias
+`LocaleFallbacksProviderInterface` ([Fallbacks from the
+host](../../docs/guide/translation.md#fallbacks-from-the-host)).
+
+### hreflang
+
+Once you implement `LocalizedPageUrlResolverInterface` (see [Links to each
+language](../../docs/guide/translation.md#links-to-each-language)), one call in
+your page's `<head>` announces every language to search engines:
+
+```twig
+{{ cb_i18n_hreflang(page.contentArea) }}
+{# <link rel="alternate" hreflang="en" href="https://…/page/7">
+   <link rel="alternate" hreflang="fr" href="https://…/fr/page/7">
+   <link rel="alternate" hreflang="x-default" href="https://…/page/7"> #}
+```
+
+`cb_i18n_alternates(area)` returns the same data for markup of your own.
 
 ---
 

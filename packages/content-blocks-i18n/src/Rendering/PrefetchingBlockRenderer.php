@@ -8,6 +8,7 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\I18n\Locale\RenderLocaleResolverInterface;
+use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Storage\TranslationStore;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Rendering\RenderContext;
@@ -25,6 +26,7 @@ final class PrefetchingBlockRenderer implements BlockRendererInterface
         private readonly BlockRendererInterface $inner,
         private readonly TranslationStore $store,
         private readonly RenderLocaleResolverInterface $localeResolver,
+        private readonly ?TranslationLocales $locales = null,
     ) {
     }
 
@@ -62,8 +64,12 @@ final class PrefetchingBlockRenderer implements BlockRendererInterface
 
         $locale = $this->localeResolver->resolve($context ?? new RenderContext());
 
-        if ($locale !== null) {
-            $this->store->prefetchArea($area, $locale);
+        if ($locale === null) {
+            return;
+        }
+
+        foreach ([$locale, ...$this->locales?->getFallbacks($locale) ?? []] as $candidate) {
+            $this->store->prefetchArea($area, $candidate);
         }
     }
 }

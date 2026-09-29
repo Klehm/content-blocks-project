@@ -16,13 +16,15 @@ final class TranslationLocales
     private readonly array $targets;
 
     /**
-     * @param list<string>          $locales
-     * @param array<string, string> $labels  locale => host-supplied label
+     * @param list<string>                $locales
+     * @param array<string, string>       $labels    locale => host label
+     * @param array<string, list<string>> $fallbacks locale => fallback chain
      */
     public function __construct(
         private readonly string $sourceLocale,
         array $locales,
         private readonly array $labels = [],
+        private readonly array $fallbacks = [],
     ) {
         // The source may or may not appear in the configured list; either
         // spelling is natural, so accept both and normalize here.
@@ -66,6 +68,23 @@ final class TranslationLocales
     public function isKnown(string $locale): bool
     {
         return $this->isSource($locale) || $this->isTarget($locale);
+    }
+
+    /**
+     * The targets an untranslated field of `$locale` is read from, in order,
+     * before the source. Empty unless the host configured `fallbacks`.
+     *
+     * @see docs/internals/i18n.md#the-fallback-chain
+     *
+     * @return list<string>
+     */
+    public function getFallbacks(string $locale): array
+    {
+        // A provider can drop a locale the config still names: skip it.
+        return array_values(array_unique(array_filter(
+            $this->fallbacks[$locale] ?? [],
+            fn (string $fallback): bool => $fallback !== $locale && $this->isTarget($fallback),
+        )));
     }
 
     /**

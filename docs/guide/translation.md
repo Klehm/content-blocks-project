@@ -35,11 +35,12 @@ than from a missing feature:
   files are tagged; enums, sizes and colours are not. A file stays shared
   until an editor replaces it for a language ([Localized images and
   videos](#localized-images-and-videos)).
-- **No locale fallback chain.** A locale that is not configured renders the
-  source; `fr_CA` does not fall back to `fr`.
-- **Not your site's i18n.** It translates block content. Routes per locale,
-  your templates' strings, and `hreflang` tags stay with your app; the
-  rendering locale comes from your request through `RenderLocaleResolverInterface`.
+- **No implicit fallback between locales.** An untranslated field shows the
+  source text; `fr_CA` reads `fr` first only if you configure it
+  ([Fallback chain](#fallback-chain)).
+- **Not your site's i18n.** It translates block content. Routes per locale and
+  your templates' strings stay with your app; the rendering locale comes from
+  your request through `RenderLocaleResolverInterface`.
 - **No machine translation engine.** The seam is there; the engine, and where a
   page's text is sent, is your choice.
 
@@ -53,6 +54,7 @@ content_blocks_i18n:
         - fr
         - { code: de, label: 'Deutsch' }
         - es
+    fallbacks: {}            # default; see "Fallback chain"
     workbench:
         public_links: true   # default; see "Links to each language"
 ```
@@ -139,6 +141,81 @@ $renderer->render($area, RenderContext::forPublic('de'));
 text while its neighbours render translated. The alternative makes a
 half-translated page look broken rather than incomplete, and makes incremental
 translation pointless since nothing shows until everything is done.
+
+## Fallback chain
+
+By default an untranslated field shows the source text, whatever the locale. A
+site with both `fr` and `fr_CA` usually wants the Canadian page to read the
+French translation first:
+
+```yaml
+content_blocks_i18n:
+    source_locale: en
+    locales: [fr, fr_CA, pt_PT, pt_BR, es]
+    fallbacks:
+        fr_CA: fr               # one locale
+        pt_BR: [pt_PT, es]      # or an ordered list
+```
+
+- **Per field, like the rest.** For each field, the first locale of the chain
+  with a value wins, and the source comes last. Tab titles and localized
+  images follow the same chain.
+- **Each chain is complete as written.** `pt_BR: [pt_PT]` plus
+  `pt_PT: [es]` does not make `pt_BR` read `es`: list it if you want it.
+- **Only what a locale renders changes.** The workbench and
+  `content-blocks:i18n:status` still count an untranslated `fr_CA` field as
+  missing, since the text on the page is `fr`'s, not a translation into `fr_CA`.
+  The public page reads the fallback's *published* value, the preview its draft.
+- **Checked at boot.** The source locale cannot be listed (it ends every chain
+  already), nor a locale as its own fallback. A fallback that is not a
+  configured target, for instance one your `TargetLocalesProviderInterface`
+  stopped returning, is skipped.
+
+It is off by default because turning it on changes pages: a host that has both
+`fr` and `fr_CA` would suddenly show French text where it showed the source.
+
+### Fallbacks from the host
+
+When your locales come from a [provider](#locales-from-the-host), a map in YAML
+goes stale as soon as a language is enabled. Alias
+`LocaleFallbacksProviderInterface` instead, for example to make every regional
+locale read its language first:
+
+```php
+use ContentBlocks\I18n\Locale\LocaleFallbacksProviderInterface;
+use ContentBlocks\I18n\Locale\TargetLocalesProviderInterface;
+use Symfony\Component\DependencyInjection\Attribute\AsAlias;
+
+#[AsAlias(LocaleFallbacksProviderInterface::class)]
+final class ParentLocaleFallbacks implements LocaleFallbacksProviderInterface
+{
+    public function __construct(private readonly TargetLocalesProviderInterface $targets) {}
+
+    public function getFallbacks(): array
+    {
+        $targets = $this->targets->getTargetLocales();
+        $chains = [];
+
+        foreach ($targets as $locale) {
+            $parent = strtok($locale, '_-');   // fr_CA → fr
+            if ($parent !== $locale && in_array($parent, $targets, true)) {
+                $chains[$locale] = [$parent];
+            }
+        }
+
+        return $chains;
+    }
+}
+```
+
+It works like the locale provider:
+
+- **It replaces `fallbacks`.** Once you alias it, the config map is ignored.
+- **What it returns is filtered, not checked at boot.** The source, a locale
+  listed as its own fallback, and a code that is not a target are dropped, the
+  same as for the config.
+- **It is called once per container**: once per request under PHP-FPM, once
+  for a worker's lifetime under a [worker runtime](./worker-mode.md).
 
 ## Localized images and videos
 
@@ -392,6 +469,43 @@ final class LocalizedPageUrlResolver implements LocalizedPageUrlResolverInterfac
 It is called for the source locale and for each target. Returning `null` skips
 that language. To hide the links while keeping the resolver — for another use,
 or on one environment — set `content_blocks_i18n.workbench.public_links: false`.
+
+## hreflang links
+
+The same resolver gives search engines the page in every language. Put one call
+in your public layout's `<head>`:
+
+```twig
+<head>
+    {{ cb_i18n_hreflang(page.contentArea) }}
+</head>
+```
+
+```html
+<link rel="alternate" hreflang="en" href="https://example.com/page/7">
+<link rel="alternate" hreflang="fr" href="https://example.com/fr/page/7">
+<link rel="alternate" hreflang="pt-BR" href="https://example.com/pt_BR/page/7">
+<link rel="alternate" hreflang="x-default" href="https://example.com/page/7">
+```
+
+- **Every language with a URL, the current one included**, as search engines
+  expect: each page lists itself. A language your resolver returns `null` for
+  is left out, so that is where to skip a language you don't want indexed yet.
+- **`x-default` is the source locale's URL.** Pass `x_default: false` to leave
+  it out: `cb_i18n_hreflang(page.contentArea, x_default: false)`.
+- **URLs are made absolute** from the current request when the resolver
+  returns a path. Search engines ignore a relative alternate.
+- **Locale codes become BCP 47 tags**: `pt_BR` is written `pt-BR`.
+- **Nothing is printed for a page in a single language**, or when the area is
+  `null`, so the call can stay in a shared layout.
+
+For markup of your own, `cb_i18n_alternates(area)` returns the same list:
+
+```twig
+{% for link in cb_i18n_alternates(page.contentArea) %}
+    <a href="{{ link.url }}" hreflang="{{ link.hreflang }}">{{ link.locale }}</a>
+{% endfor %}
+```
 
 ## Adding to the workbench
 
