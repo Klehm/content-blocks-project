@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`cb-builder_controller.js` is split into one file per feature** under
+  `assets/builder/` (requests, session, preview, structure, history,
+  clipboard, sidebar, template library, …), mixed into the controller. Nothing
+  changes for a host: same controller name, same `cb:*` events, nothing to add
+  to `controllers.json`. A host that overrode the controller file through its
+  importmap or bundler now has to override the `builder/` file that holds the
+  method instead.
+
 ### Added
 
 - **`ContentManipulatorInterface`: build content from code.** Fixtures, CMS

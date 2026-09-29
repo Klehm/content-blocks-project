@@ -112,7 +112,7 @@ presets, the block order and the block data — enough to draw something faithfu
 It also costs no column, no migration and no storage, and it works on rows saved
 long before the feature existed.
 
-The renderer on the other end is `cb-builder_controller.js#_buildTemplatePoster`;
+The renderer on the other end is `builder/template-poster.js#_buildTemplatePoster`;
 the shape `SectionPosterBuilder::build()` returns is that contract. It returns
 null when the payload holds no column structure to draw — an envelope from
 another format, or a row written by hand — and callers render the card without a

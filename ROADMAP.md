@@ -139,14 +139,13 @@ All of them fit in 1.x under three rules:
 
 Ranked, highest first:
 
-1. **Split `cb-builder_controller.js`** (2 910 lines, ~148 methods, 13 feature areas) into modules, as `transfer/` already is.
-2. **Translation**: per-locale publishing from the builder (see [Translation](#translation--multilingual--what-is-still-open-) above).
-3. **`@layer content-blocks` on the public CSS**, so a host overrides it without out-specifying 7-compound selectors. **Opt-in in 1.x, default in 2.0.** Layered rules lose to every unlayered rule whatever their specificity, so turning it on for everyone would let a host's existing global CSS (`img`, `a`, a reset) start winning over the package's rules: no signature changes, but pages render differently. A config key that wraps the served stylesheets keeps 1.x safe; meanwhile a host can already write `@import url(…) layer(content-blocks)` itself.
-4. **Pass the block and the render context to the view template.** It is included with `with_context = false` and receives `data` and `block_id` only (`render/block.html.twig`): `block_id` already gives stable anchors and ARIA ids, but a view cannot tell the render mode or the locale. New variables only, so no existing view breaks.
-5. **Per-block CSS/JS declaration**, through an optional interface on the block type.
-6. **A per-block data migration hook.** `ContentVersionUpgraderInterface` covers snapshots only. An optional interface on the block type; `DenyOnMismatchUpgrader` keeps its default, which is part of the promise.
-7. **Picker categories**, through an optional `category` argument on `#[AsContentBlock]` or an optional interface. A block without one lands in a default group.
-8. **`lang` on text that falls back to the source.** On a German page, an untranslated field shows French text that screen readers, hyphenation and search engines read as German (WCAG 3.1.2). A whole untranslated block can get `lang` on its wrapper through a `BlockDecoratorInterface`, with no template change. A partly translated block needs item 4, so the view knows which field fell back. **Opt-in in 1.x** (`content_blocks_i18n.fallback_lang`), since it changes the public markup.
+1. **Translation**: per-locale publishing from the builder (see [Translation](#translation--multilingual--what-is-still-open-) above).
+2. **`@layer content-blocks` on the public CSS**, so a host overrides it without out-specifying 7-compound selectors. **Opt-in in 1.x, default in 2.0.** Layered rules lose to every unlayered rule whatever their specificity, so turning it on for everyone would let a host's existing global CSS (`img`, `a`, a reset) start winning over the package's rules: no signature changes, but pages render differently. A config key that wraps the served stylesheets keeps 1.x safe; meanwhile a host can already write `@import url(…) layer(content-blocks)` itself.
+3. **Pass the block and the render context to the view template.** It is included with `with_context = false` and receives `data` and `block_id` only (`render/block.html.twig`): `block_id` already gives stable anchors and ARIA ids, but a view cannot tell the render mode or the locale. New variables only, so no existing view breaks.
+4. **Per-block CSS/JS declaration**, through an optional interface on the block type.
+5. **A per-block data migration hook.** `ContentVersionUpgraderInterface` covers snapshots only. An optional interface on the block type; `DenyOnMismatchUpgrader` keeps its default, which is part of the promise.
+6. **Picker categories**, through an optional `category` argument on `#[AsContentBlock]` or an optional interface. A block without one lands in a default group.
+7. **`lang` on text that falls back to the source.** On a German page, an untranslated field shows French text that screen readers, hyphenation and search engines read as German (WCAG 3.1.2). A whole untranslated block can get `lang` on its wrapper through a `BlockDecoratorInterface`, with no template change. A partly translated block needs item 3, so the view knows which field fell back. **Opt-in in 1.x** (`content_blocks_i18n.fallback_lang`), since it changes the public markup.
 
 Not ranked yet:
 
