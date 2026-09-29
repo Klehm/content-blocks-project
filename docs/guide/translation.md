@@ -492,7 +492,7 @@ in your public layout's `<head>`:
   expect: each page lists itself. A language your resolver returns `null` for
   is left out, so that is where to skip a language you don't want indexed yet.
 - **`x-default` is the source locale's URL.** Pass `x_default: false` to leave
-  it out: `{{ cb_i18n_hreflang(page.contentArea, x_default: false) }}`.
+  it out: `cb_i18n_hreflang(page.contentArea, x_default: false)`.
 - **URLs are made absolute** from the current request when the resolver
   returns a path. Search engines ignore a relative alternate.
 - **Locale codes become BCP 47 tags**: `pt_BR` is written `pt-BR`.
