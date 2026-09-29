@@ -216,8 +216,11 @@ leave the list. Link to it from wherever the host keeps its admin UI:
 
 {# Decorate a page list with per-locale progress — "DE 40%" #}
 {% for code, progress in cb_i18n_progress(page.contentArea) %}
-    {{ code }} {{ progress.percent }}%
+    {{ code }} {{ progress.empty ? '—' : progress.percent ~ '%' }}
 {% endfor %}
+
+{# `empty`: nothing to translate (a new page, or images only). Its percent
+   is 100 and `complete` is true, so check `empty` before a green badge. #}
 
 {# Configured locales, source flagged, for a picker #}
 {% for locale in cb_i18n_locales() %}{{ locale.label }}{% endfor %}

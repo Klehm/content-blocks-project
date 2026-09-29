@@ -9,6 +9,13 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Progress says when there is nothing to translate.** `cb_i18n_progress()`
+  (and `TranslationProgress::toArray()`) gains an `empty` key, true when a
+  page has no translatable field: a page just created, or one holding only
+  images and dividers. `percent` stays 100 and `complete` true for such a page,
+  so a badge that read them showed a new page as fully translated; check
+  `empty` first. `TranslationProgress::isEmpty()` gives the same answer.
+
 - **Locale fallback chain, opt-in.** `content_blocks_i18n.fallbacks` names the
   locales an untranslated field is read from before the source: with
   `{ fr_CA: fr }`, an untranslated `fr_CA` field shows the `fr` translation.

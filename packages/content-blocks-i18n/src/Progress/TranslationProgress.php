@@ -73,6 +73,15 @@ final class TranslationProgress
         return $total === 0 ? 100 : (int) round($this->translated / $total * 100);
     }
 
+    /**
+     * Nothing to translate: a new page, or images and dividers only. Its 100%
+     * means "nothing to do", which a badge should not show as "translated".
+     */
+    public function isEmpty(): bool
+    {
+        return $this->getTotal() === 0;
+    }
+
     public function isComplete(): bool
     {
         return $this->outdated === 0 && $this->missing === 0;
@@ -94,6 +103,7 @@ final class TranslationProgress
             'missing' => $this->missing,
             'percent' => $this->getPercent(),
             'complete' => $this->isComplete(),
+            'empty' => $this->isEmpty(),
         ];
     }
 }

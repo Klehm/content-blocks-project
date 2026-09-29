@@ -48,6 +48,46 @@ final class TranslationProgressTest extends TestCase
         $this->assertFalse($progress->isComplete());
     }
 
+    // A new page: 100% and complete, as before, but flagged empty so a host
+    // badge can say "nothing to translate" rather than "translated".
+    public function testAScopeWithNothingToTranslateIsEmpty(): void
+    {
+        $progress = TranslationProgress::of('fr', []);
+
+        $this->assertTrue($progress->isEmpty());
+        $this->assertSame(100, $progress->getPercent());
+        $this->assertTrue($progress->isComplete());
+        $this->assertTrue($progress->toArray()['empty']);
+        $this->assertTrue($progress->toArray()['complete']);
+    }
+
+    // Shared images alone leave nothing to translate either.
+    public function testASharedMediaOnlyScopeIsEmpty(): void
+    {
+        $media = new TranslatableField('src', 'src', 'L', null, 'image', '/a.jpg', null, FieldStatus::MISSING);
+
+        $this->assertTrue(TranslationProgress::of('fr', [$media])->isEmpty());
+    }
+
+    public function testAFullyTranslatedScopeIsNotEmpty(): void
+    {
+        $progress = TranslationProgress::of('fr', [$this->field(FieldStatus::TRANSLATED)]);
+
+        $this->assertFalse($progress->isEmpty());
+        $this->assertFalse($progress->toArray()['empty']);
+        $this->assertSame(100, $progress->getPercent());
+    }
+
+    public function testEmptinessSurvivesAddingScopes(): void
+    {
+        $empty = TranslationProgress::of('fr', []);
+
+        $this->assertTrue($empty->plus($empty)->isEmpty());
+        $this->assertFalse(
+            $empty->plus(TranslationProgress::of('fr', [$this->field(FieldStatus::MISSING)]))->isEmpty(),
+        );
+    }
+
     public function testOutdatedCountsAgainstCompletionRatherThanTowardsIt(): void
     {
         // A page whose source was rewritten drops back below 100% — the honest
