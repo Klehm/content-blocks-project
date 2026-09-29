@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Controller;
 
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\I18n\Lifecycle\TranslationDrafts;
 use ContentBlocks\I18n\Locale\LocalizedPageUrlResolverInterface;
 use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Machine\NullTranslationProvider;
@@ -50,6 +51,7 @@ final class WorkbenchPageController
         private readonly LocalizedPageUrlResolverInterface $pageUrls,
         private readonly bool $publicLinks = true,
         private readonly ?RequestStack $requestStack = null,
+        private readonly ?TranslationDrafts $drafts = null,
     ) {
     }
 
@@ -106,6 +108,12 @@ final class WorkbenchPageController
             'publicLinks' => $this->publicLinks($area, $locale),
             'providers' => $this->providerChoices($locale),
             'csrfToken' => (string) $this->csrfTokenManager->getToken('content_blocks'),
+            // What the per-language Publish reads: its own draft, and the
+            // page's, which would go live with it.
+            'publishing' => [
+                'sourcePending' => $area->hasUnpublishedChanges(),
+                'localePending' => $this->drafts?->hasPending($area, $locale) ?? false,
+            ],
         ]), Response::HTTP_OK, [
             // Its buttons write: a page framing it could steer the clicks.
             'X-Frame-Options' => 'SAMEORIGIN',

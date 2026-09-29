@@ -42,9 +42,6 @@ than from a missing feature:
   rendering locale comes from your request through `RenderLocaleResolverInterface`.
 - **No machine translation engine.** The seam is there; the engine, and where a
   page's text is sent, is your choice.
-- **Section templates and the clipboard do not carry translations yet.** A
-  section saved as a template, or copied, arrives untranslated. Duplicate,
-  *Insert content* and export/import do carry them.
 
 ## Configuration
 
@@ -172,14 +169,24 @@ by the asset sweep, and embedded in an export. `VideoUploadType` and
 `ImageUploadType` (or a type whose parent chain reaches one) are what mark a
 field as a file.
 
-## Draft, published, and why translations have no buttons of their own
+## Draft, published, and publishing one language
 
 Translations are written to the **draft** and ride the area's existing Publish
-and Discard.
+and Discard. A translation typed on a published page is a pending change like
+any other: the builder's Publish button lights up for it.
 
 This is the rule that prevents the failure the feature exists to avoid: a French
 heading live on the public site describing an English heading that is still an
 unpublished draft. Source and translations go live together, or not at all.
+
+The workbench also has **Publish EN** (and *Discard changes*) for its own
+language, so a translator does not need the builder. It publishes that language
+only, and it is **off while the page has unpublished changes of its own**:
+Publish always puts the page's draft live too, so publishing English there would
+publish an editor's unfinished work with it. The button then says why, and the
+builder's Publish is the way, translations included. It goes through the same
+publisher as the builder's, so [publish events](events.md) fire and a listener
+can refuse it.
 
 ## Three states
 
@@ -291,15 +298,17 @@ every clone and export for free; it is also opaque, so "which pages are missing
 German?" would mean deserializing every block's JSON — and a multilingual site is
 run from exactly that view. The cost is the mirror image: every flow that
 duplicates or serializes a block has to be taught to carry its rows — which
-`BlockCloneObserverInterface` (duplicate, insert-content) and
-`ContentAreaTransferExtensionInterface` (export, import) make possible — plus a
-prefetch so a translated page is one query rather than one per block.
+`BlockCloneObserverInterface` (duplicate, insert-content),
+`ContentAreaTransferExtensionInterface` (export, import) and
+`SnapshotExtensionInterface` (section templates, copy/paste) make possible —
+plus a prefetch so a translated page is one query rather than one per block.
 
 In practice that means **an exported page comes back translated**: the JSON
 carries a `extensions."content-blocks/i18n"` fragment holding each block's values
 and staleness digests per locale, and importing it into an installation without
 this package simply skips that fragment. Copy/paste and saved section templates
-are the two flows that do **not** carry translations yet.
+carry them too, under the same key: a translated section saved to the library,
+or copied, arrives translated.
 
 **Tab titles have their own table.** A section shown as tabs or as an
 accordion puts its column names on the page, so the workbench lists them as

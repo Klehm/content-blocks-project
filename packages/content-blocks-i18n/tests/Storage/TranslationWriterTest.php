@@ -38,6 +38,37 @@ final class TranslationWriterTest extends TestCase
         );
     }
 
+    // Carried, not measured: an outdated translation stays outdated.
+    public function testARestoredTranslationKeepsTheDigestItWasCopiedWith(): void
+    {
+        $writer = $this->writer();
+        $block = Entities::block(1, draft: $this->source());
+
+        $result = $writer->restore($block, 'fr', [
+            'heading' => 'Bienvenue',
+            'body' => 'Livraison partout.',
+            'align' => 'left',
+            'items[aa11].label' => ['not' => 'text'],
+        ], ['heading' => 'stale-digest']);
+
+        $this->assertSame(['heading', 'body'], $result->written);
+        $this->assertSame(['align' => 'not_translatable'], $result->rejected);
+        $row = $this->store->find($block, 'fr');
+        $this->assertSame('stale-digest', $row->getDraftDigests()['heading']);
+        // None captured: read as current, as an import is.
+        $this->assertSame('', $row->getDraftDigests()['body']);
+    }
+
+    public function testARestoredMediaValueIsCheckedLikeATypedOne(): void
+    {
+        $writer = $this->writer();
+        $block = Entities::block(1, 'media_fixture', draft: ['src' => '/uploads/en.jpg']);
+
+        $result = $writer->restore($block, 'fr', ['src' => 'javascript:alert(1)'], []);
+
+        $this->assertSame(['src' => 'invalid_media'], $result->rejected);
+    }
+
     public function testALocalizedImageOrVideoPathIsStored(): void
     {
         $writer = $this->writer();

@@ -32,6 +32,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Nothing to migrate, and nothing changes for a host that listens to nothing.
   See [Server-side events](../../docs/guide/events.md).
+- **`UnpublishedChangesProviderInterface`**: a bundle that keeps a draft of its
+  own beside the area (a translation) tells the builder there is something to
+  publish. The shell, the launcher badge and every endpoint answering
+  `hasUnpublishedChanges` read the area's draft and then these providers
+  (`UnpublishedChanges`, Twig `cb_has_unpublished_changes(area)`).
+  `ContentArea::hasUnpublishedChanges()` is unchanged. A host that copied
+  `builder/shell.html.twig` or `launcher.html.twig` keeps the old reading until
+  it switches to the function.
+- **`SnapshotExtensionInterface`**: section templates and the clipboard carry
+  what a bundle stores beside a block, as `ContentAreaTransferExtensionInterface`
+  does for an export, under `extensions.<key>` of the snapshot. Older templates
+  and clipboard entries read as before, and the serializers are unchanged.
 
 ## [1.1.0] - 2026-09-28
 

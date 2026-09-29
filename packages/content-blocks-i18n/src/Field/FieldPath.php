@@ -146,6 +146,27 @@ final class FieldPath
     }
 
     /**
+     * `items[9f2c].label` to `items[#1].label`: a path that survives a copy,
+     * which mints new entry ids. Null when an entry is not in $data.
+     *
+     * @param array<string, mixed> $data
+     */
+    public static function toPositional(string $path, array $data): ?string
+    {
+        return self::rewriteIds($path, $data, true);
+    }
+
+    /**
+     * The inverse of {@see self::toPositional()}, against the copy's data.
+     *
+     * @param array<string, mixed> $data
+     */
+    public static function fromPositional(string $path, array $data): ?string
+    {
+        return self::rewriteIds($path, $data, false);
+    }
+
+    /**
      * `items[9f2c].label` to `items[].label` — how a stored translation is
      * checked against the allow-list, which names shapes rather than instances.
      */
@@ -384,6 +405,69 @@ final class FieldPath
             $node[$name][$key] = $child;
 
             return $node;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    /**
+     * @param array<string, mixed> $data
+     */
+    private static function rewriteIds(string $path, array $data, bool $toPositional): ?string
+    {
+        $segments = self::segments($path);
+        if ($segments === []) {
+            return null;
+        }
+
+        $node = $data;
+        $out = [];
+
+        foreach ($segments as $segment) {
+            if (!\is_array($node) || !\array_key_exists($segment['name'], $node)) {
+                return null;
+            }
+            $node = $node[$segment['name']];
+
+            if ($segment['id'] === null) {
+                $out[] = $segment['name'];
+
+                continue;
+            }
+            if (!\is_array($node)) {
+                return null;
+            }
+
+            $entries = array_values($node);
+            $index = $toPositional
+                ? self::indexOf($entries, $segment['id'])
+                : (preg_match('/^#(\d+)$/', $segment['id'], $m) === 1 ? (int) $m[1] : null);
+            $entry = $index === null ? null : ($entries[$index] ?? null);
+            $id = \is_array($entry) ? ($entry[CollectionItemIds::KEY] ?? null) : null;
+
+            if (!\is_string($id) || $id === '') {
+                return null;
+            }
+
+            $node = $entry;
+            $out[] = $segment['name'] . '[' . ($toPositional ? '#' . $index : $id) . ']';
+        }
+
+        return implode('.', $out);
+    }
+
+    /**
+     * @param list<mixed> $entries
+     */
+    private static function indexOf(array $entries, string $id): ?int
+    {
+        foreach ($entries as $i => $entry) {
+            if (\is_array($entry) && ($entry[CollectionItemIds::KEY] ?? null) === $id) {
+                return $i;
+            }
         }
 
         return null;

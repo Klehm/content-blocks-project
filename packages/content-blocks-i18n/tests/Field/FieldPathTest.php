@@ -153,4 +153,41 @@ final class FieldPathTest extends TestCase
             $this->assertNull(FieldPath::read($this->data(), $malformed), $malformed);
         }
     }
+
+    // A pasted block gets new entry ids: the path is kept by position.
+    public function testAPathSurvivesACopyByEntryPosition(): void
+    {
+        $original = [
+            'title' => 'Hi',
+            'items' => [
+                ['_id' => 'aa', 'label' => 'One', 'links' => [['_id' => 'x1', 'text' => 'a'], ['_id' => 'x2', 'text' => 'b']]],
+                ['_id' => 'bb', 'label' => 'Two', 'links' => []],
+            ],
+        ];
+        $copy = [
+            'title' => 'Hi',
+            'items' => [
+                ['_id' => 'n1', 'label' => 'One', 'links' => [['_id' => 'y1', 'text' => 'a'], ['_id' => 'y2', 'text' => 'b']]],
+                ['_id' => 'n2', 'label' => 'Two', 'links' => []],
+            ],
+        ];
+
+        $this->assertSame('title', FieldPath::toPositional('title', $original));
+        $this->assertSame('items[#1].label', FieldPath::toPositional('items[bb].label', $original));
+        $this->assertSame('items[#0].links[#1].text', FieldPath::toPositional('items[aa].links[x2].text', $original));
+
+        $this->assertSame('items[n2].label', FieldPath::fromPositional('items[#1].label', $copy));
+        $this->assertSame('items[n1].links[y2].text', FieldPath::fromPositional('items[#0].links[#1].text', $copy));
+    }
+
+    public function testAPathThatDoesNotLandIsDropped(): void
+    {
+        $data = ['items' => [['_id' => 'aa', 'label' => 'One']]];
+
+        $this->assertNull(FieldPath::toPositional('items[zz].label', $data));
+        $this->assertNull(FieldPath::toPositional('missing', $data));
+        $this->assertNull(FieldPath::fromPositional('items[#3].label', $data));
+        // An id where a position is expected is not guessed at.
+        $this->assertNull(FieldPath::fromPositional('items[aa].label', $data));
+    }
 }

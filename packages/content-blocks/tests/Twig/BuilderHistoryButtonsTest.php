@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Twig;
 
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Publishing\UnpublishedChanges;
 use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Twig\SectionLayoutExtension;
+use ContentBlocks\Twig\UnpublishedChangesExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -118,6 +120,7 @@ final class BuilderHistoryButtonsTest extends TestCase
         $env = new Environment($loader, ['strict_variables' => true]);
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
         $env->addExtension(new SectionLayoutExtension(new SectionLayoutRegistry()));
+        $env->addExtension(new UnpublishedChangesExtension(new UnpublishedChanges()));
         $env->addFunction(new TwigFunction('csrf_token', static fn (string $id): string => 'test-token'));
         $env->addFunction(new TwigFunction('cb_api_base', static fn (): string => '/_content-blocks'));
         $env->addFunction(new TwigFunction('cb_shell_fragments', static fn (ContentArea $area): array => []));

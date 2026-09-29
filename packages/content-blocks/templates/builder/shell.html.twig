@@ -215,14 +215,14 @@
                     data-action="cb-builder#discard"
                     title="{{ 'cb.builder.discard'|trans({}, 'content_blocks') }}"
                     aria-label="{{ 'cb.builder.discard'|trans({}, 'content_blocks') }}"
-                    {% if not area.hasUnpublishedChanges %}hidden{% endif %}>
+                    {% if not cb_has_unpublished_changes(area) %}hidden{% endif %}>
                 <span class="cb-shell__btn-icon" aria-hidden="true">↶</span>
                 <span class="cb-shell__btn-label">{{ 'cb.builder.discard'|trans({}, 'content_blocks') }}</span>
             </button>
             <button type="button"
                     class="cb-shell__publish"
                     data-action="cb-builder#publish"
-                    {% if not area.hasUnpublishedChanges %}disabled{% endif %}>
+                    {% if not cb_has_unpublished_changes(area) %}disabled{% endif %}>
                 {{ 'cb.builder.publish'|trans({}, 'content_blocks') }}
             </button>
 

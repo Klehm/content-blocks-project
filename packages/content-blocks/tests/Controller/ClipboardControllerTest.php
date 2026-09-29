@@ -25,6 +25,9 @@ use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
 use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Security\DenyAllAccessChecker;
+use ContentBlocks\Snapshot\SnapshotExtensionInterface;
+use ContentBlocks\Snapshot\SnapshotExtensions;
+use ContentBlocks\Tests\Fixtures\RecordingSnapshotExtension;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -74,6 +77,48 @@ final class ClipboardControllerTest extends ControllerTestCase
         $this->assertSame(ClipboardEnvelope::SCOPE_BLOCK, $body['scope']);
         $this->assertSame(BlockSnapshotSerializerInterface::FORMAT, $body['payload']['format']);
         $this->assertSame(['title' => 'Hi'], $body['payload']['data']);
+    }
+
+    // What a bundle keeps beside a block (a translation) rides along.
+    public function testACopyCarriesWhatExtensionsKeepBesideTheBlocks(): void
+    {
+        $area = $this->makeArea(1);
+        $section = $this->makeSection($area, 10);
+        $column = $this->makeColumn($section, 100);
+        $block = $this->makeBlock($column, 1000, 0, ClipboardFixtureBlock::TYPE);
+        $block->setDraftData(['title' => 'Hi']);
+        $extension = new RecordingSnapshotExtension();
+
+        $section = $this->json($this->controller([$area, $section], extension: $extension)->copySection(10));
+        $block = $this->json($this->controller([$area, $block], extension: $extension)->copyBlock(1000));
+
+        $this->assertSame(
+            ['blocks' => ['c0.b0' => 'Hi'], 'columns' => ['c0' => 'col-12']],
+            $section['payload'][SnapshotExtensions::PAYLOAD_KEY]['acme/recording'],
+        );
+        $this->assertSame(
+            ['blocks' => ['b' => 'Hi']],
+            $block['payload'][SnapshotExtensions::PAYLOAD_KEY]['acme/recording'],
+        );
+    }
+
+    public function testAPasteHandsTheCopiesToTheExtensions(): void
+    {
+        [$area, $sections] = $this->areaWithSections(1);
+        $extension = new RecordingSnapshotExtension();
+        $envelope = $this->sectionEnvelope();
+        $envelope['payload'][SnapshotExtensions::PAYLOAD_KEY] = ['acme/recording' => ['x' => 1]];
+
+        $response = $this->controller([$area, ...$sections], extension: $extension)->paste(
+            1,
+            $this->makeJsonRequest(['payload' => $envelope]),
+        );
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertCount(1, $extension->restored);
+        $this->assertSame(['c0.b0'], array_keys($extension->restored[0]['blocks']));
+        $this->assertSame('Copied', $extension->restored[0]['blocks']['c0.b0']->getDraftData()['title']);
+        $this->assertSame(['x' => 1], $extension->restored[0]['fragment']);
     }
 
     public function testCopyingIsRefusedWhereTheEditorCannotEdit(): void
@@ -290,6 +335,7 @@ final class ClipboardControllerTest extends ControllerTestCase
         array $entities,
         ?object $accessChecker = null,
         bool $csrfValid = true,
+        ?SnapshotExtensionInterface $extension = null,
     ): ClipboardController {
         $registry = new BlockTypeRegistry();
         $registry->register(new ClipboardFixtureBlock());
@@ -318,6 +364,7 @@ final class ClipboardControllerTest extends ControllerTestCase
             $this->makeCsrfManagerFor($csrfValid),
             $this->makeJournal($em),
             self::CURRENT_VERSION,
+            new SnapshotExtensions($extension === null ? [] : [$extension], $registry),
         );
     }
 

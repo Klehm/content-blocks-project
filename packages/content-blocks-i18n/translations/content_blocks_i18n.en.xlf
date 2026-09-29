@@ -166,6 +166,42 @@
                 <source>cb_i18n.workbench.uploading</source>
                 <target>Uploading…</target>
             </trans-unit>
+            <trans-unit id="workbench.publish_locale">
+                <source>cb_i18n.workbench.publish_locale</source>
+                <target>Publish %locale%</target>
+            </trans-unit>
+            <trans-unit id="workbench.discard_locale">
+                <source>cb_i18n.workbench.discard_locale</source>
+                <target>Discard changes</target>
+            </trans-unit>
+            <trans-unit id="workbench.discard_confirm">
+                <source>cb_i18n.workbench.discard_confirm</source>
+                <target>Discard the unpublished %locale% translations? The published ones stay.</target>
+            </trans-unit>
+            <trans-unit id="workbench.published">
+                <source>cb_i18n.workbench.published</source>
+                <target>%locale% published</target>
+            </trans-unit>
+            <trans-unit id="workbench.discarded">
+                <source>cb_i18n.workbench.discarded</source>
+                <target>%locale% changes discarded</target>
+            </trans-unit>
+            <trans-unit id="workbench.source_unpublished">
+                <source>cb_i18n.workbench.source_unpublished</source>
+                <target>The page has unpublished changes: publish it from the builder, translations included.</target>
+            </trans-unit>
+            <trans-unit id="workbench.source_unpublished_short">
+                <source>cb_i18n.workbench.source_unpublished_short</source>
+                <target>Page changed: publish from the builder</target>
+            </trans-unit>
+            <trans-unit id="workbench.publish_failed">
+                <source>cb_i18n.workbench.publish_failed</source>
+                <target>Publishing failed</target>
+            </trans-unit>
+            <trans-unit id="workbench.nothing_to_publish">
+                <source>cb_i18n.workbench.nothing_to_publish</source>
+                <target>Nothing to publish: every %locale% translation is already live.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

@@ -434,6 +434,14 @@ final class ContentBlocksBundle extends AbstractBundle
         // beside a block, carried in the payload. See transfer.md.
         $container->registerForAutoconfiguration(Transfer\ContentAreaTransferExtensionInterface::class)
             ->addTag('content_blocks.transfer_extension');
+
+        // A draft kept beside the area, which Publish would put live.
+        $container->registerForAutoconfiguration(Publishing\UnpublishedChangesProviderInterface::class)
+            ->addTag('content_blocks.unpublished_changes_provider');
+
+        // The template and clipboard half of the transfer seam above.
+        $container->registerForAutoconfiguration(Snapshot\SnapshotExtensionInterface::class)
+            ->addTag('content_blocks.snapshot_extension');
     }
 
     public function getPath(): string

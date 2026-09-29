@@ -18,6 +18,7 @@ use ContentBlocks\SectionTemplate\SectionTemplateSerializerInterface;
 use ContentBlocks\SectionTemplate\UnsupportedTemplateFormatException;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
+use ContentBlocks\Snapshot\SnapshotExtensions;
 use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 use ContentBlocks\Versioning\IncompatibleContentVersionException;
@@ -58,6 +59,7 @@ final class SectionTemplateController
         private readonly ActionJournal $journal,
         private readonly EnvelopeUpgradeChain $envelopes = new EnvelopeUpgradeChain(),
         private readonly int $contentVersion = 1,
+        private readonly SnapshotExtensions $snapshots = new SnapshotExtensions(),
     ) {
     }
 
@@ -98,10 +100,15 @@ final class SectionTemplateController
         }
 
         $snapshot = $this->serializer->serialize($section);
+        $payload = $snapshot->payload;
+        $extensions = $this->snapshots->captureSection($section);
+        if ($extensions !== []) {
+            $payload[SnapshotExtensions::PAYLOAD_KEY] = $extensions;
+        }
 
         $template = (new SectionTemplate())
             ->setName($name)
-            ->setPayload($snapshot->payload)
+            ->setPayload($payload)
             ->setBlockTypes($snapshot->blockTypes)
             // A snapshot is frozen, so unlike an area's, this stamp keeps
             // describing its payload for as long as the row lives.
@@ -256,6 +263,14 @@ final class SectionTemplateController
             $this->em->persist($section);
             $this->em->flush();
         });
+
+        // A host upgrader may rebuild the payload without the key.
+        $restored = $this->snapshots->restoreSection($section, $payload + [
+            SnapshotExtensions::PAYLOAD_KEY => $template->getPayload()[SnapshotExtensions::PAYLOAD_KEY] ?? [],
+        ]);
+        if ($restored) {
+            $this->em->flush();
+        }
 
         return new JsonResponse([
             'sectionId' => $section->getId(),

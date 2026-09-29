@@ -7,6 +7,7 @@ namespace ContentBlocks\I18n\Controller;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\I18n\Lifecycle\TranslationDrafts;
 use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Progress\BlockTranslationView;
 use ContentBlocks\I18n\Progress\ColumnTranslationView;
@@ -40,6 +41,7 @@ final class WorkbenchController
         private readonly TranslationWriter $writer,
         private readonly TranslationLocales $locales,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly ?TranslationDrafts $drafts = null,
     ) {
     }
 
@@ -151,6 +153,7 @@ final class WorkbenchController
         return new JsonResponse([
             'result' => $result->toArray(),
             'block' => $this->inspector->inspectBlock($block, $locale)?->toArray(),
+            'localePending' => $this->localePending($block->getColumn()?->getSection()?->getContentArea(), $locale),
         ]);
     }
 
@@ -189,6 +192,7 @@ final class WorkbenchController
         return new JsonResponse([
             'result' => $result->toArray(),
             'block' => $this->inspector->inspectBlock($block, $locale)?->toArray(),
+            'localePending' => $this->localePending($block->getColumn()?->getSection()?->getContentArea(), $locale),
         ]);
     }
 
@@ -234,6 +238,7 @@ final class WorkbenchController
         return new JsonResponse([
             'result' => $result->toArray(),
             'block' => $this->inspector->inspectColumn($column, $locale)?->toArray(),
+            'localePending' => $this->localePending($column->getSection()?->getContentArea(), $locale),
         ]);
     }
 
@@ -265,7 +270,14 @@ final class WorkbenchController
         return new JsonResponse([
             'result' => $result->toArray(),
             'block' => $this->inspector->inspectColumn($column, $locale)?->toArray(),
+            'localePending' => $this->localePending($column->getSection()?->getContentArea(), $locale),
         ]);
+    }
+
+    /** Whether the workbench's Publish for this language has work to do. */
+    private function localePending(?ContentArea $area, string $locale): bool
+    {
+        return $area !== null && ($this->drafts?->hasPending($area, $locale) ?? false);
     }
 
     private function area(int $id): ContentArea|JsonResponse

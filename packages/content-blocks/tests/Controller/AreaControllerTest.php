@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Controller\AreaController;
+use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Event\BeforeContentAreaDiscardEvent;
 use ContentBlocks\Event\BeforeContentAreaPublishEvent;
 use ContentBlocks\Event\RefusableEvent;
 use ContentBlocks\Publishing\ContentAreaPublisher;
 use ContentBlocks\Publishing\EventDispatchingPublisher;
+use ContentBlocks\Publishing\UnpublishedChanges;
+use ContentBlocks\Publishing\UnpublishedChangesProviderInterface;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,6 +26,7 @@ final class AreaControllerTest extends ControllerTestCase
         bool $csrfValid = true,
         ?AccessCheckerInterface $accessChecker = null,
         ?EventDispatcher $events = null,
+        ?UnpublishedChanges $changes = null,
     ): AreaController {
         $publisher = new ContentAreaPublisher($em);
 
@@ -31,6 +35,7 @@ final class AreaControllerTest extends ControllerTestCase
             $accessChecker ?? $this->makeAccessChecker(),
             $events === null ? $publisher : new EventDispatchingPublisher($publisher, $events),
             $this->makeCsrfManager($csrfValid),
+            $changes ?? new UnpublishedChanges(),
         );
     }
 
@@ -132,6 +137,23 @@ final class AreaControllerTest extends ControllerTestCase
         $response = $controller->state(1);
 
         $payload = json_decode((string) $response->getContent(), true);
+        $this->assertTrue($payload['hasUnpublishedChanges']);
+    }
+
+    // A translation typed on a published page: the area itself is clean.
+    public function testStateCountsADraftABundleKeepsBesideTheArea(): void
+    {
+        $area = $this->makeArea(1);
+        $provider = new class () implements UnpublishedChangesProviderInterface {
+            public function hasUnpublishedChanges(ContentArea $area): bool
+            {
+                return true;
+            }
+        };
+        $controller = $this->makeController($this->makeEm([$area]), changes: new UnpublishedChanges([$provider]));
+
+        $payload = json_decode((string) $controller->state(1)->getContent(), true);
+
         $this->assertTrue($payload['hasUnpublishedChanges']);
     }
 

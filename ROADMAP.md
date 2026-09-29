@@ -29,9 +29,10 @@ The cost of a side table is that nothing carries its rows for free, so every flo
 
 - [x] Clone / duplicate / insert content — through `BlockCloneObserverInterface`
 - [x] Export / import — through `ContentAreaTransferExtensionInterface` ([#36](https://github.com/klehm/content-blocks-project/pull/36)); digests are carried, never recomputed
-- [ ] **Section templates** do not carry translations yet — a template saved from a translated section instantiates untranslated
-- [ ] **Clipboard** paste does not either — same gap, smaller stakes (a copy costs seconds to redo)
-- [ ] **Per-locale publishing** — the API exists: `PublishContext` scopes which locales ride along with a publish or discard, and `TranslationPublisher` honours it. No flow exposes it yet, deliberately. Before designing one, note the constraint: the layout is shared, so a per-locale publish can only hold back *values of existing fields* — a newly added block appears in every locale at once and renders its source text there until translated.
+- [x] **Section templates** and the **clipboard** — through the core's `SnapshotExtensionInterface`, paths kept by entry position since a paste re-mints entry ids
+- [x] **A translation-only change can be published** — the builder's Publish used to stay greyed out, since the area's own draft state cannot see a side table (`UnpublishedChangesProviderInterface`)
+- [x] **Per-locale publishing, from the workbench** — *Publish EN* / *Discard* with `PublishContext::withLocales()`, refused while the page has a draft of its own, which it would put live
+- [ ] **Per-locale publishing, from the builder** — choosing which languages ride along with the builder's Publish, and warning before its Discard throws away translation drafts. On demand. The constraint stands: the layout is shared, so a per-locale publish can only hold back *values of existing fields* — a newly added block appears in every locale at once and renders its source text there until translated.
 
 ---
 
@@ -140,7 +141,7 @@ Ranked, highest first:
 1. **Building content from code.** The create / move / duplicate logic lives in controllers, so fixtures and CMS migrations hand-set `position`, `previewPosition`, `_id`s and stamps, or go through the import envelope. A small content-manipulation service would fix that, and would move domain logic out of the controllers.
 2. **Split `cb-builder_controller.js`** (2 910 lines, ~148 methods, 13 feature areas) into modules, as `transfer/` already is.
 3. **Translation**, everything still open:
-   - section templates and the clipboard carrying translations, and per-locale publishing (see [Translation](#translation--multilingual--what-is-still-open-) above). Templates and the clipboard go through a new extension interface, as export/import does, not through `SectionTemplateSerializerInterface`, which is frozen; the extra payload key must leave older templates loadable
+   - per-locale publishing from the builder (see [Translation](#translation--multilingual--what-is-still-open-) above)
    - an `hreflang` / `<link rel=alternate>` helper (`LocalizedPageUrlResolverInterface` already holds the data)
    - `lang` on fields that fall back to the source. Needs item 5, so the view knows which field fell back
    - a locale fallback chain (`fr_CA` → `fr`). **Opt-in in 1.x**: today an untranslated `fr_CA` field shows the source text, and showing the `fr` one instead changes the page of a host that has both
@@ -176,7 +177,7 @@ Not ranked yet:
 The expensive parts are elsewhere:
 
 - **Content versions.** `DenyOnMismatchUpgrader` refuses a known version gap by default, so every revision older than a `content_version` bump becomes unrestorable unless the host writes an upgrader. "Go back to last week" would silently stop working after every schema migration.
-- **Translations** live in a side table, so each revision has to snapshot its rows too — and section templates and the clipboard do not do that yet either.
+- **Translations** live in a side table, so each revision has to snapshot its rows too — as section templates and the clipboard now do, through `SnapshotExtensionInterface`.
 - **Restoring over a dirty draft** needs a rule (refuse, or warn and overwrite) and UI to say it, and has to sit correctly with the undo stack.
 - **Retention** is a config node, a pruning command and a default — another default frozen once shipped.
 

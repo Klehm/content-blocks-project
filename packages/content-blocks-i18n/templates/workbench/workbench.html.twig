@@ -71,11 +71,19 @@
      data-cb-translate-all-url="{{ path('content_blocks_i18n_area_translate', { id: area.id, locale: locale }) }}"
      data-cb-csrf-token="{{ csrfToken }}"
      data-cb-upload-url="{{ path('content_blocks_upload') }}"
+     data-cb-publish-url="{{ path('content_blocks_i18n_area_publish', { id: area.id, locale: locale }) }}"
+     data-cb-discard-url="{{ path('content_blocks_i18n_area_discard', { id: area.id, locale: locale }) }}"
      data-i18n-saved="{{ 'cb_i18n.workbench.saved'|trans }}"
      data-i18n-save-failed="{{ 'cb_i18n.workbench.save_failed'|trans }}"
      data-i18n-translating="{{ 'cb_i18n.workbench.translating'|trans }}"
      data-i18n-translate-failed="{{ 'cb_i18n.workbench.translate_failed'|trans }}"
      data-i18n-uploading="{{ 'cb_i18n.workbench.uploading'|trans }}"
+     data-i18n-published="{{ 'cb_i18n.workbench.published'|trans({ '%locale%': locale|upper }) }}"
+     data-i18n-discarded="{{ 'cb_i18n.workbench.discarded'|trans({ '%locale%': locale|upper }) }}"
+     data-i18n-discard-confirm="{{ 'cb_i18n.workbench.discard_confirm'|trans({ '%locale%': locale|upper }) }}"
+     data-i18n-nothing-to-publish="{{ 'cb_i18n.workbench.nothing_to_publish'|trans({ '%locale%': locale|upper }) }}"
+     data-i18n-source-unpublished="{{ 'cb_i18n.workbench.source_unpublished'|trans }}"
+     data-i18n-publish-failed="{{ 'cb_i18n.workbench.publish_failed'|trans }}"
      data-i18n-upload-failed="{{ 'cb_i18n.workbench.upload_failed'|trans }}"
      data-i18n-translate-all-confirm="{{ 'cb_i18n.workbench.translate_all_confirm'|trans }}">
 
@@ -137,6 +145,29 @@
                     <span aria-hidden="true">⚡</span> {{ 'cb_i18n.workbench.translate_all'|trans }}
                 </button>
             {% endif %}
+
+            {# One language live, only while the page has no draft of its own.
+               See docs/internals/i18n.md#publishing-one-language #}
+            {% set publishing = publishing ?? {} %}
+            {% set sourcePending = publishing.sourcePending ?? false %}
+            {% set localePending = publishing.localePending ?? false %}
+            <div class="cb-wb__publish{{ sourcePending ? ' is-blocked' : '' }}" data-target="publish"
+                 data-source-pending="{{ sourcePending ? '1' : '0' }}"
+                 data-locale-pending="{{ localePending ? '1' : '0' }}">
+                <span class="cb-wb__publish-hint">{{ 'cb_i18n.workbench.source_unpublished_short'|trans }}</span>
+                <button type="button" class="cb-wb__btn" data-act="discardLocale"
+                        {{ localePending and not sourcePending ? '' : 'hidden' }}>
+                    {{- 'cb_i18n.workbench.discard_locale'|trans -}}
+                </button>
+                {# aria-disabled, not disabled: a disabled button gets no
+                   hover, so its title, the reason it is off, never shows. #}
+                {% set publishOff = sourcePending ? 'source_unpublished' : (localePending ? null : 'nothing_to_publish') %}
+                <button type="button" class="cb-wb__btn cb-wb__btn--primary" data-act="publishLocale"
+                        aria-disabled="{{ publishOff ? 'true' : 'false' }}"
+                        {% if publishOff %}title="{{ ('cb_i18n.workbench.' ~ publishOff)|trans({ '%locale%': locale|upper }) }}"{% endif %}>
+                    <span aria-hidden="true">↑</span> {{ 'cb_i18n.workbench.publish_locale'|trans({ '%locale%': locale|upper }) -}}
+                </button>
+            </div>
 
             <button type="button" class="cb-wb__btn" data-target="previewToggle" data-act="togglePreview" aria-pressed="true">
                 <span aria-hidden="true">◨</span>

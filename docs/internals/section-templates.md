@@ -73,6 +73,20 @@ denormalized into `cb_section_template.block_types`, so the picker can flag an
 unusable template from a cheap column read instead of deserializing every
 payload to look for its types.
 
+## Rows kept beside a block
+
+A template and a clipboard copy are the payload the serializer writes; a row a
+bundle keeps beside a block — a translation — is in neither.
+`SnapshotExtensionInterface` carries it, as `ContentAreaTransferExtensionInterface`
+does for an export, under `extensions.<key>` of the snapshot. The serializers
+are untouched (they are frozen), and a payload without the key reads as before.
+
+Refs are positions in the default serializer's walk: `c{j}` for a column,
+`c{j}.b{k}` for a block, `b` for a block copied alone. A restore steps past what
+the instantiator skipped (a non-array column, a block whose type is gone), so a
+ref still names the block it was captured from. Restore runs after the copies
+are flushed, since rows beside a block need its id, and only then flushes again.
+
 ## Managing the library
 
 Saving a section into the library and inserting a template into an area are both

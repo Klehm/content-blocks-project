@@ -7,6 +7,7 @@ namespace ContentBlocks\Controller;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
+use ContentBlocks\Publishing\UnpublishedChanges;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Transfer\ContentAreaExporterInterface;
@@ -45,6 +46,7 @@ final class ImportExportController
         private readonly ActionJournal $journal,
         private readonly ImportSizeLimit $sizeLimit,
         private readonly ZipExportWriter $zip,
+        private readonly UnpublishedChanges $unpublishedChanges = new UnpublishedChanges(),
     ) {
     }
 
@@ -207,7 +209,7 @@ final class ImportExportController
             'skippedBlockTypes' => $result->skippedBlockTypes,
             'unknownFields' => $result->unknownFields,
             'missingAssets' => $result->missingAssets,
-            'hasUnpublishedChanges' => $target->hasUnpublishedChanges(),
+            'hasUnpublishedChanges' => $this->unpublishedChanges->of($target),
         ]);
     }
 

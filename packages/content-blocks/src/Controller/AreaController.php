@@ -7,6 +7,7 @@ namespace ContentBlocks\Controller;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Event\ActionRefusedException;
 use ContentBlocks\Publishing\ContentAreaPublisherInterface;
+use ContentBlocks\Publishing\UnpublishedChanges;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -33,6 +34,7 @@ final class AreaController
         private readonly AccessCheckerInterface $accessChecker,
         private readonly ContentAreaPublisherInterface $publisher,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
+        private readonly UnpublishedChanges $unpublishedChanges = new UnpublishedChanges(),
     ) {
     }
 
@@ -55,7 +57,7 @@ final class AreaController
             return self::refused($e);
         }
 
-        return new JsonResponse(['hasUnpublishedChanges' => $area->hasUnpublishedChanges()]);
+        return new JsonResponse(['hasUnpublishedChanges' => $this->unpublishedChanges->of($area)]);
     }
 
     #[Route('/area/{id}/discard', name: 'content_blocks_area_discard', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -72,7 +74,7 @@ final class AreaController
             return self::refused($e);
         }
 
-        return new JsonResponse(['hasUnpublishedChanges' => $area->hasUnpublishedChanges()]);
+        return new JsonResponse(['hasUnpublishedChanges' => $this->unpublishedChanges->of($area)]);
     }
 
     /** A listener said no: a 409 the builder shows in its snackbar. */
@@ -97,7 +99,7 @@ final class AreaController
         }
 
         return new JsonResponse([
-            'hasUnpublishedChanges' => $area->hasUnpublishedChanges(),
+            'hasUnpublishedChanges' => $this->unpublishedChanges->of($area),
             // A session renewed since the shell rendered holds a new token.
             'csrfToken' => $this->csrfTokenManager->getToken(self::CSRF_TOKEN_ID)->getValue(),
         ]);

@@ -63,7 +63,7 @@ function blockUrls(id) {
             data-cb-render-url="/_content-blocks/block/${id}/render?locale=de"`;
 }
 
-function mount({ rows = [row()], providers = true } = {}) {
+function mount({ rows = [row()], providers = true, publish = { source: '0', locale: '0' } } = {}) {
     const blocks = new Map();
     for (const markup of rows) {
         const id = /data-block="(\d+)"/.exec(markup)[1];
@@ -77,6 +77,13 @@ function mount({ rows = [row()], providers = true } = {}) {
              data-cb-translate-all-url="${MOUNT}/area/7/de/translate"
              data-cb-csrf-token="tok-123"
              data-cb-upload-url="/admin/content-blocks/upload"
+             data-cb-publish-url="${MOUNT}/area/7/de/publish"
+             data-cb-discard-url="${MOUNT}/area/7/de/discard"
+             data-i18n-published="DE publié"
+             data-i18n-discard-confirm="Annuler DE ?"
+             data-i18n-nothing-to-publish="Rien à publier"
+             data-i18n-source-unpublished="Page modifiée"
+             data-i18n-publish-failed="Échec publication"
              data-i18n-upload-failed="Envoi impossible"
              data-i18n-saved="Enregistré"
              data-i18n-save-failed="Échec"
@@ -85,6 +92,10 @@ function mount({ rows = [row()], providers = true } = {}) {
              data-i18n-translate-all-confirm="Sûr ?">
             ${providers ? '<input type="hidden" data-target="provider" value="pseudo">' : ''}
             <button data-act="translateAll"></button>
+            <div data-target="publish" data-source-pending="${publish.source}" data-locale-pending="${publish.locale}">
+                <button data-act="discardLocale" ${publish.locale === '1' && publish.source === '0' ? '' : 'hidden'}></button>
+                <button data-act="publishLocale" aria-disabled="${publish.locale === '1' && publish.source === '0' ? 'false' : 'true'}"><span aria-hidden="true">↑</span></button>
+            </div>
             <button data-target="previewToggle" data-act="togglePreview" aria-pressed="true"></button>
             <span data-target="previewToggleLabel" data-hide="Masquer" data-show="Afficher">Masquer</span>
 
@@ -593,6 +604,95 @@ describe('localized media', () => {
         expect(media.querySelector('[data-target="mediaPreview"]').hidden).toBe(true);
         expect(root.querySelector('[data-target="percent"]').textContent).toBe('100%');
         expect(root.querySelector('[data-target="countMissing"]').textContent).toBe('0');
+    });
+});
+
+describe('publishing one language', () => {
+    const publishButton = (root) => root.querySelector('[data-act="publishLocale"]');
+    const isOff = (root) => publishButton(root).getAttribute('aria-disabled') === 'true';
+
+    // A save is what makes a language publishable, and the server says so.
+    it('a save that leaves a draft turns the button on', async () => {
+        const root = mount();
+        stubFetch({ block: { blockId: 1, fields: [] }, localePending: true });
+        new Workbench(root);
+        expect(isOff(root)).toBe(true);
+
+        type(root, 'Willkommen');
+        await settle();
+
+        expect(isOff(root)).toBe(false);
+        expect(publishButton(root).hasAttribute('title')).toBe(false);
+        expect(root.querySelector('[data-act="discardLocale"]').hidden).toBe(false);
+    });
+
+    it('saves what is still typed, then publishes the language', async () => {
+        const root = mount({ publish: { source: '0', locale: '1' } });
+        const calls = [];
+        global.fetch = vi.fn((url, options = {}) => {
+            calls.push(url);
+            let body = { block: { blockId: 1, fields: [] }, localePending: true };
+            if (url.endsWith('/publish')) body = { pending: false };
+            if (url.includes('/render')) body = { hotReload: true, html: '<div data-cb-block-id="1"></div>' };
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+        });
+        new Workbench(root);
+
+        type(root, 'Willkommen');
+        publishButton(root).click();
+        await vi.advanceTimersByTimeAsync(0);
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(calls[0]).toBe(`${MOUNT}/block/1/de`);
+        expect(calls).toContain(`${MOUNT}/area/7/de/publish`);
+        expect(isOff(root)).toBe(true);
+        expect(publishButton(root).title).toBe('Rien à publier');
+        expect(root.querySelector('[data-target="toast"]').textContent).toBe('DE publié');
+    });
+
+    // An editor saved a draft in the builder meanwhile: say so, and hold off.
+    it('a page draft in the way blocks the button and says why', async () => {
+        const root = mount({ publish: { source: '0', locale: '1' } });
+        global.fetch = vi.fn(() => Promise.resolve({
+            ok: false,
+            status: 409,
+            json: () => Promise.resolve({ error: 'source_unpublished' }),
+        }));
+        new Workbench(root);
+
+        publishButton(root).click();
+        await vi.advanceTimersByTimeAsync(0);
+
+        const group = root.querySelector('[data-target="publish"]');
+        expect(group.classList.contains('is-blocked')).toBe(true);
+        expect(isOff(root)).toBe(true);
+        expect(publishButton(root).title).toBe('Page modifiée');
+        expect(root.querySelector('[data-target="toast"]').textContent).toBe('Page modifiée');
+    });
+
+    // Off but hoverable: the click has to be ignored by the script itself.
+    it('a click on the button while it is off sends nothing', async () => {
+        const root = mount();
+        const calls = stubFetch();
+        new Workbench(root);
+
+        publishButton(root).click();
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(calls).toHaveLength(0);
+    });
+
+    it('asks before discarding, and sends nothing if refused', async () => {
+        const root = mount({ publish: { source: '0', locale: '1' } });
+        const calls = stubFetch();
+        vi.spyOn(window, 'confirm').mockReturnValue(false);
+        new Workbench(root);
+
+        root.querySelector('[data-act="discardLocale"]').click();
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(window.confirm).toHaveBeenCalledWith('Annuler DE ?');
+        expect(calls).toHaveLength(0);
     });
 });
 

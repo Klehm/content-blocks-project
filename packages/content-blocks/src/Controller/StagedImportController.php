@@ -9,6 +9,7 @@ use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
+use ContentBlocks\Publishing\UnpublishedChanges;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Transfer\AssetPolicy;
@@ -49,6 +50,7 @@ final class StagedImportController
         private readonly BlockTypeRegistry $registry,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ActionJournal $journal,
+        private readonly UnpublishedChanges $unpublishedChanges = new UnpublishedChanges(),
     ) {
     }
 
@@ -212,7 +214,7 @@ final class StagedImportController
             'skippedBlockTypes' => $result->skippedBlockTypes,
             'unknownFields' => $result->unknownFields,
             'missingAssets' => $result->missingAssets,
-            'hasUnpublishedChanges' => $area->hasUnpublishedChanges(),
+            'hasUnpublishedChanges' => $this->unpublishedChanges->of($area),
         ]);
     }
 
