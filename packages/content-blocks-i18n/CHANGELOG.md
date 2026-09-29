@@ -9,6 +9,21 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Locale fallback chain, opt-in.** `content_blocks_i18n.fallbacks` names the
+  locales an untranslated field is read from before the source: with
+  `{ fr_CA: fr }`, an untranslated `fr_CA` field shows the `fr` translation.
+  It works per field, covers tab titles and localized media, reads the
+  fallback's published value on a public page, and is not transitive. Empty by
+  default, so no page changes until it is configured. The workbench still
+  counts the field as missing. Like the target locales, the chains can come
+  from a service: alias `LocaleFallbacksProviderInterface`, for instance to
+  derive `fr_CA → fr` from the locales your shop has enabled.
+- **hreflang links.** `{{ cb_i18n_hreflang(page.contentArea) }}` prints a
+  `<link rel="alternate" hreflang>` per language your
+  `LocalizedPageUrlResolverInterface` gives a URL for, made absolute, plus
+  `x-default` on the source's URL (`x_default: false` to leave it out).
+  `cb_i18n_alternates(area)` returns the same list for your own markup.
+
 - **Publish one language from the workbench.** *Publish EN* and *Discard
   changes* act on the workbench's language only
   (`PublishContext::withLocales()`, routes `content_blocks_i18n_area_publish`

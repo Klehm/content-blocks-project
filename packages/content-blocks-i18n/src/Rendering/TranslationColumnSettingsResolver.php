@@ -7,6 +7,7 @@ namespace ContentBlocks\I18n\Rendering;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\I18n\Entity\ColumnTranslation;
 use ContentBlocks\I18n\Locale\RenderLocaleResolverInterface;
+use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Storage\TranslationStore;
 use ContentBlocks\Rendering\ColumnSettingsResolverInterface;
 use ContentBlocks\Rendering\RenderContext;
@@ -24,6 +25,7 @@ final class TranslationColumnSettingsResolver implements ColumnSettingsResolverI
     public function __construct(
         private readonly TranslationStore $store,
         private readonly RenderLocaleResolverInterface $localeResolver,
+        private readonly ?TranslationLocales $locales = null,
     ) {
     }
 
@@ -36,11 +38,15 @@ final class TranslationColumnSettingsResolver implements ColumnSettingsResolverI
             return $settings;
         }
 
-        $values = $this->store->columnPayloadFor($column, $locale, $context->mode ?? RenderMode::PUBLIC)['values'];
-        $label = $values[ColumnTranslation::LABEL] ?? null;
+        foreach ([$locale, ...$this->locales?->getFallbacks($locale) ?? []] as $candidate) {
+            $values = $this->store->columnPayloadFor($column, $candidate, $context->mode ?? RenderMode::PUBLIC)['values'];
+            $label = $values[ColumnTranslation::LABEL] ?? null;
 
-        if (\is_string($label) && trim($label) !== '') {
-            $settings[ColumnSettings::LABEL] = $label;
+            if (\is_string($label) && trim($label) !== '') {
+                $settings[ColumnSettings::LABEL] = $label;
+
+                return $settings;
+            }
         }
 
         return $settings;

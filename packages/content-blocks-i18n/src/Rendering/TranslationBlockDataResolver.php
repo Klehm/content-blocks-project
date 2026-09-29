@@ -7,6 +7,7 @@ namespace ContentBlocks\I18n\Rendering;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\I18n\Field\FieldPath;
 use ContentBlocks\I18n\Locale\RenderLocaleResolverInterface;
+use ContentBlocks\I18n\Locale\TranslationLocales;
 use ContentBlocks\I18n\Storage\TranslationStore;
 use ContentBlocks\Rendering\BlockDataResolverInterface;
 use ContentBlocks\Rendering\RenderContext;
@@ -14,10 +15,11 @@ use ContentBlocks\Rendering\RenderMode;
 use ContentBlocks\Translation\TranslatableFieldsInterface;
 
 /**
- * The package's entire render-time footprint: one resolver merging the locale's
- * values over the source payload, per field, at priority 128.
+ * The package's render-time footprint: the locale's values, then its
+ * fallbacks', merged over the source payload per field, at priority 128.
  *
  * @see docs/internals/i18n.md#the-allow-list-runs-again-at-render
+ * @see docs/internals/i18n.md#the-fallback-chain
  */
 final class TranslationBlockDataResolver implements BlockDataResolverInterface
 {
@@ -27,6 +29,7 @@ final class TranslationBlockDataResolver implements BlockDataResolverInterface
         private readonly TranslationStore $store,
         private readonly RenderLocaleResolverInterface $localeResolver,
         private readonly TranslatableFieldsInterface $translatableFields,
+        private readonly ?TranslationLocales $locales = null,
     ) {
     }
 
@@ -38,15 +41,21 @@ final class TranslationBlockDataResolver implements BlockDataResolverInterface
             return $data;
         }
 
-        $payload = $this->store->payloadFor($block, $locale, $context->mode ?? RenderMode::PUBLIC);
+        $mode = $context->mode ?? RenderMode::PUBLIC;
+        $values = [];
 
-        if ($payload['values'] === []) {
+        // Per field, the first locale of the chain with a value wins.
+        foreach ([$locale, ...$this->locales?->getFallbacks($locale) ?? []] as $candidate) {
+            $values += $this->store->payloadFor($block, $candidate, $mode)['values'];
+        }
+
+        if ($values === []) {
             return $data;
         }
 
         $allowed = $this->translatableFields->forBlockType($block->getType(), $data);
 
-        foreach ($payload['values'] as $path => $value) {
+        foreach ($values as $path => $value) {
             // A value is text: an array or a number would reshape the data.
             if (!\is_string($path) || !\is_string($value) || !FieldPath::matchesAny($path, $allowed)) {
                 continue;

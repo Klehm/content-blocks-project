@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ app.request.locale }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page.title }}</title>
+    {# One <link rel="alternate" hreflang> per language, from the same
+       LocalizedPageUrlResolver the workbench links with. #}
+    {{ cb_i18n_hreflang(page.contentArea) }}
     <style>
         body {
             margin: 0;

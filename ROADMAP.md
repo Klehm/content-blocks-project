@@ -31,6 +31,7 @@ The cost of a side table is that nothing carries its rows for free, so every flo
 - [x] Export / import — through `ContentAreaTransferExtensionInterface` ([#36](https://github.com/klehm/content-blocks-project/pull/36)); digests are carried, never recomputed
 - [x] **Section templates** and the **clipboard** — through the core's `SnapshotExtensionInterface`, paths kept by entry position since a paste re-mints entry ids
 - [x] **A translation-only change can be published** — the builder's Publish used to stay greyed out, since the area's own draft state cannot see a side table (`UnpublishedChangesProviderInterface`)
+- [x] **Locale fallback chain** (`fallbacks: { fr_CA: fr }`), opt-in, and an **hreflang helper** (`cb_i18n_hreflang()`) built on `LocalizedPageUrlResolverInterface`
 - [x] **Per-locale publishing, from the workbench** — *Publish EN* / *Discard* with `PublishContext::withLocales()`, refused while the page has a draft of its own, which it would put live
 - [ ] **Per-locale publishing, from the builder** — choosing which languages ride along with the builder's Publish, and warning before its Discard throws away translation drafts. On demand. The constraint stands: the layout is shared, so a per-locale publish can only hold back *values of existing fields* — a newly added block appears in every locale at once and renders its source text there until translated.
 
@@ -140,16 +141,13 @@ Ranked, highest first:
 
 1. **Building content from code.** The create / move / duplicate logic lives in controllers, so fixtures and CMS migrations hand-set `position`, `previewPosition`, `_id`s and stamps, or go through the import envelope. A small content-manipulation service would fix that, and would move domain logic out of the controllers.
 2. **Split `cb-builder_controller.js`** (2 910 lines, ~148 methods, 13 feature areas) into modules, as `transfer/` already is.
-3. **Translation**, everything still open:
-   - per-locale publishing from the builder (see [Translation](#translation--multilingual--what-is-still-open-) above)
-   - an `hreflang` / `<link rel=alternate>` helper (`LocalizedPageUrlResolverInterface` already holds the data)
-   - `lang` on fields that fall back to the source. Needs item 5, so the view knows which field fell back
-   - a locale fallback chain (`fr_CA` → `fr`). **Opt-in in 1.x**: today an untranslated `fr_CA` field shows the source text, and showing the `fr` one instead changes the page of a host that has both
+3. **Translation**: per-locale publishing from the builder (see [Translation](#translation--multilingual--what-is-still-open-) above).
 4. **`@layer content-blocks` on the public CSS**, so a host overrides it without out-specifying 7-compound selectors. **Opt-in in 1.x, default in 2.0.** Layered rules lose to every unlayered rule whatever their specificity, so turning it on for everyone would let a host's existing global CSS (`img`, `a`, a reset) start winning over the package's rules: no signature changes, but pages render differently. A config key that wraps the served stylesheets keeps 1.x safe; meanwhile a host can already write `@import url(…) layer(content-blocks)` itself.
 5. **Pass the block and the render context to the view template.** It is included with `with_context = false` and receives `data` and `block_id` only (`render/block.html.twig`): `block_id` already gives stable anchors and ARIA ids, but a view cannot tell the render mode or the locale. New variables only, so no existing view breaks.
 6. **Per-block CSS/JS declaration**, through an optional interface on the block type.
 7. **A per-block data migration hook.** `ContentVersionUpgraderInterface` covers snapshots only. An optional interface on the block type; `DenyOnMismatchUpgrader` keeps its default, which is part of the promise.
 8. **Picker categories**, through an optional `category` argument on `#[AsContentBlock]` or an optional interface. A block without one lands in a default group.
+9. **`lang` on text that falls back to the source.** On a German page, an untranslated field shows French text that screen readers, hyphenation and search engines read as German (WCAG 3.1.2). A whole untranslated block can get `lang` on its wrapper through a `BlockDecoratorInterface`, with no template change. A partly translated block needs item 5, so the view knows which field fell back. **Opt-in in 1.x** (`content_blocks_i18n.fallback_lang`), since it changes the public markup.
 
 Not ranked yet:
 

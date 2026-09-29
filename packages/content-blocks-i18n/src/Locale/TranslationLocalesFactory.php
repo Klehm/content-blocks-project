@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Locale;
 
 /**
- * Builds the {@see TranslationLocales} service from the host's provider.
+ * Builds the {@see TranslationLocales} service from the host's providers.
  *
  * @internal
  *
@@ -20,7 +20,18 @@ final class TranslationLocalesFactory
         string $sourceLocale,
         TargetLocalesProviderInterface $provider,
         array $labels = [],
+        ?LocaleFallbacksProviderInterface $fallbacks = null,
     ): TranslationLocales {
-        return new TranslationLocales($sourceLocale, $provider->getTargetLocales(), $labels);
+        $chains = [];
+
+        // A host provider may return one code where a list is expected.
+        foreach ($fallbacks?->getFallbacks() ?? [] as $locale => $chain) {
+            $chains[(string) $locale] = array_values(array_filter(
+                (array) $chain,
+                static fn ($code): bool => \is_string($code) && $code !== '',
+            ));
+        }
+
+        return new TranslationLocales($sourceLocale, $provider->getTargetLocales(), $labels, $chains);
     }
 }

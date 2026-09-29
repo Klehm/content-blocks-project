@@ -26,6 +26,23 @@ final class TranslationLocalesTest extends TestCase
         $this->assertTrue($locales->isSource('en'));
     }
 
+    public function testAConfiguredFallbackChainIsReturnedInOrder(): void
+    {
+        $locales = new TranslationLocales('en', ['fr', 'fr_CA', 'es'], [], ['fr_CA' => ['fr', 'es']]);
+
+        $this->assertSame(['fr', 'es'], $locales->getFallbacks('fr_CA'));
+        $this->assertSame([], $locales->getFallbacks('fr'));
+    }
+
+    public function testAFallbackThatIsNotATargetIsDropped(): void
+    {
+        // The source ends every chain already, and a provider can drop a
+        // locale the config still names.
+        $locales = new TranslationLocales('en', ['fr', 'fr_CA'], [], ['fr_CA' => ['en', 'fr_CA', 'it', 'fr', 'fr']]);
+
+        $this->assertSame(['fr'], $locales->getFallbacks('fr_CA'));
+    }
+
     public function testAllLocalesPutsTheSourceFirst(): void
     {
         $locales = new TranslationLocales('en', ['fr', 'de']);
