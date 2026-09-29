@@ -446,7 +446,7 @@ run `content-blocks:backfill-collection-ids` to normalize it.
 ## Requirements
 
 - PHP >= 8.2
-- `klehm/content-blocks` ^1.0
+- `klehm/content-blocks` ^1.2
 - Symfony 6.4 LTS, 7.x or 8.x
 
 No HTTP client, no vendor SDK: the package talks to no third-party service. A

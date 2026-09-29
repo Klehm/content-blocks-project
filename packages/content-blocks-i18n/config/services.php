@@ -126,14 +126,8 @@ return static function (ContainerConfigurator $container): void {
     // Tells the builder a translation is waiting, and which locales.
     $services->set(ContentBlocks\I18n\Lifecycle\TranslationDrafts::class)->public();
 
-    // Both implement a core seam newer than this package's floor, so they are
-    // registered only when the core has it.
-    if (interface_exists(ContentBlocks\Publishing\UnpublishedChangesProviderInterface::class)) {
-        $services->set(ContentBlocks\I18n\Lifecycle\TranslationUnpublishedChanges::class);
-    }
-    if (interface_exists(ContentBlocks\Snapshot\SnapshotExtensionInterface::class)) {
-        $services->set(ContentBlocks\I18n\Snapshot\TranslationSnapshotExtension::class);
-    }
+    $services->set(ContentBlocks\I18n\Lifecycle\TranslationUnpublishedChanges::class);
+    $services->set(ContentBlocks\I18n\Snapshot\TranslationSnapshotExtension::class);
 
     // The same duty for a payload that leaves the installation. See
     // docs/internals/i18n.md#translations-in-an-export
