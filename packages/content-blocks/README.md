@@ -888,6 +888,8 @@ Both are **on by default** and are toggled **per field**, via `ContentAreaType` 
 $builder->add('contentArea', ContentAreaType::class, [
     'enable_replace' => false,        // hide the "Insert content" button + picker
     'enable_import_export' => false,  // hide the Import / Export button + overlay
+    // or one half only, e.g. keep Export and drop Import:
+    'enable_import' => false,         // null (default) follows enable_import_export
     'enable_public_link' => false,    // hide the "View page" link
 ]);
 ```

@@ -53,7 +53,7 @@ const STRINGS = {
     reading: 'reading',
 };
 
-function setup() {
+function setup({ only } = {}) {
     document.body.innerHTML = `
         <dialog data-cb-transfer-strings='${JSON.stringify(STRINGS)}'>
             <button data-cb-transfer="close"></button>
@@ -82,6 +82,12 @@ function setup() {
             </section>
         </dialog>`;
     const dialog = document.querySelector('dialog');
+    if (only) {
+        // What the template renders when the host turns one half off.
+        dialog.querySelectorAll('[data-cb-transfer-tab]').forEach((tab) => tab.remove());
+        dialog.querySelectorAll(`[data-cb-transfer-panel]:not([data-cb-transfer-panel="${only}"])`)
+            .forEach((panel) => panel.remove());
+    }
     dialog.showModal = vi.fn(() => dialog.setAttribute('open', ''));
     dialog.close = vi.fn(() => dialog.removeAttribute('open'));
     const request = vi.fn(async () => new Response(JSON.stringify({
@@ -198,5 +204,27 @@ describe('transfer dialog', () => {
 
         expect(dialog.dataset.step).toBe('error');
         expect(el('error').textContent).toBe('refused: type not allowed');
+    });
+
+    it('opens on the export alone when import is turned off', async () => {
+        const { dialog, transfer, request, el } = setup({ only: 'export' });
+        transfer.open('import');
+        await flush();
+
+        expect(dialog.querySelector('[data-cb-transfer-panel="export"]').hidden).toBe(false);
+        expect(request).toHaveBeenCalledWith('/export/summary', { method: 'GET' });
+        expect(el('stats').textContent).toBe('2s 5b 3m');
+    });
+
+    it('opens on the import alone when export is turned off', async () => {
+        const { dialog, transfer, request, el } = setup({ only: 'import' });
+        transfer.open();
+        await flush();
+
+        expect(dialog.querySelector('[data-cb-transfer-panel="import"]').hidden).toBe(false);
+        expect(request).not.toHaveBeenCalled();
+
+        await choose(el);
+        expect(dialog.dataset.step).toBe('review');
     });
 });

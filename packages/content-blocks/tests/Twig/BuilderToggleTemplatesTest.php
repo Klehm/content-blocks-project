@@ -19,8 +19,8 @@ use Twig\TwigFunction;
 
 /**
  * Renders the builder shell / launcher templates to verify the `enable_replace`
- * and `enable_import_export` UI toggles actually hide their buttons when set to
- * false.
+ * and `enable_import_export` (or `enable_import` / `enable_export`) UI toggles
+ * actually hide their buttons when set to false.
  *
  * Regression guard: these flags used to be read with `|default(true)`, which in
  * Twig treats a boolean `false` as "empty" and falls back to `true` — so a host
@@ -60,6 +60,47 @@ final class BuilderToggleTemplatesTest extends TestCase
 
         $this->assertStringContainsString('cb-shell__import-export', $html);
         $this->assertStringContainsString('<dialog class="cb-transfer"', $html);
+    }
+
+    public function testImportCanBeHiddenWhileExportStays(): void
+    {
+        $html = $this->renderShell(['enableImport' => false]);
+
+        $this->assertStringContainsString('cb-shell__import-export', $html);
+        $this->assertStringContainsString('cb.builder.transfer.tab_export</span>', $html);
+        $this->assertStringContainsString('data-cb-transfer-panel="export"', $html);
+        $this->assertStringNotContainsString('data-cb-transfer-panel="import"', $html);
+        $this->assertStringNotContainsString('data-cb-transfer="file"', $html);
+        $this->assertStringNotContainsString('role="tablist"', $html);
+    }
+
+    public function testExportCanBeHiddenWhileImportStays(): void
+    {
+        $html = $this->renderShell(['enableExport' => false]);
+
+        $this->assertStringContainsString('cb.builder.transfer.tab_import</span>', $html);
+        $this->assertStringContainsString('data-cb-transfer-panel="import"', $html);
+        $this->assertStringNotContainsString('data-cb-transfer-panel="export"', $html);
+        $this->assertStringNotContainsString('/area/1/export', $html);
+        // Alone, the import panel is not hidden behind an absent tab.
+        $this->assertDoesNotMatchRegularExpression('~data-cb-transfer-panel="import"\s+hidden~', $html);
+    }
+
+    public function testBothHalvesKeepTheTabs(): void
+    {
+        $html = $this->renderShell([]);
+
+        $this->assertStringContainsString('cb.builder.import_export.open</span>', $html);
+        $this->assertStringContainsString('role="tablist"', $html);
+        $this->assertMatchesRegularExpression('~data-cb-transfer-panel="import"\s+hidden~', $html);
+    }
+
+    public function testEachHalfOverridesTheCombinedFlag(): void
+    {
+        $html = $this->renderShell(['enableImportExport' => false, 'enableExport' => true]);
+
+        $this->assertStringContainsString('data-cb-transfer-panel="export"', $html);
+        $this->assertStringNotContainsString('data-cb-transfer-panel="import"', $html);
     }
 
     public function testTheDialogExportsWithMediaByDefault(): void
@@ -108,6 +149,17 @@ final class BuilderToggleTemplatesTest extends TestCase
         $this->assertStringNotContainsString('cb-shell__replace', $html);
         $this->assertStringNotContainsString('cb-shell__import-export', $html);
         $this->assertStringNotContainsString('cb-shell__public-link', $html);
+    }
+
+    public function testLauncherForwardsEachHalfToShell(): void
+    {
+        $html = $this->render('@ContentBlocks/builder/launcher.html.twig', [
+            'area' => $this->makeArea(),
+            'enableImport' => false,
+        ]);
+
+        $this->assertStringContainsString('data-cb-transfer-panel="export"', $html);
+        $this->assertStringNotContainsString('data-cb-transfer-panel="import"', $html);
     }
 
     /** @param array<string, mixed> $extra */

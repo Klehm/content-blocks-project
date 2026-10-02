@@ -2,6 +2,8 @@
 {# @var iframeUrl string #}
 {# @var enableReplace bool #}
 {# @var enableImportExport bool #}
+{# @var enableImport bool|null #}
+{# @var enableExport bool|null #}
 {# @var enablePublicLink bool #}
 {# @var topbarActions array #}
 <div class="cb-shell"
@@ -54,7 +56,12 @@
             {# One menu for everything area-wide, and skipped entirely when
                nothing would go in it. See docs/internals/frontend.md #}
             {% set hasReplace = enableReplace ?? true %}
-            {% set hasImportExport = enableImportExport ?? true %}
+            {% set hasImport = enableImport ?? enableImportExport ?? true %}
+            {% set hasExport = enableExport ?? enableImportExport ?? true %}
+            {% set hasImportExport = hasImport or hasExport %}
+            {% set transferLabel = not hasImport ? 'cb.builder.transfer.tab_export'
+                : not hasExport ? 'cb.builder.transfer.tab_import'
+                : 'cb.builder.import_export.open' %}
             {% set actions = topbarActions|default([]) %}
             {% if hasReplace or hasImportExport or actions is not empty %}
                 <div class="cb-shell__actions" data-cb-builder-target="actionsMenu">
@@ -88,7 +95,7 @@
                                     data-action="cb-builder#openImportExport"
                                     aria-haspopup="dialog">
                                 <span class="cb-shell__btn-icon" aria-hidden="true">⇅</span>
-                                <span class="cb-shell__btn-label">{{ 'cb.builder.import_export.open'|trans({}, 'content_blocks') }}</span>
+                                <span class="cb-shell__btn-label">{{ transferLabel|trans({}, 'content_blocks') }}</span>
                             </button>
                         {% endif %}
                         {# Both sources are BuilderAction objects by here;
@@ -278,8 +285,12 @@
        sidebar, where an editor with nothing selected is already looking. #}
 
     {# A native <dialog>: focus, Escape and the backdrop come with it. #}
-    {% if enableImportExport ?? true %}
-        {{ include('@ContentBlocks/builder/transfer_dialog.html.twig', {area: area}) }}
+    {% if hasImportExport %}
+        {{ include('@ContentBlocks/builder/transfer_dialog.html.twig', {
+            area: area,
+            enableImport: hasImport,
+            enableExport: hasExport,
+        }) }}
     {% endif %}
 
     {# The sidebar is permanent: it always occupies its column and only its
