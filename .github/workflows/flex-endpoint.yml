@@ -10,6 +10,7 @@ on:
       - master
     paths:
       - 'recipes/**'
+      - '.github/workflows/flex-endpoint.yml'
   workflow_dispatch: ~
 
 permissions:
@@ -37,7 +38,7 @@ jobs:
         run: |
           mkdir -p /tmp/flex-out
           git ls-tree HEAD */*/* | /tmp/recipes-checker/run generate:flex-endpoint \
-            klehm/content-blocks-project master flex/main /tmp/flex-out --contrib
+            klehm/content-blocks-project master flex/main /tmp/flex-out
 
       - name: Publish to the flex/main branch
         run: |
