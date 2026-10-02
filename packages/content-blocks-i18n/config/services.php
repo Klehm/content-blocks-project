@@ -162,7 +162,10 @@ return static function (ContainerConfigurator $container): void {
     $services->set(NullLocalizedPageUrlResolver::class);
     $services->alias(LocalizedPageUrlResolverInterface::class, NullLocalizedPageUrlResolver::class);
 
+    // Controllers are not autoconfigured, or `routing.controllers` mounts them
+    // unprefixed. @see docs/internals/bundle-boot.md
     $services->set(WorkbenchPageController::class)
+        ->autoconfigure(false)
         ->arg('$publicLinks', param('content_blocks_i18n.workbench.public_links'))
         ->tag('controller.service_arguments');
 
@@ -182,10 +185,14 @@ return static function (ContainerConfigurator $container): void {
 
     // ---------- HTTP + CLI ----------
 
-    $services->set(WorkbenchController::class)->tag('controller.service_arguments');
-    $services->set(MachineTranslationController::class)->tag('controller.service_arguments');
-    $services->set(ContentBlocks\I18n\Controller\LocalePublishController::class)->tag('controller.service_arguments');
-    $services->set(AssetController::class)->tag('controller.service_arguments');
+    $services->set(WorkbenchController::class)->autoconfigure(false)
+        ->tag('controller.service_arguments');
+    $services->set(MachineTranslationController::class)->autoconfigure(false)
+        ->tag('controller.service_arguments');
+    $services->set(ContentBlocks\I18n\Controller\LocalePublishController::class)->autoconfigure(false)
+        ->tag('controller.service_arguments');
+    $services->set(AssetController::class)->autoconfigure(false)
+        ->tag('controller.service_arguments');
 
     $services->set(TranslateAreaCommand::class);
     $services->set(TranslationStatusCommand::class);

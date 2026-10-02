@@ -28,8 +28,10 @@ return static function (ContainerConfigurator $container): void {
     // autoconfigure tags them as console.command.
     $services->load('ContentBlocks\\Kit\\Command\\', '../src/Command/');
 
-    // Controllers (the public kit.css endpoint).
+    // The public kit.css endpoint. Not autoconfigured, or `routing.controllers`
+    // mounts it unprefixed. @see docs/internals/bundle-boot.md
     $services->load('ContentBlocks\\Kit\\Controller\\', '../src/Controller/')
+        ->autoconfigure(false)
         ->tag('controller.service_arguments');
 
     // The view object is excluded: it is data, not a service.
