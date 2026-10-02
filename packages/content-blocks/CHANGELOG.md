@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`enable_import` and `enable_export`**, two `ContentAreaType` options (and
+  `enableImport` / `enableExport` for a launcher included directly), so a
+  host can keep Export and drop Import, or the reverse. Left at `null` they
+  follow `enable_import_export`, which keeps its meaning. With one half off,
+  the topbar entry and the dialog are named after the half that remains, and
+  the dialog has no tabs. UI-only, like the other toggles.
+
+### Fixed
+
+- **On Symfony 7.4+, the builder's routes were mounted at the root**
+  (`/upload`, `/area/{id}/publish`…) instead of under `/_content-blocks`. A
+  new app's `config/routes.yaml` imports `routing.controllers`, which picked
+  up the package's autoconfigured controllers a second time, unprefixed, and
+  replaced the recipe's mount. The controllers are no longer autoconfigured;
+  nothing to change on the host side.
+- **`doctrine/collections` 3 is accepted.** A fresh Symfony 8.1 app on PHP 8.4
+  resolves it through `doctrine/orm` 3.7, and needed `composer require -W`.
+- **The Flex recipes applied without `allow-contrib`.** The endpoint marked
+  itself as a contrib repository, so Flex asked before each recipe, and
+  skipped it on a non-interactive install. Adding the endpoint is the opt-in.
+
 ## [1.2.0] - 2026-09-29
 
 This release carries, across the three packages:
