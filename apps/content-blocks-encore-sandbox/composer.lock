@@ -1149,10 +1149,10 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks",
-                "reference": "268d703d3a85d7c700b4a6b82077cff05d8a0182"
+                "reference": "ac295a7149aa766a030a753ff3c9ab44103ca51f"
             },
             "require": {
-                "doctrine/collections": "^1.8 || ^2.0",
+                "doctrine/collections": "^1.8 || ^2.0 || ^3.0",
                 "doctrine/doctrine-bundle": "^2.10 || ^3.0",
                 "doctrine/orm": "^2.15 || ^3.0",
                 "maennchen/zipstream-php": "^3.1",

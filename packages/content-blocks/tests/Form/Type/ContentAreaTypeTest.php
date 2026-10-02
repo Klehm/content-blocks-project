@@ -10,6 +10,7 @@ use ContentBlocks\Builder\BuilderActionProviderInterface;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Form\Type\ContentAreaType;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
@@ -50,6 +51,51 @@ final class ContentAreaTypeTest extends TestCase
         $this->expectException(InvalidOptionsException::class);
 
         $this->resolveOptions(['enable_public_link' => 'yes']);
+    }
+
+    /** @param array<string, mixed> $options */
+    #[DataProvider('importExportCases')]
+    public function testEachTransferHalfFollowsTheCombinedFlagUnlessSet(
+        array $options,
+        bool $import,
+        bool $export,
+        bool $either,
+    ): void {
+        $type = new ContentAreaType($this->createMock(EntityManagerInterface::class));
+        $form = $this->createMock(FormInterface::class);
+        $form->method('getData')->willReturn(null);
+
+        $view = new FormView();
+        $type->buildView($view, $form, $this->resolveOptions($options));
+
+        $this->assertSame($import, $view->vars['enable_import']);
+        $this->assertSame($export, $view->vars['enable_export']);
+        $this->assertSame($either, $view->vars['enable_import_export']);
+    }
+
+    /**
+     * @return iterable<string, array{
+     *     array<string, mixed>, bool, bool, bool
+     * }>
+     */
+    public static function importExportCases(): iterable
+    {
+        yield 'defaults' => [[], true, true, true];
+        yield 'combined off' => [['enable_import_export' => false], false, false, false];
+        yield 'import off, export kept' => [['enable_import' => false], false, true, true];
+        yield 'combined off, export back on' => [
+            ['enable_import_export' => false, 'enable_export' => true],
+            false,
+            true,
+            true,
+        ];
+    }
+
+    public function testTransferHalfRejectsNonBool(): void
+    {
+        $this->expectException(InvalidOptionsException::class);
+
+        $this->resolveOptions(['enable_import' => 'no']);
     }
 
     /**

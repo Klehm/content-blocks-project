@@ -36,7 +36,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 - **The 19 kit block classes, as subclassable.** Their `protected` methods are covered. See [extending a kit block](../kit/#extending-a-kit-block).
 - **Attributes**: `#[AsContentBlock]`, `#[AsBlockFormExtension]`.
 - **Form types**:
-  - `ContentAreaType` and its options (`enable_replace`, `enable_import_export`, `enable_public_link`, `topbar_actions`).
+  - `ContentAreaType` and its options (`enable_replace`, `enable_import_export`, `enable_import`, `enable_export`, `enable_public_link`, `topbar_actions`).
   - `PaletteColorType`, `ImageUploadType`, `VideoUploadType`, as fields for your own blocks.
   - `BlockFormType`, `SectionSettingsType` and `StylingType` as **targets of a form type extension**, with their `TAB_*` and `PANEL_*` constants. The fields they hold are not frozen: a field may move, but a key you add keeps working.
 - **The sidebar form options.** `cb_group`, `cb_panel`, `cb_help_tooltip` and `cb_panels_exclusive` on every form type; `cb_icons`, `cb_icon_layout`, `cb_icon_columns` and `cb_icon_labels` on `ChoiceType`; `cb_open_entries` on `LiveCollectionType`. Also the **names of the shipped UI icons** they refer to ([Laying out sidebar fields](./sidebar-fields.md)): a name may gain a better drawing, but it is not renamed or removed.

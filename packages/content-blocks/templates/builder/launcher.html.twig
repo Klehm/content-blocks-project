@@ -2,6 +2,8 @@
 {# @var iframeUrl string #}
 {# @var enableReplace bool #}
 {# @var enableImportExport bool #}
+{# @var enableImport bool|null #}
+{# @var enableExport bool|null #}
 {# @var enablePublicLink bool #}
 {# @var topbarActions array #}
 <div class="cb-launcher"
@@ -25,6 +27,8 @@
             iframeUrl: iframeUrl|default('about:blank'),
             enableReplace: enableReplace ?? true,
             enableImportExport: enableImportExport ?? true,
+            enableImport: enableImport ?? enableImportExport ?? true,
+            enableExport: enableExport ?? enableImportExport ?? true,
             enablePublicLink: enablePublicLink ?? true,
             topbarActions: topbarActions|default([]),
         } only %}

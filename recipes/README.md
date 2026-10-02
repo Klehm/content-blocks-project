@@ -48,8 +48,12 @@ git clone --depth=1 https://github.com/symfony-tools/recipes-checker.git /tmp/re
 composer install -d /tmp/recipes-checker --no-dev
 cd recipes
 git ls-tree HEAD */*/* | /tmp/recipes-checker/run generate:flex-endpoint \
-  klehm/content-blocks-project master flex/main /tmp/out --contrib
+  klehm/content-blocks-project master flex/main /tmp/out
 ```
+
+No `--contrib`: it marks the index `is_contrib`, and Flex then skips every
+recipe without `allow-contrib` — silently on a non-interactive install. Adding
+the endpoint is already the consumer's decision to trust it.
 
 These recipe sources are also the staging ground for an eventual
 [symfony/recipes-contrib](https://github.com/symfony/recipes-contrib) PR,

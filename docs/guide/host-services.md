@@ -552,11 +552,13 @@ All three are **on by default** and are toggled **per field**, via `ContentAreaT
 $builder->add('contentArea', ContentAreaType::class, [
     'enable_replace' => false,        // hide the "Insert content" button + picker
     'enable_import_export' => false,  // hide the Import / Export button + overlay
+    // or one half only, e.g. keep Export and drop Import:
+    'enable_import' => false,         // null (default) follows enable_import_export
     'enable_public_link' => false,    // hide the "View page" link
 ]);
 ```
 
-A host that includes `launcher.html.twig` directly passes the same flags as `enableReplace`, `enableImportExport` and `enablePublicLink`. The link's URL is also available to your own templates as `cb_public_url(area)`.
+A host that includes `launcher.html.twig` directly passes the same flags as `enableReplace`, `enableImportExport` (or `enableImport` / `enableExport`) and `enablePublicLink`. The link's URL is also available to your own templates as `cb_public_url(area)`.
 
 ::: warning UI-only toggles
 The first two options are **UI-only**: they hide the menu entry and its overlay. The underlying endpoints (`…/replace-with`, `…/export`, `…/import`) stay reachable and remain protected by your `AccessCheckerInterface` (and CSRF for writes). If you need to close the endpoints server-side too, gate them with your firewall or `AccessChecker` — the form option does not, by design, since the route has no per-form context.

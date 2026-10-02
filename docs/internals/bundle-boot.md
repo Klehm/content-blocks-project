@@ -54,6 +54,24 @@ targeted block type ids and a priority. `BlockFormExtensionPass` pairs each
 service with its ids so a host writes a single attribute and implements only
 `buildForm()`. See [forms.md](forms.md#why-form-extensions-are-a-package-seam).
 
+## Controllers are not autoconfigured
+
+Since Symfony 7.4 a new app's `config/routes.yaml` is `resource:
+routing.controllers`: it imports every service tagged `routing.controller`, and
+FrameworkBundle puts that tag on any *autoconfigured* service carrying a
+`#[Route]`. Our controllers were autoconfigured, so that import mounted them a
+second time with no prefix — and, `routes.yaml` being loaded after
+`config/routes/*.yaml`, under the same route names, it replaced the recipe's
+`/_content-blocks` mount instead of adding to it (`/upload`, `/area/{id}/…`).
+
+So every controller of the three packages is registered with
+`autoconfigure(false)` and tagged `controller.service_arguments` by hand. The
+routes reach the app only through the route files the host imports, which is
+what makes the mount point the host's ([routing guide](../guide/routing.md)).
+`tests/Routing/ControllerAutoconfigurationTest.php`, one per package, replays
+FrameworkBundle's autoconfiguration on `services.php` and fails if a routed
+service comes out tagged.
+
 ## Doctrine listeners are tagged, not attributed
 
 `ContentAreaTouchListener` is registered with the `doctrine.event_listener` tag

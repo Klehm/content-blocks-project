@@ -47,6 +47,9 @@ final class ContentAreaType extends AbstractType implements DataTransformerInter
             // AccessChecker-protected whatever the topbar shows.
             'enable_replace' => true,
             'enable_import_export' => true,
+            // Each half on its own; null follows enable_import_export.
+            'enable_import' => null,
+            'enable_export' => null,
             // A plain link to the published page; no endpoint behind it.
             'enable_public_link' => true,
             // Entries of ['key', 'label', 'icon'?, 'title'?]; clicking one
@@ -55,6 +58,8 @@ final class ContentAreaType extends AbstractType implements DataTransformerInter
         ]);
         $resolver->setAllowedTypes('enable_replace', 'bool');
         $resolver->setAllowedTypes('enable_import_export', 'bool');
+        $resolver->setAllowedTypes('enable_import', ['null', 'bool']);
+        $resolver->setAllowedTypes('enable_export', ['null', 'bool']);
         $resolver->setAllowedTypes('enable_public_link', 'bool');
         $resolver->setAllowedTypes('topbar_actions', 'array');
     }
@@ -79,7 +84,9 @@ final class ContentAreaType extends AbstractType implements DataTransformerInter
         $view->vars['value'] = $isPersisted ? $contentArea->getId() : '';
         $view->vars['is_pending'] = !$isPersisted;
         $view->vars['enable_replace'] = $options['enable_replace'];
-        $view->vars['enable_import_export'] = $options['enable_import_export'];
+        $view->vars['enable_import'] = $options['enable_import'] ?? $options['enable_import_export'];
+        $view->vars['enable_export'] = $options['enable_export'] ?? $options['enable_import_export'];
+        $view->vars['enable_import_export'] = $view->vars['enable_import'] || $view->vars['enable_export'];
         $view->vars['enable_public_link'] = $options['enable_public_link'];
         // Providers only speak about an area that exists, and the "save first"
         // placeholder has no builder to hang a menu off anyway.

@@ -1,6 +1,9 @@
 {# Import / Export, driven by assets/transfer/transfer-dialog.js. The import
    panel shows one step at a time: the dialog's data-step picks it. #}
 {% set t = 'content_blocks' %}
+{% set enableImport = enableImport ?? true %}
+{% set enableExport = enableExport ?? true %}
+{% set both = enableImport and enableExport %}
 {% set strings = {
     reading: 'cb.builder.transfer.reading'|trans({}, t),
     invalid: 'cb.builder.transfer.invalid'|trans({}, t),
@@ -27,15 +30,17 @@
 <dialog class="cb-transfer"
         data-cb-builder-target="transferDialog"
         aria-labelledby="cb-transfer-title"
-        aria-describedby="cb-transfer-subtitle"
+        {% if both %}aria-describedby="cb-transfer-subtitle"{% endif %}
         data-cb-transfer-strings="{{ strings|json_encode }}">
     <header class="cb-transfer__header">
         <span class="cb-transfer__badge" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="m3 7.5 9 4.5 9-4.5M12 12v9"/><path d="m7.5 5.25 9 4.5"/></svg>
         </span>
         <div class="cb-transfer__heading">
-            <h2 class="cb-transfer__title" id="cb-transfer-title">{{ 'cb.builder.transfer.title'|trans({}, t) }}</h2>
-            <p class="cb-transfer__subtitle" id="cb-transfer-subtitle">{{ 'cb.builder.transfer.subtitle'|trans({}, t) }}</p>
+            <h2 class="cb-transfer__title" id="cb-transfer-title">{{ (both ? 'cb.builder.transfer.title' : enableImport ? 'cb.builder.transfer.tab_import' : 'cb.builder.transfer.tab_export')|trans({}, t) }}</h2>
+            {% if both %}
+                <p class="cb-transfer__subtitle" id="cb-transfer-subtitle">{{ 'cb.builder.transfer.subtitle'|trans({}, t) }}</p>
+            {% endif %}
         </div>
         <button type="button" class="cb-transfer__close" data-cb-transfer="close"
                 aria-label="{{ 'cb.builder.close'|trans({}, t) }}">
@@ -43,6 +48,7 @@
         </button>
     </header>
 
+    {% if both %}
     <div class="cb-transfer__tabs" role="tablist">
         <button type="button" role="tab" class="cb-transfer__tab" id="cb-transfer-tab-export"
                 aria-controls="cb-transfer-export" aria-selected="true"
@@ -57,9 +63,13 @@
             {{ 'cb.builder.transfer.tab_import'|trans({}, t) }}
         </button>
     </div>
+    {% endif %}
 
-    <section class="cb-transfer__panel" id="cb-transfer-export" role="tabpanel"
-             aria-labelledby="cb-transfer-tab-export" data-cb-transfer-panel="export">
+    {% if enableExport %}
+
+    <section class="cb-transfer__panel" id="cb-transfer-export"
+             {% if both %}role="tabpanel" aria-labelledby="cb-transfer-tab-export"{% endif %}
+             data-cb-transfer-panel="export">
         <div class="cb-transfer__hero">
             <svg class="cb-transfer__archive" viewBox="0 0 64 76" aria-hidden="true">
                 <path class="cb-transfer__archive-sheet" d="M8 2h34l20 20v46a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z"/>
@@ -112,8 +122,12 @@
         </footer>
     </section>
 
-    <section class="cb-transfer__panel" id="cb-transfer-import" role="tabpanel"
-             aria-labelledby="cb-transfer-tab-import" data-cb-transfer-panel="import" hidden>
+    {% endif %}
+
+    {% if enableImport %}
+    <section class="cb-transfer__panel" id="cb-transfer-import"
+             {% if both %}role="tabpanel" aria-labelledby="cb-transfer-tab-import"{% endif %}
+             data-cb-transfer-panel="import" {% if enableExport %}hidden{% endif %}>
         <div class="cb-transfer__step" data-cb-transfer-step="pick">
             <label class="cb-transfer__drop" data-cb-transfer="drop">
                 <input type="file" class="cb-transfer__file" data-cb-transfer="file"
@@ -183,4 +197,5 @@
             </footer>
         </div>
     </section>
+    {% endif %}
 </dialog>

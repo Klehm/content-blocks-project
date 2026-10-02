@@ -21,6 +21,9 @@ export class TransferDialog {
         this.request = request;
         this.onImported = onImported;
         this.strings = JSON.parse(dialog.dataset.cbTransferStrings || '{}');
+        // A host can turn either half off: only its panel is rendered.
+        this.panels = [...dialog.querySelectorAll('[data-cb-transfer-panel]')]
+            .map((panel) => panel.dataset.cbTransferPanel);
         this.summary = null;
         this.run = null;
         this.busy = false;
@@ -71,13 +74,13 @@ export class TransferDialog {
         this.dialog.addEventListener('cancel', (event) => {
             if (this.busy) event.preventDefault();
         });
-        this._el('media').addEventListener('change', () => this._renderExport());
-        this._el('file').addEventListener('change', (event) => {
+        this._el('media')?.addEventListener('change', () => this._renderExport());
+        this._el('file')?.addEventListener('change', (event) => {
             const [file] = event.target.files;
             event.target.value = '';
             if (file) this._review(file);
         });
-        this._el('supply-file').addEventListener('change', (event) => {
+        this._el('supply-file')?.addEventListener('change', (event) => {
             const files = [...event.target.files];
             event.target.value = '';
             if (files.length) this._supply(files);
@@ -88,6 +91,7 @@ export class TransferDialog {
 
     /** Lit only for a drag of files; the depth count survives children. */
     _dropZone(zone, onFiles) {
+        if (!zone) return;
         let depth = 0;
         const carriesFiles = (event) => [...(event.dataTransfer?.types ?? [])].includes('Files');
         zone.addEventListener('dragenter', (event) => {
@@ -115,7 +119,7 @@ export class TransferDialog {
 
     open(tab = 'export') {
         if (!this.dialog.open) this.dialog.showModal();
-        this._select(tab);
+        this._select(this.panels.includes(tab) ? tab : this.panels[0]);
         if (!this.busy && this.dialog.dataset.step !== 'review') this._step('pick');
     }
 

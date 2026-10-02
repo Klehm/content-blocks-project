@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **On Symfony 7.4+, the `kit.css` route was mounted at the root** instead of under
+  the prefix of the route file the host imports: a new app's
+  `config/routes.yaml` imports `routing.controllers`, which picked up the
+  autoconfigured controllers a second time. They are no longer autoconfigured.
+
 ## [1.2.0] - 2026-09-29
 
 This release carries, across the three packages:

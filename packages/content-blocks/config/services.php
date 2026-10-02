@@ -441,8 +441,12 @@ return static function (ContainerConfigurator $container): void {
     $services->load('ContentBlocks\\Form\\', '../src/Form/')
         ->exclude('../src/Form/Extension/AsBlockFormExtension.php');
 
+    // Not autoconfigured: Symfony 7.4's `routing.controllers` would mount
+    // them a second time, unprefixed. @see docs/internals/bundle-boot.md
     $services->load('ContentBlocks\\Controller\\', '../src/Controller/')
+        ->autoconfigure(false)
         ->tag('controller.service_arguments');
     $services->set(ContentBlocks\PublicAsset\AssetController::class)
+        ->autoconfigure(false)
         ->tag('controller.service_arguments');
 };
