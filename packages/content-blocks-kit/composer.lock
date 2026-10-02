@@ -941,10 +941,10 @@
             "dist": {
                 "type": "path",
                 "url": "../content-blocks",
-                "reference": "53246deb3cb5f32dbe9a016b3787b72601def39b"
+                "reference": "545ef343e17f65e8ccaffb8d55bba6a5caaf5841"
             },
             "require": {
-                "doctrine/collections": "^1.8 || ^2.0",
+                "doctrine/collections": "^1.8 || ^2.0 || ^3.0",
                 "doctrine/doctrine-bundle": "^2.10 || ^3.0",
                 "doctrine/orm": "^2.15 || ^3.0",
                 "maennchen/zipstream-php": "^3.1",
