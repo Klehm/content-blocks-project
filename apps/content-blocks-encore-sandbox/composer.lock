@@ -1149,7 +1149,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks",
-                "reference": "ac295a7149aa766a030a753ff3c9ab44103ca51f"
+                "reference": "23640bb3df36469b3d4a208b51a427d9b7f96e4c"
             },
             "require": {
                 "doctrine/collections": "^1.8 || ^2.0 || ^3.0",
@@ -1187,8 +1187,8 @@
                     "bundle": "ContentBlocks\\ContentBlocksBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "1.2.x-dev",
-                    "dev-main": "1.2.x-dev"
+                    "dev-master": "1.3.x-dev",
+                    "dev-main": "1.3.x-dev"
                 }
             },
             "autoload": {
@@ -1237,7 +1237,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks-kit",
-                "reference": "a4890afd05857fc6367860562342fcc18d4538b4"
+                "reference": "1acbc2c59571d2bf5964f7e6cd3d0bfcf2b3bf73"
             },
             "require": {
                 "klehm/content-blocks": "^1.0",
@@ -1264,8 +1264,8 @@
                     "bundle": "ContentBlocks\\Kit\\ContentBlocksKitBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "1.2.x-dev",
-                    "dev-main": "1.2.x-dev"
+                    "dev-master": "1.3.x-dev",
+                    "dev-main": "1.3.x-dev"
                 }
             },
             "autoload": {

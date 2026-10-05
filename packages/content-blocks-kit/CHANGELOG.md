@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-05
+
+This release carries, across the three packages:
+
+- **A narrower builder** (`klehm/content-blocks`). `content_blocks.structure`
+  turns the builder into a stack of blocks (`sections: hidden`), a skeleton
+  to fill (`sections: fixed`) or locks the columns (`columns: false`), per
+  area if the host wishes; `content_blocks.styling: false` drops the free
+  styling fields. See `docs/guide/builder-structure.md`.
+- **Import and Export, each on its own** (`klehm/content-blocks`):
+  `enable_import` and `enable_export` on `ContentAreaType`.
+- **Routes mounted where they belong on Symfony 7.4+** (all three packages):
+  a new app's `routing.controllers` import no longer remounts the packages'
+  controllers at the root.
+
 ### Fixed
 
 - **On Symfony 7.4+, the `kit.css` route was mounted at the root** instead of under

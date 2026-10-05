@@ -62,8 +62,8 @@
             "bundle": "ContentBlocks\\I18n\\ContentBlocksI18nBundle"
         },
         "branch-alias": {
-            "dev-master": "1.2.x-dev",
-            "dev-main": "1.2.x-dev"
+            "dev-master": "1.3.x-dev",
+            "dev-main": "1.3.x-dev"
         }
     },
     "repositories": {
