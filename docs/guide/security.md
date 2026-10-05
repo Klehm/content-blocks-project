@@ -140,7 +140,7 @@ A block's `data` is never written raw. `BlockComponent::persistDraft()` submits 
 Two guarantees fall out of this:
 
 - **Key whitelist** — the compound form only maps its declared children, so an unexpected key in the POST is dropped; it never reaches `data`.
-- **Value validation** — each field's `constraints` (e.g. `Assert\Choice`, `Assert\Length`) run on submit; a failure re-renders the form with errors and writes nothing. Nested collections validate via their `entry_type`'s own constraints.
+- **Value validation** — each field's `constraints` (e.g. `Assert\Choice`, `Assert\Length`) run on submit, and a value that fails them is never written: the field keeps its stored value, while the valid fields of the same form still save. An error on the form itself (a constraint across fields) writes nothing. Nested collections validate via their `entry_type`'s own constraints.
 
 There is **no** `getAllowedDataKeys()` / `sanitizeData()` / `processData()` hook — a custom block secures its data purely by what it declares in `buildForm()` (fields + constraints). The kit's `AbstractKitBlock::choiceConstraint()` derives an `Assert\Choice` from the field's full coded choice set for exactly this reason.
 

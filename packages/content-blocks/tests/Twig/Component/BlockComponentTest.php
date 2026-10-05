@@ -33,7 +33,9 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\Forms;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 use Symfony\Component\Validator\Validation;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -344,6 +346,79 @@ final class BlockComponentTest extends TestCase
         $this->assertNull($block->getDraftData());
     }
 
+    // The text was left empty; the editor only changed the type.
+    public function testAnUntouchedInvalidFieldDoesNotHoldTheOthers(): void
+    {
+        [$component, $block] = $this->makeSavingComponent(withType: true);
+        $block->setDraftData(['text' => '', 'type' => 'info']);
+        $component->formValues = ['text' => '', 'type' => 'warning'];
+        $component->validatedFields = ['content_block.type'];
+
+        $component->save();
+
+        $this->assertSame(['text' => '', 'type' => 'warning'], $block->getDraftData());
+        $this->assertSame([], $this->errorsOn($component, 'text'), 'untouched: no error shown');
+        $this->assertFalse($component->isValidated, 'errors stay per field');
+        $this->assertSame(['content_block.type'], $component->validatedFields);
+    }
+
+    // The editor emptied the text and changed the type: both are theirs.
+    public function testATouchedInvalidFieldKeepsItsStoredValueAndShowsItsError(): void
+    {
+        [$component, $block] = $this->makeSavingComponent(withType: true);
+        $block->setDraftData(['text' => 'Before', 'type' => 'info']);
+        $component->formValues = ['text' => '', 'type' => 'warning'];
+        $component->validatedFields = ['content_block.text', 'content_block.type'];
+
+        $component->save();
+
+        $this->assertSame(['text' => 'Before', 'type' => 'warning'], $block->getDraftData());
+        $this->assertCount(1, $this->errorsOn($component, 'text'));
+    }
+
+    public function testAnInvalidFieldAloneWritesNothing(): void
+    {
+        [$component, $block, , $events] = $this->makeSavingComponent(withType: true);
+        $block->setDraftData(['text' => 'Before', 'type' => 'info']);
+        $after = 0;
+        $events->addListener(AfterBlockSaveEvent::class, function () use (&$after): void {
+            ++$after;
+        });
+        $component->formValues = ['text' => '', 'type' => 'info'];
+        $component->validatedFields = ['content_block.text'];
+
+        $component->save();
+
+        $this->assertSame(['text' => 'Before', 'type' => 'info'], $block->getDraftData());
+        $this->assertSame(0, $after);
+        $this->assertCount(1, $this->errorsOn($component, 'text'));
+    }
+
+    // A constraint across fields has no field to fall back on.
+    public function testAFormLevelErrorHoldsTheWholeSave(): void
+    {
+        [$component, $block] = $this->makeSavingComponent(withType: true, rootConstraint: true);
+        $block->setDraftData(['text' => 'Before', 'type' => 'info']);
+        $component->formValues = ['text' => 'After', 'type' => 'warning'];
+        $component->validatedFields = ['content_block.text', 'content_block.type'];
+
+        $component->save();
+
+        $this->assertSame(['text' => 'Before', 'type' => 'info'], $block->getDraftData());
+        $this->assertCount(1, $component->getFormView()->vars['errors']);
+    }
+
+    /** @return list<string> */
+    private function errorsOn(BlockComponent $component, string $field): array
+    {
+        $errors = [];
+        foreach ($component->getFormView()[$field]->vars['errors'] as $error) {
+            $errors[] = $error->getMessage();
+        }
+
+        return $errors;
+    }
+
     /**
      * A block in a full area graph, edited through a real one-field form.
      *
@@ -351,7 +426,7 @@ final class BlockComponentTest extends TestCase
      *     0: BlockComponent, 1: Block, 2: ContentArea, 3: EventDispatcher,
      * }
      */
-    private function makeSavingComponent(): array
+    private function makeSavingComponent(bool $withType = false, bool $rootConstraint = false): array
     {
         $area = new ContentArea();
         $section = new Section();
@@ -383,12 +458,18 @@ final class BlockComponentTest extends TestCase
             }
         });
 
-        $form = Forms::createFormFactoryBuilder()
+        $root = $rootConstraint ? [new Callback(static function (mixed $value, ExecutionContextInterface $context): void {
+            $context->addViolation('Text and type disagree.');
+        })] : [];
+        $builder = Forms::createFormFactoryBuilder()
             ->addExtension(new ValidatorExtension(Validation::createValidator()))
             ->getFormFactory()
-            ->createNamedBuilder('content_block', FormType::class)
-            ->add('text', TextType::class, ['constraints' => [new NotBlank()]])
-            ->getForm();
+            ->createNamedBuilder('content_block', FormType::class, null, ['constraints' => $root])
+            ->add('text', TextType::class, ['constraints' => [new NotBlank()]]);
+        if ($withType) {
+            $builder->add('type', TextType::class);
+        }
+        $form = $builder->getForm();
         $factory = $this->createMock(FormFactoryInterface::class);
         $factory->method('create')->willReturn($form);
 
