@@ -7,6 +7,12 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-05
+
+No change in the i18n package itself. Fixes a block form that saved nothing while one
+of its required fields was empty (`klehm/content-blocks`). The three packages
+are tagged together.
+
 ## [1.3.0] - 2026-10-05
 
 This release carries, across the three packages:
