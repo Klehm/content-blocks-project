@@ -6,6 +6,10 @@ The kit is **self-contained**: no Tailwind/Bootstrap, no LiipImagine, no icon
 library. Every block renders neutral `cb-kit-*` markup styled by a single
 shipped stylesheet, so it drops into any host regardless of its CSS setup.
 
+## Live demo
+
+See the builder at work on **[blocks.clementmuller.fr](https://blocks.clementmuller.fr/)** — no install needed.
+
 ## Included blocks
 
 | Type | What it is |
@@ -222,6 +226,10 @@ Full documentation and development setup live in the monorepo:
 **Backward compatibility.** From `1.0.0`, what is covered by semver — and what is deliberately not — is listed in the
 [backward compatibility page](https://klehm.github.io/content-blocks-project/guide/backward-compatibility).
 Anything tagged `@internal` sits outside the promise.
+
+## Author & services
+
+Built with passion by **[Clément Muller](https://clementmuller.fr/)**. Installation, integration and customization services available — see **[clementmuller.fr](https://clementmuller.fr/)**.
 
 ## License
 

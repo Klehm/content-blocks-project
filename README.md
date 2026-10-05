@@ -4,13 +4,14 @@
 
 **A page builder that lives inside your Symfony app.**
 
-Build content areas from sections, columns and blocks — edited in-context, with a live preview of your *real* page. Framework-native, extensible, no CMS lock-in.
+Build content areas from sections, columns and blocks — edited in-context, with a live preview of your _real_ page. Framework-native, extensible, no CMS lock-in.
 
 [![Packagist](https://img.shields.io/badge/packagist-klehm%2Fcontent--blocks-orange)](https://packagist.org/packages/klehm/content-blocks)
 [![License](https://img.shields.io/badge/license-MIT-blue)](#license)
 [![Symfony](https://img.shields.io/badge/Symfony-6.4%20%7C%207.x%20%7C%208.x-black)](https://symfony.com)
 [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777bb4)](https://php.net)
 
+▶️ **[Live demo](https://blocks.clementmuller.fr/)** ·
 📖 **[Documentation](https://klehm.github.io/content-blocks-project/)** ·
 🚀 **[Quick start](https://klehm.github.io/content-blocks-project/guide/quickstart)** ·
 🧩 **[Block Kit](https://klehm.github.io/content-blocks-project/kit/)** ·
@@ -20,11 +21,13 @@ Build content areas from sections, columns and blocks — edited in-context, wit
 
 ![The builder: a block's form in the sidebar, the page's real preview beside it](docs/public/screenshots/builder.webp)
 
+> **▶️ Try it live: [blocks.clementmuller.fr](https://blocks.clementmuller.fr/)** — open the builder, edit a real page, publish. No install, nothing to sign up for.
+
 ---
 
 ## The idea in 30 seconds
 
-`ContentArea` is a **generic, titleless, slug-less container** of sections. It is *not* a page and has *no* URL — your app owns those. You attach it to your own entity with one Doctrine relation:
+`ContentArea` is a **generic, titleless, slug-less container** of sections. It is _not_ a page and has _no_ URL — your app owns those. You attach it to your own entity with one Doctrine relation:
 
 ```php
 #[ORM\OneToOne(targetEntity: ContentArea::class, cascade: ['persist', 'remove'])]
@@ -40,13 +43,13 @@ The builder opens your **real public page in an iframe** and edits it in place, 
 
 ## What it does — and deliberately doesn't
 
-| ✅ ContentBlocks does | ❌ ContentBlocks does not |
-|---|---|
-| Store structured content as *your* data | Own your routing, URLs, or SEO |
-| Render an in-context builder with live preview | Ship a CMS, admin panel, or user management |
-| Provide an extensible block-type system | Force a CSS framework on you |
-| Enforce *your* auth model via a thin interface | Know who your users are — you wire that |
-| Draft / publish / discard content states | Replace your templating — you keep the markup |
+| ✅ ContentBlocks does                          | ❌ ContentBlocks does not                     |
+| ---------------------------------------------- | --------------------------------------------- |
+| Store structured content as _your_ data        | Own your routing, URLs, or SEO                |
+| Render an in-context builder with live preview | Ship a CMS, admin panel, or user management   |
+| Provide an extensible block-type system        | Force a CSS framework on you                  |
+| Enforce _your_ auth model via a thin interface | Know who your users are — you wire that       |
+| Draft / publish / discard content states       | Replace your templating — you keep the markup |
 
 ## Install
 
@@ -59,18 +62,18 @@ Then attach a `ContentArea`, add `ContentAreaType` to a form, and call `cb_rende
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| [`klehm/content-blocks`](packages/content-blocks/) | Core: entities, admin builder UI (Live Components + Stimulus), `ContentAreaType`, block-type system |
-| [`klehm/content-blocks-kit`](packages/content-blocks-kit/) | **19 ready-to-use, self-contained blocks** (title, text, image, gallery, button, card…) |
-| [`klehm/content-blocks-i18n`](packages/content-blocks-i18n/) | Optional content translation: one shared layout, per-locale values, a translation workbench |
+| Package                                                      | Description                                                                                         |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| [`klehm/content-blocks`](packages/content-blocks/)           | Core: entities, admin builder UI (Live Components + Stimulus), `ContentAreaType`, block-type system |
+| [`klehm/content-blocks-kit`](packages/content-blocks-kit/)   | **19 ready-to-use, self-contained blocks** (title, text, image, gallery, button, card…)             |
+| [`klehm/content-blocks-i18n`](packages/content-blocks-i18n/) | Optional content translation: one shared layout, per-locale values, a translation workbench         |
 
 ## Vision
 
 A page builder that feels like a **native part of a Symfony application** rather than a platform you migrate into:
 
 - **Framework-native** — Doctrine entities, Symfony forms, Live Components, Stimulus. No bespoke runtime, no proprietary storage.
-- **Extensible before featureful** — a block is one class + one form; `#[AsContentBlock]` auto-registers it. The form *is* the data whitelist and validator.
+- **Extensible before featureful** — a block is one class + one form; `#[AsContentBlock]` auto-registers it. The form _is_ the data whitelist and validator.
 - **Host-owned, not tool-owned** — your entity, URL, auth, and markup. ContentBlocks fills exactly one gap and gets out of the way.
 - **Secure and predictable by default** — deny-all access, CSRF everywhere, MIME/size-checked uploads. You opt into surface, never out of safety.
 
@@ -89,6 +92,12 @@ php -S 127.0.0.1:8000 -t public   # → http://127.0.0.1:8000
 ```
 
 Docs live in [`docs/`](docs/) (VitePress). Run them locally with `cd docs && npm install && npm run docs:dev`. Planned and under-consideration work is tracked in [`ROADMAP.md`](ROADMAP.md).
+
+## Author & services
+
+ContentBlocks is built with passion by **[Clément Muller](https://clementmuller.fr/)**, a freelance Symfony/Sylius developer.
+
+Need a hand? I offer **installation, integration and customization** of ContentBlocks — custom blocks, theming to your design system, Sylius or legacy-app integration, migration of existing content. Get in touch through **[clementmuller.fr](https://clementmuller.fr/)**.
 
 ## License
 

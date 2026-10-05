@@ -10,6 +10,9 @@ hero:
     alt: ContentBlocks
   actions:
     - theme: brand
+      text: Try the live demo
+      link: https://blocks.clementmuller.fr/
+    - theme: alt
       text: Quick start
       link: /guide/quickstart
     - theme: alt
@@ -114,8 +117,16 @@ ContentArea  →  Section  →  Column  →  Block
 | Enforce your auth model via a thin interface | Know who your users are — you wire that |
 | Draft / publish / discard content states | Replace your templating — you keep full control of markup |
 
+## Try it live
+
+<p class="cb-lead">A public demo runs the builder on a real page: <a href="https://blocks.clementmuller.fr/"><strong>blocks.clementmuller.fr</strong></a>. Edit, preview on every viewport, publish — no install needed.</p>
+
 ## Built for humans **and** agents
 
 Installing is a short, deterministic path — and it's documented for AI coding agents too. See [`AGENTS.md`](https://github.com/klehm/content-blocks-project/blob/master/AGENTS.md) and the machine-readable [`llms.txt`](/llms.txt) index.
+
+## Made with passion
+
+ContentBlocks is built and maintained by **[Clément Muller](https://clementmuller.fr/)**, a freelance Symfony developer. I offer **installation, integration and customization** — custom blocks, theming to your design system, Sylius or legacy-app integration, content migration. Get in touch through [clementmuller.fr](https://clementmuller.fr/).
 
 </div>

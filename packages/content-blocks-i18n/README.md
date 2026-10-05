@@ -17,6 +17,10 @@ composer require klehm/content-blocks-i18n
 
 ![The translation workbench: source and translation side by side, the translated page previewed live](https://raw.githubusercontent.com/klehm/content-blocks-project/master/docs/public/screenshots/workbench.webp)
 
+## Live demo
+
+See the builder at work on **[blocks.clementmuller.fr](https://blocks.clementmuller.fr/)** — no install needed.
+
 ---
 
 ## What this package does not do
@@ -460,6 +464,10 @@ Full documentation and development setup live in the monorepo:
 **Backward compatibility.** From `1.0.0`, what is covered by semver — and what is deliberately not — is listed in the
 [backward compatibility page](https://klehm.github.io/content-blocks-project/guide/backward-compatibility).
 Anything tagged `@internal` sits outside the promise.
+
+## Author & services
+
+Built with passion by **[Clément Muller](https://clementmuller.fr/)**. Installation, integration and customization services available — see **[clementmuller.fr](https://clementmuller.fr/)**.
 
 ## License
 

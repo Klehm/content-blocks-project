@@ -6,6 +6,10 @@ This package provides the core: entities, admin UI (Live Components + Stimulus),
 
 ![The builder: a block's form in the sidebar, the page's real preview beside it](https://raw.githubusercontent.com/klehm/content-blocks-project/master/docs/public/screenshots/builder.webp)
 
+## Live demo
+
+See the builder at work on **[blocks.clementmuller.fr](https://blocks.clementmuller.fr/)** — no install needed.
+
 ## Requirements
 
 - PHP >= 8.2 (>= 8.4 for Symfony 8.0)
@@ -1060,6 +1064,10 @@ Full development setup, sandbox apps, and JS test suite live in the monorepo:
 **Backward compatibility.** From `1.0.0`, what is covered by semver — and what is deliberately not — is listed in the
 [backward compatibility page](https://klehm.github.io/content-blocks-project/guide/backward-compatibility).
 Anything tagged `@internal` sits outside the promise.
+
+## Author & services
+
+Built with passion by **[Clément Muller](https://clementmuller.fr/)**. Installation, integration and customization services available — see **[clementmuller.fr](https://clementmuller.fr/)**.
 
 ## License
 

@@ -13,6 +13,10 @@ It ships as two Composer packages:
 | [`klehm/content-blocks`](https://github.com/klehm/content-blocks) | The core: Doctrine entities, the admin builder UI (Live Components + Stimulus), the `ContentAreaType` form, and the extensible block-type system. |
 | [`klehm/content-blocks-kit`](https://github.com/klehm/content-blocks-kit) | An optional set of **19 ready-to-use, self-contained blocks** (title, text, image, gallery, button…). See the [Block Kit](/kit/). |
 
+::: tip See it first
+A live demo runs the builder on a real page: **[blocks.clementmuller.fr](https://blocks.clementmuller.fr/)**.
+:::
+
 ## The core idea
 
 The central entity is `ContentArea` — a **generic, titleless, slug-less container** of sections. It is not a page. It has no URL. Your application owns those.

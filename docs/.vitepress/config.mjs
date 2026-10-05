@@ -45,6 +45,7 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/quickstart' },
       { text: 'Block Kit', link: '/kit/' },
+      { text: 'Live demo', link: 'https://blocks.clementmuller.fr/' },
       {
         text: `v${release}`,
         items: [
@@ -126,7 +127,7 @@ export default defineConfig({
 
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'ContentBlocks — a Klehm project.',
+      copyright: 'Built with passion by <a href="https://clementmuller.fr/">Clément Muller</a> — installation &amp; customization services available.',
     },
   },
 });
