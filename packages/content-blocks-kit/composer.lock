@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1610fe44c272aa7e72cf99b832164c55",
+    "content-hash": "4bf4fa36e56643f09df71473b7000510",
     "packages": [
         {
             "name": "doctrine/collections",
@@ -941,7 +941,7 @@
             "dist": {
                 "type": "path",
                 "url": "../content-blocks",
-                "reference": "545ef343e17f65e8ccaffb8d55bba6a5caaf5841"
+                "reference": "a6f4a99f6c99f47277369307e06c4cfcf6a6f3d6"
             },
             "require": {
                 "doctrine/collections": "^1.8 || ^2.0 || ^3.0",
@@ -979,8 +979,8 @@
                     "bundle": "ContentBlocks\\ContentBlocksBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "1.2.x-dev",
-                    "dev-main": "1.2.x-dev"
+                    "dev-master": "1.3.x-dev",
+                    "dev-main": "1.3.x-dev"
                 }
             },
             "autoload": {
