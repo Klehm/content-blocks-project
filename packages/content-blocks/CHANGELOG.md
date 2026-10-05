@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **An invalid field no longer holds the rest of a block's form.** With a
+  required field still empty (the `alert` text, a `button` label), changing
+  another field saved nothing: the preview stayed put, and closing the sidebar
+  lost the change. The invalid field now keeps its stored value while the
+  valid ones save, and its error shows only once the editor has touched it,
+  instead of on every field of the form. An error on the form itself still
+  holds the whole save.
+
 ## [1.3.0] - 2026-10-05
 
 This release carries, across the three packages:

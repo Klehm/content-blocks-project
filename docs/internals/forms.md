@@ -11,12 +11,41 @@ which gives two guarantees for free:
 
 - **Key whitelist** — a compound form maps only its declared children, so an
   unexpected key in the POST is dropped before it reaches `data`.
-- **Value validation** — each field's `constraints` run on submit; a failure
-  re-renders with errors and writes nothing. Nested collections validate through
-  their `entry_type`.
+- **Value validation** — each field's `constraints` run on submit, and a value
+  that fails them is never written. Nested collections validate through their
+  `entry_type`. What happens to the *other* fields of an invalid form is the
+  next section.
 
 There is deliberately no `sanitizeData()` / `getAllowedDataKeys()` hook: a custom
 block secures its data purely by what it declares.
+
+### An invalid field does not hold the others
+
+The sidebar autosaves the whole form on every change. When every field had to
+be valid for anything to be written, an `alert` whose required text was still
+empty could not change its type: the save failed, the preview did not move, and
+closing the sidebar lost the change without a word. The error also landed on the
+text, a field the editor had not touched yet.
+
+`BlockComponent::validData()` now does two things:
+
+- **It saves what is valid.** A top-level field that fails its constraints keeps
+  its stored value (the draft, defaults filling the holes, the same data the
+  form starts from); every other field is written. No invalid value reaches
+  `data`, so the whitelist above still holds. If nothing valid changed, nothing
+  is written and no save event is dispatched. An error on the form itself, a
+  constraint across fields, still holds the whole save: there is no single field
+  to fall back on.
+- **It shows errors where the editor has been.** Live Components keeps
+  `validatedFields`, the model of every field the editor changed. The form is
+  still validated in full, then errors are cleared from every other field, and
+  `isValidated` goes back to `false` so later renders keep validating field by
+  field. The form view is built again, since the first one was built with every
+  error.
+
+The granularity is the top-level field: one invalid entry in a collection keeps
+the whole collection at its stored value until it is fixed. The editor sees the
+error on the entry they touched, and their input stays in the form.
 
 ### Why the block form disables form-level CSRF
 

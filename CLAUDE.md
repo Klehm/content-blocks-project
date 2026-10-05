@@ -517,9 +517,12 @@ never written raw: `BlockComponent::persistDraft()` submits the form built by
 - **Key whitelist**: the compound form only maps its declared children, so an
   unexpected key in the POST is dropped — it never reaches `data`.
 - **Value validation**: each field's `constraints` (e.g. `Assert\Choice`,
-  `Assert\Length`) run on submit; a failure re-renders the form with errors and
-  writes nothing. Nested collections validate via their `entry_type`'s own
-  constraints.
+  `Assert\Length`) run on submit, and an invalid value is never written: that
+  field keeps its stored value while the valid ones save (`validData()`), and
+  errors show only on fields the editor touched (`validatedFields`). A
+  form-level error still holds the whole save. Nested collections validate via
+  their `entry_type`'s own constraints. Rationale:
+  [docs/internals/forms.md#an-invalid-field-does-not-hold-the-others](docs/internals/forms.md#an-invalid-field-does-not-hold-the-others).
 
 There is **no** `getAllowedDataKeys()` / `sanitizeData()` / `processData()` hook —
 a custom block secures its data purely by what it declares in `buildForm()`

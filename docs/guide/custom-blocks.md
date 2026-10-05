@@ -246,7 +246,7 @@ Tooling that introspects blocks outside the container (e.g. the kit's `content-b
 ## The form is your data whitelist
 
 ::: info Security by declaration
-A block's `data` is never written raw — the block's Symfony form **is** its whitelist and validator. The compound form only maps its declared children (unexpected POST keys are dropped), and each field's `constraints` run on submit (a failure writes nothing).
+A block's `data` is never written raw — the block's Symfony form **is** its whitelist and validator. The compound form only maps its declared children (unexpected POST keys are dropped), and each field's `constraints` run on submit (an invalid value is never written: that field keeps its stored value, and the editor sees the error once they have touched it).
 :::
 
 There is no `sanitizeData()` / `getAllowedDataKeys()` hook to implement — you secure a block's data purely through the fields and constraints declared in `buildForm()`. For a field with a fixed set of allowed values, add an `Assert\Choice` constraint derived from the full coded choice set. See [Security → Block data sanitization](./security.md#block-data-sanitization) for the full rationale.

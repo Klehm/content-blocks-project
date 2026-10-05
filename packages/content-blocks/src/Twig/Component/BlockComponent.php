@@ -116,13 +116,8 @@ final class BlockComponent
 
     protected function instantiateForm(): FormInterface
     {
-        $block = $this->getBlock();
         $blockType = $this->getBlockType();
-        $data = $block->getDraftData() ?? $block->getPublishedData() ?? [];
-
-        // Recursive, so it only fills holes. See
-        // forms.md#why-defaults-are-merged-on-form-load
-        $initial = array_replace_recursive($this->blockDataDefaults->get(), $data);
+        $initial = $this->initialData();
 
         return $this->formFactory->create(
             BlockFormType::class,
@@ -133,6 +128,22 @@ final class BlockComponent
                 'include_styling' => $this->blockStyling,
             ]
         );
+    }
+
+    /**
+     * The stored draft with the defaults filling its holes: what the form
+     * starts from, and what an invalid field falls back to on save.
+     *
+     * @return array<string, mixed>
+     */
+    private function initialData(): array
+    {
+        $block = $this->getBlock();
+        $data = $block->getDraftData() ?? $block->getPublishedData() ?? [];
+
+        // Recursive, so it only fills holes. See
+        // forms.md#why-defaults-are-merged-on-form-load
+        return array_replace_recursive($this->blockDataDefaults->get(), $data);
     }
 
     #[LiveAction]
@@ -216,10 +227,8 @@ final class BlockComponent
             return;
         }
 
-        try {
-            $this->submitForm(true);
-        } catch (UnprocessableEntityHttpException) {
-            // Validation failed — the form will re-render with errors
+        $data = $this->validData();
+        if ($data === null) {
             return;
         }
 
@@ -227,8 +236,7 @@ final class BlockComponent
         $area = $block->getColumn()?->getSection()?->getContentArea();
         // The one place that can guarantee every collection entry carries its
         // stable id, including ones just added or duplicated.
-        $form = $this->getForm();
-        $data = $this->collectionItemIds->backfill($form, $form->getData());
+        $data = $this->collectionItemIds->backfill($this->getForm(), $data);
 
         if ($area !== null && $this->events !== null) {
             $before = $this->events->dispatch(new BeforeBlockSaveEvent($block, $area, $data));
@@ -261,6 +269,57 @@ final class BlockComponent
         }
 
         $this->dispatchBrowserEvent('cb:block:saved', ['blockId' => $this->blockId]);
+    }
+
+    /**
+     * The submitted data, an invalid field kept at its stored value; null when
+     * nothing valid changed. Errors show on the fields the editor touched.
+     *
+     * @see docs/internals/forms.md#an-invalid-field-does-not-hold-the-others
+     *
+     * @return array<string, mixed>|null
+     */
+    private function validData(): ?array
+    {
+        // Validating everything resets the list of touched fields.
+        $touched = $this->validatedFields;
+        try {
+            $this->submitForm(true);
+            $valid = true;
+        } catch (UnprocessableEntityHttpException) {
+            $valid = false;
+        }
+        $this->isValidated = false;
+        $this->validatedFields = $touched;
+
+        $form = $this->getForm();
+        $data = $form->getData();
+        $data = \is_array($data) ? $data : [];
+        if ($valid) {
+            return $data;
+        }
+
+        $initial = $this->initialData();
+        foreach ($form as $name => $child) {
+            if ($child->isValid()) {
+                continue;
+            }
+            if (\array_key_exists($name, $initial)) {
+                $data[$name] = $initial[$name];
+            } else {
+                unset($data[$name]);
+            }
+        }
+        // Own errors (a constraint across fields) hold the whole save.
+        $whole = \count($form->getErrors()) === 0;
+
+        foreach ($form as $name => $child) {
+            $this->clearErrorsForNonValidatedFields($child, $form->getName() . '.' . $name);
+        }
+        // Built before the errors were cleared: build it again.
+        $this->formView = null;
+
+        return $whole && $data != $initial ? $data : null;
     }
 
     /**
