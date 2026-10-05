@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Controller;
 
+use ContentBlocks\Builder\AppendTarget;
+use ContentBlocks\Builder\BuilderStructure;
+use ContentBlocks\Builder\BuilderStructureResolverInterface;
+use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
 use ContentBlocks\Clipboard\BlockSnapshotSerializerInterface;
 use ContentBlocks\Clipboard\ClipboardEnvelope;
 use ContentBlocks\Clipboard\ClipboardPaster;
@@ -11,6 +15,7 @@ use ContentBlocks\Clipboard\IncompatibleClipboardVersionException;
 use ContentBlocks\Clipboard\NoPasteTargetException;
 use ContentBlocks\Clipboard\PasteResult;
 use ContentBlocks\Clipboard\UnreadableClipboardException;
+use ContentBlocks\Content\ContentManipulatorInterface;
 use ContentBlocks\Content\DraftOrder;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
@@ -57,6 +62,8 @@ final class ClipboardController
         private readonly ActionJournal $journal,
         private readonly int $contentVersion = 1,
         private readonly SnapshotExtensions $snapshots = new SnapshotExtensions(),
+        private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
+        private readonly ?ContentManipulatorInterface $content = null,
     ) {
     }
 
@@ -166,6 +173,12 @@ final class ClipboardController
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        $structure = $this->structure->forArea($area);
+        // Kept in the clipboard: another area may take it.
+        if ($envelope->scope === ClipboardEnvelope::SCOPE_SECTION && !$structure->canEditSections()) {
+            return new JsonResponse(['error' => 'sections_locked'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         if ($envelope->scope === ClipboardEnvelope::SCOPE_SECTION
             && RestoredStructure::tooLarge([$envelope->payload])) {
             return new JsonResponse(['error' => 'too_large'], Response::HTTP_REQUEST_ENTITY_TOO_LARGE);
@@ -182,7 +195,7 @@ final class ClipboardController
                 $area,
                 'clipboard.paste',
                 JournalScope::structure(),
-                fn (): PasteResult => $this->pasteInto($envelope, $area, $targetSection, $targetBlock),
+                fn (): PasteResult => $this->pasteInto($envelope, $area, $targetSection, $targetBlock, $structure),
             );
         } catch (NoPasteTargetException) {
             return new JsonResponse(['error' => 'no_target'], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -231,10 +244,11 @@ final class ClipboardController
         ContentArea $area,
         ?Section $section,
         ?Block $block,
+        BuilderStructure $structure,
     ): PasteResult {
         $result = $envelope->scope === ClipboardEnvelope::SCOPE_SECTION
             ? $this->paster->pasteSection($envelope->payload, $area, $section)
-            : $this->pasteBlock($envelope->payload, $section, $block);
+            : $this->pasteBlock($envelope->payload, $section, $block, $area, $structure);
 
         $this->em->persist($result->entity);
         $this->em->flush();
@@ -252,9 +266,19 @@ final class ClipboardController
      * @throws UnreadableClipboardException  when the payload is not a snapshot
      * @throws IncompatibleTemplateException when the block's type is gone
      */
-    private function pasteBlock(array $payload, ?Section $section, ?Block $after): PasteResult
-    {
+    private function pasteBlock(
+        array $payload,
+        ?Section $section,
+        ?Block $after,
+        ContentArea $area,
+        BuilderStructure $structure,
+    ): PasteResult {
         $column = $after?->getColumn() ?? $this->firstColumn($section);
+        // Without sections in the UI the end of the area is the only place
+        // left, so it is no guess.
+        if (!$column && !$structure->showsSections()) {
+            $column = AppendTarget::column($this->content, $area, $structure);
+        }
         if (!$column) {
             throw new NoPasteTargetException();
         }

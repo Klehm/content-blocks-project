@@ -12,6 +12,8 @@ use ContentBlocks\Form\Type\Styling\StylingType;
 use ContentBlocks\Icon\CoreUiIcons;
 use ContentBlocks\Icon\UiIconRegistry;
 use ContentBlocks\Palette\ColorPaletteRegistry;
+use ContentBlocks\Section\SectionStyle;
+use ContentBlocks\Section\SectionStyleProviderInterface;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Twig\UiIconExtension;
 use PHPUnit\Framework\TestCase;
@@ -48,6 +50,41 @@ final class SidebarLayoutRenderTest extends TestCase
         $this->assertSame(['cb.section.settings.tab.structure', 'SEO', 'cb.section.settings.tab.styling'], $this->texts($this->q(self::cls('cb-sidebar-tabs__tab'))));
         $this->assertCount(3, $this->q(self::cls('cb-sidebar-tabs__panel')));
         $this->assertCount(2, $this->q(self::cls('cb-sidebar-tabs__panel') . '[@hidden]'), 'only the first tab shows');
+    }
+
+    // `content_blocks.styling.section: false` and no preset: Structure alone.
+    public function testWithoutStylingOrPresetsTheStyleTabIsGone(): void
+    {
+        $this->render($this->form(styling: false));
+
+        $this->assertCount(0, $this->q(self::cls('cb-sidebar-tabs__tab')), 'no tab bar');
+        $this->assertCount(1, $this->q(self::cls('cb-sidebar-tabs__panel')));
+        $this->assertCount(0, $this->q('//*[starts-with(@name, "section_settings[styling")]'));
+    }
+
+    public function testWithoutStylingThePresetKeepsItsTab(): void
+    {
+        $this->render($this->form(styling: false, withPreset: true));
+
+        $this->assertSame(
+            ['cb.section.settings.tab.structure', 'cb.section.settings.tab.styling'],
+            $this->texts($this->q(self::cls('cb-sidebar-tabs__tab'))),
+        );
+        $this->assertCount(1, $this->q('//select[@name="section_settings[styleName]"]', $this->tab(1)));
+        $this->assertCount(0, $this->q('//*[starts-with(@name, "section_settings[styling")]'));
+    }
+
+    // `content_blocks.structure.columns: false`: Width and Advanced remain.
+    public function testLockedColumnsLeaveNeitherColumnsNorLayoutPanel(): void
+    {
+        $this->render($this->form(layout: false), editableColumns: false);
+
+        $panels = $this->texts($this->q('.//summary', $this->tab(0)));
+        $this->assertSame([], array_filter($panels, static fn (string $p): bool => str_contains($p, 'columns.title')
+            || str_contains($p, 'panel.layout')));
+        $this->assertNotSame([], array_filter($panels, static fn (string $p): bool => str_contains($p, 'panel.width')));
+        $this->assertCount(0, $this->q(self::cls('cb-columns-editor')));
+        $this->assertCount(0, $this->q(self::cls('cb-display-row')));
     }
 
     public function testAnUngroupedHostFieldLandsOnTheFirstTab(): void
@@ -285,13 +322,24 @@ final class SidebarLayoutRenderTest extends TestCase
         return $out;
     }
 
-    private function form(bool $withHostFields = false, bool $exclusive = true): FormInterface
-    {
+    private function form(
+        bool $withHostFields = false,
+        bool $exclusive = true,
+        bool $styling = true,
+        bool $withPreset = false,
+        bool $layout = true,
+    ): FormInterface {
+        $presets = $withPreset ? [new class () implements SectionStyleProviderInterface {
+            public function getStyles(): array
+            {
+                return [new SectionStyle('airy', 'Airy')];
+            }
+        }] : [];
         $builder = Forms::createFormFactoryBuilder()
             ->addExtension(new ValidatorExtension(Validation::createValidator()))
             ->addTypeExtension(new SidebarLayoutTypeExtension())
             ->addTypeExtension(new IconChoiceTypeExtension())
-            ->addType(new SectionSettingsType(new SectionStyleRegistry([])))
+            ->addType(new SectionSettingsType(new SectionStyleRegistry($presets)))
             ->addType(new PaletteColorType(new ColorPaletteRegistry([])));
         if ($withHostFields) {
             $builder->addTypeExtension(new HostSectionFields())->addTypeExtension(new HostStylingFields());
@@ -300,10 +348,12 @@ final class SidebarLayoutRenderTest extends TestCase
         return $builder->getFormFactory()->createNamed('section_settings', SectionSettingsType::class, [], [
             'column_count' => 2,
             'cb_panels_exclusive' => $exclusive,
+            'include_styling' => $styling,
+            'include_layout' => $layout,
         ]);
     }
 
-    private function render(FormInterface $form): void
+    private function render(FormInterface $form, bool $editableColumns = true): void
     {
         $root = \dirname(__DIR__, 2);
         $loader = new FilesystemLoader();
@@ -327,6 +377,7 @@ final class SidebarLayoutRenderTest extends TestCase
             'columns' => [['id' => 1, 'label' => null], ['id' => 2, 'label' => 'Intro']],
             'columnCount' => 2,
             'maxColumns' => 20,
+            'editableColumns' => $editableColumns,
         ]);
 
         $document = new \DOMDocument();

@@ -12,7 +12,7 @@ ContentBlocks follows [semantic versioning](https://semver.org/). From `1.0.0`, 
 
 These are the extension surface: implement them, alias them, decorate them. Their method signatures are frozen, and so is the meaning of what they return.
 
-**Core** (`klehm/content-blocks`), 41 interfaces:
+**Core** (`klehm/content-blocks`), 42 interfaces:
 
 | Area | Interfaces |
 |---|---|
@@ -21,7 +21,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 | Sections and columns | `SectionDecoratorInterface`, `SectionSettingsDefaultsProviderInterface`, `SectionStyleProviderInterface`, `SectionClonerInterface`, `BlockCloneObserverInterface`, `ColumnCloneObserverInterface` |
 | Rendering | `BlockRendererInterface`, `BlockDataResolverInterface`, `ColumnSettingsResolverInterface`, `ImageUrlResolverInterface` |
 | Content and publishing | `ContentManipulatorInterface`, `ContentAreaPublisherInterface`, `UnpublishedChangesProviderInterface` |
-| Builder UI | `BuilderActionProviderInterface`, `BuilderShellExtensionInterface`, `UiIconProviderInterface`, `ColorPaletteProviderInterface` |
+| Builder UI | `BuilderActionProviderInterface`, `BuilderShellExtensionInterface`, `BuilderStructureResolverInterface`, `UiIconProviderInterface`, `ColorPaletteProviderInterface` |
 | Storage and assets | `FileStorageInterface`, `AssetInventoryInterface`, `AssetResolverInterface`, `AssetReferenceProviderInterface` |
 | Clipboard, templates, transfer | `BlockSnapshotSerializerInterface`, `SectionTemplateSerializerInterface`, `SectionTemplateInstantiatorInterface`, `ContentAreaExporterInterface`, `ContentAreaImporterInterface`, `ContentAreaTransferExtensionInterface`, `SnapshotExtensionInterface` |
 | Versioning | `ContentVersionUpgraderInterface`, `EnvelopeUpgraderInterface` |
@@ -43,11 +43,11 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 - **Value objects your implementation builds or reads.** Their public properties and named constructors are frozen:
   - rendering: `RenderContext`, `RenderMode`, `ResolvedImage`, `BlockPreviewHint`, `BlockDecoration`, `SectionDecoration`
   - publishing: `PublishContext`
-  - builder UI and styling: `BuilderAction`, `BuilderShellFragment`, `PaletteColor`, `SectionStyle`
+  - builder UI and styling: `BuilderAction`, `BuilderShellFragment`, `BuilderStructure` (its `SECTIONS_*` constants and `can*()` / `showsSections()` reads), `PaletteColor`, `SectionStyle`
   - storage: `StoredAsset`
   - translation: the kit's `RichTextEditorView`; i18n's `TranslationRequest`, `TranslationOutcome`, `TranslationJob` and `FieldStatus`
 - **Values you read but do not build.** `ImportResult`, `InstantiationResult`, `SectionTemplateSnapshot`, and the transfer helpers `AssetTokenizer` and `AssetRewriter` handed to a `ContentAreaTransferExtensionInterface`. Their public reads are frozen; their constructors are `@internal`, so the package can add fields to them.
-- **Services you inject.** `BlockTypeRegistry` (`get()`, `has()`, `all()`, `getChoices()`), and the shipped implementations named as defaults in the guides: `LocalFileStorage`, `PassthroughImageUrlResolver`, `DenyOnMismatchUpgrader`, `AllowAllAccessChecker` and `DenyAllAccessChecker`. They are covered as services to alias or decorate; their constructors are not.
+- **Services you inject.** `BlockTypeRegistry` (`get()`, `has()`, `all()`, `getChoices()`), and the shipped implementations named as defaults in the guides: `LocalFileStorage`, `PassthroughImageUrlResolver`, `DenyOnMismatchUpgrader`, `ConfiguredBuilderStructureResolver`, `AllowAllAccessChecker` and `DenyAllAccessChecker`. They are covered as services to alias or decorate; their constructors are not.
 - **Symfony events you listen to**, with their public properties and the moment each is dispatched ([Server-side events](./events.md)): `BeforeContentAreaPublishEvent`, `AfterContentAreaPublishEvent`, `BeforeContentAreaDiscardEvent`, `AfterContentAreaDiscardEvent`, `BeforeBlockSaveEvent`, `AfterBlockSaveEvent`, `BeforeBlockDeleteEvent`, `AfterBlockDeleteEvent`; their base `RefusableEvent` (`refuse()`, `isRefused()`, `getReasons()`) and `ActionRefusedException`. A later version may add properties or events, but will not remove or rename one.
 - **Exceptions you throw or catch.** `ContentBlocksAccessDeniedException` (a 403), `IncompatibleContentVersionException`, `ImportRefusedException`, `UnsupportedTemplateFormatException`, `IncompatibleTemplateException`, `ContentManipulationException` and its `reason` codes.
 - **`ContentBlocks\Testing\CrossRequestStateScanner`**, for pointing the [worker-mode](./worker-mode.md) check at your own code.
@@ -136,6 +136,7 @@ Some defaults are load-bearing enough to be API:
 - **Secure by default.** `AccessCheckerInterface` defaults to `DenyAllAccessChecker`, `ContentAreaUrlResolverInterface` to a resolver that throws, `SectionTemplateManagerInterface` to one that denies, and `AssetReportViewerInterface` to a viewer that denies (the report route 404s rather than 403s). They stay that way.
 - **No uploaded file is ever deleted as a side effect of a builder action**: not on block delete, not on publish, not on discard. Reclaiming storage is an explicit, separate act; see [Asset lifecycle](./asset-lifecycle.md).
 - **Nothing the builder does changes the published page** until Publish.
+- **What an area's `BuilderStructure` rules out is refused by the server**, not only hidden by the UI: a `409` with `error: "refused"` and `reasons: ["structure"]`.
 - **The publish and discard events are dispatched for whatever publisher the interface points to**: the *before* event ahead of every decorator, the *after* event once all of them have run. A refused action writes nothing.
 - **The kit's `html_raw` block is registered only with `enabled: true`**, whatever else its config entry holds.
 - **`ContentAreaType::buildView()` writes nothing** to the database on a GET.
@@ -148,7 +149,7 @@ Everything missing from the lists above is internal. These are named because the
 - **Wiring.** `ContentBlocks\DependencyInjection\`, the compiler passes, and the bundle classes' methods.
 - **Builder internals.** `BlockComponent` (a Live Component driven by the builder's own templates) and everything under `History\`.
 - **Collaborator services.** `BlockRenderer`, `ContentAreaPublisher`, `SectionCloner`, `ContentAreaExporter`, `ContentAreaImporter`, `SectionTemplateSerializer`, the `*Collection` and `*Registry` aggregators (except `BlockTypeRegistry`), the decorators and resolvers the core ships, and `BlockTranslationRepository`. Depend on their interface; an implementation's constructor can change in a minor release.
-- **Builder-only Twig functions**: `cb_history_state`, `cb_section_layouts`, `cb_section_layout_rects`, `cb_asset_path`.
+- **Builder-only Twig functions**: `cb_builder_structure`, `cb_history_state`, `cb_section_layouts`, `cb_section_layout_rects`, `cb_asset_path`.
 - **HTTP payloads** of the routes not in the table above, and every `cb:*` event not in the events table.
 - **Anything carrying `@internal`.**
 

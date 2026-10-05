@@ -201,6 +201,18 @@ final class SectionSettingsType extends AbstractType
             ]);
         }
 
+        // Columns locked: the layout keeps its stored values, unmapped.
+        if (!$options['include_layout']) {
+            foreach (array_keys(self::PANELS, self::PANEL_LAYOUT, true) as $name) {
+                $builder->remove((string) $name);
+            }
+        }
+
+        // Unmapped, both keep their stored values, so the switch stays on.
+        if (!$options['include_styling']) {
+            return;
+        }
+
         // Off drops the styling subtree on save, so switching presets never
         // fights stale field values. See forms.md.
         $builder->add('stylingCustom', CheckboxType::class, [
@@ -278,7 +290,13 @@ final class SectionSettingsType extends AbstractType
             'translation_domain' => 'content_blocks',
             // Drives whether the column-widths control is offered at all.
             'column_count' => 1,
+            // The free styling fields and their switch; presets stay.
+            'include_styling' => true,
+            // Display, slider, accordion and column widths.
+            'include_layout' => true,
         ]);
         $resolver->setAllowedTypes('column_count', 'int');
+        $resolver->setAllowedTypes('include_styling', 'bool');
+        $resolver->setAllowedTypes('include_layout', 'bool');
     }
 }

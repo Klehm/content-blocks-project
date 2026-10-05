@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Controller;
 
+use ContentBlocks\Builder\BuilderStructure;
 use ContentBlocks\Controller\ViewportOrderController;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Security\DenyAllAccessChecker;
+use ContentBlocks\Tests\Fixtures\FixedBuilderStructureResolver;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -35,6 +37,32 @@ final class ViewportOrderControllerTest extends ControllerTestCase
         $payload = json_decode((string) $response->getContent(), true);
         $this->assertSame(['--cb-order-m' => '0'], $payload['orders']['12']);
         $this->assertSame(['--cb-order-m' => '1'], $payload['orders']['10']);
+    }
+
+    // Ordering sections per viewport moves them: not where they are fixed.
+    public function testFixedSectionsKeepTheirOrderButBlocksMove(): void
+    {
+        $area = $this->makeArea(1);
+        $a = $this->makeSection($area, 10, previewPosition: 0);
+        $this->makeSection($area, 11, previewPosition: 1);
+        $column = $this->makeColumn($a, 3);
+        $this->makeBlock($column, 20, previewPosition: 0);
+        $this->makeBlock($column, 21, previewPosition: 1);
+        $controller = $this->makeController(
+            $this->makeEm([$area, $column]),
+            structure: new BuilderStructure(BuilderStructure::SECTIONS_FIXED),
+        );
+
+        $sections = $controller->reorder(1, $this->makeJsonRequest([
+            'viewport' => 'mobile', 'scope' => 'section', 'ids' => [11, 10],
+        ]));
+        $blocks = $controller->reorder(1, $this->makeJsonRequest([
+            'viewport' => 'mobile', 'scope' => 'block', 'columnId' => 3, 'ids' => [21, 20],
+        ]));
+
+        $this->assertSame(Response::HTTP_CONFLICT, $sections->getStatusCode());
+        $this->assertSame([], $a->getDraftSettings() ?? []);
+        $this->assertSame(Response::HTTP_OK, $blocks->getStatusCode());
     }
 
     /** Settings and data keep everything else they held. */
@@ -190,12 +218,14 @@ final class ViewportOrderControllerTest extends ControllerTestCase
         EntityManagerInterface $em,
         bool $csrfValid = true,
         bool $deny = false,
+        ?BuilderStructure $structure = null,
     ): ViewportOrderController {
         return new ViewportOrderController(
             $em,
             $deny ? new DenyAllAccessChecker() : $this->makeAccessChecker(),
             $this->makeCsrfManager($csrfValid),
             $this->makeJournal($em),
+            new FixedBuilderStructureResolver($structure ?? new BuilderStructure()),
         );
     }
 }

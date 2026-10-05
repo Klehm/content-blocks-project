@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Rendering;
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Builder\BuilderStructureResolverInterface;
+use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
@@ -45,6 +47,7 @@ final class BlockRenderer implements BlockRendererInterface
         private readonly \ContentBlocks\Block\BlockDataDefaults $blockDataDefaults,
         private readonly BlockDataResolverCollection $blockDataResolvers,
         private readonly ColumnSettingsResolverCollection $columnSettingsResolvers = new ColumnSettingsResolverCollection(),
+        private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
     ) {
     }
 
@@ -76,6 +79,7 @@ final class BlockRenderer implements BlockRendererInterface
             'blockTypes' => $blockTypes,
             'chrome' => $this->chromeEnabled($mode),
             'ordered' => $ordered,
+            'structure' => $this->structure->forArea($area)->toArray(),
         ]);
     }
 
@@ -168,6 +172,7 @@ final class BlockRenderer implements BlockRendererInterface
             'section' => $viewModel,
             'isPreview' => $context->mode === RenderMode::PREVIEW,
             'chrome' => $this->chromeEnabled($context->mode),
+            'handle' => $area === null || $this->structure->forArea($area)->showsSections(),
         ]);
     }
 

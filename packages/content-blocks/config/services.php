@@ -63,6 +63,12 @@ return static function (ContainerConfigurator $container): void {
         ->set('content_blocks.section.initial_settings', [])
         // Resolved list; normally fed by `content_blocks.section.layouts`.
         ->set('content_blocks.section.layouts', ContentBlocks\Section\SectionLayoutRegistry::resolve([]))
+        // Whether each sidebar offers the free styling fields.
+        ->set('content_blocks.styling.block', true)
+        ->set('content_blocks.styling.section', true)
+        // Read by ConfiguredBuilderStructureResolver.
+        ->set('content_blocks.structure.sections', 'editable')
+        ->set('content_blocks.structure.columns', true)
         // List of {label, color} entries; normally fed by the bundle's
         // semantic config (`content_blocks.palette`) via loadExtension().
         ->set('content_blocks.palette', [])
@@ -92,6 +98,11 @@ return static function (ContainerConfigurator $container): void {
         ->bind('int $defaultMaxWidth', '%content_blocks.section.default_max_width%')
         ->bind('string $defaultWidthMode', '%content_blocks.section.default_width_mode%')
         ->bind('array $initialSectionSettings', '%content_blocks.section.initial_settings%')
+        // BlockComponent and SectionSidebarController.
+        ->bind('bool $blockStyling', '%content_blocks.styling.block%')
+        ->bind('bool $sectionStyling', '%content_blocks.styling.section%')
+        ->bind('string $structureSections', '%content_blocks.structure.sections%')
+        ->bind('bool $structureColumns', '%content_blocks.structure.columns%')
         // ContentAreaTouchListener takes this one positionally.
         ->bind('int $contentVersion', '%content_blocks.content_version%')
         // Upload limits: consumed by UploadController.
@@ -247,6 +258,12 @@ return static function (ContainerConfigurator $container): void {
     $services->set(SectionPosterBuilder::class);
     // Same seam, one level up: the tree's block rows read the same hint.
     $services->set(ContentBlocks\Builder\AreaTreeBuilder::class);
+    // What editors may do to sections and columns; a host varies it by area.
+    $services->set(ContentBlocks\Builder\ConfiguredBuilderStructureResolver::class);
+    $services->alias(
+        ContentBlocks\Builder\BuilderStructureResolverInterface::class,
+        ContentBlocks\Builder\ConfiguredBuilderStructureResolver::class,
+    );
 
     // Nothing here stores a clipboard: it lives in localStorage, which is
     // what makes the payload untrusted. See docs/internals/clipboard.md
@@ -403,6 +420,9 @@ return static function (ContainerConfigurator $container): void {
         ->tag('twig.extension');
 
     $services->set(ContentBlocks\Twig\HistoryStateExtension::class)
+        ->tag('twig.extension');
+
+    $services->set(ContentBlocks\Twig\BuilderStructureExtension::class)
         ->tag('twig.extension');
 
     // The area's draft, or one a bundle keeps beside it (a translation).

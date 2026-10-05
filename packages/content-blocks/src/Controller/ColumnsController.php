@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace ContentBlocks\Controller;
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Builder\BuilderStructureResolverInterface;
+use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
+use ContentBlocks\Builder\StructureRefusal;
 use ContentBlocks\Content\ContentManipulationException;
 use ContentBlocks\Content\ContentManipulator;
 use ContentBlocks\Content\ContentManipulatorInterface;
@@ -46,6 +49,7 @@ final class ColumnsController
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ActionJournal $journal,
         ?ContentManipulatorInterface $content = null,
+        private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
     ) {
         $this->content = $content ?? new ContentManipulator($em, new BlockTypeRegistry());
     }
@@ -68,6 +72,9 @@ final class ColumnsController
         }
 
         $area = $this->editableArea($section);
+        if (!$this->structure->forArea($area)->canEditColumns()) {
+            return StructureRefusal::response();
+        }
 
         if (\count(DraftOrder::columns($section)) >= self::MAX_COLUMNS) {
             return new JsonResponse(['error' => 'too_many_columns'], Response::HTTP_BAD_REQUEST);
@@ -94,6 +101,9 @@ final class ColumnsController
             return new JsonResponse(['error' => 'Column not found'], Response::HTTP_NOT_FOUND);
         }
         $area = $this->editableArea($section);
+        if (!$this->structure->forArea($area)->canEditColumns()) {
+            return StructureRefusal::response();
+        }
 
         if ($column->isDeleted()) {
             return new JsonResponse(['deleted' => false]);
@@ -131,6 +141,9 @@ final class ColumnsController
             return new JsonResponse(['error' => 'Column not found'], Response::HTTP_NOT_FOUND);
         }
         $area = $this->editableArea($section);
+        if (!$this->structure->forArea($area)->canEditColumns()) {
+            return StructureRefusal::response();
+        }
 
         $payload = json_decode($request->getContent(), true);
         if (!\is_array($payload)) {

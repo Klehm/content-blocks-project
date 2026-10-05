@@ -6,11 +6,15 @@ namespace ContentBlocks\Controller;
 
 use ContentBlocks\Block\CollectionIdBackfiller;
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Builder\AppendTarget;
+use ContentBlocks\Builder\BuilderStructureResolverInterface;
+use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
 use ContentBlocks\Content\ContentManipulationException;
 use ContentBlocks\Content\ContentManipulator;
 use ContentBlocks\Content\ContentManipulatorInterface;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
+use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Event\AfterBlockDeleteEvent;
 use ContentBlocks\Event\BeforeBlockDeleteEvent;
 use ContentBlocks\History\ActionJournal;
@@ -53,6 +57,7 @@ final class BlocksController
         ?CollectionIdBackfiller $collectionIds = null,
         private readonly ?EventDispatcherInterface $events = null,
         ?ContentManipulatorInterface $content = null,
+        private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
     ) {
         $this->content = $content ?? new ContentManipulator($em, $blockTypeRegistry, collectionIds: $collectionIds);
     }
@@ -122,6 +127,46 @@ final class BlocksController
                 'id' => $block->getId(),
                 'hotReload' => false,
             ]);
+        });
+    }
+
+    /**
+     * Appends a block at the end of the area, creating its section when the
+     * area is empty: the add button of a builder that hides sections.
+     */
+    #[Route('/area/{id}/blocks', name: 'content_blocks_area_block_create', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function createInArea(int $id, Request $request): JsonResponse
+    {
+        if ($error = $this->csrfFailureOrNull($request)) {
+            return $error;
+        }
+
+        $area = $this->em->find(ContentArea::class, $id);
+        if (!$area) {
+            return new JsonResponse(['error' => 'ContentArea not found'], Response::HTTP_NOT_FOUND);
+        }
+        if (!$this->accessChecker->canEdit($area)) {
+            throw new ContentBlocksAccessDeniedException();
+        }
+
+        $payload = json_decode($request->getContent(), true) ?? [];
+        $type = $payload['type'] ?? null;
+        if (!is_string($type) || !$this->blockTypeRegistry->has($type)) {
+            return new JsonResponse(['error' => 'Unknown block type'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $structure = $this->structure->forArea($area);
+
+        return $this->journal->record($area, 'block.create', JournalScope::structure(), function () use ($area, $structure, $type): JsonResponse {
+            $column = AppendTarget::column($this->content, $area, $structure);
+            if ($column === null) {
+                return new JsonResponse(['error' => 'no_target'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            $block = $this->content->addBlock($column, $type);
+            $this->em->flush();
+
+            // The section may be new: the builder reloads rather than patch.
+            return new JsonResponse(['id' => $block->getId(), 'hotReload' => false]);
         });
     }
 

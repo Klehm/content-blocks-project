@@ -13,6 +13,7 @@ function setupController(options = {}) {
             <button class="cb-shell__tree-toggle" aria-expanded="false"></button>
             <div class="cb-tree"
                  data-i18n-cb-builder-tree-empty="Nothing here yet"
+                 data-i18n-cb-builder-tree-empty-blocks="No block yet"
                  data-i18n-cb-builder-tree-error="Failed to load the outline."
                  data-i18n-cb-builder-tree-delete="Delete"
                  hidden>
@@ -40,6 +41,7 @@ function setupController(options = {}) {
     Object.defineProperty(controller, 'hasHandleTarget', { value: true });
     Object.defineProperty(controller, 'handleTarget', { value: handle });
     Object.defineProperty(controller, 'areaIdValue', { value: options.areaId ?? 42 });
+    Object.defineProperty(controller, 'sectionsValue', { value: options.sections ?? 'editable' });
 
     // jsdom lays nothing out: the panel measures its shell through
     // offsetParent, and both come back as zeroes without these.
@@ -470,6 +472,55 @@ describe('cb-tree: acting on a node', () => {
         expect(list.querySelector('.cb-tree__children').hidden).toBe(true);
         controller._paint();
         expect(list.querySelector('.cb-tree__children').hidden).toBe(true);
+    });
+});
+
+describe('cb-tree: what the area structure allows', () => {
+    let current;
+    const mount = (options) => {
+        current = setupController(options);
+        current.controller.connect();
+
+        return current;
+    };
+
+    afterEach(() => current?.controller.disconnect());
+
+    it('a fixed section is a label only: no drag, no duplicate, no delete', async () => {
+        const { controller, list } = mount({ sections: 'fixed' });
+        global.fetch = vi.fn(() => okJson(sampleTree()));
+
+        await controller.reload();
+
+        const sectionRow = list.querySelector('.cb-tree__row--section');
+        expect(sectionRow.querySelector('.cb-tree__act')).toBeNull();
+        expect(sectionRow.querySelector('.cb-tree__drag').textContent).toBe('');
+        expect(sectionRow.querySelector('.cb-tree__name').textContent).toBe('Section 1 — 2 columns');
+        // Blocks are what the editor still arranges.
+        expect(list.querySelectorAll('.cb-tree__block .cb-tree__act')).toHaveLength(2);
+    });
+
+    it('hidden sections list the blocks flat, one list per column', async () => {
+        const { controller, list, status } = mount({ sections: 'hidden' });
+        global.fetch = vi.fn(() => okJson(sampleTree()));
+
+        await controller.reload();
+
+        expect(list.querySelector('.cb-tree__row--section')).toBeNull();
+        expect(list.querySelector('.cb-tree__row--column')).toBeNull();
+        const lists = list.querySelectorAll(':scope > .cb-tree__flat > .cb-tree__blocks');
+        expect(Array.from(lists, (l) => l.dataset.cbTreeColumnId)).toEqual(['70', '71']);
+        expect(list.querySelector('.cb-tree__block .cb-tree__name').textContent).toBe('Welcome');
+        expect(status.textContent).toBe('');
+    });
+
+    it('an empty blocks-only area asks for a block, not a section', async () => {
+        const { controller, status } = mount({ sections: 'hidden' });
+        global.fetch = vi.fn(() => okJson({ areaId: 42, sections: [] }));
+
+        await controller.reload();
+
+        expect(status.textContent).toBe('No block yet');
     });
 });
 

@@ -14,17 +14,31 @@
 {% set visibleSections = chrome ? sections : sections|filter(s => not s.deleted) %}
 {# Hidden sections do not count: deleting the last one shows the empty state. #}
 {% set isEmpty = sections|filter(s => not s.deleted) is empty %}
+{# Set by BlockRenderer; a host's own renderer may leave it out. #}
+{% set structure = structure ?? { sections: 'editable', columns: true } %}
 {# The empty-state class is a builder affordance ("nothing here yet, add a
    section"), so it follows the chrome rather than the mode. #}
-<div class="cb-content-area{% if chrome and isEmpty %} cb-content-area--empty{% endif %}{% if ordered ?? false %} cb-content-area--ordered{% endif %}"{% if isPreview %} data-cb-preview="1"{% endif %}>
+<div class="cb-content-area{% if chrome and isEmpty %} cb-content-area--empty{% endif %}{% if ordered ?? false %} cb-content-area--ordered{% endif %}"{% if isPreview %} data-cb-preview="1"{% endif %}{% if chrome %} data-cb-sections="{{ structure.sections }}"{% endif %}>
 {% for section in visibleSections %}
-    {{ include('@ContentBlocks/render/section.html.twig', { section: section, isPreview: isPreview, chrome: chrome }, with_context = false) }}
+    {{ include('@ContentBlocks/render/section.html.twig', { section: section, isPreview: isPreview, chrome: chrome, handle: structure.sections != 'hidden' }, with_context = false) }}
 {% endfor %}
 {# Always in the builder, where a section can turn into a slider in place. #}
 {% if chrome or visibleSections|filter(s => s.slider ?? null) is not empty %}
     <script type="module" src="{{ cb_asset_path('slider') }}"></script>
 {% endif %}
-{% if chrome %}
+{% if chrome and structure.sections == 'hidden' and isEmpty %}
+    {# Blocks only: the section the first block needs is the server's to add. #}
+    {% set trayLabel = 'cb.builder.empty_cta_blocks'|trans({}, 'content_blocks') %}
+    <aside class="cb-add-section-tray" aria-label="{{ trayLabel }}">
+        <p class="cb-add-section-tray__label">{{ trayLabel }}</p>
+        <button type="button"
+                class="cb-add-section-tray__block"
+                data-cb-add-block-area>
+            + {{ 'cb.block.add_title'|trans({}, 'content_blocks') }}
+        </button>
+    </aside>
+{% endif %}
+{% if chrome and structure.sections == 'editable' %}
     {% set trayLabel = isEmpty
         ? 'cb.builder.empty_cta'|trans({}, 'content_blocks')
         : 'cb.builder.add_section'|trans({}, 'content_blocks') %}
@@ -51,6 +65,8 @@
             {{ 'cb.builder.template.insert'|trans({}, 'content_blocks') }}
         </button>
     </aside>
+{% endif %}
+{% if chrome %}
     {# Data, not script: a JSON block is never run, so a strict CSP needs
        no nonce for the preview. HEX flags keep `</script>` inside a string. #}
     {% set cb_json = constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') %}
@@ -71,6 +87,7 @@
         section_save_template: 'cb.builder.template.save'|trans({}, 'content_blocks'),
         section_delete: 'cb.section.remove'|trans({}, 'content_blocks'),
     }|json_encode(cb_json)|raw }}</script>
+    <script type="application/json" id="cb-overlay-structure">{{ structure|json_encode(cb_json)|raw }}</script>
     <script type="module" src="{{ cb_asset_path('preview_overlay') }}"></script>
 {% endif %}
 </div>

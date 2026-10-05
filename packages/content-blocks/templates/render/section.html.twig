@@ -17,7 +17,8 @@
         goto: 'cb.slider.goto'|trans({}, 'content_blocks'),
     } })|json_encode }}"{% endif %}
     {% for k, v in section.extraAttributes %} {{ k }}="{{ v }}"{% endfor %}>
-    {% if chrome %}
+    {# No handle when the builder hides sections. #}
+    {% if chrome and (handle ?? true) %}
         {# A direct child of <section>, not of .cb-row, so the overlay
            routes a click on it as a section click. #}
         <button type="button"

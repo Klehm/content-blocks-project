@@ -52,6 +52,22 @@ content_blocks:
 
 …or implement `ContentBlocks\Section\SectionStyleProviderInterface` and return `SectionStyle` instances (the fourth constructor arg is the settings array).
 
+## A builder without styling fields
+
+For a sober builder, where the design system decides spacing and colours and editors only write content, turn the free styling fields off:
+
+```yaml
+content_blocks:
+    styling: false              # both sidebars
+    # or one at a time:
+    # styling: { block: false, section: true }
+```
+
+- **Block sidebar**: the *Style* tab is gone. A block whose fields share one tab shows no tab bar at all.
+- **Section sidebar**: the *Customize styling* switch and the fields behind it are gone. The **style preset** dropdown stays, so the presets you declared in `section_styles` become the only way to style a section. Without any preset, the *Style* tab disappears.
+
+To narrow the sections and columns too, see [Simplifying the builder](./builder-structure.md). The setting only changes the sidebars. Styling values already stored keep rendering, and a save from a sidebar without the fields leaves them untouched. The preset settings, `initial_settings` and content from code still apply. To start from clean content, clear `styling` in the data yourself.
+
 ## Conditional form fields (`cb-condition`)
 
 The sidebar's show/hide logic is a generic Stimulus controller you can reuse in your own block forms: attach `data-controller="cb-condition"` on a container (form type `attr`) and tag rows with `row_attr` → `data-cb-condition="field:value1|value2"` (checkboxes match `true`/`false`; `field` alone means "non-empty"). Combine conditions with **AND** by separating clauses with `;` (e.g. `size:custom;customHeightAuto:false`); each clause still **OR**s its values with `|`. Separate whole alternatives with `||`: `display:slider||displayMobile:slider` shows the row when either group matches. The field name matches the last bracket segment of the input's `name`.

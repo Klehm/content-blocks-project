@@ -687,6 +687,14 @@ content_blocks:
 
 …or implement `ContentBlocks\Section\SectionStyleProviderInterface` and return `SectionStyle` instances (the fourth constructor arg is the settings array).
 
+### A builder without sections
+
+`content_blocks.structure.sections: hidden` turns the builder into a stack of blocks, with no section in the UI; `fixed` keeps the sections in place but lets no editor add, move or delete one; `structure.columns: false` locks the columns. Alias `BuilderStructureResolverInterface` to choose per area. See [docs/guide/builder-structure.md](../../docs/guide/builder-structure.md).
+
+### A builder without styling fields
+
+`content_blocks.styling: false` hides the free styling fields in both sidebars (`{ block: false }` or `{ section: false }` for one). Section presets stay offered, so they become the only way to style a section. UI-only: stored values still render. See [docs/guide/styling.md](../../docs/guide/styling.md#a-builder-without-styling-fields).
+
 ### Conditional form fields (`cb-condition`)
 
 The sidebar's show/hide logic is a generic Stimulus controller you can reuse in your own block forms: attach `data-controller="cb-condition"` on a container (form type `attr`) and tag rows with `row_attr` → `data-cb-condition="field:value1|value2"` (checkboxes match `true`/`false`; `field` alone means "non-empty"). Combine conditions with **AND** by separating clauses with `;` (e.g. `size:custom;customHeightAuto:false`); each clause still **OR**s its values with `|`. The field name matches the last bracket segment of the input's `name`.

@@ -243,6 +243,13 @@ With nothing wired, `PassthroughImageUrlResolver` returns the stored source unto
 [Compress and convert images to WebP](./recipes/liip-imagine.md) is the full LiipImagine recipe — filter sets, the resolver, and the two operational traps. It is what the sandbox runs, so it is covered by an end-to-end test.
 :::
 
+### `BuilderStructureResolverInterface` — what editors may do to sections
+
+Decides, per area, whether sections are editable, fixed or hidden (blocks
+only), and whether columns can be changed. The default reads
+`content_blocks.structure`; alias the interface to choose by owning entity.
+See [Simplifying the builder](./builder-structure.md).
+
 ## Customizing default values
 
 A few section and block fields ship with a baked-in default so the form always presents a usable value and the renderer can fall back when the user leaves a field empty. The two surfaces (form pre-fill + renderer fallback) read the **same source**, so changing the default in one place keeps them in sync.
@@ -318,7 +325,9 @@ Three things to know:
 ### Section layouts
 
 The add-section buttons offer three layouts out of the box: `full`, `two_cols`
-and `three_cols`. Add your own, relabel or hide one, in config:
+and `three_cols`. Add your own, relabel or hide one, in config. To keep editors
+from changing the columns afterwards, or to drop sections from the UI, see
+[Simplifying the builder](./builder-structure.md):
 
 ```yaml
 # config/packages/content_blocks.yaml

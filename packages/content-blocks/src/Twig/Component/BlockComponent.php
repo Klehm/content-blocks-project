@@ -66,6 +66,7 @@ final class BlockComponent
         private readonly CollectionItemIds $collectionItemIds,
         private readonly ActionJournal $journal,
         private readonly ?EventDispatcherInterface $events = null,
+        private readonly bool $blockStyling = true,
     ) {
     }
 
@@ -129,6 +130,7 @@ final class BlockComponent
             [
                 'block_type' => $blockType,
                 'block_data' => $initial,
+                'include_styling' => $this->blockStyling,
             ]
         );
     }

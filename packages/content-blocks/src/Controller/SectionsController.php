@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace ContentBlocks\Controller;
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Builder\BuilderStructureResolverInterface;
+use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
+use ContentBlocks\Builder\StructureRefusal;
 use ContentBlocks\Content\ContentManipulator;
 use ContentBlocks\Content\ContentManipulatorInterface;
 use ContentBlocks\Content\DraftOrder;
@@ -52,6 +55,7 @@ final class SectionsController
         array $initialSectionSettings = [],
         private readonly SectionLayoutRegistry $sectionLayouts = new SectionLayoutRegistry(),
         ?ContentManipulatorInterface $content = null,
+        private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
     ) {
         $this->content = $content ?? new ContentManipulator(
             $em,
@@ -81,6 +85,9 @@ final class SectionsController
 
         if (!$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
+        }
+        if (!$this->structure->forArea($area)->canEditSections()) {
+            return StructureRefusal::response();
         }
 
         $payload = json_decode($request->getContent(), true) ?? [];
@@ -119,6 +126,9 @@ final class SectionsController
         $area = $section->getContentArea();
         if (!$area || !$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
+        }
+        if (!$this->structure->forArea($area)->canEditSections()) {
+            return StructureRefusal::response();
         }
 
         $payload = json_decode($request->getContent(), true) ?? [];
@@ -180,6 +190,9 @@ final class SectionsController
         if (!$area || !$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
         }
+        if (!$this->structure->forArea($area)->canEditSections()) {
+            return StructureRefusal::response();
+        }
 
         return $this->journal->record($area, 'section.duplicate', JournalScope::structure(), function () use ($section): JsonResponse {
             $copy = $this->content->duplicateSection($section);
@@ -237,6 +250,9 @@ final class SectionsController
         if (!$area || !$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
         }
+        if (!$this->structure->forArea($area)->canEditSections()) {
+            return StructureRefusal::response();
+        }
 
         return $this->journal->record($area, 'section.delete', JournalScope::structure(), function () use ($section): JsonResponse {
             // Soft-delete in draft. The em->remove() runs at publish time.
@@ -267,6 +283,9 @@ final class SectionsController
         $area = $section->getContentArea();
         if (!$area || !$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
+        }
+        if (!$this->structure->forArea($area)->canEditSections()) {
+            return StructureRefusal::response();
         }
 
         return $this->journal->record($area, 'section.restore', JournalScope::structure(), function () use ($section): JsonResponse {

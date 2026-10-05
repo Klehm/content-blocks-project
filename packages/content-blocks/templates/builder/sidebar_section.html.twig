@@ -31,9 +31,13 @@
                 {% set buckets = buckets|merge({ (label): (buckets[label] ?? [])|merge([child]) }) %}
             {% endif %}
         {% endfor %}
-        {% set order = order|merge([t_styling]) %}
+        {# Empty when styling is off and no preset is configured. #}
+        {% if buckets[t_styling] is not empty %}
+            {% set order = order|merge([t_styling]) %}
+        {% endif %}
 
-        {% set layout_invalid = not (form.display.vars.valid and form.displayTablet.vars.valid and form.displayMobile.vars.valid)
+        {% set layout_invalid = (form.display is defined
+                and not (form.display.vars.valid and form.displayTablet.vars.valid and form.displayMobile.vars.valid))
             or (form.columnWidths is defined and not form.columnWidths.vars.valid) %}
         {% set special_invalid = { (t_structure): layout_invalid } %}
         {% set errors = order|map(label => (special_invalid[label] ?? false)
@@ -41,7 +45,9 @@
         {% set exclusive = form.vars.cb_panels_exclusive ?? true %}
 
         <div class="cb-sidebar-tabs">
-            {{ sidebar.tablist(order, errors) }}
+            {% if order|length > 1 %}
+                {{ sidebar.tablist(order, errors) }}
+            {% endif %}
 
             {% for label in order %}
                 {% set group = 'tab-' ~ loop.index0 %}
@@ -56,6 +62,8 @@
                            @see docs/internals/rendering.md#columns-and-tabs #}
                         {% set structure_invalid = special_invalid[t_structure]
                             or buckets[label]|filter(c => not c.vars.valid)|length > 0 %}
+                        {# Off when `content_blocks.structure.columns` is. #}
+                        {% if editableColumns ?? true %}
                         {{ sidebar.panel_open('cb.section.columns.title'|trans({}, 'content_blocks'), group, {
                             name: exclusive ? panel_name : null,
                             open: not structure_invalid,
@@ -97,10 +105,12 @@
                                 </p>
                             </div>
                         {{ sidebar.panel_close() }}
+                        {% endif %}
 
                         {# Display first, then every field it gates: one panel.
                            See docs/guide/sidebar-fields.md#panels #}
                         {% set display_row %}
+                        {% if form.display is defined %}
                         <div class="cb-form-row cb-display-row">
                             <div class="cb-form-row__header">
                                 <span class="cb-form-label">{{ 'cb.section.settings.display'|trans({}, 'content_blocks') }}</span>
@@ -114,6 +124,7 @@
                                 </div>
                             {% endfor %}
                         </div>
+                        {% endif %}
                         {% endset %}
                         {% set widths_row %}
                             {% if form.columnWidths is defined %}

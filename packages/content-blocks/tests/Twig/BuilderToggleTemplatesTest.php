@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Twig;
 
+use ContentBlocks\Builder\BuilderStructure;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Publishing\UnpublishedChanges;
 use ContentBlocks\Section\SectionLayoutRegistry;
+use ContentBlocks\Tests\Fixtures\FixedBuilderStructureResolver;
+use ContentBlocks\Twig\BuilderStructureExtension;
 use ContentBlocks\Twig\SectionLayoutExtension;
 use ContentBlocks\Twig\UnpublishedChangesExtension;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -137,6 +141,38 @@ final class BuilderToggleTemplatesTest extends TestCase
      * A `false` must survive the hand-off rather than being re-defaulted to
      * true at the boundary.
      */
+    public function testEditableSectionsOfferLayoutsAndTheLibrary(): void
+    {
+        $html = $this->renderShell([]);
+
+        $this->assertStringContainsString('data-cb-sections="editable"', $html);
+        $this->assertStringContainsString('data-cb-tree-sections-value="editable"', $html);
+        $this->assertStringContainsString('cb-sidebar-empty__sections', $html);
+        $this->assertStringContainsString('cb-sidebar-library', $html);
+    }
+
+    /**
+     * Fixed or hidden, nothing adds a section: no layout buttons, no library.
+     */
+    #[DataProvider('lockedSections')]
+    public function testLockedSectionsLeaveNoWayToAddOne(string $mode): void
+    {
+        $html = $this->renderShell([], new BuilderStructure($mode));
+
+        $this->assertStringContainsString('data-cb-sections="' . $mode . '"', $html);
+        $this->assertStringContainsString('data-cb-tree-sections-value="' . $mode . '"', $html);
+        $this->assertStringNotContainsString('cb-sidebar-empty__sections', $html);
+        $this->assertStringNotContainsString('cb-sidebar-library', $html);
+        $this->assertStringContainsString('cb-sidebar-empty__hint', $html);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function lockedSections(): iterable
+    {
+        yield 'fixed' => [BuilderStructure::SECTIONS_FIXED];
+        yield 'hidden' => [BuilderStructure::SECTIONS_HIDDEN];
+    }
+
     public function testLauncherForwardsDisabledFlagsToShell(): void
     {
         $html = $this->render('@ContentBlocks/builder/launcher.html.twig', [
@@ -163,18 +199,18 @@ final class BuilderToggleTemplatesTest extends TestCase
     }
 
     /** @param array<string, mixed> $extra */
-    private function renderShell(array $extra): string
+    private function renderShell(array $extra, ?BuilderStructure $structure = null): string
     {
         return $this->render('@ContentBlocks/builder/shell.html.twig', [
             'area' => $this->makeArea(),
             'iframeUrl' => 'about:blank',
-        ] + $extra);
+        ] + $extra, $structure);
     }
 
     /** @param array<string, mixed> $context */
-    private function render(string $template, array $context): string
+    private function render(string $template, array $context, ?BuilderStructure $structure = null): string
     {
-        return $this->makeTwig()->render($template, $context);
+        return $this->makeTwig($structure)->render($template, $context);
     }
 
     private function makeArea(int $id = 1): ContentArea
@@ -186,7 +222,7 @@ final class BuilderToggleTemplatesTest extends TestCase
         return $area;
     }
 
-    private function makeTwig(): Environment
+    private function makeTwig(?BuilderStructure $structure = null): Environment
     {
         $loader = new FilesystemLoader();
         $loader->addPath(__DIR__ . '/../../templates', 'ContentBlocks');
@@ -196,6 +232,9 @@ final class BuilderToggleTemplatesTest extends TestCase
         $env = new Environment($loader, ['strict_variables' => true]);
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
         $env->addExtension(new SectionLayoutExtension(new SectionLayoutRegistry()));
+        $env->addExtension(new BuilderStructureExtension(new FixedBuilderStructureResolver(
+            $structure ?? new BuilderStructure(),
+        )));
         $env->addExtension(new UnpublishedChangesExtension(new UnpublishedChanges()));
         // The shell renders a CSRF token; the value is irrelevant here.
         $env->addFunction(new TwigFunction('csrf_token', static fn (string $id): string => 'test-token'));

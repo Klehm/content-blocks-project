@@ -18,6 +18,10 @@ services:
     ContentBlocks\Security\AccessCheckerInterface:
         alias: App\Security\E2eAccessChecker
 
+    # The configured structure, or the one the e2e suite names in a cookie.
+    ContentBlocks\Builder\BuilderStructureResolverInterface:
+        alias: App\Builder\E2eBuilderStructureResolver
+
     # Override ContentBlocks default (DenyAll) so the section-template library
     # is manageable (rename/delete) in the sandbox
     ContentBlocks\SectionTemplate\SectionTemplateManagerInterface:

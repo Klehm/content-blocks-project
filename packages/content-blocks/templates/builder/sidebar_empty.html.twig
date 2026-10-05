@@ -7,6 +7,9 @@
     <p class="cb-sidebar-empty__hint">
         {{ 'cb.builder.sidebar.empty'|trans({}, 'content_blocks') }}
     </p>
+    {# Adding sections and the library both need editable sections. #}
+    {% set sectionsEditable = area is not defined or cb_builder_structure(area).canEditSections %}
+    {% if sectionsEditable %}
     <div class="cb-sidebar-empty__sections">
         <p class="cb-sidebar-empty__sections-label">
             {{ 'cb.builder.add_section'|trans({}, 'content_blocks') }}
@@ -59,4 +62,5 @@
            role="status"
            aria-live="polite"></p>
     </div>
+    {% endif %}
 </div>

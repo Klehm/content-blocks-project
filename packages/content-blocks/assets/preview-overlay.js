@@ -79,6 +79,13 @@
     const labelData = serverData('cb-overlay-labels', '__cbOverlayLabels');
     const LABELS = (labelData && typeof labelData === 'object') ? labelData : {};
 
+    // What the area's BuilderStructure lets an editor do to sections.
+    // See docs/guide/builder-structure.md
+    const structureData = serverData('cb-overlay-structure', '__cbOverlayStructure');
+    const SECTIONS_MODE = typeof structureData?.sections === 'string' ? structureData.sections : 'editable';
+    const SECTIONS_EDITABLE = SECTIONS_MODE === 'editable';
+    const SECTIONS_SHOWN = SECTIONS_MODE !== 'hidden';
+
     function t(key, fallback) {
         const value = LABELS[key];
         return typeof value === 'string' && value !== '' ? value : fallback;
@@ -188,7 +195,7 @@
                 postToParent('cb:block:duplicate-requested', { blockId })));
             toolbar.appendChild(makeBtn('×', t('block_delete', 'Remove'), 'delete', () =>
                 postToParent('cb:block:delete-requested', { blockId })));
-        } else if (kind === 'section') {
+        } else if (kind === 'section' && SECTIONS_EDITABLE) {
             const sectionId = parseInt(el.dataset.cbSectionId, 10);
             toolbar.appendChild(makeDragHandle('section', sectionId, el));
             toolbar.appendChild(makeBtn('▲', t('section_move_up', 'Move up'), 'move-up', () =>
@@ -232,6 +239,11 @@
     }
 
     function positionToolbarFor(el, _kind) {
+        // A fixed section has no action to offer: the outline is enough.
+        if (!toolbar.firstChild) {
+            toolbar.classList.remove('is-visible');
+            return;
+        }
         // A header chip overlapping the top border by half its height,
         // clamped so an element flush with the top stays on screen.
         toolbar.classList.add('is-visible');
@@ -410,7 +422,7 @@
                 event.preventDefault();
                 if (focusedKind === 'block' && Number.isFinite(blockId())) {
                     postToParent('cb:block:delete-requested', { blockId: blockId() });
-                } else if (focusedKind === 'section' && Number.isFinite(sectionId())) {
+                } else if (focusedKind === 'section' && SECTIONS_EDITABLE && Number.isFinite(sectionId())) {
                     postToParent('cb:section:delete-requested', { sectionId: sectionId() });
                 }
                 break;
@@ -886,7 +898,7 @@
      */
     document.addEventListener('pointerdown', (event) => {
         const handle = event.target.closest?.('.cb-section-handle');
-        if (!handle || dragState) return;
+        if (!handle || dragState || !SECTIONS_EDITABLE) return;
         if (event.button !== undefined && event.button !== 0) return;
         const section = handle.closest('[data-cb-section-id]');
         const sectionId = section ? parseInt(section.dataset.cbSectionId, 10) : NaN;
@@ -1202,7 +1214,7 @@
             showHoverToolbar(block, 'block');
             return;
         }
-        const section = event.target.closest?.('[data-cb-section-id]');
+        const section = SECTIONS_SHOWN ? event.target.closest?.('[data-cb-section-id]') : null;
         if (section) {
             showHoverToolbar(section, 'section');
             return;
@@ -1250,6 +1262,14 @@
                 }
                 return;
             }
+            // Blocks only, empty area: no column yet, the server adds one.
+            const addAreaBlockBtn = target.closest?.('[data-cb-add-block-area]');
+            if (addAreaBlockBtn) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                openBlockTypePopover(addAreaBlockBtn, null);
+                return;
+            }
             const addSectionBtn = target.closest?.('.cb-add-section-tray__btn');
             if (addSectionBtn) {
                 event.preventDefault();
@@ -1276,7 +1296,7 @@
             // 3. Pin focus and open the sidebar. Block first, so a click
             //    on a nested block does not escalate to its section.
             const block = target.closest?.('[data-cb-block-id]');
-            const section = target.closest?.('[data-cb-section-id]');
+            const section = SECTIONS_SHOWN ? target.closest?.('[data-cb-section-id]') : null;
             if (block) {
                 const blockId = parseInt(block.dataset.cbBlockId, 10);
                 focusElement(block, 'block');
