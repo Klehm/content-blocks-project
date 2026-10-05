@@ -6,12 +6,14 @@
 {# @var enableExport bool|null #}
 {# @var enablePublicLink bool #}
 {# @var topbarActions array #}
+{% set structure = cb_builder_structure(area) %}
 <div class="cb-shell"
      data-controller="cb-builder"
      data-cb-builder-area-id-value="{{ area.id }}"
      data-cb-builder-iframe-url-value="{{ iframeUrl }}"
      data-cb-csrf-token="{{ csrf_token('content_blocks') }}"
      data-cb-area-id="{{ area.id }}"
+     data-cb-sections="{{ structure.sections }}"
      data-cb-api-base="{{ cb_api_base() }}"
      data-i18n-cb-builder-discard-confirm="{{ 'cb.builder.discard_confirm'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-refused="{{ 'cb.builder.refused'|trans({}, 'content_blocks') }}"
@@ -26,6 +28,8 @@
      data-i18n-cb-builder-clipboard-nothing-selected="{{ 'cb.builder.clipboard.nothing_selected'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-empty="{{ 'cb.builder.clipboard.empty'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-no-target="{{ 'cb.builder.clipboard.no_target'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-clipboard-sections-locked="{{ 'cb.builder.clipboard.sections_locked'|trans({}, 'content_blocks') }}"
+     data-i18n-cb-builder-add-block-no-target="{{ 'cb.builder.add_block_no_target'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-clipboard-stale-version="{{ 'cb.builder.clipboard.stale_version'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-viewport-order-tablet="{{ 'cb.builder.viewport_order.tablet'|trans({}, 'content_blocks') }}"
      data-i18n-cb-builder-viewport-order-mobile="{{ 'cb.builder.viewport_order.mobile'|trans({}, 'content_blocks') }}"
@@ -332,9 +336,11 @@
     <div class="cb-tree"
          data-controller="cb-tree"
          data-cb-tree-area-id-value="{{ area.id }}"
+         data-cb-tree-sections-value="{{ structure.sections }}"
          role="dialog"
          aria-label="{{ 'cb.builder.tree.title'|trans({}, 'content_blocks') }}"
          data-i18n-cb-builder-tree-empty="{{ 'cb.builder.tree.empty'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-builder-tree-empty-blocks="{{ 'cb.builder.tree.empty_blocks'|trans({}, 'content_blocks') }}"
          data-i18n-cb-builder-tree-loading="{{ 'cb.builder.tree.loading'|trans({}, 'content_blocks') }}"
          data-i18n-cb-builder-tree-error="{{ 'cb.builder.tree.error'|trans({}, 'content_blocks') }}"
          data-i18n-cb-builder-tree-duplicate="{{ 'cb.builder.tree.duplicate'|trans({}, 'content_blocks') }}"

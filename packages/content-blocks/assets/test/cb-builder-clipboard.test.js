@@ -190,6 +190,17 @@ describe('cb-builder clipboard: paste', () => {
         expect(window.localStorage.getItem(CLIPBOARD_KEY)).not.toBeNull();
     });
 
+    // A section copied elsewhere can still go to an area whose sections move.
+    it('keeps a section an area with locked sections refused', async () => {
+        controller._jsonRequest = vi.fn().mockResolvedValue({ error: 'sections_locked' });
+
+        await controller.pasteClipboard();
+
+        expect(undoLabel.textContent).toBe('Sections cannot be added here — paste a block instead');
+        expect(controller._afterStructuralOp).not.toHaveBeenCalled();
+        expect(window.localStorage.getItem(CLIPBOARD_KEY)).not.toBeNull();
+    });
+
     it('says why an oversized copy was refused, and drops it', async () => {
         controller._jsonRequest = vi.fn().mockResolvedValue({ error: 'too_large' });
 

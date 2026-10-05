@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Controller;
 
+use ContentBlocks\Builder\BuilderStructure;
 use ContentBlocks\Controller\SectionSidebarController;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Form\Type\PaletteColorType;
@@ -13,6 +14,7 @@ use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyle;
 use ContentBlocks\Section\SectionStyleProviderInterface;
 use ContentBlocks\Section\SectionStyleRegistry;
+use ContentBlocks\Tests\Fixtures\FixedBuilderStructureResolver;
 use Symfony\Component\Form\Extension\HttpFoundation\HttpFoundationExtension;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\Forms;
@@ -49,6 +51,80 @@ final class SectionSidebarControllerTest extends ControllerTestCase
         $this->assertArrayNotHasKey('styling', $saved, 'styling must be wiped while the switch is off');
         // The false flag prunes away — absence reads as "off" on the next GET.
         $this->assertArrayNotHasKey('stylingCustom', $saved);
+    }
+
+    // Blocks only: no section is ever selected, so its sidebar is refused.
+    public function testHiddenSectionsHaveNoSidebar(): void
+    {
+        $controller = $this->makeController(
+            [$this->makeSettingsSection(id: 5)],
+            structure: new BuilderStructure(BuilderStructure::SECTIONS_HIDDEN),
+        );
+
+        $this->assertSame(409, $controller->settings(5, Request::create('/_content-blocks/section/5/settings'))->getStatusCode());
+        $this->assertSame(409, $controller->settings(5, $this->makeFormRequest(['widthMode' => 'centered']))->getStatusCode());
+        $this->assertSame(0, $this->flushCount);
+    }
+
+    // `content_blocks.structure.columns: false`
+    public function testLockedColumnsLeaveTheLayoutOut(): void
+    {
+        $controller = $this->makeController(
+            [$this->makeSettingsSection(id: 5)],
+            structure: new BuilderStructure(columns: false),
+        );
+        $controller->settings(5, Request::create('/_content-blocks/section/5/settings'));
+        $view = $this->renderedFormView();
+
+        foreach (['display', 'displayTablet', 'displayMobile', 'sliderLoop', 'accordionSingle'] as $name) {
+            $this->assertArrayNotHasKey($name, $view->children, $name);
+        }
+        $this->assertArrayHasKey('widthMode', $view->children);
+        $this->assertFalse($this->renderContext['editableColumns']);
+    }
+
+    public function testLockedColumnsKeepTheStoredDisplayOnSave(): void
+    {
+        $section = $this->makeSettingsSection(id: 5, settings: ['display' => 'tabs']);
+
+        $this->makeController([$section], structure: new BuilderStructure(columns: false))
+            ->settings(5, $this->makeFormRequest(['widthMode' => 'centered', 'display' => 'grid']));
+
+        $this->assertSame('tabs', $section->getDraftSettings()['display']);
+        $this->assertSame('centered', $section->getDraftSettings()['widthMode']);
+    }
+
+    // `content_blocks.styling.section: false`: presets only.
+    public function testWithStylingOffOnlyThePresetIsOffered(): void
+    {
+        $this->makeController([$this->makeSettingsSection(id: 5)], sectionStyling: false)
+            ->settings(5, Request::create('/_content-blocks/section/5/settings'));
+        $view = $this->renderedFormView();
+
+        $this->assertArrayNotHasKey('styling', $view->children);
+        $this->assertArrayNotHasKey('stylingCustom', $view->children);
+        $this->assertArrayHasKey('styleName', $view->children);
+    }
+
+    // Hiding the fields must not wipe what an editor set before.
+    public function testWithStylingOffTheStoredStylingSurvivesASave(): void
+    {
+        $section = $this->makeSettingsSection(id: 5, settings: [
+            'stylingCustom' => true,
+            'styling' => ['backgroundColor' => '#abcdef'],
+        ]);
+
+        $response = $this->makeController([$section], sectionStyling: false)
+            ->settings(5, $this->makeFormRequest([
+                'widthMode' => 'centered',
+                'styling' => ['backgroundColor' => ['palette' => 'custom', 'custom' => '#000000']],
+            ]));
+
+        $this->assertSame(204, $response->getStatusCode());
+        $saved = $section->getDraftSettings();
+        $this->assertSame('centered', $saved['widthMode']);
+        $this->assertTrue($saved['stylingCustom']);
+        $this->assertSame('#abcdef', $saved['styling']['backgroundColor'], 'a posted value is ignored');
     }
 
     /** The range posts a string; the veil is stored as an int, 0 not at all. */
@@ -336,8 +412,12 @@ final class SectionSidebarControllerTest extends ControllerTestCase
      * @param list<object> $entities
      * @param list<FormTypeExtensionInterface> $typeExtensions
      */
-    private function makeController(array $entities, array $typeExtensions = []): SectionSidebarController
-    {
+    private function makeController(
+        array $entities,
+        array $typeExtensions = [],
+        bool $sectionStyling = true,
+        ?BuilderStructure $structure = null,
+    ): SectionSidebarController {
         $styleRegistry = new SectionStyleRegistry([
             new class () implements SectionStyleProviderInterface {
                 public function getStyles(): array
@@ -368,6 +448,8 @@ final class SectionSidebarControllerTest extends ControllerTestCase
             $styleRegistry,
             $this->makeJournal($em),
             $this->makeUrlGenerator(),
+            $sectionStyling,
+            new FixedBuilderStructureResolver($structure ?? new BuilderStructure()),
         );
     }
 

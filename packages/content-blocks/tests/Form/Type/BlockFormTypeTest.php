@@ -26,6 +26,37 @@ final class BlockFormTypeTest extends TestCase
         $this->assertTrue($form->has('styling'), 'styling tab always added');
     }
 
+    // `content_blocks.styling.block: false`
+    public function testTheStylingTabCanBeLeftOut(): void
+    {
+        $form = $this->createBlockForm(
+            new BlockFormExtensionCollection(),
+            $this->buttonBlock(),
+            ['url' => ''],
+            includeStyling: false,
+        );
+
+        $this->assertTrue($form->has('url'));
+        $this->assertFalse($form->has('styling'));
+    }
+
+    // The flag hides fields; it must not wipe what an editor set before.
+    public function testLeftOutStylingKeepsItsStoredValueOnSave(): void
+    {
+        $styling = ['margin' => ['desktop' => ['top' => 40]]];
+        $form = $this->createBlockForm(
+            new BlockFormExtensionCollection(),
+            $this->buttonBlock(),
+            ['url' => '', 'styling' => $styling],
+            includeStyling: false,
+        );
+        $form->submit(['url' => 'https://example.test']);
+
+        $this->assertTrue($form->isValid());
+        $this->assertSame($styling, $form->getData()['styling']);
+        $this->assertSame('https://example.test', $form->getData()['url']);
+    }
+
     public function testTargetedExtensionAddsAFieldToItsBlock(): void
     {
         $extensions = new BlockFormExtensionCollection([[$this->relExtension(), ['button']]]);
@@ -202,6 +233,7 @@ final class BlockFormTypeTest extends TestCase
         BlockFormExtensionCollection $extensions,
         BlockTypeInterface $blockType,
         array $data,
+        bool $includeStyling = true,
     ): FormInterface {
         // A bare factory instantiates child types (StylingType,
         // PaletteColorType, TextType) via their no-arg / nullable constructors
@@ -214,6 +246,7 @@ final class BlockFormTypeTest extends TestCase
         return $factory->create(BlockFormType::class, $data, [
             'block_type' => $blockType,
             'block_data' => $data,
+            'include_styling' => $includeStyling,
         ]);
     }
 

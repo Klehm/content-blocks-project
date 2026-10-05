@@ -78,6 +78,7 @@ export default defineConfig({
             { text: 'Rendering & preview', link: '/guide/rendering' },
             { text: 'Styling', link: '/guide/styling' },
             { text: 'Laying out sidebar fields', link: '/guide/sidebar-fields' },
+            { text: 'Simplifying the builder', link: '/guide/builder-structure' },
             { text: 'Security', link: '/guide/security' },
             { text: 'Mounting the routes', link: '/guide/routing' },
             { text: 'Custom blocks', link: '/guide/custom-blocks' },

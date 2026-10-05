@@ -9,11 +9,13 @@ use ContentBlocks\Block\BlockDataKeys;
 use ContentBlocks\Block\CollectionItemIds;
 use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Builder\BuilderStructure;
 use ContentBlocks\Clipboard\BlockDataReplayer;
 use ContentBlocks\Clipboard\BlockSnapshotSerializer;
 use ContentBlocks\Clipboard\BlockSnapshotSerializerInterface;
 use ContentBlocks\Clipboard\ClipboardEnvelope;
 use ContentBlocks\Clipboard\ClipboardPaster;
+use ContentBlocks\Content\ContentManipulator;
 use ContentBlocks\Controller\ClipboardController;
 use ContentBlocks\Controller\ColumnsController;
 use ContentBlocks\Entity\Block;
@@ -27,6 +29,7 @@ use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Security\DenyAllAccessChecker;
 use ContentBlocks\Snapshot\SnapshotExtensionInterface;
 use ContentBlocks\Snapshot\SnapshotExtensions;
+use ContentBlocks\Tests\Fixtures\FixedBuilderStructureResolver;
 use ContentBlocks\Tests\Fixtures\RecordingSnapshotExtension;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
@@ -198,6 +201,57 @@ final class ClipboardControllerTest extends ControllerTestCase
         $this->assertSame(0, $this->flushCount, 'nothing was written');
     }
 
+    // A fixed or hidden structure takes blocks only; the copy is kept.
+    public function testASectionIsNotPastedWhereSectionsAreLocked(): void
+    {
+        [$area, $sections] = $this->areaWithSections(1);
+
+        $response = $this->pasteResponse(
+            [$area, ...$sections],
+            $this->sectionEnvelope(),
+            structure: new BuilderStructure(BuilderStructure::SECTIONS_FIXED),
+        );
+
+        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        $this->assertSame('sections_locked', $this->json($response)['error']);
+        $this->assertSame(0, $this->flushCount, 'nothing was written');
+    }
+
+    // Blocks only: the end of the area is the one place left, so no guess.
+    public function testWithHiddenSectionsABlockWithNothingSelectedGoesToTheEnd(): void
+    {
+        $area = $this->makeArea(1);
+        $first = $this->makeSection($area, 10, 0);
+        $this->makeColumn($first, 100);
+        $last = $this->makeSection($area, 11, 1);
+        $lastColumn = $this->makeColumn($last, 101);
+        $existing = $this->makeBlock($lastColumn, 1000, 0, ClipboardFixtureBlock::TYPE);
+
+        $body = $this->paste(
+            [$area, $first, $last],
+            $this->blockEnvelope(),
+            structure: new BuilderStructure(BuilderStructure::SECTIONS_HIDDEN),
+        );
+
+        $pasted = $this->pastedBlock();
+        $this->assertSame($lastColumn, $pasted->getColumn());
+        $this->assertSame(1, $pasted->getPreviewPosition(), 'after the last block');
+        $this->assertSame(0, $existing->getPreviewPosition());
+        $this->assertSame(11, $body['sectionId']);
+    }
+
+    public function testWithHiddenSectionsABlockPastedIntoAnEmptyAreaGetsItsSection(): void
+    {
+        $area = $this->makeArea(1);
+
+        $this->paste([$area], $this->blockEnvelope(), structure: new BuilderStructure(BuilderStructure::SECTIONS_HIDDEN));
+
+        $section = $this->pastedBlock()->getColumn()?->getSection();
+        $this->assertNotNull($section);
+        $this->assertSame($area, $section->getContentArea());
+        $this->assertSame(Section::LAYOUT_FULL, $section->getLayout());
+    }
+
     public function testAnotherAreaSelectionIsNotAValidTarget(): void
     {
         // The body is user-written: a section id from an area the editor may
@@ -336,6 +390,7 @@ final class ClipboardControllerTest extends ControllerTestCase
         ?object $accessChecker = null,
         bool $csrfValid = true,
         ?SnapshotExtensionInterface $extension = null,
+        ?BuilderStructure $structure = null,
     ): ClipboardController {
         $registry = new BlockTypeRegistry();
         $registry->register(new ClipboardFixtureBlock());
@@ -365,6 +420,8 @@ final class ClipboardControllerTest extends ControllerTestCase
             $this->makeJournal($em),
             self::CURRENT_VERSION,
             new SnapshotExtensions($extension === null ? [] : [$extension], $registry),
+            new FixedBuilderStructureResolver($structure ?? new BuilderStructure()),
+            new ContentManipulator($em, $registry),
         );
     }
 
@@ -380,9 +437,13 @@ final class ClipboardControllerTest extends ControllerTestCase
      *
      * @return array<string, mixed>
      */
-    private function paste(array $entities, array $envelope, array $target = []): array
-    {
-        $response = $this->pasteResponse($entities, $envelope, $target);
+    private function paste(
+        array $entities,
+        array $envelope,
+        array $target = [],
+        ?BuilderStructure $structure = null,
+    ): array {
+        $response = $this->pasteResponse($entities, $envelope, $target, $structure);
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode(), (string) $response->getContent());
 
         return $this->json($response);
@@ -393,12 +454,16 @@ final class ClipboardControllerTest extends ControllerTestCase
      * @param array<string, mixed> $envelope
      * @param array<string, mixed> $target
      */
-    private function pasteResponse(array $entities, array $envelope, array $target = []): Response
-    {
+    private function pasteResponse(
+        array $entities,
+        array $envelope,
+        array $target = [],
+        ?BuilderStructure $structure = null,
+    ): Response {
         $area = $entities[0];
         \assert($area instanceof \ContentBlocks\Entity\ContentArea);
 
-        return $this->controller($entities)->paste(
+        return $this->controller($entities, structure: $structure)->paste(
             (int) $area->getId(),
             $this->makeJsonRequest(['payload' => $envelope, ...$target]),
         );

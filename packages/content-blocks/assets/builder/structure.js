@@ -35,7 +35,11 @@ export default class Structure {
     }
 
     async _addBlock(columnId, blockType) {
-        if (!columnId || !blockType) return;
+        if (!blockType) return;
+        if (!columnId) {
+            await this._addBlockToArea(blockType);
+            return;
+        }
         const result = await this._jsonRequest('POST', `${this._apiBase}/column/${columnId}/blocks`, { type: blockType });
         // Create failed (CSRF/access/network) — leave the preview untouched.
         if (result === null) return;
@@ -49,6 +53,25 @@ export default class Structure {
         }
         // Fill it in immediately. The insert above runs in parallel; the
         // sidebar mount fetches from a separate endpoint.
+        if (result.id) {
+            this._mountSidebar(result.id);
+        }
+    }
+
+    /**
+     * The first block of an area whose sections are hidden: the server adds
+     * the section it needs, so the preview is reloaded rather than patched.
+     */
+    async _addBlockToArea(blockType) {
+        const result = await this._jsonRequest(
+            'POST', `${this._apiBase}/area/${this.areaIdValue}/blocks`, { type: blockType }, { tolerate: [422] },
+        );
+        if (result === null) return;
+        if (result.error) {
+            this._notify(this._t('cb.builder.add_block_no_target', 'There is no section to add this block to'));
+            return;
+        }
+        this._afterStructuralOp();
         if (result.id) {
             this._mountSidebar(result.id);
         }

@@ -191,6 +191,10 @@ body.cb-dragging--block [data-cb-section-id] {
   outline: 1px dashed var(--cb-line-strong);
   outline-offset: -1px;
 }
+/* Blocks only: the section is an implementation detail, so no frame. */
+[data-cb-sections="hidden"] [data-cb-section-id] {
+  outline: none;
+}
 /* No outline: the permanent "+ Bloc" pill marks each column on its own.
    No padding either, so the preview matches the production render. */
 [data-cb-column-id] {
@@ -408,7 +412,8 @@ body {
   background: rgba(var(--cb-accent-rgb), 0.06);
   outline: none;
 }
-.cb-add-section-tray__library {
+.cb-add-section-tray__library,
+.cb-add-section-tray__block {
   display: inline-flex;
   align-items: center;
   vertical-align: middle;
@@ -429,11 +434,17 @@ body {
     background-color 0.12s ease;
 }
 .cb-add-section-tray__library:hover,
-.cb-add-section-tray__library:focus-visible {
+.cb-add-section-tray__library:focus-visible,
+.cb-add-section-tray__block:hover,
+.cb-add-section-tray__block:focus-visible {
   border-color: var(--cb-accent);
   color: var(--cb-accent);
   background: rgba(var(--cb-accent-rgb), 0.06);
   outline: none;
+}
+/* Alone in its tray, unlike the library button beside the layouts. */
+.cb-add-section-tray__block {
+  margin-left: 0;
 }
 
 /* ---------- Elevation ----------
@@ -441,6 +452,7 @@ body {
 
 .cb-add-section-tray__btn,
 .cb-add-section-tray__library,
+.cb-add-section-tray__block,
 .cb-add-block-inline {
   box-shadow: var(--cb-shadow-control);
 }
@@ -448,6 +460,8 @@ body {
 .cb-add-section-tray__btn:focus-visible,
 .cb-add-section-tray__library:hover,
 .cb-add-section-tray__library:focus-visible,
+.cb-add-section-tray__block:hover,
+.cb-add-section-tray__block:focus-visible,
 .cb-add-block-inline:hover,
 .cb-add-block-inline:focus-visible,
 .cb-overlay-popover__tile:hover {

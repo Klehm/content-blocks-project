@@ -101,11 +101,12 @@ export default class Clipboard {
             incompatible_clipboard: ['cb.builder.clipboard.unreadable', 'This copy cannot be read and was discarded'],
             unreadable_clipboard: ['cb.builder.clipboard.unreadable', 'This copy cannot be read and was discarded'],
             too_large: ['cb.builder.clipboard.too_large', 'This copy holds more than a page can and was discarded'],
+            sections_locked: ['cb.builder.clipboard.sections_locked', 'Sections cannot be added here — paste a block instead'],
         };
         const [key, fallback] = messages[error] ?? messages.unreadable_clipboard;
-        // An unreadable or stale entry will never paste anywhere; keeping
-        // it only lets the editor hit the same wall again.
-        if (error !== 'no_target') this._clearClipboard();
+        // An unreadable or stale entry will never paste anywhere. A section
+        // refused here may still go to an area whose sections are editable.
+        if (error !== 'no_target' && error !== 'sections_locked') this._clearClipboard();
         this._notify(this._t(key, fallback));
     }
 

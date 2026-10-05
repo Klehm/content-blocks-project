@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`content_blocks.structure`**, to narrow what editors do to sections and
+  columns. `sections: hidden` is a blocks-only builder: no section in the UI,
+  blocks stack in one full-width section the server creates with the first
+  block (new route `content_blocks_area_block_create`, `POST
+  /area/{id}/blocks`). `sections: fixed` keeps the sections in place
+  selectable but rules out adding, moving, duplicating, deleting, pasting
+  and inserting one. `columns: false` removes the Columns and Layout panels.
+  The endpoints refuse what a mode rules out (`409`, `reasons:
+  ["structure"]`). Per area through `BuilderStructureResolverInterface`
+  (default `ConfiguredBuilderStructureResolver`). See
+  `docs/guide/builder-structure.md`.
+- **`content_blocks.styling`**, to hide the free styling fields (spacing,
+  background, alignment) for a sober builder: `styling: false` for both
+  sidebars, or `{ block: false }` / `{ section: false }` for one. The block
+  sidebar loses its Style tab; the section sidebar keeps the
+  `section_styles` preset dropdown and drops the *Customize styling* switch
+  and its fields. UI-only: stored values still render and survive a save.
 - **`enable_import` and `enable_export`**, two `ContentAreaType` options (and
   `enableImport` / `enableExport` for a launcher included directly), so a
   host can keep Export and drop Import, or the reverse. Left at `null` they

@@ -27,7 +27,7 @@ A field's `cb_group` is the label of the tab it appears in. Fields sharing a lab
 | Block | *General*, your tabs, *Style* | lands in *General* |
 | Section | *Structure*, your tabs, *Style* | lands in *Structure* |
 
-To join a core tab rather than open one, use its key: `SectionSettingsType::TAB_STRUCTURE` or `TAB_STYLING`. The *Style* tab is always last. On a block it holds the styling sub-form; on a section it holds the preset, the *Customize styling* switch and the styling sub-form. To add a field there, extend `StylingType` rather than giving it `cb_group`: see [Styling → Extending the styling sub-form](./styling.md#extending-the-styling-sub-form).
+To join a core tab rather than open one, use its key: `SectionSettingsType::TAB_STRUCTURE` or `TAB_STYLING`. The *Style* tab is always last, and absent when [`content_blocks.styling`](./styling.md#a-builder-without-styling-fields) leaves it nothing to show. On a block it holds the styling sub-form; on a section it holds the preset, the *Customize styling* switch and the styling sub-form. To add a field there, extend `StylingType` rather than giving it `cb_group`: see [Styling → Extending the styling sub-form](./styling.md#extending-the-styling-sub-form).
 
 The label is a translation key of the `content_blocks` domain, a plain string (a missing key prints as is), or a `TranslatableInterface` for your own domain. The older `'attr' => ['data-cb-group' => 'SEO']` is still read, and the option wins when both are set.
 

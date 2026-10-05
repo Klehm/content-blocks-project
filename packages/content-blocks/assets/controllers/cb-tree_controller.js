@@ -12,6 +12,8 @@ export default class extends Controller {
 
     static values = {
         areaId: Number,
+        // `content_blocks.structure.sections`: editable, fixed or hidden.
+        sections: { type: String, default: 'editable' },
     };
 
     /** Persisted: the outline is a workspace, not a modal. */
@@ -269,6 +271,10 @@ export default class extends Controller {
         list.innerHTML = '';
 
         const sections = this._tree ?? [];
+        if (this.sectionsValue === 'hidden') {
+            this._paintFlat(list, sections);
+            return;
+        }
         if (sections.length === 0) {
             this._setStatus(this._t('cb.builder.tree.empty', 'Nothing here yet — add a section to start.'));
             return;
@@ -279,6 +285,28 @@ export default class extends Controller {
             list.appendChild(this._buildSection(section));
         }
 
+        this._bindSortables();
+        this._applySelection();
+    }
+
+    /**
+     * Blocks only: one list per column, without the section and column rows
+     * the editor never sees.
+     */
+    _paintFlat(list, sections) {
+        let count = 0;
+        for (const section of sections) {
+            for (const column of (Array.isArray(section.columns) ? section.columns : [])) {
+                const item = document.createElement('li');
+                item.className = 'cb-tree__flat';
+                item.appendChild(this._buildBlockList(column));
+                list.appendChild(item);
+                count += Array.isArray(column.blocks) ? column.blocks.length : 0;
+            }
+        }
+        this._setStatus(count === 0
+            ? this._t('cb.builder.tree.empty_blocks', 'Nothing here yet — add a block to start.')
+            : '');
         this._bindSortables();
         this._applySelection();
     }
@@ -294,6 +322,7 @@ export default class extends Controller {
             id: section.id,
             label: section.label ?? `#${section.id}`,
             twisty: { collapsed, onToggle: () => this._toggleCollapse(section.id) },
+            locked: this.sectionsValue !== 'editable',
         }));
 
         const children = document.createElement('div');
@@ -328,16 +357,20 @@ export default class extends Controller {
             row.appendChild(chip);
         }
         el.appendChild(row);
+        el.appendChild(this._buildBlockList(column));
 
+        return el;
+    }
+
+    _buildBlockList(column) {
         const blocks = document.createElement('ul');
         blocks.className = 'cb-tree__blocks';
         blocks.dataset.cbTreeColumnId = String(column.id ?? '');
         for (const block of (Array.isArray(column.blocks) ? column.blocks : [])) {
             blocks.appendChild(this._buildBlock(block));
         }
-        el.appendChild(blocks);
 
-        return el;
+        return blocks;
     }
 
     _buildBlock(block) {
@@ -360,9 +393,9 @@ export default class extends Controller {
 
     /**
      * One row shape for sections and blocks: handle, optional twisty, label
-     * button, then the two actions.
+     * button, then the two actions. A locked row keeps only its label.
      */
-    _buildRow({ kind, id, label, twisty = null, icon = null, hintKind = null, missing = false }) {
+    _buildRow({ kind, id, label, twisty = null, icon = null, hintKind = null, missing = false, locked = false }) {
         const row = document.createElement('div');
         row.className = `cb-tree__row cb-tree__row--${kind}`;
         row.dataset.cbTreeKind = kind;
@@ -370,9 +403,12 @@ export default class extends Controller {
 
         const handle = document.createElement('span');
         handle.className = 'cb-tree__drag';
-        handle.title = this._t('cb.builder.tree.drag', 'Drag to move');
         handle.setAttribute('aria-hidden', 'true');
-        handle.textContent = '⠿';
+        // Kept empty rather than dropped, so labels stay aligned.
+        if (!locked) {
+            handle.title = this._t('cb.builder.tree.drag', 'Drag to move');
+            handle.textContent = '⠿';
+        }
         row.appendChild(handle);
 
         if (twisty) {
@@ -401,6 +437,7 @@ export default class extends Controller {
         name.textContent = label;
         name.addEventListener('click', () => this._select(kind, id));
         row.appendChild(name);
+        if (locked) return row;
 
         const actions = document.createElement('span');
         actions.className = 'cb-tree__actions';
@@ -462,16 +499,19 @@ export default class extends Controller {
     // ---------- Drag & drop ----------
 
     _bindSortables() {
-        this._sortables.push(Sortable.create(this.listTarget, {
-            draggable: '.cb-tree__section',
-            handle: '.cb-tree__row--section > .cb-tree__drag',
-            animation: 120,
-            onEnd: (event) => {
-                const sectionId = this._idOf(event.item, 'cbTreeSectionId');
-                if (sectionId === null || event.newIndex === event.oldIndex) return;
-                this._emit('cb:tree:section:move', { sectionId, position: event.newIndex });
-            },
-        }));
+        // Fixed or hidden sections do not move.
+        if (this.sectionsValue === 'editable') {
+            this._sortables.push(Sortable.create(this.listTarget, {
+                draggable: '.cb-tree__section',
+                handle: '.cb-tree__row--section > .cb-tree__drag',
+                animation: 120,
+                onEnd: (event) => {
+                    const sectionId = this._idOf(event.item, 'cbTreeSectionId');
+                    if (sectionId === null || event.newIndex === event.oldIndex) return;
+                    this._emit('cb:tree:section:move', { sectionId, position: event.newIndex });
+                },
+            }));
+        }
 
         for (const list of this.listTarget.querySelectorAll('.cb-tree__blocks')) {
             this._sortables.push(Sortable.create(list, {

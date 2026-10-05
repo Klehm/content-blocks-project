@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Controller;
 
+use ContentBlocks\Builder\BuilderStructureResolverInterface;
+use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
+use ContentBlocks\Builder\StructureRefusal;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
@@ -37,6 +40,7 @@ final class ViewportOrderController
         private readonly AccessCheckerInterface $accessChecker,
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ActionJournal $journal,
+        private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
     ) {
     }
 
@@ -71,6 +75,11 @@ final class ViewportOrderController
             || array_filter($ids, static fn (mixed $v): bool => !\is_int($v)) !== []
             || \count(array_unique($ids)) !== \count($ids)) {
             return new JsonResponse(['error' => 'invalid_payload'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if (($payload['scope'] ?? null) === 'section'
+            && !$this->structure->forArea($area)->canEditSections()) {
+            return StructureRefusal::response();
         }
 
         $siblings = match ($payload['scope'] ?? null) {

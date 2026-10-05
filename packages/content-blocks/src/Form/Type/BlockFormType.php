@@ -35,6 +35,11 @@ final class BlockFormType extends AbstractType
         // them; before the styling tab, which stays last.
         $this->extensions->applyTo($builder, $options['block_data'], $blockType->getType());
 
+        // Off, the stored `styling` is left as is: an unmapped key survives.
+        if (!$options['include_styling']) {
+            return;
+        }
+
         // Lands under the `styling` key of Block.data, which is why a block
         // type's getDefaultData() never declares it.
         $builder->add('styling', StylingType::class, [
@@ -52,11 +57,14 @@ final class BlockFormType extends AbstractType
             // Safe only because this form is submitted through a Live
             // Component. See forms.md, "disables form-level CSRF".
             'csrf_protection' => false,
+            // The sidebar's Style tab only; every other caller keeps the key.
+            'include_styling' => true,
         ]);
 
         $resolver->setRequired('block_type');
         $resolver->setAllowedTypes('block_type', BlockTypeInterface::class);
         $resolver->setAllowedTypes('block_data', 'array');
+        $resolver->setAllowedTypes('include_styling', 'bool');
     }
 
     public function getBlockPrefix(): string

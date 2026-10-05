@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Controller;
 
+use ContentBlocks\Builder\BuilderStructureResolverInterface;
+use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
+use ContentBlocks\Builder\StructureRefusal;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Form\Type\SectionSettingsType;
@@ -47,6 +50,8 @@ final class SectionSidebarController
         private readonly SectionStyleRegistry $styleRegistry,
         private readonly ActionJournal $journal,
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly bool $sectionStyling = true,
+        private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
     ) {
     }
 
@@ -71,6 +76,10 @@ final class SectionSidebarController
         $area = $section->getContentArea();
         if (!$area || !$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
+        }
+        $structure = $this->structure->forArea($area);
+        if (!$structure->showsSections()) {
+            return StructureRefusal::response();
         }
 
         // Three layers, rightmost winning per key:
@@ -103,6 +112,8 @@ final class SectionSidebarController
             'action' => $this->urlGenerator->generate('content_blocks_section_settings', ['id' => $id]),
             'method' => 'POST',
             'column_count' => $columnCount,
+            'include_styling' => $this->sectionStyling,
+            'include_layout' => $structure->canEditColumns(),
         ]);
 
         if ($request->isMethod('POST')) {
@@ -150,6 +161,7 @@ final class SectionSidebarController
                     'columnCount' => $columnCount,
                     'columns' => $columns,
                     'maxColumns' => ColumnsController::MAX_COLUMNS,
+            'editableColumns' => $structure->canEditColumns(),
                 ]),
                 Response::HTTP_UNPROCESSABLE_ENTITY,
             );
@@ -161,6 +173,7 @@ final class SectionSidebarController
             'columnCount' => $columnCount,
             'columns' => $columns,
             'maxColumns' => ColumnsController::MAX_COLUMNS,
+            'editableColumns' => $structure->canEditColumns(),
         ]));
     }
 

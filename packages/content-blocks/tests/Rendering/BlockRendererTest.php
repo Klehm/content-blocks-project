@@ -6,6 +6,7 @@ namespace ContentBlocks\Tests\Rendering;
 
 use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Builder\BuilderStructure;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
@@ -20,6 +21,7 @@ use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\AllowAllAccessChecker;
 use ContentBlocks\Security\DenyAllAccessChecker;
+use ContentBlocks\Tests\Fixtures\FixedBuilderStructureResolver;
 use ContentBlocks\Twig\SectionLayoutExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\RoutingExtension;
@@ -219,6 +221,50 @@ final class BlockRendererTest extends TestCase
             $this->assertStringContainsString('content_blocks_asset_preview_overlay', $html, json_encode($query));
             $this->assertStringContainsString('cb-add-section-tray', $html, json_encode($query));
         }
+    }
+
+    // Blocks only: no handle, no frame, one "Add a block" for an empty area.
+    public function testHiddenSectionsShowNeitherHandleNorSectionTray(): void
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $column = $this->makeColumn($section, position: 0, previewPosition: 0);
+        $this->makeBlock($column, type: 'text', publishedData: null, draftData: ['title' => 'New'], position: 0, previewPosition: 0);
+        $hidden = new BuilderStructure(BuilderStructure::SECTIONS_HIDDEN);
+        $renderer = $this->makeRenderer(mode: RenderMode::PREVIEW, structure: $hidden);
+
+        $html = $renderer->render($area, new RenderContext(RenderMode::PREVIEW));
+
+        $this->assertStringContainsString('data-cb-sections="hidden"', $html);
+        $this->assertStringNotContainsString('cb-section-handle', $html);
+        $this->assertStringNotContainsString('data-cb-add-section', $html);
+        $this->assertStringNotContainsString('data-cb-add-block-area', $html, 'not empty: the column has its own');
+        $this->assertStringContainsString('cb-add-block-inline', $html);
+        $this->assertStringContainsString('id="cb-overlay-structure">{"sections":"hidden","columns":false}', $html);
+        $this->assertStringNotContainsString('cb-section-handle', $renderer->renderSection($section));
+    }
+
+    public function testAnEmptyBlocksOnlyAreaOffersToAddABlock(): void
+    {
+        $html = $this->makeRenderer(mode: RenderMode::PREVIEW, structure: new BuilderStructure(BuilderStructure::SECTIONS_HIDDEN))
+            ->render($this->makeArea(), new RenderContext(RenderMode::PREVIEW));
+
+        $this->assertStringContainsString('data-cb-add-block-area', $html);
+        $this->assertStringNotContainsString('data-cb-add-section', $html);
+    }
+
+    // Fixed sections stay selectable, but nothing adds one.
+    public function testFixedSectionsKeepTheirHandleButLoseTheTray(): void
+    {
+        $area = $this->makeArea();
+        $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+
+        $html = $this->makeRenderer(mode: RenderMode::PREVIEW, structure: new BuilderStructure(BuilderStructure::SECTIONS_FIXED))
+            ->render($area, new RenderContext(RenderMode::PREVIEW));
+
+        $this->assertStringContainsString('cb-section-handle', $html);
+        $this->assertStringNotContainsString('cb-add-section-tray', $html);
+        $this->assertStringNotContainsString('data-cb-insert-template', $html);
     }
 
     /** A public page never had chrome, and asking for it cannot conjure any. */
@@ -1105,6 +1151,7 @@ final class BlockRendererTest extends TestCase
         array $extraResolvers = [],
         array $query = [],
         ?\ContentBlocks\Rendering\ColumnSettingsResolverCollection $columnResolvers = null,
+        ?BuilderStructure $structure = null,
     ): BlockRenderer {
         $request = new Request(($mode === RenderMode::PREVIEW ? ['cb_preview' => '1'] : []) + $query);
         $stack = new RequestStack();
@@ -1126,6 +1173,7 @@ final class BlockRendererTest extends TestCase
             new \ContentBlocks\Block\BlockDataDefaults(),
             new BlockDataResolverCollection([new CoreBlockDataResolver(), ...$extraResolvers]),
             $columnResolvers ?? new \ContentBlocks\Rendering\ColumnSettingsResolverCollection(),
+            new FixedBuilderStructureResolver($structure ?? new BuilderStructure()),
         );
     }
 

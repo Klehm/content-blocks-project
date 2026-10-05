@@ -59,6 +59,15 @@ final class BlockComponentTest extends TestCase
         $this->invokeInstantiateForm($component);
     }
 
+    // `content_blocks.styling.block: false` reaches the form.
+    public function testInstantiateFormLeavesTheStylingTabOutWhenConfigured(): void
+    {
+        $form = $this->createMock(FormInterface::class);
+        $block = $this->makeBlock(publishedData: null, draftData: ['title' => 'Hi']);
+
+        $this->invokeInstantiateForm($this->makeComponent($block, $form, blockStyling: false));
+    }
+
     public function testInstantiateFormFallsBackToPublishedDataWhenNoDraft(): void
     {
         $form = $this->makeFormWithExpectedData(['title' => 'Hello']);
@@ -488,7 +497,7 @@ final class BlockComponentTest extends TestCase
         return $component;
     }
 
-    private function makeComponent(Block $block, FormInterface $form): BlockComponent
+    private function makeComponent(Block $block, FormInterface $form, bool $blockStyling = true): BlockComponent
     {
         $em = $this->createMock(EntityManagerInterface::class);
         $em->method('find')->willReturn($block);
@@ -520,8 +529,9 @@ final class BlockComponentTest extends TestCase
             ->with(
                 BlockFormType::class,
                 $expectedData,
-                $this->callback(function (array $opts) use ($expectedData): bool {
-                    return ($opts['block_data'] ?? null) === $expectedData;
+                $this->callback(function (array $opts) use ($expectedData, $blockStyling): bool {
+                    return ($opts['block_data'] ?? null) === $expectedData
+                        && ($opts['include_styling'] ?? null) === $blockStyling;
                 }),
             )
             ->willReturn($form);
@@ -538,6 +548,8 @@ final class BlockComponentTest extends TestCase
                 new StateApplier($em),
                 new BuilderSession(new RequestStack()),
             ),
+            null,
+            $blockStyling,
         );
         $component->blockId = 1;
 

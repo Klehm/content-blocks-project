@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Twig;
 
+use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Publishing\UnpublishedChanges;
 use ContentBlocks\Section\SectionLayoutRegistry;
+use ContentBlocks\Twig\BuilderStructureExtension;
 use ContentBlocks\Twig\SectionLayoutExtension;
 use ContentBlocks\Twig\UnpublishedChangesExtension;
 use PHPUnit\Framework\TestCase;
@@ -120,6 +122,7 @@ final class BuilderHistoryButtonsTest extends TestCase
         $env = new Environment($loader, ['strict_variables' => true]);
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
         $env->addExtension(new SectionLayoutExtension(new SectionLayoutRegistry()));
+        $env->addExtension(new BuilderStructureExtension(new ConfiguredBuilderStructureResolver()));
         $env->addExtension(new UnpublishedChangesExtension(new UnpublishedChanges()));
         $env->addFunction(new TwigFunction('csrf_token', static fn (string $id): string => 'test-token'));
         $env->addFunction(new TwigFunction('cb_api_base', static fn (): string => '/_content-blocks'));

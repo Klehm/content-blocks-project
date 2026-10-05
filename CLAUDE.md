@@ -298,6 +298,10 @@ content_blocks:
         initial_settings: {}            # draft settings of a section added from the builder (preset-shaped, typed)
         layouts:                        # merged over full/two_cols/three_cols; `name: false` hides one
             four_cols: { label: '4 columns', columns: [3, 3, 3, 3] }   # spans add up to 12
+    structure:                          # per area via BuilderStructureResolverInterface; endpoints refuse (409, reasons: [structure])
+        sections: editable              # editable | fixed (no add/move/delete) | hidden (blocks only, implicit full section)
+        columns: true                   # false: no Columns / Layout panels
+    styling: true                       # false (or { block: false } / { section: false }) hides the free styling fields; presets stay, UI-only
     palette:                            # couleurs nommées du PaletteColorType
         - { label: 'Primaire', color: '#eb0540' }
     section_styles:                             # presets de style de section

@@ -61,7 +61,10 @@
             {% if general_label in order %}
                 {% set order = [general_label]|merge(order|filter(l => l != general_label)) %}
             {% endif %}
-            {% set order = order|merge([style_label]) %}
+            {# Absent when `content_blocks.styling.block` is off. #}
+            {% if form.styling is defined %}
+                {% set order = order|merge([style_label]) %}
+            {% endif %}
 
             {% set errors = order|map(label => label == style_label
                 ? not form.styling.vars.valid

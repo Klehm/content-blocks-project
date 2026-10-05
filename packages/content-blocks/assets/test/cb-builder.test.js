@@ -692,10 +692,34 @@ describe('cb-builder: structural AJAX handlers', () => {
         expect(reloadSpy).not.toHaveBeenCalled();
     });
 
-    it('_addBlock no-ops when columnId or type is missing', async () => {
-        await controller._addBlock(undefined, 'text');
+    it('_addBlock no-ops when the type is missing', async () => {
         await controller._addBlock(7, undefined);
+        await controller._addBlock(null, undefined);
         expect(reqSpy).not.toHaveBeenCalled();
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    // Blocks only, empty area: the server adds the section the block needs.
+    it('_addBlock without a column appends to the area and reloads', async () => {
+        reqSpy.mockResolvedValueOnce({ id: 31, hotReload: false });
+        const mountSpy = vi.spyOn(controller, '_mountSidebar').mockImplementation(() => {});
+
+        await controller._addBlock(null, 'text');
+
+        expect(reqSpy).toHaveBeenCalledWith(
+            'POST', '/_content-blocks/area/99/blocks', { type: 'text' }, { tolerate: [422] },
+        );
+        expect(reloadSpy).toHaveBeenCalled();
+        expect(mountSpy).toHaveBeenCalledWith(31);
+    });
+
+    it('_addBlock without a column says so when the area has nowhere to put it', async () => {
+        reqSpy.mockResolvedValueOnce({ error: 'no_target' });
+        const notifySpy = vi.spyOn(controller, '_notify').mockImplementation(() => {});
+
+        await controller._addBlock(null, 'text');
+
+        expect(notifySpy).toHaveBeenCalledWith('There is no section to add this block to');
         expect(reloadSpy).not.toHaveBeenCalled();
     });
 

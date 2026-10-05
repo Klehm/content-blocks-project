@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Twig;
 
+use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
 use ContentBlocks\Section\SectionLayout;
 use ContentBlocks\Section\SectionLayoutRegistry;
+use ContentBlocks\Twig\BuilderStructureExtension;
 use ContentBlocks\Twig\SectionLayoutExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
@@ -100,6 +102,7 @@ final class SectionLayoutExtensionTest extends TestCase
             use TranslatorTrait;
         }));
         $env->addExtension(new SectionLayoutExtension($registry));
+        $env->addExtension(new BuilderStructureExtension(new ConfiguredBuilderStructureResolver()));
 
         return $env;
     }

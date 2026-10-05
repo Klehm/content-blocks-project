@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Controller;
 
+use ContentBlocks\Builder\BuilderStructure;
 use ContentBlocks\Controller\SectionTemplateController;
 use ContentBlocks\Entity\SectionTemplate;
 use ContentBlocks\Section\SectionStyleRegistry;
@@ -18,6 +19,7 @@ use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Snapshot\SnapshotExtensionInterface;
 use ContentBlocks\Snapshot\SnapshotExtensions;
 use ContentBlocks\Tests\Fixtures\EchoTranslator;
+use ContentBlocks\Tests\Fixtures\FixedBuilderStructureResolver;
 use ContentBlocks\Tests\Fixtures\RecordingSnapshotExtension;
 use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
 use ContentBlocks\Versioning\DenyOnMismatchUpgrader;
@@ -40,6 +42,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
         ?SectionTemplateManagerInterface $manager = null,
         ?ContentVersionUpgraderInterface $upgrader = null,
         ?SnapshotExtensionInterface $extension = null,
+        ?BuilderStructure $structure = null,
     ): SectionTemplateController {
         return new SectionTemplateController(
             $em,
@@ -55,6 +58,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
             new EnvelopeUpgradeChain(),
             5,
             new SnapshotExtensions($extension === null ? [] : [$extension], $this->makeRegistry()),
+            structure: new FixedBuilderStructureResolver($structure ?? new BuilderStructure()),
         );
     }
 
@@ -205,6 +209,22 @@ final class SectionTemplateControllerTest extends ControllerTestCase
         // Appended after the existing section (previewPosition 3 -> 4).
         $this->assertSame(4, $this->persisted[0]->getPreviewPosition());
         $this->assertCount(2, $area->getSections());
+    }
+
+    // A template is a section: refused unless sections are editable.
+    public function testInsertIsRefusedWhereSectionsAreLocked(): void
+    {
+        $area = $this->makeArea(1);
+        $template = $this->makeTemplate(7, $this->payloadWith([
+            ['type' => 'fake', 'data' => ['content' => 'x']],
+        ]), ['fake']);
+        $structure = new BuilderStructure(BuilderStructure::SECTIONS_FIXED);
+
+        $response = $this->makeController($this->makeEm([$area, $template]), structure: $structure)
+            ->insert(1, 7, $this->makeJsonRequest());
+
+        $this->assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        $this->assertSame([], $this->persisted);
     }
 
     public function testInsertSkipsGoneBlockTypesAndInsertsTheRest(): void

@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace ContentBlocks\Controller;
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Builder\BuilderStructureResolverInterface;
+use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
+use ContentBlocks\Builder\StructureRefusal;
 use ContentBlocks\Content\ContentManipulator;
 use ContentBlocks\Content\ContentManipulatorInterface;
 use ContentBlocks\Entity\ContentArea;
@@ -65,6 +68,7 @@ final class SectionTemplateController
         private readonly int $contentVersion = 1,
         private readonly SnapshotExtensions $snapshots = new SnapshotExtensions(),
         ?ContentManipulatorInterface $content = null,
+        private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
     ) {
         $this->content = $content ?? new ContentManipulator($em, $blockTypeRegistry);
     }
@@ -223,6 +227,9 @@ final class SectionTemplateController
         }
         if (!$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
+        }
+        if (!$this->structure->forArea($area)->canEditSections()) {
+            return StructureRefusal::response();
         }
 
         $template = $this->em->find(SectionTemplate::class, $templateId);
