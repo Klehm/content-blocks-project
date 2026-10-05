@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-05
+
 ### Fixed
 
 - **An invalid field no longer holds the rest of a block's form.** With a

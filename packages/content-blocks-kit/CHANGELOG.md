@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-05
+
+No change in the kit itself. Fixes a block form that saved nothing while one
+of its required fields was empty (`klehm/content-blocks`). The three packages
+are tagged together.
+
 ## [1.3.0] - 2026-10-05
 
 This release carries, across the three packages:
