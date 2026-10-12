@@ -6,6 +6,8 @@ on:
     paths:
       - 'docs/**'
       - '.github/workflows/docs.yml'
+      # The version picker reads it: a release that only bumps it must redeploy.
+      - 'packages/content-blocks/assets/package.json'
   workflow_dispatch:
 
 permissions:
