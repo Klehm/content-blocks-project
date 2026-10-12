@@ -179,10 +179,18 @@ final class RichTextEditorTest extends TestCase
 
     public function testPaletteIsHandedOverForSwatches(): void
     {
-        $editor = $this->tinymce(new PaletteColor('Primary', '#eb0540'));
+        $editor = $this->tinymce(
+            new PaletteColor('Primary', '#eb0540'),
+            new PaletteColor('Brand', 'var(--brand, #101828)'),
+            new PaletteColor('Accent', 'var(--accent)'),
+            new PaletteColor('Back office', 'var(--bo)', '#abcdef'),
+        );
 
         $this->assertSame(
-            '[{"label":"Primary","color":"#eb0540"}]',
+            '[{"label":"Primary","color":"#eb0540","swatch":"#eb0540"},'
+            . '{"label":"Brand","color":"var(--brand, #101828)","swatch":"#101828"},'
+            . '{"label":"Accent","color":"var(--accent)","swatch":null},'
+            . '{"label":"Back office","color":"var(--bo)","swatch":"#abcdef"}]',
             $editor->buildView(RichTextBlock::defaultOptions())->values['palette'],
         );
     }

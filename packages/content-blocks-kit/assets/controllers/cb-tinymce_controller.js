@@ -27,14 +27,15 @@ const WEB_COLOR_MAP = [
 ];
 
 /**
- * Build a TinyMCE `color_map` from a ContentBlocks palette. Exported for unit
- * tests. Palette colors come first (labeled), then the standard web palette.
+ * TinyMCE `color_map` from a palette (exported for tests): palette first, then
+ * the web palette. Hex only, so a theme variable is written as its `swatch`.
  */
 export function buildColorMap(palette) {
     const themeSwatches = [];
     if (Array.isArray(palette)) {
         for (const entry of palette) {
-            const hex = (entry?.color ?? '').replace(/^#/, '');
+            const color = entry && 'swatch' in entry ? entry.swatch : entry?.color;
+            const hex = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color ?? '')?.[1];
             if (hex) {
                 themeSwatches.push(hex, entry.label || hex);
             }

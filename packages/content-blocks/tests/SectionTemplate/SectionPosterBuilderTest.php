@@ -8,6 +8,8 @@ use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Palette\ColorPaletteRegistry;
+use ContentBlocks\Palette\ConfigColorPaletteProvider;
 use ContentBlocks\Section\SectionStyle;
 use ContentBlocks\Section\SectionStyleProviderInterface;
 use ContentBlocks\Section\SectionStyleRegistry;
@@ -19,7 +21,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 
 final class SectionPosterBuilderTest extends TestCase
 {
-    private function makeBuilder(): SectionPosterBuilder
+    private function makeBuilder(?ColorPaletteRegistry $palette = null): SectionPosterBuilder
     {
         $registry = new BlockTypeRegistry();
         $registry->register(new PosterHeadingBlock());
@@ -27,7 +29,12 @@ final class SectionPosterBuilderTest extends TestCase
         $registry->register(new PosterMuteBlock());
         $registry->register(new PosterExplodingBlock());
 
-        return new SectionPosterBuilder($registry, new EchoTranslator(), $this->makeStyleRegistry());
+        return new SectionPosterBuilder(
+            $registry,
+            new EchoTranslator(),
+            $this->makeStyleRegistry(),
+            $palette ?? new ColorPaletteRegistry(),
+        );
     }
 
     private function makeStyleRegistry(): SectionStyleRegistry
@@ -254,13 +261,41 @@ final class SectionPosterBuilderTest extends TestCase
         $this->assertFalse($poster['dark']);
     }
 
+    // The poster lives in the builder, where the host's variables are not set.
+    public function testAThemeVariableIsPaintedWithItsHexFallback(): void
+    {
+        $poster = $this->makeBuilder()->build($this->payload(
+            [['preset' => 'col-12', 'blocks' => []]],
+            settings: ['styling' => ['backgroundColor' => 'var(--ink, #101828)']],
+        ));
+
+        $this->assertSame('#101828', $poster['background']);
+        $this->assertTrue($poster['dark']);
+    }
+
+    public function testABareVariableIsPaintedWithItsPaletteSwatch(): void
+    {
+        $palette = new ColorPaletteRegistry([new ConfigColorPaletteProvider([
+            ['label' => 'Ink', 'color' => 'var(--ink)', 'swatch' => '#101828'],
+        ])]);
+
+        $poster = $this->makeBuilder($palette)->build($this->payload(
+            [['preset' => 'col-12', 'blocks' => []]],
+            settings: ['styling' => ['backgroundColor' => 'var(--ink)']],
+        ));
+
+        $this->assertSame('#101828', $poster['background']);
+        $this->assertTrue($poster['dark']);
+    }
+
     /**
-     * The styling forms only ever store `#hex` or ''. Anything else came from
-     * elsewhere and must not be written into a style attribute.
+     * Only a hex, or a variable's hex fallback, is painted. Anything else
+     * must not be written into a style attribute.
      */
     public function testOnlyHexBackgroundsAreAccepted(): void
     {
-        foreach (['', 'red', 'rgb(0,0,0)', 'url(x)', '#12', '#1234567', null, 42] as $stored) {
+        $refused = ['', 'red', 'rgb(0,0,0)', 'url(x)', '#12', '#1234567', 'var(--ink)', null, 42];
+        foreach ($refused as $stored) {
             $poster = $this->makeBuilder()->build($this->payload(
                 [['preset' => 'col-12', 'blocks' => []]],
                 settings: ['styling' => ['backgroundColor' => $stored]],

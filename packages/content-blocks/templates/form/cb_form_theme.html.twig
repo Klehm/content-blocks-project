@@ -84,6 +84,37 @@
     </div>
 {%- endblock choice_widget_expanded %}
 
+{# `PaletteColorType`: a swatch per colour over its native radio. A colour
+   without a hex swatch (a bare `var()`) reads as its label. #}
+{% block cb_palette_swatches_widget -%}
+    {%- set domain = choice_translation_domain is same as(false) ? false : (choice_translation_domain ?? translation_domain) -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' cb-swatches')|trim}) -%}
+    <div {{ block('widget_container_attributes') }} role="radiogroup">
+        {%- for child in form -%}
+            {%- set label = child.vars.label -%}
+            {%- set text = label is same as(false) or label is empty ? child.vars.value
+                : (domain is same as(false) ? label : label|trans({}, domain)) -%}
+            {%- set swatch = child.vars.attr['data-color'] ?? null -%}
+            {%- set kind = child.vars.value is same as('') ? 'none'
+                : (child.vars.value is same as('custom') ? 'custom'
+                : (swatch ? 'color' : 'text')) -%}
+            <label class="cb-swatch cb-swatch--{{ kind }}" for="{{ child.vars.id }}" title="{{ text }}">
+                <input type="radio"
+                       class="cb-swatch__input"
+                       id="{{ child.vars.id }}"
+                       name="{{ child.vars.full_name }}"
+                       value="{{ child.vars.value }}"
+                       {%- if child.vars.checked %} checked="checked"{% endif %}
+                       {%- if child.vars.disabled %} disabled="disabled"{% endif %}
+                       {%- for attrname, attrvalue in child.vars.attr %} {{ attrname }}="{{ attrvalue }}"{% endfor %}>
+                <span class="cb-swatch__face"{% if swatch %} style="--cb-swatch: {{ swatch }}"{% endif %}>
+                    <span class="{{ kind == 'text' ? 'cb-swatch__text' : 'cb-form-sr-only' }}">{{ text }}</span>
+                </span>
+            </label>
+        {%- endfor -%}
+    </div>
+{%- endblock cb_palette_swatches_widget %}
+
 
 {# Not form_label: the neutral layout's has no widget-dispatch, and this
    <label> must carry `cb-form-check__label` instead. #}

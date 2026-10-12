@@ -243,7 +243,7 @@ describe('cb-tabs — panel summaries', () => {
         expect(folds[0].hasAttribute('data-cb-filled')).toBe(true);
     });
 
-    it('names the picked choice, not the placeholder, and a select option', () => {
+    it('names the picked choice, not the placeholder, and a palette swatch', () => {
         const body = `
             <fieldset class="cb-form-row">
                 <label title="Cover"><input type="radio" name="s[size]" value="" checked></label>
@@ -254,7 +254,8 @@ describe('cb-tabs — panel summaries', () => {
                 <label title="Top right"><input type="radio" name="s[pos]" value="top right" checked></label>
             </fieldset>
             <div class="cb-form-row">
-                <select name="s[bg][palette]"><option value="">None</option><option value="#eb0540" selected>Brand</option></select>
+                <label title="None"><input type="radio" name="s[bg][palette]" value=""></label>
+                <label title="Brand"><input type="radio" name="s[bg][palette]" value="#eb0540" checked></label>
             </div>`;
 
         const { folds } = setup(fold('Background', body));
@@ -265,7 +266,7 @@ describe('cb-tabs — panel summaries', () => {
     it('shows a custom colour as its hex', () => {
         const body = `
             <div class="cb-form-row">
-                <select name="s[bg][palette]"><option value="custom" selected>Custom…</option></select>
+                <label title="Custom…"><input type="radio" name="s[bg][palette]" value="custom" checked></label>
                 <input type="color" name="s[bg][custom]" value="#123456">
             </div>`;
 

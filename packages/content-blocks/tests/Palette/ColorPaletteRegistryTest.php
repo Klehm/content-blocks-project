@@ -6,6 +6,7 @@ namespace ContentBlocks\Tests\Palette;
 
 use ContentBlocks\Palette\ColorPaletteProviderInterface;
 use ContentBlocks\Palette\ColorPaletteRegistry;
+use ContentBlocks\Palette\ColorTone;
 use ContentBlocks\Palette\ConfigColorPaletteProvider;
 use ContentBlocks\Palette\PaletteColor;
 use PHPUnit\Framework\TestCase;
@@ -66,6 +67,66 @@ final class ColorPaletteRegistryTest extends TestCase
         ]);
 
         $this->assertSame([0, 1], array_keys($registry->all()));
+    }
+
+    // A host's back-office colour: stored `var(--brand)`, previewed by its hex.
+    public function testAnEntrysSwatchIsWhatTheColourPreviewsAndTonesWith(): void
+    {
+        $registry = new ColorPaletteRegistry([
+            $this->provider(new PaletteColor('Brand', 'var(--brand)', '#101828')),
+        ]);
+
+        $this->assertSame('#101828', $registry->swatch('var(--brand)'));
+        $this->assertSame('#101828', $registry->swatch(' VAR(--Brand) '));
+        $this->assertSame(ColorTone::DARK, $registry->tone('var(--brand)'));
+    }
+
+    public function testAnEntrysSwatchBeatsTheValuesOwnFallback(): void
+    {
+        $registry = new ColorPaletteRegistry([
+            $this->provider(new PaletteColor('Brand', 'var(--brand, #ffffff)', '#101828')),
+        ]);
+
+        $this->assertSame('#101828', $registry->swatch('var(--brand, #ffffff)'));
+    }
+
+    public function testWithoutAnEntryItIsTheValuesOwnSwatch(): void
+    {
+        $registry = new ColorPaletteRegistry([
+            $this->provider(new PaletteColor('Brand', 'var(--brand)', 'not a hex')),
+        ]);
+
+        $this->assertNull($registry->swatch('var(--brand)'), 'a bad swatch is ignored');
+        $this->assertSame('#eb0540', $registry->swatch('var(--x, #eb0540)'));
+        $this->assertSame('#abc', $registry->swatch('#abc'));
+        $this->assertNull($registry->swatch('var(--other)'));
+        $this->assertNull($registry->tone(null));
+    }
+
+    // A provider may query a database: once per request, not per section.
+    public function testProvidersAreReadOncePerRequest(): void
+    {
+        $provider = new class () implements ColorPaletteProviderInterface {
+            public int $calls = 0;
+            public string $hex = '#111111';
+
+            public function getColors(): iterable
+            {
+                ++$this->calls;
+
+                return [new PaletteColor('Brand', 'var(--brand)', $this->hex)];
+            }
+        };
+        $registry = new ColorPaletteRegistry([$provider]);
+
+        $registry->swatch('var(--brand)');
+        $registry->tone('var(--brand)');
+        $this->assertSame(1, $provider->calls);
+
+        $provider->hex = '#eeeeee';
+        $registry->reset();
+        $this->assertSame('#eeeeee', $registry->swatch('var(--brand)'));
+        $this->assertSame(2, $provider->calls);
     }
 
     private function provider(PaletteColor ...$colors): ColorPaletteProviderInterface

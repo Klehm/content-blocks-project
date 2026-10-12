@@ -18,6 +18,9 @@ final class PaletteColorTypeTest extends TypeTestCase
             new ConfigColorPaletteProvider([
                 ['label' => 'Primary', 'color' => '#eb0540'],
                 ['label' => 'White', 'color' => '#ffffff'],
+                ['label' => 'Theme', 'color' => 'var(--theme-primary, #EB0540)'],
+                ['label' => 'Accent', 'color' => 'var(--theme-accent)'],
+                ['label' => 'Back office', 'color' => 'var(--bo-brand)', 'swatch' => '#123456'],
             ]),
         ]);
 
@@ -149,5 +152,64 @@ final class PaletteColorTypeTest extends TypeTestCase
         $this->assertSame(['data-color' => '#eb0540'], $byValue['#eb0540']);
         $this->assertSame([], $byValue['']);
         $this->assertSame([], $byValue['custom']);
+    }
+
+    public function testThemeVariableMapsToItsPaletteChoiceAndBack(): void
+    {
+        $form = $this->factory->create(PaletteColorType::class, 'var(--theme-primary, #EB0540)');
+        $this->assertSame('var(--theme-primary, #EB0540)', $form->get('palette')->getData());
+
+        $form = $this->factory->create(PaletteColorType::class);
+        $form->submit(['palette' => 'var(--theme-accent)', 'custom' => '']);
+        $this->assertSame('var(--theme-accent)', $form->getData());
+    }
+
+    public function testThemeVariableOptionsCarryTheirFallbackAsSwatch(): void
+    {
+        $view = $this->factory->create(PaletteColorType::class)->createView();
+
+        $byValue = [];
+        foreach ($view['palette']->vars['choices'] as $choice) {
+            $byValue[$choice->value] = $choice->attr;
+        }
+
+        $this->assertSame(['data-color' => '#EB0540'], $byValue['var(--theme-primary, #EB0540)']);
+        $this->assertSame([], $byValue['var(--theme-accent)']);
+        $this->assertSame(['data-color' => '#123456'], $byValue['var(--bo-brand)'], 'the entry swatch');
+    }
+
+    // A variable dropped from the palette cannot go to the #rrggbb picker.
+    public function testStoredValueOutsideThePaletteStaysOnOfferAsItself(): void
+    {
+        $form = $this->factory->create(PaletteColorType::class, 'var(--old-brand)');
+
+        $this->assertSame('var(--old-brand)', $form->get('palette')->getData());
+        $this->assertNull($form->get('custom')->getData());
+
+        $values = array_map(
+            static fn ($choice): string => $choice->value,
+            $form->createView()['palette']->vars['choices'],
+        );
+        $this->assertSame('custom', end($values));
+        $this->assertContains('var(--old-brand)', $values);
+
+        $form->submit(['palette' => 'var(--old-brand)', 'custom' => '']);
+        $this->assertTrue($form->isValid());
+        $this->assertSame('var(--old-brand)', $form->getData());
+    }
+
+    public function testAStoredValueIsNotOfferedToAnotherForm(): void
+    {
+        $form = $this->factory->create(PaletteColorType::class, '');
+        $form->submit(['palette' => 'var(--old-brand)', 'custom' => '']);
+
+        $this->assertFalse($form->isValid());
+    }
+
+    public function testUnsafeStoredValueIsNotOffered(): void
+    {
+        $form = $this->factory->create(PaletteColorType::class, 'red;position:fixed');
+
+        $this->assertSame('custom', $form->get('palette')->getData());
     }
 }

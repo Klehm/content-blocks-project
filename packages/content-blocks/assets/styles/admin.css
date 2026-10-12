@@ -2695,6 +2695,91 @@ body:has(.cb-builder-dialog[open]) {
   opacity: 0.35;
 }
 
+/* ---- Palette swatches (`PaletteColorType`) ----
+   Same trick as icon choices: the invisible radio covers its swatch. */
+
+.cb-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  /* Room for the selection ring, outline-offset included. */
+  padding: 4px;
+}
+
+.cb-swatch {
+  position: relative;
+  display: flex;
+  margin: 0;
+}
+
+.cb-swatch__input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.cb-swatch__face {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--cb-swatch, var(--cb-panel-2));
+  /* A white swatch on a pale panel still needs an edge to be seen. */
+  box-shadow: inset 0 0 0 1px rgba(var(--cb-shadow-rgb), 0.14);
+  transition: transform 0.08s;
+}
+
+.cb-swatch--none .cb-swatch__face {
+  background:
+    linear-gradient(
+      to top right,
+      transparent calc(50% - 0.75px),
+      var(--cb-muted) calc(50% - 0.75px),
+      var(--cb-muted) calc(50% + 0.75px),
+      transparent calc(50% + 0.75px)
+    ),
+    var(--cb-surface);
+}
+
+.cb-swatch--custom .cb-swatch__face {
+  background: conic-gradient(
+    #f43f5e, #f59e0b, #84cc16, #06b6d4, #6366f1, #d946ef, #f43f5e
+  );
+}
+
+/* No hex to paint (a bare `var()`): the label stands in for the colour. */
+.cb-swatch--text .cb-swatch__face {
+  width: auto;
+  padding: 0 8px;
+  border-radius: 12px;
+  color: var(--cb-text-2);
+  font-family: var(--cb-font-mono);
+  font-size: 0.6875rem;
+}
+
+.cb-swatch:hover .cb-swatch__input:not(:disabled, :checked) + .cb-swatch__face {
+  transform: scale(1.12);
+}
+.cb-swatch__input:checked + .cb-swatch__face {
+  outline: 2px solid var(--cb-accent);
+  outline-offset: 2px;
+}
+.cb-swatch__input:focus-visible + .cb-swatch__face {
+  outline: 2px solid var(--cb-accent-soft);
+  outline-offset: 2px;
+}
+.cb-swatch__input:disabled + .cb-swatch__face {
+  opacity: 0.35;
+}
+
 /* Undo / redo. Same segmented shape as the viewport group, so the topbar
    reads as two groups of controls rather than a row of loose buttons. */
 .cb-shell__history {

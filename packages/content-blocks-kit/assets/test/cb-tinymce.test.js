@@ -94,6 +94,27 @@ describe('buildColorMap', () => {
     });
 });
 
+describe('buildColorMap with theme variables', () => {
+    it('writes a variable as the hex swatch the server resolved', () => {
+        const map = buildColorMap([
+            { label: 'Brand', color: 'var(--brand, #eb0540)', swatch: '#eb0540' },
+        ]);
+
+        expect(map.slice(0, 2)).toEqual(['eb0540', 'Brand']);
+    });
+
+    it('skips a variable without a hex fallback, and any non-hex color', () => {
+        const map = buildColorMap([
+            { label: 'Accent', color: 'var(--accent)', swatch: null },
+            { label: 'Named', color: 'red' },
+        ]);
+
+        expect(map).not.toContain('Accent');
+        expect(map).not.toContain('Named');
+        expect(map[0]).toBe('BFEDD2');
+    });
+});
+
 describe('buildTinyMceConfig', () => {
     it('adds the image plugin and button only when uploads are on', () => {
         const withUploads = buildTinyMceConfig({ palette: null, uploads: true });

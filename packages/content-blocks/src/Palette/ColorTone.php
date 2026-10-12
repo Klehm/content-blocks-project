@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Palette;
 
 /**
- * Whether a stored `#rgb` / `#rrggbb` colour reads as dark or light, so text
- * over it can be picked. Anything else has no tone.
+ * Whether a stored colour reads as dark or light, so text over it can be
+ * picked. Judged on its {@see CssColor::swatch()}; without one, no tone.
  *
  * @see docs/guide/styling.md#dark-and-light-backgrounds
  */
@@ -18,10 +18,11 @@ final class ColorTone
     /** Luminance at and above which a colour counts as light. */
     public const LIGHT_THRESHOLD = 0.55;
 
-    /** Perceived luminance, 0 black to 1 white; null when not a hex colour. */
+    /** Perceived luminance, 0 black to 1 white; null without a swatch. */
     public static function luminance(mixed $color): ?float
     {
-        if (!\is_string($color) || preg_match('/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i', $color) !== 1) {
+        $color = CssColor::swatch($color);
+        if ($color === null) {
             return null;
         }
 
@@ -37,7 +38,7 @@ final class ColorTone
         return 0.2126 * $r + 0.7152 * $g + 0.0722 * $b;
     }
 
-    /** `dark`, `light`, or null when the value is not a hex colour. */
+    /** `dark`, `light`, or null when the value has no swatch. */
     public static function of(mixed $color): ?string
     {
         $luminance = self::luminance($color);

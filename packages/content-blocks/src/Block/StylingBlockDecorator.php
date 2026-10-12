@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Block;
 
 use ContentBlocks\Entity\Block;
-use ContentBlocks\Palette\ColorTone;
+use ContentBlocks\Palette\ColorPaletteRegistry;
 use ContentBlocks\Palette\CssColor;
 use ContentBlocks\Rendering\ViewportVars;
 
@@ -23,6 +23,11 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
         'center' => 'center',
         'end' => 'flex-end',
     ];
+
+    public function __construct(
+        private readonly ColorPaletteRegistry $palette = new ColorPaletteRegistry(),
+    ) {
+    }
 
     public function decorate(array $data, Block $block): BlockDecoration
     {
@@ -47,7 +52,7 @@ final class StylingBlockDecorator implements BlockDecoratorInterface
         $bg = CssColor::safe($styling['backgroundColor'] ?? null);
         if ($bg !== null) {
             $vars['--cb-b-bg'] = $bg;
-            $tone = ColorTone::of($bg);
+            $tone = $this->palette->tone($bg);
             if ($tone !== null) {
                 $classes[] = 'cb-block--bg-' . $tone;
             }

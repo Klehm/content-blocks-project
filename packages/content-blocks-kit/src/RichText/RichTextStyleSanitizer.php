@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Kit\RichText;
 
+use ContentBlocks\Palette\CssColor;
 use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
 use Symfony\Component\HtmlSanitizer\Visitor\AttributeSanitizer\AttributeSanitizerInterface;
 
@@ -49,8 +50,12 @@ final class RichTextStyleSanitizer implements AttributeSanitizerInterface
                 continue;
             }
             if (preg_match('/[\\\\<>"\'()]|expression|url|@import/i', $propertyValue) === 1) {
-                // rgb()/rgba() is the one bracketed value editors write.
-                if (preg_match('/^rgba?\(\s*[\d.\s,%]+\)$/i', $propertyValue) !== 1) {
+                // The bracketed values editors write: rgb()/rgba(), and a
+                // palette's theme variable (CKEditor writes it as declared).
+                if (
+                    preg_match('/^rgba?\(\s*[\d.\s,%]+\)$/i', $propertyValue) !== 1
+                    && !$this->isThemeVariable($propertyValue)
+                ) {
                     continue;
                 }
             }
@@ -58,5 +63,11 @@ final class RichTextStyleSanitizer implements AttributeSanitizerInterface
         }
 
         return $kept === [] ? null : implode('; ', $kept);
+    }
+
+    private function isThemeVariable(string $value): bool
+    {
+        return preg_match('/^var\(\s*--/i', $value) === 1
+            && CssColor::safe($value) !== null;
     }
 }

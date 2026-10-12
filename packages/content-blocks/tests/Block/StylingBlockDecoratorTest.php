@@ -6,6 +6,8 @@ namespace ContentBlocks\Tests\Block;
 
 use ContentBlocks\Block\StylingBlockDecorator;
 use ContentBlocks\Entity\Block;
+use ContentBlocks\Palette\ColorPaletteRegistry;
+use ContentBlocks\Palette\ConfigColorPaletteProvider;
 use PHPUnit\Framework\TestCase;
 
 final class StylingBlockDecoratorTest extends TestCase
@@ -27,6 +29,20 @@ final class StylingBlockDecoratorTest extends TestCase
         );
 
         $this->assertArrayNotHasKey('--cb-b-bg', $decoration->inlineStyles);
+    }
+
+    public function testAPaletteSwatchDecidesTheToneOfABareVariable(): void
+    {
+        $deco = new StylingBlockDecorator(new ColorPaletteRegistry([
+            new ConfigColorPaletteProvider([
+                ['label' => 'Paper', 'color' => 'var(--paper)', 'swatch' => '#f1f5f9'],
+            ]),
+        ]));
+
+        $decoration = $deco->decorate(['styling' => ['backgroundColor' => 'var(--paper)']], new Block());
+
+        $this->assertSame('var(--paper)', $decoration->inlineStyles['--cb-b-bg']);
+        $this->assertContains('cb-block--bg-light', $decoration->classes);
     }
 
     public function testPaddingAndMarginEmitVars(): void

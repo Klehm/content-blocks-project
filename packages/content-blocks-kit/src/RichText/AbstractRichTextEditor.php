@@ -145,13 +145,17 @@ abstract class AbstractRichTextEditor implements RichTextEditorInterface
      * The same named colors `PaletteColorType` offers, so swatches and colour
      * fields cannot drift apart.
      *
-     * @return list<array{label: string, color: string}>
+     * @return list<array{label: string, color: string, swatch: ?string}>
      */
     protected function paletteColors(): array
     {
         $out = [];
         foreach ($this->palette->all() as $color) {
-            $out[] = ['label' => $color->label, 'color' => $color->color];
+            $out[] = [
+                'label' => $color->label,
+                'color' => $color->color,
+                'swatch' => $this->palette->swatch($color->color),
+            ];
         }
 
         return $out;

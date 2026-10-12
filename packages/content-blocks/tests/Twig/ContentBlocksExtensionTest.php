@@ -6,6 +6,7 @@ namespace ContentBlocks\Tests\Twig;
 
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Palette\ColorPaletteRegistry;
+use ContentBlocks\Palette\ConfigColorPaletteProvider;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Twig\ContentBlocksExtension;
@@ -45,5 +46,27 @@ final class ContentBlocksExtensionTest extends TestCase
 
         $this->assertSame('/page/7', $extension->publicUrl(new ContentArea()));
         $this->assertSame('/page/7?cb_preview=1', $extension->previewUrl(new ContentArea()));
+    }
+
+    // A widget painted in the builder needs a hex the host's CSS cannot give.
+    public function testThePaletteCarriesEachColoursSwatch(): void
+    {
+        $extension = new ContentBlocksExtension(
+            $this->createMock(BlockRendererInterface::class),
+            $this->createMock(ContentAreaUrlResolverInterface::class),
+            new ColorPaletteRegistry([new ConfigColorPaletteProvider([
+                ['label' => 'Primary', 'color' => '#eb0540'],
+                ['label' => 'Brand', 'color' => 'var(--brand, #101828)'],
+                ['label' => 'Accent', 'color' => 'var(--accent)'],
+                ['label' => 'Back office', 'color' => 'var(--bo)', 'swatch' => '#abcdef'],
+            ])]),
+        );
+
+        $this->assertSame([
+            ['label' => 'Primary', 'color' => '#eb0540', 'swatch' => '#eb0540'],
+            ['label' => 'Brand', 'color' => 'var(--brand, #101828)', 'swatch' => '#101828'],
+            ['label' => 'Accent', 'color' => 'var(--accent)', 'swatch' => null],
+            ['label' => 'Back office', 'color' => 'var(--bo)', 'swatch' => '#abcdef'],
+        ], $extension->colorPalette());
     }
 }
