@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-12
+
+This release carries, across the three packages: theme variables in the
+colour palette (`var(--brand, #hex)`, or a bare `var(--brand)` whose provider
+hands the current hex from the host's back office), and colour fields shown
+as swatches instead of a text dropdown.
+
+Requires `klehm/content-blocks` ^1.4: the rich-text editors read a colour's
+swatch through `ColorPaletteRegistry::swatch()`, new in the core.
+
 ### Added
 
 - **Theme variables in rich text.** The `rich_text` sanitizer keeps a

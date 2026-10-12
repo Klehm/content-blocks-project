@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-12
+
+This release carries, across the three packages: theme variables in the
+colour palette (`var(--brand, #hex)`, or a bare `var(--brand)` whose provider
+hands the current hex from the host's back office), and colour fields shown
+as swatches instead of a text dropdown.
+
 ### Added
 
 - **A palette entry can be a theme variable.** `color: 'var(--theme-primary, #eb0540)'`
@@ -20,12 +27,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the dark / light tone classes and the thumbnails follow it, with no CSS to
   inject in the builder. `ColorPaletteRegistry::swatch()` / `tone()` are the
   lookup, and the palette is now read once per request.
+
+### Changed
+
 - **Colour fields show swatches.** `PaletteColorType` renders a row of
   colour swatches (None, the palette, Custom…) instead of a text dropdown, the
   name on hover. It is now a radio group: a test or script driving it should
   `check()` an `input[value="#hex"]` rather than `selectOption()` a `<select>`.
+
+### Fixed
+
 - A stored colour that is not a hex and no longer in the palette stays on
-  offer in the dropdown instead of falling into the `#rrggbb` picker, which lost
+  offer in the field instead of falling into the `#rrggbb` picker, which lost
   it on the next save.
 
 ## [1.3.1] - 2026-10-05
