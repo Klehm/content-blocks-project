@@ -7,7 +7,7 @@ namespace ContentBlocks\Section;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Image\ImageUrlResolverInterface;
 use ContentBlocks\Image\PassthroughImageUrlResolver;
-use ContentBlocks\Palette\ColorTone;
+use ContentBlocks\Palette\ColorPaletteRegistry;
 use ContentBlocks\Palette\CssColor;
 use ContentBlocks\Rendering\ViewportVars;
 
@@ -36,6 +36,7 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
 
     public function __construct(
         private readonly ImageUrlResolverInterface $imageUrls = new PassthroughImageUrlResolver(),
+        private readonly ColorPaletteRegistry $palette = new ColorPaletteRegistry(),
     ) {
     }
 
@@ -67,7 +68,7 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
         $tone = null;
         if ($bg !== null) {
             $vars['--cb-s-bg'] = $bg;
-            $tone = ColorTone::of($bg);
+            $tone = $this->palette->tone($bg);
         }
 
         $image = $this->imageUrl($styling['backgroundImage'] ?? null);
@@ -87,14 +88,14 @@ final class StylingSectionDecorator implements SectionDecoratorInterface
                 ? min(100, (int) $opacity)
                 : 0;
             $veil = $styling['overlayColor'] ?? null;
-            $veil = ColorTone::of($veil) !== null ? $veil : '#000000';
+            $veil = $this->palette->tone($veil) !== null ? $veil : '#000000';
             if ($opacity > 0) {
                 $vars['--cb-s-overlay'] = (string) ($opacity / 100);
                 $vars['--cb-s-overlay-color'] = $veil;
             }
             // The photo hides the colour: only a veil dense enough to carry
             // the text says whether it reads dark or light.
-            $tone = $opacity >= self::TONE_VEIL_OPACITY ? ColorTone::of($veil) : null;
+            $tone = $opacity >= self::TONE_VEIL_OPACITY ? $this->palette->tone($veil) : null;
         }
 
         if ($tone !== null) {

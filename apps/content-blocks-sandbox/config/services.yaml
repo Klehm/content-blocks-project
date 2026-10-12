@@ -2,6 +2,9 @@ parameters:
     # Provider used when nothing is set: deterministic and offline, so a fresh
     # checkout and the e2e suite both work with no credentials.
     cb_i18n_default_provider: 'pseudo'
+    # Stands for a colour edited in a back office: read by the palette
+    # provider (builder swatch) and by the public page (--demo-brand).
+    app.theme.brand: '#0f766e'
 
 services:
     _defaults:

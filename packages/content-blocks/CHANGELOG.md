@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A palette entry can be a theme variable.** `color: 'var(--theme-primary, #eb0540)'`
+  is stored and rendered as written, so pages follow the host's theme. The hex
+  fallback is what the builder shows (sidebar swatch, library thumbnails) and
+  what decides the dark / light tone classes, through the new
+  `CssColor::swatch()`. `cb_color_palette()` entries gain a `swatch` key.
+- **A palette entry can carry its preview hex.** `PaletteColor` gains an
+  optional `swatch` (config key `swatch`), so a host whose colours live in its
+  back office stores `var(--brand)` and hands the current hex: the sidebar,
+  the dark / light tone classes and the thumbnails follow it, with no CSS to
+  inject in the builder. `ColorPaletteRegistry::swatch()` / `tone()` are the
+  lookup, and the palette is now read once per request.
+- **Colour fields show swatches.** `PaletteColorType` renders a row of
+  colour swatches (None, the palette, Custom…) instead of a text dropdown, the
+  name on hover. It is now a radio group: a test or script driving it should
+  `check()` an `input[value="#hex"]` rather than `selectOption()` a `<select>`.
+- A stored colour that is not a hex and no longer in the palette stays on
+  offer in the dropdown instead of falling into the `#rrggbb` picker, which lost
+  it on the next save.
+
 ## [1.3.1] - 2026-10-05
 
 ### Fixed

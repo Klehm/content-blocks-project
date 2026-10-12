@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Theme variables in rich text.** The `rich_text` sanitizer keeps a
+  `var(--name, …)` colour, which CKEditor writes when the palette declares one.
+  TinyMCE, whose swatches only take hex, writes the variable's hex fallback,
+  and skips a variable without one. A palette entry's `swatch` is used first,
+  and CKEditor gets it as the fallback of a bare `var()`.
+
 ## [1.3.1] - 2026-10-05
 
 No change in the kit itself. Fixes a block form that saved nothing while one

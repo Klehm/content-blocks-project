@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace ContentBlocks\Form\Type;
 
 use ContentBlocks\Palette\ColorPaletteRegistry;
+use ContentBlocks\Palette\CssColor;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\DataMapperInterface;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\ColorType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * Palette dropdown plus a "Custom…" picker, storing a single `#hex` ('' for
+ * Palette dropdown plus a "Custom…" picker, storing one CSS colour ('' for
  * none). A drop-in {@see ColorType} replacement with a real empty state.
  *
  * @see docs/internals/forms.md#palettecolortype-and-its-empty-state
@@ -37,21 +40,27 @@ final class PaletteColorType extends AbstractType implements DataMapperInterface
             $choices['cb.styling.palette.custom'] = self::CUSTOM;
         }
 
+        $swatch = fn (string $value): ?string => $this->palette?->swatch($value) ?? CssColor::swatch($value);
+        $palette = static fn (array $choices): array => [
+            'required' => false,
+            'label' => false,
+            'placeholder' => false,
+            'choices' => $choices,
+            // One swatch per colour, themed by `cb_palette_swatches_widget`.
+            'expanded' => true,
+            'block_prefix' => 'cb_palette_swatches',
+            // Pinned to the core domain, not the field's: a kit block
+            // points elsewhere and these keys would render raw.
+            'choice_translation_domain' => 'content_blocks',
+            // Expose each colour's hex on its <option> so themes can paint
+            // a swatch; empty for None / Custom.
+            'choice_attr' => static fn (string $value): array => ($hex = $swatch($value)) !== null
+                ? ['data-color' => $hex]
+                : [],
+        ];
+
         $builder
-            ->add('palette', ChoiceType::class, [
-                'required' => false,
-                'label' => false,
-                'placeholder' => false,
-                'choices' => $choices,
-                // Pinned to the core domain, not the field's: a kit block
-                // points elsewhere and these keys would render raw.
-                'choice_translation_domain' => 'content_blocks',
-                // Expose each palette hex on its <option> so themes can
-                // paint a swatch; empty for None / Custom.
-                'choice_attr' => static fn (string $value): array => str_starts_with($value, '#')
-                    ? ['data-color' => $value]
-                    : [],
-            ])
+            ->add('palette', ChoiceType::class, $palette($choices))
             ->add(self::CUSTOM, ColorType::class, [
                 'required' => false,
                 // Enforces #rrggbb: the value lands in a style attribute.
@@ -60,6 +69,19 @@ final class PaletteColorType extends AbstractType implements DataMapperInterface
                 'row_attr' => ['data-cb-condition' => 'palette:' . self::CUSTOM],
             ])
             ->setDataMapper($this)
+            // A stored value the custom picker cannot show (a theme variable
+            // since dropped from the palette) stays on offer as itself.
+            ->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use ($palette, $choices): void {
+                $kept = $this->keptAsIs($event->getData());
+                if ($kept !== null) {
+                    $withKept = array_merge(
+                        array_diff($choices, [self::CUSTOM]),
+                        [$kept => $kept],
+                        array_intersect($choices, [self::CUSTOM]),
+                    );
+                    $event->getForm()->add('palette', ChoiceType::class, $palette($withKept));
+                }
+            })
             // Without this Form::viewToNorm() collapses '' to null, and
             // consumers would have to handle both.
             ->addViewTransformer(new CallbackTransformer(
@@ -113,8 +135,27 @@ final class PaletteColorType extends AbstractType implements DataMapperInterface
             return;
         }
 
+        if ($this->keptAsIs($hex) !== null) {
+            $forms['palette']->setData($hex);
+            $forms[self::CUSTOM]->setData(null);
+
+            return;
+        }
+
         $forms['palette']->setData(self::CUSTOM);
         $forms[self::CUSTOM]->setData($hex);
+    }
+
+    /** A non-hex colour outside the palette, which only a choice can hold. */
+    private function keptAsIs(mixed $value): ?string
+    {
+        $value = CssColor::safe($value);
+        if ($value === null || str_starts_with($value, '#')) {
+            return null;
+        }
+        $known = $this->palette?->getHexes() ?? [];
+
+        return \in_array(mb_strtolower($value), $known, true) ? null : $value;
     }
 
     /**

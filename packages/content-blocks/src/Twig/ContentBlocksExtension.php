@@ -51,13 +51,17 @@ final class ContentBlocksExtension extends AbstractExtension
      * The configured palette, for handing the same named colors to a JS widget
      * — a rich-text editor's swatches, say.
      *
-     * @return list<array{label: string, color: string}>
+     * @return list<array{label: string, color: string, swatch: ?string}>
      */
     public function colorPalette(): array
     {
         $out = [];
         foreach ($this->palette->all() as $color) {
-            $out[] = ['label' => $color->label, 'color' => $color->color];
+            $out[] = [
+                'label' => $color->label,
+                'color' => $color->color,
+                'swatch' => $this->palette->swatch($color->color),
+            ];
         }
 
         return $out;

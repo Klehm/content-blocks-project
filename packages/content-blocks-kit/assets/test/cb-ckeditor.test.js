@@ -142,6 +142,21 @@ describe('buildColorGrid', () => {
             .toEqual([{ color: '#00ff00', label: '#00ff00' }]);
     });
 
+    it('keeps a theme variable as declared: CKEditor writes any CSS color', () => {
+        expect(buildColorGrid([{ label: 'Brand', color: 'var(--brand, #eb0540)' }]))
+            .toEqual([{ color: 'var(--brand, #eb0540)', label: 'Brand' }]);
+    });
+
+    it('gives a bare variable its swatch as fallback, so the grid can draw it', () => {
+        expect(buildColorGrid([
+            { label: 'Brand', color: 'var(--brand)', swatch: '#101828' },
+            { label: 'Accent', color: 'var(--accent)', swatch: null },
+        ])).toEqual([
+            { color: 'var(--brand, #101828)', label: 'Brand' },
+            { color: 'var(--accent)', label: 'Accent' },
+        ]);
+    });
+
     it('tolerates a missing palette', () => {
         expect(buildColorGrid(null)).toEqual([]);
     });

@@ -12,6 +12,7 @@ use ContentBlocks\Form\Type\Styling\StylingType;
 use ContentBlocks\Icon\CoreUiIcons;
 use ContentBlocks\Icon\UiIconRegistry;
 use ContentBlocks\Palette\ColorPaletteRegistry;
+use ContentBlocks\Palette\ConfigColorPaletteProvider;
 use ContentBlocks\Section\SectionStyle;
 use ContentBlocks\Section\SectionStyleProviderInterface;
 use ContentBlocks\Section\SectionStyleRegistry;
@@ -236,6 +237,35 @@ final class SidebarLayoutRenderTest extends TestCase
         $this->assertSame(['Pattern'], $this->texts($this->q('.' . self::cls('cb-icon-choice__text'), $sides)));
     }
 
+    public function testTheBackgroundColourIsARowOfSwatches(): void
+    {
+        $this->render($this->form(palette: [
+            ['label' => 'Brand', 'color' => '#eb0540'],
+            ['label' => 'Theme', 'color' => 'var(--theme, #101828)'],
+            ['label' => 'Accent', 'color' => 'var(--accent)'],
+        ]));
+        $swatches = $this->byId('section_settings_styling_backgroundColor_palette');
+
+        $this->assertSame('radiogroup', $this->attr($swatches, 'role'));
+        $this->assertSame(
+            ['', '#eb0540', 'var(--theme, #101828)', 'var(--accent)', 'custom'],
+            $this->attrs($this->q('.//input[@type="radio"]', $swatches), 'value'),
+        );
+        $this->assertSame(
+            ['cb-swatch cb-swatch--none', 'cb-swatch cb-swatch--color', 'cb-swatch cb-swatch--color',
+                'cb-swatch cb-swatch--text', 'cb-swatch cb-swatch--custom'],
+            $this->attrs($this->q('./label', $swatches), 'class'),
+        );
+        // A variable is painted with its hex fallback; the builder lacks it.
+        $this->assertSame(
+            [null, '--cb-swatch: #eb0540', '--cb-swatch: #101828', null, null],
+            $this->attrs($this->q('.' . self::cls('cb-swatch__face'), $swatches), 'style'),
+        );
+        $this->assertSame('Brand', $this->attr($this->q('./label', $swatches)[1], 'title'));
+        $this->assertSame(['Accent'], $this->texts($this->q('.' . self::cls('cb-swatch__text'), $swatches)));
+        $this->assertSame('checked', $this->attr($this->q('.//input[@value=""]', $swatches)[0], 'checked'));
+    }
+
     public function testTheLongHelpMovesIntoATooltip(): void
     {
         $this->render($this->form());
@@ -322,12 +352,14 @@ final class SidebarLayoutRenderTest extends TestCase
         return $out;
     }
 
+    /** @param list<array{label: string, color: string}> $palette */
     private function form(
         bool $withHostFields = false,
         bool $exclusive = true,
         bool $styling = true,
         bool $withPreset = false,
         bool $layout = true,
+        array $palette = [],
     ): FormInterface {
         $presets = $withPreset ? [new class () implements SectionStyleProviderInterface {
             public function getStyles(): array
@@ -340,7 +372,7 @@ final class SidebarLayoutRenderTest extends TestCase
             ->addTypeExtension(new SidebarLayoutTypeExtension())
             ->addTypeExtension(new IconChoiceTypeExtension())
             ->addType(new SectionSettingsType(new SectionStyleRegistry($presets)))
-            ->addType(new PaletteColorType(new ColorPaletteRegistry([])));
+            ->addType(new PaletteColorType(new ColorPaletteRegistry([new ConfigColorPaletteProvider($palette)])));
         if ($withHostFields) {
             $builder->addTypeExtension(new HostSectionFields())->addTypeExtension(new HostStylingFields());
         }

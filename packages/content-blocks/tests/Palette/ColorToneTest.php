@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Palette;
 
+use ContentBlocks\Palette\ColorPaletteRegistry;
 use ContentBlocks\Palette\ColorTone;
+use ContentBlocks\Palette\ConfigColorPaletteProvider;
 use ContentBlocks\Twig\ColorToneExtension;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -26,6 +28,9 @@ final class ColorToneTest extends TestCase
         yield 'named colour' => ['red', null];
         yield 'rgb()' => ['rgb(0, 0, 0)', null];
         yield 'not a string' => [12, null];
+        yield 'variable, dark fallback' => ['var(--brand, #eb0540)', ColorTone::DARK];
+        yield 'variable, light fallback' => ['var(--paper, #f1f5f9)', ColorTone::LIGHT];
+        yield 'variable without fallback' => ['var(--brand)', null];
     }
 
     #[DataProvider('colors')]
@@ -52,5 +57,19 @@ final class ColorToneTest extends TestCase
 
         $this->assertSame('dark|y', $twig->render('t', ['bg' => '#111827']));
         $this->assertSame('none|n', $twig->render('t', ['bg' => '']));
+    }
+
+    public function testTwigFunctionsReadThePalettesSwatch(): void
+    {
+        $twig = new Environment(new ArrayLoader([
+            't' => '{{ cb_color_tone(bg) ?? "none" }}|{{ cb_color_is_dark(bg) ? "y" : "n" }}',
+        ]));
+        $twig->addExtension(new ColorToneExtension(new ColorPaletteRegistry([
+            new ConfigColorPaletteProvider([
+                ['label' => 'Brand', 'color' => 'var(--brand)', 'swatch' => '#111827'],
+            ]),
+        ])));
+
+        $this->assertSame('dark|y', $twig->render('t', ['bg' => 'var(--brand)']));
     }
 }

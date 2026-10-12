@@ -48,4 +48,27 @@ final class CssColorTest extends TestCase
     {
         $this->assertNull(CssColor::safe($value));
     }
+
+    /** @return iterable<string, array{mixed, ?string}> */
+    public static function swatches(): iterable
+    {
+        yield 'hex' => ['#eb0540', '#eb0540'];
+        yield 'short hex' => ['#FFF', '#FFF'];
+        yield 'variable with hex fallback' => ['var(--theme-primary, #eb0540)', '#eb0540'];
+        yield 'no space before fallback' => ['var(--x,#fff)', '#fff'];
+        yield 'nested fallback' => ['var(--a, var(--b, #123456))', '#123456'];
+        yield 'variable alone' => ['var(--theme-primary)', null];
+        yield 'variable with named fallback' => ['var(--x, red)', null];
+        yield 'name' => ['red', null];
+        yield 'rgb' => ['rgb(0, 0, 0)', null];
+        yield 'hex with alpha' => ['#eb054080', null];
+        yield 'unsafe' => ['var(--x, #fff);position:fixed', null];
+        yield 'not a string' => [12, null];
+    }
+
+    #[DataProvider('swatches')]
+    public function testSwatch(mixed $colour, ?string $swatch): void
+    {
+        $this->assertSame($swatch, CssColor::swatch($colour));
+    }
 }

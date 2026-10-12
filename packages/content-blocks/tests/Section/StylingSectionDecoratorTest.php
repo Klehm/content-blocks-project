@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Section;
 
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Palette\ColorPaletteRegistry;
+use ContentBlocks\Palette\ConfigColorPaletteProvider;
 use ContentBlocks\Section\StylingSectionDecorator;
 use PHPUnit\Framework\TestCase;
 
@@ -203,6 +205,41 @@ final class StylingSectionDecoratorTest extends TestCase
         $this->assertContains('cb-section--bg-dark', $dark->classes);
         $this->assertContains('cb-section--bg-light', $light->classes);
         $this->assertSame([], $none->classes);
+    }
+
+    // A back-office colour: no fallback in the value, the entry's swatch.
+    public function testAPaletteSwatchDecidesTheToneOfABareVariable(): void
+    {
+        $deco = new StylingSectionDecorator(palette: new ColorPaletteRegistry([
+            new ConfigColorPaletteProvider([
+                ['label' => 'Ink', 'color' => 'var(--ink)', 'swatch' => '#1e293b'],
+            ]),
+        ]));
+
+        $themed = $deco->decorate(['styling' => ['backgroundColor' => 'var(--ink)']], new Section());
+
+        $this->assertSame('var(--ink)', $themed->inlineStyles['--cb-s-bg']);
+        $this->assertContains('cb-section--bg-dark', $themed->classes);
+    }
+
+    // The variable is written as is; its hex fallback decides the tone.
+    public function testAThemeVariableTakesTheToneOfItsFallback(): void
+    {
+        $deco = new StylingSectionDecorator();
+
+        $themed = $deco->decorate(
+            ['styling' => ['backgroundColor' => 'var(--ink, #1e293b)']],
+            new Section(),
+        );
+        $bare = $deco->decorate(
+            ['styling' => ['backgroundColor' => 'var(--ink)']],
+            new Section(),
+        );
+
+        $this->assertSame('var(--ink, #1e293b)', $themed->inlineStyles['--cb-s-bg']);
+        $this->assertContains('cb-section--bg-dark', $themed->classes);
+        $this->assertNotContains('cb-section--bg-dark', $bare->classes);
+        $this->assertNotContains('cb-section--bg-light', $bare->classes);
     }
 
     public function testABackgroundImageEmitsItsVariablesAndClass(): void

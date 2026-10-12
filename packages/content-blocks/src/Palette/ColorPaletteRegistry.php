@@ -4,12 +4,21 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Palette;
 
+use Symfony\Contracts\Service\ResetInterface;
+
 /**
  * Aggregates {@see ColorPaletteProviderInterface} services into one palette,
  * so config-declared colors and host providers surface together.
  */
-final class ColorPaletteRegistry
+final class ColorPaletteRegistry implements ResetInterface
 {
+    /**
+     * Read once per request: a host provider may query its database.
+     *
+     * @var list<PaletteColor>|null
+     */
+    private ?array $colors = null;
+
     /**
      * @param iterable<ColorPaletteProviderInterface> $providers
      */
@@ -18,10 +27,50 @@ final class ColorPaletteRegistry
     ) {
     }
 
+    public function reset(): void
+    {
+        $this->colors = null;
+    }
+
     /**
      * @return list<PaletteColor>
      */
     public function all(): array
+    {
+        return $this->colors ??= $this->collect();
+    }
+
+    /**
+     * The hex a colour is previewed and toned with: its palette entry's
+     * `swatch`, else {@see CssColor::swatch()}.
+     */
+    public function swatch(mixed $color): ?string
+    {
+        if (\is_string($color)) {
+            $key = strtolower(trim($color));
+            foreach ($this->all() as $entry) {
+                if ($entry->swatch !== null && strtolower($entry->color) === $key) {
+                    $swatch = CssColor::swatch($entry->swatch);
+                    if ($swatch !== null) {
+                        return $swatch;
+                    }
+                }
+            }
+        }
+
+        return CssColor::swatch($color);
+    }
+
+    /** {@see ColorTone::of()} judged on {@see swatch()}. */
+    public function tone(mixed $color): ?string
+    {
+        return ColorTone::of($this->swatch($color));
+    }
+
+    /**
+     * @return list<PaletteColor>
+     */
+    private function collect(): array
     {
         $out = [];
         $seen = [];

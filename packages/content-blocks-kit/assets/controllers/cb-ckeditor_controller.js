@@ -63,15 +63,20 @@ export function pickPlugins(ckeditor, names) {
 }
 
 /**
- * Palette → CKEditor color-grid entries. Both use `{ color, label }`, so this
- * only drops entries without a color.
+ * Palette → CKEditor color-grid entries, dropping those without a color. A
+ * bare `var()` borrows its swatch as fallback: the grid is drawn in the shell.
  */
 export function buildColorGrid(palette) {
     if (!Array.isArray(palette)) return [];
 
     return palette
         .filter((entry) => entry?.color)
-        .map((entry) => ({ color: entry.color, label: entry.label || entry.color }));
+        .map((entry) => {
+            const bare = /^var\(\s*(--[\w-]+)\s*\)$/.exec(entry.color);
+            const color = bare && entry.swatch ? `var(${bare[1]}, ${entry.swatch})` : entry.color;
+
+            return { color, label: entry.label || entry.color };
+        });
 }
 
 const PLUGIN_NAMES = [

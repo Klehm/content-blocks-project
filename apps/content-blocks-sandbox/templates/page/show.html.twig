@@ -8,6 +8,11 @@
        LocalizedPageUrlResolver the workbench links with. #}
     {{ cb_i18n_hreflang(page.contentArea) }}
     <style>
+        /* The theme variables the palette names. */
+        :root {
+            --demo-accent: #be185d;
+            --demo-brand: {{ theme_brand }};
+        }
         body {
             margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;

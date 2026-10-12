@@ -12,7 +12,7 @@ These fields land in JSON under `settings.styling` for sections and `data.stylin
 
 ## Color palette
 
-Background colors use `PaletteColorType`: a dropdown of named project colors plus a **Custom…** option revealing a free color picker. It stores a plain `#hex` (`''` for none) so decorators and templates are unaffected. Declare the palette in config:
+Background colors use `PaletteColorType`: a row of swatches, one per named project color, plus **None** and a **Custom…** swatch revealing a free color picker (the name of each color shows on hover). It stores the colour as declared — a plain `#hex` from the picker, or whatever the palette entry says (`''` for none). Declare the palette in config:
 
 ```yaml
 # config/packages/content_blocks.yaml
@@ -22,13 +22,89 @@ content_blocks:
         - { label: 'Dark',    color: '#252525' }
 ```
 
-…or implement `ContentBlocks\Palette\ColorPaletteProviderInterface` (autoconfigured) for runtime palettes; both sources merge. With no palette declared, the dropdown still offers **None / Custom…** — which is what gives the field a real empty state (backgrounds now default to *transparent*; the old `#ffffff` pre-fill hack is gone).
+…or implement `ContentBlocks\Palette\ColorPaletteProviderInterface` (autoconfigured) for runtime palettes; both sources merge. With no palette declared, the field still offers **None / Custom…** — which is what gives the field a real empty state (backgrounds now default to *transparent*; the old `#ffffff` pre-fill hack is gone).
 
 ::: warning Upgrade caveat
 Because backgrounds now default to transparent (`''`), an existing `#ffffff` value already persisted will render a real white background. Watch for this when upgrading.
 :::
 
 `PaletteColorType` is reusable in your own block forms (option `allow_custom: false` locks editors to the palette).
+
+### Theme variables in the palette
+
+A palette entry can name a CSS custom property of your theme, so a page follows
+the theme instead of freezing a hex in its content. Give it a hex fallback:
+
+```yaml
+content_blocks:
+    palette:
+        - { label: 'Primary', color: 'var(--theme-primary, #eb0540)' }
+```
+
+The value is stored and rendered as written: `style="color: var(--theme-primary, #eb0540)"`,
+so changing `--theme-primary` recolours every page that uses it, and a page
+imported into a site without the variable falls back to the hex.
+
+The fallback is the colour's **swatch**: what it is shown and judged with
+everywhere the theme's CSS is not loaded, or where a real colour has to be
+computed (`ColorPaletteRegistry::swatch()`):
+
+| Where | Uses |
+|---|---|
+| Sidebar swatch (`data-color` on the radio) | the swatch |
+| Dark / light tone classes, `cb_color_tone()` | the swatch's luminance |
+| Section library thumbnails | the swatch |
+| `cb_color_palette()` | a `swatch` key beside `color` |
+| CKEditor swatches | the variable, written as is into the text |
+| TinyMCE swatches | the swatch — TinyMCE's `color_map` only takes hex |
+
+A bare `var(--theme-primary)` with no swatch is accepted too: the sidebar shows
+its name instead of a colour, and it gets no tone class, no thumbnail colour, no
+TinyMCE swatch. Give it a fallback, or a `swatch` as below.
+
+Removing an entry from the palette does not reset the content using it: the
+field keeps offering that value as its own choice, shown by name, until the editor picks
+another. A copy pasted from the clipboard is judged against the palette, so
+there the value goes back to the default.
+
+### Colours from a back office
+
+When the colours are edited in your own admin, a fallback written into the
+value would freeze in every block that uses it: change the colour, and stored
+content no longer matches the palette and keeps the old tone. Store the bare
+variable instead, and hand the current hex as the entry's `swatch`:
+
+```php
+use ContentBlocks\Palette\ColorPaletteProviderInterface;
+use ContentBlocks\Palette\PaletteColor;
+
+final class ThemePaletteProvider implements ColorPaletteProviderInterface
+{
+    public function __construct(private readonly ThemeRepository $themes)
+    {
+    }
+
+    public function getColors(): iterable
+    {
+        $theme = $this->themes->current();
+
+        yield new PaletteColor('Primary', 'var(--brand)', swatch: $theme->primaryHex);
+    }
+}
+```
+
+Autoconfigured, nothing else to wire. The content stores `var(--brand)` and
+never changes; your public layout declares `--brand` from the same setting, so
+the page follows it, and the builder's preview, being that page, does too. The
+`swatch` drives everything the table above lists, so the sidebar, the tone
+classes and the thumbnails follow the back office as well, with no CSS to add
+to the builder. A config entry takes the same key:
+`{ label: 'Primary', color: 'var(--brand)', swatch: '#0f766e' }`.
+
+The palette is read once per request (`ColorPaletteRegistry` is reset between
+requests, worker mode included), so the provider may query its database. A
+`swatch` that is not a `#rgb` / `#rrggbb` hex is ignored. The sandbox's
+`BackOfficePaletteProvider` is a runnable example.
 
 ## Section style presets
 
@@ -133,7 +209,8 @@ The tone comes from the colour's perceived luminance, with a threshold of 0.55
 use. The same helper is available to your own code:
 
 - PHP: `ContentBlocks\Palette\ColorTone::of('#1e293b')` returns `'dark'`,
-  `'light'` or `null` for anything that is not `#rgb` / `#rrggbb`. `isDark()`,
+  `'light'` or `null` for anything that is not `#rgb` / `#rrggbb` or a
+  `var()` with such a fallback. `isDark()`,
   `isLight()` and `luminance()` are there too.
 - Twig: `cb_color_tone(color)` and `cb_color_is_dark(color)`, for instance in
   a block template:

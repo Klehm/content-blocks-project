@@ -131,11 +131,17 @@ export default class extends Controller {
             if (field.type === 'radio') {
                 seen.add(field.name);
                 const checked = Array.from(fields).find((f) => f.name === field.name && f.checked);
-                if (checked && checked.value !== '') parts.push(this._choiceText(checked));
+                // A palette's "Custom…" reads as the colour it picked.
+                const picker = checked?.value === 'custom' && row.querySelector('input[type="color"]');
+                if (picker) {
+                    parts.push(picker.value);
+                } else if (checked && checked.value !== '') {
+                    parts.push(this._choiceText(checked));
+                }
             } else if (field.type === 'checkbox') {
                 if (field.checked) parts.push(this._choiceText(field));
             } else if (field.tagName === 'SELECT') {
-                const text = this._selectText(field, row);
+                const text = this._selectText(field);
                 if (text !== '') parts.push(text);
             } else if (field.type === 'hidden') {
                 // Only an upload's stored path gets this far.
@@ -181,12 +187,8 @@ export default class extends Controller {
         return (label?.getAttribute('title') || label?.textContent || input.value).trim();
     }
 
-    _selectText(select, row) {
+    _selectText(select) {
         if (select.value === '') return '';
-        if (select.value === 'custom') {
-            const color = row.querySelector('input[type="color"]');
-            if (color) return color.value;
-        }
 
         return (select.selectedOptions[0]?.text ?? select.value).trim();
     }

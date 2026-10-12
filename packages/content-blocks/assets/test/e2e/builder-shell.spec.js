@@ -271,14 +271,14 @@ test.describe('builder shell — sections', () => {
         // maxWidth only un-hides once the section is "centered"; in the default
         // "full" mode it's present but hidden.
         await expect(sidebar.locator('input[name="section_settings[maxWidth]"]')).toBeAttached();
-        // Native palette color field (config-declared palette): a <select>
-        // of named colors + a "Custom…" free picker.
-        await expect(sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]')).toBeAttached();
+        // Palette color field (config-declared palette): a swatch per named
+        // color + a "Custom…" free picker, each over its native radio.
+        await expect(sidebar.locator('input[name="section_settings[styling][backgroundColor][palette]"][value="#4f46e5"]')).toBeAttached();
         // Styling fields sit behind the "Customize styling" switch, off by
         // default on a fresh section (progressive disclosure).
         const stylingSwitch = await reveal(sidebar.locator('input[name="section_settings[stylingCustom]"]'));
         await expect(stylingSwitch).not.toBeChecked();
-        await expect(sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]')).toBeHidden();
+        await expect(sidebar.locator('#section_settings_styling_backgroundColor_palette')).toBeHidden();
     });
 
     test('sidebar captions render in the mono uppercase style, and check labels do not', async ({ page }) => {
@@ -349,7 +349,7 @@ test.describe('builder shell — sections', () => {
         // Reveal the styling fields, then pick a palette color (Indigo from
         // the sandbox's content_blocks.palette config).
         await (await reveal(sidebar.locator('input[name="section_settings[stylingCustom]"]'))).check();
-        await (await reveal(sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]'))).selectOption('#4f46e5');
+        await (await reveal(sidebar.locator('input[name="section_settings[styling][backgroundColor][palette]"][value="#4f46e5"]'))).check();
         // No manual Save button anymore — autosave persists each field change
         // (fill/check/select fire input/change, which the cb-autosave
         // controller debounces into a save). The section hot-reloads with the
@@ -364,6 +364,49 @@ test.describe('builder shell — sections', () => {
         await expect.poll(async () => section.getAttribute('style')).toContain('--cb-s-bg:#4f46e5');
     });
 
+    // The swatch is clicked as an editor would, not `.check()`ed.
+    test('a theme-variable swatch saves the variable, toned by its fallback', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await openSectionSettings(page, frame);
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await (await reveal(sidebar.locator('input[name="section_settings[stylingCustom]"]'))).check();
+        const swatch = sidebar.locator('#section_settings_styling_backgroundColor_palette')
+            .locator('label.cb-swatch[title="Theme accent"]');
+        await expect(swatch.locator('.cb-swatch__face')).toHaveAttribute('style', '--cb-swatch: #be185d');
+        await (await reveal(swatch)).click();
+
+        const section = frame.locator('[data-cb-section-id]').first();
+        await expect.poll(async () => section.getAttribute('style'))
+            .toContain('--cb-s-bg:var(--demo-accent, #be185d)');
+        await expect.poll(async () => section.getAttribute('class')).toContain('cb-section--bg-dark');
+
+        await openSectionSettings(page, frame);
+        await expect(swatch.locator('input')).toBeChecked();
+    });
+
+    // The sandbox's BackOfficePaletteProvider: `var(--demo-brand)` + its hex.
+    test('a back-office colour previews its hex and stores the variable', async ({ page }) => {
+        const frame = await openBuilder(page);
+        await addFullSection(page, frame);
+        await openSectionSettings(page, frame);
+
+        const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
+        await (await reveal(sidebar.locator('input[name="section_settings[stylingCustom]"]'))).check();
+        const swatch = sidebar.locator('#section_settings_styling_backgroundColor_palette')
+            .locator('label.cb-swatch[title="Brand (back office)"]');
+        await expect(swatch.locator('.cb-swatch__face')).toHaveAttribute('style', '--cb-swatch: #0f766e');
+        await (await reveal(swatch)).click();
+
+        const section = frame.locator('[data-cb-section-id]').first();
+        await expect.poll(async () => section.getAttribute('style')).toContain('--cb-s-bg:var(--demo-brand)');
+        await expect.poll(async () => section.getAttribute('class')).toContain('cb-section--bg-dark');
+        // The page declares the variable, so the preview paints the theme.
+        await expect.poll(async () => section.evaluate((el) => getComputedStyle(el).backgroundColor))
+            .toBe('rgb(15, 118, 110)');
+    });
+
     test('section settings saved with the framework default value do not pollute the rendered markup', async ({ page }) => {
         const frame = await openBuilder(page);
         await addFullSection(page, frame);
@@ -371,9 +414,9 @@ test.describe('builder shell — sections', () => {
         await openSectionSettings(page, frame);
 
         const sidebar = page.locator('aside[data-cb-builder-target="sidebar"]');
-        // The palette backgroundColor <select> opens on "None" — the styling
-        // default is transparent (no #ffffff hack anymore).
-        await expect(sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]')).toHaveValue('');
+        // The palette backgroundColor opens on "None" — the styling default
+        // is transparent (no #ffffff hack anymore).
+        await expect(sidebar.locator('input[name="section_settings[styling][backgroundColor][palette]"][value=""]')).toBeChecked();
 
         // Autosave only fires on a change, so force a save via an unrelated
         // field (classes) while leaving backgroundColor unset — the point is
@@ -411,9 +454,9 @@ test.describe('builder shell — sections', () => {
         // same autosave POST — the visible --cb-s-bg change below doubles
         // as the "save round-trip completed" barrier.
         await sidebar.locator('input[name="section_settings[stylingCustom]"]').check();
-        const palette = await reveal(sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]'));
-        await expect(palette).toBeVisible();
-        await palette.selectOption('#4f46e5');
+        await reveal(sidebar.locator('input[name="section_settings[styling][backgroundColor][palette]"][value="#4f46e5"]'));
+        await expect(sidebar.locator('#section_settings_styling_backgroundColor_palette')).toBeVisible();
+        await sidebar.locator('input[name="section_settings[styling][backgroundColor][palette]"][value="#4f46e5"]').check();
         await expect.poll(async () => section.getAttribute('style')).toContain('--cb-s-bg:#4f46e5');
         // Preset padding still applies underneath the custom background.
         await expect.poll(async () => section.getAttribute('style')).toContain('--cb-s-pad-d-t:40px');
@@ -423,7 +466,7 @@ test.describe('builder shell — sections', () => {
         // custom color selected, and the preset's padding as starting values.
         await openSectionSettings(page, frame);
         await expect(sidebar.locator('input[name="section_settings[stylingCustom]"]')).toBeChecked();
-        await expect(sidebar.locator('select[name="section_settings[styling][backgroundColor][palette]"]')).toHaveValue('#4f46e5');
+        await expect(sidebar.locator('input[name="section_settings[styling][backgroundColor][palette]"][value="#4f46e5"]')).toBeChecked();
         await expect(sidebar.locator('input[name="section_settings[styling][padding][desktop][top]"]')).toHaveValue('40');
     });
 });

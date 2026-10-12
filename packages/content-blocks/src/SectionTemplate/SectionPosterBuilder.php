@@ -7,6 +7,7 @@ namespace ContentBlocks\SectionTemplate;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Palette\ColorPaletteRegistry;
 use ContentBlocks\Palette\ColorTone;
 use ContentBlocks\Section\SectionStyleRegistry;
 use Symfony\Contracts\Translation\TranslatableInterface;
@@ -34,6 +35,7 @@ final class SectionPosterBuilder
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly TranslatorInterface $translator,
         private readonly SectionStyleRegistry $styleRegistry,
+        private readonly ColorPaletteRegistry $palette = new ColorPaletteRegistry(),
     ) {
     }
 
@@ -108,14 +110,14 @@ final class SectionPosterBuilder
     }
 
     /**
-     * The one colour format the styling forms produce. Anything else is a row
-     * from elsewhere, ignored rather than passed into a `style` attribute.
+     * The colour's swatch: the poster is painted in the builder, where the
+     * host's variables are not defined.
      */
     private function hexOrNull(mixed $value): ?string
     {
-        return is_string($value) && preg_match('/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i', $value) === 1
-            ? strtolower($value)
-            : null;
+        $swatch = $this->palette->swatch($value);
+
+        return $swatch === null ? null : strtolower($swatch);
     }
 
     /**

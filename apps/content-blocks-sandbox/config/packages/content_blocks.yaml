@@ -23,6 +23,9 @@ content_blocks:
         - { label: 'Slate', color: '#f1f5f9' }
         - { label: 'White', color: '#ffffff' }
         - { label: 'Ink', color: '#111827' }
+        # A theme variable: rendered as written, its hex fallback is what the
+        # builder paints (swatch, tone class, thumbnails).
+        - { label: 'Theme accent', color: 'var(--demo-accent, #be185d)' }
 
     # Section style presets: a CSS class (styled in app.css) and/or settings
     # values applied underneath the section's own settings. Editors pick a

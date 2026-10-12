@@ -11,7 +11,11 @@ namespace ContentBlocks\Palette;
 final class ConfigColorPaletteProvider implements ColorPaletteProviderInterface
 {
     /**
-     * @param list<array{label: string, color: string}> $palette
+     * @param list<array{
+     *     label: string,
+     *     color: string,
+     *     swatch?: ?string,
+     * }> $palette
      */
     public function __construct(
         private readonly array $palette = [],
@@ -21,7 +25,7 @@ final class ConfigColorPaletteProvider implements ColorPaletteProviderInterface
     public function getColors(): iterable
     {
         foreach ($this->palette as $entry) {
-            yield new PaletteColor($entry['label'], $entry['color']);
+            yield new PaletteColor($entry['label'], $entry['color'], $entry['swatch'] ?? null);
         }
     }
 }

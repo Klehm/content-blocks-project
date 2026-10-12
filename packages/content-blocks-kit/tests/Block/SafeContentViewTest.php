@@ -64,6 +64,18 @@ final class SafeContentViewTest extends TestCase
         $this->assertStringNotContainsString('evil', $html);
     }
 
+    // A palette theme variable, as CKEditor writes it.
+    public function testRichTextKeepsAThemeVariable(): void
+    {
+        $html = $this->render('rich_text', ['content' => '<p style="color: '
+            . 'var(--brand, #eb0540)">x</p><p style="color: var(--x, url(//evil))">'
+            . 'y</p><p style="color: var(--x);position: fixed">z</p>']);
+
+        $this->assertStringContainsString('<p style="color: var(--brand, #eb0540)">x</p>', $html);
+        $this->assertStringContainsString('<p>y</p>', $html);
+        $this->assertStringContainsString('<p style="color: var(--x)">z</p>', $html);
+    }
+
     // The sanitizer's default 20 000-byte cap would cut an article short.
     public function testALongRichTextIsNotTruncated(): void
     {

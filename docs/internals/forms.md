@@ -236,15 +236,15 @@ contract.
 
 ## PaletteColorType and its empty state
 
-A dropdown of the project palette plus a *Custom…* option revealing a free
-picker. It stores a single `#hex` string (`''` for none), so it is a drop-in
-replacement for Symfony's `ColorType` — decorators and view templates keep
-reading a `#hex` unchanged.
+A row of swatches, one per palette colour, plus *None* and a *Custom…* swatch
+revealing a free picker. It stores a single colour string (`''` for none): a `#hex`, or a palette
+entry as declared, theme variables included (`var(--brand, #eb0540)`), so it is
+a drop-in replacement for Symfony's `ColorType`.
 
 The point of it is the **real empty state**. A raw `<input type="color">` always
 carries a value, which is what forced the historical `#ffffff` default; *None* is
 what lets the styling defaults be transparent instead. With an empty palette the
-dropdown still renders None / Custom…, so the type degrades to "a ColorType with
+field still renders None / Custom…, so the type degrades to "a ColorType with
 an off switch".
 
 Three details that look incidental and are load-bearing:
@@ -262,6 +262,21 @@ Three details that look incidental and are load-bearing:
   both.
 - **`empty_data` is `''`** for the same reason one level up: when every child is
   empty Symfony bypasses the data mapper entirely.
+- **A stored value outside the palette that is not a hex becomes a choice of
+  its own** (a `PRE_SET_DATA` listener re-adds the `palette` child). The custom
+  picker is an `<input type="color">`: handed `var(--old)`, it would show black
+  and fail `#rrggbb` validation on the next save, losing a colour the editor
+  never touched. Only the form built on that value offers it, so a POST cannot
+  smuggle in a value the area does not already hold; the clipboard replayer
+  judges on a form built from the defaults, where it is refused.
+
+**The swatches are radios** (`expanded`, block prefix `cb_palette_swatches`,
+themed in `cb_form_theme.html.twig`), each native input covering its swatch as
+in `cb_icons`: keyboard, `.check()`, autosave and `cb-condition` see a plain
+radio group. A `<select>` was the first version, and an `<option>` cannot be
+painted reliably across browsers. The swatch is the colour's
+`ColorPaletteRegistry::swatch()`, passed as `data-color` on the input and drawn through
+`--cb-swatch`; a colour without one (a bare `var()`) reads as its label.
 
 Showing and hiding the custom picker is driven by the generic `cb-condition`
 Stimulus controller attached to the compound root, so no custom form-theme block
