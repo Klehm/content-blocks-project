@@ -486,6 +486,45 @@
         postToParent(intent);
     });
 
+    // ---------- Assets of a hot-inserted block ----------
+
+    /**
+     * Links what an inserted block declared (`data-cb-assets`) and the page
+     * does not link yet. Created by script, so a script element runs.
+     */
+    function ensureAssets(root) {
+        const linked = (selector, attr, value) => [...document.querySelectorAll(selector)]
+            .some((el) => el.getAttribute(attr) === value);
+        const holders = [root, ...root.querySelectorAll('[data-cb-assets]')]
+            .filter((el) => el.hasAttribute('data-cb-assets'));
+        for (const holder of holders) {
+            let assets;
+            try {
+                assets = JSON.parse(holder.getAttribute('data-cb-assets'));
+            } catch {
+                continue;
+            }
+            for (const href of assets?.stylesheets ?? []) {
+                if (linked('link[rel="stylesheet"]', 'href', href)) continue;
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = href;
+                document.head.appendChild(link);
+            }
+            for (const [list, module] of [[assets?.scripts, false], [assets?.modules, true]]) {
+                for (const src of list ?? []) {
+                    if (linked('script[src]', 'src', src)) continue;
+                    const script = document.createElement('script');
+                    if (module) script.type = 'module';
+                    // Injected scripts are async: keep the declared order.
+                    else script.async = false;
+                    script.src = src;
+                    document.head.appendChild(script);
+                }
+            }
+        }
+    }
+
     // ---------- Single-block hot reload ----------
 
     /**
@@ -515,6 +554,7 @@
         if (focusedEl === oldEl) { focusedEl = null; focusedKind = null; }
 
         oldEl.replaceWith(newEl);
+        ensureAssets(newEl);
 
         newEl.dispatchEvent(new CustomEvent('cb:block:rendered', {
             bubbles: true,
@@ -658,6 +698,7 @@
         } else {
             column.appendChild(newEl);
         }
+        ensureAssets(newEl);
 
         newEl.dispatchEvent(new CustomEvent('cb:block:rendered', {
             bubbles: true,
@@ -687,6 +728,7 @@
         if (!newEl) return;
 
         source.after(newEl);
+        ensureAssets(newEl);
 
         newEl.dispatchEvent(new CustomEvent('cb:block:rendered', {
             bubbles: true,
@@ -713,6 +755,7 @@
         if (!newEl) return;
 
         source.after(newEl);
+        ensureAssets(newEl);
 
         newEl.querySelectorAll('[data-cb-block-id]').forEach((block) => {
             block.dispatchEvent(new CustomEvent('cb:block:rendered', {
@@ -746,6 +789,7 @@
         }
 
         tray.before(newEl);
+        ensureAssets(newEl);
         syncEmptyState(area);
         focusElement(newEl, 'section');
         newEl.scrollIntoView({ behavior: 'smooth', block: 'center' });

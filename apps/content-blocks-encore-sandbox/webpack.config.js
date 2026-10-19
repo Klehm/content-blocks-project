@@ -8,6 +8,8 @@ Encore
     .setOutputPath('public/build/')
     .setPublicPath('/build')
     .addEntry('app', './assets/app.js')
+    // A block's own JS + CSS, linked by the block (BlockAssetsInterface).
+    .addEntry('blocks/counter', './assets/blocks/counter.js')
     .splitEntryChunks()
     .enableSingleRuntimeChunk()
     .cleanupOutputBeforeBuild()

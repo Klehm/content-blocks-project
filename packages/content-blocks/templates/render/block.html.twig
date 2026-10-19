@@ -3,6 +3,7 @@
 <div class="cb-block cb-block--{{ block.type }}{% if block.deleted %} cb-block--deleted{% endif %}{% if block.extraClasses %} {{ block.extraClasses }}{% endif %}"
     {% if isPreview %}data-cb-block-id="{{ block.id }}" data-cb-block-type="{{ block.type }}"{% endif %}
     {% if block.deleted %}data-cb-deleted="1"{% endif %}
+    {% if isPreview and block.assetUrls ?? null %}data-cb-assets="{{ block.assetUrls|json_encode }}"{% endif %}
     {% if block.inlineStyle %}style="{{ block.inlineStyle }}"{% endif %}
     {% for k, v in block.extraAttributes %} {{ k }}="{{ v }}"{% endfor %}>
     {% if block.viewTemplate %}

@@ -52,7 +52,13 @@
         "twig/twig": "^3.27"
     },
     "require-dev": {
-        "phpunit/phpunit": "^11.5"
+        "phpunit/phpunit": "^11.5",
+        "symfony/asset": "^6.4 || ^7.0 || ^8.0",
+        "symfony/webpack-encore-bundle": "^2.0"
+    },
+    "suggest": {
+        "symfony/asset": "Resolves the paths a block declares for its CSS and JS (BlockAssetsInterface)",
+        "symfony/webpack-encore-bundle": "Links Webpack Encore entries a block declares, with their runtime and chunks"
     },
     "autoload": {
         "psr-4": {

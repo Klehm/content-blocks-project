@@ -1,0 +1,4 @@
+<div class="demo-counter"{% if data.animate ?? true %} data-demo-counter="{{ data.value ?? 0 }}"{% endif %}>
+    <span class="demo-counter__value">{{ (data.animate ?? true) ? 0 : (data.value ?? 0) }}</span>
+    {% if data.label ?? '' %}<span class="demo-counter__label">{{ data.label }}</span>{% endif %}
+</div>

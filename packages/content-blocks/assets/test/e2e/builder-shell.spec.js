@@ -486,10 +486,10 @@ test.describe('builder shell — blocks', () => {
         const popover = frame.locator('.cb-overlay-popover');
         await expect(popover).toBeVisible();
 
-        // The list reflects the registered block types (the full kit is
-        // enabled in the sandbox).
+        // The list reflects the registered block types: the kit, html_raw
+        // off, plus the sandbox's own counter block.
         const items = popover.locator('button');
-        await expect(items).toHaveCount(19);
+        await expect(items).toHaveCount(20);
 
         await items.first().click();
         await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);

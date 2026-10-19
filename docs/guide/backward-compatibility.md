@@ -12,14 +12,14 @@ ContentBlocks follows [semantic versioning](https://semver.org/). From `1.0.0`, 
 
 These are the extension surface: implement them, alias them, decorate them. Their method signatures are frozen, and so is the meaning of what they return.
 
-**Core** (`klehm/content-blocks`), 43 interfaces:
+**Core** (`klehm/content-blocks`), 45 interfaces:
 
 | Area | Interfaces |
 |---|---|
 | Access, preview, pickers | `AccessCheckerInterface`, `ContentAreaUrlResolverInterface`, `ContentAreaProviderInterface`, `SectionTemplateManagerInterface`, `AssetReportViewerInterface` |
-| Blocks | `BlockTypeInterface`, `BlockPreviewHintInterface`, `BlockDataDefaultsProviderInterface`, `BlockDecoratorInterface`, `BlockFormExtensionInterface`, `TranslatableFieldsInterface` |
+| Blocks | `BlockTypeInterface`, `BlockPreviewHintInterface`, `BlockAssetsInterface`, `BlockDataDefaultsProviderInterface`, `BlockDecoratorInterface`, `BlockFormExtensionInterface`, `TranslatableFieldsInterface` |
 | Sections and columns | `SectionDecoratorInterface`, `SectionSettingsDefaultsProviderInterface`, `SectionStyleProviderInterface`, `SectionClonerInterface`, `BlockCloneObserverInterface`, `ColumnCloneObserverInterface` |
-| Rendering | `BlockRendererInterface`, `BlockDataResolverInterface`, `ColumnSettingsResolverInterface`, `ImageUrlResolverInterface` |
+| Rendering | `BlockRendererInterface`, `BlockDataResolverInterface`, `EntrypointResolverInterface`, `ColumnSettingsResolverInterface`, `ImageUrlResolverInterface` |
 | Content and publishing | `ContentManipulatorInterface`, `ContentAreaPublisherInterface`, `UnpublishedChangesProviderInterface`, `LocaleDraftsProviderInterface` |
 | Builder UI | `BuilderActionProviderInterface`, `BuilderShellExtensionInterface`, `BuilderStructureResolverInterface`, `UiIconProviderInterface`, `ColorPaletteProviderInterface` |
 | Storage and assets | `FileStorageInterface`, `AssetInventoryInterface`, `AssetResolverInterface`, `AssetReferenceProviderInterface` |
@@ -41,13 +41,13 @@ These are the extension surface: implement them, alias them, decorate them. Thei
   - `BlockFormType`, `SectionSettingsType` and `StylingType` as **targets of a form type extension**, with their `TAB_*` and `PANEL_*` constants. The fields they hold are not frozen: a field may move, but a key you add keeps working.
 - **The sidebar form options.** `cb_group`, `cb_panel`, `cb_help_tooltip` and `cb_panels_exclusive` on every form type; `cb_icons`, `cb_icon_layout`, `cb_icon_columns` and `cb_icon_labels` on `ChoiceType`; `cb_open_entries` on `LiveCollectionType`. Also the **names of the shipped UI icons** they refer to ([Laying out sidebar fields](./sidebar-fields.md)): a name may gain a better drawing, but it is not renamed or removed.
 - **Value objects your implementation builds or reads.** Their public properties and named constructors are frozen:
-  - rendering: `RenderContext` (with `isPreview()` / `isPublic()`), `RenderMode`, `BlockView`, `ResolvedImage`, `BlockPreviewHint`, `BlockDecoration`, `SectionDecoration`
+  - rendering: `RenderContext` (with `isPreview()` / `isPublic()`), `RenderMode`, `BlockView`, `ResolvedImage`, `BlockPreviewHint`, `BlockAssets`, `BlockDecoration`, `SectionDecoration`
   - publishing: `PublishContext`, `LocaleDraft`
   - builder UI and styling: `BuilderAction`, `BuilderShellFragment`, `BuilderStructure` (its `SECTIONS_*` constants and `can*()` / `showsSections()` reads), `PaletteColor`, `SectionStyle`
   - storage: `StoredAsset`
   - translation: the kit's `RichTextEditorView`; i18n's `TranslationRequest`, `TranslationOutcome`, `TranslationJob` and `FieldStatus`
 - **Values you read but do not build.** `ImportResult`, `InstantiationResult`, `SectionTemplateSnapshot`, and the transfer helpers `AssetTokenizer` and `AssetRewriter` handed to a `ContentAreaTransferExtensionInterface`. Their public reads are frozen; their constructors are `@internal`, so the package can add fields to them.
-- **Services you inject.** `BlockTypeRegistry` (`get()`, `has()`, `all()`, `getChoices()`), and the shipped implementations named as defaults in the guides: `LocalFileStorage`, `PassthroughImageUrlResolver`, `DenyOnMismatchUpgrader`, `ConfiguredBuilderStructureResolver`, `AllowAllAccessChecker` and `DenyAllAccessChecker`. They are covered as services to alias or decorate; their constructors are not.
+- **Services you inject.** `BlockTypeRegistry` (`get()`, `has()`, `all()`, `getChoices()`), and the shipped implementations named as defaults in the guides: `LocalFileStorage`, `PassthroughImageUrlResolver`, `DenyOnMismatchUpgrader`, `ConfiguredBuilderStructureResolver`, `EncoreEntrypointResolver`, `AllowAllAccessChecker` and `DenyAllAccessChecker`. They are covered as services to alias or decorate; their constructors are not.
 - **Symfony events you listen to**, with their public properties and the moment each is dispatched ([Server-side events](./events.md)): `BeforeContentAreaPublishEvent`, `AfterContentAreaPublishEvent`, `BeforeContentAreaDiscardEvent`, `AfterContentAreaDiscardEvent`, `BeforeBlockSaveEvent`, `AfterBlockSaveEvent`, `BeforeBlockDeleteEvent`, `AfterBlockDeleteEvent`; their base `RefusableEvent` (`refuse()`, `isRefused()`, `getReasons()`) and `ActionRefusedException`. A later version may add properties or events, but will not remove or rename one.
 - **Exceptions you throw or catch.** `ContentBlocksAccessDeniedException` (a 403), `IncompatibleContentVersionException`, `ImportRefusedException`, `UnsupportedTemplateFormatException`, `IncompatibleTemplateException`, `ContentManipulationException` and its `reason` codes.
 - **`ContentBlocks\Testing\CrossRequestStateScanner`**, for pointing the [worker-mode](./worker-mode.md) check at your own code.

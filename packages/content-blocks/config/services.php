@@ -193,6 +193,22 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ContentBlocks\Twig\ColorToneExtension::class)
         ->tag('twig.extension');
 
+    // `assets.packages` needs framework.assets; without, paths stay as written.
+    $services->set(ContentBlocks\Rendering\BlockAssetUrls::class)
+        ->args([
+            service('assets.packages')->nullOnInvalid(),
+            service(ContentBlocks\Rendering\EntrypointResolverInterface::class)->nullOnInvalid(),
+        ]);
+    // The Encore adapter for block `entries`, only where the bundle is.
+    // Another bundler: alias the interface to your own resolver.
+    if (interface_exists(Symfony\WebpackEncoreBundle\Asset\EntrypointLookupCollectionInterface::class)) {
+        $services->set(ContentBlocks\Rendering\EncoreEntrypointResolver::class)
+            ->args([service('webpack_encore.entrypoint_lookup_collection')->nullOnInvalid()]);
+        $services->alias(
+            ContentBlocks\Rendering\EntrypointResolverInterface::class,
+            ContentBlocks\Rendering\EncoreEntrypointResolver::class,
+        );
+    }
     $services->set(ContentBlocks\Rendering\BlockRenderer::class);
     // Rendering override seam: host decorates/replaces via the interface.
     $services->alias(ContentBlocks\Rendering\BlockRendererInterface::class, ContentBlocks\Rendering\BlockRenderer::class);
