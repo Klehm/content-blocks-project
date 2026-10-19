@@ -18,7 +18,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * Responsive video embed. The stored URL is normalized to a player URL at
  * render time by `cb_embed_url()`.
  */
-#[AsContentBlock(priority: 30)]
+#[AsContentBlock(priority: 30, category: 'media')]
 class EmbedBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public function getType(): string

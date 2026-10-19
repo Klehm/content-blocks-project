@@ -19,7 +19,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * A collapsible list of title/content panels — great for FAQs. Rendered with
  * native <details>/<summary>, so it needs zero JavaScript and stays accessible.
  */
-#[AsContentBlock(priority: 50)]
+#[AsContentBlock(priority: 50, category: 'layout')]
 class AccordionBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public function getType(): string

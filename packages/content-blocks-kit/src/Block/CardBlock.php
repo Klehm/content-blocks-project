@@ -19,7 +19,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * Cards (image, title, text, optional button) as a grid of N columns or a
  * stacked list. The column-count field reveals only for the grid.
  */
-#[AsContentBlock(priority: 65)]
+#[AsContentBlock(priority: 65, category: 'layout')]
 class CardBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function defaultOptions(): array

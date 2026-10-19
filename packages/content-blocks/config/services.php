@@ -64,6 +64,9 @@ return static function (ContainerConfigurator $container): void {
         ->set('content_blocks.section.initial_settings', [])
         // Resolved list; normally fed by `content_blocks.section.layouts`.
         ->set('content_blocks.section.layouts', ContentBlocks\Section\SectionLayoutRegistry::resolve([]))
+        // Resolved map; normally fed by `content_blocks.picker`.
+        ->set('content_blocks.picker.categories', ContentBlocks\BlockType\BlockCategoryRegistry::BUILT_IN)
+        ->set('content_blocks.picker.blocks', [])
         // Whether each sidebar offers the free styling fields.
         ->set('content_blocks.styling.block', true)
         ->set('content_blocks.styling.section', true)
@@ -114,6 +117,8 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(BlockTypeRegistry::class)
         ->public();
+    $services->set(ContentBlocks\BlockType\BlockCategoryRegistry::class)
+        ->args(['%content_blocks.picker.categories%', '%content_blocks.picker.blocks%']);
 
     // Deny all: the host must override this. See docs/guide/host-services.md
     $services->set(DenyAllAccessChecker::class);

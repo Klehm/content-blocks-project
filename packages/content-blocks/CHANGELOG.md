@@ -34,6 +34,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `importmap()`, for its imports to resolve. No
   migration.
 
+- **Picker categories.** `#[AsContentBlock(category: 'media')]` puts a block
+  in a group of the add-block picker; `priority` still orders it within the
+  group. Built-in groups: `text`, `media`, `layout`, `actions`, `advanced`,
+  and `other`, where a block without a category lands. A subclass that
+  re-applies the attribute without a category keeps its parent's.
+  `content_blocks.picker.categories` adds, relabels and reorders groups
+  (listed ones first), `content_blocks.picker.blocks` moves a block type to
+  another group. An undeclared category is refused at `cache:clear`, a
+  near-miss block type when the builder opens. A picker whose blocks all
+  fall in one group shows the flat grid it showed before. `BlockTypeRegistry` gains `getCategory()`.
+  No migration.
+
 - **A block view receives `block` and `context`.** Beside `data` and
   `block_id`, a view template now gets `block` (`BlockView`: `id`, `type`,
   read-only, never the entity) and `context` (the `RenderContext`, its mode

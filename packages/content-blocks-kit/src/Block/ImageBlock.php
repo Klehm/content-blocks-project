@@ -26,7 +26,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  *
  * @see docs/internals/kit.md#blocks-are-autonomous
  */
-#[AsContentBlock(priority: 70)]
+#[AsContentBlock(priority: 70, category: 'media')]
 class ImageBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public function getType(): string

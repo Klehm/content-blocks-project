@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Rendering;
 
 use ContentBlocks\BlockType\AbstractBlockType;
+use ContentBlocks\BlockType\BlockCategoryRegistry;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Builder\BuilderStructure;
 use ContentBlocks\Entity\Block;
@@ -1392,19 +1393,119 @@ final class BlockRendererTest extends TestCase
      * @param list<BlockDataResolverInterface> $extraResolvers
      *        appended after CoreBlockDataResolver, as a host's would be
      */
+    public function testThePickerGroupsTilesInCategoryOrder(): void
+    {
+        $registry = new BlockTypeRegistry();
+        $registry->register($this->namedBlockType('gallery', 'Gallery'), 'media');
+        $registry->register($this->namedBlockType('custom', 'Custom'));
+        $registry->register($this->namedBlockType('title', 'Title'), 'text');
+        $registry->register($this->namedBlockType('image', 'Image'), 'media');
+
+        $html = $this->makeRenderer(mode: RenderMode::PREVIEW, registry: $registry)
+            ->render($this->makeArea(), new RenderContext(RenderMode::PREVIEW));
+
+        $tiles = $this->jsonBlock($html, 'cb-block-types');
+        $this->assertSame(['title', 'gallery', 'image', 'custom'], array_column($tiles, 'type'));
+        $this->assertSame(['text', 'media', 'media', 'other'], array_column($tiles, 'category'));
+        // Only the groups that hold a tile, labels through the translator.
+        $this->assertSame([
+            ['name' => 'text', 'label' => 'cb.picker.category.text'],
+            ['name' => 'media', 'label' => 'cb.picker.category.media'],
+            ['name' => 'other', 'label' => 'cb.picker.category.other'],
+        ], $this->jsonBlock($html, 'cb-block-categories'));
+    }
+
+    public function testTheHostsAssignmentAndOrderWin(): void
+    {
+        $registry = new BlockTypeRegistry();
+        $registry->register($this->namedBlockType('title', 'Title'), 'text');
+        $registry->register($this->namedBlockType('embed', 'Embed'), 'media');
+        $categories = new BlockCategoryRegistry(
+            BlockCategoryRegistry::resolve(['shop' => 'Shop']),
+            ['embed' => 'shop'],
+        );
+
+        $html = $this->makeRenderer(mode: RenderMode::PREVIEW, registry: $registry, categories: $categories)
+            ->render($this->makeArea(), new RenderContext(RenderMode::PREVIEW));
+
+        $tiles = $this->jsonBlock($html, 'cb-block-types');
+        $this->assertSame(['embed', 'title'], array_column($tiles, 'type'));
+        $this->assertSame(['Shop', 'cb.picker.category.text'], array_column($this->jsonBlock($html, 'cb-block-categories'), 'label'));
+    }
+
+    public function testANearMissAssignmentStopsThePicker(): void
+    {
+        $registry = new BlockTypeRegistry();
+        $registry->register($this->namedBlockType('gallery', 'Gallery'), 'media');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('did you mean "gallery"');
+
+        $this->makeRenderer(
+            mode: RenderMode::PREVIEW,
+            registry: $registry,
+            categories: new BlockCategoryRegistry(null, ['gallry' => 'text']),
+        )->render($this->makeArea(), new RenderContext(RenderMode::PREVIEW));
+    }
+
+    public function testThePublicPageCarriesNoPicker(): void
+    {
+        $html = $this->makeRenderer()->render($this->makeArea(), new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertStringNotContainsString('cb-block-categories', $html);
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function jsonBlock(string $html, string $id): array
+    {
+        $this->assertSame(1, preg_match('#<script type="application/json" id="' . $id . '">(.*?)</script>#s', $html, $m));
+        $decoded = json_decode($m[1], true, flags: \JSON_THROW_ON_ERROR);
+        $this->assertIsArray($decoded);
+
+        return $decoded;
+    }
+
+    private function namedBlockType(string $type, string $label): AbstractBlockType
+    {
+        return new class ($type, $label) extends AbstractBlockType {
+            public function __construct(private readonly string $type, private readonly string $label)
+            {
+            }
+            public function getType(): string
+            {
+                return $this->type;
+            }
+            public function getLabel(): string
+            {
+                return $this->label;
+            }
+            public function buildForm(FormBuilderInterface $builder, array $data): void
+            {
+            }
+            public function getDefaultData(): array
+            {
+                return [];
+            }
+        };
+    }
+
     private function makeRenderer(
         RenderMode $mode = RenderMode::PUBLIC,
         array $extraResolvers = [],
         array $query = [],
         ?\ContentBlocks\Rendering\ColumnSettingsResolverCollection $columnResolvers = null,
         ?BuilderStructure $structure = null,
+        ?BlockTypeRegistry $registry = null,
+        ?BlockCategoryRegistry $categories = null,
     ): BlockRenderer {
         $request = new Request(($mode === RenderMode::PREVIEW ? ['cb_preview' => '1'] : []) + $query);
         $stack = new RequestStack();
         $stack->push($request);
 
-        $registry = new BlockTypeRegistry();
-        $registry->register($this->textBlockType());
+        if ($registry === null) {
+            $registry = new BlockTypeRegistry();
+            $registry->register($this->textBlockType());
+        }
 
         return new BlockRenderer(
             $this->makeTwig(['text_view.html.twig' => '{{ data.title|default("") }}']),
@@ -1420,6 +1521,7 @@ final class BlockRendererTest extends TestCase
             new BlockDataResolverCollection([new CoreBlockDataResolver(), ...$extraResolvers]),
             $columnResolvers ?? new \ContentBlocks\Rendering\ColumnSettingsResolverCollection(),
             new FixedBuilderStructureResolver($structure ?? new BuilderStructure()),
+            categories: $categories ?? new BlockCategoryRegistry(),
         );
     }
 

@@ -18,7 +18,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
 /**
  * A styled list (bulleted, checkmarks or numbered) of short text items.
  */
-#[AsContentBlock(priority: 40)]
+#[AsContentBlock(priority: 40, category: 'text')]
 class ListBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public function getType(): string

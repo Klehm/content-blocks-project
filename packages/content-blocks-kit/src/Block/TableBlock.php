@@ -18,7 +18,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * Columns and rows of cells, mapped by position at render time so the table
  * stays rectangular whatever a row holds.
  */
-#[AsContentBlock(priority: 15)]
+#[AsContentBlock(priority: 15, category: 'text')]
 class TableBlock extends AbstractKitBlock
 {
     public function getType(): string

@@ -21,7 +21,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * Standalone call-to-action button: label + link + a style/size/alignment
  * choice, optional full-width and new-tab.
  */
-#[AsContentBlock(priority: 55)]
+#[AsContentBlock(priority: 55, category: 'actions')]
 class ButtonBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public function getType(): string
