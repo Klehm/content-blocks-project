@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Twig;
 
+use ContentBlocks\PublicAsset\CssLayer;
 use ContentBlocks\PublicAsset\PackageAssets;
 use ContentBlocks\PublicAsset\StaticAssetResponse;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -24,6 +25,7 @@ final class RoutingExtension extends AbstractExtension
 
     public function __construct(
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly CssLayer $layer = new CssLayer(),
     ) {
     }
 
@@ -62,7 +64,7 @@ final class RoutingExtension extends AbstractExtension
      */
     public function assetPath(string $name): string
     {
-        $content = PackageAssets::content($name);
+        $content = PackageAssets::served($name, $this->layer);
         $params = $content === null ? [] : ['v' => StaticAssetResponse::version($content)];
 
         return $this->urlGenerator->generate('content_blocks_asset_' . $name, $params);

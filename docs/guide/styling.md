@@ -255,6 +255,38 @@ The styling fields are folded into collapsible panels (Spacing, Background, Size
 
 Implement `ContentBlocks\Block\BlockDecoratorInterface` (mirror of `SectionDecoratorInterface`). It is auto-tagged with `content_blocks.block_decorator` when `autoconfigure: true` is on, and called for every block being rendered. Return a `BlockDecoration` (classes / inline styles / attributes) — the bundle merges all decorators' output into the block's outer `<div>`.
 
+## Overriding the package CSS: cascade layers
+
+The public stylesheets (`layout`, `styling` and the kit's `kit.css`) use
+compound selectors, so a host rule usually has to out-specify them to win.
+`css_layer` serves all three inside a [cascade layer](https://developer.mozilla.org/en-US/docs/Web/CSS/@layer):
+
+```yaml
+# config/packages/content_blocks.yaml
+content_blocks:
+    css_layer: content-blocks
+```
+
+Every rule outside a layer then wins over the package's, **whatever its
+specificity**: `h2 { font-weight: 300 }` beats the kit's `.cb-kit-title`. To
+place the package among layers of your own, declare the order once, before any
+stylesheet:
+
+```css
+@layer reset, content-blocks, theme;
+```
+
+It is **off by default**, and that is deliberate. A host's existing global CSS
+(`img`, `a`, a reset) wins over the package as soon as the option is on, so a
+page can change without a line of yours changing. Turn it on, then check your
+pages. The default changes only in 2.0.
+
+- The URLs `cb_kit_stylesheet_url()` and the content template link carry the
+  layered file's version, so a browser cache never keeps the unlayered one.
+- The builder's own chrome is never layered: it has to win over your page CSS
+  in the preview.
+- A dotted name places the package in a sub-layer: `vendor.content-blocks`.
+
 ## Theming the builder chrome
 
 Everything above styles **content**. The builder's own UI — topbar, sidebars, form widgets, preview overlay — is styled separately, from a single set of design tokens in `assets/styles/tokens.css`. Every rule in `admin.css`, `forms.css` and `builder.css` reads `var(--cb-*)` rather than a color literal, so restyling the tool is a matter of redeclaring tokens:

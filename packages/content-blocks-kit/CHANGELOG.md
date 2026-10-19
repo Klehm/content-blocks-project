@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`kit.css` follows `content_blocks.css_layer`** (`klehm/content-blocks`
+  1.5): with a layer configured it is served inside it, like the core's public
+  stylesheets, and `cb_kit_stylesheet_url()` carries the layered version. On an
+  older core it is served unlayered, as before.
+
 ## [1.4.0] - 2026-10-12
 
 This release carries, across the three packages: theme variables in the

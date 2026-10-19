@@ -57,6 +57,7 @@ return static function (ContainerConfigurator $container): void {
     $container->parameters()
         // See docs/internals/versioning.md#the-content-version
         ->set('content_blocks.content_version', 1)
+        ->set('content_blocks.css_layer', null)
         ->set('content_blocks.section.default_width_mode', 'full')
         ->set('content_blocks.section.default_max_width', 1320)
         // Written onto a section the builder creates. See SectionsController.
@@ -178,6 +179,10 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ContentBlocks\Twig\ImageExtension::class)
         ->tag('twig.extension');
 
+    // Shared with the kit, so one key layers every public stylesheet.
+    $services->set(ContentBlocks\PublicAsset\CssLayer::class)
+        ->args(['%content_blocks.css_layer%'])
+        ->public();
     $services->set(ContentBlocks\Twig\RoutingExtension::class)
         ->tag('twig.extension');
 
