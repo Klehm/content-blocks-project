@@ -1,3 +1,8 @@
+parameters:
+    # '_e2e' under Playwright: its own database and upload directory, so the
+    # suite never writes into the demo. See docs/internals/testing.md
+    env(SANDBOX_SUFFIX): ''
+
 services:
     _defaults:
         autowire: true

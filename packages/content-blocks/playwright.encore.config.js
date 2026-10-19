@@ -16,12 +16,15 @@ export default defineConfig({
     },
     webServer: {
         // 8002, so this can run alongside the main sandbox on 8001. Same
-        // worker and restart-loop reasoning: docs/internals/testing.md
-        command: 'while true; do PHP_CLI_SERVER_WORKERS=8 php -S 127.0.0.1:8002'
+        // worker, restart-loop and `_e2e` reasoning: docs/internals/testing.md
+        command: 'export SANDBOX_SUFFIX=_e2e'
+            + ' && ../../scripts/demo.sh reset encore && '
+            + 'while true; do PHP_CLI_SERVER_WORKERS=8 php -S 127.0.0.1:8002'
             + " -t ../../apps/content-blocks-encore-sandbox/public;"
             + " echo '[fixture] web server exited — restarting'; sleep 0.3; done",
         url: 'http://127.0.0.1:8002',
         reuseExistingServer: true,
-        timeout: 10000,
+        // Includes the reset, which runs before the server answers.
+        timeout: 60000,
     },
 });

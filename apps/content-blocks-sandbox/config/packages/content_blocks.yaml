@@ -47,8 +47,8 @@ content_blocks:
 
     # Enables the upload endpoint with a LocalFileStorage.
     upload:
-        directory: '%kernel.project_dir%/public/uploads/content-blocks'
-        public_prefix: '/uploads/content-blocks'
+        directory: '%kernel.project_dir%/public/uploads/content-blocks%env(SANDBOX_SUFFIX)%'
+        public_prefix: '/uploads/content-blocks%env(SANDBOX_SUFFIX)%'
         # The default list is images + PDF; the kit's video block needs these.
         max_size: 52428800
         allowed_mime_types:

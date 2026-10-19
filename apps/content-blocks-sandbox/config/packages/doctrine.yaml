@@ -1,6 +1,7 @@
 doctrine:
     dbal:
         url: '%env(resolve:DATABASE_URL)%'
+        dbname_suffix: '%env(SANDBOX_SUFFIX)%'
     orm:
         # `auto_generate_proxy_classes` was removed in doctrine-bundle 3.0 (a no-op
         # under ORM 3 + PHP 8.4 native lazy objects). Omitting it keeps this config

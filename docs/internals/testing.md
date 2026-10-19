@@ -54,6 +54,27 @@ Ports are reserved: 8001 for the main fixture, 8002 for Encore, 8005 for the
 FrankenPHP worker smoke test. A manual dev server must avoid them or a suite and
 a person end up fighting over a port.
 
+## The suite has its own data
+
+Every spec creates its own page through `POST /page/create`, and nothing
+deletes it. Run against the sandbox's own database, the suite left ~32,000
+pages and 350 MB of uploads in the demo a developer opens on port 8000.
+
+So both fixture servers run with `SANDBOX_SUFFIX=_e2e`, which the sandboxes
+append to their database name (`dbname_suffix`) and to their upload directory
+and prefix. Same code, same config, a second instance. It is emptied **before**
+each run, not after: the last run's pages stay for whoever is reading a failure.
+
+The reset is the first half of the `webServer` command (`bin/reset.sh` for the
+main sandbox, `scripts/demo.sh reset encore` for Encore), not a `globalSetup`:
+Playwright starts the server first, and on a fresh checkout the `_e2e` database
+does not exist yet, so the readiness probe gets a 500 and the run times out.
+
+The demos themselves are reset with `make reset [DEMO=…]` (same scripts, no
+suffix, plus the seed). `reuseExistingServer` is still on, so a server already
+on 8001 or 8002 that was started *without* the suffix would send the suite back
+into a demo's data.
+
 ## The Vitest stub
 
 `@symfony/ux-live-component` is supplied at runtime by the sandboxes' AssetMapper
