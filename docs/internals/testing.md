@@ -46,6 +46,22 @@ The built-in server is explicitly not built for sustained concurrent load, and
 rather than pretend it cannot happen**: the loop brings the server straight back,
 and the retries absorb the handful of requests in flight when it went down.
 
+Two things the loop alone did not cover, both seen on CI (MySQL and PostgreSQL
+legs alike, about thirty seconds into the run):
+
+- **The workers outlive their parent.** They keep port 8001, so the restarted
+  server failed with `Address already in use` until they went away. The loop
+  now kills them (`pkill -f '^php -S 127.0.0.1:8001'`, anchored: unanchored,
+  it matches the loop's own shell and kills it) before starting again.
+- **A retry ran into the same outage.** The server stalls for several seconds
+  before it crashes, and Playwright retries at once, so all three attempts of
+  the same specs failed together. Every spec imports `test` from
+  `helpers/test.js`, whose automatic fixture makes a retry, and only a retry,
+  wait up to 30 s for the server to answer first.
+
+The crash itself is not understood: no core dump has been captured, and it does
+not reproduce locally.
+
 Retries are one locally and two on CI. The goal is for them to rarely fire —
 root-cause robustness (stable selectors, no fixed-position hovers) lives in the
 specs, not in the retry count.

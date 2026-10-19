@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../e2e/helpers/test.js';
 import { launchBuilder } from '../e2e/helpers/builder.js';
 
 /**

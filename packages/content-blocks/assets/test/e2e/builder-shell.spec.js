@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/test.js';
 import { launchBuilder } from './helpers/builder.js';
 import { reveal } from './helpers/sidebar.js';
 
@@ -462,8 +462,11 @@ test.describe('builder shell — sections', () => {
         await expect.poll(async () => section.getAttribute('style')).toContain('--cb-s-pad-d-t:40px');
         await expect.poll(async () => section.getAttribute('class')).toContain('demo-section--boxed');
 
-        // Reopen the sidebar: the saved state prefills the form — switch on,
-        // custom color selected, and the preset's padding as starting values.
+        // Close and reopen the sidebar: the saved state prefills the form —
+        // switch on, custom color selected, the preset's padding as start.
+        // (A click on the open section keeps its form: it does not reload.)
+        await clickInPreview(page, 'body');
+        await expect(sidebar.locator('input[name="section_settings[stylingCustom]"]')).toHaveCount(0);
         await openSectionSettings(page, frame);
         await expect(sidebar.locator('input[name="section_settings[stylingCustom]"]')).toBeChecked();
         await expect(sidebar.locator('input[name="section_settings[styling][backgroundColor][palette]"][value="#4f46e5"]')).toBeChecked();

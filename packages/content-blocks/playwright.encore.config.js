@@ -22,7 +22,9 @@ export default defineConfig({
             + 'while true; do PHP_CLI_SERVER_WORKERS=8 php -S 127.0.0.1:8002'
             + ' -t ../../apps/content-blocks-encore-sandbox/public'
             + ' ../../apps/content-blocks-encore-sandbox/public/router.php;'
-            + " echo '[fixture] web server exited — restarting'; sleep 0.3; done",
+            + " echo '[fixture] web server exited — restarting';"
+            // Workers outlive a crashed parent and keep the port: free it.
+            + " pkill -f '^php -S 127.0.0.1:8002'; sleep 0.3; done",
         url: 'http://127.0.0.1:8002',
         reuseExistingServer: true,
         // Includes the reset, which runs before the server answers.

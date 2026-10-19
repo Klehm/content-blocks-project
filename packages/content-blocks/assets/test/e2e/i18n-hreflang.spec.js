@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/test.js';
 
 /**
  * `cb_i18n_hreflang()` in the sandbox's public `<head>`: one alternate per

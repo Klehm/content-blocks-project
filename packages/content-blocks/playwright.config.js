@@ -21,7 +21,9 @@ export default defineConfig({
         // mid-suite on CI). See docs/internals/testing.md
         command: 'export SANDBOX_SUFFIX=_e2e'
             + ' && ../../apps/content-blocks-sandbox/bin/reset.sh && '
-            + `while true; do ${FIXTURE_SERVER}; echo '[fixture] web server exited — restarting'; sleep 0.3; done`,
+            + `while true; do ${FIXTURE_SERVER}; echo '[fixture] web server exited — restarting';`
+            // Workers outlive a crashed parent and keep the port: free it.
+            + " pkill -f '^php -S 127.0.0.1:8001'; sleep 0.3; done",
         url: 'http://127.0.0.1:8001',
         reuseExistingServer: true,
         // Includes the reset, which runs before the server answers.
