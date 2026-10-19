@@ -161,6 +161,39 @@ reads the area first and asks the providers only if it is clean, and the shell,
 the launcher badge and every endpoint answering `hasUnpublishedChanges` use it.
 The entity method is unchanged, and still means *this area's own draft*.
 
+## Choosing the locales from the builder
+
+`withLocales()` existed before anything in the builder could send it: the
+builder's Publish and Discard covered every locale, and the workbench was the
+only place a language could be held back. `LocaleDraftsProviderInterface` is the
+seam that lets the builder ask. A bundle lists the locales holding a draft
+(`LocaleDraft`: code and label); `LocaleDrafts` merges the providers by code.
+
+- **No provider, no question.** The shell renders the dialog only when
+  `cb_publish_scope_enabled()` is true, and the JS asks nothing without it, so a
+  host without the i18n package sees the same Publish and Discard as before.
+- **Nothing pending, no question either.** On click the builder reads
+  `GET /area/{id}/publish-scope` (`hasOwnDraft`, `locales`). An empty list means
+  a plain call, and Discard keeps its confirm prompt.
+- **Every locale starts ticked**, which is what the call did before the dialog
+  existed. Unticking holds a language back; ticking none sends `locales: []`,
+  which is `sourceOnly()`. With no page draft and nothing ticked the call would
+  do nothing, so the confirm button is disabled.
+- **The body is optional.** `POST /area/{id}/publish` and `/discard` take
+  `{"locales": [...]}`; without the key the context is `null`, as before. A
+  malformed list is a `400 invalid_locales`, before any write.
+
+The scope reaches the publisher unchanged, so [the
+invariant](#the-invariant-the-shape-enforces) holds: the area's draft always
+goes, and only a translation can be held back. That is also the limit of the
+feature. The layout is shared, so a block added to the page appears in every
+language at once, in its source text until translated; the dialog says so when
+the page itself has a draft.
+
+Read on click, not at render: a translator may be publishing from the workbench
+in another tab, and a list rendered with the shell would offer languages that
+are no longer pending.
+
 ## Why the touch listener hooks onFlush
 
 `ContentAreaTouchListener` sets `ContentArea::updatedAt` and stamps

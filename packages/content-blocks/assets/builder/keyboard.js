@@ -81,6 +81,10 @@ export default class Keyboard {
             return true;
         }
         // The Escape handler cancels the dialog's own close, so close it here.
+        if (this.hasPublishScopeDialogTarget && this.publishScopeDialogTarget.open) {
+            this.publishScopeDialogTarget.close('cancel');
+            return true;
+        }
         if (this.hasTransferDialogTarget && this.transferDialogTarget.open) {
             this._transfer?.close();
             return true;

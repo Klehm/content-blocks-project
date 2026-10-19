@@ -127,6 +127,11 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ContentBlocks\I18n\Lifecycle\TranslationDrafts::class)->public();
 
     $services->set(ContentBlocks\I18n\Lifecycle\TranslationUnpublishedChanges::class);
+    // Core 1.5 seam: the builder's Publish chooses its locales. Gated until
+    // the core floor moves to ^1.5, the way 1.2's seams were.
+    if (interface_exists(ContentBlocks\Publishing\LocaleDraftsProviderInterface::class)) {
+        $services->set(ContentBlocks\I18n\Lifecycle\TranslationLocaleDrafts::class);
+    }
     $services->set(ContentBlocks\I18n\Snapshot\TranslationSnapshotExtension::class);
 
     // The same duty for a payload that leaves the installation. See

@@ -1,0 +1,31 @@
+{# Which locales Publish and Discard cover. Filled and opened by
+   assets/builder/publish-scope.js, only while some locale has a draft. #}
+{% set t = 'content_blocks' %}
+{% set strings = {
+    publish_title: 'cb.builder.publish_scope.publish_title'|trans({}, t),
+    publish_intro: 'cb.builder.publish_scope.publish_intro'|trans({}, t),
+    publish_confirm: 'cb.builder.publish_scope.publish_confirm'|trans({}, t),
+    discard_title: 'cb.builder.publish_scope.discard_title'|trans({}, t),
+    discard_intro: 'cb.builder.publish_scope.discard_intro'|trans({}, t),
+    discard_intro_locales: 'cb.builder.publish_scope.discard_intro_locales'|trans({}, t),
+    discard_confirm: 'cb.builder.publish_scope.discard_confirm'|trans({}, t),
+    layout_note: 'cb.builder.publish_scope.layout_note'|trans({}, t),
+} %}
+<dialog class="cb-publish-scope"
+        data-cb-builder-target="publishScopeDialog"
+        aria-labelledby="cb-publish-scope-title"
+        aria-describedby="cb-publish-scope-intro"
+        data-cb-publish-scope-strings="{{ strings|json_encode }}">
+    <h2 class="cb-publish-scope__title" id="cb-publish-scope-title"></h2>
+    <p class="cb-publish-scope__intro" id="cb-publish-scope-intro"></p>
+    <fieldset class="cb-publish-scope__locales">
+        <legend class="cb-publish-scope__legend">{{ 'cb.builder.publish_scope.locales'|trans({}, t) }}</legend>
+        <ul class="cb-publish-scope__list"></ul>
+    </fieldset>
+    <p class="cb-publish-scope__note" hidden></p>
+    <p class="cb-publish-scope__hint" role="status" hidden>{{ 'cb.builder.publish_scope.nothing'|trans({}, t) }}</p>
+    <footer class="cb-publish-scope__actions">
+        <button type="button" class="cb-publish-scope__cancel">{{ 'cb.builder.publish_scope.cancel'|trans({}, t) }}</button>
+        <button type="button" class="cb-publish-scope__confirm"></button>
+    </footer>
+</dialog>

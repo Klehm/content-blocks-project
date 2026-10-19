@@ -471,6 +471,8 @@ final class ContentBlocksBundle extends AbstractBundle
         // A draft kept beside the area, which Publish would put live.
         $container->registerForAutoconfiguration(Publishing\UnpublishedChangesProviderInterface::class)
             ->addTag('content_blocks.unpublished_changes_provider');
+        $container->registerForAutoconfiguration(Publishing\LocaleDraftsProviderInterface::class)
+            ->addTag('content_blocks.locale_drafts_provider');
 
         // The template and clipboard half of the transfer seam above.
         $container->registerForAutoconfiguration(Snapshot\SnapshotExtensionInterface::class)

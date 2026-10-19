@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Twig;
 
+use ContentBlocks\Publishing\LocaleDrafts;
 use ContentBlocks\Publishing\UnpublishedChanges;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
@@ -16,6 +17,7 @@ final class UnpublishedChangesExtension extends AbstractExtension
 {
     public function __construct(
         private readonly UnpublishedChanges $changes,
+        private readonly LocaleDrafts $localeDrafts = new LocaleDrafts(),
     ) {
     }
 
@@ -26,6 +28,8 @@ final class UnpublishedChangesExtension extends AbstractExtension
     {
         return [
             new TwigFunction('cb_has_unpublished_changes', $this->changes->of(...)),
+            // Whether Publish and Discard can be asked which locales to cover.
+            new TwigFunction('cb_publish_scope_enabled', $this->localeDrafts->isEnabled(...)),
         ];
     }
 }

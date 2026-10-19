@@ -12,8 +12,11 @@ export default class Publishing {
 
     async publish(event) {
         if (event) event.preventDefault();
+        const locales = await this._askPublishScope('publish');
+        if (locales === false) return;
         const result = await this._jsonRequest(
-            'POST', `${this._apiBase}/area/${this.areaIdValue}/publish`, undefined, { tolerate: [409] },
+            'POST', `${this._apiBase}/area/${this.areaIdValue}/publish`,
+            locales === null ? undefined : { locales }, { tolerate: [409] },
         );
         if (result === null || this._saidRefused(result)) return;
         // Publish physically removed soft-deleted rows — a pending undo
@@ -25,12 +28,15 @@ export default class Publishing {
 
     async discard(event) {
         if (event) event.preventDefault();
-        // Discard throws away every unpublished edit at once, and is
-        // irreversible — unlike a delete, which has its own Undo.
+        const locales = await this._askPublishScope('discard');
+        if (locales === false) return;
+        // Irreversible, unlike a delete. The locale dialog already says so,
+        // which is why it replaces the prompt.
         const confirmText = this._t('cb.builder.discard_confirm', this.constructor.DISCARD_CONFIRM_FALLBACK);
-        if (!window.confirm(confirmText)) return;
+        if (locales === null && !window.confirm(confirmText)) return;
         const result = await this._jsonRequest(
-            'POST', `${this._apiBase}/area/${this.areaIdValue}/discard`, undefined, { tolerate: [409] },
+            'POST', `${this._apiBase}/area/${this.areaIdValue}/discard`,
+            locales === null ? undefined : { locales }, { tolerate: [409] },
         );
         if (result === null || this._saidRefused(result)) return;
         // Discard already reverted every draft deletion (or removed

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\I18n\Tests;
 
 use ContentBlocks\I18n\ContentBlocksI18nBundle;
+use ContentBlocks\I18n\Lifecycle\TranslationLocaleDrafts;
 use ContentBlocks\I18n\Lifecycle\TranslationUnpublishedChanges;
 use ContentBlocks\I18n\Snapshot\TranslationSnapshotExtension;
 use PHPUnit\Framework\TestCase;
@@ -29,5 +30,7 @@ final class CoreSeamServicesTest extends TestCase
 
         $this->assertTrue($container->hasDefinition(TranslationSnapshotExtension::class));
         $this->assertTrue($container->hasDefinition(TranslationUnpublishedChanges::class));
+        // Core 1.5: still gated, so assert it is there on the current core.
+        $this->assertTrue($container->hasDefinition(TranslationLocaleDrafts::class));
     }
 }

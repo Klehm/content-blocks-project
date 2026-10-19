@@ -7,6 +7,7 @@ import Snackbar from '../builder/snackbar.js';
 import Preview from '../builder/preview.js';
 import Structure from '../builder/structure.js';
 import Publishing from '../builder/publishing.js';
+import PublishScope from '../builder/publish-scope.js';
 import History from '../builder/history.js';
 import Clipboard from '../builder/clipboard.js';
 import Keyboard from '../builder/keyboard.js';
@@ -53,6 +54,7 @@ class BuilderController extends Controller {
         'templatePickerList',
         'templatePickerStatus',
         'transferDialog',
+        'publishScopeDialog',
         'actionsMenu',
         'actionsToggle',
         'actionsList',
@@ -292,6 +294,7 @@ export default mix(
     Preview,
     Structure,
     Publishing,
+    PublishScope,
     History,
     Clipboard,
     Keyboard,

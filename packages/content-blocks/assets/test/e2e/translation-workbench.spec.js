@@ -302,6 +302,8 @@ test('a tab title is translated in the workbench and served in its locale', asyn
     const publish = page.locator('.cb-shell__publish');
     await expect(publish).toBeEnabled();
     await publish.click();
+    // A translation is waiting: Publish asks which languages, all ticked.
+    await page.locator('.cb-publish-scope__confirm').click();
     await expect(publish).toBeDisabled({ timeout: 10000 });
 
     const pageId = builderUrl.match(/\/admin\/page\/(\d+)/)[1];
@@ -389,6 +391,8 @@ test('an image is replaced for one language and served in its locale', async ({ 
     const publish = page.locator('.cb-shell__publish');
     await expect(publish).toBeEnabled();
     await publish.click();
+    // A translation is waiting: Publish asks which languages, all ticked.
+    await page.locator('.cb-publish-scope__confirm').click();
     await expect(publish).toBeDisabled({ timeout: 10000 });
 
     const pageId = builderUrl.match(/\/admin\/page\/(\d+)/)[1];

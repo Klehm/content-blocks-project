@@ -288,6 +288,12 @@
     {# The section library is no longer a modal here: it lives in the empty
        sidebar, where an editor with nothing selected is already looking. #}
 
+    {# Only when a bundle keeps locale drafts: without one, Publish asks
+       nothing, as it always did. #}
+    {% if cb_publish_scope_enabled() %}
+        {{ include('@ContentBlocks/builder/publish_scope_dialog.html.twig') }}
+    {% endif %}
+
     {# A native <dialog>: focus, Escape and the backdrop come with it. #}
     {% if hasImportExport %}
         {{ include('@ContentBlocks/builder/transfer_dialog.html.twig', {
