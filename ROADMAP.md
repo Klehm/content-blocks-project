@@ -109,9 +109,8 @@ All of them fit in 1.x under three rules:
 Ranked, highest first:
 
 1. **Per-block CSS/JS declaration**, through an optional interface on the block type.
-2. **A per-block data migration hook.** `ContentVersionUpgraderInterface` covers snapshots only. An optional interface on the block type; `DenyOnMismatchUpgrader` keeps its default, which is part of the promise.
-3. **Picker categories**, through an optional `category` argument on `#[AsContentBlock]` or an optional interface. A block without one lands in a default group.
-4. **`lang` on text that falls back to the source.** On a German page, an untranslated field shows French text that screen readers, hyphenation and search engines read as German (WCAG 3.1.2). A whole untranslated block can get `lang` on its wrapper through a `BlockDecoratorInterface`, with no template change. A partly translated block needs its view to know which field fell back: views receive `context` (its locale) since 1.5, so what is missing is the per-field status. **Opt-in in 1.x** (`content_blocks_i18n.fallback_lang`), since it changes the public markup.
+2. **Picker categories**, through an optional `category` argument on `#[AsContentBlock]` or an optional interface. A block without one lands in a default group.
+3. **`lang` on text that falls back to the source.** On a German page, an untranslated field shows French text that screen readers, hyphenation and search engines read as German (WCAG 3.1.2). A whole untranslated block can get `lang` on its wrapper through a `BlockDecoratorInterface`, with no template change. A partly translated block needs its view to know which field fell back: views receive `context` (its locale) since 1.5, so what is missing is the per-field status. **Opt-in in 1.x** (`content_blocks_i18n.fallback_lang`), since it changes the public markup.
 
 Not ranked yet:
 
