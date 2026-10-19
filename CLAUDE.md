@@ -734,6 +734,8 @@ App volontairement minimale : **Symfony 6.4 + Doctrine ORM 2 + Webpack Encore**,
 
 C'est aussi la sandbox **CKEditor** : elle configure `rich_text` avec `editor: ckeditor` + `cdn: false`, et son entrée webpack importe `ckeditor5` pour le publier en `window.CKEDITOR`. Les deux autres sandboxes restent sur le défaut (TinyMCE via CDN), donc la répartition couvre les deux éditeurs *et* les deux modes de chargement. Corollaire pratique : c'est la seule suite e2e qui pilote un vrai éditeur sans toucher au réseau — d'où les specs CKEditor ici plutôt que dans la suite principale, qui doit bloquer le CDN pour être déterministe.
 
+It is also the **Glide** sandbox: `ImageUrlResolverInterface` is aliased to `App\Image\GlideImageUrlResolver` (signed `/img/{path}` URLs, served by `App\Controller\GlideImageController`, WebP, `fit=max`), the runnable demo of [docs/guide/recipes/glide.md](docs/guide/recipes/glide.md), pinned by `e2e-encore/image-glide.spec.js`. Hence its `public/router.php` (a `/img/….png` URL would otherwise be taken for a static file) and `gd` in its CI job. The main sandbox stays the LiipImagine one: a host aliases a single resolver.
+
 ```bash
 cd apps/content-blocks-encore-sandbox
 
@@ -746,7 +748,7 @@ php bin/console doctrine:database:create --if-not-exists
 php bin/console doctrine:schema:create
 
 npm run build
-php -S 127.0.0.1:8004 -t public
+php -S 127.0.0.1:8004 -t public public/router.php
 
 # Accéder à http://127.0.0.1:8004
 ```
@@ -810,7 +812,7 @@ npm test
 | Config | Fixture | Couvre |
 |---|---|---|
 | `playwright.config.js` | `content-blocks-sandbox` — Symfony 7/8, AssetMapper | le **comportement** du builder (195 tests; CI also runs it on PostgreSQL 16) |
-| `playwright.encore.config.js` | `content-blocks-encore-sandbox` — Symfony 6.4, ORM 2, Webpack Encore | le **chemin d'installation** sous un bundler qu'on ne développe pas au quotidien, + l'éditeur rich-text bundlé par l'hôte (7 specs) |
+| `playwright.encore.config.js` | `content-blocks-encore-sandbox` — Symfony 6.4, ORM 2, Webpack Encore | le **chemin d'installation** sous un bundler qu'on ne développe pas au quotidien, + l'éditeur rich-text bundlé par l'hôte + the Glide recipe (8 specs) |
 
 La suite Encore reste volontairement petite : tout ce qui passerait à l'identique sous les deux bundlers appartient à la suite principale. Elle existe parce qu'un bug de boot (le prepend `asset_mapper` inconditionnel) a pu vivre longtemps sans qu'aucun test ne le voie — la sandbox met `symfony/asset-mapper` dans son `conflict` Composer pour que la jambe ne puisse jamais redériver vers le chemin déjà couvert.
 

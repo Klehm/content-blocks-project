@@ -20,7 +20,8 @@ export default defineConfig({
         command: 'export SANDBOX_SUFFIX=_e2e'
             + ' && ../../scripts/demo.sh reset encore && '
             + 'while true; do PHP_CLI_SERVER_WORKERS=8 php -S 127.0.0.1:8002'
-            + " -t ../../apps/content-blocks-encore-sandbox/public;"
+            + ' -t ../../apps/content-blocks-encore-sandbox/public'
+            + ' ../../apps/content-blocks-encore-sandbox/public/router.php;'
             + " echo '[fixture] web server exited — restarting'; sleep 0.3; done",
         url: 'http://127.0.0.1:8002',
         reuseExistingServer: true,
