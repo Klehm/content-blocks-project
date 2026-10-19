@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/test.js';
 import { launchBuilder } from './helpers/builder.js';
 import { openTab, reveal } from './helpers/sidebar.js';
 

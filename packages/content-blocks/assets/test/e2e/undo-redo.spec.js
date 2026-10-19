@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/test.js';
 import { launchBuilder } from './helpers/builder.js';
 import { reveal } from './helpers/sidebar.js';
 
@@ -173,14 +173,14 @@ test.describe('action history — undoing without leaving the field', () => {
 
     /** Clicks the section chrome and waits for its settings form. */
     async function openSectionSidebar(page, frame) {
-        // Adding the section already opened a form, which the click replaces:
-        // editing the first one would be lost to the second.
+        // Adding the section already opened its form; clicking the section
+        // must keep that form, or what is typed in it would be lost.
         await expect(await reveal(styleSelect(page))).toBeVisible();
         const previous = await styleSelect(page).elementHandle();
         await frame.locator('.cb-section-handle').first().click({ force: true });
-        await expect.poll(() => previous.evaluate((node) => node.isConnected)).toBe(false);
         await expect(page.locator('.cb-shell__sidebar')).toHaveAttribute('data-cb-sidebar-section-id', /\d+/);
-        // The new form reopens on the tab last used, Style.
+        await page.waitForTimeout(500);
+        expect(await previous.evaluate((node) => node.isConnected)).toBe(true);
         await expect(styleSelect(page)).toBeVisible();
 
         return page.locator('.cb-shell__sidebar').getAttribute('data-cb-sidebar-section-id');

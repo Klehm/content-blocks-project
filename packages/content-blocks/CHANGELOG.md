@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Typing right after adding a block could be lost.** Adding a block opens
+  its form; clicking the block then loaded the form a second time, which could
+  land while the editor was typing: focus left the field and the text typed so
+  far was gone. A click on the block or section the sidebar already shows, in
+  the preview or the Navigator, now loads nothing.
+
 ### Added
 
 - **A block view receives `block` and `context`.** Beside `data` and

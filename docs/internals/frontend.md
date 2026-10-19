@@ -250,6 +250,17 @@ editor had picked since (or bring back the form they had just dismissed), so
 `_mountSidebarFrom` drops any response that is not the latest request, and
 `_resetSidebarToEmptyState` cancels the one in flight.
 
+**A click on what the sidebar already shows loads nothing.** That rule only
+ordered two requests; it did not stop the second from landing after the first.
+Add a block, click it, start typing: the form the add had opened was replaced
+by the click's, focus went to `<body>`, and what had been typed was lost — CI
+saw it as a flaky focus assertion, two runs in ten. A click from the preview or
+the Navigator now goes through `_selectBlock` / `_selectSection`, which do
+nothing when the sidebar shows that entity with no other mount pending; with
+one pending, the click still supersedes it. Reloads that mean it (undo/redo
+re-mounting the open form) call `_mountSidebar` directly. Closing and
+reopening is how an editor, or a test, asks for a fresh form.
+
 A newly inserted section wins over the restored scroll position, on the reload
 fallback too: it lands at the end of the area, often below the fold, and
 restoring the old scroll would hide the one thing the editor wants to see.

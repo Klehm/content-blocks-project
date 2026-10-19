@@ -46,6 +46,27 @@ export default class Sidebar {
         });
     }
 
+    /**
+     * A click on what the sidebar already shows: nothing to load, and a
+     * reload would replace the field the editor may be typing in.
+     */
+    _selectBlock(blockId) {
+        if (this._sidebarSettledOn('data-cb-sidebar-block-id', blockId)) return;
+        this._mountSidebar(blockId);
+    }
+
+    _selectSection(sectionId) {
+        if (this._sidebarSettledOn('data-cb-sidebar-section-id', sectionId)) return;
+        this._mountSectionSettings(sectionId);
+    }
+
+    /** Shows `id`, with no other mount in flight that would replace it. */
+    _sidebarSettledOn(attr, id) {
+        if (!this.hasSidebarTarget || this._latestMount?.pending) return false;
+
+        return this.sidebarTarget.getAttribute(attr) === String(id);
+    }
+
     /** Section settings: same fetch/inject flow, different endpoint. */
     async _mountSectionSettings(sectionId) {
         await this._mountSidebarFrom(`${this._apiBase}/section/${sectionId}/settings`, {
@@ -59,7 +80,7 @@ export default class Sidebar {
      */
     async _mountSidebarFrom(url, dataAttrs = {}) {
         if (!this.hasSidebarTarget || !this.hasSidebarContentTarget) return;
-        const mount = {};
+        const mount = { pending: true };
         this._latestMount = mount;
 
         // The user just asked to edit something.
@@ -93,6 +114,7 @@ export default class Sidebar {
         } catch (e) {
             console.error('[cb-builder] mount error', e);
         } finally {
+            mount.pending = false;
             this._endLoading();
         }
     }

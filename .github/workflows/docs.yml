@@ -1,13 +1,14 @@
 name: Deploy docs to GitHub Pages
 
+# The site documents what Packagist serves, so it moves with stable releases
+# only: a feature merged on master is not published before it can be
+# installed. Pre-releases (v1.5.0-RC1) do not deploy. A fix between releases
+# goes out by running this workflow by hand, on the latest tag.
 on:
   push:
-    branches: [master]
-    paths:
-      - 'docs/**'
-      - '.github/workflows/docs.yml'
-      # The version picker reads it: a release that only bumps it must redeploy.
-      - 'packages/content-blocks/assets/package.json'
+    tags:
+      - 'v*'
+      - '!v*-*'
   workflow_dispatch:
 
 permissions:

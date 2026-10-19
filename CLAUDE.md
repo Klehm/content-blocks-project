@@ -809,6 +809,7 @@ npm test
 - **Vitest** : teste la logique des controllers Stimulus en isolation (DOM mock, fetch mock)
 - **Playwright** : teste les flux complets dans un vrai navigateur contre la sandbox
 - La sandbox (`apps/content-blocks-sandbox/`) sert de **fixture** pour Playwright (`webServer` dans `playwright.config.js`), sur le port 8001, as its own `_e2e` instance (database + uploads), reset before each run
+- **Every spec imports `test` from `assets/test/e2e/helpers/test.js`**, never `@playwright/test` directly: its automatic fixture makes a retry wait for the fixture server, which `php -S` occasionally crashes on CI (restart loop + orphan workers killed). Rationale: [docs/internals/testing.md#why-the-server-runs-under-a-restart-loop](docs/internals/testing.md#why-the-server-runs-under-a-restart-loop)
 
 **Deux suites Playwright, deux rôles distincts** :
 
@@ -882,6 +883,8 @@ normal PHPUnit suites. See the [Worker mode](#worker-mode-frankenphp-roadrunner-
 ## Release — bump the asset package versions
 
 Each release sets `"version"` in `packages/content-blocks/assets/package.json` and `packages/content-blocks-kit/assets/package.json` to the tagged version (e.g. `1.0.0-RC12`). Yarn 1 refuses a `file:` dependency without one; `AssetPackageVersionTest` in both packages fails when the field is missing or behind the last CHANGELOG release.
+
+**The docs site deploys on a stable tag only** (`docs.yml`: `v*`, not `v*-*`), so it never documents what Packagist cannot install yet. A docs change merged on master waits for the next release; to ship a fix between releases, run the workflow by hand on the latest tag. The `github-pages` environment allows `master` and `v*` tags.
 
 ## Workflow Claude — recompiler les assets après chaque tâche
 

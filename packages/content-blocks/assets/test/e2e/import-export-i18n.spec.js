@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/test.js';
 import { launchBuilder } from './helpers/builder.js';
 import { fetchExport, jsonFile, reviewImport, runImport } from './helpers/transfer.js';
 
