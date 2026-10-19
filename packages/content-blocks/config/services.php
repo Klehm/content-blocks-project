@@ -429,6 +429,9 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ContentBlocks\Publishing\UnpublishedChanges::class)
         ->args([tagged_iterator('content_blocks.unpublished_changes_provider')])
         ->public();
+    // The locales a bundle holds a draft for, so Publish can choose them.
+    $services->set(ContentBlocks\Publishing\LocaleDrafts::class)
+        ->args([tagged_iterator('content_blocks.locale_drafts_provider')]);
     $services->set(ContentBlocks\Twig\UnpublishedChangesExtension::class)
         ->tag('twig.extension');
 

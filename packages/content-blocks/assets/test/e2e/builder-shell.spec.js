@@ -1087,7 +1087,8 @@ test.describe('builder shell — publish / discard', () => {
         page.once('dialog', (dialog) => { dialogShown = true; dialog.dismiss(); });
         await page.locator('.cb-shell__discard').click();
 
-        expect(dialogShown).toBe(true);
+        // After the locale check: no translation pending, so the prompt.
+        await expect.poll(() => dialogShown).toBe(true);
         await expect(page.locator('.cb-shell__discard')).toBeVisible();
         expect(await frame.locator('[data-cb-section-id]').count()).toBe(1);
     });

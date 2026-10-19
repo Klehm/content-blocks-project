@@ -6,22 +6,6 @@ Legend: 🅿️ planned · 🤔 under consideration · 💡 idea
 
 ---
 
-## Translation / Multilingual — what is still open 🤔
-
-The package shipped in [#19](https://github.com/klehm/content-blocks-project/pull/19): `klehm/content-blocks-i18n`, backend *and* workbench, on a side table (`cb_block_translation`) with per-field fallback, staleness digests and a batch machine-translation seam with no engine shipped. Package docs: [README](packages/content-blocks-i18n/README.md) · [guide](docs/guide/translation.md) · [provider recipe](docs/guide/recipes/translation-provider.md).
-
-The cost of a side table is that nothing carries its rows for free, so every flow that moves content has to be taught about them one by one. Where that stands:
-
-- [x] Clone / duplicate / insert content — through `BlockCloneObserverInterface`
-- [x] Export / import — through `ContentAreaTransferExtensionInterface` ([#36](https://github.com/klehm/content-blocks-project/pull/36)); digests are carried, never recomputed
-- [x] **Section templates** and the **clipboard** — through the core's `SnapshotExtensionInterface`, paths kept by entry position since a paste re-mints entry ids
-- [x] **A translation-only change can be published** — the builder's Publish used to stay greyed out, since the area's own draft state cannot see a side table (`UnpublishedChangesProviderInterface`)
-- [x] **Locale fallback chain** (`fallbacks: { fr_CA: fr }`), opt-in, and an **hreflang helper** (`cb_i18n_hreflang()`) built on `LocalizedPageUrlResolverInterface`
-- [x] **Per-locale publishing, from the workbench** — *Publish EN* / *Discard* with `PublishContext::withLocales()`, refused while the page has a draft of its own, which it would put live
-- [ ] **Per-locale publishing, from the builder** — choosing which languages ride along with the builder's Publish, and warning before its Discard throws away translation drafts. On demand. The constraint stands: the layout is shared, so a per-locale publish can only hold back *values of existing fields* — a newly added block appears in every locale at once and renders its source text there until translated.
-
----
-
 ## Release — the RC cycle, then 1.0 ✅
 
 **`v1.0.0` shipped on 23 Sep**, once RC17 had run on the production host without a finding. What follows is the record of how it got there.
@@ -124,13 +108,12 @@ All of them fit in 1.x under three rules:
 
 Ranked, highest first:
 
-1. **Translation**: per-locale publishing from the builder (see [Translation](#translation--multilingual--what-is-still-open-) above).
-2. **`@layer content-blocks` on the public CSS**, so a host overrides it without out-specifying 7-compound selectors. **Opt-in in 1.x, default in 2.0.** Layered rules lose to every unlayered rule whatever their specificity, so turning it on for everyone would let a host's existing global CSS (`img`, `a`, a reset) start winning over the package's rules: no signature changes, but pages render differently. A config key that wraps the served stylesheets keeps 1.x safe; meanwhile a host can already write `@import url(…) layer(content-blocks)` itself.
-3. **Pass the block and the render context to the view template.** It is included with `with_context = false` and receives `data` and `block_id` only (`render/block.html.twig`): `block_id` already gives stable anchors and ARIA ids, but a view cannot tell the render mode or the locale. New variables only, so no existing view breaks.
-4. **Per-block CSS/JS declaration**, through an optional interface on the block type.
-5. **A per-block data migration hook.** `ContentVersionUpgraderInterface` covers snapshots only. An optional interface on the block type; `DenyOnMismatchUpgrader` keeps its default, which is part of the promise.
-6. **Picker categories**, through an optional `category` argument on `#[AsContentBlock]` or an optional interface. A block without one lands in a default group.
-7. **`lang` on text that falls back to the source.** On a German page, an untranslated field shows French text that screen readers, hyphenation and search engines read as German (WCAG 3.1.2). A whole untranslated block can get `lang` on its wrapper through a `BlockDecoratorInterface`, with no template change. A partly translated block needs item 3, so the view knows which field fell back. **Opt-in in 1.x** (`content_blocks_i18n.fallback_lang`), since it changes the public markup.
+1. **`@layer content-blocks` on the public CSS**, so a host overrides it without out-specifying 7-compound selectors. **Opt-in in 1.x, default in 2.0.** Layered rules lose to every unlayered rule whatever their specificity, so turning it on for everyone would let a host's existing global CSS (`img`, `a`, a reset) start winning over the package's rules: no signature changes, but pages render differently. A config key that wraps the served stylesheets keeps 1.x safe; meanwhile a host can already write `@import url(…) layer(content-blocks)` itself.
+2. **Pass the block and the render context to the view template.** It is included with `with_context = false` and receives `data` and `block_id` only (`render/block.html.twig`): `block_id` already gives stable anchors and ARIA ids, but a view cannot tell the render mode or the locale. New variables only, so no existing view breaks.
+3. **Per-block CSS/JS declaration**, through an optional interface on the block type.
+4. **A per-block data migration hook.** `ContentVersionUpgraderInterface` covers snapshots only. An optional interface on the block type; `DenyOnMismatchUpgrader` keeps its default, which is part of the promise.
+5. **Picker categories**, through an optional `category` argument on `#[AsContentBlock]` or an optional interface. A block without one lands in a default group.
+6. **`lang` on text that falls back to the source.** On a German page, an untranslated field shows French text that screen readers, hyphenation and search engines read as German (WCAG 3.1.2). A whole untranslated block can get `lang` on its wrapper through a `BlockDecoratorInterface`, with no template change. A partly translated block needs item 2, so the view knows which field fell back. **Opt-in in 1.x** (`content_blocks_i18n.fallback_lang`), since it changes the public markup.
 
 Not ranked yet:
 

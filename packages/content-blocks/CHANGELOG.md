@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Publish and Revert to published can choose their locales.** When a bundle
+  keeps locale drafts (the i18n package) and some are pending, both buttons
+  open a dialog listing those languages, all ticked: an unticked one keeps its
+  draft. The page's own draft always goes, so a translation can be held back
+  but never pushed ahead of its source. Without such a bundle, or with nothing
+  pending, nothing changes. New seam `LocaleDraftsProviderInterface` (value
+  object `LocaleDraft`, autoconfigured). `content_blocks_area_publish` and
+  `content_blocks_area_discard` take an optional JSON body
+  `{"locales": [...]}`; without it they cover every locale, as before. No
+  migration.
+
 ### Documentation
 
 - **A Glide recipe for image optimization**, the bundle-free alternative to

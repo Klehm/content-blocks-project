@@ -12,7 +12,7 @@ ContentBlocks follows [semantic versioning](https://semver.org/). From `1.0.0`, 
 
 These are the extension surface: implement them, alias them, decorate them. Their method signatures are frozen, and so is the meaning of what they return.
 
-**Core** (`klehm/content-blocks`), 42 interfaces:
+**Core** (`klehm/content-blocks`), 43 interfaces:
 
 | Area | Interfaces |
 |---|---|
@@ -20,7 +20,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 | Blocks | `BlockTypeInterface`, `BlockPreviewHintInterface`, `BlockDataDefaultsProviderInterface`, `BlockDecoratorInterface`, `BlockFormExtensionInterface`, `TranslatableFieldsInterface` |
 | Sections and columns | `SectionDecoratorInterface`, `SectionSettingsDefaultsProviderInterface`, `SectionStyleProviderInterface`, `SectionClonerInterface`, `BlockCloneObserverInterface`, `ColumnCloneObserverInterface` |
 | Rendering | `BlockRendererInterface`, `BlockDataResolverInterface`, `ColumnSettingsResolverInterface`, `ImageUrlResolverInterface` |
-| Content and publishing | `ContentManipulatorInterface`, `ContentAreaPublisherInterface`, `UnpublishedChangesProviderInterface` |
+| Content and publishing | `ContentManipulatorInterface`, `ContentAreaPublisherInterface`, `UnpublishedChangesProviderInterface`, `LocaleDraftsProviderInterface` |
 | Builder UI | `BuilderActionProviderInterface`, `BuilderShellExtensionInterface`, `BuilderStructureResolverInterface`, `UiIconProviderInterface`, `ColorPaletteProviderInterface` |
 | Storage and assets | `FileStorageInterface`, `AssetInventoryInterface`, `AssetResolverInterface`, `AssetReferenceProviderInterface` |
 | Clipboard, templates, transfer | `BlockSnapshotSerializerInterface`, `SectionTemplateSerializerInterface`, `SectionTemplateInstantiatorInterface`, `ContentAreaExporterInterface`, `ContentAreaImporterInterface`, `ContentAreaTransferExtensionInterface`, `SnapshotExtensionInterface` |
@@ -42,7 +42,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 - **The sidebar form options.** `cb_group`, `cb_panel`, `cb_help_tooltip` and `cb_panels_exclusive` on every form type; `cb_icons`, `cb_icon_layout`, `cb_icon_columns` and `cb_icon_labels` on `ChoiceType`; `cb_open_entries` on `LiveCollectionType`. Also the **names of the shipped UI icons** they refer to ([Laying out sidebar fields](./sidebar-fields.md)): a name may gain a better drawing, but it is not renamed or removed.
 - **Value objects your implementation builds or reads.** Their public properties and named constructors are frozen:
   - rendering: `RenderContext`, `RenderMode`, `ResolvedImage`, `BlockPreviewHint`, `BlockDecoration`, `SectionDecoration`
-  - publishing: `PublishContext`
+  - publishing: `PublishContext`, `LocaleDraft`
   - builder UI and styling: `BuilderAction`, `BuilderShellFragment`, `BuilderStructure` (its `SECTIONS_*` constants and `can*()` / `showsSections()` reads), `PaletteColor`, `SectionStyle`
   - storage: `StoredAsset`
   - translation: the kit's `RichTextEditorView`; i18n's `TranslationRequest`, `TranslationOutcome`, `TranslationJob` and `FieldStatus`
@@ -67,7 +67,7 @@ Every key of the three semantic config trees (`content_blocks`, `content_blocks_
   | `content_blocks_upload` | `POST` multipart: `file` and `area`, the `X-CSRF-Token` header; the JSON answer's `url` (and `error` on a refusal) |
   | `content_blocks_export` | `GET` on an area, answering the export archive; `?assets=0` |
   | `content_blocks_import` | `POST` of an export in one request, the single-request path kept for scripts |
-  | `content_blocks_area_publish`, `content_blocks_area_discard` | `POST` with the CSRF header; a `409` with `error: "refused"`, `message` and `reasons` when a [listener refused](./events.md#refusing-an-action) |
+  | `content_blocks_area_publish`, `content_blocks_area_discard` | `POST` with the CSRF header, and an optional JSON body `{"locales": [...]}` naming the locales whose translations the call covers (without it, every locale); a `400` with `error: "invalid_locales"` for a malformed list; a `409` with `error: "refused"`, `message` and `reasons` when a [listener refused](./events.md#refusing-an-action) |
   | `content_blocks_asset_layout`, `content_blocks_asset_styling`, `content_blocks_asset_slider`, `content_blocks_kit_asset_css` | `GET`, the stylesheet or script a public page links; `?v=` with the content's version is cached for a year |
   | `content_blocks_asset_report` | `GET`, the read-only asset report page |
   | `content_blocks_i18n_workbench` | `GET`, the translation workbench page |

@@ -7,6 +7,15 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **The builder's Publish and Revert to published can hold a language back.**
+  `TranslationLocaleDrafts` lists the languages with a pending translation, in
+  the configured order, to the dialog both buttons now open
+  (`klehm/content-blocks` 1.5). A language left unticked keeps its draft and
+  its public page as it is. The layout is shared, so a block added to the page
+  still appears in every language at once. No migration.
+
 ## [1.4.0] - 2026-10-12
 
 No change in the i18n package itself. The release brings theme variables in

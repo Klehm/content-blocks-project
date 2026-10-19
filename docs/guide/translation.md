@@ -265,6 +265,23 @@ builder's Publish is the way, translations included. It goes through the same
 publisher as the builder's, so [publish events](events.md) fire and a listener
 can refuse it.
 
+### Choosing languages in the builder
+
+When a translation is waiting, the builder's **Publish** opens a dialog listing
+the languages that have one, all ticked. Untick a language to hold it back: its
+draft stays, and its public page stays as it is until a later Publish. The page
+itself always goes live, so a translation can wait for its source but never get
+ahead of it.
+
+**Revert to published** asks the same question: a ticked language loses its
+draft with the page's, an unticked one keeps it.
+
+What can be held back is the *text* of a language, not the layout, which every
+language shares. A block added to the page appears in all of them at once,
+showing its source text until it is translated.
+
+With no translation waiting, both buttons behave as they always did.
+
 ## Three states
 
 | State | Meaning | Renders as |
