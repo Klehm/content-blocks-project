@@ -17,6 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A block declares the CSS and JS it needs.** A block type implementing the
+  optional `BlockAssetsInterface` returns a `BlockAssets` (stylesheets,
+  modules, classic scripts) from `assets(array $data)`, so what is linked can
+  follow the content. The page links them only where such a block renders,
+  each once, after the core's stylesheets; a path goes through `asset()` when
+  the app has `framework.assets`; `entries` names bundler entries, resolved
+  by an `EntrypointResolverInterface` adapter: the Encore one
+  (`EncoreEntrypointResolver`, entry linked with its runtime and shared
+  chunks, deduplicated with the layout's own) is registered only when
+  `symfony/webpack-encore-bundle` is installed, which the package does not
+  require; another bundler aliases its own. In the builder, a
+  block added or edited in place brings its assets into the preview. A block
+  type without the interface changes nothing. With AssetMapper, declare a
+  block module `entrypoint: true` in `importmap.php`, passed to no
+  `importmap()`, for its imports to resolve. No
+  migration.
+
 - **A block view receives `block` and `context`.** Beside `data` and
   `block_id`, a view template now gets `block` (`BlockView`: `id`, `type`,
   read-only, never the entity) and `context` (the `RenderContext`, its mode

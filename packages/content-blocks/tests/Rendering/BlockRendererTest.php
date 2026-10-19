@@ -988,6 +988,149 @@ final class BlockRendererTest extends TestCase
         $this->assertStringContainsString('<p class="cb-custom" id="b77">Custom: Hello</p>', $html);
     }
 
+    // ---------- CSS and JS a block declares ----------
+
+    public function testThePublicPageLinksWhatItsBlocksDeclareEachOnce(): void
+    {
+        $html = $this->renderWithAssets([['carousel' => true], ['carousel' => true]]);
+
+        $this->assertSame(1, substr_count($html, '<link rel="stylesheet" href="/map.css">'));
+        $this->assertSame(1, substr_count($html, '<script defer src="/legacy.js"></script>'));
+        $this->assertSame(1, substr_count($html, '<script type="module" src="/carousel.js"></script>'));
+    }
+
+    // The data decides: a gallery shown as a grid needs no carousel JS.
+    public function testWhatIsLinkedFollowsTheBlocksData(): void
+    {
+        $html = $this->renderWithAssets([['carousel' => false]]);
+
+        $this->assertStringContainsString('href="/map.css"', $html);
+        $this->assertStringNotContainsString('/carousel.js', $html);
+    }
+
+    // A block type without the interface: the page is what it was.
+    public function testAPageWithoutSuchBlocksLinksNothingMore(): void
+    {
+        $html = $this->renderWithAssets([]);
+
+        $this->assertStringNotContainsString('/map.css', $html);
+        $this->assertStringNotContainsString('<script defer', $html);
+    }
+
+    // The overlay reads this to link a hot-inserted block's assets.
+    public function testAPreviewFragmentCarriesItsBlocksAssets(): void
+    {
+        $html = $this->renderWithAssets([['carousel' => true]], RenderMode::PREVIEW, single: true);
+
+        $this->assertSame(1, preg_match('/data-cb-assets="([^"]+)"/', $html, $m));
+        $this->assertSame([
+            'stylesheets' => ['/map.css'],
+            'scripts' => ['/legacy.js'],
+            'modules' => ['/carousel.js'],
+        ], json_decode(html_entity_decode($m[1]), true));
+    }
+
+    // A full page links them at page level: no per-block list to consume
+    // Encore's per-request dedupe first.
+    public function testAFullPreviewRenderCarriesNoPerBlockList(): void
+    {
+        $html = $this->renderWithAssets([['carousel' => true]], RenderMode::PREVIEW);
+
+        $this->assertStringContainsString('href="/map.css"', $html);
+        $this->assertStringNotContainsString('data-cb-assets', $html);
+    }
+
+    public function testThePublicMarkupOfABlockCarriesNoAssetList(): void
+    {
+        $html = $this->renderWithAssets([['carousel' => true]]);
+
+        $this->assertStringNotContainsString('data-cb-assets', $html);
+    }
+
+    /**
+     * Blocks of type `map` (declaring assets) for each $data given, plus
+     * one `plain` block declaring none.
+     *
+     * @param list<array<string, mixed>> $maps
+     */
+    private function renderWithAssets(array $maps, RenderMode $mode = RenderMode::PUBLIC, bool $single = false): string
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $column = $this->makeColumn($section, position: 0, previewPosition: 0);
+        $this->makeBlock($column, type: 'plain', publishedData: ['x' => 1], draftData: ['x' => 1], position: 0, previewPosition: 0);
+        foreach ($maps as $i => $data) {
+            $this->makeBlock($column, type: 'map', publishedData: $data, draftData: $data, position: $i + 1, previewPosition: $i + 1);
+        }
+
+        $registry = new BlockTypeRegistry();
+        $registry->register(new class () extends AbstractBlockType implements \ContentBlocks\BlockType\BlockAssetsInterface {
+            public function getType(): string
+            {
+                return 'map';
+            }
+            public function getLabel(): string
+            {
+                return 'Map';
+            }
+            public function buildForm(FormBuilderInterface $builder, array $data): void
+            {
+            }
+            public function getDefaultData(): array
+            {
+                return [];
+            }
+            public function assets(array $data): \ContentBlocks\BlockType\BlockAssets
+            {
+                return new \ContentBlocks\BlockType\BlockAssets(
+                    stylesheets: ['/map.css'],
+                    scripts: ['/legacy.js'],
+                    modules: ($data['carousel'] ?? false) ? ['/carousel.js'] : [],
+                );
+            }
+        });
+        $registry->register(new class () extends AbstractBlockType {
+            public function getType(): string
+            {
+                return 'plain';
+            }
+            public function getLabel(): string
+            {
+                return 'Plain';
+            }
+            public function buildForm(FormBuilderInterface $builder, array $data): void
+            {
+            }
+            public function getDefaultData(): array
+            {
+                return [];
+            }
+        });
+
+        $renderer = new BlockRenderer(
+            $this->makeTwig(),
+            new RequestStack(),
+            new AllowAllAccessChecker(),
+            $registry,
+            new \ContentBlocks\Section\SectionDecoratorCollection([]),
+            new \ContentBlocks\Section\SectionSettingsDefaults([]),
+            new \ContentBlocks\Section\SectionStyleRegistry([]),
+            $this->makeTranslator(),
+            new \ContentBlocks\Block\BlockDecoratorCollection([]),
+            new \ContentBlocks\Block\BlockDataDefaults(),
+            new BlockDataResolverCollection([new CoreBlockDataResolver()]),
+        );
+
+        if ($single) {
+            $last = $column->getBlocks()->last();
+            self::assertInstanceOf(Block::class, $last);
+
+            return $renderer->renderBlock($last, new RenderContext($mode));
+        }
+
+        return $renderer->render($area, new RenderContext($mode));
+    }
+
     // ---------- what a block view receives ----------
 
     private const VIEW_PROBE = '<p class="probe">{{ block.id }}|{{ block.type }}|'

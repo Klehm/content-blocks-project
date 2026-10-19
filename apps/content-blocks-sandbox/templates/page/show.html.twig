@@ -30,6 +30,9 @@
        kit block renders unstyled there (most visibly, a preset-width image
        ignores its `max-width: 100%` and bursts out of its column). #}
     <link rel="stylesheet" href="{{ cb_kit_stylesheet_url() }}">
+    {# Maps the imports of every entrypoint in importmap.php, so a block
+       module's resolve (the counter's), while only 'front' is run. #}
+    {{ importmap('front') }}
 </head>
 <body>
     <article>

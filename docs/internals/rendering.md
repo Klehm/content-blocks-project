@@ -122,6 +122,58 @@ does not pass the new variables. That is why the guide tells views to read
 switching the include to `with_context = true`, which would hand a view every
 variable of the wrapper.
 
+## CSS and JS a block declares
+
+`BlockAssetsInterface` is optional, like `BlockPreviewHintInterface`: a block
+type that does not implement it adds nothing to the page, so the HTML of a host
+that does nothing is byte for byte what it was.
+
+- **Asked per block, with the resolved data.** `buildBlockViewModel()` calls
+  `assets($data)` with what the view receives, so the declaration can depend on
+  the content (a carousel's script) rather than on the type alone.
+- **Collected per page, deduplicated in order.** `render()` walks the tree it
+  built and `BlockAssetUrls` merges the lists, so two galleries link one
+  script. The content area template emits them after the core's stylesheets.
+  `renderBlock()` and `renderSection()` emit none: they are fragments.
+- **Paths through `assets.packages`, when there is one.** The core does not
+  require `symfony/asset`; the service is injected `nullOnInvalid`, and without
+  it a path is linked as written. A leading `/` or a scheme means a URL.
+- **The preview's own route for hot-inserted blocks.** A fragment swapped in
+  place is not a page render, so nothing would link a type the page did not
+  hold before. In PREVIEW each block wrapper carries its list
+  (`data-cb-assets`), and the overlay's `ensureAssets()` appends what
+  `<head>` lacks after every insert or replace. Elements are created, not
+  parsed from HTML, so a script runs; classic ones get `async = false` to keep
+  their order. The public markup has no such attribute. Only fragments
+  (`renderBlock()`, `renderSection()`) carry the list: see below.
+- **Bundler entries through an adapter.** `entries` are resolved by
+  `EntrypointResolverInterface`, so the core names no bundler. The shipped
+  `EncoreEntrypointResolver` is registered and aliased only when
+  WebpackEncoreBundle's interface exists (`interface_exists()` in
+  `services.php`), the bundle staying a dev dependency; `BlockAssetUrls`
+  takes the interface `nullOnInvalid` and throws if a block declares entries
+  with no adapter. A host aliases its own (Vite) and wins. Encore's lookup
+  dedupes per request, which is the point (the layout's runtime is not linked
+  twice) and the trap: a per-block list built during the full render would
+  consume the files before the page-level list asked. Hence the list on the
+  wrapper is built for fragments only, which arrive in requests of their own;
+  a full render never needs it, its page-level tags having linked everything.
+
+What the experiments showed, against the sandboxes, before these rules:
+
+- *Encore, the entry's file as a plain path*: CSS applied, script loaded, never
+  run (no runtime on the page), no error. With `entries`: runtime, shared
+  chunk and entry, in order, in the preview and on the page.
+- *AssetMapper, a relative import*: 404 on the unversioned file when the
+  block module is not an entrypoint, even with `importmap('app')` on the page.
+  Declared `entrypoint: true` in `importmap.php` but passed to no
+  `importmap()` call, it works: `importmap()` maps the imports of every
+  declared entrypoint and runs only those it is given, so the module resolves
+  its imports and is fetched nowhere else (compiled and dev server alike). A
+  CSS import from it is linked too, by AssetMapper's own shim, but only after
+  the script runs, hence `stylesheets` for the block's CSS. No AssetMapper
+  adapter: a module is one file, which `asset()` already resolves.
+
 ## Replacing the renderer itself
 
 `BlockRendererInterface` is aliased to the shipped `BlockRenderer`; a host that

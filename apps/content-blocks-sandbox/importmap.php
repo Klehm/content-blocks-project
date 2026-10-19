@@ -16,6 +16,17 @@ return [
         'path' => './assets/app.js',
         'entrypoint' => true,
     ],
+    // Public pages. See templates/page/show.html.twig
+    'front' => [
+        'path' => './assets/front.js',
+        'entrypoint' => true,
+    ],
+    // A block module: an entrypoint so that any importmap() maps its imports,
+    // but passed to none, so it runs only where a counter block links it.
+    'blocks/counter' => [
+        'path' => './assets/blocks/counter.js',
+        'entrypoint' => true,
+    ],
     '@hotwired/stimulus' => [
         'version' => '3.2.2',
     ],

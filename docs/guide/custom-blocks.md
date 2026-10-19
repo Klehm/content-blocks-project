@@ -341,6 +341,119 @@ It is the payload exactly as it was persisted — possibly by an earlier version
 
 Colours need no hint. Background colours live in the `styling` sub-form the package adds to every block and every section, so the thumbnail reads them directly — including the one a section inherits from its style preset — and repaints its copy for dark grounds.
 
+## CSS and JS a block needs
+
+A block whose view needs a stylesheet or a script of its own declares them, and the page links them **only where the block is rendered**, each one once however many such blocks the page holds:
+
+```php
+use ContentBlocks\BlockType\BlockAssets;
+use ContentBlocks\BlockType\BlockAssetsInterface;
+
+#[AsContentBlock]
+final class MapBlock extends AbstractBlockType implements BlockAssetsInterface
+{
+    // …
+
+    public function assets(array $data): BlockAssets
+    {
+        return new BlockAssets(
+            stylesheets: ['blocks/map.css'],
+            // Asked for only when this block needs it.
+            modules: ($data['interactive'] ?? false) ? ['blocks/map.js'] : [],
+        );
+    }
+}
+```
+
+- **`$data` is what the view receives**, so what is linked can follow the content: a gallery shown as a grid needs no carousel script.
+- **Four lists**: `stylesheets` (`<link rel="stylesheet">`), `modules` (`<script type="module">`), `scripts` (classic, `<script defer>`), for a script that is not a module, and `entries`, for Webpack Encore (below).
+- **A path or a URL.** A path (`blocks/map.css`) goes through Symfony's `asset()` when the app has `framework.assets`, so AssetMapper, an Encore manifest or a CDN base resolve it as for any other asset. An absolute path (`/build/map.js`) or a URL (`https://…`, `//…`) is linked as written.
+- **The tags are emitted with the content area**, after the core's stylesheets, not in your `<head>`. A stylesheet there is valid HTML and modules and `defer` scripts run once the page is parsed.
+- **In the builder**, a block added or edited in place brings its assets with it: the preview links what is missing. A script must therefore set up the blocks already on the page when it loads, and the ones that arrive later on `cb:block:rendered`:
+
+```js
+const setUp = (root) => root.querySelectorAll('[data-map]').forEach(initMap);
+setUp(document);
+document.addEventListener('cb:block:rendered', (event) => setUp(event.target));
+```
+
+A block type that does not implement the interface changes nothing on the page. The sandbox's `CounterBlock` is a working example.
+
+### With AssetMapper: make the module an entrypoint, passed to no `importmap()`
+
+A module served by AssetMapper keeps its `import` lines as written; it is the page's `importmap()` tag that tells the browser where they point. A module that imports nothing works on any page. For one with imports, two things are needed:
+
+1. **Declare the block's module as an entrypoint** in `importmap.php`, and do **not** pass it to any `importmap()` call:
+
+   ```php
+   // importmap.php
+   'blocks/map' => ['path' => './assets/blocks/map.js', 'entrypoint' => true],
+   ```
+
+2. **Render an importmap on your public pages**, with any entrypoint: `importmap('app')`, or a lighter one of their own (`importmap('front')`).
+
+`importmap()` maps the imports of *every* entrypoint declared in `importmap.php`, but only runs the ones it is given. So the block's module, linked by the content area where the block renders, finds its imports (relative ones included), and runs nowhere else. Write it as any other AssetMapper module:
+
+```js
+// assets/blocks/map.js, declared as modules: ['blocks/map.js']
+import { easeOut } from './easing.js';
+```
+
+Without step 1, a relative import asks for the unversioned file, gets a 404, and the script silently does nothing. Do not pass the block's entrypoint to `importmap()` either: it would run on every page.
+
+Keep the block's CSS in `stylesheets` rather than importing it from the module. AssetMapper can link an imported stylesheet, but only once the script has run, so the block shows unstyled first; a `<link>` in the page loads with it, and styles the block's no-JS variants too.
+
+### With Webpack Encore: declare the entry, not its file
+
+An Encore entry is not one file. With `enableSingleRuntimeChunk()` and `splitEntryChunks()` (Encore's defaults), its JS needs `runtime.js` and the chunks it shares with other entries; linking the entry's own file alone loads a script that never runs, without an error. Declare the entry by name:
+
+```js
+// webpack.config.js
+.addEntry('blocks/map', './assets/blocks/map.js')   // which imports './map.css'
+```
+
+```php
+return new BlockAssets(entries: ['blocks/map']);
+```
+
+The page links what `entrypoints.json` lists for it, CSS included, as `encore_entry_script_tags()` would, and leaves out what your layout's own `encore_entry_*_tags()` already emitted in the same request: the runtime is linked once. That needs the layout's tags rendered before the content area, which is the case when they are in the `<head>`. Encore's default build is used. A file copied with `copyFiles()` is a plain path: `asset('build/…')` resolves it through the manifest (`framework.assets.json_manifest_path`).
+
+`entries` are resolved by an adapter, `EntrypointResolverInterface`. The package ships the Encore one, `EncoreEntrypointResolver`, registered **only when `symfony/webpack-encore-bundle` is installed**: the package does not require it. Without an adapter, a block declaring `entries` raises an exception that says so.
+
+### Another bundler: your own adapter
+
+`resolve()` returns the entry's files as final URLs, so any bundler with a manifest can answer. A sketch for Vite (`pentatrion/vite-bundle`), whose entries are modules; the lookup methods are the bundle's, check them against your version:
+
+```php
+use ContentBlocks\BlockType\BlockAssets;
+use ContentBlocks\Rendering\EntrypointResolverInterface;
+use Pentatrion\ViteBundle\Service\EntrypointsLookupCollection;
+
+final class ViteEntrypointResolver implements EntrypointResolverInterface
+{
+    public function __construct(private readonly EntrypointsLookupCollection $lookups)
+    {
+    }
+
+    public function resolve(string $entry): BlockAssets
+    {
+        $lookup = $this->lookups->getEntrypointsLookup();
+
+        return new BlockAssets(
+            stylesheets: $lookup->getCSSFiles($entry),
+            modules: $lookup->getJSFiles($entry),
+        );
+    }
+}
+```
+
+```yaml
+# config/services.yaml
+ContentBlocks\Rendering\EntrypointResolverInterface: '@App\Assets\ViteEntrypointResolver'
+```
+
+Your alias wins over the Encore one if both bundles are installed.
+
 ## Styling your block
 
 Custom blocks automatically get the shared **Styling** group (padding, margin, background color, max-width) in their edit form, and can reuse the palette color type and the `cb-condition` conditional-field controller. See [Styling](./styling.md) for how to extend the styling sub-form and add block decorators.

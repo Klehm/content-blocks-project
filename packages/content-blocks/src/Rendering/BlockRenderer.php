@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Rendering;
 
+use ContentBlocks\BlockType\BlockAssets;
+use ContentBlocks\BlockType\BlockAssetsInterface;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Builder\BuilderStructureResolverInterface;
 use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
@@ -48,6 +50,7 @@ final class BlockRenderer implements BlockRendererInterface
         private readonly BlockDataResolverCollection $blockDataResolvers,
         private readonly ColumnSettingsResolverCollection $columnSettingsResolvers = new ColumnSettingsResolverCollection(),
         private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
+        private readonly BlockAssetUrls $assetUrls = new BlockAssetUrls(),
     ) {
     }
 
@@ -78,9 +81,49 @@ final class BlockRenderer implements BlockRendererInterface
             'sections' => $sections,
             'blockTypes' => $blockTypes,
             'chrome' => $this->chromeEnabled($mode),
+            'blockAssets' => $this->assetUrls->collect(self::declaredAssets($sections)),
             'ordered' => $ordered,
             'structure' => $this->structure->forArea($area)->toArray(),
         ]);
+    }
+
+    /**
+     * A fragment the preview inserts in place carries its block's assets, for
+     * the overlay to link. A full page links them once, at page level.
+     *
+     * @see docs/internals/rendering.md#css-and-js-a-block-declares
+     *
+     * @param array<string, mixed> $block
+     *
+     * @return array<string, mixed>
+     */
+    private function withFragmentAssets(array $block, RenderContext $context): array
+    {
+        if ($block['assets'] !== null && $context->mode === RenderMode::PREVIEW) {
+            $block['assetUrls'] = $this->assetUrls->collect([$block['assets']]);
+        }
+
+        return $block;
+    }
+
+    /**
+     * What the blocks of a rendered tree declared, in page order.
+     *
+     * @param list<array<string, mixed>> $sections
+     *
+     * @return \Generator<BlockAssets>
+     */
+    private static function declaredAssets(array $sections): \Generator
+    {
+        foreach ($sections as $section) {
+            foreach ($section['columns'] as $column) {
+                foreach ($column['blocks'] as $block) {
+                    if ($block['assets'] !== null) {
+                        yield $block['assets'];
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -143,7 +186,7 @@ final class BlockRenderer implements BlockRendererInterface
         $siblings = $column !== null ? $this->sortedBlocks($column, $context) : [$block];
         $index = array_search($block, $siblings, true);
         $order = $this->orderVariables($siblings, $context)[$index === false ? -1 : $index] ?? [];
-        $viewModel = $this->buildBlockViewModel($block, $context, false);
+        $viewModel = $this->withFragmentAssets($this->buildBlockViewModel($block, $context, false), $context);
         $viewModel['inlineStyle'] .= ViewportOrder::styleString($order);
 
         return $this->twig->render(self::BLOCK_TEMPLATE, [
@@ -166,6 +209,11 @@ final class BlockRenderer implements BlockRendererInterface
         $index = array_search($section, $siblings, true);
         $order = $this->orderVariables($siblings, $context)[$index === false ? -1 : $index] ?? [];
         $viewModel = $this->buildSectionViewModel($section, $context);
+        foreach ($viewModel['columns'] as $c => $column) {
+            foreach ($column['blocks'] as $b => $block) {
+                $viewModel['columns'][$c]['blocks'][$b] = $this->withFragmentAssets($block, $context);
+            }
+        }
         $viewModel['inlineStyle'] .= ViewportOrder::styleString($order);
 
         return $this->twig->render(self::SECTION_TEMPLATE, [
@@ -515,6 +563,8 @@ final class BlockRenderer implements BlockRendererInterface
      *     extraAttributes: array<string, string>,
      *     view: BlockView,
      *     context: RenderContext,
+     *     assets: ?BlockAssets,
+     *     assetUrls: ?array<string, list<string>>,
      * }
      */
     private function buildBlockViewModel(Block $block, RenderContext $context, bool $parentDeleted): array
@@ -531,6 +581,8 @@ final class BlockRenderer implements BlockRendererInterface
         // template still receives the original $data.
         $decorationData = $this->blockDataDefaults->withoutDefaults($data);
         $decoration = $this->blockDecorators->decorate($decorationData, $block);
+        $assets = $blockType instanceof BlockAssetsInterface ? $blockType->assets($data) : null;
+        $assets = $assets?->isEmpty() ? null : $assets;
 
         return [
             'id' => $block->getId(),
@@ -543,6 +595,9 @@ final class BlockRenderer implements BlockRendererInterface
             'extraAttributes' => $decoration->attributes,
             'view' => new BlockView($block->getId(), $block->getType()),
             'context' => $this->viewContext($context),
+            'assets' => $assets,
+            // Set on fragments only: see withFragmentAssets().
+            'assetUrls' => null,
         ];
     }
 

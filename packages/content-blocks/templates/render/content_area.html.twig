@@ -9,6 +9,17 @@
 {% if chrome %}
     <link rel="stylesheet" href="{{ cb_asset_path('builder') }}">
 {% endif %}
+{# What the rendered blocks declared (BlockAssetsInterface), each once. #}
+{% set blockAssets = blockAssets ?? {} %}
+{% for href in blockAssets.stylesheets ?? [] %}
+    <link rel="stylesheet" href="{{ href }}">
+{% endfor %}
+{% for src in blockAssets.scripts ?? [] %}
+    <script defer src="{{ src }}"></script>
+{% endfor %}
+{% for src in blockAssets.modules ?? [] %}
+    <script type="module" src="{{ src }}"></script>
+{% endfor %}
 {# Without the chrome there is nothing to explain a struck-through section, so
    what is pending deletion is simply left out — the published shape. #}
 {% set visibleSections = chrome ? sections : sections|filter(s => not s.deleted) %}
