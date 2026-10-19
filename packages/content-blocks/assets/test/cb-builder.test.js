@@ -243,6 +243,67 @@ describe('cb-builder: sidebar mount + empty state', () => {
         expect(controller.element.classList.contains('cb-shell--sidebar-collapsed')).toBe(false);
     });
 
+    // A block added opens its form; clicking it then must not reload the
+    // form the editor may already be typing in.
+    it('a click on the block the sidebar shows reloads nothing', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({ ok: true, text: () => Promise.resolve('<form>A</form>') }));
+        await controller._mountSidebar(42);
+        sidebarContent.querySelector('form').dataset.typing = '1';
+
+        controller._onMessage(postMessage({ type: 'cb:block:edit', blockId: 42 }));
+        await Promise.resolve();
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(sidebarContent.querySelector('form').dataset.typing).toBe('1');
+    });
+
+    it('a click on another block loads its form', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({ ok: true, text: () => Promise.resolve('<form></form>') }));
+        await controller._mountSidebar(42);
+
+        controller._onMessage(postMessage({ type: 'cb:block:edit', blockId: 43 }));
+        await vi.waitFor(() => expect(sidebar.getAttribute('data-cb-sidebar-block-id')).toBe('43'));
+
+        expect(global.fetch).toHaveBeenLastCalledWith('/_content-blocks/block/43/edit', expect.anything());
+    });
+
+    // Another form is on its way: the click has to win over it, as before.
+    it('a click on the shown block still loads while another mount is pending', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({ ok: true, text: () => Promise.resolve('<form></form>') }));
+        await controller._mountSidebar(42);
+        let release;
+        global.fetch = vi.fn(() => new Promise((resolve) => { release = resolve; }));
+        const pending = controller._mountSidebar(43);
+
+        const spy = vi.spyOn(controller, '_mountSidebar').mockImplementation(() => {});
+        controller._onMessage(postMessage({ type: 'cb:block:edit', blockId: 42 }));
+
+        expect(spy).toHaveBeenCalledWith(42);
+        release({ ok: true, text: () => Promise.resolve('<form>43</form>') });
+        await pending;
+    });
+
+    it('a click on the section the sidebar shows reloads nothing', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({ ok: true, text: () => Promise.resolve('<form></form>') }));
+        await controller._mountSectionSettings(5);
+
+        controller._onMessage(postMessage({ type: 'cb:section:settings', sectionId: 5 }));
+        await Promise.resolve();
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('the Navigator follows the same rule', async () => {
+        global.fetch = vi.fn(() => Promise.resolve({ ok: true, text: () => Promise.resolve('<form></form>') }));
+        await controller._mountSidebar(42);
+        vi.spyOn(controller, '_postToPreview').mockImplementation(() => {});
+
+        controller._onTreeSelect({ detail: { kind: 'block', id: 42 } });
+        await Promise.resolve();
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
     it('_resetSidebarToEmptyState restores the captured empty-state HTML and clears mount attrs', () => {
         sidebarContent.innerHTML = '<form>x</form>';
         sidebar.setAttribute('data-cb-sidebar-block-id', '42');

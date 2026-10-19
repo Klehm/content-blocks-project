@@ -43,11 +43,11 @@ export default class Tree {
         const { kind, id } = event.detail ?? {};
         if (!Number.isFinite(id)) return;
         if (kind === 'block') {
-            this._mountSidebar(id);
+            this._selectBlock(id);
             this._postToPreview({ type: 'cb:focus:block', blockId: id });
             this._postToPreview({ type: 'cb:block:scroll-into-view', blockId: id });
         } else if (kind === 'section') {
-            this._mountSectionSettings(id);
+            this._selectSection(id);
             this._postToPreview({ type: 'cb:focus:section', sectionId: id });
             this._postToPreview({ type: 'cb:section:scroll-into-view', sectionId: id });
         }

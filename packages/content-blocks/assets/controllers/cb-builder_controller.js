@@ -192,7 +192,7 @@ class BuilderController extends Controller {
                 }));
                 break;
             case 'cb:block:edit':
-                this._mountSidebar(data.blockId);
+                this._selectBlock(data.blockId);
                 break;
             case 'cb:block:delete-requested':
                 this._deleteBlock(data.blockId);
@@ -242,7 +242,7 @@ class BuilderController extends Controller {
                 this._duplicateBlock(data.blockId);
                 break;
             case 'cb:section:settings':
-                this._mountSectionSettings(data.sectionId);
+                this._selectSection(data.sectionId);
                 break;
             case 'cb:preview:outside-click':
                 this._onPreviewOutsideClick();
