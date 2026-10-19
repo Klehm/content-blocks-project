@@ -5,6 +5,9 @@ parameters:
     # Stands for a colour edited in a back office: read by the palette
     # provider (builder swatch) and by the public page (--demo-brand).
     app.theme.brand: '#0f766e'
+    # '_e2e' under Playwright: its own database and upload directory, so the
+    # suite never writes into the demo. See docs/internals/testing.md
+    env(SANDBOX_SUFFIX): ''
 
 services:
     _defaults:

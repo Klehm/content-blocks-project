@@ -665,6 +665,23 @@ detached, quietly serving last request's values); read the request through
 
 ### 1. Sandbox Symfony
 
+**Shortcut: the root `Makefile`** (logic in `scripts/demo.sh`). `make up` does
+everything below (composer install, database created and seeded on first run,
+schema kept in sync, assets built if missing) and serves the demo in the
+background; `DEMO=main|sylius|encore|all` picks it (main on 8000, Sylius on
+8003 `/admin/`, Encore on 8004). Also `make down`, `make status`, `make logs`,
+`make reset` (empty a demo and reseed it: Showcase / Kit / Démo multilingue for
+main, `app:demo:load` for Sylius, nothing for Encore), `make assets` (the three
+sandboxes), `make test`. `make` alone lists them.
+
+**The e2e suites never write into a demo.** Both Playwright servers start with
+`SANDBOX_SUFFIX=_e2e`: database `<name>_e2e`, uploads under
+`public/uploads/content-blocks_e2e`, emptied by the `webServer` command before
+each run.
+Rationale: [docs/internals/testing.md#the-suite-has-its-own-data](docs/internals/testing.md#the-suite-has-its-own-data).
+
+By hand:
+
 ```bash
 cd apps/content-blocks-sandbox
 
@@ -786,7 +803,7 @@ npm test
 
 - **Vitest** : teste la logique des controllers Stimulus en isolation (DOM mock, fetch mock)
 - **Playwright** : teste les flux complets dans un vrai navigateur contre la sandbox
-- La sandbox (`apps/content-blocks-sandbox/`) sert de **fixture** pour Playwright (`webServer` dans `playwright.config.js`), sur le port 8001
+- La sandbox (`apps/content-blocks-sandbox/`) sert de **fixture** pour Playwright (`webServer` dans `playwright.config.js`), sur le port 8001, as its own `_e2e` instance (database + uploads), reset before each run
 
 **Deux suites Playwright, deux rôles distincts** :
 

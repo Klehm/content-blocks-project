@@ -83,13 +83,13 @@ This repo is a **monorepo**. Packages are published separately to Packagist via 
 
 ```bash
 git clone https://github.com/klehm/content-blocks-project.git
-cd content-blocks-project/apps/content-blocks-sandbox
-composer install
-php bin/console doctrine:database:create --if-not-exists
-php bin/console doctrine:schema:create
-php bin/console asset-map:compile
-php -S 127.0.0.1:8000 -t public   # → http://127.0.0.1:8000
+cd content-blocks-project
+# set DATABASE_URL in apps/content-blocks-sandbox/.env.local, then:
+make up      # installs, creates and seeds the database → http://127.0.0.1:8000
 ```
+
+`make up DEMO=sylius` (or `encore`, `all`) starts the other sandboxes; `make`
+alone lists the rest (`down`, `status`, `reset`, `test`…).
 
 Docs live in [`docs/`](docs/) (VitePress). Run them locally with `cd docs && npm install && npm run docs:dev`. Planned and under-consideration work is tracked in [`ROADMAP.md`](ROADMAP.md).
 

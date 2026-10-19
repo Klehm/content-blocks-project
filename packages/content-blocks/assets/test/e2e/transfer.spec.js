@@ -147,7 +147,9 @@ test.describe('import / export as a zip', () => {
 
         const { manifest } = await fetchExport(page);
         const stored = manifest.assets[hash].path;
-        expect(stored).toMatch(/^\/uploads\/content-blocks\/blocks\/[0-9a-f]+\.png$/);
+        // The sandbox's own prefix, whatever instance suffix it carries.
+        expect(stored)
+            .toMatch(/^\/uploads\/content-blocks[\w-]*\/blocks\/[0-9a-f]+\.png$/);
         await expect(frame.locator('.cb-kit-image__img')).toHaveCount(1);
     });
 
