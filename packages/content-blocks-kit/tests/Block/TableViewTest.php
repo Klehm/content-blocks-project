@@ -93,7 +93,10 @@ final class TableViewTest extends TestCase
         $loader = new FilesystemLoader();
         $loader->addPath(\dirname(__DIR__, 2) . '/templates', 'ContentBlocksKit');
 
-        return (new Environment($loader, ['strict_variables' => true]))->render(
+        $env = new Environment($loader, ['strict_variables' => true]);
+        $env->addExtension(new \ContentBlocks\Twig\LanguageExtension());
+
+        return $env->render(
             '@ContentBlocksKit/block/table/view.html.twig',
             ['data' => $data, 'block_id' => 1],
         );

@@ -143,6 +143,7 @@ final class VideoViewTest extends TestCase
 
         $env = new Environment($loader, ['strict_variables' => true]);
         $env->addExtension(new ChoiceTokenExtension());
+        $env->addExtension(new \ContentBlocks\Twig\LanguageExtension());
         $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
         $env->addExtension(new ColorToneExtension());
         $env->addExtension(new TranslationExtension(new class () implements TranslatorInterface {

@@ -174,6 +174,38 @@ content_blocks_i18n:
 It is off by default because turning it on changes pages: a host that has both
 `fr` and `fr_CA` would suddenly show French text where it showed the source.
 
+### Marking text in another language
+
+An untranslated field shows text in another language than the page's: the
+source, or a fallback. Screen readers, hyphenation and search engines read it
+as the page's language unless the markup says otherwise (WCAG 3.1.2). Turn the
+marking on:
+
+```yaml
+content_blocks_i18n:
+    fallback_lang: true
+```
+
+- **A block nobody translated** gets `lang` on its wrapper
+  (`<div class="cb-block …" lang="fr">`), whatever its view.
+- **A partly translated block** gets `lang` on each element that shows a field
+  still in another language. The kit's blocks do it. In your own views, call
+  `cb_lang()` on the element that holds the field:
+
+  ```twig
+  <h3{{ cb_lang(data, 'title') }}>{{ data.title }}</h3>
+  {% for item in data.items %}
+      <li{{ cb_lang(item, 'label') }}>{{ item.label }}</li>
+  {% endfor %}
+  ```
+
+  It prints ` lang="fr"` or nothing. See
+  [Text shown in another language](./custom-blocks.md#text-shown-in-another-language).
+- **Only text counts.** URLs, e-mail addresses and files are not marked.
+- A tab title of a section shown as tabs is not marked.
+
+Off by default, because it changes the public markup.
+
 ### Fallbacks from the host
 
 When your locales come from a [provider](#locales-from-the-host), a map in YAML

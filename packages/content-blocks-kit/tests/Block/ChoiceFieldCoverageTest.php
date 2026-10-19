@@ -201,6 +201,7 @@ final class ChoiceFieldCoverageTest extends TestCase
 
         $env = new Environment($loader, ['strict_variables' => false]);
         $env->addExtension(new ChoiceTokenExtension());
+        $env->addExtension(new \ContentBlocks\Twig\LanguageExtension());
         $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
         $env->addExtension(new ColorToneExtension());
         $env->addExtension(new IconExtension(new IconRegistry()));

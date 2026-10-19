@@ -148,6 +148,7 @@ final class SafeContentViewTest extends TestCase
         $loader->addPath(\dirname(__DIR__, 2) . '/templates', 'ContentBlocksKit');
         $env = new Environment($loader, ['strict_variables' => false]);
         $env->addExtension(new ChoiceTokenExtension());
+        $env->addExtension(new \ContentBlocks\Twig\LanguageExtension());
         $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
         $env->addExtension(new ColorToneExtension());
         $env->addExtension(new TranslationExtension(new class () implements TranslatorInterface {

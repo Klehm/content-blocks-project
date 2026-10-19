@@ -13,6 +13,10 @@ content_blocks_i18n:
         - { code: de, label: 'Deutsch' }
         - { code: es, label: 'Español' }
 
+    # Text shown in French on an English page (not translated yet) carries
+    # lang="fr", so a screen reader voices it as French.
+    fallback_lang: true
+
     machine:
         # Which provider runs by default. `pseudo` (src/Translation/) is
         # deterministic and offline, so a fresh checkout and the e2e suite both

@@ -7,7 +7,7 @@
             <thead>
                 <tr>
                     {% for col in columns %}
-                        <th scope="col" class="{{ align_map[col.align|default('start')]|default('cb-kit-table--l') }}">{{ col.label|default('') }}</th>
+                        <th scope="col" class="{{ align_map[col.align|default('start')]|default('cb-kit-table--l') }}"{{ cb_lang(col, 'label') }}>{{ col.label|default('') }}</th>
                     {% endfor %}
                 </tr>
             </thead>
@@ -16,7 +16,7 @@
                     <tr>
                         {% for i in 0..(columns|length - 1) %}
                             {% set cell = row.cells[i]|default(null) %}
-                            <td class="{{ align_map[columns[i].align|default('start')]|default('cb-kit-table--l') }}">{{ cell ? (cell.content|default(''))|nl2br : '' }}</td>
+                            <td class="{{ align_map[columns[i].align|default('start')]|default('cb-kit-table--l') }}"{{ cb_lang(cell, 'content') }}>{{ cell ? (cell.content|default(''))|nl2br : '' }}</td>
                         {% endfor %}
                     </tr>
                 {% endfor %}

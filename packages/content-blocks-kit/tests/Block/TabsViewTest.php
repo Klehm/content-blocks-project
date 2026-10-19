@@ -124,6 +124,7 @@ final class TabsViewTest extends TestCase
 
         $env = new Environment($loader, ['strict_variables' => false]);
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
+        $env->addExtension(new \ContentBlocks\Twig\LanguageExtension());
 
         return $env;
     }

@@ -6,9 +6,9 @@
             {% for item in items %}
                 <li class="cb-kit-breadcrumb__item">
                     {% if item.url|default('')|trim|cb_kit_safe_url is not empty %}
-                        <a class="cb-kit-breadcrumb__link" href="{{ item.url|cb_kit_safe_url }}">{{ item.label }}</a>
+                        <a class="cb-kit-breadcrumb__link" href="{{ item.url|cb_kit_safe_url }}"{{ cb_lang(item, 'label') }}>{{ item.label }}</a>
                     {% else %}
-                        <span class="cb-kit-breadcrumb__current" aria-current="page">{{ item.label }}</span>
+                        <span class="cb-kit-breadcrumb__current" aria-current="page"{{ cb_lang(item, 'label') }}>{{ item.label }}</span>
                     {% endif %}
                     {% if not loop.last %}<span class="cb-kit-breadcrumb__sep" aria-hidden="true">/</span>{% endif %}
                 </li>

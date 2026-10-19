@@ -7,10 +7,10 @@
         {% for item in items %}
             <details class="cb-kit-accordion__item"{% if group %} name="{{ group }}"{% endif %}>
                 <summary class="cb-kit-accordion__summary">
-                    <span>{{ item.title }}</span>
+                    <span{{ cb_lang(item, 'title') }}>{{ item.title }}</span>
                     <span class="cb-kit-accordion__marker" aria-hidden="true">{{ cb_kit_icon('arrow-right', 18)|raw }}</span>
                 </summary>
-                <div class="cb-kit-accordion__content">{{ item.content|default('')|nl2br }}</div>
+                <div class="cb-kit-accordion__content"{{ cb_lang(item, 'content') }}>{{ item.content|default('')|nl2br }}</div>
             </details>
         {% endfor %}
     </div>

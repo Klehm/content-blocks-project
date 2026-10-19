@@ -8,6 +8,7 @@ use ContentBlocks\I18n\Machine\TranslationProviderInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
 /**
@@ -67,6 +68,10 @@ final class ContentBlocksI18nBundle extends AbstractBundle
                         ->beforeNormalization()->castToArray()->end()
                         ->scalarPrototype()->cannotBeEmpty()->end()
                     ->end()
+                ->end()
+                ->booleanNode('fallback_lang')
+                    ->info('Mark text shown in another language than the page\'s (a fallback, or the source) with a `lang` attribute, so screen readers, hyphenation and search engines read it right (WCAG 3.1.2). Changes the public markup, hence opt-in.')
+                    ->defaultFalse()
                 ->end()
                 ->arrayNode('workbench')
                     ->addDefaultsIfNotSet()
@@ -145,6 +150,15 @@ final class ContentBlocksI18nBundle extends AbstractBundle
             ->set('content_blocks_i18n.fallbacks', $config['fallbacks'])
             ->set('content_blocks_i18n.machine.default', $config['machine']['default'])
             ->set('content_blocks_i18n.workbench.public_links', $config['workbench']['public_links']);
+
+        if ($config['fallback_lang']) {
+            $services = $container->services();
+            $services->set(Rendering\FallbackLanguageMarker::class)->autowire();
+            $services->set(Rendering\FallbackLanguageDecorator::class)
+                ->tag('content_blocks.block_decorator');
+            $services->get(Rendering\TranslationBlockDataResolver::class)
+                ->arg('$marker', new Reference(Rendering\FallbackLanguageMarker::class));
+        }
     }
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
