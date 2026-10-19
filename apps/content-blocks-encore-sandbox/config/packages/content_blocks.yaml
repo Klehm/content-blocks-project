@@ -1,6 +1,10 @@
 # Kept close to the AssetMapper sandbox so a difference in behaviour between the
 # two apps points at the build pipeline, not at diverging configuration.
 content_blocks:
+    # The one sandbox serving the public CSS in a cascade layer, so any host
+    # rule wins over it whatever its specificity. Pinned by css-layer.spec.js
+    css_layer: content-blocks
+
     section:
         default_width_mode: full
         default_max_width: 1320

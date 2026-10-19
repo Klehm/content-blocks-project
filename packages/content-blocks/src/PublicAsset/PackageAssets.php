@@ -29,6 +29,9 @@ final class PackageAssets
         'preview_overlay' => [['/preview-overlay.js'], self::JS],
     ];
 
+    /** What a public page links; the builder's own files stay unlayered. */
+    private const LAYERED = ['layout', 'styling'];
+
     /** @return list<string> */
     public static function names(): array
     {
@@ -48,6 +51,16 @@ final class PackageAssets
         }
 
         return $parts === [] ? null : implode("\n", $parts);
+    }
+
+    /** As served: what the route answers, and what its `?v=` hashes. */
+    public static function served(string $name, CssLayer $layer): ?string
+    {
+        $content = self::content($name);
+
+        return $content !== null && \in_array($name, self::LAYERED, true)
+            ? $layer->wrap($content)
+            : $content;
     }
 
     public static function contentType(string $name): string

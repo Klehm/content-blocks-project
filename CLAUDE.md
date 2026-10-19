@@ -292,6 +292,7 @@ Le bundle expose un arbre de config (`ContentBlocksBundle::configure()`), raccou
 # config/packages/content_blocks.yaml
 content_blocks:
     content_version: 1                  # génération du schéma de contenu de l'hôte
+    css_layer: ~                        # e.g. content-blocks: layout/styling/kit.css served in @layer, so host CSS wins; opt-in until 2.0
     section:
         default_width_mode: full        # 'full' | 'centered'
         default_max_width: 1320
@@ -733,6 +734,8 @@ php -S 127.0.0.1:8003 -t public
 App volontairement minimale : **Symfony 6.4 + Doctrine ORM 2 + Webpack Encore**, sans AssetMapper (il est dans le `conflict` de son `composer.json`). Elle reproduit la forme d'un hôte Sylius 1.x et sert de fixture à `playwright.encore.config.js`.
 
 C'est aussi la sandbox **CKEditor** : elle configure `rich_text` avec `editor: ckeditor` + `cdn: false`, et son entrée webpack importe `ckeditor5` pour le publier en `window.CKEDITOR`. Les deux autres sandboxes restent sur le défaut (TinyMCE via CDN), donc la répartition couvre les deux éditeurs *et* les deux modes de chargement. Corollaire pratique : c'est la seule suite e2e qui pilote un vrai éditeur sans toucher au réseau — d'où les specs CKEditor ici plutôt que dans la suite principale, qui doit bloquer le CDN pour être déterministe.
+
+It also serves the public CSS in a cascade layer (`content_blocks.css_layer: content-blocks`), pinned by `e2e-encore/css-layer.spec.js`: the only sandbox where a host rule beats the package's whatever its specificity. Rationale: [docs/internals/assets.md#the-public-css-in-a-cascade-layer](docs/internals/assets.md#the-public-css-in-a-cascade-layer).
 
 It is also the **Glide** sandbox: `ImageUrlResolverInterface` is aliased to `App\Image\GlideImageUrlResolver` (signed `/img/{path}` URLs, served by `App\Controller\GlideImageController`, WebP, `fit=max`), the runnable demo of [docs/guide/recipes/glide.md](docs/guide/recipes/glide.md), pinned by `e2e-encore/image-glide.spec.js`. Hence its `public/router.php` (a `/img/….png` URL would otherwise be taken for a static file) and `gd` in its CI job. The main sandbox stays the LiipImagine one: a host aliases a single resolver.
 

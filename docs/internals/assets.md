@@ -161,6 +161,30 @@ Hashing on every render costs a read and a hash of ~30 KB, which is cheaper
 than it sounds and keeps the classes stateless: a memoized version would be one
 more thing to declare for worker mode, and one that could outlive a deploy.
 
+## The public CSS in a cascade layer
+
+`content_blocks.css_layer` wraps `layout`, `styling` and `kit.css` in
+`@layer <name> { … }` as they are served. A wrapper rather than a file of its
+own, because the cascade layer has to hold the rules themselves: an
+`@import url(…) layer(…)` would need the host to change how it links them.
+
+Three decisions:
+
+- **Opt-in in 1.x.** Layered rules lose to every unlayered rule, so turning it
+  on lets a host's global CSS (`img`, `a`, a reset) start winning: no signature
+  changes, but pages render differently. That breaks the 1.x rule that a host
+  doing nothing sees the same page, so the default waits for 2.0.
+- **The version hashes the served bytes.** `PackageAssets::served()` and
+  `AssetController::stylesheet()` (kit) are what the route answers *and* what
+  `?v=` hashes. Hashing the file on disk would keep a year-long immutable cache
+  on the unlayered CSS after the option is turned on.
+- **The builder chrome is never layered.** In the preview it has to win over
+  the host's page CSS, which would no longer be true once layered.
+
+The name is validated at boot and again by `CssLayer`, since it is written into
+CSS. The kit takes `CssLayer` as an optional argument, so it still boots on a
+core older than the option, served unlayered.
+
 ## Three seams, and why each is its own interface
 
 - **`AssetReferenceProviderInterface`** — the mark half. Same reasoning as

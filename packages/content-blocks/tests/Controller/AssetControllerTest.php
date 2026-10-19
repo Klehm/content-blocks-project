@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\PublicAsset\AssetController;
+use ContentBlocks\PublicAsset\CssLayer;
 use ContentBlocks\PublicAsset\PackageAssets;
 use ContentBlocks\PublicAsset\StaticAssetResponse;
 use PHPUnit\Framework\TestCase;
@@ -105,6 +106,46 @@ final class AssetControllerTest extends TestCase
         foreach (PackageAssets::names() as $name) {
             $this->assertNotNull(PackageAssets::content($name), $name);
         }
+    }
+
+    // ---------- content_blocks.css_layer ----------
+
+    public function testTheContentStylesheetsAreServedInTheConfiguredLayer(): void
+    {
+        $controller = new AssetController(new CssLayer('content-blocks'));
+
+        foreach ([$controller->layoutCss(new Request()), $controller->stylingCss(new Request())] as $response) {
+            $css = (string) $response->getContent();
+            $this->assertStringStartsWith("@layer content-blocks {\n", $css);
+            $this->assertStringEndsWith("\n}\n", $css);
+        }
+    }
+
+    // The chrome must beat a host's page CSS, so it is never layered.
+    public function testTheBuilderChromeIsNeverLayered(): void
+    {
+        $css = (string) (new AssetController(new CssLayer('content-blocks')))->builderCss(new Request())->getContent();
+
+        $this->assertStringNotContainsString('@layer', $css);
+    }
+
+    // Toggling the option changes the bytes, so it must change the URL too.
+    public function testTheLinkedVersionIsTheLayeredOne(): void
+    {
+        $layer = new CssLayer('content-blocks');
+        $layered = StaticAssetResponse::version((string) PackageAssets::served('layout', $layer));
+
+        $this->assertNotSame($this->version('layout'), $layered);
+        $response = (new AssetController($layer))->layoutCss(new Request(['v' => $layered]));
+        $this->assertTrue($response->headers->hasCacheControlDirective('immutable'));
+    }
+
+    public function testWithoutALayerTheFilesAreServedAsBefore(): void
+    {
+        $this->assertSame(
+            PackageAssets::content('layout'),
+            (new AssetController())->layoutCss(new Request())->getContent(),
+        );
     }
 
     private function version(string $name): string

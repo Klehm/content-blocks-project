@@ -18,6 +18,11 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class AssetController
 {
+    public function __construct(
+        private readonly CssLayer $layer = new CssLayer(),
+    ) {
+    }
+
     #[Route('/layout', name: 'content_blocks_asset_layout', methods: ['GET'])]
     public function layoutCss(Request $request): Response
     {
@@ -54,7 +59,7 @@ final class AssetController
 
     private function serve(Request $request, string $name): Response
     {
-        $content = PackageAssets::content($name);
+        $content = PackageAssets::served($name, $this->layer);
         $type = PackageAssets::contentType($name);
 
         if ($content === null) {

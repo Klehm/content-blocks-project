@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Twig;
 
 use ContentBlocks\Kit\Controller\AssetController;
+use ContentBlocks\PublicAsset\CssLayer;
 use ContentBlocks\PublicAsset\StaticAssetResponse;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Extension\AbstractExtension;
@@ -18,6 +19,7 @@ final class StylesheetExtension extends AbstractExtension
 {
     public function __construct(
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly ?CssLayer $layer = null,
     ) {
     }
 
@@ -30,12 +32,8 @@ final class StylesheetExtension extends AbstractExtension
 
     public function stylesheetUrl(): string
     {
-        $css = is_file(AssetController::STYLESHEET)
-            ? (string) file_get_contents(AssetController::STYLESHEET)
-            : '';
-
         return $this->urlGenerator->generate('content_blocks_kit_asset_css', [
-            'v' => StaticAssetResponse::version($css),
+            'v' => StaticAssetResponse::version(AssetController::stylesheet($this->layer)),
         ]);
     }
 }

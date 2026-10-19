@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `content_blocks_area_discard` take an optional JSON body
   `{"locales": [...]}`; without it they cover every locale, as before. No
   migration.
+- **`content_blocks.css_layer`: the public CSS in a cascade layer.** Set to a
+  layer name (`content-blocks`), it serves `layout`, `styling` and the kit's
+  `kit.css` inside `@layer <name> { … }`, so any unlayered host rule wins over
+  them whatever its specificity. Off by default: turning it on lets a host's
+  global CSS (`img`, `a`, a reset) start winning, so check your pages. The
+  default changes only in 2.0. The `?v=` of each link hashes the layered bytes,
+  and the builder chrome is never layered. No migration.
 
 ### Documentation
 

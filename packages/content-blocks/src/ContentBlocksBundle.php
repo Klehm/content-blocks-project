@@ -34,6 +34,14 @@ final class ContentBlocksBundle extends AbstractBundle
     {
         $definition->rootNode()
             ->children()
+                ->scalarNode('css_layer')
+                    ->info('Serve the public stylesheets (layout, styling, the kit\'s) inside this cascade layer, e.g. "content-blocks", so any unlayered host rule wins over them whatever its specificity. Null keeps them unlayered.')
+                    ->defaultNull()
+                    ->validate()
+                        ->ifTrue(static fn ($v): bool => !\is_string($v) || preg_match(PublicAsset\CssLayer::NAME_PATTERN, $v) !== 1)
+                        ->thenInvalid('%s is not a CSS layer name: letters, digits, "-" and "_", dot-separated for a sub-layer.')
+                    ->end()
+                ->end()
                 ->integerNode('content_version')
                     ->info('Schema generation of YOUR block data. Bump it whenever anything that shapes stored block data changes — your own blocks, a kit upgrade, or a core upgrade note saying so. Stamped onto content as it is written, so you can target what predates a change: WHERE content_version < N.')
                     ->min(1)
@@ -330,6 +338,7 @@ final class ContentBlocksBundle extends AbstractBundle
         // the app's parameters on top of extension-set ones.
         $container->parameters()
             ->set('content_blocks.content_version', $config['content_version'])
+            ->set('content_blocks.css_layer', $config['css_layer'])
             ->set('content_blocks.section.default_width_mode', $config['section']['default_width_mode'])
             ->set('content_blocks.section.default_max_width', $config['section']['default_max_width'])
             ->set('content_blocks.section.initial_settings', $config['section']['initial_settings'] ?? [])
