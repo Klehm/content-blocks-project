@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stylesheets, and `cb_kit_stylesheet_url()` carries the layered version. On an
   older core it is served unlayered, as before.
 
+- **The blocks are grouped in the picker.** Each block declares a category
+  (`#[AsContentBlock(category: …)]`): *Text* (title, text, rich_text, list,
+  alert, table), *Media* (image, gallery, video, embed, icon), *Layout* (card,
+  tabs, accordion, divider), *Buttons & links* (button, button_group,
+  breadcrumb) and *Advanced* (html_raw). A host moves one with
+  `content_blocks.picker.blocks`. **Requires `klehm/content-blocks` ^1.5**,
+  where the attribute takes a `category`: the floor moves with the release.
+
 ## [1.4.0] - 2026-10-12
 
 This release carries, across the three packages: theme variables in the

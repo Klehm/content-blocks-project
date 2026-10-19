@@ -82,6 +82,7 @@
        no nonce for the preview. HEX flags keep `</script>` inside a string. #}
     {% set cb_json = constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') %}
     <script type="application/json" id="cb-block-types">{{ blockTypes|json_encode(cb_json)|raw }}</script>
+    <script type="application/json" id="cb-block-categories">{{ (blockCategories ?? [])|json_encode(cb_json)|raw }}</script>
     {# The overlay has no Stimulus element to hang `data-i18n-*` off, so its
        labels are translated here. Anything it hardcodes ships untranslated. #}
     <script type="application/json" id="cb-overlay-labels">{{ {

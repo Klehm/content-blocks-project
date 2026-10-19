@@ -16,7 +16,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 /**
  * A horizontal rule with a line style and an optional palette color.
  */
-#[AsContentBlock(priority: 25)]
+#[AsContentBlock(priority: 25, category: 'layout')]
 class DividerBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public function getType(): string

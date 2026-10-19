@@ -11,9 +11,22 @@ final class BlockTypeRegistry
     /** @var array<string, BlockTypeInterface> */
     private array $blockTypes = [];
 
-    public function register(BlockTypeInterface $blockType): void
+    /** @var array<string, string|null> */
+    private array $categories = [];
+
+    public function register(BlockTypeInterface $blockType, ?string $category = null): void
     {
         $this->blockTypes[$blockType->getType()] = $blockType;
+        $this->categories[$blockType->getType()] = $category;
+    }
+
+    /**
+     * The picker category the block type declared, or null. Where it lands
+     * is {@see BlockCategoryRegistry::categoryOf()}'s call.
+     */
+    public function getCategory(string $type): ?string
+    {
+        return $this->categories[$type] ?? null;
     }
 
     public function get(string $type): BlockTypeInterface

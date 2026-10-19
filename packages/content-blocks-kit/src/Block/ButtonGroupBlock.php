@@ -20,7 +20,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * A row of buttons sharing one size and alignment, so they sit side by side
  * and wrap together. The `max_items` option caps how many (3 by default).
  */
-#[AsContentBlock(priority: 54)]
+#[AsContentBlock(priority: 54, category: 'actions')]
 class ButtonGroupBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function defaultOptions(): array

@@ -15,7 +15,7 @@ use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
-#[AsContentBlock(priority: 100)]
+#[AsContentBlock(priority: 100, category: 'text')]
 class TitleBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public function getType(): string

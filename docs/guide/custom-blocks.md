@@ -152,12 +152,39 @@ Return `null` (the `AbstractBlockType` default) to fall back to a generic glyph.
 
 ## Ordering blocks in the picker
 
-The picker grid renders blocks in registration order, which is driven by the `priority` argument of `#[AsContentBlock]` — **higher priority first**. Blocks sharing a priority keep their service-discovery order. Default is `0`.
+Within its group (see below), the picker renders blocks in registration order, which is driven by the `priority` argument of `#[AsContentBlock]` — **higher priority first**. Blocks sharing a priority keep their service-discovery order. Default is `0`.
 
 ```php
-#[AsContentBlock(priority: 100)]  // floats to the top of the picker
+#[AsContentBlock(priority: 100)]  // floats to the top of its group
 final class MyBlock extends AbstractBlockType { /* … */ }
 ```
+
+## Picker categories
+
+The picker groups blocks under headings. A block picks its group with `category`:
+
+```php
+#[AsContentBlock(priority: 50, category: 'media')]
+final class PodcastBlock extends AbstractBlockType { /* … */ }
+```
+
+The built-in groups, in this order: `text`, `media`, `layout`, `actions` (buttons and links), `advanced`, and `other`. A block without a category, a host block from before categories existed for instance, lands in `other`. A subclass of a kit block, which re-applies `#[AsContentBlock]` to be registered, keeps its parent's category unless it names one. When every block falls in the same group, the picker shows a flat grid with no heading, as it did before.
+
+A category that is not declared stops `cache:clear`, with the nearest name when it looks like a typo. Declare your own groups, relabel or reorder the built-ins, and move a block (a kit one, say) without subclassing it:
+
+```yaml
+# config/packages/content_blocks.yaml
+content_blocks:
+    picker:
+        categories:          # listed ones first, in this order; the other built-ins follow
+            commerce: 'Shop'             # new group: a label (text or translation key, content_blocks domain)
+            text: ~                      # a built-in moved up, its label kept
+            media: 'Images & video'      # a built-in relabelled
+        blocks:
+            embed: commerce              # block type => category, wins over the attribute
+```
+
+A type under `picker.blocks` that matches no registered block is ignored, so a block you disabled can stay listed. One that is a near-miss of a registered type (`gallry`) is refused when the builder opens.
 
 ## Translatable labels
 

@@ -136,9 +136,39 @@
         header.textContent = t('add_block', 'Add a block');
         popover.appendChild(header);
 
+        // One group draws the flat grid a host without categories had.
+        const groupData = serverData('cb-block-categories', '__cbBlockCategories');
+        const groups = Array.isArray(groupData) ? groupData : [];
+        if (groups.length < 2) {
+            popover.appendChild(buildTileGrid(types, columnId));
+        } else {
+            for (const group of groups) {
+                const members = types.filter((item) => item.category === group.name);
+                if (members.length === 0) continue;
+                const section = document.createElement('div');
+                section.className = 'cb-overlay-popover__group';
+                section.setAttribute('role', 'group');
+                section.setAttribute('aria-label', group.label);
+                section.dataset.cbCategory = group.name;
+                const title = document.createElement('div');
+                title.className = 'cb-overlay-popover__group-title';
+                title.setAttribute('aria-hidden', 'true');
+                title.textContent = group.label;
+                section.append(title, buildTileGrid(members, columnId));
+                popover.appendChild(section);
+            }
+        }
+
+        const rect = triggerBtn.getBoundingClientRect();
+        popover.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+        popover.style.left = (rect.left + window.scrollX) + 'px';
+        popover.hidden = false;
+    }
+
+    function buildTileGrid(items, columnId) {
         const grid = document.createElement('div');
         grid.className = 'cb-overlay-popover__grid';
-        for (const item of types) {
+        for (const item of items) {
             const tile = document.createElement('button');
             tile.type = 'button';
             tile.className = 'cb-overlay-popover__tile';
@@ -162,12 +192,7 @@
             });
             grid.appendChild(tile);
         }
-        popover.appendChild(grid);
-
-        const rect = triggerBtn.getBoundingClientRect();
-        popover.style.top = (rect.bottom + window.scrollY + 4) + 'px';
-        popover.style.left = (rect.left + window.scrollX) + 'px';
-        popover.hidden = false;
+        return grid;
     }
 
     function hidePopover() {

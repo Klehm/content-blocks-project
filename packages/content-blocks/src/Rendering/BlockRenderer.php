@@ -6,6 +6,7 @@ namespace ContentBlocks\Rendering;
 
 use ContentBlocks\BlockType\BlockAssets;
 use ContentBlocks\BlockType\BlockAssetsInterface;
+use ContentBlocks\BlockType\BlockCategoryRegistry;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Builder\BuilderStructureResolverInterface;
 use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
@@ -51,6 +52,7 @@ final class BlockRenderer implements BlockRendererInterface
         private readonly ColumnSettingsResolverCollection $columnSettingsResolvers = new ColumnSettingsResolverCollection(),
         private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
         private readonly BlockAssetUrls $assetUrls = new BlockAssetUrls(),
+        private readonly BlockCategoryRegistry $categories = new BlockCategoryRegistry(),
     ) {
     }
 
@@ -60,26 +62,13 @@ final class BlockRenderer implements BlockRendererInterface
         $mode = $context->mode;
         $sections = $this->buildSectionTree($area, $context, $ordered);
 
-        $blockTypes = [];
-        if ($mode === RenderMode::PREVIEW) {
-            foreach ($this->blockTypeRegistry->all() as $type => $blockType) {
-                $label = $blockType->getLabel();
-                $blockTypes[] = [
-                    'type' => $type,
-                    'label' => $label instanceof TranslatableInterface
-                        ? $label->trans($this->translator)
-                        : $this->translator->trans((string) $label),
-                    // Inline SVG markup or null; the overlay supplies a
-                    // generic fallback glyph when null.
-                    'icon' => $blockType->getIcon(),
-                ];
-            }
-        }
+        [$blockTypes, $blockCategories] = $mode === RenderMode::PREVIEW ? $this->picker() : [[], []];
 
         return $this->twig->render(self::RENDER_TEMPLATE, [
             'mode' => $mode,
             'sections' => $sections,
             'blockTypes' => $blockTypes,
+            'blockCategories' => $blockCategories,
             'chrome' => $this->chromeEnabled($mode),
             'blockAssets' => $this->assetUrls->collect(self::declaredAssets($sections)),
             'ordered' => $ordered,
@@ -124,6 +113,56 @@ final class BlockRenderer implements BlockRendererInterface
                 }
             }
         }
+    }
+
+    /**
+     * The picker's tiles, ordered by group then registration, and the groups
+     * that hold at least one of them.
+     *
+     * @return array{
+     *     list<array{
+     *         type: string,
+     *         label: string,
+     *         icon: ?string,
+     *         category: string,
+     *     }>,
+     *     list<array{name: string, label: string}>,
+     * }
+     */
+    private function picker(): array
+    {
+        $this->categories->assertAssignments(array_keys($this->blockTypeRegistry->all()));
+        $order = array_flip(array_keys($this->categories->all()));
+
+        $tiles = [];
+        foreach ($this->blockTypeRegistry->all() as $type => $blockType) {
+            $label = $blockType->getLabel();
+            $tiles[] = [
+                'type' => $type,
+                'label' => $label instanceof TranslatableInterface
+                    ? $label->trans($this->translator)
+                    : $this->translator->trans((string) $label),
+                // Inline SVG markup or null; the overlay supplies a
+                // generic fallback glyph when null.
+                'icon' => $blockType->getIcon(),
+                'category' => $this->categories->categoryOf(
+                    $type,
+                    $this->blockTypeRegistry->getCategory($type),
+                ),
+            ];
+        }
+        // usort is stable: registration order holds within a group.
+        usort($tiles, static fn (array $a, array $b): int => $order[$a['category']] <=> $order[$b['category']]);
+
+        $groups = [];
+        foreach (array_unique(array_column($tiles, 'category')) as $name) {
+            $groups[] = [
+                'name' => $name,
+                'label' => $this->translator->trans($this->categories->all()[$name], [], 'content_blocks'),
+            ];
+        }
+
+        return [$tiles, $groups];
     }
 
     /**
