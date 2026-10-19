@@ -22,7 +22,8 @@
         "symfony/ux-twig-component": "^2.0",
         "symfony/webpack-encore-bundle": "^2.0",
         "symfony/yaml": "^6.4",
-        "twig/twig": "^3.27"
+        "twig/twig": "^3.27",
+        "league/glide": "^3"
     },
     "conflict": {
         "symfony/asset-mapper": "*"

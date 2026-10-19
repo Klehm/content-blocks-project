@@ -2,6 +2,8 @@ parameters:
     # '_e2e' under Playwright: its own database and upload directory, so the
     # suite never writes into the demo. See docs/internals/testing.md
     env(SANDBOX_SUFFIX): ''
+    app.upload_directory: '%kernel.project_dir%/public/uploads/content-blocks%env(SANDBOX_SUFFIX)%'
+    app.upload_prefix: '/uploads/content-blocks%env(SANDBOX_SUFFIX)%'
 
 services:
     _defaults:
@@ -25,3 +27,23 @@ services:
 
     ContentBlocks\Preview\ContentAreaUrlResolverInterface:
         class: App\Preview\PageContentAreaUrlResolver
+
+    # The Glide sandbox: every kit image is served through
+    # App\Image\GlideImageUrlResolver. See docs/guide/recipes/glide.md
+    League\Glide\Server:
+        factory: ['League\Glide\ServerFactory', 'create']
+        arguments:
+            - source: '%app.upload_directory%'
+              cache: '%kernel.project_dir%/var/glide%env(SANDBOX_SUFFIX)%'
+              driver: gd
+              max_image_size: 4000000   # pixels, 2000×2000
+
+    League\Glide\Signatures\SignatureInterface:
+        factory: ['League\Glide\Signatures\SignatureFactory', 'create']
+        arguments: ['%kernel.secret%']
+
+    App\Image\GlideImageUrlResolver:
+        arguments:
+            $uploadPrefix: '%app.upload_prefix%'
+
+    ContentBlocks\Image\ImageUrlResolverInterface: '@App\Image\GlideImageUrlResolver'

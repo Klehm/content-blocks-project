@@ -13,5 +13,5 @@ content_blocks:
         - { label: 'Ink', color: '#111827' }
 
     upload:
-        directory: '%kernel.project_dir%/public/uploads/content-blocks%env(SANDBOX_SUFFIX)%'
-        public_prefix: '/uploads/content-blocks%env(SANDBOX_SUFFIX)%'
+        directory: '%app.upload_directory%'
+        public_prefix: '%app.upload_prefix%'

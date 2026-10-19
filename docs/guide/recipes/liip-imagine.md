@@ -160,4 +160,4 @@ php -S 127.0.0.1:8000 -t public public/router.php
 
 ## Other backends
 
-The seam does not care which one you use. A transforming CDN (Cloudflare Images, imgix, Cloudinary) is often the better production answer — the resolver becomes pure URL building, with no PHP image processing and no cache directory to manage. See the [CDN example](../host-services.md#imageurlresolverinterface-responsive-images) in the host-services guide.
+The seam does not care which one you use. [Glide](./glide.md) does the same job without a bundle, from signed URLs. A transforming CDN (Cloudflare Images, imgix, Cloudinary) is often the better production answer — the resolver becomes pure URL building, with no PHP image processing and no cache directory to manage. See the [CDN example](../host-services.md#imageurlresolverinterface-responsive-images) in the host-services guide.

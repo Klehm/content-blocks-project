@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- **A Glide recipe for image optimization**, the bundle-free alternative to
+  LiipImagine: signed URLs, WebP variants, no upscaling
+  ([docs/guide/recipes/glide.md](../../docs/guide/recipes/glide.md)). The
+  Encore sandbox runs it, under an end-to-end test. No package code changes.
+
 ## [1.4.0] - 2026-10-12
 
 This release carries, across the three packages: theme variables in the
