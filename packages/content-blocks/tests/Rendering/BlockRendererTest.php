@@ -988,6 +988,109 @@ final class BlockRendererTest extends TestCase
         $this->assertStringContainsString('<p class="cb-custom" id="b77">Custom: Hello</p>', $html);
     }
 
+    // ---------- what a block view receives ----------
+
+    private const VIEW_PROBE = '<p class="probe">{{ block.id }}|{{ block.type }}|'
+        . '{{ context.mode.value }}|{{ context.locale ?? "none" }}|'
+        . '{{ context.preview ? "preview" : "" }}{{ context.public ? "public" : "" }}</p>';
+
+    public function testAViewReadsItsBlockAndThePublicContext(): void
+    {
+        $html = $this->renderProbe(new RenderContext(RenderMode::PUBLIC, 'de'));
+
+        $this->assertStringContainsString('<p class="probe">77|probe|public|de|public</p>', $html);
+    }
+
+    public function testAViewKnowsItIsRenderedInThePreview(): void
+    {
+        $html = $this->renderProbe(new RenderContext(RenderMode::PREVIEW, 'de'));
+
+        $this->assertStringContainsString('<p class="probe">77|probe|preview|de|preview</p>', $html);
+    }
+
+    // The mode is pinned before any view runs, even if the caller left it open.
+    public function testTheModeAViewReadsIsNeverOpen(): void
+    {
+        $html = $this->renderProbe(new RenderContext(locale: 'de'));
+
+        $this->assertStringContainsString('|public|de|public</p>', $html);
+    }
+
+    // A caller leaving the locale open: the request's, which the page uses.
+    public function testAnOpenLocaleIsTheRequests(): void
+    {
+        $stack = new RequestStack();
+        $request = Request::create('/');
+        $request->setLocale('es');
+        $stack->push($request);
+
+        $html = $this->renderProbe(new RenderContext(RenderMode::PUBLIC), $stack);
+
+        $this->assertStringContainsString('|public|es|public</p>', $html);
+    }
+
+    public function testWithNoRequestAnOpenLocaleStaysOpen(): void
+    {
+        $html = $this->renderProbe(new RenderContext(RenderMode::PUBLIC));
+
+        $this->assertStringContainsString('|public|none|public</p>', $html);
+    }
+
+    // The builder hot-swaps this fragment: same variables as the full page.
+    public function testASingleBlockRenderPassesTheSameVariables(): void
+    {
+        $html = $this->renderProbe(new RenderContext(RenderMode::PREVIEW, 'de'), single: true);
+
+        $this->assertStringContainsString('<p class="probe">77|probe|preview|de|preview</p>', $html);
+    }
+
+    private function renderProbe(RenderContext $context, ?RequestStack $stack = null, bool $single = false): string
+    {
+        $area = $this->makeArea();
+        $section = $this->makeSection($area, layout: Section::LAYOUT_FULL, position: 0, previewPosition: 0);
+        $column = $this->makeColumn($section, position: 0, previewPosition: 0);
+        $block = $this->makeBlock($column, type: 'probe', publishedData: ['x' => 1], position: 0, previewPosition: 0, id: 77);
+
+        $registry = new BlockTypeRegistry();
+        $registry->register(new class () extends AbstractBlockType {
+            public function getType(): string
+            {
+                return 'probe';
+            }
+            public function getLabel(): string
+            {
+                return 'Probe';
+            }
+            public function buildForm(FormBuilderInterface $builder, array $data): void
+            {
+            }
+            public function getDefaultData(): array
+            {
+                return [];
+            }
+            public function getViewTemplate(): ?string
+            {
+                return '@TestRender/probe.html.twig';
+            }
+        });
+
+        $renderer = new BlockRenderer(
+            $this->makeTwig(extraTemplates: ['probe.html.twig' => self::VIEW_PROBE]),
+            $stack ?? new RequestStack(),
+            new AllowAllAccessChecker(),
+            $registry,
+            new \ContentBlocks\Section\SectionDecoratorCollection([]),
+            new \ContentBlocks\Section\SectionSettingsDefaults([]),
+            new \ContentBlocks\Section\SectionStyleRegistry([]),
+            $this->makeTranslator(),
+            new \ContentBlocks\Block\BlockDecoratorCollection([]),
+            new \ContentBlocks\Block\BlockDataDefaults(),
+            new BlockDataResolverCollection([new CoreBlockDataResolver()]),
+        );
+
+        return $single ? $renderer->renderBlock($block, $context) : $renderer->render($area, $context);
+    }
+
     /**
      * renderBlock() produces a standalone fragment: just the block's own
      * wrapper (with its data-cb-block-id marker and rendered view), without

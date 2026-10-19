@@ -513,6 +513,8 @@ final class BlockRenderer implements BlockRendererInterface
      *     extraClasses: string,
      *     inlineStyle: string,
      *     extraAttributes: array<string, string>,
+     *     view: BlockView,
+     *     context: RenderContext,
      * }
      */
     private function buildBlockViewModel(Block $block, RenderContext $context, bool $parentDeleted): array
@@ -539,6 +541,23 @@ final class BlockRenderer implements BlockRendererInterface
             'extraClasses' => $decoration->classString(),
             'inlineStyle' => $decoration->styleString(),
             'extraAttributes' => $decoration->attributes,
+            'view' => new BlockView($block->getId(), $block->getType()),
+            'context' => $this->viewContext($context),
         ];
+    }
+
+    /**
+     * The context a block view reads: the locale the page is rendered in,
+     * which the request decides when the caller left it open.
+     */
+    private function viewContext(RenderContext $context): RenderContext
+    {
+        if ($context->locale !== null) {
+            return $context;
+        }
+
+        $locale = $this->requestStack->getCurrentRequest()?->getLocale();
+
+        return $locale === null ? $context : $context->withLocale($locale);
     }
 }

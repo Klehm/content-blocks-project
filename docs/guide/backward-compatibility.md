@@ -41,7 +41,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
   - `BlockFormType`, `SectionSettingsType` and `StylingType` as **targets of a form type extension**, with their `TAB_*` and `PANEL_*` constants. The fields they hold are not frozen: a field may move, but a key you add keeps working.
 - **The sidebar form options.** `cb_group`, `cb_panel`, `cb_help_tooltip` and `cb_panels_exclusive` on every form type; `cb_icons`, `cb_icon_layout`, `cb_icon_columns` and `cb_icon_labels` on `ChoiceType`; `cb_open_entries` on `LiveCollectionType`. Also the **names of the shipped UI icons** they refer to ([Laying out sidebar fields](./sidebar-fields.md)): a name may gain a better drawing, but it is not renamed or removed.
 - **Value objects your implementation builds or reads.** Their public properties and named constructors are frozen:
-  - rendering: `RenderContext`, `RenderMode`, `ResolvedImage`, `BlockPreviewHint`, `BlockDecoration`, `SectionDecoration`
+  - rendering: `RenderContext` (with `isPreview()` / `isPublic()`), `RenderMode`, `BlockView`, `ResolvedImage`, `BlockPreviewHint`, `BlockDecoration`, `SectionDecoration`
   - publishing: `PublishContext`, `LocaleDraft`
   - builder UI and styling: `BuilderAction`, `BuilderShellFragment`, `BuilderStructure` (its `SECTIONS_*` constants and `can*()` / `showsSections()` reads), `PaletteColor`, `SectionStyle`
   - storage: `StoredAsset`
@@ -94,7 +94,7 @@ For `content-blocks:assets:gc`, the *shape* of the safety design is part of the 
 - **Block names.** The block names a host overrides keep working, including the empty blocks shipped for host additions:
   - builder shell: `cb_shell_topbar_left_end`, `cb_shell_topbar_right_start`, `cb_shell_topbar_right_end`, `cb_shell_end`
   - workbench: `cb_wb_head`, `cb_wb_topbar_left_end`, `cb_wb_topbar_right_start`, `cb_wb_topbar_right_end`, `cb_wb_end`
-- **A block view's variables.** A view receives `data` and `block_id`; later versions may pass more, never less.
+- **A block view's variables.** A view receives `data`, `block_id`, `block` (`BlockView`: `id`, `type`) and `context` (`RenderContext`, its mode always set); later versions may pass more, never less.
 
 ### Front-end
 

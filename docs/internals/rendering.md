@@ -94,6 +94,34 @@ Contract for an implementor:
 - stay side-effect free — this runs once per block on every public page render,
   possibly inside a warm cache.
 
+## What a block view receives
+
+A view is included with `with_context = false`, so its variables are its whole
+input: `data`, `block_id`, and since 1.5 `block` and `context`. Before them a
+view could not tell the builder from the public page, nor which language it was
+rendered in, short of reading `app.request`, which says nothing in a console
+render and is not what the renderer decided.
+
+- **`block` is a `BlockView`, not the entity.** The entity carries both twins,
+  so a view holding it could print a draft on the public page, and walking
+  `block.column.section` would lazy-load mid-render. `id` and `type` are what a
+  view needs; adding a property later is additive, removing one is not.
+- **`context` is the render's own context, with the mode pinned** (the renderer
+  materializes it before any view runs, so `context.mode` is never null) and
+  **the locale filled from the request** when the caller left it open. Only the
+  copy handed to views is filled: the context the resolvers see is unchanged,
+  since an i18n resolver treats an open locale as "ask the request" itself.
+- **One include, three entry points.** The full render, `renderBlock()` and
+  `renderSection()` all reach a view through `render/block.html.twig`, fed by
+  `buildBlockViewModel()`, so a hot-swapped block sees the same variables as
+  the page it lands in.
+
+A host overriding `render/block.html.twig` keeps its own `include()`, which
+does not pass the new variables. That is why the guide tells views to read
+`context ?? null` until the override is updated, rather than the package
+switching the include to `with_context = true`, which would hand a view every
+variable of the wrapper.
+
 ## Replacing the renderer itself
 
 `BlockRendererInterface` is aliased to the shipped `BlockRenderer`; a host that

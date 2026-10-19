@@ -87,13 +87,37 @@ Where the file lives depends on how you ship the block:
 
 Symfony auto-registers a bundle's `templates/` directory under its `@YourBundle` Twig namespace — which is exactly how the kit points at `'@ContentBlocksKit/block/alert/view.html.twig'`.
 
-The view receives two variables, and nothing else from the page: `data`, the block's data, and `block_id`, its id. Use `block_id` for anything that must be unique on the page, such as a radio group's `name` or an ARIA id; unlike `random()`, it gives the same markup on every render, which keeps the page cacheable:
+The view receives these variables, and nothing else from the page:
+
+| Variable | What it is |
+|---|---|
+| `data` | the block's data, resolved for this render (draft in the preview, published on the public page, translated under i18n) |
+| `block_id` | its id |
+| `block` | the block itself, read-only: `block.id`, `block.type` |
+| `context` | how the page is rendered: `context.preview` / `context.public`, `context.locale`, `context.mode` |
+
+Use `block_id` for anything that must be unique on the page, such as a radio group's `name` or an ARIA id; unlike `random()`, it gives the same markup on every render, which keeps the page cacheable:
 
 ```twig
 {% set uid = 'my-block-' ~ (block_id ?? random()) %}
 ```
 
 `block_id` can be `null` when a view is rendered on its own, in a test for instance, hence the fallback.
+
+`context` is for what must differ between the builder and the visitor's page, or between languages:
+
+```twig
+{# No autoplay while an editor is working on the page. #}
+<video{% if data.autoplay and not context.preview %} autoplay muted{% endif %} …>
+
+<time datetime="{{ data.date }}">{{ data.date|format_date(locale: context.locale) }}</time>
+```
+
+`context.locale` is the locale the page is rendered in: the one the caller passed in the `RenderContext`, else the request's. It is `null` only when there is no request at all, in a console command for instance. `block` is not the Doctrine entity on purpose: a view must not be able to read a draft on a public page.
+
+::: tip Overriding `render/block.html.twig`
+`block` and `context` arrived in 1.5. If your app overrides `@ContentBlocks/render/block.html.twig`, add `block: block.view, context: block.context` to its `include()`, or write `context ?? null` in your views until you do.
+:::
 
 ::: warning A view template is effectively required for a real block
 `AbstractBlockType::getViewTemplate()` returns `null` by default, and a `null` template renders **nothing**: the block's wrapper `<div>` is on the page, empty, and there is no generic fallback. Any block you actually ship must return a template path.
