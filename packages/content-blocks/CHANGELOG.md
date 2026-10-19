@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A block view receives `block` and `context`.** Beside `data` and
+  `block_id`, a view template now gets `block` (`BlockView`: `id`, `type`,
+  read-only, never the entity) and `context` (the `RenderContext`, its mode
+  always set, its locale the request's when the caller left it open), so a view
+  can tell the builder from the public page (`context.preview`) and knows its
+  language (`context.locale`). `RenderContext` gains `isPreview()` and
+  `isPublic()`. A host overriding `render/block.html.twig` must pass
+  `block: block.view, context: block.context` in its `include()`. No
+  migration.
+
 - **Publish and Revert to published can choose their locales.** When a bundle
   keeps locale drafts (the i18n package) and some are pending, both buttons
   open a dialog listing those languages, all ticked: an unticked one keeps its

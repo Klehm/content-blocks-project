@@ -36,6 +36,18 @@ final class RenderContext
         return new self(null, $locale);
     }
 
+    /** For a template: `context.preview`. False while the mode is open. */
+    public function isPreview(): bool
+    {
+        return $this->mode === RenderMode::PREVIEW;
+    }
+
+    /** For a template: `context.public`. False while the mode is open. */
+    public function isPublic(): bool
+    {
+        return $this->mode === RenderMode::PUBLIC;
+    }
+
     public function withMode(?RenderMode $mode): self
     {
         return new self($mode, $this->locale);
