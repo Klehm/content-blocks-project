@@ -883,6 +883,8 @@ normal PHPUnit suites. See the [Worker mode](#worker-mode-frankenphp-roadrunner-
 
 Each release sets `"version"` in `packages/content-blocks/assets/package.json` and `packages/content-blocks-kit/assets/package.json` to the tagged version (e.g. `1.0.0-RC12`). Yarn 1 refuses a `file:` dependency without one; `AssetPackageVersionTest` in both packages fails when the field is missing or behind the last CHANGELOG release.
 
+**The docs site deploys on a stable tag only** (`docs.yml`: `v*`, not `v*-*`), so it never documents what Packagist cannot install yet. A docs change merged on master waits for the next release; to ship a fix between releases, run the workflow by hand on the latest tag. The `github-pages` environment allows `master` and `v*` tags.
+
 ## Workflow Claude — recompiler les assets après chaque tâche
 
 Tout changement dans `packages/content-blocks/assets/` (Stimulus controllers, CSS, JS) ou `packages/content-blocks-kit/assets/` n'est servi qu'après recompilation dans **chacune des trois** sandboxes. Deux d'entre elles utilisent AssetMapper, la troisième Webpack Encore — la commande n'est donc pas la même.
