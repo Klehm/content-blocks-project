@@ -68,7 +68,8 @@ test.describe('rich text on a host-bundled CKEditor', () => {
         await expect(wrapper.locator('.ck-editor__editable')).toBeVisible();
 
         // …and nothing was fetched from a CDN to get there.
-        expect(requests.filter((url) => !url.startsWith('http://127.0.0.1:8002'))).toEqual([]);
+        const origin = test.info().project.use.baseURL;
+        expect(requests.filter((url) => !url.startsWith(origin))).toEqual([]);
     });
 
     test('editing writes back to the textarea and reaches the preview', async ({ page }) => {

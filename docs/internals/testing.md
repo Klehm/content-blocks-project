@@ -91,6 +91,25 @@ suffix, plus the seed). `reuseExistingServer` is still on, so a server already
 on 8001 or 8002 that was started *without* the suffix would send the suite back
 into a demo's data.
 
+## Running two checkouts at once
+
+Two git worktrees running Playwright together would share the ports and the
+`_e2e` database: each run's reset empties the other's data mid-suite. Both
+configs read three variables, with the defaults above when unset:
+
+| Variable | Default | |
+|---|---|---|
+| `E2E_PORT` | `8001` | main fixture |
+| `E2E_ENCORE_PORT` | `8002` | Encore fixture |
+| `E2E_SUFFIX` | `_e2e` | `SANDBOX_SUFFIX` of both instances (database + uploads) |
+
+```bash
+E2E_PORT=8011 E2E_ENCORE_PORT=8012 E2E_SUFFIX=_e2e_media npm run test:e2e
+```
+
+Pick ports outside 8000–8005. A spec never spells an origin: it reads
+`baseURL` (`test.info().project.use.baseURL` when it needs the string).
+
 ## The Vitest stub
 
 `@symfony/ux-live-component` is supplied at runtime by the sandboxes' AssetMapper
