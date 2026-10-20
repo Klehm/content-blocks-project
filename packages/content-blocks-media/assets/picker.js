@@ -6,6 +6,8 @@
  */
 export class MediaPicker {
     static SEARCH_DELAY = 250;
+    // The dataTransfer type of files dragged inside the picker.
+    static DRAG_TYPE = 'application/x-cb-media';
 
     constructor(dialog, {
         fetch = globalThis.fetch?.bind(globalThis),
@@ -24,8 +26,13 @@ export class MediaPicker {
         this.state = { kind: 'image', folder: null, query: '', page: 1 };
         this.items = [];
         this.folders = [];
-        this.selected = null;
+        // The selection is ids, so it survives a repaint; `anchor` is where
+        // a Shift-click range starts.
+        this.selection = new Set();
+        this.anchor = null;
+        this.edits = new Map();
         this.usage = null;
+        this.dropDepth = 0;
         // Answers to a superseded request are dropped, not painted over.
         this.generation = 0;
         this.usageGeneration = 0;
@@ -36,6 +43,15 @@ export class MediaPicker {
 
     supports(kind) {
         return this.kinds.includes(kind);
+    }
+
+    /** The one selected file, or null when none or several are. */
+    get selected() {
+        if (this.selection.size !== 1) return null;
+        const [id] = this.selection;
+        const item = this.items.find((candidate) => candidate.id === id);
+
+        return item ? { ...item, ...(this.edits.get(id) ?? {}) } : null;
     }
 
     open(request) {
@@ -90,6 +106,8 @@ export class MediaPicker {
             this.folders = data.folders ?? [];
             this._paintTrail(data.breadcrumb ?? []);
             this._paintFolders();
+            // A file no longer listed cannot stay selected.
+            this._keepListed();
         }
         this._paintGrid();
         this.el('more').hidden = !data.hasMore;
@@ -102,6 +120,7 @@ export class MediaPicker {
         this.state.folder = id;
         this.state.query = '';
         this.el('search').value = '';
+        this.select(null);
 
         return this.load();
     }
@@ -118,51 +137,105 @@ export class MediaPicker {
         return this.load({ append: true });
     }
 
+    // ---- selection ---------------------------------------------------------
+
+    /** Selects one file only, or nothing with null. */
     select(item) {
-        this.selected = item;
-        for (const button of this.el('grid').querySelectorAll('[data-id]')) {
-            button.setAttribute('aria-pressed', String(Number(button.dataset.id) === item?.id));
+        this._setSelection(item ? [item.id] : [], item?.id ?? null);
+    }
+
+    /** Ctrl/Cmd-click: in or out of the selection, the others untouched. */
+    toggle(item) {
+        const ids = new Set(this.selection);
+        if (ids.has(item.id)) ids.delete(item.id);
+        else ids.add(item.id);
+        this._setSelection([...ids], item.id);
+    }
+
+    /** Shift-click: every file between the anchor and this one. */
+    extendTo(item) {
+        const ids = this.items.map((candidate) => candidate.id);
+        const from = ids.indexOf(this.anchor);
+        const to = ids.indexOf(item.id);
+        if (from === -1) {
+            this.select(item);
+            return;
         }
-        this._paintSelection();
-        this._paintDetail();
-        if (item) this._loadUsage(item);
+        const [start, end] = from < to ? [from, to] : [to, from];
+        this._setSelection(ids.slice(start, end + 1), this.anchor);
+    }
+
+    selectAll() {
+        this._setSelection(this.items.map((item) => item.id), this.items[0]?.id ?? null);
+    }
+
+    /** A plain click: select it, or let go of it if it was all there was. */
+    clickItem(item, { toggle = false, range = false } = {}) {
+        if (range) this.extendTo(item);
+        else if (toggle) this.toggle(item);
+        else if (this.selection.size === 1 && this.selection.has(item.id)) this.select(null);
+        else this.select(item);
     }
 
     insert() {
-        if (!this.selected || !this.request) return;
-        const { path, alt } = this.selected;
+        const item = this.selected;
+        if (!item || !this.request) return;
         const request = this.request;
         this.close();
-        request.pick({ path, alt });
+        request.pick({ path: item.path, alt: item.alt });
     }
 
-    /** Through the core's upload endpoint, then filed under this folder. */
-    async upload(file) {
-        if (!file) return;
-        this._status(this._t('uploading'));
+    // ---- uploads -----------------------------------------------------------
 
-        try {
-            const body = new FormData();
-            body.append('file', file);
-            body.append('area', this.dialog.dataset.area);
-            const uploaded = await this._json(this.urls.upload, {
-                method: 'POST',
-                headers: { 'X-CSRF-Token': this.dialog.dataset.csrfToken },
-                body,
-            }, 'upload_failed');
-            const item = await this._post('place', {
-                area: this.dialog.dataset.area,
-                path: uploaded.url,
-                folder: this.state.folder,
-            }, 'upload_failed');
+    upload(file) {
+        return this.uploadMany(file ? [file] : []);
+    }
 
+    /**
+     * Through the core's upload endpoint one file at a time, each filed
+     * under this folder; what made it in is selected.
+     */
+    async uploadMany(files) {
+        const list = [...files];
+        if (list.length === 0) return;
+
+        const placed = [];
+        let failure = null;
+        for (const [index, file] of list.entries()) {
+            this._status(list.length > 1
+                ? `${this._t('uploading')} ${index + 1} / ${list.length}`
+                : this._t('uploading'));
+            try {
+                placed.push(await this._uploadOne(file));
+            } catch (error) {
+                failure = error;
+            }
+        }
+
+        if (placed.length > 0) {
             this.state.query = '';
             this.el('search').value = '';
             await this.load();
-            this.select(this.items.find((candidate) => candidate.id === item.id) ?? item);
-        } catch (error) {
-            this._status(error.message, true);
+            this._setSelection(placed.map((item) => item.id), placed[0].id);
         }
+        if (failure) this._status(failure.message, true);
+    }
+
+    async _uploadOne(file) {
+        const body = new FormData();
+        body.append('file', file);
+        body.append('area', this.dialog.dataset.area);
+        const uploaded = await this._json(this.urls.upload, {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': this.dialog.dataset.csrfToken },
+            body,
+        }, 'upload_failed');
+
+        return this._post('place', {
+            area: this.dialog.dataset.area,
+            path: uploaded.url,
+            folder: this.state.folder,
+        }, 'upload_failed');
     }
 
     // ---- managing ----------------------------------------------------------
@@ -179,30 +252,37 @@ export class MediaPicker {
         }
     }
 
-    async move(folder) {
-        const item = this.selected;
-        if (!item) return;
+    /** The selection, or the files given (a drag), into a folder. */
+    async move(folder, ids = [...this.selection]) {
+        if (ids.length === 0 || !this.canManage) return;
+        if (folder === this.state.folder && this.state.query === '') return;
 
         try {
-            await this._post('fileMove', { id: item.id, folder });
-            await this.load();
+            await this._post('fileMove', { ids, folder });
             this.select(null);
+            await this.load();
         } catch (error) {
             this._status(error.message, true);
         }
     }
 
     async remove() {
-        const item = this.selected;
-        if (!item) return;
-        const used = this.usage ? this.usage.pages.length + this.usage.others : 0;
-        const message = this._t(used > 0 ? 'remove_confirm_used' : 'remove_confirm')
-            .replace('%name%', item.title)
-            .replace('%count%', String(used));
+        const ids = [...this.selection];
+        if (ids.length === 0) return;
+
+        let message;
+        if (ids.length > 1) {
+            message = this._t('remove_confirm_many').replace('%count%', String(ids.length));
+        } else {
+            const used = this.usage ? this.usage.pages.length + this.usage.others : 0;
+            message = this._t(used > 0 ? 'remove_confirm_used' : 'remove_confirm')
+                .replace('%name%', this.selected?.title ?? '')
+                .replace('%count%', String(used));
+        }
         if (!this.confirm(message)) return;
 
         try {
-            await this._post('fileRemove', { id: item.id });
+            await this._post('fileRemove', { ids });
             this.select(null);
             await this.load();
         } catch (error) {
@@ -282,8 +362,7 @@ export class MediaPicker {
     async _loadUsage(item) {
         const generation = ++this.usageGeneration;
         this.usage = null;
-        const list = this.el('usage');
-        list.replaceChildren();
+        this.el('usage').replaceChildren();
 
         try {
             const query = new URLSearchParams({ area: this.dialog.dataset.area, id: String(item.id) });
@@ -308,10 +387,29 @@ export class MediaPicker {
 
     _replace(saved) {
         this.items = this.items.map((item) => (item.id === saved.id ? saved : item));
-        if (this.selected?.id === saved.id) this.selected = saved;
+        this.edits.delete(saved.id);
         const name = this.el('grid').querySelector(`[data-id="${saved.id}"] .cb-media__name`);
         if (name) name.textContent = saved.title;
         this._paintSelection();
+    }
+
+    _setSelection(ids, anchor) {
+        const before = this.selected?.id ?? null;
+        this.selection = new Set(ids);
+        this.anchor = anchor;
+        for (const button of this.el('grid').querySelectorAll('[data-id]')) {
+            button.setAttribute('aria-pressed', String(this.selection.has(Number(button.dataset.id))));
+        }
+        this._paintSelection();
+        this._paintDetail();
+        const item = this.selected;
+        if (item && item.id !== before) this._loadUsage(item);
+    }
+
+    _keepListed() {
+        const listed = new Set(this.items.map((item) => item.id));
+        const kept = [...this.selection].filter((id) => listed.has(id));
+        if (kept.length !== this.selection.size) this._setSelection(kept, this.anchor);
     }
 
     // ---- events ------------------------------------------------------------
@@ -319,13 +417,7 @@ export class MediaPicker {
     _bind() {
         // The builder's shortcuts would act behind the dialog: Escape on the
         // Navigator, Ctrl-V pasting a block. Its keys stay its own.
-        this.dialog.addEventListener('keydown', (event) => {
-            event.stopPropagation();
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                this.close();
-            }
-        });
+        this.dialog.addEventListener('keydown', (event) => this._onKeydown(event));
         this.dialog.addEventListener('close', () => {
             this.request = null;
         });
@@ -346,13 +438,19 @@ export class MediaPicker {
         this.el('more').addEventListener('click', () => this.more());
         this.el('insert').addEventListener('click', () => this.insert());
         this.el('file').addEventListener('change', (event) => {
-            this.upload(event.target.files?.[0]);
+            this.uploadMany(event.target.files ?? []);
             event.target.value = '';
         });
 
-        this.el('grid').addEventListener('click', (event) => {
+        this.el('main').addEventListener('click', (event) => {
             const button = event.target.closest('[data-id]');
-            if (button) this.select(this._item(button));
+            if (button) {
+                const item = this._item(button);
+                if (item) this.clickItem(item, { toggle: event.ctrlKey || event.metaKey, range: event.shiftKey });
+            } else if (!event.target.closest('button, a, input, select, textarea')) {
+                // A click on nothing lets go of everything.
+                this.select(null);
+            }
         });
         this.el('grid').addEventListener('dblclick', (event) => {
             const button = event.target.closest('[data-id]');
@@ -379,7 +477,9 @@ export class MediaPicker {
             const name = field.dataset.cbMediaField;
             // Kept as typed, so Insert carries an alt not saved yet.
             field.addEventListener('input', () => {
-                if (this.selected && this.canManage) this.selected = { ...this.selected, [name]: field.value };
+                const item = this.selected;
+                if (!item || !this.canManage) return;
+                this.edits.set(item.id, { ...(this.edits.get(item.id) ?? {}), [name]: field.value });
             });
             field.addEventListener('change', () => this.saveField(name, field.value));
         }
@@ -387,6 +487,90 @@ export class MediaPicker {
             this.move(event.target.value === '' ? null : Number(event.target.value));
         });
         this.el('remove')?.addEventListener('click', () => this.remove());
+
+        this._bindDrops();
+    }
+
+    _onKeydown(event) {
+        event.stopPropagation();
+        const typing = event.target.closest?.('input, textarea, select');
+
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            // Like a file browser: the first Escape lets go of the selection.
+            if (this.selection.size > 0 && !typing) this.select(null);
+            else this.close();
+
+            return;
+        }
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a' && !typing) {
+            event.preventDefault();
+            this.selectAll();
+        }
+    }
+
+    /** Desktop files onto the main zone; the picker's own onto a folder. */
+    _bindDrops() {
+        const main = this.el('main');
+        const hasFiles = (event) => [...(event.dataTransfer?.types ?? [])].includes('Files');
+        const isOurs = (event) => [...(event.dataTransfer?.types ?? [])].includes(MediaPicker.DRAG_TYPE);
+        const highlight = (on) => main.classList.toggle('cb-media__main--drop', on);
+
+        main.addEventListener('dragenter', (event) => {
+            if (!hasFiles(event)) return;
+            event.preventDefault();
+            this.dropDepth += 1;
+            highlight(true);
+        });
+        main.addEventListener('dragover', (event) => {
+            if (!hasFiles(event)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+        });
+        main.addEventListener('dragleave', (event) => {
+            if (!hasFiles(event)) return;
+            this.dropDepth = Math.max(0, this.dropDepth - 1);
+            if (this.dropDepth === 0) highlight(false);
+        });
+        main.addEventListener('drop', (event) => {
+            if (!hasFiles(event)) return;
+            event.preventDefault();
+            this.dropDepth = 0;
+            highlight(false);
+            this.uploadMany(event.dataTransfer.files ?? []);
+        });
+
+        this.el('grid').addEventListener('dragstart', (event) => {
+            const button = event.target.closest?.('[data-id]');
+            if (!button || !this.canManage) return;
+            const id = Number(button.dataset.id);
+            // Dragging a file outside the selection drags that file alone.
+            if (!this.selection.has(id)) this.select(this._item(button));
+            event.dataTransfer.setData(MediaPicker.DRAG_TYPE, JSON.stringify([...this.selection]));
+            event.dataTransfer.effectAllowed = 'move';
+        });
+
+        for (const zone of [this.el('folders'), this.el('trail')]) {
+            const target = (event) => (isOurs(event) ? event.target.closest?.('[data-folder]') : null);
+            zone.addEventListener('dragover', (event) => {
+                const folder = target(event);
+                if (!folder) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                folder.classList.add('cb-media__drop-target');
+            });
+            zone.addEventListener('dragleave', (event) => {
+                target(event)?.classList.remove('cb-media__drop-target');
+            });
+            zone.addEventListener('drop', (event) => {
+                const folder = target(event);
+                if (!folder) return;
+                event.preventDefault();
+                folder.classList.remove('cb-media__drop-target');
+                const ids = JSON.parse(event.dataTransfer.getData(MediaPicker.DRAG_TYPE) || '[]');
+                this.move(folder.dataset.folder === '' ? null : Number(folder.dataset.folder), ids);
+            });
+        }
     }
 
     _openFolderFrom(event) {
@@ -460,8 +644,9 @@ export class MediaPicker {
             const button = this._node('button', 'cb-media__item');
             button.type = 'button';
             button.dataset.id = String(item.id);
-            button.setAttribute('aria-pressed', String(this.selected?.id === item.id));
+            button.setAttribute('aria-pressed', String(this.selection.has(item.id)));
             button.title = item.title;
+            button.draggable = this.canManage;
 
             const frame = this._node('span', 'cb-media__thumb');
             frame.append(this._visual(item, true));
@@ -489,6 +674,7 @@ export class MediaPicker {
             img.sizes = '160px';
         }
         img.alt = '';
+        img.draggable = false;
         if (thumbnail) img.loading = 'lazy';
 
         return img;
@@ -497,6 +683,10 @@ export class MediaPicker {
     _paintSelection() {
         const item = this.selected;
         this.el('insert').disabled = item === null;
+        if (this.selection.size > 1) {
+            this.el('selection').textContent = this._t('selected_many').replace('%count%', String(this.selection.size));
+            return;
+        }
         if (item === null) {
             this.el('selection').textContent = '';
             return;
@@ -506,35 +696,53 @@ export class MediaPicker {
     }
 
     async _paintDetail() {
+        const count = this.selection.size;
         const item = this.selected;
         const detail = this.el('detail');
-        detail.hidden = item === null;
-        this.dialog.classList.toggle('cb-media--detail', item !== null);
-        if (item === null) return;
+        detail.hidden = count === 0;
+        detail.classList.toggle('cb-media__detail--many', count > 1);
+        this.dialog.classList.toggle('cb-media--detail', count > 0);
+        if (count === 0) return;
 
-        this.el('preview').replaceChildren(this._visual(item, false));
-        const facts = [
-            item.width && item.height ? `${item.width} × ${item.height}` : null,
-            item.size ? `${Math.max(1, Math.round(item.size / 1024))} KB` : null,
-            item.createdAt ? item.createdAt.slice(0, 10) : null,
-        ].filter(Boolean);
-        this.el('facts').textContent = facts.join(' · ');
-        for (const field of this.dialog.querySelectorAll('[data-cb-media-field]')) {
-            field.value = item[field.dataset.cbMediaField] ?? '';
+        if (count > 1) {
+            this.el('preview').replaceChildren();
+            this.el('facts').textContent = this._t('selected_many').replace('%count%', String(count));
+            this.el('usage').replaceChildren();
+        } else if (item) {
+            this.el('preview').replaceChildren(this._visual(item, false));
+            const facts = [
+                item.width && item.height ? `${item.width} × ${item.height}` : null,
+                item.size ? `${Math.max(1, Math.round(item.size / 1024))} KB` : null,
+                item.createdAt ? item.createdAt.slice(0, 10) : null,
+            ].filter(Boolean);
+            this.el('facts').textContent = facts.join(' · ');
+            for (const field of this.dialog.querySelectorAll('[data-cb-media-field]')) {
+                field.value = item[field.dataset.cbMediaField] ?? '';
+            }
         }
 
         const select = this.el('move');
         if (!select) return;
         const folders = await this._folderTree();
-        if (this.selected?.id !== item.id) return;
+        if (this.selection.size !== count) return;
+        // Several files may sit in several folders: none is preselected then.
+        const current = count === 1 ? (item?.folder ?? null) : undefined;
         const options = [{ id: null, name: this._t('root'), depth: 0 }, ...folders.map((f) => ({ ...f, depth: f.depth + 1 }))];
-        select.replaceChildren(...options.map((folder) => {
+        const nodes = options.map((folder) => {
             const option = this._node('option', '', `${'  '.repeat(folder.depth)}${folder.name}`);
             option.value = folder.id === null ? '' : String(folder.id);
-            option.selected = (item.folder ?? null) === folder.id;
+            option.selected = current === folder.id;
 
             return option;
-        }));
+        });
+        if (count > 1) {
+            const placeholder = this._node('option', '', this._t('move_to'));
+            placeholder.value = '__';
+            placeholder.disabled = true;
+            placeholder.selected = true;
+            nodes.unshift(placeholder);
+        }
+        select.replaceChildren(...nodes);
     }
 
     _paintUsage() {

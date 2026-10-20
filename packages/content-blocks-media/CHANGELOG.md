@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   text, move it, see the pages that use it, remove it from the library (the
   file itself stays). Every change needs `MediaManagerInterface`, denied by
   default (`AllowAllMediaManager` lets every editor manage).
+- **The picker behaves like a file browser**: drop files from the desktop on
+  it to upload them into the folder shown, select several with Ctrl/Cmd- or
+  Shift-click (Ctrl/Cmd-A for all), drag them onto a folder or a crumb of the
+  trail to move them, remove several at once, and let go of the selection with
+  a click on the empty zone, on the selected file, or Escape.
 - **The picker in the i18n workbench**: it stands alone, so the workbench
   renders it and offers it on media rows (`klehm/content-blocks-i18n` with
   this release).

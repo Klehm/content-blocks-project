@@ -41,6 +41,9 @@
             unused: 'cb_media.manage.unused'|trans,
             draft: 'cb_media.manage.draft'|trans,
             others: 'cb_media.manage.others'|trans,
+            selected_many: 'cb_media.manage.selected_many'|trans,
+            remove_confirm_many: 'cb_media.manage.remove_confirm_many'|trans,
+            move_to: 'cb_media.manage.move_to'|trans,
         }|json_encode }}">
     <form method="dialog" class="cb-media__frame">
         <header class="cb-media__header">
@@ -61,7 +64,7 @@
         </div>
 
         <div class="cb-media__body">
-            <div class="cb-media__main">
+            <div class="cb-media__main" data-cb-media-main>
                 <ul class="cb-media__folders" data-cb-media-folders></ul>
                 <ul class="cb-media__grid" data-cb-media-grid
                     aria-label="{{ 'cb_media.picker.files'|trans }}"></ul>
@@ -72,11 +75,11 @@
             <aside class="cb-media__detail" data-cb-media-detail hidden>
                 <div class="cb-media__preview" data-cb-media-preview></div>
                 <p class="cb-media__facts" data-cb-media-facts></p>
-                <label class="cb-media__field">
+                <label class="cb-media__field cb-media__field--single">
                     <span>{{ 'cb_media.manage.title'|trans }}</span>
                     <input type="text" maxlength="255" data-cb-media-field="title" {{ canManage ? '' : 'readonly' }}>
                 </label>
-                <label class="cb-media__field">
+                <label class="cb-media__field cb-media__field--single">
                     <span>{{ 'cb_media.manage.alt'|trans }}</span>
                     <textarea rows="3" maxlength="255" data-cb-media-field="alt" {{ canManage ? '' : 'readonly' }}></textarea>
                 </label>
@@ -99,7 +102,7 @@
         <footer class="cb-media__footer">
             <label class="cb-media__btn">
                 {{ 'cb_media.picker.upload'|trans }}
-                <input type="file" class="cb-media__file" data-cb-media-file>
+                <input type="file" class="cb-media__file" data-cb-media-file multiple>
             </label>
             <p class="cb-media__selection" data-cb-media-selection></p>
             <button type="button" class="cb-media__btn cb-media__btn--primary" data-cb-media-insert disabled>{{ 'cb_media.picker.insert'|trans }}</button>

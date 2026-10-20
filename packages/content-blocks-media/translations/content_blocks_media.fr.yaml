@@ -33,3 +33,6 @@ cb_media:
         remove_confirm: "Retirer « %name% » de la bibliothèque ? Le fichier lui-même n'est pas supprimé."
         remove_confirm_used: "Retirer « %name% » de la bibliothèque ? Il est utilisé sur %count% page(s), qui continuent de l'afficher : le fichier lui-même n'est pas supprimé."
         save_failed: "La modification n'a pas pu être enregistrée."
+        selected_many: "%count% fichiers sélectionnés"
+        remove_confirm_many: "Retirer %count% fichiers de la bibliothèque ? Les fichiers eux-mêmes ne sont pas supprimés."
+        move_to: "Déplacer vers…"

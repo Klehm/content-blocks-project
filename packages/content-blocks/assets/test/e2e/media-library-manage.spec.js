@@ -155,3 +155,62 @@ test('a renamed folder keeps its files, a deleted one hands them to the root', a
     await expect(dialog.locator('.cb-media__folder', { hasText: renamed })).toHaveCount(0);
     await expect(dialog.locator('.cb-media__item', { hasText: file })).toBeVisible();
 });
+
+test('files dropped on the picker are uploaded into the folder shown', async ({ page }) => {
+    await builderWithImageBlock(page);
+    const dialog = await openPicker(page);
+    const folder = unique('Dropped');
+    answerNext(page, folder);
+    await dialog.locator('[data-cb-media-new-folder]').click();
+    await dialog.locator('.cb-media__folder', { hasText: folder }).click();
+    await expect(dialog.locator('[data-cb-media-trail] [aria-current]')).toHaveText(folder);
+
+    const names = [unique('drop-a'), unique('drop-b')];
+    await dialog.locator('[data-cb-media-main]').evaluate((zone, { names, base64 }) => {
+        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+        const dt = new DataTransfer();
+        for (const name of names) dt.items.add(new File([bytes], `${name}.png`, { type: 'image/png' }));
+        for (const type of ['dragenter', 'dragover', 'drop']) {
+            zone.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }));
+        }
+    }, { names, base64: PNG_BASE64 });
+
+    for (const name of names) {
+        await expect(dialog.locator('.cb-media__item', { hasText: name })).toHaveAttribute('aria-pressed', 'true');
+    }
+    await expect(dialog.locator('[data-cb-media-selection]')).toContainText('2');
+    await expect(dialog.locator('[data-cb-media-insert]')).toBeDisabled();
+});
+
+test('a selection is let go of, and several files are dragged into a folder', async ({ page }) => {
+    await builderWithImageBlock(page);
+    const dialog = await openPicker(page);
+    const folder = unique('Target');
+    answerNext(page, folder);
+    await dialog.locator('[data-cb-media-new-folder]').click();
+    await expect(dialog.locator('.cb-media__folder', { hasText: folder })).toBeVisible();
+
+    const first = await upload(dialog, unique('drag-a'));
+    const second = await upload(dialog, unique('drag-b'));
+
+    // A click on the selected file alone lets go of it; Escape does too.
+    await second.click();
+    await expect(second).toHaveAttribute('aria-pressed', 'false');
+    await second.click();
+    await page.keyboard.press('Escape');
+    await expect(second).toHaveAttribute('aria-pressed', 'false');
+    await expect(dialog).toBeVisible();
+
+    await first.click();
+    await second.click({ modifiers: ['ControlOrMeta'] });
+    await expect(dialog.locator('.cb-media__item[aria-pressed="true"]')).toHaveCount(2);
+
+    const moved = page.waitForResponse((r) => r.url().includes('/admin/media/file/move'));
+    await second.dragTo(dialog.locator('.cb-media__folder', { hasText: folder }));
+    expect((await moved).status()).toBe(200);
+    await expect(first).toHaveCount(0);
+    await expect(second).toHaveCount(0);
+
+    await dialog.locator('.cb-media__folder', { hasText: folder }).click();
+    await expect(dialog.locator('.cb-media__item')).toHaveCount(2);
+});

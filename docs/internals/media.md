@@ -99,6 +99,29 @@ Two traps of living inside the builder:
 Answers to a superseded list request are dropped (a generation counter), so a
 fast typist never sees the results of an older query paint over a newer one.
 
+## It behaves like a file browser
+
+The selection is a set of ids plus an anchor, not a DOM state, so it survives a
+repaint and a reload drops only what is no longer listed. A click selects, a
+click on the file already alone in the selection lets go of it, a click on the
+empty zone lets go of everything; Ctrl/Cmd-click toggles, Shift-click takes the
+range from the anchor, Ctrl/Cmd-A selects all outside a field. Escape lets go
+of the selection first and closes the dialog only when there is none.
+
+Two kinds of drag, told apart by the `dataTransfer` types:
+
+- **Files from the desktop** (`Files`) onto the main zone upload one at a time
+  through the core endpoint, each filed under the folder shown; what made it
+  in ends up selected. A depth counter keeps the highlight steady while the
+  cursor crosses the thumbnails.
+- **Files of the picker** (`application/x-cb-media`, the ids as JSON) onto a
+  folder or a crumb of the trail move in one `POST file/move`. Dragging a file
+  outside the selection drags it alone. Only a manager can start such a drag.
+
+`file/move` and `file/remove` take a list of ids and refuse the whole request
+when one is unknown: a drag with a stale id moves nothing rather than half.
+*Insert* needs exactly one file, since a field holds one.
+
 ## Who may browse
 
 Listing and filing need `canEdit()` on the area the picker was opened from, the

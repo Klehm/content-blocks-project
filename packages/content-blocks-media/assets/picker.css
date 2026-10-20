@@ -133,6 +133,26 @@ button.cb-media__crumb {
   min-width: 0;
   overflow-y: auto;
   padding: 4px 20px 16px;
+  outline: 2px dashed transparent;
+  outline-offset: -8px;
+}
+
+/* Files dragged in from the desktop. */
+.cb-media__main--drop {
+  outline-color: var(--cb-accent, #0e7490);
+  background: var(--cb-accent-bg, #e6f2f6);
+}
+
+/* A folder a dragged file would land in. */
+.cb-media__drop-target {
+  outline: 2px solid var(--cb-accent, #0e7490);
+  background: var(--cb-accent-bg, #e6f2f6);
+}
+
+.cb-media__detail--many .cb-media__field--single,
+.cb-media__detail--many .cb-media__usage,
+.cb-media__detail--many .cb-media__preview {
+  display: none;
 }
 
 .cb-media__detail {
@@ -270,6 +290,7 @@ button.cb-media__crumb {
 }
 
 .cb-media__item {
+  user-select: none;
   display: flex;
   flex-direction: column;
   gap: 6px;

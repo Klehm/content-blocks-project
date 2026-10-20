@@ -33,6 +33,8 @@ final class ManageController
 {
     private const CSRF_TOKEN_ID = 'content_blocks';
     private const MAX_LENGTH = 255;
+    // A page of the picker holds 40; a select-all over several pages, more.
+    private const MAX_FILES = 500;
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -159,6 +161,7 @@ final class ManageController
         return new JsonResponse(MediaView::media($media, $this->images));
     }
 
+    /** One or several files, in one request: what a drag onto a folder sends. */
     #[Route('/file/move', name: 'content_blocks_media_file_move', methods: ['POST'])]
     public function moveFile(Request $request): JsonResponse
     {
@@ -166,22 +169,24 @@ final class ManageController
         if ($body instanceof JsonResponse) {
             return $body;
         }
-        $media = $this->find(Media::class, $body['id'] ?? null);
-        if (!$media instanceof Media) {
-            return self::error('not_in_library', Response::HTTP_NOT_FOUND);
+        $files = $this->files($body['ids'] ?? null);
+        if ($files instanceof JsonResponse) {
+            return $files;
         }
         $folder = $this->find(MediaFolder::class, $body['folder'] ?? null);
         if ($folder === false) {
             return self::error('folder_not_found', Response::HTTP_NOT_FOUND);
         }
 
-        $media->moveTo($folder);
+        foreach ($files as $media) {
+            $media->moveTo($folder);
+        }
         $this->em->flush();
 
-        return new JsonResponse(MediaView::media($media, $this->images));
+        return new JsonResponse(['moved' => \count($files)]);
     }
 
-    /** The row goes, the file stays: the asset GC decides, as for any edit. */
+    /** The rows go, the files stay: the asset GC decides, as for any edit. */
     #[Route('/file/remove', name: 'content_blocks_media_file_remove', methods: ['POST'])]
     public function removeFile(Request $request): JsonResponse
     {
@@ -189,15 +194,17 @@ final class ManageController
         if ($body instanceof JsonResponse) {
             return $body;
         }
-        $media = $this->find(Media::class, $body['id'] ?? null);
-        if (!$media instanceof Media) {
-            return self::error('not_in_library', Response::HTTP_NOT_FOUND);
+        $files = $this->files($body['ids'] ?? null);
+        if ($files instanceof JsonResponse) {
+            return $files;
         }
 
-        $this->em->remove($media);
+        foreach ($files as $media) {
+            $this->em->remove($media);
+        }
         $this->em->flush();
 
-        return new JsonResponse(['removed' => true]);
+        return new JsonResponse(['removed' => \count($files)]);
     }
 
     /**
@@ -272,6 +279,29 @@ final class ManageController
         $walk(0, 0);
 
         return $out;
+    }
+
+    /**
+     * Every id must name a library file, or nothing changes.
+     *
+     * @return list<Media>|JsonResponse
+     */
+    private function files(mixed $ids): array|JsonResponse
+    {
+        if (!\is_array($ids) || $ids === [] || \count($ids) > self::MAX_FILES) {
+            return self::error('invalid_ids');
+        }
+
+        $files = [];
+        foreach (array_unique($ids, \SORT_REGULAR) as $id) {
+            $media = $this->find(Media::class, $id);
+            if (!$media instanceof Media) {
+                return self::error('not_in_library', Response::HTTP_NOT_FOUND);
+            }
+            $files[] = $media;
+        }
+
+        return $files;
     }
 
     /** @return array<string, mixed>|JsonResponse */

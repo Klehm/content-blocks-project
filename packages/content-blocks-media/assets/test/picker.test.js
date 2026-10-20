@@ -11,6 +11,7 @@ const I18N = {
     root: 'Library', upload_failed: 'Upload failed', save_failed: 'Save failed', folder_name: 'Name',
     rename_folder: 'Rename', delete_folder: 'Delete', delete_folder_confirm: 'Delete %name%?',
     remove_confirm: 'Remove %name%?', remove_confirm_used: 'Remove %name%, used on %count%?',
+    remove_confirm_many: 'Remove %count% files?', selected_many: '%count% selected', move_to: 'Move to',
     unused: 'Unused', draft: 'draft', others: 'and %count% more',
 };
 
@@ -27,10 +28,12 @@ function mount({ kinds = ['image', 'video'], manage = true } = {}) {
                 <input type="search" data-cb-media-search>
                 <nav data-cb-media-trail></nav>
                 ${manage ? '<button type="button" data-cb-media-new-folder></button>' : ''}
-                <ul data-cb-media-folders></ul>
-                <ul data-cb-media-grid></ul>
-                <p data-cb-media-status></p>
-                <button type="button" data-cb-media-more hidden></button>
+                <div data-cb-media-main>
+                    <ul data-cb-media-folders></ul>
+                    <ul data-cb-media-grid></ul>
+                    <p data-cb-media-status></p>
+                    <button type="button" data-cb-media-more hidden></button>
+                </div>
                 <aside data-cb-media-detail hidden>
                     <div data-cb-media-preview></div>
                     <p data-cb-media-facts></p>
@@ -347,7 +350,7 @@ describe('MediaPicker — managing the library', () => {
         expect(posted('/m/file/remove')).toBeNull();
 
         await picker.remove();
-        expect(posted('/m/file/remove')).toEqual({ id: 1 });
+        expect(posted('/m/file/remove')).toEqual({ ids: [1] });
         expect(picker.selected).toBeNull();
     });
 
@@ -386,7 +389,7 @@ describe('MediaPicker — managing the library', () => {
         select.value = '7';
         select.dispatchEvent(new Event('change'));
 
-        await vi.waitFor(() => expect(posted('/m/file/move')).toEqual({ id: 1, folder: 7 }));
+        await vi.waitFor(() => expect(posted('/m/file/move')).toEqual({ ids: [1], folder: 7 }));
         await vi.waitFor(() => expect(picker.selected).toBeNull());
     });
 
@@ -410,6 +413,193 @@ describe('MediaPicker — managing the library', () => {
         expect(dialog.querySelector('[data-folder-act]')).toBeNull();
         await picker.saveField('alt', 'x');
         expect(posted('/m/file/update')).toBeNull();
+    });
+});
+
+describe('MediaPicker — a file browser', () => {
+    let dialog;
+    let fetch;
+    let confirm;
+    let picker;
+
+    function route(answers) {
+        fetch.mockImplementation((url) => {
+            const path = String(url).split('?')[0];
+            const answer = answers[path] ?? page({ items: [item(1), item(2), item(3), item(4)], folders: [{ id: 7, name: 'Logos' }] });
+
+            return typeof answer === 'function' ? answer(url) : respond(answer);
+        });
+    }
+
+    function posted(path) {
+        const call = fetch.mock.calls.find(([url]) => url === path);
+
+        return call ? JSON.parse(call[1].body) : null;
+    }
+
+    // jsdom has no DataTransfer: a drag is its types, files and data.
+    function drag(type, target, { types = [], files = [], data = {} } = {}) {
+        const event = new Event(type, { bubbles: true, cancelable: true });
+        const store = { ...data };
+        Object.defineProperty(event, 'dataTransfer', {
+            value: {
+                types, files, dropEffect: '', effectAllowed: '',
+                setData: (k, v) => { store[k] = v; },
+                getData: (k) => store[k] ?? '',
+            },
+        });
+        target.dispatchEvent(event);
+
+        return { event, store };
+    }
+
+    const button = (id) => dialog.querySelector(`[data-id="${id}"]`);
+    const click = (target, init = {}) => target.dispatchEvent(new MouseEvent('click', { bubbles: true, ...init }));
+    const pressed = () => [...dialog.querySelectorAll('[aria-pressed="true"]')].map((b) => Number(b.dataset.id));
+
+    beforeEach(async () => {
+        dialog = mount();
+        fetch = vi.fn();
+        confirm = vi.fn(() => true);
+        route({ '/m/file/usage': { pages: [], others: 0 }, '/m/folders': { folders: [] } });
+        picker = new MediaPicker(dialog, { fetch, confirm, prompt: vi.fn() });
+        await picker.open(request());
+    });
+
+    it('lets go of a file clicked again, or of everything on a click in the empty', () => {
+        click(button(2));
+        expect(pressed()).toEqual([2]);
+        click(button(2));
+        expect(pressed()).toEqual([]);
+
+        click(button(3));
+        click(dialog.querySelector('[data-cb-media-main]'));
+        expect(pressed()).toEqual([]);
+        expect(dialog.querySelector('[data-cb-media-detail]').hidden).toBe(true);
+    });
+
+    it('adds with Ctrl or Cmd, takes a range with Shift', () => {
+        click(button(1));
+        click(button(3), { ctrlKey: true });
+        expect(pressed()).toEqual([1, 3]);
+        click(button(1), { metaKey: true });
+        expect(pressed()).toEqual([3]);
+
+        // The range runs from the last file clicked, as in a file browser.
+        click(button(2));
+        click(button(4), { shiftKey: true });
+        expect(pressed()).toEqual([2, 3, 4]);
+    });
+
+    it('several files: no insert, a count, and the group actions only', () => {
+        click(button(1));
+        click(button(2), { ctrlKey: true });
+
+        expect(dialog.querySelector('[data-cb-media-insert]').disabled).toBe(true);
+        expect(dialog.querySelector('[data-cb-media-selection]').textContent).toBe('2 selected');
+        expect(dialog.querySelector('[data-cb-media-detail]').classList.contains('cb-media__detail--many')).toBe(true);
+    });
+
+    it('selects all with Ctrl+A, but not while typing', () => {
+        dialog.querySelector('[data-cb-media-grid]').dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true, cancelable: true }));
+        expect(pressed()).toEqual([1, 2, 3, 4]);
+
+        picker.select(null);
+        dialog.querySelector('[data-cb-media-search]').dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true }));
+        expect(pressed()).toEqual([]);
+    });
+
+    it('Escape lets go of the selection first, then closes', () => {
+        click(button(1));
+        const escape = () => dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+
+        escape();
+        expect(pressed()).toEqual([]);
+        expect(dialog.close).not.toHaveBeenCalled();
+
+        escape();
+        expect(dialog.close).toHaveBeenCalled();
+    });
+
+    it('uploads every file dropped on the zone into this folder, and selects them', async () => {
+        await picker.openFolder(7);
+        let n = 10;
+        route({
+            '/cb/upload': () => respond({ url: `/u/${n}.png` }),
+            '/m/place': () => respond(item(n++)),
+            '/m/list': page({ items: [item(10), item(11)] }),
+        });
+        const main = dialog.querySelector('[data-cb-media-main]');
+        const files = [new File(['a'], 'a.png'), new File(['b'], 'b.png')];
+
+        drag('dragenter', main, { types: ['Files'] });
+        expect(main.classList.contains('cb-media__main--drop')).toBe(true);
+        drag('drop', main, { types: ['Files'], files });
+
+        expect(main.classList.contains('cb-media__main--drop')).toBe(false);
+        await vi.waitFor(() => expect(pressed()).toEqual([10, 11]));
+        const places = fetch.mock.calls.filter(([url]) => url === '/m/place').map(([, init]) => JSON.parse(init.body));
+        expect(places.map((p) => p.folder)).toEqual([7, 7]);
+    });
+
+    it('a drag that carries no file does not upload', () => {
+        drag('drop', dialog.querySelector('[data-cb-media-main]'), { types: ['text/plain'] });
+
+        expect(fetch.mock.calls.some(([url]) => url === '/cb/upload')).toBe(false);
+    });
+
+    it('drags the selection onto a folder, in one request', async () => {
+        route({ '/m/file/move': { moved: 2 } });
+        click(button(1));
+        click(button(2), { ctrlKey: true });
+
+        const { store } = drag('dragstart', button(2));
+        const folder = dialog.querySelector('[data-folder="7"]');
+        const over = drag('dragover', folder, { types: [MediaPicker.DRAG_TYPE] });
+        expect(over.event.defaultPrevented).toBe(true);
+        drag('drop', folder, { types: [MediaPicker.DRAG_TYPE], data: store });
+
+        await vi.waitFor(() => expect(posted('/m/file/move')).toEqual({ ids: [1, 2], folder: 7 }));
+    });
+
+    it('dragging a file outside the selection drags it alone', () => {
+        click(button(1));
+
+        const { store } = drag('dragstart', button(3));
+
+        expect(JSON.parse(store[MediaPicker.DRAG_TYPE])).toEqual([3]);
+        expect(pressed()).toEqual([3]);
+    });
+
+    it('a folder in the trail takes a drop too, so a file goes back up', async () => {
+        await picker.openFolder(7);
+        route({ '/m/list': page({ items: [item(1)], breadcrumb: [{ id: 7, name: 'Logos' }] }), '/m/file/move': { moved: 1 } });
+        await picker.load();
+        const root = dialog.querySelector('[data-cb-media-trail] [data-folder=""]');
+
+        drag('drop', root, { types: [MediaPicker.DRAG_TYPE], data: { [MediaPicker.DRAG_TYPE]: '[1]' } });
+
+        await vi.waitFor(() => expect(posted('/m/file/move')).toEqual({ ids: [1], folder: null }));
+    });
+
+    it('removes several files after one confirmation', async () => {
+        route({ '/m/file/remove': { removed: 3 } });
+        picker.selectAll();
+        click(button(4), { ctrlKey: true });
+
+        await picker.remove();
+
+        expect(confirm).toHaveBeenCalledWith('Remove 3 files?');
+        expect(posted('/m/file/remove')).toEqual({ ids: [1, 2, 3] });
+    });
+
+    it('an editor who may not manage cannot drag files', () => {
+        dialog = mount({ manage: false });
+        picker = new MediaPicker(dialog, { fetch, confirm, prompt: vi.fn() });
+
+        return picker.open(request()).then(() => {
+            expect(button(1).draggable).toBe(false);
+        });
     });
 });
 

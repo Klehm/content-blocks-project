@@ -126,7 +126,10 @@ content_blocks_media:
 ```
 
 *Browse library* then opens the package's picker: search, folders, upload into
-the folder you are in, and *Insert*. Its access rule is the upload endpoint's:
+the folder you are in, and *Insert*. It behaves like a file browser: drop files
+from the desktop to upload them, Ctrl/Cmd- or Shift-click to select several,
+drag them onto a folder to move them, Escape or a click on the empty zone to
+let go of the selection. Its access rule is the upload endpoint's:
 an editor who may edit the page may browse the library.
 
 ### Files uploaded before the library

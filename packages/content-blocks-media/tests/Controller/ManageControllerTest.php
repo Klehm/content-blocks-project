@@ -76,7 +76,7 @@ final class ManageControllerTest extends TestCase
         $this->canManage = false;
 
         $this->expectException(ContentBlocksAccessDeniedException::class);
-        $this->controller()->removeFile($this->post(['id' => 1]));
+        $this->controller()->removeFile($this->post(['ids' => [1]]));
     }
 
     public function testANewFolderGoesLastAmongItsSiblings(): void
@@ -146,11 +146,43 @@ final class ManageControllerTest extends TestCase
         $media = $this->media(3);
         $folder = $this->folder(7, 'Logos');
 
-        $this->controller()->moveFile($this->post(['id' => 3, 'folder' => 7]));
+        $this->controller()->moveFile($this->post(['ids' => [3], 'folder' => 7]));
         $this->assertSame($folder, $media->getFolder());
 
-        $this->controller()->moveFile($this->post(['id' => 3, 'folder' => null]));
+        $this->controller()->moveFile($this->post(['ids' => [3], 'folder' => null]));
         $this->assertNull($media->getFolder());
+    }
+
+    public function testSeveralFilesMoveInOneRequest(): void
+    {
+        $a = $this->media(3);
+        $b = $this->media(4);
+        $folder = $this->folder(7, 'Logos');
+        $this->em->expects($this->once())->method('flush');
+
+        $response = $this->controller()->moveFile($this->post(['ids' => [3, 4, 3], 'folder' => 7]));
+
+        $this->assertSame('{"moved":2}', $response->getContent());
+        $this->assertSame([$folder, $folder], [$a->getFolder(), $b->getFolder()]);
+    }
+
+    // All or nothing: one stale id in a drag must not move half of it.
+    public function testOneUnknownIdMovesNothing(): void
+    {
+        $a = $this->media(3);
+        $this->folder(7, 'Logos');
+
+        $response = $this->controller()->moveFile($this->post(['ids' => [3, 99], 'folder' => 7]));
+
+        $this->assertSame(404, $response->getStatusCode());
+        $this->assertNull($a->getFolder());
+    }
+
+    public function testTheIdsMustBeAList(): void
+    {
+        foreach ([null, [], 'abc', array_fill(0, 501, 1)] as $ids) {
+            $this->assertSame(400, $this->controller()->moveFile($this->post(['ids' => $ids]))->getStatusCode());
+        }
     }
 
     // The file itself is the GC's call, like after any editor action.
@@ -158,10 +190,12 @@ final class ManageControllerTest extends TestCase
     {
         $media = $this->media(3);
 
-        $response = $this->controller()->removeFile($this->post(['id' => 3]));
+        $other = $this->media(4);
 
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame([$media], $this->removed);
+        $response = $this->controller()->removeFile($this->post(['ids' => [3, 4]]));
+
+        $this->assertSame('{"removed":2}', $response->getContent());
+        $this->assertSame([$media, $other], $this->removed);
     }
 
     public function testUsageNamesOnlyThePagesTheEditorMayEdit(): void

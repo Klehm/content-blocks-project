@@ -33,3 +33,6 @@ cb_media:
         remove_confirm: "Remove “%name%” from the library? The file itself is not deleted."
         remove_confirm_used: "Remove “%name%” from the library? It is used on %count% page(s), which keep showing it: the file itself is not deleted."
         save_failed: "The change could not be saved."
+        selected_many: "%count% files selected"
+        remove_confirm_many: "Remove %count% files from the library? The files themselves are not deleted."
+        move_to: "Move to…"
