@@ -16,6 +16,7 @@ final class ConfigSectionStyleProvider implements SectionStyleProviderInterface
      *     label: string,
      *     css_class?: string,
      *     settings?: array<string, mixed>,
+     *     role?: ?string,
      * }> $styles
      */
     public function __construct(
@@ -31,6 +32,7 @@ final class ConfigSectionStyleProvider implements SectionStyleProviderInterface
                 $style['label'],
                 $style['css_class'] ?? '',
                 $style['settings'] ?? [],
+                $style['role'] ?? null,
             ),
             $this->styles,
         );

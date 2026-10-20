@@ -28,14 +28,17 @@ content_blocks:
     # sections and blocks). Editors can still switch to "Custom…" for a free
     # color picker.
     palette:
-        - { label: 'Indigo', color: '#4f46e5' }
-        - { label: 'Sky', color: '#e0f2fe' }
-        - { label: 'Slate', color: '#f1f5f9' }
+        - { label: 'Indigo', color: '#4f46e5', role: 'Brand accent: call-to-action buttons and key highlights.' }
+        - { label: 'Sky', color: '#e0f2fe', role: 'Soft background for a section that stands out gently.' }
+        - { label: 'Slate', color: '#f1f5f9', role: 'Neutral background to alternate sections.' }
         - { label: 'White', color: '#ffffff' }
-        - { label: 'Ink', color: '#111827' }
+        - { label: 'Ink', color: '#111827', role: 'Dark background, with white text; once or twice per page.' }
         # A theme variable: rendered as written, its hex fallback is what the
         # builder paints (swatch, tone class, thumbnails).
         - { label: 'Theme accent', color: 'var(--demo-accent, #be185d)' }
+
+    # `role` says what a colour or a preset is for, read by the content schema
+    # (`bin/console content-blocks:schema`).
 
     # Section style presets: a CSS class (styled in app.css) and/or settings
     # values applied underneath the section's own settings. Editors pick a
@@ -44,6 +47,7 @@ content_blocks:
     section_styles:
         - name: boxed
           label: 'Boxed'
+          role: 'A grey card-like band around a section to set it apart.'
           css_class: 'demo-section--boxed'
           settings:
               styling:
@@ -51,6 +55,7 @@ content_blocks:
                   padding: { desktop: { top: 40, right: 40, bottom: 40, left: 40 } }
         - name: airy
           label: 'Airy'
+          role: 'Generous vertical spacing, for a hero or a closing call to action.'
           settings:
               styling:
                   padding: { desktop: { top: 96, bottom: 96 }, mobile: { top: 48, bottom: 48 } }

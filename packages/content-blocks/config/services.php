@@ -73,6 +73,9 @@ return static function (ContainerConfigurator $container): void {
         // Read by ConfiguredBuilderStructureResolver.
         ->set('content_blocks.structure.sections', 'editable')
         ->set('content_blocks.structure.columns', true)
+        // Read by ContentSchemaBuilder and the schema command / endpoint.
+        ->set('content_blocks.schema.block_purposes', [])
+        ->set('content_blocks.schema.examples', 3)
         // List of {label, color} entries; normally fed by the bundle's
         // semantic config (`content_blocks.palette`) via loadExtension().
         ->set('content_blocks.palette', [])
@@ -107,6 +110,8 @@ return static function (ContainerConfigurator $container): void {
         ->bind('bool $sectionStyling', '%content_blocks.styling.section%')
         ->bind('string $structureSections', '%content_blocks.structure.sections%')
         ->bind('bool $structureColumns', '%content_blocks.structure.columns%')
+        ->bind('array $schemaBlockPurposes', '%content_blocks.schema.block_purposes%')
+        ->bind('int $schemaExamples', '%content_blocks.schema.examples%')
         // ContentAreaTouchListener takes this one positionally.
         ->bind('int $contentVersion', '%content_blocks.content_version%')
         // Upload limits: consumed by UploadController.
@@ -295,6 +300,20 @@ return static function (ContainerConfigurator $container): void {
     $services->set(SectionPosterBuilder::class);
     // Same seam, one level up: the tree's block rows read the same hint.
     $services->set(ContentBlocks\Builder\AreaTreeBuilder::class);
+    // The content schema handed to a language model. The core contributors
+    // run last, so a host's own can redraw a core field type.
+    $services->set(ContentBlocks\Schema\PaletteColorFieldSchema::class)
+        ->autoconfigure(false)
+        ->tag('content_blocks.field_schema_contributor', ['priority' => -100]);
+    $services->set(ContentBlocks\Schema\UploadFieldSchema::class)
+        ->autoconfigure(false)
+        ->tag('content_blocks.field_schema_contributor', ['priority' => -100]);
+    $services->set(ContentBlocks\Schema\FormSchemaMapper::class)
+        ->arg('$contributors', tagged_iterator('content_blocks.field_schema_contributor'));
+    $services->set(ContentBlocks\Schema\SectionTemplateExamples::class);
+    $services->set(ContentBlocks\Schema\ContentSchemaBuilder::class);
+    $services->set(ContentBlocks\Command\SchemaCommand::class);
+
     // What editors may do to sections and columns; a host varies it by area.
     $services->set(ContentBlocks\Builder\ConfiguredBuilderStructureResolver::class);
     $services->alias(

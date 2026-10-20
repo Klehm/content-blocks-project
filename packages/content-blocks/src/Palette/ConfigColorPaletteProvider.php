@@ -15,6 +15,7 @@ final class ConfigColorPaletteProvider implements ColorPaletteProviderInterface
      *     label: string,
      *     color: string,
      *     swatch?: ?string,
+     *     role?: ?string,
      * }> $palette
      */
     public function __construct(
@@ -25,7 +26,12 @@ final class ConfigColorPaletteProvider implements ColorPaletteProviderInterface
     public function getColors(): iterable
     {
         foreach ($this->palette as $entry) {
-            yield new PaletteColor($entry['label'], $entry['color'], $entry['swatch'] ?? null);
+            yield new PaletteColor(
+                $entry['label'],
+                $entry['color'],
+                $entry['swatch'] ?? null,
+                $entry['role'] ?? null,
+            );
         }
     }
 }

@@ -85,6 +85,7 @@ export default defineConfig({
             { text: 'Custom blocks', link: '/guide/custom-blocks' },
             { text: 'Translation (i18n)', link: '/guide/translation' },
             { text: 'Content versioning', link: '/guide/content-versioning' },
+            { text: 'Content schema for AI', link: '/guide/content-schema' },
             { text: 'Asset lifecycle', link: '/guide/asset-lifecycle' },
             { text: 'Worker mode (FrankenPHP)', link: '/guide/worker-mode' },
           ],

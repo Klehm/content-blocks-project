@@ -17,7 +17,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 | Area | Interfaces |
 |---|---|
 | Access, preview, pickers | `AccessCheckerInterface`, `ContentAreaUrlResolverInterface`, `ContentAreaProviderInterface`, `SectionTemplateManagerInterface`, `AssetReportViewerInterface` |
-| Blocks | `BlockTypeInterface`, `BlockPreviewHintInterface`, `BlockAssetsInterface`, `BlockDataDefaultsProviderInterface`, `BlockDecoratorInterface`, `BlockFormExtensionInterface`, `TranslatableFieldsInterface` |
+| Blocks | `BlockTypeInterface`, `BlockPreviewHintInterface`, `BlockPurposeInterface`, `BlockAssetsInterface`, `BlockDataDefaultsProviderInterface`, `BlockDecoratorInterface`, `BlockFormExtensionInterface`, `TranslatableFieldsInterface` |
 | Sections and columns | `SectionDecoratorInterface`, `SectionSettingsDefaultsProviderInterface`, `SectionStyleProviderInterface`, `SectionClonerInterface`, `BlockCloneObserverInterface`, `ColumnCloneObserverInterface` |
 | Rendering | `BlockRendererInterface`, `BlockDataResolverInterface`, `EntrypointResolverInterface`, `ColumnSettingsResolverInterface`, `ImageUrlResolverInterface`, `ContentAreaNormalizerInterface`, `BlockJsonNormalizerInterface` |
 | Content and publishing | `ContentManipulatorInterface`, `ContentAreaPublisherInterface`, `UnpublishedChangesProviderInterface`, `LocaleDraftsProviderInterface` |
@@ -25,6 +25,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 | Storage and assets | `FileStorageInterface`, `AssetInventoryInterface`, `AssetResolverInterface`, `AssetReferenceProviderInterface` |
 | Clipboard, templates, transfer | `BlockSnapshotSerializerInterface`, `SectionTemplateSerializerInterface`, `SectionTemplateInstantiatorInterface`, `ContentAreaExporterInterface`, `ContentAreaImporterInterface`, `ContentAreaTransferExtensionInterface`, `SnapshotExtensionInterface` |
 | Versioning | `ContentVersionUpgraderInterface`, `EnvelopeUpgraderInterface` |
+| Content schema | `FieldSchemaContributorInterface` |
 
 **Kit**: `RichTextEditorInterface`, `IconProviderInterface`.
 
@@ -50,6 +51,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 - **Services you inject.** `BlockTypeRegistry` (`get()`, `has()`, `all()`, `getChoices()`), and the shipped implementations named as defaults in the guides: `LocalFileStorage`, `PassthroughImageUrlResolver`, `DenyOnMismatchUpgrader`, `ConfiguredBuilderStructureResolver`, `EncoreEntrypointResolver`, `AllowAllAccessChecker` and `DenyAllAccessChecker`. They are covered as services to alias or decorate; their constructors are not.
 - **Symfony events you listen to**, with their public properties and the moment each is dispatched ([Server-side events](./events.md)): `BeforeContentAreaPublishEvent`, `AfterContentAreaPublishEvent`, `BeforeContentAreaDiscardEvent`, `AfterContentAreaDiscardEvent`, `BeforeBlockSaveEvent`, `AfterBlockSaveEvent`, `BeforeBlockDeleteEvent`, `AfterBlockDeleteEvent`, `BeforeSectionSaveEvent`, `AfterSectionSaveEvent`, `BeforeSectionDeleteEvent`, `AfterSectionDeleteEvent`, `BeforeContentInsertEvent`, `AfterContentInsertEvent` and the `ContentInsertOrigin` constants; their base `RefusableEvent` (`refuse()`, `isRefused()`, `getReasons()`) and `ActionRefusedException`. A later version may add properties or events, but will not remove or rename one.
 - **Exceptions you throw or catch.** `ContentBlocksAccessDeniedException` (a 403), `IncompatibleContentVersionException`, `ImportRefusedException`, `UnsupportedTemplateFormatException`, `IncompatibleTemplateException`, `ContentManipulationException` and its `reason` codes.
+- **`FormSchemaMapper::is()`**, which a `FieldSchemaContributorInterface` calls to recognise its field type.
 - **`ContentBlocks\Testing\CrossRequestStateScanner`**, for pointing the [worker-mode](./worker-mode.md) check at your own code.
 - **The entities** and their public accessors: `ContentArea`, `Section`, `Column`, `Block`, `SectionTemplate`, and i18n's `BlockTranslation` and `ColumnTranslation`. The exception is the setters of **published state**, which carry `@internal`. `publish()` is the only writer of a published field, so code building content writes the draft and calls `publish()`.
 
@@ -70,6 +72,7 @@ Every key of the three semantic config trees (`content_blocks`, `content_blocks_
   | `content_blocks_area_publish`, `content_blocks_area_discard` | `POST` with the CSRF header, and an optional JSON body `{"locales": [...]}` naming the locales whose translations the call covers (without it, every locale); a `400` with `error: "invalid_locales"` for a malformed list; a `409` with `error: "refused"`, `message` and `reasons` when a [listener refused](./events.md#refusing-an-action) |
   | `content_blocks_asset_layout`, `content_blocks_asset_styling`, `content_blocks_asset_slider`, `content_blocks_kit_asset_css` | `GET`, the stylesheet or script a public page links; `?v=` with the content's version is cached for a year |
   | `content_blocks_asset_report` | `GET`, the read-only asset report page |
+  | `content_blocks_area_schema` | `GET` on an area, answering the [content schema](./content-schema.md) (`format: content-blocks/schema-v1`); `?examples=`. Later versions may add keys to the document, never remove one |
   | `content_blocks_i18n_workbench` | `GET`, the translation workbench page |
   | `content_blocks_i18n_area_publish`, `content_blocks_i18n_area_discard` | `POST` with the CSRF header, one language of an area; a `409` with `error: "source_unpublished"` while the area has a draft of its own, or `"refused"` as above |
 
@@ -80,7 +83,7 @@ Every other route is how the builder talks to its own server. Its **name** is st
 
 ### Console
 
-The five commands, their names and their options: `content-blocks:assets:gc`, `content-blocks:backfill-collection-ids`, `content-blocks-kit:blocks`, `content-blocks:i18n:status`, `content-blocks:i18n:translate`.
+The six commands, their names and their options: `content-blocks:assets:gc`, `content-blocks:backfill-collection-ids`, `content-blocks:schema`, `content-blocks-kit:blocks`, `content-blocks:i18n:status`, `content-blocks:i18n:translate`.
 
 For `content-blocks:assets:gc`, the *shape* of the safety design is part of the promise too: reporting is the default and `--force` is the opt-in. Inverting that would silently turn an existing habit into a deletion, so it will not be inverted.
 

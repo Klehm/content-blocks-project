@@ -351,6 +351,10 @@ Two interfaces have no useful default and **must** be wired by the host:
 
 See [packages/content-blocks/README.md](packages/content-blocks/README.md) for full examples.
 
+## Content schema for AI
+
+`ContentBlocks\Schema` builds one JSON document (`content-blocks/schema-v1`) telling a language model what it may write into an area: `structure`, `layouts` (presets per column), `palette` (tone + `role`), `sectionStyles` (`role`, never their settings), `blocks` (label, category, purpose), `examples` (latest saved sections, `SectionTemplateExamples`: same `content_version`, readable format, registered types only, reserved `_` keys stripped) and `schema`, a pure JSON Schema of the output: `{"sections": [section-v1…]}`, a `oneOf` of `block.<type>` defs, `blockStyling` and `sectionSettings` written once under `$defs`. Each block's data schema is **derived from its form** by `FormSchemaMapper` (built like the paste replay builds it: model values, constraints folded in, labels translated, untranslated keys dropped), so it cannot drift; a type with its own data mapper gets a `FieldSchemaContributorInterface` (core: `PaletteColorFieldSchema`, `UploadFieldSchema`; kit: `RichTextFieldSchema`), autoconfigured, core ones last. Intent is the one hand-written part: optional `BlockPurposeInterface` (every kit block), overridden by `content_blocks.schema.block_purposes`; `role` on palette entries and section styles. Exposed as `content-blocks:schema` (`--area --locale --examples --only --compact`) and `GET /area/{id}/schema` (`content_blocks_area_schema`, canEdit, `?examples=` ≤ 10). `sections: hidden` → one full section, no settings, no examples. The way back in (generated content → draft through the paste replay) is not built yet. Guide: [docs/guide/content-schema.md](docs/guide/content-schema.md); rationale: [docs/internals/content-schema.md](docs/internals/content-schema.md).
+
 ## Replace-content flow
 
 Editors can overwrite an area's content with another area's content via the topbar "Insert content" button (`cb-shell__replace`). Backend endpoints:
@@ -488,7 +492,7 @@ final class PageAccessChecker implements AccessCheckerInterface
 }
 ```
 
-Every AJAX controller under `/_content-blocks/*` (`AreaController`, `BlocksController`, `SectionsController`, `BlockSidebarController`, `SectionSidebarController`, `ClipboardController`, `ReplaceController`, `ImportExportController`, `SectionTemplateController`, `TreeController`, `HistoryController`, `ViewportOrderController`, `UploadController`) and the `BlockComponent` Live Component call `canEdit()` before any mutation. For a cross-area paste, the check runs on the **target** area, not the source.
+Every AJAX controller under `/_content-blocks/*` (`AreaController`, `BlocksController`, `SectionsController`, `BlockSidebarController`, `SectionSidebarController`, `ClipboardController`, `ReplaceController`, `ImportExportController`, `SectionTemplateController`, `TreeController`, `SchemaController`, `HistoryController`, `ViewportOrderController`, `UploadController`) and the `BlockComponent` Live Component call `canEdit()` before any mutation. For a cross-area paste, the check runs on the **target** area, not the source.
 
 ### CSRF Protection
 
