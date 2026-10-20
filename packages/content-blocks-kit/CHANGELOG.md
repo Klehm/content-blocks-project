@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-20
+
+This release carries, across the three packages: CSS and JS declared by a
+block, the add-block picker grouped by category, `block` and `context` in
+block views, the public CSS in an optional cascade layer, Publish and Revert
+to published choosing their languages, and `lang` on text shown in another
+language. No migration.
+
+Requires `klehm/content-blocks` ^1.5: the blocks declare a picker category
+and their views call `cb_lang()`, both new in the core.
+
 ### Added
 
 - **`kit.css` follows `content_blocks.css_layer`** (`klehm/content-blocks`

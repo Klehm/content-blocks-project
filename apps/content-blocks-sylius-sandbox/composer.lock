@@ -1366,7 +1366,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks",
-                "reference": "972c0ad16de3ab7d9373d4e0508048699fe7e974"
+                "reference": "cab1e88a528ef9e26ac9e6b13491b20471007993"
             },
             "require": {
                 "doctrine/collections": "^1.8 || ^2.0 || ^3.0",
@@ -1396,7 +1396,13 @@
                 "twig/twig": "^3.27"
             },
             "require-dev": {
-                "phpunit/phpunit": "^11.5"
+                "phpunit/phpunit": "^11.5",
+                "symfony/asset": "^6.4 || ^7.0 || ^8.0",
+                "symfony/webpack-encore-bundle": "^2.0"
+            },
+            "suggest": {
+                "symfony/asset": "Resolves the paths a block declares for its CSS and JS (BlockAssetsInterface)",
+                "symfony/webpack-encore-bundle": "Links Webpack Encore entries a block declares, with their runtime and chunks"
             },
             "type": "symfony-bundle",
             "extra": {
@@ -1404,8 +1410,8 @@
                     "bundle": "ContentBlocks\\ContentBlocksBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "1.4.x-dev",
-                    "dev-main": "1.4.x-dev"
+                    "dev-master": "1.5.x-dev",
+                    "dev-main": "1.5.x-dev"
                 }
             },
             "autoload": {
@@ -1454,10 +1460,10 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks-kit",
-                "reference": "5b9877059c45fd22d758085ebcf9d7436d30101f"
+                "reference": "923dc771c5ff5969211d43a50999a06dd610ebb9"
             },
             "require": {
-                "klehm/content-blocks": "^1.4",
+                "klehm/content-blocks": "^1.5",
                 "php": ">=8.2",
                 "symfony/console": "^6.4 || ^7.0 || ^8.0",
                 "symfony/form": "^6.4 || ^7.0 || ^8.0",
@@ -1481,8 +1487,8 @@
                     "bundle": "ContentBlocks\\Kit\\ContentBlocksKitBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "1.4.x-dev",
-                    "dev-main": "1.4.x-dev"
+                    "dev-master": "1.5.x-dev",
+                    "dev-main": "1.5.x-dev"
                 }
             },
             "autoload": {

@@ -7,6 +7,13 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-20
+
+`lang` on text shown in another language, and a language held back from the
+builder's Publish and Revert to published. Still requires
+`klehm/content-blocks` ^1.2: on a core older than 1.5 the dialog is not
+offered. The three packages are tagged together. No migration.
+
 ### Added
 
 - **`lang` on text shown in another language** (`fallback_lang`, off by

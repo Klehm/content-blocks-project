@@ -941,7 +941,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/content-blocks",
-                "reference": "910473b0eaf880438be6d95565fef9cfbb246734"
+                "reference": "cab1e88a528ef9e26ac9e6b13491b20471007993"
             },
             "require": {
                 "doctrine/collections": "^1.8 || ^2.0 || ^3.0",
@@ -975,14 +975,18 @@
                 "symfony/asset": "^6.4 || ^7.0 || ^8.0",
                 "symfony/webpack-encore-bundle": "^2.0"
             },
+            "suggest": {
+                "symfony/asset": "Resolves the paths a block declares for its CSS and JS (BlockAssetsInterface)",
+                "symfony/webpack-encore-bundle": "Links Webpack Encore entries a block declares, with their runtime and chunks"
+            },
             "type": "symfony-bundle",
             "extra": {
                 "symfony": {
                     "bundle": "ContentBlocks\\ContentBlocksBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "1.4.x-dev",
-                    "dev-main": "1.4.x-dev"
+                    "dev-master": "1.5.x-dev",
+                    "dev-main": "1.5.x-dev"
                 }
             },
             "autoload": {
@@ -1031,7 +1035,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/content-blocks-i18n",
-                "reference": "3174bcef25f94ff3916aeaa5a5a12afa277e9588"
+                "reference": "245b7eea822d5cb1f6b161607a253f4fad07769f"
             },
             "require": {
                 "doctrine/dbal": "^3.6 || ^4.0",
@@ -1063,8 +1067,8 @@
                     "bundle": "ContentBlocks\\I18n\\ContentBlocksI18nBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "1.4.x-dev",
-                    "dev-main": "1.4.x-dev"
+                    "dev-master": "1.5.x-dev",
+                    "dev-main": "1.5.x-dev"
                 }
             },
             "autoload": {
@@ -1112,10 +1116,10 @@
             "dist": {
                 "type": "path",
                 "url": "packages/content-blocks-kit",
-                "reference": "5b9877059c45fd22d758085ebcf9d7436d30101f"
+                "reference": "923dc771c5ff5969211d43a50999a06dd610ebb9"
             },
             "require": {
-                "klehm/content-blocks": "^1.4",
+                "klehm/content-blocks": "^1.5",
                 "php": ">=8.2",
                 "symfony/console": "^6.4 || ^7.0 || ^8.0",
                 "symfony/form": "^6.4 || ^7.0 || ^8.0",
@@ -1139,8 +1143,8 @@
                     "bundle": "ContentBlocks\\Kit\\ContentBlocksKitBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "1.4.x-dev",
-                    "dev-main": "1.4.x-dev"
+                    "dev-master": "1.5.x-dev",
+                    "dev-main": "1.5.x-dev"
                 }
             },
             "autoload": {

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8490996bd0ba047977cdc731506d0559",
+    "content-hash": "7b5bdb0e14e3f7da7eec07e7d36ea513",
     "packages": [
         {
             "name": "doctrine/collections",
@@ -941,7 +941,7 @@
             "dist": {
                 "type": "path",
                 "url": "../content-blocks",
-                "reference": "3bc8ce4a0fd1c09a382b9940583a00ace94bbc41"
+                "reference": "a2de9504cdbf1e85248fd98168793221f96fc06a"
             },
             "require": {
                 "doctrine/collections": "^1.8 || ^2.0 || ^3.0",
@@ -971,7 +971,13 @@
                 "twig/twig": "^3.27"
             },
             "require-dev": {
-                "phpunit/phpunit": "^11.5"
+                "phpunit/phpunit": "^11.5",
+                "symfony/asset": "^6.4 || ^7.0 || ^8.0",
+                "symfony/webpack-encore-bundle": "^2.0"
+            },
+            "suggest": {
+                "symfony/asset": "Resolves the paths a block declares for its CSS and JS (BlockAssetsInterface)",
+                "symfony/webpack-encore-bundle": "Links Webpack Encore entries a block declares, with their runtime and chunks"
             },
             "type": "symfony-bundle",
             "extra": {
@@ -979,8 +985,8 @@
                     "bundle": "ContentBlocks\\ContentBlocksBundle"
                 },
                 "branch-alias": {
-                    "dev-master": "1.4.x-dev",
-                    "dev-main": "1.4.x-dev"
+                    "dev-master": "1.5.x-dev",
+                    "dev-main": "1.5.x-dev"
                 }
             },
             "autoload": {

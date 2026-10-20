@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-20
+
+This release carries, across the three packages: CSS and JS declared by a
+block, the add-block picker grouped by category, `block` and `context` in
+block views, the public CSS in an optional cascade layer, Publish and Revert
+to published choosing their languages, and `lang` on text shown in another
+language. Everything is opt-in or additive; no migration.
+
 ### Fixed
 
 - **Typing right after adding a block could be lost.** Adding a block opens
