@@ -320,6 +320,8 @@ cb:
         failed: "L'envoi a échoué"
         network_error: "Erreur réseau"
         rejected: "Type de fichier non pris en charge"
+        browse: "Parcourir la bibliothèque"
+        no_library: "Aucune bibliothèque de médias n'a répondu"
     form:
         more_info: "En savoir plus"
     ai:

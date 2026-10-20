@@ -791,7 +791,7 @@ These are browser events. For what happens on the server (publish, discard, a
 block saved or deleted), listen to the [Symfony events](./events.md) instead.
 
 The builder speaks to the page it is mounted in through a handful of DOM
-events. These seven are covered by the
+events. These eight are covered by the
 [backward-compatibility promise](./backward-compatibility.md#front-end); every
 other `cb:*` event is the builder talking to itself.
 
@@ -808,6 +808,7 @@ from them.
 | `cb:block:rendered` | A block's preview was refreshed in place; dispatched **inside the preview iframe**, on the block's new node | `blockId` |
 | `cb:area:changed` | *Inbound*: dispatch it at the builder after changing the area server-side | `hasUnpublishedChanges` (optional, default `true`) |
 | `cb:notify` | *Inbound*: dispatch it at the builder to [say something in its snackbar](#saying-how-it-went) | `message`, `link` (optional `{ label, href }`) |
+| `cb:media:browse` | *Browse library* was clicked on an image or video field; claim it with `preventDefault()` and open your dialog. See [Media library](./media-library.md#the-browse-event) | `kind`, `accept`, `value`, `pick({ path, alt })` |
 
 ```js
 document.addEventListener('cb:block:saved', (event) => {

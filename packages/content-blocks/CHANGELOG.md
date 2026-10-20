@@ -83,6 +83,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`cb_ai` form option** (`text`, `html`, `alt`, `false`) and the
   `cb:field:set` event a rich-text editor cancels to take a value set from
   outside.
+- **Browse library on the image and video fields.** When the host registers a
+  `ContentBlocks\Media\MediaLibraryInterface` that supports the field's kind,
+  the upload widget shows *Browse library*. The button dispatches
+  `cb:media:browse`; the dialog that claims it hands back a path through
+  `pick({path, alt})`, written the way an upload is, so the stored value stays
+  a path. Without a library, nothing changes on screen.
+- **`cb_alt_field` on `ImageUploadType`** names a sibling field the library's
+  alt text fills when it is empty. The editor's own alt is never overwritten.
 
 ## [1.5.0] - 2026-10-20
 

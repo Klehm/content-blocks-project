@@ -320,6 +320,8 @@ cb:
         failed: "Upload failed"
         network_error: "Network error"
         rejected: "Unsupported file type"
+        browse: "Browse library"
+        no_library: "No media library answered"
     form:
         more_info: "More information"
     ai:

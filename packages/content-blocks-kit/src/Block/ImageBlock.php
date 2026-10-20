@@ -61,6 +61,7 @@ class ImageBlock extends AbstractKitBlock implements BlockPreviewHintInterface, 
             // package's cb_image_upload widget — no form theme needed.
             ->add('src', ImageUploadType::class, [
                 'cb_translatable' => true,
+                'cb_alt_field' => 'alt',
                 'label' => 'cb_kit.block.image.field.file',
                 'translation_domain' => 'content_blocks_kit',
             ])
