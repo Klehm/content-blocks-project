@@ -19,7 +19,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * A colored callout (info / success / warning / error) with an optional title,
  * a message and a type-matched glyph (shipped inline — no icon library).
  */
-#[AsContentBlock(priority: 35)]
+#[AsContentBlock(priority: 35, category: 'text')]
 class AlertBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public function getType(): string

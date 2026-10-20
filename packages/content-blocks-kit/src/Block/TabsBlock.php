@@ -14,7 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
 
-#[AsContentBlock(priority: 60)]
+#[AsContentBlock(priority: 60, category: 'layout')]
 class TabsBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public function getType(): string

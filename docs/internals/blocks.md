@@ -91,3 +91,18 @@ nothing worth showing.
 uses `findAndSortTaggedServices()` and therefore honours the attribute's
 `priority`. The registry's insertion order is what the block-picker grid renders,
 so priority is how a block chooses where it sits in that grid.
+
+Categories sit on top of that order, they do not replace it. The pass hands each
+service its tag's `category` alongside the reference, and `BlockRenderer` sorts
+the tiles by group with a stable `usort`, so registration order still holds
+inside a group. The category is checked at compile time against
+`content_blocks.picker.categories` because it is a literal on the attribute. A
+block type cannot be checked there: `getType()` is an instance method, unknown
+before the container exists. That is why `picker.blocks` is checked late, when
+the picker is built, and only for near-misses: an entry naming a disabled block
+is legitimate.
+
+The picker falls back to a flat grid when one group holds every tile. A host that
+never heard of categories (custom blocks only, no kit) therefore sees exactly the
+picker it had. Category is builder chrome, not stored content: nothing in
+`Block.data`, an export or a template records it.

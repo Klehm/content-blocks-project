@@ -20,7 +20,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * Images as a responsive grid or a one-row slider, each with an optional
  * caption and link. The `max_columns` option caps the columns offered.
  */
-#[AsContentBlock(priority: 60)]
+#[AsContentBlock(priority: 60, category: 'media')]
 class GalleryBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public static function defaultOptions(): array

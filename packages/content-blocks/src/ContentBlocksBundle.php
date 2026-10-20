@@ -97,6 +97,45 @@ final class ContentBlocksBundle extends AbstractBundle
                         'Settings written onto a section added from the builder, same shape as a preset\'s. Stored as the section\'s own values, so they render like anything the editor saved.',
                     ))
                 ->end()
+                ->arrayNode('picker')
+                    ->info('Groups of the add-block picker. A block picks its group with #[AsContentBlock(category: ...)].')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->arrayNode('categories')
+                            ->info('name: label (text or translation key, content_blocks domain), merged over the built-in text, media, layout, actions, advanced and other. Listed ones come first, in this order; `name: ~` moves a built-in and keeps its label.')
+                            ->useAttributeAsKey('name')
+                            ->scalarPrototype()->defaultNull()->end()
+                            ->validate()
+                                ->ifTrue(static fn (array $categories): bool => array_filter(
+                                    array_keys($categories),
+                                    static fn (int|string $name): bool => preg_match('/^[a-z][a-z0-9_]{0,29}$/', (string) $name) !== 1,
+                                ) !== [])
+                                ->thenInvalid('Picker category names must be lowercase snake_case, 30 characters at most. Got %s.')
+                            ->end()
+                            ->validate()
+                                ->ifTrue(static fn (array $categories): bool => array_filter(
+                                    $categories,
+                                    static fn (mixed $label, int|string $name): bool => ($label === null || $label === '')
+                                        && !isset(BlockType\BlockCategoryRegistry::BUILT_IN[$name]),
+                                    \ARRAY_FILTER_USE_BOTH,
+                                ) !== [])
+                                ->thenInvalid('A new picker category needs a label. Got %s.')
+                            ->end()
+                        ->end()
+                        ->arrayNode('blocks')
+                            ->info('block type: category, to move a block (a kit one, say) to another group than the one it declares.')
+                            ->useAttributeAsKey('type')
+                            ->scalarPrototype()->cannotBeEmpty()->end()
+                        ->end()
+                    ->end()
+                    ->validate()
+                        ->ifTrue(static fn (array $picker): bool => array_diff(
+                            $picker['blocks'],
+                            array_keys(BlockType\BlockCategoryRegistry::BUILT_IN + $picker['categories']),
+                        ) !== [])
+                        ->thenInvalid('content_blocks.picker.blocks names a category that is not declared: %s.')
+                    ->end()
+                ->end()
                 ->arrayNode('structure')
                     ->info('What editors may do to sections and columns. Alias BuilderStructureResolverInterface to vary it by area.')
                     ->addDefaultsIfNotSet()
@@ -343,6 +382,8 @@ final class ContentBlocksBundle extends AbstractBundle
             ->set('content_blocks.section.default_max_width', $config['section']['default_max_width'])
             ->set('content_blocks.section.initial_settings', $config['section']['initial_settings'] ?? [])
             ->set('content_blocks.section.layouts', Section\SectionLayoutRegistry::resolve($config['section']['layouts'] ?? []))
+            ->set('content_blocks.picker.categories', BlockType\BlockCategoryRegistry::resolve($config['picker']['categories']))
+            ->set('content_blocks.picker.blocks', $config['picker']['blocks'])
             ->set('content_blocks.structure.sections', $config['structure']['sections'])
             ->set('content_blocks.structure.columns', $config['structure']['columns'])
             ->set('content_blocks.styling.block', $config['styling']['block'])
@@ -396,6 +437,25 @@ final class ContentBlocksBundle extends AbstractBundle
         ]);
     }
 
+    /**
+     * A subclass of a kit block re-applies the attribute to be registered; it
+     * keeps its parent's group unless it names one.
+     */
+    private static function inheritedCategory(\Reflector $class): ?string
+    {
+        $parent = $class instanceof \ReflectionClass ? $class->getParentClass() : false;
+        for (; $parent !== false; $parent = $parent->getParentClass()) {
+            foreach ($parent->getAttributes(AsContentBlock::class) as $attribute) {
+                $category = $attribute->newInstance()->category;
+                if ($category !== null) {
+                    return $category;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public function build(ContainerBuilder $container): void
     {
         parent::build($container);
@@ -406,7 +466,11 @@ final class ContentBlocksBundle extends AbstractBundle
         $container->registerAttributeForAutoconfiguration(
             AsContentBlock::class,
             static function (ChildDefinition $definition, AsContentBlock $attribute, \Reflector $reflector): void {
-                $definition->addTag('content_blocks.block_type', ['priority' => $attribute->priority]);
+                $category = $attribute->category ?? self::inheritedCategory($reflector);
+                $definition->addTag('content_blocks.block_type', array_filter(
+                    ['priority' => $attribute->priority, 'category' => $category],
+                    static fn (int|string|null $v): bool => $v !== null,
+                ));
             },
         );
 

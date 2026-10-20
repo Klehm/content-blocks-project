@@ -18,7 +18,7 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * A breadcrumb trail: an ordered list of {label, url} steps. A step with an
  * empty url renders as plain text (the current page).
  */
-#[AsContentBlock(priority: 20)]
+#[AsContentBlock(priority: 20, category: 'actions')]
 class BreadcrumbBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public function getType(): string

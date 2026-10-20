@@ -106,10 +106,6 @@ All of them fit in 1.x under three rules:
 - **A host that does nothing sees the same page.** A change to what a page renders is opt-in, behind a config key; making it the default waits for 2.0.
 - **Template variables and parameters are added, never removed or renamed.**
 
-Ranked, highest first:
-
-1. **Picker categories**, through an optional `category` argument on `#[AsContentBlock]` or an optional interface. A block without one lands in a default group.
-
 Not ranked yet:
 
 - **Headless / JSON rendering**: the renderer produces HTML only.

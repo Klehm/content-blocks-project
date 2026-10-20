@@ -123,6 +123,14 @@ cb:
         align.start: "Début"
         align.center: "Centre"
         align.end: "Fin"
+    picker:
+        category:
+            text: "Texte"
+            media: "Médias"
+            layout: "Mise en page"
+            actions: "Boutons et liens"
+            advanced: "Avancé"
+            other: "Autres"
     block:
         add: "+ Bloc"
         add_title: "Ajouter un bloc"

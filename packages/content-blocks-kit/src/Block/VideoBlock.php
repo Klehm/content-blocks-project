@@ -24,7 +24,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  *
  * @see docs/internals/kit.md#video-a-file-not-a-provider
  */
-#[AsContentBlock(priority: 32)]
+#[AsContentBlock(priority: 32, category: 'media')]
 class VideoBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public function getType(): string

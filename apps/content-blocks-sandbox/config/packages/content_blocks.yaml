@@ -14,6 +14,16 @@ content_blocks:
             # Same columns, shown one at a time; the editor names each tab.
             tabs: { label: 'Onglets', columns: [4, 4, 4], display: tabs }
 
+    # Groups of the add-block picker. Listed ones come first: Text keeps its
+    # label, then a host group taking two kit blocks out of their own groups.
+    picker:
+        categories:
+            text: ~
+            highlights: 'Mise en avant'
+        blocks:
+            alert: highlights
+            card: highlights
+
     # Named colors offered by the palette color picker (background colors of
     # sections and blocks). Editors can still switch to "Custom…" for a free
     # color picker.

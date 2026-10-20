@@ -17,7 +17,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * A single icon from the resolved {@see IconRegistry}, with a size, an optional
  * palette color and alignment. No external icon library needed.
  */
-#[AsContentBlock(priority: 45)]
+#[AsContentBlock(priority: 45, category: 'media')]
 class IconBlock extends AbstractKitBlock
 {
     /**

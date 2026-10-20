@@ -13,7 +13,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
-#[AsContentBlock(priority: 90)]
+#[AsContentBlock(priority: 90, category: 'text')]
 class TextBlock extends AbstractKitBlock implements BlockPreviewHintInterface
 {
     public function getType(): string

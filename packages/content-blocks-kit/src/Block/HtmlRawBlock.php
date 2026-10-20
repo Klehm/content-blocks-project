@@ -14,7 +14,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * Raw HTML escape hatch — renders the stored markup verbatim. Authored by
  * trusted editors (all mutations pass the host's canEdit() gate).
  */
-#[AsContentBlock(priority: 5)]
+#[AsContentBlock(priority: 5, category: 'advanced')]
 class HtmlRawBlock extends AbstractKitBlock
 {
     public function getType(): string
