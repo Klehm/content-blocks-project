@@ -184,6 +184,9 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ContentBlocks\Twig\ImageExtension::class)
         ->tag('twig.extension');
 
+    $services->set(ContentBlocks\Twig\LanguageExtension::class)
+        ->tag('twig.extension');
+
     // Shared with the kit, so one key layers every public stylesheet.
     $services->set(ContentBlocks\PublicAsset\CssLayer::class)
         ->args(['%content_blocks.css_layer%'])

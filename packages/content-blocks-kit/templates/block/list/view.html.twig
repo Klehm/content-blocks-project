@@ -1,14 +1,14 @@
 {# The style is a class suffix; only the ordered list and the check glyph
    stay keyed to their coded value. #}
-{% set items = data.items|default([])|map(i => i.text|default(''))|filter(t => t|trim is not empty) %}
+{% set items = data.items|default([])|filter(i => i.text|default('')|trim is not empty) %}
 {% if items|length > 0 %}
     {% set style = cb_kit_token(data.style|default('bullet'), 'bullet') %}
     {% set tag = style == 'numbered' ? 'ol' : 'ul' %}
     <{{ tag }} class="cb-kit-list cb-kit-list--{{ style }}">
-        {% for text in items %}
+        {% for item in items %}
             <li class="cb-kit-list__item">
                 {% if style == 'check' %}<span class="cb-kit-list__check" aria-hidden="true">{{ cb_kit_icon('check', 18)|raw }}</span>{% endif %}
-                <span>{{ text }}</span>
+                <span{{ cb_lang(item, 'text') }}>{{ item.text }}</span>
             </li>
         {% endfor %}
     </{{ tag }}>

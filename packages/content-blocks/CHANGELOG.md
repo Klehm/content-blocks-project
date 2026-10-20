@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`cb_lang(object, 'field')`**, a Twig function for block views: it prints
+  ` lang="…"` when a field is shown in another language than the page's, as
+  recorded under the reserved `_lang` key of the object holding it, and
+  nothing otherwise. The translation package fills it; without that package
+  it always prints nothing. A value that is not a language tag is dropped.
+
 - **A block declares the CSS and JS it needs.** A block type implementing the
   optional `BlockAssetsInterface` returns a `BlockAssets` (stylesheets,
   modules, classic scripts) from `assets(array $data)`, so what is linked can

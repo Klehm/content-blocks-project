@@ -27,7 +27,7 @@
             {%- endif -%}
         </video>
         {% if data.caption|default('')|trim is not empty %}
-            <figcaption class="cb-kit-video__caption">{{ data.caption }}</figcaption>
+            <figcaption class="cb-kit-video__caption"{{ cb_lang(data, 'caption') }}>{{ data.caption }}</figcaption>
         {% endif %}
     </figure>
 {% else %}

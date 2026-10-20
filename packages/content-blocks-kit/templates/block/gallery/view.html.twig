@@ -39,11 +39,11 @@
         {# An image without alt text would leave the link with no name. #}
         {% set name = item.alt|default('')|trim is empty ? (item.caption|default('')|trim ?: 'cb_kit.front.linked_image'|trans({'%url%': link}, 'content_blocks_kit')) : null %}
         {% if link is not empty %}<a href="{{ link }}"{% if name %} aria-label="{{ name }}"{% endif %}>{% endif %}
-        <img class="cb-kit-gallery__img" src="{{ img.src }}" alt="{{ item.alt|default('') }}"
+        <img class="cb-kit-gallery__img" src="{{ img.src }}" alt="{{ item.alt|default('') }}"{{ cb_lang(item, 'alt') }}
              {%- if img.srcset %} srcset="{{ img.srcset }}"{% endif %}{% if img.sizes %} sizes="{{ img.sizes }}"{% endif %} loading="lazy" decoding="async">
         {% if link is not empty %}</a>{% endif %}
         {% if item.caption|default('')|trim is not empty %}
-            <figcaption class="cb-kit-gallery__caption">{{ item.caption }}</figcaption>
+            <figcaption class="cb-kit-gallery__caption"{{ cb_lang(item, 'caption') }}>{{ item.caption }}</figcaption>
         {% endif %}
     </figure>
 {% endmacro %}

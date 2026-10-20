@@ -15,13 +15,13 @@
                    {% if loop.first %}checked{% endif %}>
             <label for="{{ uid }}-{{ loop.index0 }}"
                    id="{{ uid }}-{{ loop.index0 }}-label"
-                   class="cb-kit-tabs__tab">{{ tab.title|default('')|trim ?: 'cb_kit.front.untitled_tab'|trans({}, 'content_blocks_kit') }}</label>
+                   class="cb-kit-tabs__tab"{{ cb_lang(tab, 'title') }}>{{ tab.title|default('')|trim ?: 'cb_kit.front.untitled_tab'|trans({}, 'content_blocks_kit') }}</label>
             {# A labelled region rather than a half-built tablist, so the
                radios keep their native semantics. #}
             <div class="cb-kit-tabs__panel"
                  id="{{ uid }}-{{ loop.index0 }}-panel"
                  role="region"
-                 aria-labelledby="{{ uid }}-{{ loop.index0 }}-label">
+                 aria-labelledby="{{ uid }}-{{ loop.index0 }}-label"{{ cb_lang(tab, 'content') }}>
                 {{ tab.content|default('')|nl2br }}
             </div>
         {% endfor %}

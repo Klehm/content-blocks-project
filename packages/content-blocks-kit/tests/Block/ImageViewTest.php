@@ -255,6 +255,7 @@ final class ImageViewTest extends TestCase
         // Kit views pass choice values through cb_kit_token() instead of
         // re-listing them inline; see ChoiceTokenExtension.
         $env->addExtension(new ChoiceTokenExtension());
+        $env->addExtension(new \ContentBlocks\Twig\LanguageExtension());
         $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
         $env->addExtension(new ColorToneExtension());
         $env->addExtension(new TranslationExtension($this->makeTranslator()));

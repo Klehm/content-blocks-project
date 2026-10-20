@@ -88,6 +88,7 @@ final class ButtonGroupViewTest extends TestCase
         $loader->addPath(\dirname(__DIR__, 2) . '/templates', 'ContentBlocksKit');
         $env = new Environment($loader, ['strict_variables' => true]);
         $env->addExtension(new ChoiceTokenExtension());
+        $env->addExtension(new \ContentBlocks\Twig\LanguageExtension());
         $env->addExtension(new SafeContentExtension(RichTextSanitizerFactory::create()));
         $env->addExtension(new ColorToneExtension());
 

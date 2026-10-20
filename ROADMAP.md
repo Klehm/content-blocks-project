@@ -106,10 +106,6 @@ All of them fit in 1.x under three rules:
 - **A host that does nothing sees the same page.** A change to what a page renders is opt-in, behind a config key; making it the default waits for 2.0.
 - **Template variables and parameters are added, never removed or renamed.**
 
-Ranked, highest first:
-
-1. **`lang` on text that falls back to the source.** On a German page, an untranslated field shows French text that screen readers, hyphenation and search engines read as German (WCAG 3.1.2). A whole untranslated block can get `lang` on its wrapper through a `BlockDecoratorInterface`, with no template change. A partly translated block needs its view to know which field fell back: views receive `context` (its locale) since 1.5, so what is missing is the per-field status. **Opt-in in 1.x** (`content_blocks_i18n.fallback_lang`), since it changes the public markup.
-
 Not ranked yet:
 
 - **Headless / JSON rendering**: the renderer produces HTML only.

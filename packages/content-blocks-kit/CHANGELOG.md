@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stylesheets, and `cb_kit_stylesheet_url()` carries the layered version. On an
   older core it is served unlayered, as before.
 
+- **Each text element can say its language.** With the translation package's
+  `fallback_lang` on, a field still in another language than the page's gets
+  `lang` on the element showing it: alert, image and gallery (alt, caption),
+  video caption, accordion, breadcrumb, button group, card, list, tabs and
+  table. **Requires `klehm/content-blocks` ^1.5** for `cb_lang()`: the floor
+  moves with the release.
+  
 - **The blocks are grouped in the picker.** Each block declares a category
   (`#[AsContentBlock(category: …)]`): *Text* (title, text, rich_text, list,
   alert, table), *Media* (image, gallery, video, embed, icon), *Layout* (card,

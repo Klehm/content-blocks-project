@@ -95,6 +95,7 @@ final class AccordionViewTest extends TestCase
         $loader->addPath(\dirname(__DIR__, 2) . '/templates', 'ContentBlocksKit');
         $twig = new Environment($loader, ['strict_variables' => true]);
         $twig->addFunction(new \Twig\TwigFunction('cb_kit_icon', static fn () => '<svg></svg>'));
+        $twig->addExtension(new \ContentBlocks\Twig\LanguageExtension());
 
         return $twig->render(
             '@ContentBlocksKit/block/accordion/view.html.twig',

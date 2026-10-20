@@ -304,10 +304,29 @@ There is no `sanitizeData()` / `getAllowedDataKeys()` hook to implement — you 
 
 This pays off in a place you never wrote code for: **a pasted block is replayed through your form**. The [copy/paste clipboard](./concepts.md#editor-gestures-copy-paste) lives in the browser's `localStorage`, so its payload is user-writable — a key you did not declare never reaches `data`, and a value your `constraints` refuse is reset to your `getDefaultData()` value and reported to the editor rather than costing the whole block. Nothing to opt into; the form you already wrote is the filter.
 
-### Two names the package owns
+### Names the package owns
 
 - **Never declare a field whose name starts with `_`.** The prefix is reserved by ContentBlocks at every level of `Block.data`, including collection entries.
+- **`_lang`** and **`_block_lang`** appear in the `data` a view receives, never in storage: the translation package records there which fields are shown in another language. Read them through `cb_lang()` (see above).
 - **`_id`** is what it uses today: every entry of a `CollectionType` / `LiveCollectionType` field gets one automatically, so a reorder, duplicate or delete never shifts what per-entry information points at. You do not declare it, render it, or maintain it — but do not strip it either if you post-process `data` yourself. (Copies carry their entry ids across — cloning a section, importing an area, inserting a template — with one exception: a **pasted** block gets fresh ones, since it went back through the form.)
+
+## Text shown in another language
+
+With the translation package and its `fallback_lang` option on, a field still
+in the source language on a translated page is marked. When the whole block
+is untranslated, the wrapper gets `lang` and your view has nothing to do. For a
+block translated in part, print `cb_lang()` on the element that holds each text
+field, passing the object the field belongs to:
+
+```twig
+<h2{{ cb_lang(data, 'title') }}>{{ data.title }}</h2>
+{% for item in data.items %}
+    <p{{ cb_lang(item, 'text') }}>{{ item.text }}</p>
+{% endfor %}
+```
+
+It prints ` lang="fr"` when the field is shown in another language, and nothing
+otherwise, including when the translation package is not installed.
 
 ## Opting into preview hot reload
 

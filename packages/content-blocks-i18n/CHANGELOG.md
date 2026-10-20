@@ -9,6 +9,15 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`lang` on text shown in another language** (`fallback_lang`, off by
+  default). On a translated page, a field still in the source, or read from a
+  fallback locale, says its language, so screen readers and search engines do
+  not read French as German (WCAG 3.1.2). A block nobody translated gets
+  `lang` on its wrapper, whatever its view; in a partly translated one, the
+  view marks each field with the core's `cb_lang()`, which the kit's views do.
+  URLs and files are not marked, nor the tab titles of a section shown as
+  tabs. Changes the public markup only when turned on. No migration.
+
 - **The builder's Publish and Revert to published can hold a language back.**
   `TranslationLocaleDrafts` lists the languages with a pending translation, in
   the configured order, to the dialog both buttons now open

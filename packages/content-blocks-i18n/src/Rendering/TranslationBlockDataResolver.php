@@ -30,6 +30,7 @@ final class TranslationBlockDataResolver implements BlockDataResolverInterface
         private readonly RenderLocaleResolverInterface $localeResolver,
         private readonly TranslatableFieldsInterface $translatableFields,
         private readonly ?TranslationLocales $locales = null,
+        private readonly ?FallbackLanguageMarker $marker = null,
     ) {
     }
 
@@ -43,17 +44,25 @@ final class TranslationBlockDataResolver implements BlockDataResolverInterface
 
         $mode = $context->mode ?? RenderMode::PUBLIC;
         $values = [];
+        $origins = [];
 
         // Per field, the first locale of the chain with a value wins.
         foreach ([$locale, ...$this->locales?->getFallbacks($locale) ?? []] as $candidate) {
-            $values += $this->store->payloadFor($block, $candidate, $mode)['values'];
+            foreach ($this->store->payloadFor($block, $candidate, $mode)['values'] as $path => $value) {
+                if (!\array_key_exists($path, $values)) {
+                    $values[$path] = $value;
+                    $origins[$path] = $candidate;
+                }
+            }
         }
 
-        if ($values === []) {
+        if ($values === [] && $this->marker === null) {
             return $data;
         }
 
-        $allowed = $this->translatableFields->forBlockType($block->getType(), $data);
+        $source = $data;
+        $applied = [];
+        $allowed = $values === [] ? [] : $this->translatableFields->forBlockType($block->getType(), $data);
 
         foreach ($values as $path => $value) {
             // A value is text: an array or a number would reshape the data.
@@ -64,6 +73,11 @@ final class TranslationBlockDataResolver implements BlockDataResolverInterface
             // write() only touches existing structure, so a row left from a
             // deleted entry is a no-op rather than a resurrection.
             $data = FieldPath::write($data, $path, $value);
+            $applied[$path] = $origins[$path];
+        }
+
+        if ($this->marker !== null) {
+            $data = $this->marker->mark($block->getType(), $source, $data, $applied, $locale);
         }
 
         return $data;
