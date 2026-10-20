@@ -13,6 +13,8 @@ use ContentBlocks\Content\ContentManipulatorInterface;
 use ContentBlocks\Content\DraftOrder;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Event\AfterSectionDeleteEvent;
+use ContentBlocks\Event\BeforeSectionDeleteEvent;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
 use ContentBlocks\Rendering\BlockRendererInterface;
@@ -27,6 +29,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * AJAX endpoints for structural operations on Sections.
@@ -56,6 +59,7 @@ final class SectionsController
         private readonly SectionLayoutRegistry $sectionLayouts = new SectionLayoutRegistry(),
         ?ContentManipulatorInterface $content = null,
         private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
+        private readonly ?EventDispatcherInterface $events = null,
     ) {
         $this->content = $content ?? new ContentManipulator(
             $em,
@@ -254,13 +258,21 @@ final class SectionsController
             return StructureRefusal::response();
         }
 
-        return $this->journal->record($area, 'section.delete', JournalScope::structure(), function () use ($section): JsonResponse {
+        $before = $this->events?->dispatch(new BeforeSectionDeleteEvent($section, $area));
+        if ($before?->isRefused()) {
+            return EventRefusal::response($before);
+        }
+
+        $response = $this->journal->record($area, 'section.delete', JournalScope::structure(), function () use ($section): JsonResponse {
             // Soft-delete in draft. The em->remove() runs at publish time.
             $this->content->deleteSection($section);
             $this->em->flush();
 
             return new JsonResponse(['deleted' => true]);
         });
+        $this->events?->dispatch(new AfterSectionDeleteEvent($section, $area));
+
+        return $response;
     }
 
     /**

@@ -7,6 +7,8 @@ namespace ContentBlocks\Tests\Controller;
 use ContentBlocks\Builder\BuilderStructure;
 use ContentBlocks\Controller\SectionSidebarController;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Event\AfterSectionSaveEvent;
+use ContentBlocks\Event\BeforeSectionSaveEvent;
 use ContentBlocks\Form\Type\PaletteColorType;
 use ContentBlocks\Form\Type\SectionSettingsType;
 use ContentBlocks\Palette\ColorPaletteRegistry;
@@ -15,6 +17,7 @@ use ContentBlocks\Section\SectionStyle;
 use ContentBlocks\Section\SectionStyleProviderInterface;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\Tests\Fixtures\FixedBuilderStructureResolver;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Form\Extension\HttpFoundation\HttpFoundationExtension;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\Forms;
@@ -172,6 +175,47 @@ final class SectionSidebarControllerTest extends ControllerTestCase
         $saved = $section->getDraftSettings();
         $this->assertTrue($saved['stylingCustom']);
         $this->assertSame('#123456', $saved['styling']['backgroundColor']);
+    }
+
+    public function testASaveIsBracketedByItsTwoEventsWithTheSettingsToWrite(): void
+    {
+        $section = $this->makeSettingsSection(id: 5, settings: []);
+        $events = new EventDispatcher();
+        $seen = [];
+        $events->addListener(BeforeSectionSaveEvent::class, function (BeforeSectionSaveEvent $e) use (&$seen, $section): void {
+            $seen[] = ['before', $e->section === $section, $e->settings['styleName'] ?? null, $section->getDraftSettings()['styleName'] ?? null];
+        });
+        $events->addListener(AfterSectionSaveEvent::class, function (AfterSectionSaveEvent $e) use (&$seen): void {
+            $seen[] = ['after', $e->area->getId(), $e->section->getDraftSettings()['styleName'] ?? null];
+        });
+
+        $response = $this->makeController([$section], events: $events)
+            ->settings(5, $this->makeFormRequest(['widthMode' => 'full', 'styleName' => 'airy']));
+
+        $this->assertSame(204, $response->getStatusCode());
+        $this->assertSame([['before', true, 'airy', null], ['after', 1, 'airy']], $seen);
+    }
+
+    public function testARefusedSaveAnswers409AndKeepsTheDraft(): void
+    {
+        $section = $this->makeSettingsSection(id: 5, settings: ['styleName' => 'airy']);
+        $events = new EventDispatcher();
+        $events->addListener(
+            BeforeSectionSaveEvent::class,
+            fn (BeforeSectionSaveEvent $e) => $e->refuse('Pick a brand style.'),
+        );
+        $after = 0;
+        $events->addListener(AfterSectionSaveEvent::class, function () use (&$after): void {
+            ++$after;
+        });
+
+        $response = $this->makeController([$section], events: $events)
+            ->settings(5, $this->makeFormRequest(['widthMode' => 'full', 'styleName' => '']));
+
+        $this->assertSame(409, $response->getStatusCode());
+        $this->assertSame('Pick a brand style.', json_decode((string) $response->getContent(), true)['message']);
+        $this->assertSame('airy', $section->getDraftSettings()['styleName']);
+        $this->assertSame(0, $after);
     }
 
     public function testUntouchedStylingFieldsAreNotPersisted(): void
@@ -417,6 +461,7 @@ final class SectionSidebarControllerTest extends ControllerTestCase
         array $typeExtensions = [],
         bool $sectionStyling = true,
         ?BuilderStructure $structure = null,
+        ?EventDispatcher $events = null,
     ): SectionSidebarController {
         $styleRegistry = new SectionStyleRegistry([
             new class () implements SectionStyleProviderInterface {
@@ -450,6 +495,7 @@ final class SectionSidebarControllerTest extends ControllerTestCase
             $this->makeUrlGenerator(),
             $sectionStyling,
             new FixedBuilderStructureResolver($structure ?? new BuilderStructure()),
+            $events,
         );
     }
 

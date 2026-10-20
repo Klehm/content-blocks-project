@@ -6,11 +6,15 @@ namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Controller\ReplaceController;
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Event\AfterContentInsertEvent;
+use ContentBlocks\Event\BeforeContentInsertEvent;
+use ContentBlocks\Event\ContentInsertOrigin;
 use ContentBlocks\Replace\ContentAreaProviderInterface;
 use ContentBlocks\Section\SectionCloner;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -25,6 +29,7 @@ final class ReplaceControllerTest extends ControllerTestCase
         EntityManagerInterface $em,
         bool $csrfValid = true,
         ?AccessCheckerInterface $accessChecker = null,
+        ?EventDispatcher $events = null,
     ): ReplaceController {
         return new ReplaceController(
             $em,
@@ -33,6 +38,7 @@ final class ReplaceControllerTest extends ControllerTestCase
             new SectionCloner(),
             $this->makeCsrfManager($csrfValid),
             $this->makeJournal($em),
+            events: $events,
         );
     }
 
@@ -60,6 +66,55 @@ final class ReplaceControllerTest extends ControllerTestCase
         $this->assertSame(1, $payload['sectionCount']);
         // Source is untouched.
         $this->assertFalse($sourceSection->isDeleted());
+    }
+
+    public function testReplaceDispatchesTheInsertEventsWithWhatItCreated(): void
+    {
+        $target = $this->makeArea(1);
+        $old = $this->makeSection($target, 10);
+        $source = $this->makeArea(2);
+        $sourceSection = $this->makeSection($source, 20, previewPosition: 0);
+        $this->makeBlock($this->makeColumn($sourceSection, 21), 22);
+        $events = new EventDispatcher();
+        $seen = [];
+        $events->addListener(BeforeContentInsertEvent::class, function (BeforeContentInsertEvent $e) use (&$seen): void {
+            $seen[] = ['before', $e->area->getId(), $e->origin, $this->flushCount];
+        });
+        $events->addListener(AfterContentInsertEvent::class, function (AfterContentInsertEvent $e) use (&$seen): void {
+            $seen[] = ['after', $e->area->getId(), $e->origin, \count($e->sections), \count($e->blocks), $this->flushCount];
+            $seen[] = $e->sections[0]->isDeleted();
+        });
+
+        $this->makeController($this->makeEm([$target, $source]), events: $events)
+            ->replaceWith(1, 2, $this->makeJsonRequest());
+
+        $this->assertSame([
+            ['before', 1, ContentInsertOrigin::REPLACE, 0],
+            ['after', 1, ContentInsertOrigin::REPLACE, 1, 1, 1],
+            false,
+        ], $seen);
+        $this->assertTrue($old->isDeleted());
+    }
+
+    public function testARefusedReplaceWritesNothing(): void
+    {
+        $target = $this->makeArea(1);
+        $old = $this->makeSection($target, 10);
+        $source = $this->makeArea(2);
+        $this->makeSection($source, 20, previewPosition: 0);
+        $events = new EventDispatcher();
+        $events->addListener(
+            BeforeContentInsertEvent::class,
+            fn (BeforeContentInsertEvent $e) => $e->refuse('Locked page.'),
+        );
+
+        $response = $this->makeController($this->makeEm([$target, $source]), events: $events)
+            ->replaceWith(1, 2, $this->makeJsonRequest());
+
+        $this->assertSame(409, $response->getStatusCode());
+        $this->assertFalse($old->isDeleted());
+        $this->assertSame([], $this->persisted);
+        $this->assertSame(0, $this->flushCount);
     }
 
     public function testReplaceWithCopiesSourceSectionsInPreviewOrderSkippingDeleted(): void

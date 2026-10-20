@@ -9,6 +9,9 @@ use ContentBlocks\Content\ContentManipulator;
 use ContentBlocks\Content\ContentManipulatorInterface;
 use ContentBlocks\Content\DraftOrder;
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Event\BeforeContentInsertEvent;
+use ContentBlocks\Event\ContentInsertOrigin;
+use ContentBlocks\Event\InsertedContent;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
 use ContentBlocks\Publishing\UnpublishedChanges;
@@ -22,6 +25,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * The "replace this area's content with another area's" flow: candidates, then
@@ -49,6 +53,7 @@ final class ReplaceController
         private readonly ActionJournal $journal,
         private readonly UnpublishedChanges $unpublishedChanges = new UnpublishedChanges(),
         ?ContentManipulatorInterface $content = null,
+        private readonly ?EventDispatcherInterface $events = null,
     ) {
         $this->content = $content ?? new ContentManipulator($em, new BlockTypeRegistry());
     }
@@ -160,7 +165,13 @@ final class ReplaceController
             throw new ContentBlocksAccessDeniedException();
         }
 
-        return $this->journal->record($target, 'area.replace', JournalScope::structure(), function () use ($target, $source): JsonResponse {
+        $before = $this->events?->dispatch(new BeforeContentInsertEvent($target, ContentInsertOrigin::REPLACE));
+        if ($before?->isRefused()) {
+            return EventRefusal::response($before);
+        }
+        $inserted = InsertedContent::before($target);
+
+        $response = $this->journal->record($target, 'area.replace', JournalScope::structure(), function () use ($target, $source): JsonResponse {
             // Soft-delete every existing section. The actual em->remove()
             // runs at publish time (see ContentAreaPublisher).
             foreach ($target->getSections() as $existing) {
@@ -183,5 +194,8 @@ final class ReplaceController
                 'hasUnpublishedChanges' => $this->unpublishedChanges->of($target),
             ]);
         });
+        $this->events?->dispatch($inserted->after($target, ContentInsertOrigin::REPLACE));
+
+        return $response;
     }
 }

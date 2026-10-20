@@ -21,6 +21,9 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Event\BeforeContentInsertEvent;
+use ContentBlocks\Event\ContentInsertOrigin;
+use ContentBlocks\Event\InsertedContent;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
 use ContentBlocks\Section\RestoredStructure;
@@ -36,6 +39,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Copy and paste of a section or a block. Copy is a plain read; paste treats
@@ -64,6 +68,7 @@ final class ClipboardController
         private readonly SnapshotExtensions $snapshots = new SnapshotExtensions(),
         private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
         private readonly ?ContentManipulatorInterface $content = null,
+        private readonly ?EventDispatcherInterface $events = null,
     ) {
     }
 
@@ -190,6 +195,12 @@ final class ClipboardController
         $targetSection = $targetBlock?->getColumn()?->getSection()
             ?? $this->resolveSection($body['targetSectionId'] ?? null, $area);
 
+        $before = $this->events?->dispatch(new BeforeContentInsertEvent($area, ContentInsertOrigin::PASTE));
+        if ($before?->isRefused()) {
+            return EventRefusal::response($before);
+        }
+        $inserted = InsertedContent::before($area);
+
         try {
             $result = $this->journal->record(
                 $area,
@@ -215,6 +226,7 @@ final class ClipboardController
         if ($restored) {
             $this->em->flush();
         }
+        $this->events?->dispatch($inserted->after($area, ContentInsertOrigin::PASTE));
 
         $section = $result->entity instanceof Section
             ? $result->entity

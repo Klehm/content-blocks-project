@@ -6,6 +6,8 @@ namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Controller\SectionsController;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Event\AfterSectionDeleteEvent;
+use ContentBlocks\Event\BeforeSectionDeleteEvent;
 use ContentBlocks\Rendering\BlockRendererInterface;
 use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Rendering\RenderMode;
@@ -14,6 +16,7 @@ use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Response;
 
 final class SectionsControllerTest extends ControllerTestCase
@@ -26,6 +29,7 @@ final class SectionsControllerTest extends ControllerTestCase
         ?BlockRendererInterface $renderer = null,
         array $initialSettings = [],
         ?SectionLayoutRegistry $layouts = null,
+        ?EventDispatcher $events = null,
     ): SectionsController {
         return new SectionsController(
             $em,
@@ -37,6 +41,7 @@ final class SectionsControllerTest extends ControllerTestCase
             $this->makeJournal($em),
             $initialSettings,
             $layouts ?? new SectionLayoutRegistry(),
+            events: $events,
         );
     }
 
@@ -373,6 +378,52 @@ final class SectionsControllerTest extends ControllerTestCase
         $this->assertSame(1, $this->flushCount);
         $payload = json_decode((string) $response->getContent(), true);
         $this->assertTrue($payload['deleted']);
+    }
+
+    public function testDeleteIsBracketedByItsTwoEvents(): void
+    {
+        $area = $this->makeArea(1);
+        $section = $this->makeSection($area, 2);
+        $events = new EventDispatcher();
+        $seen = [];
+        foreach ([BeforeSectionDeleteEvent::class, AfterSectionDeleteEvent::class] as $name) {
+            $events->addListener($name, function (object $e) use (&$seen, $name): void {
+                $seen[] = [$name, $e->section, $e->area->getId(), $this->flushCount];
+            });
+        }
+
+        $this->makeController($this->makeEm([$section]), events: $events)
+            ->delete(2, $this->makeJsonRequest());
+
+        $this->assertSame([
+            [BeforeSectionDeleteEvent::class, $section, 1, 0],
+            [AfterSectionDeleteEvent::class, $section, 1, 1],
+        ], $seen);
+    }
+
+    public function testARefusedDeleteAnswers409AndKeepsTheSection(): void
+    {
+        $area = $this->makeArea(1);
+        $section = $this->makeSection($area, 2);
+        $events = new EventDispatcher();
+        $events->addListener(
+            BeforeSectionDeleteEvent::class,
+            fn (BeforeSectionDeleteEvent $e) => $e->refuse('The hero stays.'),
+        );
+        $after = 0;
+        $events->addListener(AfterSectionDeleteEvent::class, function () use (&$after): void {
+            ++$after;
+        });
+
+        $response = $this->makeController($this->makeEm([$section]), events: $events)
+            ->delete(2, $this->makeJsonRequest());
+
+        $this->assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        $payload = json_decode((string) $response->getContent(), true);
+        $this->assertSame(['error' => 'refused', 'message' => 'The hero stays.', 'reasons' => ['The hero stays.']], $payload);
+        $this->assertFalse($section->isDeleted());
+        $this->assertSame(0, $this->flushCount);
+        $this->assertSame(0, $after);
     }
 
     public function testRestoreClearsTheSoftDeleteFlag(): void

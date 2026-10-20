@@ -9,9 +9,11 @@ import { describe } from './import-source.js';
 
 export class RequestError extends Error {
     constructor(status, payload) {
-        super(payload?.error ?? `HTTP ${status}`);
+        // A listener's refusal carries its reason in `message`.
+        const refused = payload?.error === 'refused';
+        super((refused ? payload.message : payload?.error) || `HTTP ${status}`);
         this.status = status;
-        this.code = status === 413 ? 'too_large' : payload?.code ?? null;
+        this.code = status === 413 ? 'too_large' : (refused ? 'refused' : payload?.code ?? null);
     }
 }
 

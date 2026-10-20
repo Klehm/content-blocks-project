@@ -136,8 +136,15 @@ export default class ReplacePicker {
         const result = await this._jsonRequest(
             'POST',
             `${this._apiBase}/area/${this.areaIdValue}/replace-with/${item.id}`,
+            undefined,
+            { tolerate: [409] },
         );
         if (result === null) return;
+        if (result.error === 'refused') {
+            this.closeReplacePicker();
+            this._saidRefused(result);
+            return;
+        }
         // The target's updatedAt just changed, so a sticky cache would
         // lie on the next open.
         this._replacePickerLoaded = false;

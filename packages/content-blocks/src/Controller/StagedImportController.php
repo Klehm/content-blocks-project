@@ -7,6 +7,9 @@ namespace ContentBlocks\Controller;
 use ContentBlocks\Asset\AssetResolverInterface;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Event\BeforeContentInsertEvent;
+use ContentBlocks\Event\ContentInsertOrigin;
+use ContentBlocks\Event\InsertedContent;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
 use ContentBlocks\Publishing\UnpublishedChanges;
@@ -25,6 +28,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * An import in small requests: the plan, then one request per missing file,
@@ -51,6 +55,7 @@ final class StagedImportController
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly ActionJournal $journal,
         private readonly UnpublishedChanges $unpublishedChanges = new UnpublishedChanges(),
+        private readonly ?EventDispatcherInterface $events = null,
     ) {
     }
 
@@ -192,6 +197,12 @@ final class StagedImportController
         }
 
         $stored = $this->staging->stored($area);
+        $before = $this->events?->dispatch(new BeforeContentInsertEvent($area, ContentInsertOrigin::IMPORT));
+        if ($before?->isRefused()) {
+            return EventRefusal::response($before);
+        }
+        $inserted = InsertedContent::before($area);
+
         try {
             $result = $this->journal->record($area, 'area.import', JournalScope::structure(), function () use ($area, $payload, $stored): ImportResult {
                 $imported = $this->importer->import($area, $payload, $stored);
@@ -205,6 +216,7 @@ final class StagedImportController
             // A library's message (an ORM entity dump) is not the client's.
             return new JsonResponse(['error' => 'The import could not be completed.'], Response::HTTP_BAD_REQUEST);
         }
+        $this->events?->dispatch($inserted->after($area, ContentInsertOrigin::IMPORT));
         $this->staging->clear($area);
 
         return new JsonResponse([

@@ -6,12 +6,16 @@ namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Asset\AssetResolverInterface;
 use ContentBlocks\Controller\StagedImportController;
+use ContentBlocks\Event\AfterContentInsertEvent;
+use ContentBlocks\Event\BeforeContentInsertEvent;
+use ContentBlocks\Event\ContentInsertOrigin;
 use ContentBlocks\Transfer\AssetPolicy;
 use ContentBlocks\Transfer\ContentAreaExporter;
 use ContentBlocks\Transfer\ContentAreaImporter;
 use ContentBlocks\Transfer\ImportSizeLimit;
 use ContentBlocks\Transfer\ImportStaging;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -45,7 +49,27 @@ final class StagedImportControllerTest extends ControllerTestCase
         array_map('unlink', array_filter($this->tmpFiles, 'is_file'));
     }
 
-    private function controller(EntityManagerInterface $em): StagedImportController
+    /** @var list<array<int, mixed>> */
+    private array $seen = [];
+
+    /** Records both insert events; refuses the first when $refuse is set. */
+    private function insertEvents(?string $refuse = null): EventDispatcher
+    {
+        $events = new EventDispatcher();
+        $events->addListener(BeforeContentInsertEvent::class, function (BeforeContentInsertEvent $e) use ($refuse): void {
+            $this->seen[] = ['before', $e->area->getId(), $e->origin, $this->flushCount];
+            if ($refuse !== null) {
+                $e->refuse($refuse);
+            }
+        });
+        $events->addListener(AfterContentInsertEvent::class, function (AfterContentInsertEvent $e): void {
+            $this->seen[] = ['after', $e->area->getId(), $e->origin, $e->sections, $e->blocks];
+        });
+
+        return $events;
+    }
+
+    private function controller(EntityManagerInterface $em, ?EventDispatcher $events = null): StagedImportController
     {
         $resolver = $this->createMock(AssetResolverInterface::class);
         $resolver->method('isAssetPath')->willReturnCallback(
@@ -69,6 +93,7 @@ final class StagedImportControllerTest extends ControllerTestCase
             $this->makeRegistry(),
             $this->makeCsrfManager(),
             $this->makeJournal($em),
+            events: $events,
         );
     }
 
@@ -232,6 +257,29 @@ final class StagedImportControllerTest extends ControllerTestCase
         $result = self::json($controller->commit(1, $this->request($manifest)));
 
         $this->assertSame(['/uploads/gone.png'], $result['missingAssets']);
+    }
+
+    public function testTheCommitIsReportedByTheInsertEvents(): void
+    {
+        $area = $this->makeArea(1);
+        $controller = $this->controller($this->makeEm([$area]), $this->insertEvents());
+
+        $controller->commit(1, $this->request(self::manifest([])));
+
+        $this->assertSame(['before', 1, ContentInsertOrigin::IMPORT, 0], $this->seen[0]);
+        $this->assertSame('after', $this->seen[1][0]);
+        $this->assertSame(array_values($area->getSections()->toArray()), $this->seen[1][3]);
+    }
+
+    public function testARefusedCommitWritesNothing(): void
+    {
+        $area = $this->makeArea(1);
+        $controller = $this->controller($this->makeEm([$area]), $this->insertEvents('No.'));
+
+        $response = $controller->commit(1, $this->request(self::manifest([])));
+
+        $this->assertSame(409, $response->getStatusCode());
+        $this->assertCount(0, $area->getSections());
     }
 
     public function testTheCommitEmptiesTheStaging(): void

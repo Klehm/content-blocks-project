@@ -253,12 +253,27 @@ describe('cb-builder replace picker: confirm + replace', () => {
 
         await controller._confirmAndReplace({ id: 11, label: 'Source' });
 
-        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/replace-with/11');
+        expect(reqSpy).toHaveBeenCalledWith(
+            'POST', '/_content-blocks/area/99/replace-with/11', undefined, { tolerate: [409] },
+        );
         expect(applySpy).toHaveBeenCalledWith(true);
         expect(reloadSpy).toHaveBeenCalled();
         // Picker is closed after a successful replace.
         const picker = controller.element.querySelector('.cb-replace-picker');
         expect(picker.hidden).toBe(true);
+    });
+
+    it('closes the picker and says a listener refusal, without reloading', async () => {
+        vi.spyOn(window, 'confirm').mockReturnValue(true);
+        vi.spyOn(controller, '_jsonRequest').mockResolvedValue({ error: 'refused', message: 'Locked page' });
+        const reloadSpy = vi.spyOn(controller, 'reload').mockImplementation(() => {});
+        const notifySpy = vi.spyOn(controller, '_notify').mockImplementation(() => {});
+
+        await controller._confirmAndReplace({ id: 11, label: 'Source' });
+
+        expect(notifySpy).toHaveBeenCalledWith('Locked page');
+        expect(reloadSpy).not.toHaveBeenCalled();
+        expect(controller.element.querySelector('.cb-replace-picker').hidden).toBe(true);
     });
 
     it('does not reload when the request fails', async () => {

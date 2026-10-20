@@ -1,5 +1,6 @@
 import { test, expect } from './helpers/test.js';
 import { launchBuilder } from './helpers/builder.js';
+import { reveal } from './helpers/sidebar.js';
 
 /**
  * A listener on a "before" event can refuse the action: the builder says why
@@ -111,4 +112,54 @@ test('a refused save keeps the draft and says why in the sidebar', async ({ page
     await textInput(page).blur();
     await expect(page.locator('.cb-shell__sidebar [data-cb-block-refusal]')).toHaveCount(0);
     await expect(frame.locator('[data-cb-block-id]').first()).toContainText('Accepted title');
+});
+
+test('a refused section save keeps the draft and is said in the snackbar', async ({ page }) => {
+    const frame = await openBuilder(page, await createFreshPage(page));
+    await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
+    await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);
+    const sectionId = await frame.locator('[data-cb-section-id]').first().getAttribute('data-cb-section-id');
+    const style = page.locator('.cb-shell__sidebar select[name="section_settings[styleName]"]');
+    await expect(await reveal(style)).toBeVisible();
+    await page.waitForTimeout(500);
+    await refuse(page, 'section.save');
+
+    await style.selectOption('boxed');
+
+    await expect(snackbarLabel(page)).toHaveText('Refused by the e2e listener (section.save).');
+    const form = await page.request.get(`/admin/content-blocks/section/${sectionId}/settings`);
+    expect(await form.text()).not.toMatch(/value="boxed"\s+selected/);
+});
+
+test('a refused section delete keeps the section', async ({ page }) => {
+    const frame = await openBuilder(page, await createFreshPage(page));
+    await addTitleBlock(page, frame);
+    await refuse(page, 'section.delete');
+
+    await page.locator('.cb-shell__iframe').evaluate((iframe) => {
+        iframe.contentDocument.querySelector('[data-cb-section-id]')
+            ?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+    await frame.locator('.cb-overlay-toolbar.is-visible .cb-overlay-toolbar__btn[data-cb-action="delete"]').click();
+
+    await expect(snackbarLabel(page)).toHaveText('Refused by the e2e listener (section.delete).');
+    expect(await frame.locator('[data-cb-section-id]:not([data-cb-deleted])').count()).toBe(1);
+});
+
+test('a refused paste inserts nothing and keeps the copy', async ({ page }) => {
+    const frame = await openBuilder(page, await createFreshPage(page));
+    await addTitleBlock(page, frame);
+    const block = frame.locator('[data-cb-block-id]').first();
+    const box = await block.boundingBox();
+    await page.mouse.click(box.x + 20, box.y + box.height - 4);
+    await expect(page.locator('.cb-shell__sidebar')).toHaveAttribute('data-cb-sidebar-block-id', /\d+/);
+    await page.keyboard.press('Control+c');
+    await expect(page.locator('.cb-shell__undo')).toBeVisible();
+    await refuse(page, 'insert.paste');
+
+    await page.keyboard.press('Control+v');
+
+    await expect(snackbarLabel(page)).toHaveText('Refused by the e2e listener (insert.paste).');
+    expect(await live(frame)).toBe(1);
+    expect(await page.evaluate(() => window.localStorage.getItem('cb-builder.clipboard'))).not.toBeNull();
 });

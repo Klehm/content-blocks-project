@@ -243,8 +243,10 @@ export default class TemplateLibrary {
         const result = await this._jsonRequest(
             'POST',
             `${this._apiBase}/area/${this.areaIdValue}/insert-template/${item.id}`,
+            undefined,
+            { tolerate: [409] },
         );
-        if (result === null) return;
+        if (result === null || this._saidRefused(result)) return;
 
         // The insert succeeded, possibly minus a few blocks.
         const warning = this._restoreWarning(result, {
