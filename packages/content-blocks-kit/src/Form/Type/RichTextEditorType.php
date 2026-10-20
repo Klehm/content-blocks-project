@@ -40,6 +40,8 @@ final class RichTextEditorType extends AbstractType
             // The `rich_text` block's resolved option set: which editor, how
             // it is loaded, whether uploads are wired, host init overrides.
             'editor_options' => [],
+            // The core's AI field actions send and receive HTML here.
+            'cb_ai' => 'html',
         ]);
         $resolver->setAllowedTypes('editor_options', 'array');
     }

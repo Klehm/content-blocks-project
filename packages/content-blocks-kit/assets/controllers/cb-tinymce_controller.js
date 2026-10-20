@@ -143,6 +143,17 @@ export default class extends Controller {
 
             this._detachedUi.sweep();
             this._editor = Array.isArray(editors) ? editors[0] : editors;
+
+            // A value set from outside (an AI proposal) goes through the
+            // editor, or its next save would put the old text back.
+            this._onFieldSet = (event) => {
+                if (!this._editor) return;
+                event.preventDefault();
+                this._editor.setContent(String(event.detail?.value ?? ''));
+                this._editor.save();
+                textarea.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+            textarea.addEventListener('cb:field:set', this._onFieldSet);
         } catch (e) {
             // Leave the plain textarea visible as fallback.
             console.error('[cb-tinymce]', e);
@@ -189,6 +200,10 @@ export default class extends Controller {
     disconnect() {
         this._detachedUi?.stop();
         this._detachedUi = null;
+        if (this._onFieldSet && this.hasTextareaTarget) {
+            this.textareaTarget.removeEventListener('cb:field:set', this._onFieldSet);
+        }
+        this._onFieldSet = null;
 
         if (this._editor) {
             try {

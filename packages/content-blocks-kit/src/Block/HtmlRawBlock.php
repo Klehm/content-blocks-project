@@ -47,7 +47,8 @@ class HtmlRawBlock extends AbstractKitBlock implements BlockPurposeInterface
             'label' => 'cb_kit.block.html_raw.field.html',
             'translation_domain' => 'content_blocks_kit',
             'required' => false,
-            'attr' => ['rows' => 10, 'spellcheck' => 'false', 'style' => 'font-family: monospace;'],
+            // `data-cb-ai`: markup that runs as is is not a model's to rewrite.
+            'attr' => ['rows' => 10, 'spellcheck' => 'false', 'style' => 'font-family: monospace;', 'data-cb-ai' => 'off'],
             'help' => 'cb_kit.block.html_raw.help',
             'help_translation_parameters' => [],
         ]);

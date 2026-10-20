@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ^1.6**, where the interface is new.
 - **The rich-text field is announced as HTML** in the content schema, with the
   elements it keeps.
+- **TinyMCE and CKEditor take an AI proposal through their own API**
+  (`cb:field:set`), so the next sync keeps it. The rich-text field declares
+  itself HTML to the core's AI actions; `html_raw` opts out of them.
 
 ## [1.5.0] - 2026-10-20
 
