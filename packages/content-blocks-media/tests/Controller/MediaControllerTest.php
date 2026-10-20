@@ -11,6 +11,7 @@ use ContentBlocks\Media\Controller\MediaController;
 use ContentBlocks\Media\Entity\Media;
 use ContentBlocks\Media\Entity\MediaFolder;
 use ContentBlocks\Media\Library\MediaBrowser;
+use ContentBlocks\Media\Security\MediaManagerInterface;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -25,6 +26,7 @@ final class MediaControllerTest extends TestCase
     private EntityManagerInterface&MockObject $em;
     private bool $canEdit = true;
     private bool $csrfValid = true;
+    private bool $canManage = true;
     private ?Media $media = null;
     private ?MediaFolder $folder = null;
 
@@ -115,6 +117,39 @@ final class MediaControllerTest extends TestCase
         $this->assertNull($this->media->getFolder());
     }
 
+    public function testAnEditorWhoCannotManageFilesOnlyAJustUploadedFile(): void
+    {
+        $this->canManage = false;
+        $this->folder = new MediaFolder('Logos');
+        $this->media = new Media('/u/a.png', 'image', 'A');
+
+        $this->controller()->place($this->post(['area' => 1, 'path' => '/u/a.png', 'folder' => 7]));
+
+        $this->assertSame($this->folder, $this->media->getFolder());
+    }
+
+    // Filed once, it is no longer the upload in flight: moving it is managing.
+    public function testButNotAFileAlreadyFiled(): void
+    {
+        $this->canManage = false;
+        $this->folder = new MediaFolder('Logos');
+        $this->media = new Media('/u/a.png', 'image', 'A');
+        $this->media->moveTo(new MediaFolder('Elsewhere'));
+
+        $this->expectException(ContentBlocksAccessDeniedException::class);
+        $this->controller()->place($this->post(['area' => 1, 'path' => '/u/a.png', 'folder' => 7]));
+    }
+
+    public function testNorAnOldOne(): void
+    {
+        $this->canManage = false;
+        $this->media = new Media('/u/a.png', 'image', 'A');
+        (new \ReflectionProperty(Media::class, 'createdAt'))->setValue($this->media, new \DateTimeImmutable('-2 hours'));
+
+        $this->expectException(ContentBlocksAccessDeniedException::class);
+        $this->controller()->place($this->post(['area' => 1, 'path' => '/u/a.png', 'folder' => null]));
+    }
+
     public function testABodyThatIsNotJsonIsRefused(): void
     {
         $request = Request::create('/place', 'POST', [], [], [], [], 'not json');
@@ -137,6 +172,9 @@ final class MediaControllerTest extends TestCase
         $images = $this->createMock(ImageUrlResolverInterface::class);
         $images->method('resolve')->willReturnCallback(fn (string $src) => new ResolvedImage($src));
 
-        return new MediaController($this->em, $access, $csrf, new MediaBrowser($this->em, $images), $images);
+        $manager = $this->createMock(MediaManagerInterface::class);
+        $manager->method('canManage')->willReturnCallback(fn () => $this->canManage);
+
+        return new MediaController($this->em, $access, $csrf, new MediaBrowser($this->em, $images), $images, $manager);
     }
 }

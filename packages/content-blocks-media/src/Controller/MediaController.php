@@ -11,6 +11,7 @@ use ContentBlocks\Media\Entity\MediaFolder;
 use ContentBlocks\Media\Library\MediaBrowser;
 use ContentBlocks\Media\Library\MediaKind;
 use ContentBlocks\Media\Library\MediaView;
+use ContentBlocks\Media\Security\MediaManagerInterface;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -30,6 +31,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class MediaController
 {
     private const CSRF_TOKEN_ID = 'content_blocks';
+    // How long a just-uploaded file may be filed by an editor who cannot manage.
+    private const FRESH_UPLOAD = '-1 hour';
 
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -37,6 +40,7 @@ final class MediaController
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
         private readonly MediaBrowser $browser,
         private readonly ImageUrlResolverInterface $images,
+        private readonly MediaManagerInterface $manager,
     ) {
     }
 
@@ -66,7 +70,10 @@ final class MediaController
         ));
     }
 
-    /** Files a just-uploaded file under the folder the editor is in. */
+    /**
+     * Files a just-uploaded file under the folder the editor is in. Moving any
+     * other file is managing the library.
+     */
     #[Route('/place', name: 'content_blocks_media_place', methods: ['POST'])]
     public function place(Request $request): JsonResponse
     {
@@ -97,10 +104,20 @@ final class MediaController
             return $folder;
         }
 
+        if (!$this->manager->canManage() && !self::justUploaded($media)) {
+            throw new ContentBlocksAccessDeniedException();
+        }
+
         $media->moveTo($folder);
         $this->em->flush();
 
         return new JsonResponse(MediaView::media($media, $this->images));
+    }
+
+    private static function justUploaded(Media $media): bool
+    {
+        return $media->getFolder() === null
+            && $media->getCreatedAt() >= new \DateTimeImmutable(self::FRESH_UPLOAD);
     }
 
     private function area(mixed $id): ContentArea|JsonResponse

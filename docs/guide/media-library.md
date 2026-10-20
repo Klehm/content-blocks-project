@@ -145,6 +145,41 @@ every orphan would keep them for good; `--all` takes them anyway. The command
 needs a storage that can list its files (`AssetInventoryInterface`, which
 `LocalFileStorage` implements).
 
+### Who may manage the library
+
+Browsing, uploading and inserting need only the right to edit the page. Managing
+the library (folders, titles and alt texts, moves, removal) is shared by every
+page, so it is a separate right, denied by default:
+
+```php
+use ContentBlocks\Media\Security\MediaManagerInterface;
+use Symfony\Bundle\SecurityBundle\Security;
+
+final class MediaManager implements MediaManagerInterface
+{
+    public function __construct(private readonly Security $security)
+    {
+    }
+
+    public function canManage(): bool
+    {
+        return $this->security->isGranted('ROLE_EDITOR_IN_CHIEF');
+    }
+}
+```
+
+```yaml
+# config/services.yaml
+ContentBlocks\Media\Security\MediaManagerInterface:
+    alias: App\Media\MediaManager
+```
+
+`ContentBlocks\Media\Security\AllowAllMediaManager` lets every editor manage.
+Without the right, the picker shows a file's title and alt read-only.
+
+A selected file lists the pages that use it, draft or published. Pages the
+editor cannot edit are counted, not named.
+
 ### Removing a file from the library
 
 Removing a file deletes its row, never the file. A page that still uses it keeps

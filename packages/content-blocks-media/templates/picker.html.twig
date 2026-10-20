@@ -6,10 +6,21 @@
         aria-labelledby="cb-media-title-{{ area.id }}"
         data-area="{{ area.id }}"
         data-kinds="{{ kinds|json_encode }}"
-        data-list-url="{{ path('content_blocks_media_list') }}"
-        data-place-url="{{ path('content_blocks_media_place') }}"
-        data-upload-url="{{ path('content_blocks_upload') }}"
+        data-can-manage="{{ canManage ? '1' : '0' }}"
         data-csrf-token="{{ csrf_token('content_blocks') }}"
+        data-urls="{{ {
+            list: path('content_blocks_media_list'),
+            place: path('content_blocks_media_place'),
+            upload: path('content_blocks_upload'),
+            folders: path('content_blocks_media_folders'),
+            folderCreate: path('content_blocks_media_folder_create'),
+            folderRename: path('content_blocks_media_folder_rename'),
+            folderDelete: path('content_blocks_media_folder_delete'),
+            fileUpdate: path('content_blocks_media_file_update'),
+            fileMove: path('content_blocks_media_file_move'),
+            fileRemove: path('content_blocks_media_file_remove'),
+            fileUsage: path('content_blocks_media_file_usage'),
+        }|json_encode }}"
         data-i18n="{{ {
             image: 'cb_media.picker.title_image'|trans,
             video: 'cb_media.picker.title_video'|trans,
@@ -19,7 +30,17 @@
             failed: 'cb_media.picker.failed'|trans,
             uploading: 'cb_media.picker.uploading'|trans,
             upload_failed: 'cb_media.picker.upload_failed'|trans,
+            save_failed: 'cb_media.manage.save_failed'|trans,
             root: 'cb_media.picker.root'|trans,
+            folder_name: 'cb_media.manage.folder_name'|trans,
+            rename_folder: 'cb_media.manage.rename_folder'|trans,
+            delete_folder: 'cb_media.manage.delete_folder'|trans,
+            delete_folder_confirm: 'cb_media.manage.delete_folder_confirm'|trans,
+            remove_confirm: 'cb_media.manage.remove_confirm'|trans,
+            remove_confirm_used: 'cb_media.manage.remove_confirm_used'|trans,
+            unused: 'cb_media.manage.unused'|trans,
+            draft: 'cb_media.manage.draft'|trans,
+            others: 'cb_media.manage.others'|trans,
         }|json_encode }}">
     <form method="dialog" class="cb-media__frame">
         <header class="cb-media__header">
@@ -32,14 +53,47 @@
                     title="{{ 'cb_media.picker.close'|trans }}">×</button>
         </header>
 
-        <nav class="cb-media__trail" data-cb-media-trail aria-label="{{ 'cb_media.picker.folders'|trans }}"></nav>
+        <div class="cb-media__bar">
+            <nav class="cb-media__trail" data-cb-media-trail aria-label="{{ 'cb_media.picker.folders'|trans }}"></nav>
+            {% if canManage %}
+                <button type="button" class="cb-media__link" data-cb-media-new-folder>{{ 'cb_media.manage.new_folder'|trans }}</button>
+            {% endif %}
+        </div>
 
         <div class="cb-media__body">
-            <ul class="cb-media__folders" data-cb-media-folders></ul>
-            <ul class="cb-media__grid" data-cb-media-grid
-                aria-label="{{ 'cb_media.picker.files'|trans }}"></ul>
-            <p class="cb-media__status" data-cb-media-status role="status" aria-live="polite"></p>
-            <button type="button" class="cb-media__btn cb-media__more" data-cb-media-more hidden>{{ 'cb_media.picker.more'|trans }}</button>
+            <div class="cb-media__main">
+                <ul class="cb-media__folders" data-cb-media-folders></ul>
+                <ul class="cb-media__grid" data-cb-media-grid
+                    aria-label="{{ 'cb_media.picker.files'|trans }}"></ul>
+                <p class="cb-media__status" data-cb-media-status role="status" aria-live="polite"></p>
+                <button type="button" class="cb-media__btn cb-media__more" data-cb-media-more hidden>{{ 'cb_media.picker.more'|trans }}</button>
+            </div>
+
+            <aside class="cb-media__detail" data-cb-media-detail hidden>
+                <div class="cb-media__preview" data-cb-media-preview></div>
+                <p class="cb-media__facts" data-cb-media-facts></p>
+                <label class="cb-media__field">
+                    <span>{{ 'cb_media.manage.title'|trans }}</span>
+                    <input type="text" maxlength="255" data-cb-media-field="title" {{ canManage ? '' : 'readonly' }}>
+                </label>
+                <label class="cb-media__field">
+                    <span>{{ 'cb_media.manage.alt'|trans }}</span>
+                    <textarea rows="3" maxlength="255" data-cb-media-field="alt" {{ canManage ? '' : 'readonly' }}></textarea>
+                </label>
+                {% if canManage %}
+                    <label class="cb-media__field">
+                        <span>{{ 'cb_media.manage.folder'|trans }}</span>
+                        <select data-cb-media-move></select>
+                    </label>
+                {% endif %}
+                <div class="cb-media__usage">
+                    <span>{{ 'cb_media.manage.used_on'|trans }}</span>
+                    <ul data-cb-media-usage></ul>
+                </div>
+                {% if canManage %}
+                    <button type="button" class="cb-media__link cb-media__link--danger" data-cb-media-remove>{{ 'cb_media.manage.remove'|trans }}</button>
+                {% endif %}
+            </aside>
         </div>
 
         <footer class="cb-media__footer">

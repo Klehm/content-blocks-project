@@ -28,6 +28,11 @@ services:
     ContentBlocks\Builder\BuilderStructureResolverInterface:
         alias: App\Builder\E2eBuilderStructureResolver
 
+    # Override the media package's default (DenyAll) so the library's folders,
+    # titles and alt texts are manageable in the sandbox.
+    ContentBlocks\Media\Security\MediaManagerInterface:
+        class: ContentBlocks\Media\Security\AllowAllMediaManager
+
     # Override ContentBlocks default (DenyAll) so the section-template library
     # is manageable (rename/delete) in the sandbox
     ContentBlocks\SectionTemplate\SectionTemplateManagerInterface:

@@ -6,6 +6,8 @@ namespace ContentBlocks\Media\Tests;
 
 use ContentBlocks\Media\ContentBlocksMediaBundle;
 use ContentBlocks\Media\Library\MediaLibrary;
+use ContentBlocks\Media\Security\DenyAllMediaManager;
+use ContentBlocks\Media\Security\MediaManagerInterface;
 use ContentBlocks\Media\Storage\RecordingFileStorage;
 use ContentBlocks\Media\Storage\RecordingInventoriedFileStorage;
 use ContentBlocks\Media\Tests\Fixtures\PlainStorage;
@@ -36,6 +38,13 @@ final class BundleConfigurationTest extends TestCase
 
         $this->assertTrue($library->supports('image'));
         $this->assertFalse($library->supports('video'));
+    }
+
+    public function testNobodyManagesTheLibraryByDefault(): void
+    {
+        $manager = $this->compile([])->get(MediaManagerInterface::class);
+
+        $this->assertInstanceOf(DenyAllMediaManager::class, $manager);
     }
 
     public function testAnUnknownKindIsRefused(): void
@@ -87,7 +96,7 @@ final class BundleConfigurationTest extends TestCase
         $container->addCompilerPass(new class () implements CompilerPassInterface {
             public function process(ContainerBuilder $container): void
             {
-                foreach ([FileStorageInterface::class, MediaLibraryInterface::class] as $id) {
+                foreach ([FileStorageInterface::class, MediaLibraryInterface::class, MediaManagerInterface::class] as $id) {
                     $container->hasAlias($id)
                         ? $container->getAlias($id)->setPublic(true)
                         : $container->getDefinition($id)->setPublic(true);

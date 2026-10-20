@@ -8,6 +8,7 @@ use ContentBlocks\Builder\BuilderShellExtensionInterface;
 use ContentBlocks\Builder\BuilderShellFragment;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Media\Controller\AssetController;
+use ContentBlocks\Media\Security\MediaManagerInterface;
 
 /**
  * Puts the picker dialog in the builder shell. It answers the upload widget's
@@ -18,14 +19,17 @@ use ContentBlocks\Media\Controller\AssetController;
 final class MediaShellExtension implements BuilderShellExtensionInterface
 {
     /** @param list<string> $kinds */
-    public function __construct(private readonly array $kinds)
-    {
+    public function __construct(
+        private readonly array $kinds,
+        private readonly MediaManagerInterface $manager,
+    ) {
     }
 
     public function getFragments(ContentArea $area): iterable
     {
         yield new BuilderShellFragment('@ContentBlocksMedia/picker.html.twig', [
             'kinds' => $this->kinds,
+            'canManage' => $this->manager->canManage(),
             'assetVersions' => [
                 'css' => AssetController::version('css'),
                 'js' => AssetController::version('js'),

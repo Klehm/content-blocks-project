@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   controller and no asset build: its script and stylesheet are served by the
   package. Routes under `/_content-blocks/media` by default,
   `config/routes/bare.php` to mount them elsewhere.
+- **Managing the library from the picker**: create, rename and delete folders
+  (a deleted folder hands its files to the root), edit a file's title and alt
+  text, move it, see the pages that use it, remove it from the library (the
+  file itself stays). Every change needs `MediaManagerInterface`, denied by
+  default (`AllowAllMediaManager` lets every editor manage).
+- **The library's alt text fills the block's** when a file is inserted into an
+  empty alt field.
 - `content_blocks_media.kinds` (`[image, video]` by default) picks the fields
   that offer *Browse library*.
 

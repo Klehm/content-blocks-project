@@ -6,9 +6,13 @@ use ContentBlocks\Media\Asset\LibraryAssetReferenceProvider;
 use ContentBlocks\Media\Builder\MediaShellExtension;
 use ContentBlocks\Media\Command\ImportCommand;
 use ContentBlocks\Media\Controller\AssetController;
+use ContentBlocks\Media\Controller\ManageController;
 use ContentBlocks\Media\Controller\MediaController;
 use ContentBlocks\Media\Library\MediaBrowser;
 use ContentBlocks\Media\Library\MediaLibrary;
+use ContentBlocks\Media\Library\MediaUsage;
+use ContentBlocks\Media\Security\DenyAllMediaManager;
+use ContentBlocks\Media\Security\MediaManagerInterface;
 use ContentBlocks\Media\Storage\MediaRows;
 use ContentBlocks\Media\Storage\RecordingFileStorage;
 use ContentBlocks\Media\Storage\UploadRecorder;
@@ -46,12 +50,20 @@ return static function (ContainerConfigurator $container): void {
     $services->set(LibraryAssetReferenceProvider::class);
 
     $services->set(MediaBrowser::class);
+    $services->set(MediaUsage::class);
+
+    // Nobody manages the library until the host aliases its own.
+    $services->set(DenyAllMediaManager::class);
+    $services->alias(MediaManagerInterface::class, DenyAllMediaManager::class);
+
     $services->set(MediaShellExtension::class)
-        ->args([param('content_blocks_media.kinds')]);
+        ->arg('$kinds', param('content_blocks_media.kinds'));
 
     // Controllers are not autoconfigured, or `routing.controllers` mounts them
     // unprefixed. @see docs/internals/bundle-boot.md
     $services->set(MediaController::class)->autoconfigure(false)
+        ->tag('controller.service_arguments');
+    $services->set(ManageController::class)->autoconfigure(false)
         ->tag('controller.service_arguments');
     $services->set(AssetController::class)->autoconfigure(false)
         ->tag('controller.service_arguments');

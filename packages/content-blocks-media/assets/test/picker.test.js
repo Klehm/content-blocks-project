@@ -1,22 +1,45 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MediaPicker, install } from '../picker.js';
 
+const URLS = {
+    list: '/m/list', place: '/m/place', upload: '/cb/upload', folders: '/m/folders',
+    folderCreate: '/m/folder/create', folderRename: '/m/folder/rename', folderDelete: '/m/folder/delete',
+    fileUpdate: '/m/file/update', fileMove: '/m/file/move', fileRemove: '/m/file/remove', fileUsage: '/m/file/usage',
+};
+const I18N = {
+    image: 'Pick an image', video: 'Pick a video', empty: 'Empty', no_match: 'No match', failed: 'Failed',
+    root: 'Library', upload_failed: 'Upload failed', save_failed: 'Save failed', folder_name: 'Name',
+    rename_folder: 'Rename', delete_folder: 'Delete', delete_folder_confirm: 'Delete %name%?',
+    remove_confirm: 'Remove %name%?', remove_confirm_used: 'Remove %name%, used on %count%?',
+    unused: 'Unused', draft: 'draft', others: 'and %count% more',
+};
+
 // Mirrors templates/picker.html.twig: only the hooks the script reads.
-function mount({ kinds = ['image', 'video'] } = {}) {
+function mount({ kinds = ['image', 'video'], manage = true } = {}) {
     document.body.innerHTML = `
-        <dialog data-cb-media data-area="42"
+        <dialog data-cb-media data-area="42" data-csrf-token="tok"
+                data-can-manage="${manage ? '1' : '0'}"
                 data-kinds='${JSON.stringify(kinds)}'
-                data-list-url="/m/list" data-place-url="/m/place"
-                data-upload-url="/cb/upload" data-csrf-token="tok"
-                data-i18n='{"image":"Pick an image","video":"Pick a video","empty":"Empty","no_match":"No match","failed":"Failed","root":"Library","upload_failed":"Upload failed"}'>
+                data-urls='${JSON.stringify(URLS)}'
+                data-i18n='${JSON.stringify(I18N)}'>
             <form method="dialog">
                 <h2 data-cb-media-title></h2>
                 <input type="search" data-cb-media-search>
                 <nav data-cb-media-trail></nav>
+                ${manage ? '<button type="button" data-cb-media-new-folder></button>' : ''}
                 <ul data-cb-media-folders></ul>
                 <ul data-cb-media-grid></ul>
                 <p data-cb-media-status></p>
                 <button type="button" data-cb-media-more hidden></button>
+                <aside data-cb-media-detail hidden>
+                    <div data-cb-media-preview></div>
+                    <p data-cb-media-facts></p>
+                    <input data-cb-media-field="title" ${manage ? '' : 'readonly'}>
+                    <textarea data-cb-media-field="alt" ${manage ? '' : 'readonly'}></textarea>
+                    ${manage ? '<select data-cb-media-move></select>' : ''}
+                    <ul data-cb-media-usage></ul>
+                    ${manage ? '<button type="button" data-cb-media-remove></button>' : ''}
+                </aside>
                 <input type="file" data-cb-media-file>
                 <p data-cb-media-selection></p>
                 <button type="button" data-cb-media-insert disabled></button>
@@ -221,6 +244,172 @@ describe('MediaPicker', () => {
         expect(enter.defaultPrevented).toBe(true);
         await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
         expect(new URL(fetch.mock.calls[1][0], 'http://x').searchParams.get('q')).toBe('logo');
+    });
+});
+
+describe('MediaPicker — managing the library', () => {
+    let dialog;
+    let fetch;
+    let confirm;
+    let prompt;
+    let picker;
+
+    // Routes each request by URL, like the controllers would answer.
+    function route(answers) {
+        fetch.mockImplementation((url) => {
+            const path = String(url).split('?')[0];
+            const answer = answers[path] ?? page({ items: [item(1), item(2)] });
+
+            return typeof answer === 'function' ? answer(url) : respond(answer);
+        });
+    }
+
+    function posted(path) {
+        const call = fetch.mock.calls.find(([url]) => url === path);
+
+        return call ? JSON.parse(call[1].body) : null;
+    }
+
+    beforeEach(() => {
+        dialog = mount();
+        fetch = vi.fn();
+        confirm = vi.fn(() => true);
+        prompt = vi.fn(() => 'Logos');
+        route({ '/m/file/usage': { pages: [], others: 0 }, '/m/folders': { folders: [] } });
+        picker = new MediaPicker(dialog, { fetch, confirm, prompt });
+    });
+
+    it('opens the detail of the selected file with its title and alt', async () => {
+        await picker.open(request());
+        picker.select(picker.items[0]);
+
+        expect(dialog.querySelector('[data-cb-media-detail]').hidden).toBe(false);
+        expect(dialog.querySelector('[data-cb-media-field="title"]').value).toBe('file 1');
+        expect(dialog.querySelector('[data-cb-media-facts]').textContent).toContain('120 × 80');
+    });
+
+    it('saves an edited alt and keeps the saved version', async () => {
+        route({ '/m/file/update': item(1, { alt: 'Our logo' }), '/m/file/usage': { pages: [], others: 0 } });
+        await picker.open(request());
+        picker.select(picker.items[0]);
+        const alt = dialog.querySelector('[data-cb-media-field="alt"]');
+
+        alt.value = 'Our logo';
+        alt.dispatchEvent(new Event('change'));
+
+        await vi.waitFor(() => expect(posted('/m/file/update')).toEqual({ id: 1, alt: 'Our logo' }));
+        await vi.waitFor(() => expect(picker.items[0].alt).toBe('Our logo'));
+    });
+
+    it('inserts the alt as typed, even before it is saved', async () => {
+        const req = request();
+        await picker.open(req);
+        picker.select(picker.items[0]);
+        const alt = dialog.querySelector('[data-cb-media-field="alt"]');
+
+        alt.value = 'Typed';
+        alt.dispatchEvent(new Event('input'));
+        picker.insert();
+
+        expect(req.pick).toHaveBeenCalledWith({ path: '/u/1.png', alt: 'Typed' });
+    });
+
+    it('names the pages using the file, counts the others, marks drafts', async () => {
+        route({
+            '/m/file/usage': {
+                pages: [
+                    { area: 3, label: 'Home', url: '/home', draft: true, published: true },
+                    { area: 4, label: 'Soon', url: null, draft: true, published: false },
+                ],
+                others: 2,
+            },
+        });
+        await picker.open(request());
+        picker.select(picker.items[0]);
+
+        const usage = dialog.querySelector('[data-cb-media-usage]');
+        await vi.waitFor(() => expect(usage.children).toHaveLength(3));
+        expect(usage.querySelector('a').getAttribute('href')).toBe('/home');
+        expect(usage.children[1].textContent).toBe('Soon (draft)');
+        expect(usage.children[2].textContent).toBe('and 2 more');
+    });
+
+    it('warns with the number of pages before removing a used file', async () => {
+        route({ '/m/file/usage': { pages: [{ area: 3, label: 'Home', url: null, draft: true, published: true }], others: 1 } });
+        await picker.open(request());
+        picker.select(picker.items[0]);
+        await vi.waitFor(() => expect(picker.usage).not.toBeNull());
+        confirm.mockReturnValueOnce(false);
+
+        await picker.remove();
+
+        expect(confirm).toHaveBeenCalledWith('Remove file 1, used on 2?');
+        expect(posted('/m/file/remove')).toBeNull();
+
+        await picker.remove();
+        expect(posted('/m/file/remove')).toEqual({ id: 1 });
+        expect(picker.selected).toBeNull();
+    });
+
+    it('creates a folder inside the one the editor is in', async () => {
+        route({ '/m/folder/create': { id: 9, name: 'Logos' } });
+        await picker.open(request());
+        await picker.openFolder(7);
+
+        await picker.createFolder();
+
+        expect(prompt).toHaveBeenCalledWith('Name', '');
+        expect(posted('/m/folder/create')).toEqual({ name: 'Logos', parent: 7 });
+    });
+
+    it('asks before deleting a folder, then reloads', async () => {
+        route({ '/m/list': page({ folders: [{ id: 7, name: 'Logos' }] }), '/m/folder/delete': { deleted: true } });
+        await picker.open(request());
+
+        dialog.querySelector('[data-folder-act="delete"][data-folder-id="7"]').click();
+
+        expect(confirm).toHaveBeenCalledWith('Delete Logos?');
+        await vi.waitFor(() => expect(posted('/m/folder/delete')).toEqual({ id: 7 }));
+    });
+
+    it('moves a file to another folder, which takes it out of this one', async () => {
+        route({
+            '/m/folders': { folders: [{ id: 7, name: 'Logos', depth: 0 }] },
+            '/m/file/move': item(1, { folder: 7 }),
+            '/m/file/usage': { pages: [], others: 0 },
+        });
+        await picker.open(request());
+        picker.select(picker.items[0]);
+        const select = dialog.querySelector('[data-cb-media-move]');
+        await vi.waitFor(() => expect(select.options).toHaveLength(2));
+
+        select.value = '7';
+        select.dispatchEvent(new Event('change'));
+
+        await vi.waitFor(() => expect(posted('/m/file/move')).toEqual({ id: 1, folder: 7 }));
+        await vi.waitFor(() => expect(picker.selected).toBeNull());
+    });
+
+    it('says why a change was refused', async () => {
+        route({ '/m/file/update': () => respond({ error: 'invalid_title' }, { ok: false, status: 400 }) });
+        await picker.open(request());
+        picker.select(picker.items[0]);
+
+        await picker.saveField('title', '');
+
+        expect(dialog.querySelector('[data-cb-media-status]').textContent).toBe('invalid_title');
+    });
+
+    it('offers no management to an editor who may not manage', async () => {
+        dialog = mount({ manage: false });
+        route({ '/m/list': page({ items: [item(1)], folders: [{ id: 7, name: 'Logos' }] }) });
+        picker = new MediaPicker(dialog, { fetch, confirm, prompt });
+        await picker.open(request());
+        picker.select(picker.items[0]);
+
+        expect(dialog.querySelector('[data-folder-act]')).toBeNull();
+        await picker.saveField('alt', 'x');
+        expect(posted('/m/file/update')).toBeNull();
     });
 });
 
