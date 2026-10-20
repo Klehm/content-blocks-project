@@ -6,7 +6,7 @@ namespace ContentBlocks\Tests\Form\Type;
 
 use ContentBlocks\Form\Type\ImageUploadType;
 use ContentBlocks\Form\Type\VideoUploadType;
-use ContentBlocks\Media\MediaLibraryInterface;
+use ContentBlocks\Storage\MediaLibraryInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;

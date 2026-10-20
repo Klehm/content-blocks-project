@@ -1,0 +1,6 @@
+{
+    "bundles": {
+        "ContentBlocks\\Media\\ContentBlocksMediaBundle": ["all"]
+    },
+    "aliases": ["content-blocks-media"]
+}

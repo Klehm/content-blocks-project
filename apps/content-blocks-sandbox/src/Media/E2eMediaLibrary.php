@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Media;
 
-use ContentBlocks\Media\MediaLibraryInterface;
+use ContentBlocks\Storage\MediaLibraryInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\RequestStack;
 

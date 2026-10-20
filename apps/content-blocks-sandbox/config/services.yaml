@@ -29,7 +29,7 @@ services:
         alias: App\Builder\E2eBuilderStructureResolver
 
     # No library unless the e2e suite names the kinds in a cookie.
-    ContentBlocks\Media\MediaLibraryInterface:
+    ContentBlocks\Storage\MediaLibraryInterface:
         alias: App\Media\E2eMediaLibrary
 
     # Override ContentBlocks default (DenyAll) so the section-template library

@@ -24,13 +24,21 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "packages/content-blocks-media",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
         "php": ">=8.2",
         "klehm/content-blocks": "@dev",
         "klehm/content-blocks-kit": "@dev",
-        "klehm/content-blocks-i18n": "@dev"
+        "klehm/content-blocks-i18n": "@dev",
+        "klehm/content-blocks-media": "@dev"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

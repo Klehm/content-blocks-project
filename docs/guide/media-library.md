@@ -11,11 +11,11 @@ one PHP service and one dialog.
 ## Showing the button
 
 The button appears on a field only when a service implements
-`ContentBlocks\Media\MediaLibraryInterface` and its `supports()` accepts the
+`ContentBlocks\Storage\MediaLibraryInterface` and its `supports()` accepts the
 field's kind: `image` for `ImageUploadType`, `video` for `VideoUploadType`.
 
 ```php
-use ContentBlocks\Media\MediaLibraryInterface;
+use ContentBlocks\Storage\MediaLibraryInterface;
 
 final class DamMediaLibrary implements MediaLibraryInterface
 {
@@ -28,7 +28,7 @@ final class DamMediaLibrary implements MediaLibraryInterface
 
 ```yaml
 # config/services.yaml
-ContentBlocks\Media\MediaLibraryInterface:
+ContentBlocks\Storage\MediaLibraryInterface:
     class: App\Media\DamMediaLibrary
 ```
 
@@ -80,3 +80,58 @@ $builder
     ->add('src', ImageUploadType::class, ['cb_alt_field' => 'alt'])
     ->add('alt', TextType::class, ['required' => false]);
 ```
+
+## The `klehm/content-blocks-media` package
+
+A host without a media system of its own can install the package instead of
+implementing the interface:
+
+```bash
+composer require klehm/content-blocks-media
+```
+
+### Installing the library
+
+The package adds two tables, `cb_media` and `cb_media_folder`. Create them with
+your usual tool:
+
+```bash
+php bin/console doctrine:migrations:diff     # or copy the sandbox migration
+php bin/console doctrine:migrations:migrate
+```
+
+The sandbox's [Version20261020120000](https://github.com/klehm/content-blocks-project/blob/master/apps/content-blocks-sandbox/migrations/Version20261020120000.php)
+is the MySQL version.
+
+From then on, every file stored through `FileStorageInterface` gets its row:
+uploads from the builder, and the files an import brings in. The package wraps
+whichever storage you configured, so local storage, S3 or your own adapter all
+work the same way.
+
+```yaml
+# config/packages/content_blocks_media.yaml
+content_blocks_media:
+    kinds: [image, video]   # the fields that offer Browse library
+```
+
+### Files uploaded before the library
+
+Files stored before the package was installed have no row yet. Take them in
+once:
+
+```bash
+php bin/console content-blocks-media:import --dry-run   # what it would add
+php bin/console content-blocks-media:import
+```
+
+By default it takes only the files some content uses. A file in the library is
+never swept by the [asset garbage collector](./asset-lifecycle.md), so importing
+every orphan would keep them for good; `--all` takes them anyway. The command
+needs a storage that can list its files (`AssetInventoryInterface`, which
+`LocalFileStorage` implements).
+
+### Removing a file from the library
+
+Removing a file deletes its row, never the file. A page that still uses it keeps
+working, and the garbage collector sweeps the file once nothing references it,
+the same rule as every other editor action.

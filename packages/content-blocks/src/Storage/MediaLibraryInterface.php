@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ContentBlocks\Media;
+namespace ContentBlocks\Storage;
 
 /**
  * Says a media library exists, so the upload widget offers *Browse library*.
