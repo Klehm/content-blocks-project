@@ -89,7 +89,27 @@ final class ViewportOrder
      */
     public static function variables(array $ranks): array
     {
-        $vars = array_fill(0, \count($ranks), []);
+        return array_map(static function (array $positions): array {
+            $vars = [];
+            foreach ($positions as $viewport => $position) {
+                $vars['--cb-order-' . $viewport[0]] = (string) $position;
+            }
+
+            return $vars;
+        }, self::positions($ranks));
+    }
+
+    /**
+     * The visual position of each sibling per viewport, in the order given; a
+     * viewport no sibling is ranked for is absent.
+     *
+     * @param list<array<string, int>> $ranks one {@see ranks()} per sibling
+     *
+     * @return list<array<string, int>>
+     */
+    public static function positions(array $ranks): array
+    {
+        $out = array_fill(0, \count($ranks), []);
         $base = array_keys($ranks);
 
         foreach (self::VIEWPORTS as $viewport) {
@@ -99,13 +119,13 @@ final class ViewportOrder
                 continue;
             }
             foreach ($sequence as $position => $index) {
-                $vars[$index]['--cb-order-' . $viewport[0]] = (string) $position;
+                $out[$index][$viewport] = $position;
             }
             // Mobile builds on the tablet order when there is one.
             $base = $sequence;
         }
 
-        return $vars;
+        return $out;
     }
 
     /**

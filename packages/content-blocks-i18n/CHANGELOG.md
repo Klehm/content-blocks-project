@@ -7,6 +7,12 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **The headless render is translated** like the HTML page (core 1.6): the
+  same locale, the same per-field fallback, and the area's translations loaded
+  in one query per locale instead of one per block.
+
 ## [1.5.0] - 2026-10-20
 
 `lang` on text shown in another language, and a language held back from the

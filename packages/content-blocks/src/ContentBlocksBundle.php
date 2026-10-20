@@ -510,6 +510,8 @@ final class ContentBlocksBundle extends AbstractBundle
         // through every resolver. See bundle-boot.md#autoconfiguration
         $container->registerForAutoconfiguration(Rendering\BlockDataResolverInterface::class)
             ->addTag('content_blocks.block_data_resolver');
+        $container->registerForAutoconfiguration(Headless\BlockJsonNormalizerInterface::class)
+            ->addTag('content_blocks.block_json_normalizer');
 
         // Entries in the topbar's Actions menu, contributed by a bundle rather
         // than declared form by form.

@@ -76,6 +76,7 @@ export default defineConfig({
             { text: 'Content from code', link: '/guide/content-from-code' },
             { text: 'Server-side events', link: '/guide/events' },
             { text: 'Rendering & preview', link: '/guide/rendering' },
+            { text: 'Headless rendering (JSON)', link: '/guide/headless' },
             { text: 'Styling', link: '/guide/styling' },
             { text: 'Laying out sidebar fields', link: '/guide/sidebar-fields' },
             { text: 'Simplifying the builder', link: '/guide/builder-structure' },

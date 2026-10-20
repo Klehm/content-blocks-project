@@ -59,6 +59,13 @@ return static function (ContainerConfigurator $container): void {
     $services->set(IconRegistry::class)
         ->args([tagged_iterator('content_blocks_kit.icon_provider')]);
 
+    // The views' guards for the data render; the seam is core 1.6.
+    // See docs/guide/headless.md#the-kit-blocks
+    if (interface_exists(ContentBlocks\Headless\BlockJsonNormalizerInterface::class)) {
+        $services->set(ContentBlocks\Kit\Headless\KitJsonNormalizer::class)
+            ->arg('$richTextSanitizer', service('content_blocks_kit.rich_text_sanitizer'));
+    }
+
     // File storage and the upload endpoint live in the core package now;
     // configure them through `content_blocks.upload`.
 };

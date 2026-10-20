@@ -17,7 +17,6 @@ All of them fit in 1.x under three rules:
 
 Not ranked yet:
 
-- **Headless / JSON rendering**: the renderer produces HTML only.
 - **More server-side events**, if a host asks: a section saved or deleted, the other flows that write blocks (paste, templates, import). Each is a new before/after pair, so additive.
 - **Kit:**
   - logical properties (RTL)

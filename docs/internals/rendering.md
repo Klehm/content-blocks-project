@@ -190,6 +190,54 @@ is byte-for-byte identical to its in-page form: the block keeps its
 copies the wrapper attributes back, leaving the inner blocks and their JS state
 untouched.
 
+## The data render
+
+`ContentAreaNormalizer` is the HTML renderer without Twig, and the point of its
+design is that it cannot disagree with the HTML render about **what is on the
+page**. Both read `RenderTree` (`@internal`): which sections, columns and blocks a
+mode shows, in which order, in which column (`publishedColumnBuckets`), with
+which settings (preset underneath, defaults stripped) and which ranks per
+viewport. Before it existed these rules were private methods of `BlockRenderer`.
+A second copy for the JSON would have been a second place for the RC3 leaks to
+come back, and the JSON would have broken first, because nothing looks at it
+the way an editor looks at a page. `PublishedRenderImmutabilityTest` and the e2e
+immutability spec both snapshot the public JSON next to the public HTML for the
+same reason.
+
+What it deliberately does not share:
+
+- **Decorators.** They produce classes, inline styles and attributes, which is
+  markup. The JSON carries the values they were derived from (`settings`,
+  `data.styling`), and the client decides how to draw them.
+- **The fragment defaults.** `renderBlock()` / `renderSection()` default to
+  PREVIEW because only the builder calls them. `normalizeBlock()` /
+  `normalizeSection()` are called by host code serving visitors, so a missing
+  mode goes through `resolveMode()` like a whole area does. A PREVIEW default
+  here would leak drafts to the first host that forgot the context.
+- **Soft-deleted nodes in PREVIEW.** They are left out, as with `cb_chrome=0`:
+  a client has no strike-through to show them with.
+
+`normalizeBlock()` walks the whole area's entity tree to find its block, and
+resolves data for that block only. Finding a block's siblings in PUBLIC
+depends on `published_column_id`, so the lookup goes through the same walk
+instead of `$block->getColumn()`, which is the draft column.
+
+**Block normalizers, not a method on the block type.** The cleanup a view
+does (image resolver, HTML sanitizer, safe links) needs services. Kit block
+types are built from config arrays, so they cannot take services, and a host
+may want to normalize a kit block differently. A tagged pipeline, shaped like
+`BlockDataResolverInterface`, allows both. The kit registers it behind
+`interface_exists()`, as the i18n package did for the 1.5 seams, so the kit's
+core floor does not move.
+
+**`toJson()` is on the interface** because PHP cannot tell an empty map from an
+empty list. `settings` and `data` are cast to objects there, and only there, so
+`normalize()` keeps plain arrays for PHP and Twig callers.
+
+**No route.** An area id tells nothing about whether its owner is public, so a
+package route would be either an IDOR or a second `AccessCheckerInterface`
+with the opposite meaning. The sandbox shows the five lines a host writes.
+
 ## Section decorators emit variables
 
 `SectionDecoratorInterface` contributes classes, attributes and inline styles for

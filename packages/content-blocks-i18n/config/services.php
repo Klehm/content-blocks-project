@@ -114,6 +114,13 @@ return static function (ContainerConfigurator $container): void {
     $services->set(PrefetchingBlockRenderer::class)
         ->decorate(BlockRendererInterface::class)
         ->args([service('.inner')]);
+    // The same for the data render, a core 1.6 seam.
+    if (interface_exists(ContentBlocks\Headless\ContentAreaNormalizerInterface::class)) {
+        $services->set(ContentBlocks\I18n\Rendering\AreaTranslationPrefetch::class);
+        $services->set(ContentBlocks\I18n\Rendering\PrefetchingContentAreaNormalizer::class)
+            ->decorate(ContentBlocks\Headless\ContentAreaNormalizerInterface::class)
+            ->args([service('.inner')]);
+    }
 
     // ---------- Lifecycle ----------
 

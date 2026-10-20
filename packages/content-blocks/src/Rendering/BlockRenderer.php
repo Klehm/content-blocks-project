@@ -37,14 +37,16 @@ final class BlockRenderer implements BlockRendererInterface
     private const BLOCK_TEMPLATE = '@ContentBlocks/render/block.html.twig';
     private const SECTION_TEMPLATE = '@ContentBlocks/render/section.html.twig';
 
+    private readonly RenderTree $tree;
+
     public function __construct(
         private readonly Environment $twig,
         private readonly RequestStack $requestStack,
         private readonly AccessCheckerInterface $accessChecker,
         private readonly BlockTypeRegistry $blockTypeRegistry,
         private readonly SectionDecoratorCollection $sectionDecorators,
-        private readonly SectionSettingsDefaults $settingsDefaults,
-        private readonly SectionStyleRegistry $styleRegistry,
+        SectionSettingsDefaults $settingsDefaults,
+        SectionStyleRegistry $styleRegistry,
         private readonly TranslatorInterface $translator,
         private readonly \ContentBlocks\Block\BlockDecoratorCollection $blockDecorators,
         private readonly \ContentBlocks\Block\BlockDataDefaults $blockDataDefaults,
@@ -54,6 +56,7 @@ final class BlockRenderer implements BlockRendererInterface
         private readonly BlockAssetUrls $assetUrls = new BlockAssetUrls(),
         private readonly BlockCategoryRegistry $categories = new BlockCategoryRegistry(),
     ) {
+        $this->tree = new RenderTree($styleRegistry, $settingsDefaults);
     }
 
     public function render(ContentArea $area, ?RenderContext $context = null): string
@@ -297,16 +300,7 @@ final class BlockRenderer implements BlockRendererInterface
      */
     private function sortedSections(ContentArea $area, RenderContext $context): array
     {
-        $sections = $area->getSections()->toArray();
-
-        if ($context->mode === RenderMode::PUBLIC) {
-            $sections = array_values(array_filter($sections, fn (Section $s) => $s->isPublished()));
-            usort($sections, fn (Section $a, Section $b) => $a->getPosition() <=> $b->getPosition());
-        } else {
-            usort($sections, fn (Section $a, Section $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
-        }
-
-        return $sections;
+        return $this->tree->sections($area, $context->mode ?? RenderMode::PUBLIC);
     }
 
     /**
@@ -320,53 +314,13 @@ final class BlockRenderer implements BlockRendererInterface
      */
     private function orderVariables(array $siblings, RenderContext $context): array
     {
-        $preview = $context->mode === RenderMode::PREVIEW;
-
-        return ViewportOrder::variables(array_map(
-            static fn (Section|Block $e): array => ViewportOrder::ranks(match (true) {
-                $e instanceof Section => $e->getEffectiveSettings(preferDraft: $preview),
-                $preview => $e->getDraftData() ?? $e->getPublishedData(),
-                default => $e->getPublishedData(),
-            }),
-            $siblings,
-        ));
+        return ViewportOrder::variables($this->tree->ranks($siblings, $context->mode ?? RenderMode::PUBLIC));
     }
 
-    /**
-     * Where the public page puts each block, keyed by column id. `[]` when no
-     * block carries a published column, the common case.
-     *
-     * @see docs/internals/rendering.md#the-deleted-flag-is-draft-only
-     *
-     * @return array<int, list<Block>>
-     */
+    /** @return array<int, list<Block>> */
     private function publishedColumnBuckets(ContentArea $area): array
     {
-        $moved = false;
-        $buckets = [];
-
-        foreach ($area->getSections() as $section) {
-            foreach ($section->getColumns() as $column) {
-                $columnId = $column->getId();
-                if ($columnId === null) {
-                    // Not persisted, so nothing published can live there.
-                    continue;
-                }
-
-                $buckets[$columnId] ??= [];
-                foreach ($column->getBlocks() as $block) {
-                    $home = $block->getPublishedColumnId();
-                    if ($home === null) {
-                        $home = $columnId;
-                    } else {
-                        $moved = true;
-                    }
-                    $buckets[$home][] = $block;
-                }
-            }
-        }
-
-        return $moved ? $buckets : [];
+        return $this->tree->publishedColumnBuckets($area);
     }
 
     /**
@@ -401,12 +355,7 @@ final class BlockRenderer implements BlockRendererInterface
         // `deleted` is a draft flag and the templates prune a flagged subtree
         // whenever they render chromeless — in PUBLIC that would be the leak.
         $sectionDeleted = $context->mode === RenderMode::PREVIEW && $section->isDeleted();
-        $settings = $section->getEffectiveSettings(preferDraft: $context->mode === RenderMode::PREVIEW);
-        // Preset settings are the base layer; the section's own win key by
-        // key. See docs/internals/rendering.md#style-presets-as-a-base-layer
-        $settings = $this->applyPresetSettings($settings);
-        // Only real overrides reach the markup.
-        $settings = $this->settingsDefaults->withoutDefaults($settings);
+        $settings = $this->tree->sectionSettings($section, $context->mode ?? RenderMode::PUBLIC);
         $decoration = $this->sectionDecorators->decorate($settings, $section);
         $displays = SectionDisplay::resolve($settings);
 
@@ -428,29 +377,6 @@ final class BlockRenderer implements BlockRendererInterface
     }
 
     /**
-     * Merges the selected style preset's settings (if any) underneath the
-     * section's own settings — rightmost wins per key.
-     *
-     * @param array<string, mixed> $settings
-     *
-     * @return array<string, mixed>
-     */
-    private function applyPresetSettings(array $settings): array
-    {
-        $styleName = $settings['styleName'] ?? null;
-        if (!\is_string($styleName) || $styleName === '') {
-            return $settings;
-        }
-
-        $preset = $this->styleRegistry->get($styleName)->settings ?? [];
-        if ($preset === []) {
-            return $settings;
-        }
-
-        return array_replace_recursive($preset, $settings);
-    }
-
-    /**
      * @param mixed                  $columnWidths Raw `columnWidths` setting: a
      *      CSV like "40,60", or null for equal widths. Applied as flex weights
      *      only when it parses to one positive integer per column.
@@ -467,16 +393,8 @@ final class BlockRenderer implements BlockRendererInterface
      */
     private function buildColumnTree(Section $section, RenderContext $context, bool $parentDeleted, mixed $columnWidths = null, array $buckets = []): array
     {
-        $columns = $section->getColumns()->toArray();
-
-        if ($context->mode === RenderMode::PUBLIC) {
-            $columns = array_values(array_filter($columns, fn (Column $c) => $c->isPublished()));
-            usort($columns, fn (Column $a, Column $b) => $a->getPosition() <=> $b->getPosition());
-        } else {
-            usort($columns, fn (Column $a, Column $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
-        }
-
-        $widths = self::parseColumnWidths($columnWidths, \count($columns));
+        $columns = $this->tree->columns($section, $context->mode ?? RenderMode::PUBLIC);
+        $widths = RenderTree::columnWidths($columnWidths, \count($columns));
 
         $out = [];
         foreach ($columns as $i => $column) {
@@ -498,39 +416,6 @@ final class BlockRenderer implements BlockRendererInterface
         }
 
         return $out;
-    }
-
-    /**
-     * Null (→ equal widths) unless the value is a CSV of exactly $expected
-     * positive integers, so stale data falls back to the preset layout.
-     *
-     * @return list<int>|null
-     */
-    private static function parseColumnWidths(mixed $value, int $expected): ?array
-    {
-        if (!\is_string($value) || $value === '' || $expected < 2) {
-            return null;
-        }
-
-        $parts = explode(',', $value);
-        if (\count($parts) !== $expected) {
-            return null;
-        }
-
-        $widths = [];
-        foreach ($parts as $part) {
-            $part = trim($part);
-            if ($part === '' || !ctype_digit($part)) {
-                return null;
-            }
-            $n = (int) $part;
-            if ($n < 1) {
-                return null;
-            }
-            $widths[] = $n;
-        }
-
-        return $widths;
     }
 
     /**
@@ -568,23 +453,7 @@ final class BlockRenderer implements BlockRendererInterface
      */
     private function sortedBlocks(Column $column, RenderContext $context, ?array $buckets = null): array
     {
-        if ($buckets === null) {
-            $area = $context->mode === RenderMode::PUBLIC ? $column->getSection()?->getContentArea() : null;
-            $buckets = $area !== null ? $this->publishedColumnBuckets($area) : [];
-        }
-        $blocks = $buckets === [] ? $column->getBlocks()->toArray() : ($buckets[$column->getId()] ?? []);
-
-        if ($context->mode === RenderMode::PUBLIC) {
-            $blocks = array_values(array_filter(
-                $blocks,
-                fn (Block $b) => $b->getPublishedData() !== null,
-            ));
-            usort($blocks, fn (Block $a, Block $b) => $a->getPosition() <=> $b->getPosition());
-        } else {
-            usort($blocks, fn (Block $a, Block $b) => $a->getPreviewPosition() <=> $b->getPreviewPosition());
-        }
-
-        return $blocks;
+        return $this->tree->blocks($column, $context->mode ?? RenderMode::PUBLIC, $buckets);
     }
 
     /**

@@ -76,6 +76,10 @@ The parameter is **opt-out and preview-only**: absent (or any other value) keeps
 today's chrome, and a public render never gains any. `klehm/content-blocks-i18n`'s
 translation workbench is the first consumer.
 
+::: tip Rendering as JSON
+For a JavaScript front or an app, the same area is available as data, read with the same published/draft rules: see [Headless rendering](./headless.md).
+:::
+
 ## Changing what a block renders
 
 Overriding a template changes *how* a block's data is presented. To change the **data itself** on the way to the template — without forking the renderer — register a `BlockDataResolverInterface`:
