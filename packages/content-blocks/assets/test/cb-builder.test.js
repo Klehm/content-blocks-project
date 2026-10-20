@@ -1011,8 +1011,22 @@ describe('cb-builder: structural AJAX handlers', () => {
 
         await controller._deleteSection(5);
 
-        expect(reqSpy).toHaveBeenCalledWith('DELETE', '/_content-blocks/section/5');
+        expect(reqSpy).toHaveBeenCalledWith(
+            'DELETE', '/_content-blocks/section/5', undefined, { tolerate: [409] },
+        );
         expect(removeSpy).toHaveBeenCalledWith(5);
+        expect(reloadSpy).not.toHaveBeenCalled();
+    });
+
+    it('_deleteSection says a listener refusal and leaves the preview', async () => {
+        reqSpy.mockResolvedValueOnce({ error: 'refused', message: 'Locked page', reasons: ['Locked page'] });
+        const removeSpy = vi.spyOn(controller, '_removeSectionFromPreview').mockImplementation(() => {});
+        const notifySpy = vi.spyOn(controller, '_notify').mockImplementation(() => {});
+
+        await controller._deleteSection(5);
+
+        expect(notifySpy).toHaveBeenCalledWith('Locked page');
+        expect(removeSpy).not.toHaveBeenCalled();
         expect(reloadSpy).not.toHaveBeenCalled();
     });
 
@@ -1121,7 +1135,7 @@ describe('cb-builder: host-mounted routes', () => {
         await controller._deleteSection(5);
 
         expect(reqSpy).toHaveBeenCalledWith('POST', '/admin/cb/area/99/publish', undefined, { tolerate: [409] });
-        expect(reqSpy).toHaveBeenCalledWith('DELETE', '/admin/cb/section/5');
+        expect(reqSpy).toHaveBeenCalledWith('DELETE', '/admin/cb/section/5', undefined, { tolerate: [409] });
     });
 
     it('keeps the default mount when the shell predates the attribute', () => {

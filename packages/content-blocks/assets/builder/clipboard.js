@@ -73,9 +73,10 @@ export default class Clipboard {
                 ...(sectionId ? { targetSectionId: sectionId } : {}),
             },
             // A reason the editor can act on, not a failed save.
-            { tolerate: [413, 422] },
+            { tolerate: [409, 413, 422] },
         );
-        if (result === null) return;
+        // A refusal keeps the copy: the next paste may go elsewhere.
+        if (result === null || this._saidRefused(result)) return;
 
         if (result.error) {
             this._notifyPasteRefusal(result.error);

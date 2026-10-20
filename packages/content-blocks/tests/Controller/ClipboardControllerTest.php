@@ -20,6 +20,9 @@ use ContentBlocks\Controller\ClipboardController;
 use ContentBlocks\Controller\ColumnsController;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Event\AfterContentInsertEvent;
+use ContentBlocks\Event\BeforeContentInsertEvent;
+use ContentBlocks\Event\ContentInsertOrigin;
 use ContentBlocks\Form\Extension\BlockFormExtensionCollection;
 use ContentBlocks\Form\Type\BlockFormType;
 use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
@@ -31,6 +34,7 @@ use ContentBlocks\Snapshot\SnapshotExtensionInterface;
 use ContentBlocks\Snapshot\SnapshotExtensions;
 use ContentBlocks\Tests\Fixtures\FixedBuilderStructureResolver;
 use ContentBlocks\Tests\Fixtures\RecordingSnapshotExtension;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -144,6 +148,47 @@ final class ClipboardControllerTest extends ControllerTestCase
         $this->assertSame(1, $pasted->getPreviewPosition(), 'right after the selection');
         $this->assertSame([0, 2, 3], array_map(fn (Section $s) => $s->getPreviewPosition(), $sections));
         $this->assertSame($pasted->getId(), $body['sectionId']);
+    }
+
+    public function testAPastedSectionIsReportedByTheInsertEvents(): void
+    {
+        [$area, $sections] = $this->areaWithSections(1);
+        $this->events = $this->insertEvents();
+
+        $this->paste([$area, ...$sections], $this->sectionEnvelope());
+
+        $pasted = $this->pastedSection();
+        $this->assertSame(['before', 1, ContentInsertOrigin::PASTE, 0], $this->seen[0]);
+        $this->assertSame('after', $this->seen[1][0]);
+        $this->assertSame([$pasted], $this->seen[1][3]);
+        $this->assertSame([$pasted->getColumns()[0]->getBlocks()[0]], $this->seen[1][4]);
+    }
+
+    public function testAPastedBlockIsReportedWithNoSection(): void
+    {
+        $area = $this->makeArea(1);
+        $section = $this->makeSection($area, 10);
+        $column = $this->makeColumn($section, 100);
+        $first = $this->makeBlock($column, 1000, 0, ClipboardFixtureBlock::TYPE);
+        $this->events = $this->insertEvents();
+
+        $this->paste([$area, $first], $this->blockEnvelope(), ['targetBlockId' => 1000]);
+
+        $this->assertSame([], $this->seen[1][3]);
+        $this->assertSame([$this->pastedBlock()], $this->seen[1][4]);
+    }
+
+    public function testARefusedPasteWritesNothing(): void
+    {
+        [$area, $sections] = $this->areaWithSections(1);
+        $this->events = $this->insertEvents('Locked page.');
+
+        $response = $this->pasteResponse([$area, ...$sections], $this->sectionEnvelope());
+
+        $this->assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        $this->assertSame('Locked page.', $this->json($response)['message']);
+        $this->assertSame([], $this->persisted);
+        $this->assertCount(1, $this->seen);
     }
 
     public function testAPastedSectionWithNothingSelectedGoesToTheEnd(): void
@@ -385,6 +430,28 @@ final class ClipboardControllerTest extends ControllerTestCase
     /**
      * @param list<object> $entities
      */
+    private ?EventDispatcher $events = null;
+
+    /** @var list<array<int, mixed>> */
+    private array $seen = [];
+
+    /** Records both insert events; refuses the first when $refuse is set. */
+    private function insertEvents(?string $refuse = null): EventDispatcher
+    {
+        $events = new EventDispatcher();
+        $events->addListener(BeforeContentInsertEvent::class, function (BeforeContentInsertEvent $e) use ($refuse): void {
+            $this->seen[] = ['before', $e->area->getId(), $e->origin, $this->flushCount];
+            if ($refuse !== null) {
+                $e->refuse($refuse);
+            }
+        });
+        $events->addListener(AfterContentInsertEvent::class, function (AfterContentInsertEvent $e): void {
+            $this->seen[] = ['after', $e->area->getId(), $e->origin, $e->sections, $e->blocks];
+        });
+
+        return $events;
+    }
+
     private function controller(
         array $entities,
         ?object $accessChecker = null,
@@ -422,6 +489,7 @@ final class ClipboardControllerTest extends ControllerTestCase
             new SnapshotExtensions($extension === null ? [] : [$extension], $registry),
             new FixedBuilderStructureResolver($structure ?? new BuilderStructure()),
             new ContentManipulator($em, $registry),
+            $this->events,
         );
     }
 

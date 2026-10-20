@@ -13,6 +13,9 @@ use ContentBlocks\Content\ContentManipulatorInterface;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
 use ContentBlocks\Entity\SectionTemplate;
+use ContentBlocks\Event\BeforeContentInsertEvent;
+use ContentBlocks\Event\ContentInsertOrigin;
+use ContentBlocks\Event\InsertedContent;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
 use ContentBlocks\SectionTemplate\IncompatibleTemplateException;
@@ -33,6 +36,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * The global section-template library: snapshot a section, list, insert,
@@ -69,6 +73,7 @@ final class SectionTemplateController
         private readonly SnapshotExtensions $snapshots = new SnapshotExtensions(),
         ?ContentManipulatorInterface $content = null,
         private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
+        private readonly ?EventDispatcherInterface $events = null,
     ) {
         $this->content = $content ?? new ContentManipulator($em, $blockTypeRegistry);
     }
@@ -269,6 +274,12 @@ final class SectionTemplateController
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        $before = $this->events?->dispatch(new BeforeContentInsertEvent($area, ContentInsertOrigin::SECTION_TEMPLATE));
+        if ($before?->isRefused()) {
+            return EventRefusal::response($before);
+        }
+        $inserted = InsertedContent::before($area);
+
         $section = $result->section;
         $this->journal->record($area, 'section.insert', JournalScope::structure(), function () use ($area, $section): void {
             $this->content->insertSection($area, $section);
@@ -282,6 +293,7 @@ final class SectionTemplateController
         if ($restored) {
             $this->em->flush();
         }
+        $this->events?->dispatch($inserted->after($area, ContentInsertOrigin::SECTION_TEMPLATE));
 
         return new JsonResponse([
             'sectionId' => $section->getId(),

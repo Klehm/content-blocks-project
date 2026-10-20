@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace ContentBlocks\Controller;
 
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Event\BeforeContentInsertEvent;
+use ContentBlocks\Event\ContentInsertOrigin;
+use ContentBlocks\Event\InsertedContent;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
 use ContentBlocks\Publishing\UnpublishedChanges;
@@ -24,6 +27,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Exports a ContentArea as a self-contained JSON document, and imports one
@@ -47,6 +51,7 @@ final class ImportExportController
         private readonly ImportSizeLimit $sizeLimit,
         private readonly ZipExportWriter $zip,
         private readonly UnpublishedChanges $unpublishedChanges = new UnpublishedChanges(),
+        private readonly ?EventDispatcherInterface $events = null,
     ) {
     }
 
@@ -186,6 +191,12 @@ final class ImportExportController
             return new JsonResponse(['error' => 'Invalid payload (expected object).'], Response::HTTP_BAD_REQUEST);
         }
 
+        $before = $this->events?->dispatch(new BeforeContentInsertEvent($target, ContentInsertOrigin::IMPORT));
+        if ($before?->isRefused()) {
+            return EventRefusal::response($before);
+        }
+        $inserted = InsertedContent::before($target);
+
         try {
             $result = $this->journal->record($target, 'area.import', JournalScope::structure(), function () use ($target, $payload): ImportResult {
                 $imported = $this->importer->import($target, $payload);
@@ -199,6 +210,7 @@ final class ImportExportController
             // A library's message (an ORM entity dump) is not the client's.
             return new JsonResponse(['error' => 'The import could not be completed.'], Response::HTTP_BAD_REQUEST);
         }
+        $this->events?->dispatch($inserted->after($target, ContentInsertOrigin::IMPORT));
 
         // Non-blocking by design (see ImportResult): the import succeeded, and
         // the editor is told what this app could not take in.

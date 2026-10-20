@@ -278,11 +278,7 @@ final class BlocksController
 
         $before = $this->events?->dispatch(new BeforeBlockDeleteEvent($block, $area));
         if ($before?->isRefused()) {
-            return new JsonResponse([
-                'error' => 'refused',
-                'message' => implode(' ', $before->getReasons()),
-                'reasons' => $before->getReasons(),
-            ], Response::HTTP_CONFLICT);
+            return EventRefusal::response($before);
         }
 
         $response = $this->journal->record($area, 'block.delete', JournalScope::structure(), function () use ($block): JsonResponse {

@@ -408,6 +408,20 @@ export default class extends Controller {
             return;
         }
 
+        if (response.status === 409) {
+            // A listener refused the save: the builder says why.
+            const result = await response.json().catch(() => null);
+            this.element.dispatchEvent(new CustomEvent('cb:section:refused', {
+                bubbles: true,
+                detail: { sectionId: this.sectionIdValue },
+            }));
+            this.element.dispatchEvent(new CustomEvent('cb:notify', {
+                bubbles: true,
+                detail: { message: result?.message || '' },
+            }));
+            return;
+        }
+
         if (response.status === 422) {
             // Validation errors — swap the sidebar HTML with the new form.
             const html = await response.text();

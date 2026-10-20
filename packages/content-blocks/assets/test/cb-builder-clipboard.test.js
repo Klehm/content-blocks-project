@@ -154,7 +154,7 @@ describe('cb-builder clipboard: paste', () => {
             'POST',
             '/_content-blocks/area/42/paste',
             { payload: SECTION_ENTRY, targetBlockId: 7, targetSectionId: 3 },
-            { tolerate: [413, 422] },
+            { tolerate: [409, 413, 422] },
         );
         expect(controller._afterStructuralOp).toHaveBeenCalled();
     });
@@ -197,6 +197,16 @@ describe('cb-builder clipboard: paste', () => {
         await controller.pasteClipboard();
 
         expect(undoLabel.textContent).toBe('Sections cannot be added here — paste a block instead');
+        expect(controller._afterStructuralOp).not.toHaveBeenCalled();
+        expect(window.localStorage.getItem(CLIPBOARD_KEY)).not.toBeNull();
+    });
+
+    it('says a listener refusal, and keeps the entry', async () => {
+        controller._jsonRequest = vi.fn().mockResolvedValue({ error: 'refused', message: 'Locked page' });
+
+        await controller.pasteClipboard();
+
+        expect(undoLabel.textContent).toBe('Locked page');
         expect(controller._afterStructuralOp).not.toHaveBeenCalled();
         expect(window.localStorage.getItem(CLIPBOARD_KEY)).not.toBeNull();
     });

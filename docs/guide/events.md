@@ -4,9 +4,11 @@ title: Server-side events
 
 # Server-side events
 
-ContentBlocks dispatches Symfony events around four actions: publishing an
-area, reverting it to its published version, saving a block and deleting one.
-Each action has a pair of events:
+ContentBlocks dispatches Symfony events around seven actions: publishing an
+area, reverting it to its published version, saving or deleting a block,
+saving or deleting a section, and inserting content from a payload (a paste,
+a section template, an import, *Insert content*). Each action has a pair of
+events:
 
 - the **before** event is dispatched before anything is written, and a
   listener can **refuse** the action;
@@ -22,6 +24,9 @@ service.
 | Revert to published | `BeforeContentAreaDiscardEvent` | `AfterContentAreaDiscardEvent` | `area`, `context` |
 | Save a block | `BeforeBlockSaveEvent` | `AfterBlockSaveEvent` | `block`, `area`; `data` on the before event |
 | Delete a block | `BeforeBlockDeleteEvent` | `AfterBlockDeleteEvent` | `block`, `area` |
+| Save a section's settings | `BeforeSectionSaveEvent` | `AfterSectionSaveEvent` | `section`, `area`; `settings` on the before event |
+| Delete a section | `BeforeSectionDeleteEvent` | `AfterSectionDeleteEvent` | `section`, `area` |
+| Insert content | `BeforeContentInsertEvent` | `AfterContentInsertEvent` | `area`, `origin`; `sections`, `blocks` on the after event |
 
 All of them live in `ContentBlocks\Event` and are named by their class, as
 Symfony events usually are.
@@ -87,8 +92,8 @@ final class RequireAPageTitle
 ```
 
 - **The reason is shown as is**, so translate it yourself. The builder shows
-  it in its snackbar for a publish, a revert or a delete, and above the form
-  for a block save.
+  it above the form for a block save, and in its snackbar for every other
+  action (in the import dialog for an import).
 - **Nothing is written** when an action is refused: no publish, no draft
   change, no undo step, and no after event.
 - **Every listener still runs** after a refusal, and each can add its own
@@ -102,8 +107,55 @@ because the form is what decides which keys and values reach a block (see
 belongs in the form, as a constraint; a refusal is for rules that depend on
 something outside it: the page, the user, a workflow state.
 
-A refused block save keeps the value in the editor's form, and the next edit
-tries again. A refused delete leaves the block in the preview.
+`BeforeSectionSaveEvent::$settings` works the same way: the section's draft
+settings about to be written, read-only.
+
+A refused save, of a block or a section, keeps the value in the editor's form,
+and the next edit tries again. A refused delete leaves the block or the section
+in the preview. A refused paste keeps the copy, so it can go somewhere else.
+
+## Content inserted from a payload
+
+Four flows write content the editor did not type: a paste, a section from the
+library, an import and *Insert content*. They share one pair of events, told
+apart by `$event->origin`, one of the `ContentInsertOrigin` constants:
+
+| `origin` | Flow | What it writes |
+|---|---|---|
+| `ContentInsertOrigin::PASTE` | `Ctrl/Cmd-V` | one section, or one block |
+| `ContentInsertOrigin::SECTION_TEMPLATE` | a section from the library | one section |
+| `ContentInsertOrigin::IMPORT` | an export file, in one request or in steps | the file's sections, replacing the area's |
+| `ContentInsertOrigin::REPLACE` | *Insert content* | another area's sections, replacing the area's |
+
+The origins are strings rather than an enum, so a later version can add one
+(content written by a model, say) without breaking a `match` in your code. Give
+your `match` a `default` arm.
+
+`AfterContentInsertEvent` lists what the insert created: `$sections` (empty for
+a pasted block) and `$blocks`, every block created, inside those sections or
+not. For an import or a replace, the area's previous sections are flagged
+deleted in the same step; they are not in the lists.
+
+```php
+use ContentBlocks\Event\AfterContentInsertEvent;
+use ContentBlocks\Event\ContentInsertOrigin;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+
+final class FlagImportedPages
+{
+    public function __construct(private readonly ReviewQueue $reviewQueue)
+    {
+    }
+
+    #[AsEventListener]
+    public function __invoke(AfterContentInsertEvent $event): void
+    {
+        if ($event->origin === ContentInsertOrigin::IMPORT) {
+            $this->reviewQueue->add($event->area, \count($event->blocks));
+        }
+    }
+}
+```
 
 ### When the caller is your own code
 
@@ -131,14 +183,15 @@ with `{"error": "refused", "message": "…", "reasons": ["…"]}`.
 
 Only `AfterContentAreaPublishEvent` means the public page has changed.
 
-- **The block events are draft events.** A deleted block is flagged deleted,
-  not removed: the published page still renders it until Publish, and a revert
-  brings it back. React to them for what shows the draft (a preview cache, a
+- **The block, section and insert events are draft events.** A deleted block
+  or section is flagged deleted, not removed: the published page still renders
+  it until Publish, and a revert brings it back. Inserted content is a draft
+  too. React to them for what shows the draft (a preview cache, a
   "last edited" timestamp, an activity feed), never to purge a public page.
 - **`AfterContentAreaDiscardEvent` leaves the public page as it was.** The
   draft goes back to the published state.
-- **A block is saved many times in a row**, because the sidebar autosaves as
-  the editor types, and each save dispatches both events. Keep the listeners
+- **A block or a section is saved many times in a row**, because the sidebar
+  autosaves as the editor types, and each save dispatches both events. Keep the listeners
   cheap, and debounce anything expensive.
 
 ## When the events are dispatched
@@ -156,15 +209,25 @@ by the outermost decorator of `ContentAreaPublisherInterface`, so:
 
 A publish that throws dispatches no after event.
 
-**Block events, from the builder only.** The save events come from the block's
-sidebar form: typing, and reordering or duplicating a collection entry. The
-delete events come from the builder's delete action, in the preview or the
-navigator. The other flows that write blocks do not dispatch them:
+**Block, section and insert events, from the builder only.** They come from the
+editor's gesture, at the endpoint that performs it:
 
-- adding, moving or duplicating a block;
-- paste, *Insert content*, section templates, import;
+- block save: the block's sidebar form (typing, and reordering or duplicating
+  a collection entry);
+- section save: the section's sidebar form;
+- block and section delete: the delete action, in the preview or the
+  navigator;
+- insert: the paste, template, import and *Insert content* endpoints.
+
+Code of yours writing through `ContentManipulatorInterface` or calling the
+importer directly dispatches none of them. Some builder flows dispatch nothing
+either:
+
+- adding, moving or duplicating a block or a section;
+- adding, naming or removing a column, and the order per viewport;
 - undo and redo;
-- deleting a whole section (its blocks are not flagged one by one).
+- deleting a whole section does not dispatch a block delete for each of its
+  blocks, which are not flagged one by one.
 
 These flows all end in the draft, so the publish events still catch them.
 

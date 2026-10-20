@@ -312,7 +312,9 @@ describe('cb-builder template picker: insert', () => {
 
         await controller._confirmInsert({ id: 7 });
 
-        expect(reqSpy).toHaveBeenCalledWith('POST', '/_content-blocks/area/99/insert-template/7');
+        expect(reqSpy).toHaveBeenCalledWith(
+            'POST', '/_content-blocks/area/99/insert-template/7', undefined, { tolerate: [409] },
+        );
         expect(afterSpy).toHaveBeenCalled();
         expect(mountSpy).toHaveBeenCalledWith(55);
         // An inserted section lands at the end of the area, off screen on any
@@ -359,6 +361,17 @@ describe('cb-builder template picker: insert', () => {
         expect(controller.templatePickerStatusTarget.textContent).toMatch(/map/);
         expect(controller.templatePickerStatusTarget.textContent).toMatch(/2/);
         expect(controller.templatePickerTarget.hidden).toBe(false);
+    });
+
+    it('says a listener refusal and inserts nothing', async () => {
+        vi.spyOn(controller, '_jsonRequest').mockResolvedValue({ error: 'refused', message: 'Locked page' });
+        const afterSpy = vi.spyOn(controller, '_afterStructuralOp').mockImplementation(() => {});
+        const notifySpy = vi.spyOn(controller, '_notify').mockImplementation(() => {});
+
+        await controller._confirmInsert({ id: 7 });
+
+        expect(notifySpy).toHaveBeenCalledWith('Locked page');
+        expect(afterSpy).not.toHaveBeenCalled();
     });
 
     it('does nothing further when the insert request fails', async () => {

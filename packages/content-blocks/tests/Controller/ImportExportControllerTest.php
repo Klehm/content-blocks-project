@@ -6,6 +6,9 @@ namespace ContentBlocks\Tests\Controller;
 
 use ContentBlocks\Asset\AssetResolverInterface;
 use ContentBlocks\Controller\ImportExportController;
+use ContentBlocks\Event\AfterContentInsertEvent;
+use ContentBlocks\Event\BeforeContentInsertEvent;
+use ContentBlocks\Event\ContentInsertOrigin;
 use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Transfer\ContentAreaExporter;
@@ -14,6 +17,7 @@ use ContentBlocks\Transfer\ContentAreaImporterInterface;
 use ContentBlocks\Transfer\ImportSizeLimit;
 use ContentBlocks\Transfer\ZipExportWriter;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,6 +36,26 @@ final class ImportExportControllerTest extends ControllerTestCase
         $this->tmpFiles = [];
     }
 
+    /** @var list<array<int, mixed>> */
+    private array $seen = [];
+
+    /** Records both insert events; refuses the first when $refuse is set. */
+    private function insertEvents(?string $refuse = null): EventDispatcher
+    {
+        $events = new EventDispatcher();
+        $events->addListener(BeforeContentInsertEvent::class, function (BeforeContentInsertEvent $e) use ($refuse): void {
+            $this->seen[] = ['before', $e->area->getId(), $e->origin, $this->flushCount];
+            if ($refuse !== null) {
+                $e->refuse($refuse);
+            }
+        });
+        $events->addListener(AfterContentInsertEvent::class, function (AfterContentInsertEvent $e): void {
+            $this->seen[] = ['after', $e->area->getId(), $e->origin, $e->sections, $e->blocks];
+        });
+
+        return $events;
+    }
+
     private function makeController(
         EntityManagerInterface $em,
         bool $csrfValid = true,
@@ -39,6 +63,7 @@ final class ImportExportControllerTest extends ControllerTestCase
         ?AssetResolverInterface $resolver = null,
         int $importMaxSize = 50 * 1024 * 1024,
         ?ContentAreaImporterInterface $importer = null,
+        ?EventDispatcher $events = null,
     ): ImportExportController {
         if ($resolver === null) {
             $resolver = $this->createMock(AssetResolverInterface::class);
@@ -54,6 +79,7 @@ final class ImportExportControllerTest extends ControllerTestCase
             $this->makeJournal($em),
             new ImportSizeLimit($importMaxSize),
             new ZipExportWriter($resolver),
+            events: $events,
         );
     }
 
@@ -270,6 +296,34 @@ final class ImportExportControllerTest extends ControllerTestCase
             $imported->getColumns()[0]->getBlocks()[0]->getDraftData(),
         );
         $this->assertSame(1, $this->flushCount);
+    }
+
+    public function testImportIsReportedByTheInsertEvents(): void
+    {
+        $area = $this->makeArea(1);
+        $this->makeSection($area, 2);
+
+        $this->makeController($this->makeEm([$area]), events: $this->insertEvents())
+            ->import(1, $this->makeUploadRequest($this->exportPayloadJson()));
+
+        $imported = $area->getSections()[1];
+        $this->assertSame(['before', 1, ContentInsertOrigin::IMPORT, 0], $this->seen[0]);
+        $this->assertSame([$imported], $this->seen[1][3]);
+        $this->assertSame([$imported->getColumns()[0]->getBlocks()[0]], $this->seen[1][4]);
+    }
+
+    public function testARefusedImportWritesNothing(): void
+    {
+        $area = $this->makeArea(1);
+        $existing = $this->makeSection($area, 2);
+
+        $response = $this->makeController($this->makeEm([$area]), events: $this->insertEvents('No.'))
+            ->import(1, $this->makeUploadRequest($this->exportPayloadJson()));
+
+        $this->assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        $this->assertFalse($existing->isDeleted());
+        $this->assertCount(1, $area->getSections());
+        $this->assertSame(0, $this->flushCount);
     }
 
     public function testImportSkipsUnknownBlockTypesWithoutFailing(): void

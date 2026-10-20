@@ -273,6 +273,23 @@ describe('cb-section-settings-form — submit error feedback', () => {
         expect(document.getElementById('rerendered')).not.toBeNull();
     });
 
+    it('a 409 says the listener refusal and is not a save error', async () => {
+        const { c, events } = setupSubmit();
+        const notices = [];
+        document.body.addEventListener('cb:section:refused', () => events.push('refused'));
+        document.body.addEventListener('cb:notify', (e) => notices.push(e.detail.message));
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: false,
+            status: 409,
+            json: () => Promise.resolve({ error: 'refused', message: 'Locked page', reasons: ['Locked page'] }),
+        }));
+
+        await c._onSubmit(new Event('submit', { cancelable: true }));
+
+        expect(events).toEqual(['refused']);
+        expect(notices).toEqual(['Locked page']);
+    });
+
     it('a successful POST dispatches cb:section:saved only', async () => {
         const { c, events } = setupSubmit();
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));

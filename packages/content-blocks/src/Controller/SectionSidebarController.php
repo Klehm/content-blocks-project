@@ -9,6 +9,8 @@ use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
 use ContentBlocks\Builder\StructureRefusal;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Event\AfterSectionSaveEvent;
+use ContentBlocks\Event\BeforeSectionSaveEvent;
 use ContentBlocks\Form\Type\SectionSettingsType;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\JournalScope;
@@ -26,6 +28,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Twig\Environment;
 
 /**
@@ -52,6 +55,7 @@ final class SectionSidebarController
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly bool $sectionStyling = true,
         private readonly BuilderStructureResolverInterface $structure = new ConfiguredBuilderStructureResolver(),
+        private readonly ?EventDispatcherInterface $events = null,
     ) {
     }
 
@@ -137,18 +141,25 @@ final class SectionSidebarController
                 if (isset($current[ViewportOrder::KEY])) {
                     $data[ViewportOrder::KEY] = $current[ViewportOrder::KEY];
                 }
+                $settings = $this->normalize($data);
+                $before = $this->events?->dispatch(new BeforeSectionSaveEvent($section, $area, $settings));
+                if ($before?->isRefused()) {
+                    return EventRefusal::response($before);
+                }
+
                 // Coalesced per section: the sidebar autosaves, and a slider
                 // dragged across its range must not be forty undo steps.
                 $this->journal->record(
                     $area,
                     'section.settings',
                     JournalScope::sectionSettings($section),
-                    function () use ($section, $data): void {
-                        $section->setDraftSettings($this->normalize($data));
+                    function () use ($section, $settings): void {
+                        $section->setDraftSettings($settings);
                         $this->em->flush();
                     },
                     'section.settings:' . $id,
                 );
+                $this->events?->dispatch(new AfterSectionSaveEvent($section, $area));
 
                 return new Response('', 204);
             }

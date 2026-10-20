@@ -162,9 +162,11 @@ export default class Structure {
 
     async _deleteSection(sectionId) {
         if (!sectionId) return;
-        const result = await this._jsonRequest('DELETE', `${this._apiBase}/section/${sectionId}`);
-        // Delete failed (CSRF/access/network) — leave the preview untouched.
-        if (result === null) return;
+        const result = await this._jsonRequest(
+            'DELETE', `${this._apiBase}/section/${sectionId}`, undefined, { tolerate: [409] },
+        );
+        // Delete failed or refused — leave the preview untouched.
+        if (result === null || this._saidRefused(result)) return;
         // The direct case. A focused block *inside* this section is caught by
         // the overlay's `cb:focus:not-found` reply to the re-pin below.
         if (this._isSidebarFocusedOnSection(sectionId)) {

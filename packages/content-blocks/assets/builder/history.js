@@ -12,6 +12,7 @@ export default class History {
     /** Any of these ends the wait: saved, failed, or refused by a listener. */
     static SAVE_SETTLED_EVENTS = [
         'cb:block:saved', 'cb:section:saved', 'cb:save:error', 'cb:block:refused',
+        'cb:section:refused',
     ];
 
     /** @param {{canUndo: boolean, canRedo: boolean}} state */

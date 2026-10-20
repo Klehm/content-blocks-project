@@ -7,6 +7,9 @@ namespace ContentBlocks\Tests\Controller;
 use ContentBlocks\Builder\BuilderStructure;
 use ContentBlocks\Controller\SectionTemplateController;
 use ContentBlocks\Entity\SectionTemplate;
+use ContentBlocks\Event\AfterContentInsertEvent;
+use ContentBlocks\Event\BeforeContentInsertEvent;
+use ContentBlocks\Event\ContentInsertOrigin;
 use ContentBlocks\Section\SectionStyleRegistry;
 use ContentBlocks\SectionTemplate\AllowAllSectionTemplateManager;
 use ContentBlocks\SectionTemplate\DenyAllSectionTemplateManager;
@@ -25,6 +28,7 @@ use ContentBlocks\Versioning\ContentVersionUpgraderInterface;
 use ContentBlocks\Versioning\DenyOnMismatchUpgrader;
 use ContentBlocks\Versioning\EnvelopeUpgradeChain;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -35,6 +39,26 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class SectionTemplateControllerTest extends ControllerTestCase
 {
+    /** @var list<array<int, mixed>> */
+    private array $seen = [];
+
+    /** Records both insert events; refuses the first when $refuse is set. */
+    private function insertEvents(?string $refuse = null): EventDispatcher
+    {
+        $events = new EventDispatcher();
+        $events->addListener(BeforeContentInsertEvent::class, function (BeforeContentInsertEvent $e) use ($refuse): void {
+            $this->seen[] = ['before', $e->area->getId(), $e->origin, $this->flushCount];
+            if ($refuse !== null) {
+                $e->refuse($refuse);
+            }
+        });
+        $events->addListener(AfterContentInsertEvent::class, function (AfterContentInsertEvent $e): void {
+            $this->seen[] = ['after', $e->area->getId(), $e->origin, $e->sections, $e->blocks];
+        });
+
+        return $events;
+    }
+
     private function makeController(
         EntityManagerInterface $em,
         bool $csrfValid = true,
@@ -43,6 +67,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
         ?ContentVersionUpgraderInterface $upgrader = null,
         ?SnapshotExtensionInterface $extension = null,
         ?BuilderStructure $structure = null,
+        ?EventDispatcher $events = null,
     ): SectionTemplateController {
         return new SectionTemplateController(
             $em,
@@ -59,6 +84,7 @@ final class SectionTemplateControllerTest extends ControllerTestCase
             5,
             new SnapshotExtensions($extension === null ? [] : [$extension], $this->makeRegistry()),
             structure: new FixedBuilderStructureResolver($structure ?? new BuilderStructure()),
+            events: $events,
         );
     }
 
@@ -209,6 +235,37 @@ final class SectionTemplateControllerTest extends ControllerTestCase
         // Appended after the existing section (previewPosition 3 -> 4).
         $this->assertSame(4, $this->persisted[0]->getPreviewPosition());
         $this->assertCount(2, $area->getSections());
+    }
+
+    public function testInsertIsReportedByTheInsertEvents(): void
+    {
+        $area = $this->makeArea(1);
+        $template = $this->makeTemplate(7, $this->payloadWith([
+            ['type' => 'fake', 'data' => ['content' => 'x']],
+        ]), ['fake']);
+
+        $this->makeController($this->makeEm([$area, $template]), events: $this->insertEvents())
+            ->insert(1, 7, $this->makeJsonRequest());
+
+        $section = $this->persisted[0];
+        $this->assertSame(['before', 1, ContentInsertOrigin::SECTION_TEMPLATE, 0], $this->seen[0]);
+        $this->assertSame([$section], $this->seen[1][3]);
+        $this->assertSame([$section->getColumns()[0]->getBlocks()[0]], $this->seen[1][4]);
+    }
+
+    public function testARefusedInsertWritesNothing(): void
+    {
+        $area = $this->makeArea(1);
+        $template = $this->makeTemplate(7, $this->payloadWith([
+            ['type' => 'fake', 'data' => ['content' => 'x']],
+        ]), ['fake']);
+
+        $response = $this->makeController($this->makeEm([$area, $template]), events: $this->insertEvents('No.'))
+            ->insert(1, 7, $this->makeJsonRequest());
+
+        $this->assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        $this->assertSame([], $this->persisted);
+        $this->assertCount(0, $area->getSections());
     }
 
     // A template is a section: refused unless sections are editable.

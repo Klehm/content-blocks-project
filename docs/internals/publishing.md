@@ -123,6 +123,26 @@ save stops waiting. The events are limited to the editor's gesture on purpose:
 the other flows that write blocks all end in the draft, which the publish event
 covers. Pinned by `PublisherDecorationOrderTest` and `event-refusal.spec.js`.
 
+The section and insert events follow the same placement. The section form is
+a plain POST rather than a Live Component, so its refusal is a `409` the form
+controller turns into `cb:notify` (and `cb:section:refused`, for the same undo
+wait).
+
+**One insert pair, not four.** Paste, templates, import and replace are one
+kind of action for a listener: content the editor did not type arrives in the
+draft. A pair per flow would make a listener that cares about "any inserted
+content" subscribe four times, and miss the fifth flow when one is added.
+`origin` tells them apart, as strings so that fifth origin is not a BC break
+for a host's `match`.
+
+**What the insert created is found by difference.** `InsertedContent` records
+the area's sections and blocks before the write and lists the new ones after
+it. Each flow returns its result in its own shape (a `PasteResult`, an
+`ImportResult` that only counts, a template's single section, nothing at all
+for a replace). Reading those results would mean four extractors, and a fifth
+for the next flow. The difference is the same for all of them, and it cannot
+disagree with what was actually written.
+
 ## Why publish() takes a context object
 
 `PublishContext` exists for the same reason `RenderContext` does: the publish

@@ -165,6 +165,13 @@ describe('an import in steps', () => {
         expect(new RequestError(413, null).code).toBe('too_large');
     });
 
+    it('reads a listener refusal with its reason', () => {
+        const e = new RequestError(409, { error: 'refused', message: 'Locked page' });
+
+        expect(e.code).toBe('refused');
+        expect(e.message).toBe('Locked page');
+    });
+
     it('keeps the dropped files the server matches, and says which it refused', async () => {
         const { request } = server({
             '/import/plan': () => [200, { have: [], need: ['c'] }],

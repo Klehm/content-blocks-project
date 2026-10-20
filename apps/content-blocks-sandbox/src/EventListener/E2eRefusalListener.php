@@ -8,6 +8,9 @@ use ContentBlocks\Event\BeforeBlockDeleteEvent;
 use ContentBlocks\Event\BeforeBlockSaveEvent;
 use ContentBlocks\Event\BeforeContentAreaDiscardEvent;
 use ContentBlocks\Event\BeforeContentAreaPublishEvent;
+use ContentBlocks\Event\BeforeContentInsertEvent;
+use ContentBlocks\Event\BeforeSectionDeleteEvent;
+use ContentBlocks\Event\BeforeSectionSaveEvent;
 use ContentBlocks\Event\RefusableEvent;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
@@ -15,8 +18,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Refuses the actions the `cb_e2e_refuse` cookie names (comma-separated:
- * publish, discard, block.save, block.delete), so Playwright can pin what a
- * refusal does in the builder. Guarded on kernel.debug, like E2eAccessChecker.
+ * publish, discard, block.save, block.delete, section.save, section.delete,
+ * insert.<origin>), so Playwright can pin what a refusal does in the
+ * builder. Guarded on kernel.debug, like E2eAccessChecker.
  */
 final class E2eRefusalListener
 {
@@ -51,6 +55,24 @@ final class E2eRefusalListener
     public function onBlockDelete(BeforeBlockDeleteEvent $event): void
     {
         $this->refuseIfNamed('block.delete', $event);
+    }
+
+    #[AsEventListener]
+    public function onSectionSave(BeforeSectionSaveEvent $event): void
+    {
+        $this->refuseIfNamed('section.save', $event);
+    }
+
+    #[AsEventListener]
+    public function onSectionDelete(BeforeSectionDeleteEvent $event): void
+    {
+        $this->refuseIfNamed('section.delete', $event);
+    }
+
+    #[AsEventListener]
+    public function onContentInsert(BeforeContentInsertEvent $event): void
+    {
+        $this->refuseIfNamed('insert.' . $event->origin, $event);
     }
 
     private function refuseIfNamed(string $action, RefusableEvent $event): void

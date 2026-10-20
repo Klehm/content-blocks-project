@@ -21,6 +21,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BlockJsonNormalizerInterface` (autoconfigured, a pipeline) does for a JSON
   client what a block's view does: resolve URLs, sanitize, expand ids. Guide:
   `docs/guide/headless.md`.
+- **More server-side events.** Saving a section's settings
+  (`BeforeSectionSaveEvent` / `AfterSectionSaveEvent`, with the settings about
+  to be written), deleting a section (`BeforeSectionDeleteEvent` /
+  `AfterSectionDeleteEvent`), and content inserted from a payload
+  (`BeforeContentInsertEvent` / `AfterContentInsertEvent`): a paste, a section
+  template, an import or *Insert content*, told apart by `origin`
+  (`ContentInsertOrigin`), the after event listing the sections and blocks
+  created. Every before event can be refused, as before: the builder says the
+  reason in its snackbar (in the import dialog for an import) and writes
+  nothing. A refused paste keeps the copy.
 
 ## [1.5.0] - 2026-10-20
 
