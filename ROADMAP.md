@@ -23,7 +23,7 @@ Not ranked yet:
 
 ---
 
-## Media library — pick a file already uploaded 🤔
+## Media library — pick a file already uploaded 🅿️
 
 **The problem.** `ImageUploadType` only knows "upload a new file" or "paste a path". Reusing a logo or a product photo means uploading it again, so the same bytes are stored once per use, and nothing helps an editor find what is already there.
 
@@ -31,14 +31,17 @@ Not ranked yet:
 
 **Direction: a seam in the core, the library in a satellite package.**
 
-- **Core**: an optional *Browse library* action on the upload widget, shown only when a `MediaLibraryInterface` is registered (the same rule as machine translation: no provider, no button). Whatever the dialog returns is written through the widget's existing single writer (`_setValue`), so the stored value stays a path and nothing downstream changes.
-- **`klehm/content-blocks-media`**: a `cb_media` table, a picker dialog served as a shell fragment (no Stimulus controller to declare), metadata editing, and the usage of each file from `AssetReferenceCollector`.
-- **Hosts that already have a media system** (Sylius, Sonata Media, a DAM) implement the interface instead of installing the package.
+- **Core**: `MediaLibraryInterface` only signals that a library exists: no implementation, no *Browse library* button (the machine translation rule). The button dispatches a public `cb:media:browse` event (`kind`, `accept`, current value, a `pick({path, alt})` callback); `pick()` writes through the widget's single writer (`_setValue`), so the stored value stays a path and nothing downstream changes.
+- **`klehm/content-blocks-media`**: `cb_media` and `cb_media_folder` tables (folders from v1, search, kind filter), the picker as a shell fragment (no Stimulus controller to declare), metadata editing, and the usage of each file from `AssetReferenceCollector`.
+- **Hosts that already have a media system** (Sylius, Sonata Media, a DAM) implement the interface and ship their own fragment listening for `cb:media:browse`, instead of installing the package.
+- **The i18n workbench** renders the fragments too, and its media rows get the same *Library* button. Hence the rule: **the fragment is self-contained** (its own URLs, CSRF token and CSS with fallbacks; it reads nothing off `.cb-shell`).
 
-**Points to settle first:**
-- Alt text: library default, per-block override, or both? Under i18n it is also per locale.
-- The GC must count a file the library holds as referenced, through an `AssetReferenceProviderInterface` (the same pattern as section templates).
-- Deleting from the library while a page uses the file: refuse, or warn and list the pages.
+**Settled:**
+- **Alt text is copied at pick time**: `ImageUploadType`'s `cb_alt_field` option names the block's alt field, filled only when empty. From there it is a block field, translatable as today. No render-time lookup, and no per-locale alt in the library (a copy that would drift, for text the translator translates anyway).
+- **The GC** counts every library path as referenced, through an `AssetReferenceProviderInterface` (the section templates pattern).
+- **Removing from the library deletes the row, never the file**: the GC sweeps it once nothing references it, the rule every editor action already follows. A used file can be removed; the dialog warns and lists the pages.
+- **Existing files**: new uploads enter the library through a `FileStorageInterface` decorator; `content-blocks-media:import` takes in what `AssetInventoryInterface` lists.
+- **Rights**: browsing and uploading need `canEdit(area)`, like the upload endpoint; managing folders and removing go through a separate capability, like `SectionTemplateManagerInterface`.
 
 ---
 
