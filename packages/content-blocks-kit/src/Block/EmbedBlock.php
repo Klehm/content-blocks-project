@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -19,8 +20,13 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * render time by `cb_embed_url()`.
  */
 #[AsContentBlock(priority: 30, category: 'media')]
-class EmbedBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class EmbedBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
+    public function getPurpose(): string
+    {
+        return 'A YouTube or Vimeo video embedded by its URL.';
+    }
+
     public function getType(): string
     {
         return 'embed';

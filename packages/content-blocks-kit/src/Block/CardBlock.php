@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Kit\Form\Type\CardItemType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -20,11 +21,16 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * stacked list. The column-count field reveals only for the grid.
  */
 #[AsContentBlock(priority: 65, category: 'layout')]
-class CardBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class CardBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
     public static function defaultOptions(): array
     {
         return ['max_columns' => 4];
+    }
+
+    public function getPurpose(): string
+    {
+        return 'A set of cards (image, title, text, optional button) side by side: features, benefits, offers, team members.';
     }
 
     public function getType(): string

@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Form\Type\ImageUploadType;
 use ContentBlocks\Form\Type\Styling\BoxSpacingType;
 use ContentBlocks\Kit\Security\SafeLinkConstraint;
@@ -27,8 +28,13 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * @see docs/internals/kit.md#blocks-are-autonomous
  */
 #[AsContentBlock(priority: 70, category: 'media')]
-class ImageBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class ImageBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
+    public function getPurpose(): string
+    {
+        return 'One picture, optionally captioned: a product shot, an illustration, a hero visual beside a title.';
+    }
+
     public function getType(): string
     {
         return 'image';

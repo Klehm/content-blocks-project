@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -20,8 +21,13 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * a message and a type-matched glyph (shipped inline — no icon library).
  */
 #[AsContentBlock(priority: 35, category: 'text')]
-class AlertBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class AlertBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
+    public function getPurpose(): string
+    {
+        return 'A highlighted notice (info, success, warning): a limited offer, a delivery note, an important caveat.';
+    }
+
     public function getType(): string
     {
         return 'alert';

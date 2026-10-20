@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Kit\Form\Type\ListItemType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -19,8 +20,13 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * A styled list (bulleted, checkmarks or numbered) of short text items.
  */
 #[AsContentBlock(priority: 40, category: 'text')]
-class ListBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class ListBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
+    public function getPurpose(): string
+    {
+        return 'A bullet or numbered list of short items: benefits, steps, what is included.';
+    }
+
     public function getType(): string
     {
         return 'list';

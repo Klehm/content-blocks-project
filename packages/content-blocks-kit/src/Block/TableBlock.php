@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Kit\Form\Type\TableColumnType;
 use ContentBlocks\Kit\Form\Type\TableRowType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -19,8 +20,13 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * stays rectangular whatever a row holds.
  */
 #[AsContentBlock(priority: 15, category: 'text')]
-class TableBlock extends AbstractKitBlock
+class TableBlock extends AbstractKitBlock implements BlockPurposeInterface
 {
+    public function getPurpose(): string
+    {
+        return 'Tabular data in rows and columns: specifications, a plan comparison, a price list.';
+    }
+
     public function getType(): string
     {
         return 'table';

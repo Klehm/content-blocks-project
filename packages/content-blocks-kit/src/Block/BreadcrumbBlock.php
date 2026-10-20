@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Kit\Form\Type\BreadcrumbItemType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Translation\TranslatableMessage;
@@ -19,8 +20,13 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * empty url renders as plain text (the current page).
  */
 #[AsContentBlock(priority: 20, category: 'actions')]
-class BreadcrumbBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class BreadcrumbBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
+    public function getPurpose(): string
+    {
+        return 'The trail of links from the home page to this one, at the very top of the page.';
+    }
+
     public function getType(): string
     {
         return 'breadcrumb';

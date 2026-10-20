@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Translation\TranslatableMessage;
@@ -15,8 +16,13 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * trusted editors (all mutations pass the host's canEdit() gate).
  */
 #[AsContentBlock(priority: 5, category: 'advanced')]
-class HtmlRawBlock extends AbstractKitBlock
+class HtmlRawBlock extends AbstractKitBlock implements BlockPurposeInterface
 {
+    public function getPurpose(): string
+    {
+        return 'Raw HTML inserted as is, for markup no other block can produce. Avoid it for ordinary content.';
+    }
+
     public function getType(): string
     {
         return 'html_raw';
