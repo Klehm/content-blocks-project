@@ -24,7 +24,7 @@
     ],
     "require": {
         "php": ">=8.2",
-        "klehm/content-blocks": "^1.4",
+        "klehm/content-blocks": "^1.5",
         "symfony/console": "^6.4 || ^7.0 || ^8.0",
         "symfony/form": "^6.4 || ^7.0 || ^8.0",
         "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
@@ -56,8 +56,8 @@
             "bundle": "ContentBlocks\\Kit\\ContentBlocksKitBundle"
         },
         "branch-alias": {
-            "dev-master": "1.4.x-dev",
-            "dev-main": "1.4.x-dev"
+            "dev-master": "1.5.x-dev",
+            "dev-main": "1.5.x-dev"
         }
     },
     "repositories": {
