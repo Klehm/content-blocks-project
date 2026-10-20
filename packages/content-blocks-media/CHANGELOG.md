@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   text, move it, see the pages that use it, remove it from the library (the
   file itself stays). Every change needs `MediaManagerInterface`, denied by
   default (`AllowAllMediaManager` lets every editor manage).
+- **The picker in the i18n workbench**: it stands alone, so the workbench
+  renders it and offers it on media rows (`klehm/content-blocks-i18n` with
+  this release).
 - **The library's alt text fills the block's** when a file is inserted into an
   empty alt field.
 - `content_blocks_media.kinds` (`[image, video]` by default) picks the fields

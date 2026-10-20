@@ -91,6 +91,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a path. Without a library, nothing changes on screen.
 - **`cb_alt_field` on `ImageUploadType`** names a sibling field the library's
   alt text fills when it is empty. The editor's own alt is never overwritten.
+- **`BuilderShellFragment::$standalone`**: a fragment that reads nothing off
+  `.cb-shell` says so with `standalone: true`, and the i18n workbench renders
+  it too. False by default: an existing fragment renders where it always did.
 
 ## [1.5.0] - 2026-10-20
 

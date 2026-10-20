@@ -22,6 +22,8 @@ final class MediaShellExtensionTest extends TestCase
         $this->assertSame(['image'], $fragments[0]->context['kinds']);
         $this->assertSame(AssetController::version('js'), $fragments[0]->context['assetVersions']['js']);
         $this->assertFalse($fragments[0]->context['canManage']);
+        // Reads nothing off the shell: the i18n workbench renders it too.
+        $this->assertTrue($fragments[0]->standalone);
     }
 
     public function testTheDialogKnowsWhetherItsEditorManages(): void

@@ -16,6 +16,15 @@ final class BuilderShellFragmentTest extends TestCase
         $this->assertSame('@Acme/builder/history.html.twig', $fragment->template);
         $this->assertSame([], $fragment->context);
         $this->assertSame(0, $fragment->priority);
+        // A fragment is the shell's own unless it says it stands alone.
+        $this->assertFalse($fragment->standalone);
+    }
+
+    public function testAFragmentCanDeclareItselfStandalone(): void
+    {
+        $fragment = new BuilderShellFragment('@Acme/picker.html.twig', standalone: true);
+
+        $this->assertTrue($fragment->standalone);
     }
 
     public function testAnEmptyTemplateNameIsRejectedLoudly(): void

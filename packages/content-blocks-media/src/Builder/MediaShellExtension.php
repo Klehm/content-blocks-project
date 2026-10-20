@@ -11,8 +11,8 @@ use ContentBlocks\Media\Controller\AssetController;
 use ContentBlocks\Media\Security\MediaManagerInterface;
 
 /**
- * Puts the picker dialog in the builder shell. It answers the upload widget's
- * `cb:media:browse`, and reads nothing off the shell.
+ * Puts the picker dialog in the builder shell. It answers `cb:media:browse`,
+ * and reads nothing off the shell, so the i18n workbench renders it too.
  *
  * @see docs/internals/media.md#the-picker-is-self-contained
  */
@@ -34,6 +34,6 @@ final class MediaShellExtension implements BuilderShellExtensionInterface
                 'css' => AssetController::version('css'),
                 'js' => AssetController::version('js'),
             ],
-        ]);
+        ], standalone: true);
     }
 }

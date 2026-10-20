@@ -270,6 +270,9 @@ A file field behaves differently from a text field in four ways:
 - **Uploaded, not typed.** The workbench row shows both files, with a button and
   a drop zone. Uploads go through the core's upload endpoint, with its size and
   MIME limits and its `canEdit()` check. ⨯ goes back to the source's file.
+  With a [media library](./media-library.md), the row also offers *Pick from the
+  library*. The library's alt text is not used there: it is written in one
+  language, not necessarily this one.
 - **A path, checked.** A value is a scheme-less path or an http(s) URL. Anything
   else is refused with `invalid_media`, and a blank value clears.
 

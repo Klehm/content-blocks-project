@@ -736,6 +736,8 @@ Everything else a fragment needs is on the shell root, which it can reach with `
 <script type="module" src="{{ path('my_bundle_history_js') }}"></script>
 ```
 
+A fragment that reads **nothing** off the shell (its URLs, area id and token are its own attributes, its CSS falls back on every `--cb-*` token) can say so with `standalone: true`. The i18n workbench, which is not the shell, renders the standalone fragments too, so a dialog answering a builder event (the [media library](./media-library.md)'s picker, say) works on both pages. A fragment that reaches `.cb-shell` with `closest()` must stay out of it.
+
 ```js
 // Served by the bundle. Pair it with a BuilderActionProviderInterface
 // contributing the `history` key: the click arrives as cb:builder:action.

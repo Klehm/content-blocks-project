@@ -226,6 +226,27 @@ final class WorkbenchPageControllerTest extends TestCase
         $this->assertSame([], $this->context['providers'], 'es is outside what this engine covers');
     }
 
+    public function testWithoutAMediaLibraryNoRowOffersOne(): void
+    {
+        $this->controller()->workbench(7, 'de');
+
+        $this->assertSame([], $this->context['mediaKinds']);
+    }
+
+    public function testAMediaLibraryIsOfferedForTheKindsItSupports(): void
+    {
+        $images = new class () implements \ContentBlocks\Storage\MediaLibraryInterface {
+            public function supports(string $kind): bool
+            {
+                return $kind === 'image';
+            }
+        };
+
+        $this->controller(mediaLibrary: $images)->workbench(7, 'de');
+
+        $this->assertSame(['image'], $this->context['mediaKinds']);
+    }
+
     public function testAnUnknownAreaIs404(): void
     {
         $response = $this->controller()->workbench(404, 'de');
@@ -273,6 +294,7 @@ final class WorkbenchPageControllerTest extends TestCase
         ?LocalizedPageUrlResolverInterface $pageUrls = null,
         bool $publicLinks = true,
         ?RequestStack $requestStack = null,
+        ?\ContentBlocks\Storage\MediaLibraryInterface $mediaLibrary = null,
     ): WorkbenchPageController {
         $this->context = [];
 
@@ -329,6 +351,7 @@ final class WorkbenchPageControllerTest extends TestCase
             $pageUrls ?? new NullLocalizedPageUrlResolver(),
             $publicLinks,
             $requestStack,
+            mediaLibrary: $mediaLibrary,
         );
     }
 }

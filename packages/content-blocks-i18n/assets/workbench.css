@@ -268,6 +268,7 @@ body {
 .cb-wb__row--media:not(.cb-wb__row--shared) .cb-wb__media-shared { display: none; }
 
 .cb-wb__media-choose { position: relative; padding: 4px 10px; font-size: 13px; }
+.cb-wb__media-browse { padding: 4px 10px; font-size: 13px; }
 .cb-wb__media-choose:focus-within { outline: 2px solid var(--cb-wb-accent); outline-offset: 1px; }
 /* The source's file is already what renders: nothing to go back to. */
 .cb-wb__row--shared .cb-wb__icon--media-reset { visibility: hidden; }
