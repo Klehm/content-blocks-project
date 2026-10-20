@@ -18,6 +18,7 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Headless\ContentAreaNormalizer;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\BuilderSession;
 use ContentBlocks\History\SidebarOutcome;
@@ -65,7 +66,7 @@ use Twig\Loader\FilesystemLoader;
  * before they opened the builder, byte for byte, until they press Publish.
  *
  * Every test here follows the same three beats:
- *   1. snapshot the PUBLIC html of a fully-published area,
+ *   1. snapshot the PUBLIC html (and JSON) of a fully-published area,
  *   2. run one real builder action through its real controller,
  *   3. assert the PUBLIC html is unchanged.
  *
@@ -552,11 +553,22 @@ final class PublishedRenderImmutabilityTest extends TestCase
     // Rendering
     // ---------------------------------------------------------------
 
+    /** The public HTML and the public JSON: both read the published state. */
     private function publicHtml(ContentArea $area): string
     {
         $this->reload();
+        $context = new RenderContext(RenderMode::PUBLIC);
 
-        return $this->renderer(RenderMode::PUBLIC)->render($area, new RenderContext(RenderMode::PUBLIC));
+        return $this->renderer(RenderMode::PUBLIC)->render($area, $context)
+            . "\n" . $this->normalizer()->toJson($area, $context);
+    }
+
+    private function normalizer(): ContentAreaNormalizer
+    {
+        return new ContentAreaNormalizer(
+            $this->renderer(RenderMode::PUBLIC),
+            new BlockDataResolverCollection([new CoreBlockDataResolver()]),
+        );
     }
 
     /** Proves an action did reach the draft, so "unchanged" means something. */

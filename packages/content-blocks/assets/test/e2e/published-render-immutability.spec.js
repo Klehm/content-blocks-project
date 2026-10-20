@@ -17,7 +17,7 @@ import { reveal } from './helpers/sidebar.js';
  * causes at once (the public render honoured the draft `deleted` flag, showed
  * sections that had never been published, and followed a block dragged into
  * another column), so the assertion here is deliberately blunt: the public
- * markup must come back byte for byte.
+ * markup must come back byte for byte. So must the JSON of the same page.
  */
 
 async function createFreshPage(page) {
@@ -110,14 +110,17 @@ test('no builder action changes the published page until Publish', async ({ page
     // The public page, read the way a visitor reads it.
     const publicUrl = builderUrl.replace('/admin/page/', '/page/');
     const viewer = await context.newPage();
+    // The markup and the JSON a headless front reads: both public renders.
     const publicMarkup = async () => {
         await viewer.goto(publicUrl);
+        const json = await viewer.request.get(publicUrl.replace('/page/', '/api/page/'));
 
-        return viewer.locator('.cb-content-area').innerHTML();
+        return await viewer.locator('.cb-content-area').innerHTML() + '\n' + await json.text();
     };
 
     const published = await publicMarkup();
     expect(published).toContain('cb-block');
+    expect(published).toContain('"type":"title"');
 
     // ---- A full editing session, nothing published ----
 

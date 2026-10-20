@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The kit blocks in the headless render** (core 1.6). A block normalizer
+  applies the views' guards to the JSON: `rich_text` sanitized, every link
+  through the `cb_kit_safe_url` check, the `src` of `image`, `gallery`, `card`
+  and the video `poster` through `ImageUrlResolverInterface` with `srcset` /
+  `sizes` beside them, and `embedUrl` on `embed`. `html_raw` is sent as stored.
+
 ## [1.5.0] - 2026-10-20
 
 This release carries, across the three packages: CSS and JS declared by a

@@ -221,6 +221,14 @@ return static function (ContainerConfigurator $container): void {
     // Rendering override seam: host decorates/replaces via the interface.
     $services->alias(ContentBlocks\Rendering\BlockRendererInterface::class, ContentBlocks\Rendering\BlockRenderer::class);
 
+    // The same tree as data. See docs/guide/headless.md
+    $services->set(ContentBlocks\Headless\BlockJsonNormalizerCollection::class)
+        ->args([tagged_iterator('content_blocks.block_json_normalizer')]);
+    $services->set(ContentBlocks\Headless\ContentAreaNormalizer::class);
+    $services->alias(ContentBlocks\Headless\ContentAreaNormalizerInterface::class, ContentBlocks\Headless\ContentAreaNormalizer::class);
+    $services->set(ContentBlocks\Twig\HeadlessExtension::class)
+        ->tag('twig.extension');
+
     // Each registered as its class and aliased to its interface, so a host
     // can decorate any of them without touching the package.
     $services->set(ContentBlocks\Publishing\ContentAreaPublisher::class);

@@ -12,14 +12,14 @@ ContentBlocks follows [semantic versioning](https://semver.org/). From `1.0.0`, 
 
 These are the extension surface: implement them, alias them, decorate them. Their method signatures are frozen, and so is the meaning of what they return.
 
-**Core** (`klehm/content-blocks`), 45 interfaces:
+**Core** (`klehm/content-blocks`), 47 interfaces:
 
 | Area | Interfaces |
 |---|---|
 | Access, preview, pickers | `AccessCheckerInterface`, `ContentAreaUrlResolverInterface`, `ContentAreaProviderInterface`, `SectionTemplateManagerInterface`, `AssetReportViewerInterface` |
 | Blocks | `BlockTypeInterface`, `BlockPreviewHintInterface`, `BlockAssetsInterface`, `BlockDataDefaultsProviderInterface`, `BlockDecoratorInterface`, `BlockFormExtensionInterface`, `TranslatableFieldsInterface` |
 | Sections and columns | `SectionDecoratorInterface`, `SectionSettingsDefaultsProviderInterface`, `SectionStyleProviderInterface`, `SectionClonerInterface`, `BlockCloneObserverInterface`, `ColumnCloneObserverInterface` |
-| Rendering | `BlockRendererInterface`, `BlockDataResolverInterface`, `EntrypointResolverInterface`, `ColumnSettingsResolverInterface`, `ImageUrlResolverInterface` |
+| Rendering | `BlockRendererInterface`, `BlockDataResolverInterface`, `EntrypointResolverInterface`, `ColumnSettingsResolverInterface`, `ImageUrlResolverInterface`, `ContentAreaNormalizerInterface`, `BlockJsonNormalizerInterface` |
 | Content and publishing | `ContentManipulatorInterface`, `ContentAreaPublisherInterface`, `UnpublishedChangesProviderInterface`, `LocaleDraftsProviderInterface` |
 | Builder UI | `BuilderActionProviderInterface`, `BuilderShellExtensionInterface`, `BuilderStructureResolverInterface`, `UiIconProviderInterface`, `ColorPaletteProviderInterface` |
 | Storage and assets | `FileStorageInterface`, `AssetInventoryInterface`, `AssetResolverInterface`, `AssetReferenceProviderInterface` |
@@ -74,6 +74,7 @@ Every key of the three semantic config trees (`content_blocks`, `content_blocks_
   | `content_blocks_i18n_area_publish`, `content_blocks_i18n_area_discard` | `POST` with the CSRF header, one language of an area; a `409` with `error: "source_unpublished"` while the area has a draft of its own, or `"refused"` as above |
 
 - **The export format**, `content-blocks/v1`: any 1.x release imports an export written by an earlier 1.x release.
+- **The data render**, `format: 1` ([Headless rendering](./headless.md)): its keys keep their name and meaning in 1.x. A later release may add keys, never remove or rename one; a client reads what it knows and ignores the rest.
 
 Every other route is how the builder talks to its own server. Its **name** is stable, but its method, payload and response shape are internal.
 
@@ -86,7 +87,7 @@ For `content-blocks:assets:gc`, the *shape* of the safety design is part of the 
 ### Twig
 
 - **Functions**:
-  - core: `cb_render_content_area`, `cb_preview_url`, `cb_public_url`, `cb_api_base`, `cb_color_palette`, `cb_color_tone`, `cb_color_is_dark`, `cb_css_color`, `cb_image`, `cb_ui_icon`, `cb_shell_fragments`, `cb_has_unpublished_changes`
+  - core: `cb_render_content_area`, `cb_preview_url`, `cb_public_url`, `cb_api_base`, `cb_color_palette`, `cb_color_tone`, `cb_color_is_dark`, `cb_css_color`, `cb_image`, `cb_ui_icon`, `cb_shell_fragments`, `cb_has_unpublished_changes`, `cb_content_area_data`, `cb_content_area_json`
   - kit: `cb_embed_url`, `cb_kit_icon`, `cb_kit_token`, `cb_kit_stylesheet_url`
   - i18n: `cb_i18n_workbench_url`, `cb_i18n_locales`, `cb_i18n_progress`, `cb_i18n_hreflang`, `cb_i18n_alternates`
 - **Filters** (kit): `cb_kit_safe_url`, `cb_kit_rich_html`. A template override of a kit view keeps the same guards by using them.

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Headless rendering.** `ContentAreaNormalizerInterface` renders an area as
+  data instead of HTML: sections (layout, display per viewport, settings),
+  columns (span, width, label) and blocks (type, data, order per viewport), in
+  a tree marked `format: 1`. It reads what the HTML render reads, the published
+  state for a visitor and the draft for an editor asking `?cb_preview=1`, and
+  the immutability tests now snapshot the public JSON beside the public HTML.
+  `toJson()` gives the string to send (empty maps stay objects, safe inside
+  `<script>`), and Twig gets `cb_content_area_data()` / `cb_content_area_json()`.
+  No route is shipped: the host decides which pages may be read. A
+  `BlockJsonNormalizerInterface` (autoconfigured, a pipeline) does for a JSON
+  client what a block's view does: resolve URLs, sanitize, expand ids. Guide:
+  `docs/guide/headless.md`.
+
 ## [1.5.0] - 2026-10-20
 
 This release carries, across the three packages: CSS and JS declared by a

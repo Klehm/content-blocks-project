@@ -58,18 +58,7 @@ final class PrefetchingBlockRenderer implements BlockRendererInterface
 
     private function warm(?ContentArea $area, ?RenderContext $context): void
     {
-        if ($area === null) {
-            return;
-        }
-
-        $locale = $this->localeResolver->resolve($context ?? new RenderContext());
-
-        if ($locale === null) {
-            return;
-        }
-
-        foreach ([$locale, ...$this->locales?->getFallbacks($locale) ?? []] as $candidate) {
-            $this->store->prefetchArea($area, $candidate);
-        }
+        (new AreaTranslationPrefetch($this->store, $this->localeResolver, $this->locales))
+            ->warm($area, $context);
     }
 }

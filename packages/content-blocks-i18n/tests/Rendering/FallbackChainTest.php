@@ -7,11 +7,14 @@ namespace ContentBlocks\I18n\Tests\Rendering;
 use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
+use ContentBlocks\Headless\ContentAreaNormalizerInterface;
 use ContentBlocks\I18n\Entity\BlockTranslation;
 use ContentBlocks\I18n\Entity\ColumnTranslation;
 use ContentBlocks\I18n\Locale\RenderLocaleResolverInterface;
 use ContentBlocks\I18n\Locale\TranslationLocales;
+use ContentBlocks\I18n\Rendering\AreaTranslationPrefetch;
 use ContentBlocks\I18n\Rendering\PrefetchingBlockRenderer;
+use ContentBlocks\I18n\Rendering\PrefetchingContentAreaNormalizer;
 use ContentBlocks\I18n\Rendering\TranslationBlockDataResolver;
 use ContentBlocks\I18n\Rendering\TranslationColumnSettingsResolver;
 use ContentBlocks\I18n\Repository\BlockTranslationRepository;
@@ -165,6 +168,21 @@ final class FallbackChainTest extends TestCase
         $renderer->render(Entities::area(1, Entities::block(1)));
 
         $this->assertSame(['pt_BR', 'pt_PT', 'es'], $this->prefetched);
+    }
+
+    public function testTheDataRenderIsWarmedTheSameWay(): void
+    {
+        $inner = $this->createMock(ContentAreaNormalizerInterface::class);
+        $inner->method('toJson')->willReturn('{}');
+
+        $normalizer = new PrefetchingContentAreaNormalizer($inner, new AreaTranslationPrefetch(
+            $this->store(),
+            $this->localeResolver('pt_BR'),
+            $this->locales(['pt_BR' => ['pt_PT']]),
+        ));
+        $normalizer->toJson(Entities::area(1, Entities::block(1)));
+
+        $this->assertSame(['pt_BR', 'pt_PT'], $this->prefetched);
     }
 
     // ---------- doubles ----------
