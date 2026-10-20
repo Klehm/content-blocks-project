@@ -92,6 +92,34 @@ final class ContentSchemaBuilder
     }
 
     /**
+     * The JSON Schema of one field of a block's data, by its dotted path
+     * (`items.0.title`), or null when the type or the path is unknown.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function fieldSchema(string $type, string $path, ?string $locale = null): ?array
+    {
+        if (!$this->registry->has($type) || $path === '') {
+            return null;
+        }
+
+        $schema = $this->blockData($this->registry->get($type), $locale);
+        foreach (explode('.', $path) as $segment) {
+            if (($schema['type'] ?? null) === 'array' && ctype_digit($segment)) {
+                $schema = \is_array($schema['items'] ?? null) ? $schema['items'] : null;
+            } else {
+                $properties = $schema['properties'] ?? null;
+                $schema = \is_array($properties) && \is_array($properties[$segment] ?? null) ? $properties[$segment] : null;
+            }
+            if ($schema === null) {
+                return null;
+            }
+        }
+
+        return $schema;
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private function layoutList(?string $locale): array

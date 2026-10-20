@@ -69,3 +69,18 @@ services:
     # Remove this provider and the workbench renders no ⚡ button, no "translate
     # this page" and no engine picker — the unconfigured state, which is what a
     # host sees before wiring its own.
+
+    # ---- AI actions --------------------------------------------------------
+    #
+    # One provider — App\Ai\DemoAiProvider, deterministic and offline — picked
+    # up through the core's AiProviderInterface autoconfiguration. Same stance
+    # as translation: no model, no vendor SDK. Remove it and the builder shows
+    # no ✦ button and no Generate dialog. Each action can also be switched off
+    # on its own under `content_blocks.ai.actions`.
+    App\Ai\DemoAiProvider:
+        arguments:
+            $debug: '%kernel.debug%'
+
+    # What every AI request knows about the page: its title.
+    ContentBlocks\Ai\AiBriefProviderInterface:
+        alias: App\Ai\PageBriefProvider

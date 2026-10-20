@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Twig;
 
+use ContentBlocks\Ai\AiFeatures;
 use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
 use ContentBlocks\Section\SectionLayout;
 use ContentBlocks\Section\SectionLayoutRegistry;
+use ContentBlocks\Twig\AiExtension;
 use ContentBlocks\Twig\BuilderStructureExtension;
 use ContentBlocks\Twig\SectionLayoutExtension;
 use PHPUnit\Framework\TestCase;
@@ -103,6 +105,7 @@ final class SectionLayoutExtensionTest extends TestCase
         }));
         $env->addExtension(new SectionLayoutExtension($registry));
         $env->addExtension(new BuilderStructureExtension(new ConfiguredBuilderStructureResolver()));
+        $env->addExtension(new AiExtension(new AiFeatures()));
 
         return $env;
     }

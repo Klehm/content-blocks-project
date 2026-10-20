@@ -38,6 +38,10 @@ export default class Keyboard {
         if (this.hasActionsMenuTarget && !this.actionsMenuTarget.contains(target)) {
             this.closeActions();
         }
+        if (this.hasAiPopoverTarget && !this.aiPopoverTarget.hidden
+            && !this.aiPopoverTarget.contains(target) && !target?.closest?.('.cb-ai-trigger')) {
+            this.closeAiPopover();
+        }
         if (target instanceof Element && target.classList?.contains('cb-modal-backdrop')) {
             this._closeTopModal();
         }
@@ -76,6 +80,14 @@ export default class Keyboard {
      * library is not one: it lives in the sidebar, not over it.
      */
     _closeTopModal() {
+        if (this.hasAiPopoverTarget && !this.aiPopoverTarget.hidden) {
+            this.closeAiPopover();
+            return true;
+        }
+        if (this.hasAiDialogTarget && this.aiDialogTarget.open) {
+            this.closeAiDialog();
+            return true;
+        }
         if (this.hasReplacePickerTarget && !this.replacePickerTarget.hidden) {
             this.closeReplacePicker();
             return true;

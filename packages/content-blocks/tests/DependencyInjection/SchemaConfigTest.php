@@ -19,8 +19,8 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 
 /**
- * The `content_blocks.schema` node, and the `role` a palette entry and a
- * section style carry into the content schema.
+ * The `content_blocks.schema` and `content_blocks.ai` nodes, and the `role`
+ * a palette entry and a section style carry into the content schema.
  */
 final class SchemaConfigTest extends TestCase
 {
@@ -48,6 +48,45 @@ final class SchemaConfigTest extends TestCase
         $this->expectException(InvalidConfigurationException::class);
 
         $this->processConfig(['schema' => ['examples' => -1]]);
+    }
+
+    public function testEveryAiActionIsOnByDefault(): void
+    {
+        $container = $this->build([]);
+
+        $this->assertSame(
+            array_fill_keys(['rewrite', 'shorten', 'tone', 'alt_text', 'section', 'page', 'apply'], true),
+            $container->getParameter('content_blocks.ai.actions'),
+        );
+        $this->assertSame(\ContentBlocks\Ai\AiFeatures::DEFAULT_TONES, $container->getParameter('content_blocks.ai.tones'));
+        $this->assertSame(8, $container->getParameter('content_blocks.ai.max_sections'));
+    }
+
+    public function testEachAiActionIsSwitchedOffOnItsOwn(): void
+    {
+        $actions = $this->build(['ai' => ['actions' => ['page' => false, 'alt_text' => false]]])
+            ->getParameter('content_blocks.ai.actions');
+
+        $this->assertIsArray($actions);
+        $this->assertFalse($actions['page']);
+        $this->assertFalse($actions['alt_text']);
+        $this->assertTrue($actions['section']);
+    }
+
+    public function testAiFalseSwitchesEveryActionOff(): void
+    {
+        $actions = $this->build(['ai' => false])->getParameter('content_blocks.ai.actions');
+
+        $this->assertIsArray($actions);
+        $this->assertSame([], array_filter($actions));
+    }
+
+    public function testTonesAndTheSectionCapAreConfigured(): void
+    {
+        $container = $this->build(['ai' => ['tones' => ['formal'], 'max_sections' => 3]]);
+
+        $this->assertSame(['formal'], $container->getParameter('content_blocks.ai.tones'));
+        $this->assertSame(3, $container->getParameter('content_blocks.ai.max_sections'));
     }
 
     public function testAPaletteEntryCarriesItsRoleToTheProvider(): void

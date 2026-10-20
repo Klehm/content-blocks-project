@@ -21,6 +21,7 @@ import TemplatePoster from '../builder/template-poster.js';
 import Tree from '../builder/tree.js';
 import ImportExport from '../builder/import-export.js';
 import Strings from '../builder/strings.js';
+import Ai from '../builder/ai.js';
 
 /**
  * Bridges the parent admin window with the iframe preview and the sidebar, and
@@ -61,6 +62,13 @@ class BuilderController extends Controller {
         'viewportOrder',
         'viewportOrderLabel',
         'viewportOrderReset',
+        'ai',
+        'aiPopover',
+        'aiDialog',
+        'aiPrompt',
+        'aiReplace',
+        'aiStatus',
+        'aiSubmit',
     ];
 
     static values = {
@@ -308,4 +316,5 @@ export default mix(
     Tree,
     ImportExport,
     Strings,
+    Ai,
 );

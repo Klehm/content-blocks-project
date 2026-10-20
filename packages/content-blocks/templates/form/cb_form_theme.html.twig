@@ -370,13 +370,34 @@
     {%- if block_prefixes is defined and 'range' in block_prefixes -%}
         {%- set row_class = (row_class ~ ' cb-form-row--range')|trim -%}
     {%- endif -%}
+    {%- if cb_ai|default(null) is not empty -%}
+        {%- set row_class = (row_class ~ ' cb-form-row--ai')|trim -%}
+    {%- endif -%}
     <{{ element|default('div') }}{% with {attr: row_attr|merge({class: row_class})} %}{{ block('attributes') }}{% endwith %}>
         {{- form_label(form) -}}
+        {%- if cb_ai|default(null) is not empty -%}
+            {{- block('_cb_ai_trigger') -}}
+        {%- endif -%}
         {{- form_widget(form, widget_attr) -}}
         {{- form_help(form) -}}
         {{- form_errors(form) -}}
     </{{ element|default('div') }}>
 {%- endblock form_row %}
+
+
+{# `cb_ai`: set by AiFieldTypeExtension when an AI action can fill the
+   field. The menu it opens is built by assets/builder/ai.js. #}
+{% block _cb_ai_trigger -%}
+    <button type="button"
+            class="cb-ai-trigger"
+            data-action="cb-builder#openAiField"
+            data-cb-builder-kind-param="{{ cb_ai }}"
+            data-cb-builder-field-param="{{ id }}"
+            {%- if cb_ai_image is defined %} data-cb-builder-image-param="{{ cb_ai_image }}"{% endif %}
+            aria-haspopup="dialog"
+            title="{{ 'cb.ai.field.trigger'|trans({}, 'content_blocks') }}"
+            aria-label="{{ 'cb.ai.field.trigger'|trans({}, 'content_blocks') }}">✦</button>
+{%- endblock _cb_ai_trigger %}
 
 
 {# A standalone checkbox already labels itself beside the box, so the

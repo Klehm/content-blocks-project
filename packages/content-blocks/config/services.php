@@ -74,6 +74,10 @@ return static function (ContainerConfigurator $container): void {
         ->set('content_blocks.structure.sections', 'editable')
         ->set('content_blocks.structure.columns', true)
         // Read by ContentSchemaBuilder and the schema command / endpoint.
+        // Read by AiFeatures; normally fed by `content_blocks.ai`.
+        ->set('content_blocks.ai.actions', [])
+        ->set('content_blocks.ai.tones', ContentBlocks\Ai\AiFeatures::DEFAULT_TONES)
+        ->set('content_blocks.ai.max_sections', 8)
         ->set('content_blocks.schema.block_purposes', [])
         ->set('content_blocks.schema.examples', 3)
         // List of {label, color} entries; normally fed by the bundle's
@@ -111,6 +115,9 @@ return static function (ContainerConfigurator $container): void {
         ->bind('string $structureSections', '%content_blocks.structure.sections%')
         ->bind('bool $structureColumns', '%content_blocks.structure.columns%')
         ->bind('array $schemaBlockPurposes', '%content_blocks.schema.block_purposes%')
+        ->bind('array $aiActions', '%content_blocks.ai.actions%')
+        ->bind('array $aiTones', '%content_blocks.ai.tones%')
+        ->bind('int $aiMaxSections', '%content_blocks.ai.max_sections%')
         ->bind('int $schemaExamples', '%content_blocks.schema.examples%')
         // ContentAreaTouchListener takes this one positionally.
         ->bind('int $contentVersion', '%content_blocks.content_version%')
@@ -314,6 +321,15 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ContentBlocks\Schema\ContentSchemaBuilder::class);
     $services->set(ContentBlocks\Command\SchemaCommand::class);
 
+    // AI actions: inert until a host registers an AiProviderInterface.
+    // See docs/guide/ai.md
+    $services->set(ContentBlocks\Ai\AiFeatures::class)
+        ->arg('$aiProviders', tagged_iterator('content_blocks.ai_provider'));
+    $services->set(ContentBlocks\Ai\NullAiBriefProvider::class);
+    $services->alias(ContentBlocks\Ai\AiBriefProviderInterface::class, ContentBlocks\Ai\NullAiBriefProvider::class);
+    $services->set(ContentBlocks\Ai\GeneratedContentWriter::class);
+    $services->set(ContentBlocks\Command\ApplyGeneratedCommand::class);
+
     // What editors may do to sections and columns; a host varies it by area.
     $services->set(ContentBlocks\Builder\ConfiguredBuilderStructureResolver::class);
     $services->alias(
@@ -479,6 +495,9 @@ return static function (ContainerConfigurator $container): void {
         ->tag('twig.extension');
 
     $services->set(ContentBlocks\Twig\BuilderStructureExtension::class)
+        ->tag('twig.extension');
+
+    $services->set(ContentBlocks\Twig\AiExtension::class)
         ->tag('twig.extension');
 
     // The area's draft, or one a bundle keeps beside it (a translation).

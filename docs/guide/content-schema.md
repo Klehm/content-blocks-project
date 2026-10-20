@@ -42,7 +42,7 @@ No model and no vendor SDK ship with the package: the schema is what you hand to
 
 The JSON Schema of each block's `data` is **derived from the block's own form**, the same form that validates the data when an editor saves it. Field types, the values a choice offers, `Length`, `Count` and `Range` limits, collections and their entries, labels and help texts all come from there. A host's block form extensions and the block styling fields come along. When you change a form, the schema changes with it.
 
-The schema still guides the model; it does not vouch for what comes back. Generated content has to go back in through the paste path, which replays each block through its form: an undeclared key is dropped, and a refused value falls back to the type's default.
+The schema still guides the model; it does not vouch for what comes back. Generated content goes back in through the paste path, which replays each block through its form: an undeclared key is dropped, and a refused value falls back to the type's default. From the builder that is the **Generate** button; from a pipeline it is `content-blocks:ai:apply`. See [AI actions](./ai.md).
 
 ## Block purposes
 

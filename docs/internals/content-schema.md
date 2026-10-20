@@ -40,4 +40,4 @@ Reserved keys (`_id`, `_order`, `_lang`…) are stripped recursively: the schema
 
 - **No screenshots.** They go stale with the CSS and teach little a purpose does not. A visual review belongs to the generation loop (render with `cb_chrome=0`, capture, critique).
 - **No preset settings.** A model picks a preset by `styleName`; repeating its settings would invite it to copy them into `styling` and lose the preset.
-- **No way back in yet.** The schema describes the `section-v1` payload the paste path replays. Writing a generated page to the draft is the next step of the roadmap entry.
+- **No way back in of its own.** The schema describes the `section-v1` payload the paste path replays, and `GeneratedContentWriter` is that path ([ai.md](ai.md#the-way-back-in)).

@@ -52,6 +52,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`FieldSchemaContributorInterface`**, autoconfigured, for a form field type
   whose stored value is not its children (the core's colour and upload fields
   ship one each).
+- **AI actions, each switched on or off on its own.** With a provider
+  registered (`AiProviderInterface`, autoconfigured; none ships), the builder
+  offers a ✦ menu beside prose fields (rewrite, shorten, change the tone) and
+  beside an image's `alt` (describe the image), and a topbar **Generate**
+  dialog that writes a section after the selected one or a whole page,
+  appended or in place of the draft. A field proposal is applied only on
+  *Replace*; generated sections go through the paste replay into the draft,
+  as one undo step. Without a provider nothing is drawn and the endpoints
+  (`content_blocks_ai_text`, `_alt_text`, `_content`) answer 404.
+  `content_blocks.ai.actions.<action>: false` switches one off, `ai: false`
+  all of them; `ai.tones` and `ai.max_sections` tune the rest.
+  `AiBriefProviderInterface` hands every request what the host knows about the
+  page. See [AI actions](../../docs/guide/ai.md).
+- **`content-blocks:ai:apply <area> [file]`** writes a `{"sections": [...]}`
+  document produced by your own pipeline or MCP server to an area's draft,
+  through the same replay (`--after`, `--replace`). `GeneratedContentWriter` is
+  the same from PHP.
+- **`cb_ai` form option** (`text`, `html`, `alt`, `false`) and the
+  `cb:field:set` event a rich-text editor cancels to take a value set from
+  outside.
 
 ## [1.5.0] - 2026-10-20
 
