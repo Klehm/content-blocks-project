@@ -1,0 +1,18 @@
+cb_media:
+    picker:
+        title_image: "Choisir une image"
+        title_video: "Choisir une vidéo"
+        search: "Rechercher dans la bibliothèque"
+        close: "Fermer"
+        folders: "Dossiers"
+        files: "Fichiers"
+        root: "Bibliothèque"
+        empty: "Rien ici pour l'instant. Envoyez un fichier pour commencer la bibliothèque."
+        no_match: "Aucun fichier ne correspond à cette recherche."
+        loading: "Chargement…"
+        failed: "La bibliothèque n'a pas pu être chargée."
+        more: "Afficher plus"
+        upload: "Envoyer un fichier"
+        uploading: "Envoi en cours…"
+        upload_failed: "L'envoi a échoué."
+        insert: "Insérer"

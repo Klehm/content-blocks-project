@@ -3,9 +3,9 @@ import { launchBuilder } from './helpers/builder.js';
 
 /**
  * The core half of the media library: *Browse library* shows only for the
- * kinds a MediaLibraryInterface supports, and what a dialog hands to
- * `pick()` reaches the draft like an upload. The sandbox's E2eMediaLibrary
- * reads the kinds from a cookie; the dialog is a listener the test installs.
+ * kinds a MediaLibraryInterface supports. The sandbox's E2eMediaLibrary
+ * reads the kinds from a cookie; media-library-picker.spec.js drives the
+ * dialog that answers the button.
  */
 
 async function createFreshPage(page) {
@@ -35,51 +35,12 @@ async function addBlock(page, label) {
 
 test('no library, no browse button', async ({ page }) => {
     await page.goto(await createFreshPage(page));
+    await withLibrary(page, 'none');
     await launchBuilder(page);
     await addBlock(page, /^Image$/);
 
     await expect(page.locator('.cb-image-upload').first()).toBeVisible();
     await expect(page.locator('.cb-image-upload__browse')).toHaveCount(0);
-});
-
-test('a picked file fills the field and its empty alt, then saves', async ({ page }) => {
-    await page.goto(await createFreshPage(page));
-    await withLibrary(page, 'image');
-    await launchBuilder(page);
-    const frame = await addBlock(page, /^Image$/);
-
-    // Stands for the dialog a library ships as a shell fragment.
-    await page.evaluate(() => {
-        document.addEventListener('cb:media:browse', (event) => {
-            event.preventDefault();
-            window.__browsed = { kind: event.detail.kind, value: event.detail.value };
-            event.detail.pick({ path: '/uploads/library/logo.png', alt: 'Our logo' });
-        });
-    });
-
-    const widget = page.locator('.cb-image-upload').first();
-    await widget.locator('.cb-image-upload__browse').click();
-
-    expect(await page.evaluate(() => window.__browsed)).toEqual({ kind: 'image', value: '' });
-    await expect(widget.locator('input[type=hidden]')).toHaveValue('/uploads/library/logo.png');
-    await expect(page.locator('input[name$="[alt]"]').first()).toHaveValue('Our logo');
-
-    // The draft render is the proof both fields were saved, not just typed.
-    await expect(frame.locator('[data-cb-block-id] img').first()).toHaveAttribute('alt', 'Our logo');
-    await expect(frame.locator('[data-cb-block-id] img').first()).toHaveAttribute('src', /logo\.png/);
-});
-
-test('an unclaimed browse says no library answered', async ({ page }) => {
-    await page.goto(await createFreshPage(page));
-    await withLibrary(page, 'image');
-    await launchBuilder(page);
-    await addBlock(page, /^Image$/);
-
-    const widget = page.locator('.cb-image-upload').first();
-    await widget.locator('.cb-image-upload__browse').click();
-
-    await expect(widget.locator('.cb-upload-status--error')).toBeVisible();
-    await expect(widget.locator('input[type=hidden]')).toHaveValue('');
 });
 
 test('the button follows the kinds the library supports', async ({ page }) => {

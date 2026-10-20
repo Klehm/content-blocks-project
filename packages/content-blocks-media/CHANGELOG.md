@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`content-blocks-media:import`** takes in the files stored before the
   package: by default the ones some content uses, `--all` for every file,
   `--dry-run` to see what it would add.
+- **The picker**, a builder shell fragment answering *Browse library*: the
+  files of the field's kind, newest first, with search, folders, upload into
+  the current folder and *Insert* (or a double click). It needs no Stimulus
+  controller and no asset build: its script and stylesheet are served by the
+  package. Routes under `/_content-blocks/media` by default,
+  `config/routes/bare.php` to mount them elsewhere.
 - `content_blocks_media.kinds` (`[image, video]` by default) picks the fields
   that offer *Browse library*.
 

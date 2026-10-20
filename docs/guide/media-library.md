@@ -114,6 +114,21 @@ content_blocks_media:
     kinds: [image, video]   # the fields that offer Browse library
 ```
 
+The picker's routes mount under `/_content-blocks/media`, beside the builder's.
+If your admin sits behind a firewall, mount them where it covers them, like the
+builder's own ([Mounting the routes](./routing.md)); route names stay the same:
+
+```yaml
+# config/routes/content_blocks_media.yaml
+content_blocks_media:
+    resource: '@ContentBlocksMediaBundle/config/routes/bare.php'
+    prefix: /admin/media
+```
+
+*Browse library* then opens the package's picker: search, folders, upload into
+the folder you are in, and *Insert*. Its access rule is the upload endpoint's:
+an editor who may edit the page may browse the library.
+
 ### Files uploaded before the library
 
 Files stored before the package was installed have no row yet. Take them in

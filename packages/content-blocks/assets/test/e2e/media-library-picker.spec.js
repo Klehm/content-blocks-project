@@ -1,0 +1,157 @@
+import { test, expect } from './helpers/test.js';
+import { launchBuilder } from './helpers/builder.js';
+
+/**
+ * The media library's picker (klehm/content-blocks-media), a shell fragment
+ * answering *Browse library*: upload into the library, find a file again,
+ * insert it. Its keys must stay its own while the builder sits behind it.
+ */
+
+// A real 120x80 PNG: the library reads its dimensions off the bytes.
+const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAHgAAABQCAIAAABd+SbeAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAzElEQVR4nO3QQRHAIADAMEDmhKEJWVOx8liioNf57DP43rod8BdGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOjIC6DdAlg7BAetAAAAAElFTkSuQmCC';
+
+async function createFreshPage(page) {
+    const slug = `e2e-picker-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const r = await page.request.post('/page/create', { form: { title: `E2E ${slug}`, slug }, maxRedirects: 0 });
+    const location = r.headers()['location'];
+    if (!location) throw new Error('Page create did not redirect');
+    return location;
+}
+
+async function addBlock(page, label) {
+    const frame = page.frameLocator('.cb-shell__iframe');
+    await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
+    await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);
+    await page.waitForTimeout(300);
+    await frame.locator('.cb-add-block-inline').first().click();
+    await frame.locator('.cb-overlay-popover button', { hasText: label }).click();
+    await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
+
+    return frame;
+}
+
+/** A unique name, so files other specs uploaded never match a search. */
+function pngNamed(prefix) {
+    return {
+        name: `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.png`,
+        mimeType: 'image/png',
+        buffer: Buffer.from(PNG_BASE64, 'base64'),
+    };
+}
+
+async function openPicker(page) {
+    await page.locator('.cb-image-upload').first().locator('.cb-image-upload__browse').click();
+    const dialog = page.locator('dialog.cb-media');
+    await expect(dialog).toBeVisible();
+
+    return dialog;
+}
+
+async function uploadInPicker(dialog, file) {
+    await dialog.locator('[data-cb-media-file]').setInputFiles(file);
+    const title = file.name.replace(/\.png$/, '');
+    const item = dialog.locator('.cb-media__item', { hasText: title });
+    await expect(item).toHaveAttribute('aria-pressed', 'true');
+
+    return item;
+}
+
+test('a file uploaded in the picker is selected, then inserted', async ({ page }) => {
+    await page.goto(await createFreshPage(page));
+    await launchBuilder(page);
+    const frame = await addBlock(page, /^Image$/);
+
+    const dialog = await openPicker(page);
+    await expect(dialog.locator('.cb-media__title')).toHaveText(/image/i);
+
+    const file = pngNamed('picker-upload');
+    await uploadInPicker(dialog, file);
+    await expect(dialog.locator('[data-cb-media-selection]')).toContainText('120 × 80');
+
+    await dialog.locator('[data-cb-media-insert]').click();
+    await expect(dialog).toBeHidden();
+
+    const hidden = page.locator('.cb-image-upload').first().locator('input[type=hidden]');
+    await expect(hidden).toHaveValue(/^\/uploads\/.+\.png$/);
+    // Saved, not only typed: the draft render shows the picked file.
+    const stored = await hidden.inputValue();
+    const name = stored.split('/').pop().replace(/\.png$/, '');
+    await expect(frame.locator('[data-cb-block-id] img').first()).toHaveAttribute('src', new RegExp(name));
+});
+
+test('a file already in the library is found again by search', async ({ page }) => {
+    await page.goto(await createFreshPage(page));
+    await launchBuilder(page);
+    await addBlock(page, /^Image$/);
+
+    const dialog = await openPicker(page);
+    const wanted = pngNamed('findme');
+    const other = pngNamed('another');
+    await uploadInPicker(dialog, wanted);
+    await uploadInPicker(dialog, other);
+    await dialog.locator('.cb-media__close').click();
+    await expect(dialog).toBeHidden();
+
+    await openPicker(page);
+    await dialog.locator('[data-cb-media-search]').fill(wanted.name.slice(0, 20));
+    const items = dialog.locator('.cb-media__item');
+    await expect(items).toHaveCount(1);
+    await expect(items.first()).toContainText(wanted.name.replace(/\.png$/, ''));
+
+    await items.first().dblclick();
+    await expect(dialog).toBeHidden();
+    await expect(page.locator('.cb-image-upload').first().locator('input[type=hidden]')).toHaveValue(/\.png$/);
+});
+
+test('the picker lists only the kind of the field that opened it', async ({ page }) => {
+    await page.goto(await createFreshPage(page));
+    await launchBuilder(page);
+    await addBlock(page, /^(Vidéo|Video)$/);
+
+    // Other specs filled the library with PNGs: none may show for a video.
+    const videoField = page.locator('.cb-image-upload').filter({ has: page.locator('video') });
+    await videoField.locator('.cb-image-upload__browse').click();
+    const dialog = page.locator('dialog.cb-media');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('.cb-media__title')).toHaveText(/vid/i);
+    await expect(dialog.locator('[data-cb-media-status]')).not.toHaveText(/Chargement|Loading/);
+    await expect(dialog.locator('.cb-media__item img')).toHaveCount(0);
+    await expect(dialog.locator('[data-cb-media-file]')).toHaveAttribute('accept', /video/);
+});
+
+test('Escape closes the picker, not the Navigator behind it', async ({ page }) => {
+    await page.goto(await createFreshPage(page));
+    await launchBuilder(page);
+    await addBlock(page, /^Image$/);
+
+    await page.locator('.cb-shell__tree-toggle').click();
+    await expect(page.locator('.cb-tree')).toBeVisible();
+
+    const dialog = await openPicker(page);
+    await page.keyboard.press('Escape');
+
+    await expect(dialog).toBeHidden();
+    await expect(page.locator('.cb-tree')).toBeVisible();
+});
+
+test('the builder shortcuts do not act behind the picker', async ({ page }) => {
+    await page.goto(await createFreshPage(page));
+    await launchBuilder(page);
+    const frame = await addBlock(page, /^Image$/);
+
+    // Something to paste, so a leaked Ctrl-V would add a block. The sidebar
+    // shows the new block already, and a copy yields to a focused field.
+    await expect(page.locator('.cb-shell__sidebar')).toHaveAttribute('data-cb-sidebar-block-id', /\d+/);
+    await page.evaluate(() => document.activeElement?.blur());
+    await page.keyboard.press('Control+c');
+    await expect(page.locator('.cb-shell__undo')).toBeVisible();
+
+    const dialog = await openPicker(page);
+    const item = await uploadInPicker(dialog, pngNamed('shortcut'));
+    await item.focus();
+    await page.keyboard.press('Control+v');
+    await page.waitForTimeout(500);
+
+    await expect(dialog).toBeVisible();
+    expect(await frame.locator('[data-cb-block-id]').count()).toBe(1);
+});

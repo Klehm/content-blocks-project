@@ -1,0 +1,6 @@
+# Media library routes (the picker's API and its script and stylesheet),
+# mounted beside the builder's own under /admin, so one firewall pattern
+# covers both. `routes/bare.php` is the package's file with no prefix.
+content_blocks_media:
+    resource: '@ContentBlocksMediaBundle/config/routes/bare.php'
+    prefix: /admin/media

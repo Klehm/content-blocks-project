@@ -1,0 +1,18 @@
+cb_media:
+    picker:
+        title_image: "Pick an image"
+        title_video: "Pick a video"
+        search: "Search the library"
+        close: "Close"
+        folders: "Folders"
+        files: "Files"
+        root: "Library"
+        empty: "Nothing here yet. Upload a file to start the library."
+        no_match: "No file matches this search."
+        loading: "Loading…"
+        failed: "The library could not be loaded."
+        more: "Show more"
+        upload: "Upload a file"
+        uploading: "Uploading…"
+        upload_failed: "The upload failed."
+        insert: "Insert"

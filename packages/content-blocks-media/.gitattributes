@@ -4,3 +4,7 @@
 /tests export-ignore
 /phpunit.xml.dist export-ignore
 /composer.lock export-ignore
+/assets/test export-ignore
+/vitest.config.js export-ignore
+/package.json export-ignore
+/package-lock.json export-ignore

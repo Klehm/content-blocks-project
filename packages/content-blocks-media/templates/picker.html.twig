@@ -1,0 +1,55 @@
+{# The media picker: a <dialog> answering `cb:media:browse`. Self-contained:
+   its URLs and token are its own, so the i18n workbench can render it too. #}
+{% trans_default_domain 'content_blocks_media' %}
+<link rel="stylesheet" href="{{ path('content_blocks_media_asset', {type: 'css', v: assetVersions.css}) }}">
+<dialog class="cb-media" data-cb-media
+        aria-labelledby="cb-media-title-{{ area.id }}"
+        data-area="{{ area.id }}"
+        data-kinds="{{ kinds|json_encode }}"
+        data-list-url="{{ path('content_blocks_media_list') }}"
+        data-place-url="{{ path('content_blocks_media_place') }}"
+        data-upload-url="{{ path('content_blocks_upload') }}"
+        data-csrf-token="{{ csrf_token('content_blocks') }}"
+        data-i18n="{{ {
+            image: 'cb_media.picker.title_image'|trans,
+            video: 'cb_media.picker.title_video'|trans,
+            empty: 'cb_media.picker.empty'|trans,
+            no_match: 'cb_media.picker.no_match'|trans,
+            loading: 'cb_media.picker.loading'|trans,
+            failed: 'cb_media.picker.failed'|trans,
+            uploading: 'cb_media.picker.uploading'|trans,
+            upload_failed: 'cb_media.picker.upload_failed'|trans,
+            root: 'cb_media.picker.root'|trans,
+        }|json_encode }}">
+    <form method="dialog" class="cb-media__frame">
+        <header class="cb-media__header">
+            <h2 class="cb-media__title" id="cb-media-title-{{ area.id }}" data-cb-media-title></h2>
+            <input type="search" class="cb-media__search" data-cb-media-search
+                   placeholder="{{ 'cb_media.picker.search'|trans }}"
+                   aria-label="{{ 'cb_media.picker.search'|trans }}">
+            <button type="submit" value="cancel" class="cb-media__close"
+                    aria-label="{{ 'cb_media.picker.close'|trans }}"
+                    title="{{ 'cb_media.picker.close'|trans }}">×</button>
+        </header>
+
+        <nav class="cb-media__trail" data-cb-media-trail aria-label="{{ 'cb_media.picker.folders'|trans }}"></nav>
+
+        <div class="cb-media__body">
+            <ul class="cb-media__folders" data-cb-media-folders></ul>
+            <ul class="cb-media__grid" data-cb-media-grid
+                aria-label="{{ 'cb_media.picker.files'|trans }}"></ul>
+            <p class="cb-media__status" data-cb-media-status role="status" aria-live="polite"></p>
+            <button type="button" class="cb-media__btn cb-media__more" data-cb-media-more hidden>{{ 'cb_media.picker.more'|trans }}</button>
+        </div>
+
+        <footer class="cb-media__footer">
+            <label class="cb-media__btn">
+                {{ 'cb_media.picker.upload'|trans }}
+                <input type="file" class="cb-media__file" data-cb-media-file>
+            </label>
+            <p class="cb-media__selection" data-cb-media-selection></p>
+            <button type="button" class="cb-media__btn cb-media__btn--primary" data-cb-media-insert disabled>{{ 'cb_media.picker.insert'|trans }}</button>
+        </footer>
+    </form>
+</dialog>
+<script type="module" src="{{ path('content_blocks_media_asset', {type: 'js', v: assetVersions.js}) }}"></script>
