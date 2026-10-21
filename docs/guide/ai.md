@@ -94,6 +94,8 @@ Both are draft deletes, so `Ctrl/Cmd-Z` or *Revert to published* bring the old v
 
 When a call fails, throw. The builder says *The AI service did not answer* and the error is logged. The exception's message is never sent to the browser, since it may hold a key or a URL.
 
+To write a site's first pages before launch with a real model and no API key, see the development-only recipe [Claude Code as an AI provider](./recipes/claude-code-ai-provider.md).
+
 Several providers can be registered; the first one answers. To choose among them, decorate one of them or register a single provider.
 
 ## The actions

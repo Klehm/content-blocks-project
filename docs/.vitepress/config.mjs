@@ -100,6 +100,7 @@ export default defineConfig({
             { text: 'Compress images (WebP)', link: '/guide/recipes/liip-imagine' },
             { text: 'Compress images (Glide)', link: '/guide/recipes/glide' },
             { text: 'Machine translation', link: '/guide/recipes/translation-provider' },
+            { text: 'Claude Code as AI provider (dev)', link: '/guide/recipes/claude-code-ai-provider' },
           ],
         },
       ],
