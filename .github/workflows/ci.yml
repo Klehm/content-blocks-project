@@ -577,12 +577,27 @@ jobs:
         working-directory: packages/content-blocks
         run: npm ci
 
+      - name: Install the fixture server (Caddy + php-fpm)
+        # php-fpm of the job's own PHP, so the browser suite runs the version
+        # under test. See docs/internals/testing.md#the-fixture-server
+        run: |
+          v=$(php -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')
+          if ! command -v "php-fpm$v" >/dev/null && [ ! -x "/usr/sbin/php-fpm$v" ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q --no-install-recommends "php$v-fpm"
+          fi
+          curl -fsSL https://github.com/caddyserver/caddy/releases/download/v2.10.0/caddy_2.10.0_linux_amd64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin caddy
+          caddy version
+
       - name: Install Playwright browsers
         working-directory: packages/content-blocks
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright
         working-directory: packages/content-blocks
+        env:
+          E2E_SERVER: fpm
         run: npm run test:e2e
 
       - name: Upload Playwright report on failure
@@ -646,12 +661,27 @@ jobs:
         working-directory: packages/content-blocks
         run: npm ci
 
+      - name: Install the fixture server (Caddy + php-fpm)
+        # php-fpm of the job's own PHP, so the browser suite runs the version
+        # under test. See docs/internals/testing.md#the-fixture-server
+        run: |
+          v=$(php -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')
+          if ! command -v "php-fpm$v" >/dev/null && [ ! -x "/usr/sbin/php-fpm$v" ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q --no-install-recommends "php$v-fpm"
+          fi
+          curl -fsSL https://github.com/caddyserver/caddy/releases/download/v2.10.0/caddy_2.10.0_linux_amd64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin caddy
+          caddy version
+
       - name: Install Playwright browsers
         working-directory: packages/content-blocks
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright
         working-directory: packages/content-blocks
+        env:
+          E2E_SERVER: fpm
         run: npm run test:e2e
 
       - name: Upload Playwright report on failure
@@ -724,12 +754,27 @@ jobs:
         working-directory: packages/content-blocks
         run: npm ci
 
+      - name: Install the fixture server (Caddy + php-fpm)
+        # php-fpm of the job's own PHP, so the browser suite runs the version
+        # under test. See docs/internals/testing.md#the-fixture-server
+        run: |
+          v=$(php -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')
+          if ! command -v "php-fpm$v" >/dev/null && [ ! -x "/usr/sbin/php-fpm$v" ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q --no-install-recommends "php$v-fpm"
+          fi
+          curl -fsSL https://github.com/caddyserver/caddy/releases/download/v2.10.0/caddy_2.10.0_linux_amd64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin caddy
+          caddy version
+
       - name: Install Playwright browsers
         working-directory: packages/content-blocks
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright (Encore suite)
         working-directory: packages/content-blocks
+        env:
+          E2E_SERVER: fpm
         run: npx playwright test --config=playwright.encore.config.js
 
       - name: Upload Playwright report on failure

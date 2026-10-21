@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test';
+import { fixtureServer } from './playwright.server.js';
 
 /**
  * The *install path* under a bundler we do not develop against daily — not
@@ -25,12 +26,7 @@ export default defineConfig({
         // worker, restart-loop and `_e2e` reasoning: docs/internals/testing.md
         command: `export SANDBOX_SUFFIX=${SUFFIX}`
             + ' && ../../scripts/demo.sh reset encore && '
-            + `while true; do PHP_CLI_SERVER_WORKERS=8 php -S 127.0.0.1:${PORT}`
-            + ' -t ../../apps/content-blocks-encore-sandbox/public'
-            + ' ../../apps/content-blocks-encore-sandbox/public/router.php;'
-            + " echo '[fixture] web server exited — restarting';"
-            // Workers outlive a crashed parent and keep the port: free it.
-            + ` pkill -f '^php -S 127.0.0.1:${PORT}'; sleep 0.3; done`,
+            + fixtureServer(PORT, 'content-blocks-encore-sandbox'),
         url: ORIGIN,
         reuseExistingServer: true,
         // Includes the reset, which runs before the server answers.

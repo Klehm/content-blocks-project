@@ -831,7 +831,7 @@ npm test
 - **Vitest** : teste la logique des controllers Stimulus en isolation (DOM mock, fetch mock)
 - **Playwright** : teste les flux complets dans un vrai navigateur contre la sandbox
 - La sandbox (`apps/content-blocks-sandbox/`) sert de **fixture** pour Playwright (`webServer` dans `playwright.config.js`), sur le port 8001, as its own `_e2e` instance (database + uploads), reset before each run
-- **Every spec imports `test` from `assets/test/e2e/helpers/test.js`**, never `@playwright/test` directly: its automatic fixture makes a retry wait for the fixture server, which `php -S` occasionally crashes on CI (restart loop + orphan workers killed). Rationale: [docs/internals/testing.md#why-the-server-runs-under-a-restart-loop](docs/internals/testing.md#why-the-server-runs-under-a-restart-loop)
+- **Every spec imports `test` from `assets/test/e2e/helpers/test.js`**, never `@playwright/test` directly: its automatic fixture makes a retry wait for the fixture server (restart loop + orphan workers killed). **The fixture server is `php -S` locally and php-fpm behind Caddy on CI** (`E2E_SERVER=fpm`, `scripts/e2e-server.sh`, shared command in `playwright.server.js`): `php -S` segfaulted on CI, and FrankenPHP's binary would impose its own PHP on the 8.3 jobs. Rationale: [docs/internals/testing.md#the-fixture-server](docs/internals/testing.md#the-fixture-server)
 
 **Deux suites Playwright, deux rôles distincts** :
 
