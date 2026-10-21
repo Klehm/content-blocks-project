@@ -32,6 +32,7 @@ function mount({ kinds = ['image', 'video'], manage = true } = {}) {
                     <ul data-cb-media-folders></ul>
                     <ul data-cb-media-grid></ul>
                     <p data-cb-media-status></p>
+                    <div data-cb-media-sentinel></div>
                     <button type="button" data-cb-media-more hidden></button>
                 </div>
                 <aside data-cb-media-detail hidden>
@@ -600,6 +601,183 @@ describe('MediaPicker — a file browser', () => {
         return picker.open(request()).then(() => {
             expect(button(1).draggable).toBe(false);
         });
+    });
+});
+
+describe('MediaPicker — loading on scroll', () => {
+    let dialog;
+    let fetch;
+    let observer;
+
+    // jsdom has no IntersectionObserver: this one is driven by the test.
+    class FakeObserver {
+        constructor(callback, options) {
+            this.callback = callback;
+            this.options = options;
+            observer = this;
+        }
+
+        observe(target) {
+            this.target = target;
+            this.observed = (this.observed ?? 0) + 1;
+            // A real observer reports the target's state once observed.
+            if (this.visible !== undefined) queueMicrotask(() => this.show(this.visible));
+        }
+
+        unobserve() {}
+
+        show(visible = true) {
+            this.visible = visible;
+            this.callback([{ target: this.target, isIntersecting: visible }]);
+        }
+    }
+
+    // Page n of a folder holding `total` files, 2 per page.
+    function pages(total) {
+        return (url) => {
+            const n = Number(new URL(url, 'http://x').searchParams.get('page'));
+            const ids = [2 * n - 1, 2 * n].filter((id) => id <= total);
+
+            return respond(page({ items: ids.map((id) => item(id)), hasMore: 2 * n < total }));
+        };
+    }
+
+    const requested = () => fetch.mock.calls
+        .filter(([url]) => String(url).startsWith('/m/list'))
+        .map(([url]) => Number(new URL(url, 'http://x').searchParams.get('page')));
+
+    beforeEach(() => {
+        dialog = mount();
+        fetch = vi.fn(pages(6));
+    });
+
+    function picker() {
+        return new MediaPicker(dialog, { fetch, IntersectionObserver: FakeObserver });
+    }
+
+    it('watches the end of the grid inside the zone that scrolls', () => {
+        picker();
+
+        expect(observer.target).toBe(dialog.querySelector('[data-cb-media-sentinel]'));
+        expect(observer.options.root).toBe(dialog.querySelector('[data-cb-media-main]'));
+    });
+
+    it('loads the next page when the end comes into view', async () => {
+        const p = picker();
+        await p.open(request());
+        expect(requested()).toEqual([1]);
+
+        observer.show();
+        await vi.waitFor(() => expect(p.items).toHaveLength(6));
+
+        expect(requested()).toEqual([1, 2, 3]);
+        expect(dialog.querySelector('[data-cb-media-more]').hidden).toBe(true);
+    });
+
+    it('asks once for a page however often the end shows', async () => {
+        let release;
+        const p = picker();
+        await p.open(request());
+        fetch.mockImplementationOnce((url) => new Promise((resolve) => { release = () => resolve(pages(6)(url)); }));
+
+        observer.show(false);
+        p.hasMore = true;
+        observer.show();
+        observer.show();
+        observer.show();
+        expect(requested()).toEqual([1, 2]);
+
+        observer.show(false);
+        release();
+        await vi.waitFor(() => expect(p.loadingMore).toBe(false));
+        expect(requested()).toEqual([1, 2]);
+    });
+
+    it('keeps loading while a short first page leaves the end in view', async () => {
+        const p = picker();
+        observer.visible = true;
+
+        await p.open(request());
+
+        await vi.waitFor(() => expect(requested()).toEqual([1, 2, 3]));
+        expect(p.hasMore).toBe(false);
+    });
+
+    // The grid it last saw is gone: a stale "in view" must not load a page.
+    it('asks the observer again once the grid is replaced', async () => {
+        const p = picker();
+        await p.open(request());
+        observer.visible = false;
+        p.sentinelVisible = true;
+        const before = observer.observed;
+
+        await p.openFolder(7);
+        await Promise.resolve();
+
+        expect(observer.observed).toBe(before + 1);
+        expect(requested()).toEqual([1, 1]);
+    });
+
+    // A next page must never cancel the folder the editor just opened.
+    it('a next page in flight does not supersede a new listing', async () => {
+        const p = picker();
+        await p.open(request());
+        let releasePage;
+        fetch.mockImplementationOnce((url) => new Promise((resolve) => { releasePage = () => resolve(pages(6)(url)); }));
+        p.more();
+
+        fetch.mockImplementationOnce(() => respond(page({ items: [item(9)], breadcrumb: [{ id: 7, name: 'Logos' }] })));
+        await p.openFolder(7);
+        releasePage();
+        await vi.waitFor(() => expect(p.loadingMore).toBe(false));
+
+        expect(p.items.map((i) => i.id)).toEqual([9]);
+    });
+
+    it('no next page is asked while a listing loads', async () => {
+        const p = picker();
+        let releaseList;
+        fetch.mockImplementationOnce((url) => new Promise((resolve) => { releaseList = () => resolve(pages(6)(url)); }));
+        const opening = p.open(request());
+        p.hasMore = true;
+
+        await p.more();
+        expect(requested()).toEqual([1]);
+
+        releaseList();
+        await opening;
+    });
+
+    it('a failed page is asked again, not skipped', async () => {
+        const p = picker();
+        await p.open(request());
+        fetch.mockImplementationOnce(() => respond({}, { ok: false, status: 500 }));
+
+        await p.more();
+        expect(p.state.page).toBe(1);
+
+        await p.more();
+        expect(requested()).toEqual([1, 2, 2]);
+    });
+
+    it('adds the new tiles without repainting the ones shown', async () => {
+        const p = picker();
+        await p.open(request());
+        const first = dialog.querySelector('[data-id="1"]');
+
+        await p.more();
+
+        expect(dialog.querySelector('[data-id="1"]')).toBe(first);
+        expect(dialog.querySelectorAll('[data-id]')).toHaveLength(4);
+    });
+
+    it('works without an observer, through the button', async () => {
+        const p = new MediaPicker(dialog, { fetch, IntersectionObserver: undefined });
+        await p.open(request());
+
+        dialog.querySelector('[data-cb-media-more]').click();
+
+        await vi.waitFor(() => expect(requested()).toEqual([1, 2]));
     });
 });
 

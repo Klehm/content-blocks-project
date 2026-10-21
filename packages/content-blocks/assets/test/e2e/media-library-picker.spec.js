@@ -155,3 +155,40 @@ test('the builder shortcuts do not act behind the picker', async ({ page }) => {
     await expect(dialog).toBeVisible();
     expect(await frame.locator('[data-cb-block-id]').count()).toBe(1);
 });
+
+test('a folder longer than a page loads the rest on scroll', async ({ page }) => {
+    test.setTimeout(90_000);
+    // Short enough that a page of 40 overflows the zone and its look-ahead.
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await page.goto(await createFreshPage(page));
+    await launchBuilder(page);
+    await addBlock(page, /^Image$/);
+    const dialog = await openPicker(page);
+
+    const folder = `scroll-${Date.now()}`;
+    page.once('dialog', (d) => d.accept(folder));
+    await dialog.locator('[data-cb-media-new-folder]').click();
+    await dialog.locator('.cb-media__folder', { hasText: folder }).click();
+
+    // One page is 40 files: 45 make a second one.
+    await dialog.locator('[data-cb-media-main]').evaluate((zone, base64) => {
+        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+        const dt = new DataTransfer();
+        for (let i = 1; i <= 45; i++) dt.items.add(new File([bytes], `scroll-${i}.png`, { type: 'image/png' }));
+        for (const type of ['dragenter', 'dragover', 'drop']) {
+            zone.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }));
+        }
+    }, PNG_BASE64);
+    await expect(dialog.locator('.cb-media__item[aria-pressed="true"]')).not.toHaveCount(0, { timeout: 60_000 });
+
+    // Reopened, the folder shows its first page only.
+    await dialog.locator('[data-cb-media-trail] button').first().click();
+    const lists = [];
+    page.on('request', (r) => { if (r.url().includes('/admin/media/list')) lists.push(new URL(r.url()).searchParams.get('page')); });
+    await dialog.locator('.cb-media__folder', { hasText: folder }).click();
+    await expect(dialog.locator('.cb-media__item')).toHaveCount(40);
+
+    await dialog.locator('[data-cb-media-main]').evaluate((zone) => { zone.scrollTop = zone.scrollHeight; });
+    await expect(dialog.locator('.cb-media__item')).toHaveCount(45);
+    expect(lists).toEqual(['1', '2']);
+});

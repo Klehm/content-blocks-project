@@ -13,6 +13,7 @@ export class MediaPicker {
         fetch = globalThis.fetch?.bind(globalThis),
         confirm = (message) => globalThis.confirm(message),
         prompt = (message, value) => globalThis.prompt(message, value),
+        IntersectionObserver = globalThis.IntersectionObserver,
     } = {}) {
         this.dialog = dialog;
         this.fetch = fetch;
@@ -33,12 +34,17 @@ export class MediaPicker {
         this.edits = new Map();
         this.usage = null;
         this.dropDepth = 0;
+        this.hasMore = false;
+        this.loadingMore = false;
+        this.listing = false;
+        this.sentinelVisible = false;
         // Answers to a superseded request are dropped, not painted over.
         this.generation = 0;
         this.usageGeneration = 0;
 
         this.el = (name) => dialog.querySelector(`[data-cb-media-${name}]`);
         this._bind();
+        this._observeEnd(IntersectionObserver);
     }
 
     supports(kind) {
@@ -78,9 +84,12 @@ export class MediaPicker {
     }
 
     async load({ append = false } = {}) {
-        const generation = ++this.generation;
+        // A new listing supersedes everything in flight; a next page only
+        // belongs to the listing it extends, and never cancels it.
+        const generation = append ? this.generation : ++this.generation;
         if (!append) {
             this.state.page = 1;
+            this.listing = true;
             this._status(this._t('loading'));
         }
 
@@ -96,24 +105,41 @@ export class MediaPicker {
         try {
             data = await this._json(`${this.urls.list}?${query}`, {}, 'failed');
         } catch {
-            if (generation === this.generation) this._status(this._t('failed'), true);
-            return;
+            if (generation === this.generation) {
+                if (!append) this.listing = false;
+                this._status(this._t('failed'), true);
+            }
+            return false;
         }
-        if (generation !== this.generation) return;
+        if (generation !== this.generation) return false;
+        if (!append) this.listing = false;
 
-        this.items = append ? [...this.items, ...data.items] : data.items;
-        if (!append) {
+        if (append) {
+            // Only the new page is painted: a full repaint reloads every image.
+            const known = new Set(this.items.map((item) => item.id));
+            const added = data.items.filter((item) => !known.has(item.id));
+            this.items = [...this.items, ...added];
+            this.el('grid').append(...added.map((item) => this._tile(item)));
+        } else {
+            this.items = data.items;
             this.folders = data.folders ?? [];
             this._paintTrail(data.breadcrumb ?? []);
             this._paintFolders();
+            this._paintGrid();
             // A file no longer listed cannot stay selected.
             this._keepListed();
+            this.el('main').scrollTop = 0;
         }
-        this._paintGrid();
-        this.el('more').hidden = !data.hasMore;
+        this.hasMore = Boolean(data.hasMore);
+        this.el('more').hidden = !this.hasMore;
 
         const nothing = this.items.length === 0 && this.folders.length === 0;
         this._status(nothing ? this._t(this.state.query === '' ? 'empty' : 'no_match') : '');
+        // The grid was replaced: what the observer last said is stale. Asked
+        // again, it answers with where the end is now, and loads on if seen.
+        if (!append) this._reobserve();
+
+        return true;
     }
 
     openFolder(id) {
@@ -131,10 +157,41 @@ export class MediaPicker {
         return this.load();
     }
 
-    more() {
+    /** The next page, once at a time: a fast scroll asks more than once. */
+    async more() {
+        if (this.loadingMore || this.listing || !this.hasMore) return;
+        this.loadingMore = true;
         this.state.page += 1;
+        try {
+            if (!(await this.load({ append: true }))) this.state.page -= 1;
+        } finally {
+            this.loadingMore = false;
+        }
+        this._continue();
+    }
 
-        return this.load({ append: true });
+    _reobserve() {
+        const sentinel = this.el('sentinel');
+        if (!this.observer || !sentinel) return;
+        this.sentinelVisible = false;
+        this.observer.unobserve(sentinel);
+        this.observer.observe(sentinel);
+    }
+
+    _continue() {
+        if (this.sentinelVisible && this.hasMore && !this.loadingMore && !this.listing) this.more();
+    }
+
+    /** The end of the grid coming into view loads the next page. */
+    _observeEnd(Observer) {
+        const sentinel = this.el('sentinel');
+        if (typeof Observer !== 'function' || !sentinel) return;
+
+        this.observer = new Observer((entries) => {
+            this.sentinelVisible = entries.some((entry) => entry.isIntersecting);
+            this._continue();
+        }, { root: this.el('main'), rootMargin: '0px 0px 300px 0px' });
+        this.observer.observe(sentinel);
     }
 
     // ---- selection ---------------------------------------------------------
@@ -639,22 +696,24 @@ export class MediaPicker {
     }
 
     _paintGrid() {
-        this.el('grid').replaceChildren(...this.items.map((item) => {
-            const li = this._node('li');
-            const button = this._node('button', 'cb-media__item');
-            button.type = 'button';
-            button.dataset.id = String(item.id);
-            button.setAttribute('aria-pressed', String(this.selection.has(item.id)));
-            button.title = item.title;
-            button.draggable = this.canManage;
+        this.el('grid').replaceChildren(...this.items.map((item) => this._tile(item)));
+    }
 
-            const frame = this._node('span', 'cb-media__thumb');
-            frame.append(this._visual(item, true));
-            button.append(frame, this._node('span', 'cb-media__name', item.title));
-            li.append(button);
+    _tile(item) {
+        const li = this._node('li');
+        const button = this._node('button', 'cb-media__item');
+        button.type = 'button';
+        button.dataset.id = String(item.id);
+        button.setAttribute('aria-pressed', String(this.selection.has(item.id)));
+        button.title = item.title;
+        button.draggable = this.canManage;
 
-            return li;
-        }));
+        const frame = this._node('span', 'cb-media__thumb');
+        frame.append(this._visual(item, true));
+        button.append(frame, this._node('span', 'cb-media__name', item.title));
+        li.append(button);
+
+        return li;
     }
 
     _visual(item, thumbnail) {

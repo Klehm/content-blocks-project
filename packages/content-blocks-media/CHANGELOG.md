@@ -34,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Shift-click (Ctrl/Cmd-A for all), drag them onto a folder or a crumb of the
   trail to move them, remove several at once, and let go of the selection with
   a click on the empty zone, on the selected file, or Escape.
+- **Pages load as the grid scrolls**, a page of 40 at a time, with *Show more*
+  as the fallback where `IntersectionObserver` is missing.
 - **The picker in the i18n workbench**: it stands alone, so the workbench
   renders it and offers it on media rows (`klehm/content-blocks-i18n` with
   this release).

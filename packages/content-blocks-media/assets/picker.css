@@ -346,6 +346,10 @@ button.cb-media__crumb {
   color: var(--cb-danger, #d83a3a);
 }
 
+.cb-media__sentinel {
+  height: 1px;
+}
+
 .cb-media__more {
   display: block;
   margin: 16px auto 0;

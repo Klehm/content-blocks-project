@@ -122,6 +122,26 @@ Two kinds of drag, told apart by the `dataTransfer` types:
 when one is unknown: a drag with a stale id moves nothing rather than half.
 *Insert* needs exactly one file, since a field holds one.
 
+## Pages load as the grid scrolls
+
+A sentinel after the grid is watched by an `IntersectionObserver` rooted on the
+zone that scrolls, with a 300px look-ahead (about two rows); *Show more* stays
+as the fallback without an observer. Three rules keep it from loading wrong:
+
+- **One next page at a time.** A fast scroll reports the sentinel several
+  times; `more()` returns while a page is in flight, and a failed page leaves
+  the page number where it was, so it is asked again rather than skipped.
+- **A next page never supersedes a listing.** A new listing (a folder, a
+  search) takes a new generation; a next page reuses the current one and is
+  dropped if it changed. No next page starts while a listing is loading.
+  Before, a page in flight cancelled the folder the editor had just opened.
+- **The observer is asked again after a listing.** It reports changes only,
+  so its last word describes the grid that was replaced: re-observing the
+  sentinel makes it answer for the new one, and a first page shorter than the
+  zone keeps loading until the end leaves the look-ahead.
+
+A next page appends its tiles; repainting the grid would reload every image.
+
 ## Who may browse
 
 Listing and filing need `canEdit()` on the area the picker was opened from, the

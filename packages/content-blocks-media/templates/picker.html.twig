@@ -69,6 +69,8 @@
                 <ul class="cb-media__grid" data-cb-media-grid
                     aria-label="{{ 'cb_media.picker.files'|trans }}"></ul>
                 <p class="cb-media__status" data-cb-media-status role="status" aria-live="polite"></p>
+                {# Seen by an IntersectionObserver: the next page loads on scroll. #}
+                <div class="cb-media__sentinel" data-cb-media-sentinel aria-hidden="true"></div>
                 <button type="button" class="cb-media__btn cb-media__more" data-cb-media-more hidden>{{ 'cb_media.picker.more'|trans }}</button>
             </div>
 
