@@ -129,6 +129,15 @@ its children is not leaving it (`relatedTarget`), so the highlight holds.
 when one is unknown: a drag with a stale id moves nothing rather than half.
 *Insert* needs exactly one file, since a field holds one.
 
+## Two places for a message
+
+What the grid holds (loading, empty, no match) is said inside the zone that
+scrolls, where the tiles would be. What an action did (an upload in progress,
+a refused file, a failed move) is said in a notice above the grid, outside the
+scroll: written after a long folder, it was out of view. An error stays until
+closed or until the next clean upload; a drop where some files fail names how
+many, with the server's reasons, and selects the ones that made it.
+
 ## Pages load as the grid scrolls
 
 A sentinel after the grid is watched by an `IntersectionObserver` rooted on the

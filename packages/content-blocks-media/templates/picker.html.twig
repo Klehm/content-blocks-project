@@ -30,6 +30,7 @@
             failed: 'cb_media.picker.failed'|trans,
             uploading: 'cb_media.picker.uploading'|trans,
             upload_failed: 'cb_media.picker.upload_failed'|trans,
+            upload_partial: 'cb_media.picker.upload_partial'|trans,
             save_failed: 'cb_media.manage.save_failed'|trans,
             root: 'cb_media.picker.root'|trans,
             folder_name: 'cb_media.manage.folder_name'|trans,
@@ -61,6 +62,12 @@
             {% if canManage %}
                 <button type="button" class="cb-media__link" data-cb-media-new-folder>{{ 'cb_media.manage.new_folder'|trans }}</button>
             {% endif %}
+        </div>
+
+        <div class="cb-media__notice" data-cb-media-notice role="alert" hidden>
+            <span data-cb-media-notice-text></span>
+            <button type="button" class="cb-media__notice-close" data-cb-media-notice-close
+                    aria-label="{{ 'cb_media.picker.close'|trans }}">×</button>
         </div>
 
         <div class="cb-media__body">

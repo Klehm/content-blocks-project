@@ -66,6 +66,7 @@ export class MediaPicker {
         this.el('title').textContent = this._t(this.state.kind);
         this.el('search').value = '';
         this.el('file').setAttribute('accept', request.accept || '');
+        this._clearNotice();
         this.select(null);
 
         if (!this.dialog.open) {
@@ -107,7 +108,7 @@ export class MediaPicker {
         } catch {
             if (generation === this.generation) {
                 if (!append) this.listing = false;
-                this._status(this._t('failed'), true);
+                this._notice(this._t('failed'), true);
             }
             return false;
         }
@@ -257,15 +258,15 @@ export class MediaPicker {
         if (list.length === 0) return;
 
         const placed = [];
-        let failure = null;
+        const failures = [];
         for (const [index, file] of list.entries()) {
-            this._status(list.length > 1
+            this._notice(list.length > 1
                 ? `${this._t('uploading')} ${index + 1} / ${list.length}`
                 : this._t('uploading'));
             try {
                 placed.push(await this._uploadOne(file));
             } catch (error) {
-                failure = error;
+                failures.push(error.message);
             }
         }
 
@@ -275,7 +276,16 @@ export class MediaPicker {
             await this.load();
             this._setSelection(placed.map((item) => item.id), placed[0].id);
         }
-        if (failure) this._status(failure.message, true);
+        if (failures.length === 0) {
+            this._clearNotice();
+        } else if (list.length === 1) {
+            this._notice(failures[0], true);
+        } else {
+            const head = this._t('upload_partial')
+                .replace('%failed%', String(failures.length))
+                .replace('%count%', String(list.length));
+            this._notice(`${head} ${[...new Set(failures)].join(' · ')}`, true);
+        }
     }
 
     async _uploadOne(file) {
@@ -305,7 +315,7 @@ export class MediaPicker {
             const saved = await this._post('fileUpdate', { id: item.id, [field]: value });
             this._replace(saved);
         } catch (error) {
-            this._status(error.message, true);
+            this._notice(error.message, true);
         }
     }
 
@@ -319,7 +329,7 @@ export class MediaPicker {
             this.select(null);
             await this.load();
         } catch (error) {
-            this._status(error.message, true);
+            this._notice(error.message, true);
         }
     }
 
@@ -343,7 +353,7 @@ export class MediaPicker {
             this.select(null);
             await this.load();
         } catch (error) {
-            this._status(error.message, true);
+            this._notice(error.message, true);
         }
     }
 
@@ -356,7 +366,7 @@ export class MediaPicker {
             this.folderTree = null;
             await this.load();
         } catch (error) {
-            this._status(error.message, true);
+            this._notice(error.message, true);
         }
     }
 
@@ -370,7 +380,7 @@ export class MediaPicker {
             this.folderTree = null;
             await this.load();
         } catch (error) {
-            this._status(error.message, true);
+            this._notice(error.message, true);
         }
     }
 
@@ -383,7 +393,7 @@ export class MediaPicker {
             this.folderTree = null;
             await this.load();
         } catch (error) {
-            this._status(error.message, true);
+            this._notice(error.message, true);
         }
     }
 
@@ -493,6 +503,7 @@ export class MediaPicker {
         });
 
         this.el('more').addEventListener('click', () => this.more());
+        this.el('notice-close')?.addEventListener('click', () => this._clearNotice());
         this.el('insert').addEventListener('click', () => this.insert());
         this.el('file').addEventListener('change', (event) => {
             this.uploadMany(event.target.files ?? []);
@@ -877,10 +888,23 @@ export class MediaPicker {
         list.replaceChildren(...rows);
     }
 
-    _status(message, error = false) {
-        const status = this.el('status');
-        status.textContent = message;
-        status.classList.toggle('cb-media__status--error', error);
+    /** What the grid holds: loading, empty, no match. It scrolls with it. */
+    _status(message) {
+        this.el('status').textContent = message;
+    }
+
+    /** What an action did: always in view, above the grid, until closed. */
+    _notice(message, error = false) {
+        const notice = this.el('notice');
+        if (!notice) return;
+        this.el('notice-text').textContent = message;
+        notice.classList.toggle('cb-media__notice--error', error);
+        notice.hidden = false;
+    }
+
+    _clearNotice() {
+        const notice = this.el('notice');
+        if (notice) notice.hidden = true;
     }
 
     _t(key) {

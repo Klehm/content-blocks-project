@@ -11,7 +11,7 @@ const I18N = {
     root: 'Library', upload_failed: 'Upload failed', save_failed: 'Save failed', folder_name: 'Name',
     rename_folder: 'Rename', delete_folder: 'Delete', delete_folder_confirm: 'Delete %name%?',
     remove_confirm: 'Remove %name%?', remove_confirm_used: 'Remove %name%, used on %count%?',
-    remove_confirm_many: 'Remove %count% files?', selected_many: '%count% selected', move_to: 'Move to',
+    remove_confirm_many: 'Remove %count% files?', upload_partial: '%failed% of %count% failed:', selected_many: '%count% selected', move_to: 'Move to',
     unused: 'Unused', draft: 'draft', others: 'and %count% more',
 };
 
@@ -27,6 +27,7 @@ function mount({ kinds = ['image', 'video'], manage = true } = {}) {
                 <h2 data-cb-media-title></h2>
                 <input type="search" data-cb-media-search>
                 <nav data-cb-media-trail></nav>
+                <div data-cb-media-notice hidden><span data-cb-media-notice-text></span><button type="button" data-cb-media-notice-close></button></div>
                 ${manage ? '<button type="button" data-cb-media-new-folder></button>' : ''}
                 <div data-cb-media-main>
                     <ul data-cb-media-folders></ul>
@@ -218,9 +219,49 @@ describe('MediaPicker', () => {
 
         await picker.upload(new File(['x'], 'a.exe'));
 
-        const status = dialog.querySelector('[data-cb-media-status]');
-        expect(status.textContent).toBe('File type "x" is not allowed');
-        expect(status.classList.contains('cb-media__status--error')).toBe(true);
+        const notice = dialog.querySelector('[data-cb-media-notice]');
+        expect(notice.hidden).toBe(false);
+        expect(notice.textContent).toBe('File type "x" is not allowed');
+        expect(notice.classList.contains('cb-media__notice--error')).toBe(true);
+        // Above the grid, not in the zone that scrolls.
+        expect(dialog.querySelector('[data-cb-media-main]').contains(notice)).toBe(false);
+    });
+
+    it('says which part of a drop failed, and keeps the rest', async () => {
+        await picker.open(request());
+        let n = 0;
+        fetch.mockImplementation((url) => {
+            if (url === '/cb/upload') {
+                n += 1;
+                return n === 2
+                    ? respond({ error: 'The file "b.png" is too large' }, { ok: false, status: 400 })
+                    : respond({ url: `/u/${n}.png` });
+            }
+            if (url === '/m/place') return respond(item(10 + n));
+
+            return respond(page({ items: [item(11), item(13)] }));
+        });
+
+        await picker.uploadMany([new File(['a'], 'a.png'), new File(['b'], 'b.png'), new File(['c'], 'c.png')]);
+
+        expect(dialog.querySelector('[data-cb-media-notice-text]').textContent)
+            .toBe('1 of 3 failed: The file "b.png" is too large');
+        expect(picker.selection).toEqual(new Set([11, 13]));
+    });
+
+    it('a notice stays until closed, and a clean upload clears it', async () => {
+        await picker.open(request());
+        picker._notice('Nope', true);
+        const notice = dialog.querySelector('[data-cb-media-notice]');
+
+        dialog.querySelector('[data-cb-media-notice-close]').click();
+        expect(notice.hidden).toBe(true);
+
+        picker._notice('Nope', true);
+        fetch.mockImplementation((url) => (url === '/cb/upload' ? respond({ url: '/u/9.png' })
+            : url === '/m/place' ? respond(item(9)) : respond(page({ items: [item(9)] }))));
+        await picker.upload(new File(['a'], 'a.png'));
+        expect(notice.hidden).toBe(true);
     });
 
     it('keeps its keys from the builder, and closes on Escape', async () => {
@@ -401,7 +442,7 @@ describe('MediaPicker — managing the library', () => {
 
         await picker.saveField('title', '');
 
-        expect(dialog.querySelector('[data-cb-media-status]').textContent).toBe('invalid_title');
+        expect(dialog.querySelector('[data-cb-media-notice-text]').textContent).toBe('invalid_title');
     });
 
     it('offers no management to an editor who may not manage', async () => {

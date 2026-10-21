@@ -14,6 +14,7 @@ cb_media:
         more: "Show more"
         upload: "Upload a file"
         uploading: "Uploading…"
+        upload_partial: "%failed% of %count% files could not be uploaded:"
         upload_failed: "The upload failed."
         insert: "Insert"
     manage:
