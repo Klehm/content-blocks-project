@@ -1,0 +1,4 @@
+/* The kit leaves the space between blocks to the host. */
+.cb-col > .cb-block + .cb-block {
+    margin-top: 1rem;
+}

@@ -403,7 +403,7 @@ jobs:
       # hosts on purpose.
       - name: Security audit (composer)
         run: |
-          for dir in . apps/content-blocks-sandbox apps/content-blocks-encore-sandbox apps/content-blocks-sylius-sandbox; do
+          for dir in . apps/content-blocks-sandbox apps/content-blocks-encore-sandbox apps/content-blocks-sylius-sandbox apps/content-blocks-sylius-shop-sandbox; do
             echo "::group::$dir"
             composer audit --locked --abandoned=report --working-dir="$dir"
             echo "::endgroup::"
@@ -845,12 +845,95 @@ jobs:
             packages/content-blocks/test-results/
           retention-days: 7
 
+  sylius-e2e-tests:
+    name: Playwright Sylius (Sylius-Standard 2.3 · PHP 8.3)
+    runs-on: ubuntu-latest
+
+    # The Sylius plugin in a real Sylius-Standard shop: the admin's own Encore
+    # build, its Live route, the shop in the preview iframe. PHPUnit boots
+    # sylius/test-application, which differs on exactly those points.
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, intl, mbstring, gd, exif
+          coverage: none
+
+      # Sylius-Standard's package.json is engine-strict on Node 22+.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Install sandbox dependencies
+        working-directory: apps/content-blocks-sylius-shop-sandbox
+        run: |
+          echo 'DATABASE_URL="mysql://root:root@127.0.0.1:3306/content_blocks_sylius_shop?serverVersion=8.0&charset=utf8mb4"' > .env.local
+          composer install --no-progress --no-interaction
+
+      # The npm links resolve through vendor/, so this must follow composer.
+      - name: Build the assets with Encore
+        working-directory: apps/content-blocks-sylius-shop-sandbox
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Install JS dependencies
+        working-directory: packages/content-blocks
+        run: npm ci
+
+      - name: Install the fixture server (Caddy + php-fpm)
+        run: |
+          v=$(php -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')
+          if ! command -v "php-fpm$v" >/dev/null && [ ! -x "/usr/sbin/php-fpm$v" ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q --no-install-recommends "php$v-fpm"
+          fi
+          curl -fsSL https://github.com/caddyserver/caddy/releases/download/v2.10.0/caddy_2.10.0_linux_amd64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin caddy
+          caddy version
+
+      - name: Install Playwright browsers
+        working-directory: packages/content-blocks
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright (Sylius suite)
+        working-directory: packages/content-blocks
+        env:
+          E2E_SERVER: fpm
+        run: npx playwright test --config=playwright.sylius.config.js
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-sylius
+          path: |
+            packages/content-blocks/test-results/
+          retention-days: 7
+
   # ---- Monorepo split (only after every test job is green) ----
 
   packages_split:
     name: Split ${{ matrix.package.split_repository }}
     runs-on: ubuntu-latest
-    needs: [php-tests, kit-php-tests, i18n-php-tests, media-php-tests, seo-php-tests, sylius-php-tests, lowest-deps, bc-check, js-tests, kit-js-tests, i18n-js-tests, media-js-tests, seo-js-tests, static-analysis, docs-build, e2e-tests, postgres-e2e-tests, encore-e2e-tests]
+    needs: [php-tests, kit-php-tests, i18n-php-tests, media-php-tests, seo-php-tests, sylius-php-tests, lowest-deps, bc-check, js-tests, kit-js-tests, i18n-js-tests, media-js-tests, seo-js-tests, static-analysis, docs-build, e2e-tests, postgres-e2e-tests, encore-e2e-tests, sylius-e2e-tests]
     # PRs never split; only pushes to master and v* tags do.
     if: github.event_name == 'push'
 

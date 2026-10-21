@@ -1,0 +1,9 @@
+content_blocks:
+    upload:
+        directory: '%kernel.project_dir%/public/media/content-blocks%env(SANDBOX_SUFFIX)%'
+        public_prefix: '/media/content-blocks%env(SANDBOX_SUFFIX)%'
+    palette:
+        - { label: 'Primary', color: '#1a7f64' }
+        - { label: 'Dark', color: '#1f2937' }
+        - { label: 'Light', color: '#f3f4f6' }
+        - { label: 'Accent', color: '#e8590c' }

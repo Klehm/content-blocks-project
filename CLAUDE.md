@@ -32,7 +32,8 @@ content-blocks/
 ├── apps/
 │   ├── content-blocks-sandbox/          # App Symfony de dev/test (fixture Playwright)
 │   ├── content-blocks-encore-sandbox/   # App Symfony 6.4 + Webpack Encore (fixture Playwright, install path)
-│   └── content-blocks-sylius-sandbox/   # App Sylius de dev/test
+│   ├── content-blocks-sylius-sandbox/   # App Sylius de dev/test
+│   └── content-blocks-sylius-shop-sandbox/ # Sylius-Standard 2.3 + the Sylius plugin (demo + Playwright fixture)
 │
 ├── composer.json                # Composer racine avec repositories path
 └── CLAUDE.md                    # Cette documentation
@@ -688,7 +689,9 @@ detached, quietly serving last request's values); read the request through
 > `playwright.encore.config.js` démarre `content-blocks-encore-sandbox` sur 8002).
 > Les lancements manuels ci-dessous les évitent, sans quoi une suite de tests et
 > un serveur de dev se disputent le port. `8005` est celui du worker FrankenPHP
-> (`bin/worker-smoke.sh`), qui refuse de démarrer sur 8001–8004.
+> (`bin/worker-smoke.sh`), qui refuse de démarrer sur 8001–8004. `8006` is the
+> Sylius shop demo (`make up DEMO=shop`), `8007` its Playwright fixture
+> (`playwright.sylius.config.js`).
 
 ### 1. Sandbox Symfony
 
@@ -804,6 +807,16 @@ class Page
 
 Les deux sandbox (Symfony et Sylius) suivent ce pattern avec une entité `App\Entity\Page` propre.
 
+### 4. Sylius shop sandbox (`apps/content-blocks-sylius-shop-sandbox`)
+
+Sylius-Standard 2.3 with the Sylius plugin, i18n and SEO from the path repos:
+`make up DEMO=shop` (port 8006) installs, loads Sylius's `default` fixtures,
+then `app:demo:load` (the Fashion homepage, an *About us* page in English and
+French, a size guide on a product). Admin `sylius` / `sylius`. Webpack Encore:
+`npm run build` after touching `packages/*/assets/`. Two monorepo artefacts in
+it, commented in place: `resolve.modules` in `webpack.config.mjs` and a pinned
+webpack in `package.json`. See its README.
+
 ## Spécificités Sylius Sandbox
 
 - Entité `Page` propre à l'app avec champ `enabled`
@@ -843,6 +856,7 @@ npm test
 |---|---|---|
 | `playwright.config.js` | `content-blocks-sandbox` — Symfony 7/8, AssetMapper | le **comportement** du builder (195 tests; CI also runs it on PostgreSQL 16) |
 | `playwright.encore.config.js` | `content-blocks-encore-sandbox` — Symfony 6.4, ORM 2, Webpack Encore | le **chemin d'installation** sous un bundler qu'on ne développe pas au quotidien, + l'éditeur rich-text bundlé par l'hôte + the Glide recipe (8 specs) |
+| `playwright.sylius.config.js` | `content-blocks-sylius-shop-sandbox` — Sylius-Standard 2.3, Encore | the **Sylius plugin** in a real shop: homepage, pages, product content, the admin's Live route (3 specs, `npm run test:e2e:sylius`) |
 
 La suite Encore reste volontairement petite : tout ce qui passerait à l'identique sous les deux bundlers appartient à la suite principale. Elle existe parce qu'un bug de boot (le prepend `asset_mapper` inconditionnel) a pu vivre longtemps sans qu'aucun test ne le voie — la sandbox met `symfony/asset-mapper` dans son `conflict` Composer pour que la jambe ne puisse jamais redériver vers le chemin déjà couvert.
 
@@ -916,7 +930,7 @@ Each release sets `"version"` in `packages/content-blocks/assets/package.json` a
 
 Tout changement dans `packages/content-blocks/assets/` (Stimulus controllers, CSS, JS) ou `packages/content-blocks-kit/assets/` n'est servi qu'après recompilation dans **chacune des trois** sandboxes. Deux d'entre elles utilisent AssetMapper, la troisième Webpack Encore — la commande n'est donc pas la même.
 
-**À chaque tâche** qui touche un fichier sous `packages/*/assets/`, Claude doit relancer les trois avant de conclure :
+**À chaque tâche** qui touche un fichier sous `packages/*/assets/`, Claude doit relancer les trois avant de conclure (and the Sylius shop sandbox: `cd apps/content-blocks-sylius-shop-sandbox && php bin/console cache:clear -q && npm run build`, or `make assets`) :
 
 ```bash
 # Symfony sandbox (AssetMapper)
