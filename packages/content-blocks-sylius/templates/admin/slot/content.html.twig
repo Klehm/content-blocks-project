@@ -1,0 +1,39 @@
+{% set slot = hookable_metadata.context.slot ?? null %}
+
+<div class="page-header">
+    <div class="container-xl">
+        <div class="row mt-3 row-gap-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">{{ ('content_blocks_sylius.ui.slot.' ~ hookable_metadata.context.type)|trans }}</div>
+                <h2 class="page-title">{{ hookable_metadata.context.subject_label }}</h2>
+            </div>
+            {% if hookable_metadata.context.shop_url ?? null %}
+                <div class="col-auto">
+                    <a class="btn btn-outline-secondary" href="{{ hookable_metadata.context.shop_url }}" target="_blank" rel="noopener">{{ 'content_blocks_sylius.ui.view_in_shop'|trans }} ↗</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<div class="page-body">
+    <div class="container-xl">
+        {% include '@SyliusAdmin/shared/crud/common/content/flashes.html.twig' ignore missing %}
+        <div class="card" data-test-content-blocks-slot>
+            <div class="card-body">
+                {% if slot %}
+                    {% include '@ContentBlocks/builder/launcher.html.twig' with {
+                        area: slot.contentArea,
+                        iframeUrl: cb_preview_url(slot.contentArea),
+                    } only %}
+                    {% hook 'content_blocks_sylius.admin.area' with { area: slot.contentArea, _prefixes: [] } %}
+                {% else %}
+                    <p class="text-secondary">{{ ('content_blocks_sylius.ui.slot.empty_' ~ hookable_metadata.context.type)|trans }}</p>
+                    <form method="post" action="{{ path('content_blocks_sylius_admin_slot_create', { type: hookable_metadata.context.type, subject: hookable_metadata.context.subject }) }}">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token('content_blocks_sylius_slot') }}">
+                        <button type="submit" class="btn btn-primary" data-test-content-blocks-slot-create>{{ 'content_blocks_sylius.ui.slot.create'|trans }}</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

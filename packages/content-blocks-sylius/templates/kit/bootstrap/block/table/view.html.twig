@@ -1,0 +1,25 @@
+{% set columns = data.columns|default([]) %}
+{% if columns|length > 0 %}
+    {% set align_map = { start: 'text-start', center: 'text-center', end: 'text-end' } %}
+    <div class="table-responsive">
+        <table class="table{{ data.striped|default(false) ? ' table-striped' : '' }} mb-0">
+            <thead>
+                <tr>
+                    {% for col in columns %}
+                        <th scope="col" class="{{ align_map[col.align|default('start')]|default('text-start') }}"{{ cb_lang(col, 'label') }}>{{ col.label|default('') }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data.rows|default([]) %}
+                    <tr>
+                        {% for i in 0..(columns|length - 1) %}
+                            {% set cell = row.cells[i]|default(null) %}
+                            <td class="{{ align_map[columns[i].align|default('start')]|default('text-start') }}"{{ cb_lang(cell, 'content') }}>{{ cell ? (cell.content|default(''))|nl2br : '' }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}

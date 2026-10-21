@@ -1,0 +1,15 @@
+{% set buttons = (data.items|default([]))|filter(item => item is iterable and (item.text|default('')|trim) is not empty) %}
+{% if buttons is not empty %}
+    {% set align = cb_kit_token(data.align|default('start'), 'start') %}
+    {% set size = { sm: ' btn-sm', lg: ' btn-lg' }[data.size|default('md')] ?? '' %}
+    {% set stack = data.stackOnMobile|default(false) ? ' flex-column flex-sm-row' : ' flex-wrap' %}
+    <div class="d-flex gap-2 justify-content-{{ align }}{{ stack }}">
+        {% for item in buttons %}
+            {% set variant = cb_kit_token(item.variant|default('primary'), 'primary') %}
+            {% set variant = { outline: 'outline-primary' }[variant] ?? variant %}
+            <a class="btn btn-{{ variant }}{{ size }}"
+               href="{{ item.url|default('#')|cb_kit_safe_url|default('#') }}"
+               {%- if item.newTab|default(false) %} target="_blank" rel="noopener noreferrer"{% endif %}{{ cb_lang(item, 'text') }}>{{ item.text|trim }}</a>
+        {% endfor %}
+    </div>
+{% endif %}

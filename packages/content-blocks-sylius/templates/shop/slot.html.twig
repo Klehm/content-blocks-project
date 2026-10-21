@@ -1,0 +1,6 @@
+{% set content = hookable_metadata.configuration.type == 'taxon'
+    ? cb_sylius_taxon_slot()
+    : cb_sylius_slot(hookable_metadata.configuration.type, hookable_metadata.context.product.code ?? null) %}
+{% if content %}
+    <div class="cb-sylius-slot cb-sylius-slot--{{ hookable_metadata.configuration.type }}">{{ content }}</div>
+{% endif %}

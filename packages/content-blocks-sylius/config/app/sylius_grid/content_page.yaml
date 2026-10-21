@@ -1,0 +1,46 @@
+sylius_grid:
+    grids:
+        content_blocks_sylius_admin_content_page:
+            driver:
+                name: doctrine/orm
+                options:
+                    class: '%content_blocks_sylius.model.content_page.class%'
+            sorting:
+                code: asc
+            fields:
+                title:
+                    type: string
+                    label: sylius.ui.title
+                    path: translation.title
+                code:
+                    type: twig
+                    label: sylius.ui.code
+                    sortable: ~
+                    options:
+                        template: '@SyliusAdmin/shared/grid/field/code.html.twig'
+                enabled:
+                    type: twig
+                    label: sylius.ui.enabled
+                    sortable: ~
+                    options:
+                        template: '@SyliusAdmin/shared/grid/field/boolean.html.twig'
+                        vars:
+                            th_class: 'w-1 text-center'
+            filters:
+                search:
+                    type: string
+                    label: sylius.ui.search
+                    options:
+                        fields: [code, translation.title, translation.slug]
+            actions:
+                main:
+                    create:
+                        type: create
+                item:
+                    update:
+                        type: update
+                    delete:
+                        type: delete
+                bulk:
+                    delete:
+                        type: delete

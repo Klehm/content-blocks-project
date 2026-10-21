@@ -1,0 +1,4 @@
+{# Shown to an editor where the catalog has nothing; to visitors, nothing. #}
+{% if context.isPreview() %}
+    <div class="text-body-secondary small border border-dashed rounded p-3">{{ message|trans }}</div>
+{% endif %}

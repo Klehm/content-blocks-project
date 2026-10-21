@@ -1,0 +1,25 @@
+{% set items = data.items|default([]) %}
+{% if items|length > 0 %}
+    {% set layout = cb_kit_token(data.layout|default('grid'), 'grid') %}
+    {% set columns = data.columns|default(3)|abs %}
+    <div class="{{ layout == 'grid' ? 'row row-cols-1 row-cols-md-' ~ columns ~ ' g-4' : 'd-flex flex-column gap-3' }}">
+        {% for item in items %}
+            <div class="{{ layout == 'grid' ? 'col' : '' }}">
+                <article class="card h-100">
+                    {% if item.src|default('')|trim is not empty %}
+                        {% set img = cb_image(item.src) %}
+                        <img class="card-img-top object-fit-cover" src="{{ img.src }}" alt="{{ item.title|default('') }}"{{ cb_lang(item, 'title') }}
+                            {%- if img.srcset %} srcset="{{ img.srcset }}"{% endif %}{% if img.sizes %} sizes="{{ img.sizes }}"{% endif %} loading="lazy" decoding="async">
+                    {% endif %}
+                    <div class="card-body">
+                        {% if item.title|default('')|trim is not empty %}<h3 class="card-title h5"{{ cb_lang(item, 'title') }}>{{ item.title }}</h3>{% endif %}
+                        {% if item.content|default('')|trim is not empty %}<div class="card-text"{{ cb_lang(item, 'content') }}>{{ item.content|nl2br }}</div>{% endif %}
+                        {% if item.url|default('')|trim|cb_kit_safe_url is not empty and item.buttonText|default('')|trim is not empty %}
+                            <a class="btn btn-primary btn-sm mt-3" href="{{ item.url|cb_kit_safe_url }}"{{ cb_lang(item, 'buttonText') }}>{{ item.buttonText }}</a>
+                        {% endif %}
+                    </div>
+                </article>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}

@@ -1,0 +1,15 @@
+{% set url = data.url|default('')|trim %}
+{% if url is not empty %}
+    {% set embedUrl = cb_embed_url(url) %}
+    {% if embedUrl %}
+        <div class="ratio ratio-16x9">
+            <iframe src="{{ embedUrl }}"
+                    title="{{ data.title|default('')|trim ?: 'cb_kit.front.embedded_video'|trans({}, 'content_blocks_kit') }}"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen></iframe>
+        </div>
+    {% else %}
+        <p class="text-danger mb-0">{{ 'cb_kit.block.embed.unsupported'|trans({}, 'content_blocks_kit') }}</p>
+    {% endif %}
+{% endif %}

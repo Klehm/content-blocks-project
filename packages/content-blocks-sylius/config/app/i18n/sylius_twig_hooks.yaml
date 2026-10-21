@@ -1,0 +1,6 @@
+sylius_twig_hooks:
+    hooks:
+        'content_blocks_sylius.admin.area':
+            i18n:
+                template: '@ContentBlocksSyliusPlugin/admin/i18n/progress.html.twig'
+                priority: 0

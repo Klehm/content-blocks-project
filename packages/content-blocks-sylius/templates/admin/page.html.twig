@@ -1,0 +1,7 @@
+{% extends '@SyliusAdmin/shared/layout/base.html.twig' %}
+
+{% block title %}{{ title|trans }} | {{ parent() }}{% endblock %}
+
+{% block body %}
+    {% hook 'index' with context|merge({ _prefixes: [hook, 'sylius_admin.common'] }) %}
+{% endblock %}

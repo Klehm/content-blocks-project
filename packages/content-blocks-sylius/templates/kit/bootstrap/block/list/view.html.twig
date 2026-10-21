@@ -1,0 +1,13 @@
+{% set items = data.items|default([])|filter(i => i.text|default('')|trim is not empty) %}
+{% if items|length > 0 %}
+    {% set style = cb_kit_token(data.style|default('bullet'), 'bullet') %}
+    {% set tag = style == 'numbered' ? 'ol' : 'ul' %}
+    <{{ tag }} class="{{ style == 'check' ? 'list-unstyled' : 'ps-3' }} mb-0">
+        {% for item in items %}
+            <li class="{{ style == 'check' ? 'd-flex gap-2 mb-2' : 'mb-1' }}">
+                {% if style == 'check' %}<span class="text-success" aria-hidden="true">{{ cb_kit_icon('check', 18)|raw }}</span>{% endif %}
+                <span{{ cb_lang(item, 'text') }}>{{ item.text }}</span>
+            </li>
+        {% endfor %}
+    </{{ tag }}>
+{% endif %}

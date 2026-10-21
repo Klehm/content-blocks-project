@@ -1,0 +1,17 @@
+{% set form = hookable_metadata.context.form %}
+{% set page = hookable_metadata.context.resource %}
+
+<div class="col-12">
+    <div class="card mb-3" data-test-content-blocks-builder>
+        <div class="card-header d-flex align-items-center gap-3">
+            <div class="card-title">{{ 'content_blocks_sylius.ui.content'|trans }}</div>
+            {% for locale, url in cb_sylius_page_urls(page) %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ url }}" target="_blank" rel="noopener">{{ locale }} ↗</a>
+            {% endfor %}
+        </div>
+        <div class="card-body">
+            {{ form_row(form.contentArea) }}
+            {% hook 'content_blocks_sylius.admin.area' with { area: page.contentArea, _prefixes: [] } %}
+        </div>
+    </div>
+</div>

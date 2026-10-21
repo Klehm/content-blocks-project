@@ -1,0 +1,14 @@
+{# Bootstrap's button classes; a variant added through config keeps its
+   name as a btn-* class. See docs/internals/sylius.md #}
+{% set text = data.text|default('')|trim %}
+{% if text is not empty %}
+    {% set align = cb_kit_token(data.align|default('start'), 'start') %}
+    {% set variant = cb_kit_token(data.variant|default('primary'), 'primary') %}
+    {% set variant = { outline: 'outline-primary' }[variant] ?? variant %}
+    {% set size = { sm: ' btn-sm', lg: ' btn-lg' }[data.size|default('md')] ?? '' %}
+    <div class="d-flex justify-content-{{ align }}">
+        <a class="btn btn-{{ variant }}{{ size }}{{ data.fullWidth|default(false) ? ' w-100' : '' }}"
+           href="{{ data.url|default('#')|cb_kit_safe_url|default('#') }}"
+           {%- if data.newTab|default(false) %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ text }}</a>
+    </div>
+{% endif %}

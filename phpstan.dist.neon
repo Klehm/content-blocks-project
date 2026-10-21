@@ -10,6 +10,7 @@ parameters:
         - packages/content-blocks-i18n/src
         - packages/content-blocks-media/src
         - packages/content-blocks-seo/src
+        - packages/content-blocks-sylius/src
 
     # Block data is free-form JSON of unknown age, read defensively on purpose.
     # A declared type is what the writer promised, not what the row holds, so a
@@ -23,3 +24,9 @@ parameters:
         -
             identifier: doctrine.associationType
             message: '#type mapping mismatch: property can contain .* but database expects#'
+        # The same gap on a column of an entity filled by a Sylius admin form:
+        # CodeAwareInterface reads "no code yet" as null, the column is NOT NULL.
+        -
+            identifier: doctrine.columnType
+            message: '#type mapping mismatch: property can contain .*\|null but database expects#'
+            path: packages/content-blocks-sylius/src/Entity/*

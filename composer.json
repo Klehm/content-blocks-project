@@ -38,6 +38,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "packages/content-blocks-sylius",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -46,7 +53,8 @@
         "klehm/content-blocks-kit": "@dev",
         "klehm/content-blocks-i18n": "@dev",
         "klehm/content-blocks-media": "@dev",
-        "klehm/content-blocks-seo": "@dev"
+        "klehm/content-blocks-seo": "@dev",
+        "klehm/content-blocks-sylius": "@dev"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

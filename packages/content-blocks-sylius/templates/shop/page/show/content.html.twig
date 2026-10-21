@@ -1,0 +1,4 @@
+{% set page = hookable_metadata.context.page %}
+<div class="cb-sylius-page" {{ sylius_test_html_attribute('content-page', page.code) }}>
+    {% if page.contentArea %}{{ cb_render_content_area(page.contentArea) }}{% endif %}
+</div>

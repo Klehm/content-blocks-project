@@ -1,0 +1,22 @@
+{# The shop's add-to-cart form, outside the product page: its parts are found
+   by the hook's absolute name. See docs/internals/sylius.md#catalog-blocks #}
+{% form_theme form '@SyliusShop/form/theme.html.twig' %}
+
+<div class="position-relative" {{ attributes }}>
+    {% if product.enabledVariants.empty() or product.simple and not sylius_inventory_is_available(product.enabledVariants.first) %}
+        <div {{ sylius_test_html_attribute('product-out-of-stock') }}>{{ 'sylius.ui.out_of_stock'|trans }}</div>
+    {% else %}
+        <div data-loading class="position-absolute top-50 start-50 translate-middle">
+            <div class="spinner-border text-secondary" role="status"><span class="visually-hidden">{{ 'sylius.ui.loading'|trans }}</span></div>
+        </div>
+        <div class="my-4" {{ sylius_test_html_attribute('product-selecting-variant') }}>
+            {{ form_start(form, {'attr': {'data-action': 'live#action:prevent', 'data-live-action-param': 'addToCart'}}) }}
+            {{ form_errors(form) }}
+
+            {% hook 'sylius_shop.product.show.content.info.summary.add_to_cart' with { product, form, _prefixes: [] } %}
+
+            {% if form._token is defined %}{{ form_row(form._token) }}{% endif %}
+            {{ form_end(form, {'render_rest': false}) }}
+        </div>
+    {% endif %}
+</div>

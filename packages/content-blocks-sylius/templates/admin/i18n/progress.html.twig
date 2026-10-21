@@ -1,0 +1,14 @@
+{# Only with klehm/content-blocks-i18n, which defines these functions. #}
+{% set area = hookable_metadata.context.area ?? null %}
+{% if area and area.id %}
+    {% set progress = cb_i18n_progress(area) %}
+    <div class="d-flex flex-wrap gap-2 mt-3" data-test-content-blocks-i18n>
+        {% for locale in cb_i18n_locales()|filter(locale => not locale.source) %}
+            {% set state = progress[locale.code] ?? null %}
+            <a class="btn btn-sm btn-outline-primary" href="{{ cb_i18n_workbench_url(area, locale.code) }}" target="_blank" rel="noopener">
+                {{ 'content_blocks_sylius.ui.translate'|trans({ '%locale%': locale.label ?? locale.code }) }}
+                {% if state %}<span class="badge bg-primary-lt ms-1">{{ state.percent }}%</span>{% endif %}
+            </a>
+        {% endfor %}
+    </div>
+{% endif %}

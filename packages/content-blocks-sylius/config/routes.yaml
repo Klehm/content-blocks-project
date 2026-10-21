@@ -1,0 +1,22 @@
+# Everything the plugin and the ContentBlocks packages route, mounted the
+# Sylius way: the builder and the admin screens under the admin firewall.
+content_blocks_sylius_admin:
+    resource: '@ContentBlocksSyliusPlugin/config/routes/admin.yaml'
+    prefix: '/%sylius_admin.path_name%'
+
+content_blocks_sylius_shop:
+    resource: '@ContentBlocksSyliusPlugin/config/routes/shop.yaml'
+    prefix: /{_locale}
+    requirements:
+        _locale: ^[A-Za-z]{2,4}(_([A-Za-z]{4}|[0-9]{3}))?(_([A-Za-z]{2}|[0-9]{3}))?$
+
+content_blocks_editor:
+    resource: '@ContentBlocksBundle/config/routes/editor.php'
+    prefix: '/%sylius_admin.path_name%/content-blocks/editor'
+
+content_blocks_public:
+    resource: '@ContentBlocksBundle/config/routes/public.php'
+    prefix: /_content-blocks/public
+
+content_blocks_kit:
+    resource: '@ContentBlocksKitBundle/config/routes.php'

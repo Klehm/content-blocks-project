@@ -1,0 +1,8 @@
+{% set product = cb_sylius_product(data.product|default(null)) %}
+{% if product %}
+    <div class="cb-sylius-add-to-cart">
+        {{ include('@ContentBlocksSyliusPlugin/block/_add_to_cart.html.twig', { product: product }, with_context = false) }}
+    </div>
+{% else %}
+    {{ include('@ContentBlocksSyliusPlugin/block/_missing.html.twig', { context: context, message: 'content_blocks_sylius.block.add_to_cart.empty' }, with_context = false) }}
+{% endif %}

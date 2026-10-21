@@ -1,0 +1,15 @@
+{% extends '@SyliusShop/shared/layout/base.html.twig' %}
+
+{% set translation = page.translation %}
+
+{% block title %}{{ translation.metaTitle ?: translation.title }} | {{ parent() }}{% endblock %}
+
+{% block metatags %}
+    {{ parent() }}
+    {% if translation.metaDescription %}<meta name="description" content="{{ translation.metaDescription }}">{% endif %}
+    {% if not page.enabled %}<meta name="robots" content="noindex">{% endif %}
+{% endblock %}
+
+{% block content %}
+    {% hook 'content_blocks_sylius.shop.page.show' with { page, _prefixes: [] } %}
+{% endblock %}

@@ -1,0 +1,89 @@
+{
+    "name": "klehm/content-blocks-sylius",
+    "description": "ContentBlocks for Sylius 2 — CMS pages, an editable homepage, product and taxon content, catalog blocks and Bootstrap markup for the kit.",
+    "keywords": [
+        "content-blocks",
+        "page-builder",
+        "cms",
+        "sylius",
+        "sylius-plugin",
+        "symfony",
+        "symfony-bundle"
+    ],
+    "type": "sylius-plugin",
+    "license": "MIT",
+    "homepage": "https://github.com/klehm/content-blocks-project",
+    "support": {
+        "issues": "https://github.com/klehm/content-blocks-project/issues",
+        "source": "https://github.com/klehm/content-blocks-sylius"
+    },
+    "authors": [
+        {
+            "name": "Clément Muller",
+            "email": "klehm.muller@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "klehm/content-blocks": "^1.6",
+        "klehm/content-blocks-kit": "^1.6",
+        "sylius/sylius": "~2.0.0 || ~2.1.0 || ~2.2.0 || ~2.3.0"
+    },
+    "require-dev": {
+        "klehm/content-blocks-i18n": "^1.6",
+        "phpunit/phpunit": "^11.5",
+        "sylius/test-application": "2.3.x-dev",
+        "symfony/browser-kit": "^6.4 || ^7.0 || ^8.0",
+        "symfony/css-selector": "^6.4 || ^7.0 || ^8.0",
+        "symfony/debug-bundle": "^6.4 || ^7.0 || ^8.0",
+        "symfony/dotenv": "^6.4 || ^7.0 || ^8.0",
+        "symfony/runtime": "^6.4 || ^7.0 || ^8.0",
+        "symfony/web-profiler-bundle": "^6.4 || ^7.0 || ^8.0"
+    },
+    "suggest": {
+        "klehm/content-blocks-i18n": "Translates block content per Sylius locale, with target locales and page URLs taken from the shop"
+    },
+    "autoload": {
+        "psr-4": {
+            "ContentBlocks\\Sylius\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ContentBlocks\\Sylius\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": false,
+            "symfony/flex": false,
+            "symfony/runtime": true
+        }
+    },
+    "extra": {
+        "symfony": {
+            "bundle": "ContentBlocks\\Sylius\\ContentBlocksSyliusPlugin"
+        },
+        "branch-alias": {
+            "dev-master": "1.6.x-dev",
+            "dev-main": "1.6.x-dev"
+        }
+    },
+    "repositories": {
+        "core": {
+            "type": "path",
+            "url": "../content-blocks"
+        },
+        "kit": {
+            "type": "path",
+            "url": "../content-blocks-kit"
+        },
+        "i18n": {
+            "type": "path",
+            "url": "../content-blocks-i18n"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
