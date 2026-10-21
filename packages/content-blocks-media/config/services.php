@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use ContentBlocks\Media\Asset\LibraryAssetReferenceProvider;
+use ContentBlocks\Media\Builder\MediaActionProvider;
 use ContentBlocks\Media\Builder\MediaShellExtension;
 use ContentBlocks\Media\Command\ImportCommand;
 use ContentBlocks\Media\Controller\AssetController;
@@ -56,6 +57,8 @@ return static function (ContainerConfigurator $container): void {
     $services->set(DenyAllMediaManager::class);
     $services->alias(MediaManagerInterface::class, DenyAllMediaManager::class);
 
+    $services->set(MediaActionProvider::class)
+        ->arg('$kinds', param('content_blocks_media.kinds'));
     $services->set(MediaShellExtension::class)
         ->arg('$kinds', param('content_blocks_media.kinds'))
         ->arg('$uploadMaxSize', param('content_blocks.upload.max_size'));
@@ -63,6 +66,7 @@ return static function (ContainerConfigurator $container): void {
     // Controllers are not autoconfigured, or `routing.controllers` mounts them
     // unprefixed. @see docs/internals/bundle-boot.md
     $services->set(MediaController::class)->autoconfigure(false)
+        ->arg('$kinds', param('content_blocks_media.kinds'))
         ->tag('controller.service_arguments');
     $services->set(ManageController::class)->autoconfigure(false)
         ->tag('controller.service_arguments');

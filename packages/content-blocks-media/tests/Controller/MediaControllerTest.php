@@ -62,6 +62,14 @@ final class MediaControllerTest extends TestCase
         $this->assertSame(400, $response->getStatusCode());
     }
 
+    // `all` is every configured kind; with none configured there is nothing.
+    public function testAllKindsNeedsAKindConfigured(): void
+    {
+        $response = $this->controller(kinds: [])->list(new Request(['area' => '1', 'kind' => 'all']));
+
+        $this->assertSame(400, $response->getStatusCode());
+    }
+
     public function testAnUnknownFolderIsNotFound(): void
     {
         $response = $this->controller()->list(new Request(['area' => '1', 'folder' => '8']));
@@ -166,7 +174,8 @@ final class MediaControllerTest extends TestCase
         return Request::create('/place', 'POST', [], [], [], ['HTTP_X_CSRF_TOKEN' => 'tok'], json_encode($body, \JSON_THROW_ON_ERROR));
     }
 
-    private function controller(): MediaController
+    /** @param list<string> $kinds */
+    private function controller(array $kinds = ['image', 'video']): MediaController
     {
         $access = $this->createMock(AccessCheckerInterface::class);
         $access->method('canEdit')->willReturnCallback(fn () => $this->canEdit);
@@ -178,6 +187,6 @@ final class MediaControllerTest extends TestCase
         $manager = $this->createMock(MediaManagerInterface::class);
         $manager->method('canManage')->willReturnCallback(fn () => $this->canManage);
 
-        return new MediaController($this->em, $access, $csrf, new MediaBrowser($this->em, $images), $images, $manager);
+        return new MediaController($this->em, $access, $csrf, new MediaBrowser($this->em, $images), $images, $manager, kinds: $kinds);
     }
 }

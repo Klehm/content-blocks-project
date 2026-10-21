@@ -95,6 +95,7 @@ final class BuilderShellBlocksTest extends TestCase
         $env->addFunction(new TwigFunction('csrf_token', static fn (): string => 'tok'));
         $env->addFunction(new TwigFunction('cb_api_base', static fn (): string => '/_content-blocks'));
         $env->addFunction(new TwigFunction('cb_shell_fragments', static fn (): array => []));
+        $env->addFunction(new TwigFunction('cb_builder_actions', static fn ($area, array $own = []): array => $own));
         $env->addFunction(new TwigFunction('cb_public_url', static fn (): string => '/page/3'));
         $env->addFunction(new TwigFunction(
             'cb_history_state',

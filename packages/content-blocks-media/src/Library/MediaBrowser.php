@@ -24,6 +24,8 @@ final class MediaBrowser
     }
 
     /**
+     * @param list<string> $kinds every kind listed, the library at once
+     *
      * @return array{
      *     folder: array{id: int|null, name: string}|null,
      *     breadcrumb: list<array{id: int|null, name: string}>,
@@ -33,7 +35,7 @@ final class MediaBrowser
      *     hasMore: bool,
      * }
      */
-    public function browse(string $kind, ?MediaFolder $folder, string $query, int $page): array
+    public function browse(array $kinds, ?MediaFolder $folder, string $query, int $page): array
     {
         $query = trim($query);
         $page = max(1, $page);
@@ -41,8 +43,8 @@ final class MediaBrowser
         $qb = $this->em->createQueryBuilder()
             ->select('m')
             ->from(Media::class, 'm')
-            ->where('m.kind = :kind')
-            ->setParameter('kind', $kind)
+            ->where('m.kind IN (:kinds)')
+            ->setParameter('kinds', $kinds)
             ->orderBy('m.createdAt', 'DESC')
             ->addOrderBy('m.id', 'DESC')
             ->setFirstResult(($page - 1) * self::PAGE_SIZE)

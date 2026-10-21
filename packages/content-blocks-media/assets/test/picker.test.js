@@ -7,7 +7,7 @@ const URLS = {
     fileUpdate: '/m/file/update', fileMove: '/m/file/move', fileRemove: '/m/file/remove', fileUsage: '/m/file/usage',
 };
 const I18N = {
-    image: 'Pick an image', video: 'Pick a video', empty: 'Empty', no_match: 'No match', failed: 'Failed',
+    image: 'Pick an image', video: 'Pick a video', library: 'Media library', empty: 'Empty', no_match: 'No match', failed: 'Failed',
     root: 'Library', upload_failed: 'Upload failed', save_failed: 'Save failed', folder_name: 'Name',
     rename_folder: 'Rename', delete_folder: 'Delete', delete_folder_confirm: 'Delete %name%?',
     remove_confirm: 'Remove %name%?', remove_confirm_used: 'Remove %name%, used on %count%?',
@@ -59,6 +59,14 @@ function mount({ kinds = ['image', 'video'], manage = true } = {}) {
     });
 
     return dialog;
+}
+
+/** Escape as the browser sends it: true when the dialog would close. */
+function closeRequest(dialog) {
+    const request = new Event('cancel', { cancelable: true });
+    dialog.dispatchEvent(request);
+
+    return !request.defaultPrevented;
 }
 
 function item(id, extra = {}) {
@@ -278,7 +286,7 @@ describe('MediaPicker', () => {
         expect(notice.hidden).toBe(true);
     });
 
-    it('keeps its keys from the builder, and closes on Escape', async () => {
+    it('keeps its keys from the builder, and lets Escape close it', async () => {
         await picker.open(request());
         const reachedDocument = vi.fn();
         document.addEventListener('keydown', reachedDocument);
@@ -288,7 +296,8 @@ describe('MediaPicker', () => {
         dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
 
         expect(reachedDocument).not.toHaveBeenCalled();
-        expect(dialog.close).toHaveBeenCalled();
+        // Nothing selected: the browser's own close request is left alone.
+        expect(closeRequest(dialog)).toBe(true);
         document.removeEventListener('keydown', reachedDocument);
     });
 
@@ -576,16 +585,31 @@ describe('MediaPicker — a file browser', () => {
         expect(pressed()).toEqual([]);
     });
 
+    // Focus stays on the file input after an upload: that is not typing.
+    it('Ctrl+A on the file input selects every file', () => {
+        dialog.querySelector('[data-cb-media-file]')
+            .dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true, cancelable: true }));
+
+        expect(pressed()).toEqual([1, 2, 3, 4]);
+    });
+
     it('Escape lets go of the selection first, then closes', () => {
         click(button(1));
-        const escape = () => dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
 
-        escape();
+        expect(closeRequest(dialog)).toBe(false);
         expect(pressed()).toEqual([]);
-        expect(dialog.close).not.toHaveBeenCalled();
 
-        escape();
-        expect(dialog.close).toHaveBeenCalled();
+        expect(closeRequest(dialog)).toBe(true);
+    });
+
+    // The browser refuses a second cancel without user activation.
+    it('a close request it may not cancel closes, whatever is selected', () => {
+        click(button(1));
+        const request = new Event('cancel', { cancelable: false });
+
+        dialog.dispatchEvent(request);
+
+        expect(request.defaultPrevented).toBe(false);
     });
 
     it('uploads every file dropped on the zone into this folder, and selects them', async () => {
@@ -898,6 +922,36 @@ describe('MediaPicker — loading on scroll', () => {
     });
 });
 
+describe('MediaPicker — the library from the Actions menu', () => {
+    it('opens on every kind, with nothing to insert into', async () => {
+        const dialog = mount();
+        const fetch = vi.fn(() => respond(page({ items: [item(1), item(2, { kind: 'video', path: '/u/2.mp4' })] })));
+        const picker = new MediaPicker(dialog, { fetch });
+
+        await picker.openLibrary();
+
+        expect(new URL(fetch.mock.calls[0][0], 'http://x').searchParams.get('kind')).toBe('all');
+        expect(dialog.querySelector('[data-cb-media-title]').textContent).toBe('Media library');
+        expect(dialog.querySelector('[data-cb-media-insert]').hidden).toBe(true);
+        expect(dialog.querySelector('[data-cb-media-file]').getAttribute('accept')).toBe('image/*,video/*');
+        expect(dialog.querySelectorAll('[data-cb-media-grid] video')).toHaveLength(1);
+
+        // A double click selects; it has no field to fill.
+        dialog.querySelector('[data-id="1"]').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+        expect(dialog.close).not.toHaveBeenCalled();
+    });
+
+    it('a field opened next brings Insert back', async () => {
+        const dialog = mount();
+        const picker = new MediaPicker(dialog, { fetch: vi.fn(() => respond(page())) });
+
+        await picker.openLibrary();
+        await picker.open(request());
+
+        expect(dialog.querySelector('[data-cb-media-insert]').hidden).toBe(false);
+    });
+});
+
 describe('install', () => {
     function browse(detail) {
         const event = new CustomEvent('cb:media:browse', { bubbles: true, cancelable: true, detail });
@@ -915,6 +969,22 @@ describe('install', () => {
         expect(dialog.hasAttribute('open')).toBe(true);
         dialog.close();
         expect(browse(request({ kind: 'video' })).defaultPrevented).toBe(false);
+    });
+
+    it('opens the library on its Actions menu entry, and on no other', () => {
+        const dialog = mount();
+        globalThis.fetch = vi.fn(() => respond(page()));
+        install(document);
+        const action = (key) => document.body.dispatchEvent(
+            new CustomEvent('cb:builder:action', { bubbles: true, detail: { key, areaId: 42 } }),
+        );
+
+        action('someone-else.history');
+        expect(dialog.hasAttribute('open')).toBe(false);
+
+        action(MediaPicker.ACTION_KEY);
+        expect(dialog.hasAttribute('open')).toBe(true);
+        expect(dialog.querySelector('[data-cb-media-insert]').hidden).toBe(true);
     });
 
     it('leaves an event alone when no picker is on the page', () => {

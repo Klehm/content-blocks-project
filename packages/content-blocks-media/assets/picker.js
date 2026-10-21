@@ -8,6 +8,8 @@ export class MediaPicker {
     static SEARCH_DELAY = 250;
     // The dataTransfer type of files dragged inside the picker.
     static DRAG_TYPE = 'application/x-cb-media';
+    // The Actions menu entry of MediaActionProvider.
+    static ACTION_KEY = 'content-blocks-media.library';
 
     constructor(dialog, {
         fetch = globalThis.fetch?.bind(globalThis),
@@ -65,7 +67,9 @@ export class MediaPicker {
     open(request) {
         this.request = request;
         this.state = { kind: request.kind || 'image', folder: null, query: '', page: 1 };
-        this.el('title').textContent = this._t(this.state.kind);
+        this.el('title').textContent = this._t(this.state.kind === 'all' ? 'library' : this.state.kind);
+        // Opened for no field: nothing to insert into.
+        this.el('insert').hidden = typeof request.pick !== 'function';
         this.el('search').value = '';
         this.el('file').setAttribute('accept', request.accept || '');
         this._clearNotice();
@@ -78,6 +82,16 @@ export class MediaPicker {
         this.el('search').focus();
 
         return this.load();
+    }
+
+    /** The whole library, from the Actions menu: sort and upload ahead. */
+    openLibrary() {
+        return this.open({
+            kind: 'all',
+            accept: this.kinds.map((kind) => `${kind}/*`).join(','),
+            value: '',
+            pick: null,
+        });
     }
 
     close() {
@@ -239,7 +253,7 @@ export class MediaPicker {
 
     insert() {
         const item = this.selected;
-        if (!item || !this.request) return;
+        if (!item || typeof this.request?.pick !== 'function') return;
         const request = this.request;
         this.close();
         request.pick({ path: item.path, alt: item.alt });
@@ -494,6 +508,7 @@ export class MediaPicker {
         // The builder's shortcuts would act behind the dialog: Escape on the
         // Navigator, Ctrl-V pasting a block. Its keys stay its own.
         this.dialog.addEventListener('keydown', (event) => this._onKeydown(event));
+        this.dialog.addEventListener('cancel', (event) => this._onCancel(event));
         this.dialog.addEventListener('close', () => {
             this.request = null;
         });
@@ -568,21 +583,33 @@ export class MediaPicker {
         this._bindDrops();
     }
 
+    /** Where a key edits text; a file, box or button input takes none. */
+    static isTyping(target) {
+        const field = target?.closest?.('input, textarea, select');
+        if (!field) return false;
+        if (field.tagName !== 'INPUT') return true;
+
+        return !['file', 'checkbox', 'radio', 'button', 'submit', 'reset', 'image'].includes(field.type);
+    }
+
     _onKeydown(event) {
         event.stopPropagation();
-        const typing = event.target.closest?.('input, textarea, select');
-
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            // Like a file browser: the first Escape lets go of the selection.
-            if (this.selection.size > 0 && !typing) this.select(null);
-            else this.close();
-
-            return;
-        }
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a' && !typing) {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a'
+            && !MediaPicker.isTyping(event.target)) {
             event.preventDefault();
             this.selectAll();
+        }
+    }
+
+    /**
+     * Escape is the dialog's own close request, aimed at the topmost modal
+     * only. Closing from keydown let it fall through to the builder's.
+     */
+    _onCancel(event) {
+        // Like a file browser: the first Escape lets go of the selection.
+        if (this.selection.size > 0 && event.cancelable !== false) {
+            event.preventDefault();
+            this.select(null);
         }
     }
 
@@ -935,6 +962,15 @@ export function install(doc) {
 
         event.preventDefault();
         dialog.cbMediaPicker.open(event.detail);
+    });
+
+    doc.addEventListener('cb:builder:action', (event) => {
+        if (event.detail?.key !== MediaPicker.ACTION_KEY) return;
+        const dialog = doc.querySelector('dialog[data-cb-media]');
+        if (!dialog) return;
+
+        dialog.cbMediaPicker ??= new MediaPicker(dialog);
+        dialog.cbMediaPicker.openLibrary();
     });
 }
 

@@ -1,6 +1,9 @@
 cb_media:
+    action:
+        library: "Media library"
     picker:
         title_image: "Pick an image"
+        title_library: "Media library"
         title_video: "Pick a video"
         search: "Search the library"
         close: "Close"

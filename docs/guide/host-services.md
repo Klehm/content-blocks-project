@@ -755,7 +755,7 @@ document.addEventListener('cb:builder:action', async (event) => {
 `cb:area:changed` is one of the two **inbound** public events: dispatched at the builder from the shell element or anything inside it, it makes the builder reload the preview and re-sync Publish / Discard — the same landing as an import or an "Insert content". `detail.hasUnpublishedChanges` is optional and defaults to `true`, which is what a draft write means.
 
 ::: tip Where fragments show up
-The shell asks for its fragments itself (the `cb_shell_fragments(area)` Twig function), so a fragment renders whether the builder came from `ContentAreaType` or from a direct `{% include '@ContentBlocks/builder/launcher.html.twig' %}`. That differs from `BuilderActionProviderInterface`, whose actions are gathered by `ContentAreaType` and, on a direct include, have to be passed as `topbarActions` by the host.
+The shell asks for its fragments itself (the `cb_shell_fragments(area)` Twig function), so a fragment renders whether the builder came from `ContentAreaType` or from a direct `{% include '@ContentBlocks/builder/launcher.html.twig' %}`. The Actions menu works the same way (`cb_builder_actions(area, topbarActions)`): a provider's actions show on a direct include too, beside the `topbarActions` the host passes, and an action whose key is listed twice shows once.
 :::
 
 

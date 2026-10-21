@@ -214,3 +214,30 @@ test('a selection is let go of, and several files are dragged into a folder', as
     await dialog.locator('.cb-media__folder', { hasText: folder }).click();
     await expect(dialog.locator('.cb-media__item')).toHaveCount(2);
 });
+
+test('the Actions menu opens the whole library, with nothing to insert', async ({ page }) => {
+    await builderWithImageBlock(page);
+
+    await page.locator('.cb-shell__actions-toggle').click();
+    await page.getByRole('menuitem', { name: /Bibliothèque de médias|Media library/ })
+        .or(page.locator('button', { hasText: /Bibliothèque de médias|Media library/ })).first().click();
+
+    const dialog = page.locator('dialog.cb-media');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('.cb-media__title')).toHaveText(/Bibliothèque de médias|Media library/);
+    await expect(dialog.locator('[data-cb-media-insert]')).toBeHidden();
+    await expect(dialog.locator('[data-cb-media-file]')).toHaveAttribute('accept', 'image/*,video/*');
+
+    // Uploading ahead of time works the same way.
+    const name = unique('ahead');
+    await upload(dialog, name);
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+
+    // Then a field finds it, with Insert back.
+    await openPicker(page);
+    await expect(dialog.locator('[data-cb-media-insert]')).toBeVisible();
+    await dialog.locator('[data-cb-media-search]').fill(name);
+    await expect(dialog.locator('.cb-media__item', { hasText: name })).toHaveCount(1);
+});

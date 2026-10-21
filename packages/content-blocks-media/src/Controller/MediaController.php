@@ -43,6 +43,8 @@ final class MediaController
         private readonly ImageUrlResolverInterface $images,
         private readonly MediaManagerInterface $manager,
         private readonly ?TranslatorInterface $translator = null,
+        /** @var list<string> */
+        private readonly array $kinds = [MediaKind::IMAGE, MediaKind::VIDEO],
     ) {
     }
 
@@ -54,8 +56,10 @@ final class MediaController
             return $area;
         }
 
+        // `all` is the library opened from the Actions menu, for no field.
         $kind = (string) $request->query->get('kind', MediaKind::IMAGE);
-        if (!\in_array($kind, [MediaKind::IMAGE, MediaKind::VIDEO], true)) {
+        $kinds = $kind === 'all' ? $this->kinds : [$kind];
+        if ($kinds === [] || array_diff($kinds, [MediaKind::IMAGE, MediaKind::VIDEO]) !== []) {
             return $this->error('unknown_kind', Response::HTTP_BAD_REQUEST);
         }
 
@@ -65,7 +69,7 @@ final class MediaController
         }
 
         return new JsonResponse($this->browser->browse(
-            $kind,
+            $kinds,
             $folder,
             (string) $request->query->get('q', ''),
             (int) $request->query->get('page', '1'),

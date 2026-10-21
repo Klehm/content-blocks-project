@@ -40,6 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   carries a translated `message` beside its `code` in `error`; the picker
   shows the message, never the code. A file over the upload limit (the package's,
   or PHP's when lower) is refused before it is sent.
+- **Media library in the builder's Actions menu**: the picker opened for no
+  field, images and videos together, without *Insert*, to sort, rename and
+  upload ahead of time.
 - **The picker in the i18n workbench**: it stands alone, so the workbench
   renders it and offers it on media rows (`klehm/content-blocks-i18n` with
   this release).

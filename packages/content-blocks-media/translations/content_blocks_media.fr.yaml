@@ -1,6 +1,9 @@
 cb_media:
+    action:
+        library: "Bibliothèque de médias"
     picker:
         title_image: "Choisir une image"
+        title_library: "Bibliothèque de médias"
         title_video: "Choisir une vidéo"
         search: "Rechercher dans la bibliothèque"
         close: "Fermer"

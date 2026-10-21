@@ -91,8 +91,12 @@ Two traps of living inside the builder:
 
 - **The builder's keys.** Its document `keydown` handler closes the Navigator
   on Escape and pastes a block on Ctrl-V. The dialog stops the propagation of
-  every key pressed inside it and closes itself on Escape. Both are pinned by
+  every key pressed inside it. Both are pinned by
   `media-library-picker.spec.js`, and fail without the guard.
+- **Escape is the dialog's `cancel`, not a keydown.** Closing the picker from
+  its keydown handler let Chrome's close request fall through to the next
+  modal, the builder itself, which closed too. The `cancel` event aims at the
+  topmost modal only; cancelled, it lets go of the selection instead.
 - **Enter in the search field** submits the dialog's `method="dialog"` form,
   which closes it. The field turns Enter into an immediate search.
 
@@ -162,6 +166,14 @@ as the fallback without an observer. Three rules keep it from loading wrong:
   zone keeps loading until the end leaves the look-ahead.
 
 A next page appends its tiles; repainting the grid would reload every image.
+
+## Opened from the Actions menu
+
+`MediaActionProvider` adds *Media library* to the builder's Actions menu; the
+script answers that `cb:builder:action` key by opening the picker for no field:
+every configured kind at once (`kind=all` on the list), no *Insert*, and a
+double click that selects only. It is where files are sorted and uploaded
+ahead of the page that will use them.
 
 ## Who may browse
 
