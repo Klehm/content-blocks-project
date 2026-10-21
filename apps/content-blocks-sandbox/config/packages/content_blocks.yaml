@@ -74,3 +74,7 @@ content_blocks:
             - application/pdf
             - video/mp4
             - video/webm
+
+    # AI is off until enabled here; App\Ai\DemoAiProvider answers it.
+    ai:
+        enabled: true

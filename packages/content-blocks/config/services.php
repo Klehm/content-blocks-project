@@ -74,8 +74,9 @@ return static function (ContainerConfigurator $container): void {
         ->set('content_blocks.structure.sections', 'editable')
         ->set('content_blocks.structure.columns', true)
         // Read by ContentSchemaBuilder and the schema command / endpoint.
-        // Read by AiFeatures; normally fed by `content_blocks.ai`.
-        ->set('content_blocks.ai.actions', [])
+        // Read by AiFeatures; normally fed by `content_blocks.ai`. Off, as the
+        // config's default: an action left out of this map would be on.
+        ->set('content_blocks.ai.actions', array_fill_keys(ContentBlocks\Ai\AiAction::ALL, false))
         ->set('content_blocks.ai.tones', ContentBlocks\Ai\AiFeatures::DEFAULT_TONES)
         ->set('content_blocks.ai.max_sections', 8)
         ->set('content_blocks.schema.block_purposes', [])
