@@ -252,10 +252,23 @@ export default class Ai {
     /** Action: the topbar's Generate button. */
     openAiDialog(event) {
         event?.preventDefault();
+        this._openAiDialog(null);
+    }
+
+    /** From the ✦ on a section toolbar in the preview: that section. */
+    openAiSectionEdit(sectionId) {
+        if (!Number.isFinite(sectionId)) return;
+        this._openAiDialog('edit_section', sectionId);
+    }
+
+    _openAiDialog(scope, sectionId = null) {
         if (!this.hasAiDialogTarget) return;
         this.closeActions?.();
-        this._setAiStatus('');
+        this._aiTargetSectionId = sectionId;
+        const radio = scope ? this.aiDialogTarget.querySelector(`input[name="scope"][value="${scope}"]`) : null;
+        if (radio) radio.checked = true;
         this._setAiBusy(false);
+        this.onAiScopeChange();
         this.aiDialogTarget.showModal();
         this.aiPromptTarget?.focus();
     }
@@ -263,23 +276,48 @@ export default class Ai {
     closeAiDialog(event) {
         event?.preventDefault();
         if (this.hasAiDialogTarget && this.aiDialogTarget.open) this.aiDialogTarget.close();
+        this._aiTargetSectionId = null;
     }
 
-    /** Action: the scope radios. Replacing only makes sense for a page. */
+    /**
+     * Action: the scope radios. Replacing only makes sense for a new page;
+     * a revision says what it will replace.
+     */
     onAiScopeChange() {
-        if (!this.hasAiReplaceTarget) return;
-        const page = this._aiScope() === 'page';
-        this.aiReplaceTarget.hidden = !page;
-        if (!page) {
-            const box = this.aiReplaceTarget.querySelector('input');
-            if (box) box.checked = false;
+        const scope = this._aiScope();
+        if (this.hasAiReplaceTarget) {
+            this.aiReplaceTarget.hidden = scope !== 'page';
+            if (scope !== 'page') {
+                const box = this.aiReplaceTarget.querySelector('input');
+                if (box) box.checked = false;
+            }
         }
+        const hint = {
+            edit_section: this._aiTarget() ? this._aiString('edit_hint') : this._aiString('needs_section'),
+            edit_page: this._aiString('edit_page_hint'),
+        }[scope];
+        this._setAiStatus(hint ?? '');
     }
 
     _aiScope() {
         const checked = this.aiDialogTarget?.querySelector('input[name="scope"]:checked');
 
         return checked?.value ?? (this._aiActions.includes('section') ? 'section' : 'page');
+    }
+
+    /** The section a request is about: the toolbar one, else the selection. */
+    _aiTarget() {
+        if (Number.isFinite(this._aiTargetSectionId)) return { targetSectionId: this._aiTargetSectionId };
+        const { blockId, sectionId } = this._selectionIds();
+        if (sectionId) return { targetSectionId: sectionId };
+
+        return blockId ? { targetBlockId: blockId } : null;
+    }
+
+    /** Sent when the preview is ready, so its section toolbar can offer ✦. */
+    _announceAiToPreview() {
+        if (!this._aiActions.includes('edit_section')) return;
+        this._postToPreview({ type: 'cb:ai:capabilities', editSection: true });
     }
 
     async submitAiDialog(event) {
@@ -294,7 +332,11 @@ export default class Ai {
         const action = this._aiScope();
         const replace = action === 'page'
             && Boolean(this.aiReplaceTarget?.querySelector('input')?.checked);
-        const { sectionId } = this._selectionIds();
+        const target = action === 'section' || action === 'edit_section' ? this._aiTarget() : null;
+        if (action === 'edit_section' && !target) {
+            this._setAiStatus(this._aiString('needs_section', 'Select the section to change first'));
+            return;
+        }
 
         this._setAiBusy(true);
         this._setAiStatus(this._aiString('generating', 'Generating…'));
@@ -305,7 +347,7 @@ export default class Ai {
                 action,
                 prompt,
                 ...(replace ? { replace: true } : {}),
-                ...(action === 'section' && sectionId ? { targetSectionId: sectionId } : {}),
+                ...(target ?? {}),
             },
             { tolerate: [400, 404, 409, 422, 502] },
         );

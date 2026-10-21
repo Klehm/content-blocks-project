@@ -53,14 +53,23 @@ final class BuilderAiTemplateTest extends TestCase
 
         $this->assertStringContainsString('cb-shell__ai', $html);
         $this->assertStringContainsString('data-cb-builder-target="aiDialog"', $html);
-        $this->assertStringContainsString('data-cb-ai-actions="rewrite shorten tone alt_text section page"', $html);
-        $this->assertStringContainsString('value="section"', $html);
-        $this->assertStringContainsString('value="page"', $html);
+        $this->assertStringContainsString(
+            'data-cb-ai-actions="rewrite shorten tone alt_text section page edit_section edit_page"',
+            $html,
+        );
+        foreach (['section', 'page', 'edit_section', 'edit_page'] as $scope) {
+            $this->assertStringContainsString('value="' . $scope . '"', $html);
+        }
     }
 
     public function testFieldActionsAloneDrawThePopoverButNoDialog(): void
     {
-        $off = [AiAction::SECTION => false, AiAction::PAGE => false];
+        $off = [
+            AiAction::SECTION => false,
+            AiAction::PAGE => false,
+            AiAction::EDIT_SECTION => false,
+            AiAction::EDIT_PAGE => false,
+        ];
         $html = $this->shell(new AiFeatures([new RecordingAiProvider()], $off));
 
         $this->assertStringNotContainsString('cb-shell__ai"', $html);
@@ -74,6 +83,19 @@ final class BuilderAiTemplateTest extends TestCase
 
         $this->assertStringNotContainsString('value="section"', $html);
         $this->assertStringContainsString('value="page"', $html);
+    }
+
+    public function testTheEditsAloneStillOpenTheDialog(): void
+    {
+        $html = $this->shell(new AiFeatures([new RecordingAiProvider()], [
+            AiAction::SECTION => false,
+            AiAction::PAGE => false,
+            AiAction::EDIT_PAGE => false,
+        ]));
+
+        $this->assertStringContainsString('cb-shell__ai', $html);
+        $this->assertStringContainsString('value="edit_section"', $html);
+        $this->assertStringNotContainsString('aiReplace', $html, 'no new page, nothing to replace');
     }
 
     public function testAProseFieldRowCarriesItsTrigger(): void

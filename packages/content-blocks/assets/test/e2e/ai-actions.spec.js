@@ -70,6 +70,56 @@ test.describe('AI actions', () => {
         await expect.poll(() => liveSections(frame)).toBe(0);
     });
 
+    test('revises one section in its place, from its toolbar', async ({ page }) => {
+        const { url } = await createFreshPage(page);
+        const frame = await openBuilder(page, url);
+
+        await page.locator('.cb-shell__ai').click();
+        await page.locator('.cb-ai-dialog textarea').fill('Our trail running shoe');
+        await page.locator('.cb-ai-dialog input[value="page"]').check();
+        await page.locator('.cb-ai-dialog__submit').click();
+        await expect.poll(() => liveSections(frame)).toBe(4);
+        const headings = () => frame.locator('[data-cb-section-id]:not([data-cb-deleted]) h1, '
+            + '[data-cb-section-id]:not([data-cb-deleted]) h2').allTextContents();
+        const before = await headings();
+
+        // The second section's own toolbar: ✦ opens the dialog on it.
+        const second = frame.locator('[data-cb-section-id]:not([data-cb-deleted])').nth(1);
+        await second.click({ position: { x: 5, y: 5 } });
+        await frame.locator('.cb-overlay-toolbar.is-visible [data-cb-action="ai-edit"]').click();
+        const dialog = page.locator('.cb-ai-dialog');
+        await expect(dialog.locator('input[value="edit_section"]')).toBeChecked();
+        await dialog.locator('textarea').fill('Make it punchier');
+        await dialog.locator('.cb-ai-dialog__submit').click();
+        await expect(dialog).toBeHidden();
+
+        // Same place, same neighbours; only that section changed.
+        await expect.poll(headings).toEqual([before[0], `✦ ${before[1]}`, ...before.slice(2)]);
+        await expect.poll(() => liveSections(frame)).toBe(4);
+
+        await page.locator('.cb-shell__history-btn--undo').click();
+        await expect.poll(headings).toEqual(before);
+    });
+
+    test('revises the whole page from what is there', async ({ page }) => {
+        const { url } = await createFreshPage(page);
+        const frame = await openBuilder(page, url);
+        await page.locator('.cb-shell__ai').click();
+        await page.locator('.cb-ai-dialog textarea').fill('Our trail running shoe');
+        await page.locator('.cb-ai-dialog input[value="page"]').check();
+        await page.locator('.cb-ai-dialog__submit').click();
+        await expect.poll(() => liveSections(frame)).toBe(4);
+
+        await page.locator('.cb-shell__ai').click();
+        await page.locator('.cb-ai-dialog textarea').fill('Warmer tone everywhere');
+        await page.locator('.cb-ai-dialog input[value="edit_page"]').check();
+        await page.locator('.cb-ai-dialog__submit').click();
+
+        await expect(frame.locator('h1', { hasText: '✦ Our trail running shoe' })).toBeVisible();
+        await expect(frame.locator('h2', { hasText: '✦ Why choose it' })).toBeVisible();
+        await expect.poll(() => liveSections(frame)).toBe(4);
+    });
+
     test('rewrites a title only once the editor replaces it', async ({ page }) => {
         const { url } = await createFreshPage(page);
         const frame = await openBuilder(page, url);
@@ -107,7 +157,11 @@ test.describe('AI actions', () => {
     });
 
     test('an action the provider does not support is not offered', async ({ page, context, baseURL }) => {
-        await context.addCookies([{ name: 'cb_e2e_ai_off', value: 'section,page,rewrite,shorten,tone', url: baseURL }]);
+        await context.addCookies([{
+            name: 'cb_e2e_ai_off',
+            value: 'section,page,edit_section,edit_page,rewrite,shorten,tone',
+            url: baseURL,
+        }]);
         const { url } = await createFreshPage(page);
         const frame = await openBuilder(page, url);
 
@@ -117,6 +171,9 @@ test.describe('AI actions', () => {
         await addBlock(page, frame, /^(Titre|Title)$/);
         await expect(page.locator('.cb-shell__sidebar input[name$="[text]"]')).toBeVisible();
         await expect(page.locator('.cb-ai-trigger')).toHaveCount(0);
+        await frame.locator('[data-cb-section-id]').first().click({ position: { x: 5, y: 5 } });
+        await expect(frame.locator('.cb-overlay-toolbar.is-visible [data-cb-action="delete"]')).toBeVisible();
+        await expect(frame.locator('.cb-overlay-toolbar [data-cb-action="ai-edit"]')).toHaveCount(0);
 
         // The endpoint is gone too, not only the button.
         const csrf = await page.locator('.cb-shell').getAttribute('data-cb-csrf-token');

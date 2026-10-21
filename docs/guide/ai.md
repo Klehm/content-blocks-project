@@ -57,6 +57,7 @@ final class MyModelProvider implements AiProviderInterface
         // See ./content-schema.md
         $json = $this->client->structured(
             system: json_encode([
+                'toRevise' => $request->current,
                 'blocks' => $request->schema->blocks,
                 'palette' => $request->schema->palette,
                 'sectionStyles' => $request->schema->sectionStyles,
@@ -81,9 +82,15 @@ What each request carries:
 |---|---|
 | `TextRequest` | `action`, `text`, `locale`, `html`, `tone`, plus the field's context when the builder knows it: `blockType`, `field` (its path in the block data, `items.0.title`), `label`, `maxLength`, and the host's `brief` |
 | `AltTextRequest` | `src` (as stored), `url` (absolute, for a remote model to fetch), `locale`, `blockType`, `context` (the caption or title beside the image), `brief` |
-| `ContentRequest` | `action` (`section` or `page`), `prompt`, `schema` (the area's [content schema](./content-schema.md)), `locale`, `existing` (the draft sections, in the output shape), `maxSections`, `brief` |
+| `ContentRequest` | `action` (`section`, `page`, `edit_section` or `edit_page`), `prompt`, `schema` (the area's [content schema](./content-schema.md)), `locale`, `existing` (the draft sections, in the output shape), `maxSections`, `brief`, and for an edit `current`: the sections to revise (one for `edit_section`, all of them for `edit_page`) |
 
-`generateContent()` returns a `{"sections": [...]}` document in the shape of `$request->schema->schema`. The package keeps at most `maxSections` sections: one for a `section` request.
+`generateContent()` returns a `{"sections": [...]}` document in the shape of `$request->schema->schema`. The package keeps at most `maxSections` sections: one for a `section` or an `edit_section` request.
+
+For an edit, tell the model to change only what the editor asks and to answer with the revised sections, keeping everything else as it is (texts, image paths, colours, settings). The answer replaces `current`:
+- `edit_section`: the revised section goes in the old one's place. The old one is deleted only once something valid came back, so a refused answer leaves it standing.
+- `edit_page`: the revised page replaces the draft.
+
+Both are draft deletes, so `Ctrl/Cmd-Z` or *Revert to published* bring the old version back. A revised section is made of new blocks, so its translations (with the translation package) are not carried over.
 
 When a call fails, throw. The builder says *The AI service did not answer* and the error is logged. The exception's message is never sent to the browser, since it may hold a key or a URL.
 
@@ -97,8 +104,10 @@ Several providers can be registered; the first one answers. To choose among them
 | `shorten` | ✦ beside a text field | A shorter version |
 | `tone` | ✦ beside a text field | One entry per configured tone |
 | `alt_text` | ✦ beside an image's `alt` | Describes the image |
-| `section` | topbar **Generate** | One section after the selected one (or at the end) |
-| `page` | topbar **Generate** | Several sections at the end, or in place of the draft |
+| `section` | topbar **Generate** | One new section after the selected one (or at the end) |
+| `page` | topbar **Generate** | A new page: sections at the end, or in place of the draft |
+| `edit_section` | **Generate**, or ✦ on a section's toolbar in the preview | Rewrites that section as asked; the new version takes its place |
+| `edit_page` | topbar **Generate** | Rewrites the whole page from what is there |
 | `apply` | `content-blocks:ai:apply` | Writes a document you generated yourself, see [below](#from-your-own-pipeline) |
 
 An action is offered when it is switched on **and** your provider's `supports()` accepts it. Its endpoint answers `404` otherwise, so a disabled action is not there at all. All of them are on by default:

@@ -83,6 +83,12 @@ final class DemoAiProvider implements AiProviderInterface
 
     public function generateContent(ContentRequest $request): array
     {
+        // A revision: what is there, its titles marked as reworked.
+        if (\in_array($request->action, AiAction::EDITS, true)) {
+            return ['sections' => array_map(self::revised(...), $request->current)];
+        }
+
+
         $types = array_column($request->schema->blocks, 'type');
         $layouts = array_column($request->schema->layouts, 'columns', 'name');
         $subject = mb_substr(trim(preg_replace('/\s+/', ' ', $request->prompt) ?? ''), 0, 80);
@@ -197,6 +203,24 @@ final class DemoAiProvider implements AiProviderInterface
     private static function block(array $types, string $type, array $data): ?array
     {
         return \in_array($type, $types, true) ? ['type' => $type, 'data' => $data] : null;
+    }
+
+    /**
+     * @param array<string, mixed> $section
+     *
+     * @return array<string, mixed>
+     */
+    private static function revised(array $section): array
+    {
+        foreach ($section['columns'] ?? [] as $c => $column) {
+            foreach ($column['blocks'] ?? [] as $b => $block) {
+                if (($block['type'] ?? null) === 'title' && \is_string($block['data']['text'] ?? null)) {
+                    $section['columns'][$c]['blocks'][$b]['data']['text'] = '✦ ' . $block['data']['text'];
+                }
+            }
+        }
+
+        return $section;
     }
 
     private static function shorten(string $text): string

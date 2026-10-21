@@ -31,6 +31,9 @@
     error_disabled: 'cb.ai.error.disabled'|trans({}, t),
     error_invalid: 'cb.ai.error.invalid'|trans({}, t),
     error_unreadable: 'cb.ai.error.unreadable'|trans({}, t),
+    needs_section: 'cb.ai.content.needs_section'|trans({}, t),
+    edit_hint: 'cb.ai.content.edit_hint'|trans({}, t),
+    edit_page_hint: 'cb.ai.content.edit_page_hint'|trans({}, t),
 } %}
 <div class="cb-ai"
      data-cb-builder-target="ai"
@@ -47,7 +50,7 @@
          aria-label="{{ 'cb.ai.field.trigger'|trans({}, t) }}"
          hidden></div>
 
-    {% if 'section' in aiActions or 'page' in aiActions %}
+    {% if aiActions|filter(a => a in ['section', 'page', 'edit_section', 'edit_page']) is not empty %}
         <dialog class="cb-ai-dialog"
                 data-cb-builder-target="aiDialog"
                 aria-labelledby="cb-ai-dialog-title">
@@ -70,29 +73,23 @@
                           data-cb-builder-target="aiPrompt"
                           placeholder="{{ 'cb.ai.content.placeholder'|trans({}, t) }}"></textarea>
 
-                {% set both = 'section' in aiActions and 'page' in aiActions %}
-                <fieldset class="cb-ai-dialog__scope"{% if not both %} hidden{% endif %}>
+                {# New content first, then revisions of what is there. #}
+                {% set scopes = ['section', 'page', 'edit_section', 'edit_page']|filter(a => a in aiActions) %}
+                <fieldset class="cb-ai-dialog__scope"{% if scopes|length < 2 %} hidden{% endif %}>
                     <legend class="cb-ai-dialog__label">{{ 'cb.ai.content.scope'|trans({}, t) }}</legend>
-                    {% if 'section' in aiActions %}
+                    {% for scope in scopes %}
                         <label class="cb-ai-dialog__choice">
-                            <input type="radio" name="scope" value="section" checked
+                            <input type="radio" name="scope" value="{{ scope }}"{% if loop.first %} checked{% endif %}
                                    data-action="cb-builder#onAiScopeChange">
-                            {{ 'cb.ai.content.scope_section'|trans({}, t) }}
+                            {{ ('cb.ai.content.scope_' ~ scope)|trans({}, t) }}
                         </label>
-                    {% endif %}
-                    {% if 'page' in aiActions %}
-                        <label class="cb-ai-dialog__choice">
-                            <input type="radio" name="scope" value="page"{% if 'section' not in aiActions %} checked{% endif %}
-                                   data-action="cb-builder#onAiScopeChange">
-                            {{ 'cb.ai.content.scope_page'|trans({}, t) }}
-                        </label>
-                    {% endif %}
+                    {% endfor %}
                 </fieldset>
 
                 {% if 'page' in aiActions %}
                     <label class="cb-ai-dialog__choice cb-ai-dialog__replace"
                            data-cb-builder-target="aiReplace"
-                           {% if 'section' in aiActions %}hidden{% endif %}>
+                           {% if scopes|first != 'page' %}hidden{% endif %}>
                         <input type="checkbox" name="replace" value="1">
                         {{ 'cb.ai.content.replace'|trans({}, t) }}
                     </label>

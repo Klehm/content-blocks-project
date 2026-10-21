@@ -158,8 +158,8 @@ final class AiController
     }
 
     /**
-     * A section after the selected one, or a page, from a prompt: written to
-     * the draft as one undo step, through the paste replay.
+     * A section or a page from a prompt, new or revised: written to the draft
+     * as one undo step, through the paste replay.
      */
     #[Route('/area/{id}/ai/content', name: 'content_blocks_ai_content', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function content(int $id, Request $request): JsonResponse
@@ -183,10 +183,25 @@ final class AiController
             return self::invalid('prompt');
         }
 
-        $page = $action === AiAction::PAGE;
-        $maxSections = $page ? $this->features->maxSections() : 1;
-        $after = $page ? null : $this->sectionIn($area, $body['targetSectionId'] ?? null);
-        $replace = $page && ($body['replace'] ?? false) === true;
+        // The selected section, or the one holding the selected block.
+        $target = $this->sectionIn($area, $body['targetSectionId'] ?? null)
+            ?? $this->blockIn($area, $body['targetBlockId'] ?? null)?->getColumn()?->getSection();
+        if ($action === AiAction::EDIT_SECTION && $target === null) {
+            return self::invalid('targetSectionId');
+        }
+
+        $whole = $action === AiAction::PAGE || $action === AiAction::EDIT_PAGE;
+        $maxSections = $whole ? $this->features->maxSections() : 1;
+        $after = $action === AiAction::SECTION ? $target : null;
+        $replacing = $action === AiAction::EDIT_SECTION ? $target : null;
+        $replace = $action === AiAction::EDIT_PAGE
+            || ($action === AiAction::PAGE && ($body['replace'] ?? false) === true);
+        $existing = $this->existing($area);
+        $current = match ($action) {
+            AiAction::EDIT_PAGE => $existing,
+            AiAction::EDIT_SECTION => [$this->payloadOf($replacing)],
+            default => [],
+        };
 
         $provider = $this->features->provider();
         \assert($provider instanceof AiProviderInterface);
@@ -198,9 +213,10 @@ final class AiController
                 trim($prompt),
                 $this->schemas->build($area, $locale),
                 $locale,
-                $this->existing($area),
+                $existing,
                 $maxSections,
                 $this->brief->briefFor($area),
+                $current,
             ));
         } catch (\Throwable $e) {
             return $this->providerFailed($e);
@@ -211,8 +227,8 @@ final class AiController
                 $area,
                 'ai.' . $action,
                 JournalScope::structure(),
-                function () use ($area, $document, $after, $maxSections, $replace): GenerationResult {
-                    $result = $this->writer->write($area, $document, $after, $maxSections, $replace);
+                function () use ($area, $document, $after, $maxSections, $replace, $replacing): GenerationResult {
+                    $result = $this->writer->write($area, $document, $after, $maxSections, $replace, $replacing);
                     $this->em->flush();
 
                     return $result;
@@ -299,11 +315,23 @@ final class AiController
     {
         $out = [];
         foreach (\array_slice(DraftOrder::sections($area), 0, self::MAX_EXISTING) as $section) {
-            $payload = SectionTemplateExamples::clean($this->serializer->serialize($section)->payload);
-            $out[] = array_filter($payload, static fn (mixed $v): bool => $v !== null);
+            $out[] = $this->payloadOf($section);
         }
 
         return $out;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function payloadOf(?Section $section): array
+    {
+        if ($section === null) {
+            return [];
+        }
+        $payload = SectionTemplateExamples::clean($this->serializer->serialize($section)->payload);
+
+        return array_filter($payload, static fn (mixed $v): bool => $v !== null);
     }
 
     private function blockIn(ContentArea $area, mixed $id): ?Block

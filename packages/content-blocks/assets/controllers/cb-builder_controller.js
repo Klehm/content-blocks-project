@@ -198,6 +198,10 @@ class BuilderController extends Controller {
                     bubbles: true,
                     detail: { areaId: this.areaIdValue },
                 }));
+                this._announceAiToPreview();
+                break;
+            case 'cb:ai:section-requested':
+                this.openAiSectionEdit(data.sectionId);
                 break;
             case 'cb:block:edit':
                 this._selectBlock(data.blockId);

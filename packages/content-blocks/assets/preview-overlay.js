@@ -86,6 +86,9 @@
     const SECTIONS_EDITABLE = SECTIONS_MODE === 'editable';
     const SECTIONS_SHOWN = SECTIONS_MODE !== 'hidden';
 
+    // Set by the builder once it knows an AI provider revises sections.
+    let aiEditsSections = false;
+
     function t(key, fallback) {
         const value = LABELS[key];
         return typeof value === 'string' && value !== '' ? value : fallback;
@@ -231,6 +234,10 @@
                 postToParent('cb:section:duplicate-requested', { sectionId })));
             toolbar.appendChild(makeBtn('☆', t('section_save_template', 'Save as template'), 'save-template', () =>
                 postToParent('cb:section:save-template-requested', { sectionId })));
+            if (aiEditsSections) {
+                toolbar.appendChild(makeBtn('✦', t('section_ai_edit', 'Change this section with AI'), 'ai-edit', () =>
+                    postToParent('cb:ai:section-requested', { sectionId })));
+            }
             toolbar.appendChild(makeBtn('×', t('section_delete', 'Remove'), 'delete', () =>
                 postToParent('cb:section:delete-requested', { sectionId })));
         }
@@ -1422,6 +1429,11 @@
         if (event.origin !== PARENT_ORIGIN) return;
         const data = event.data;
         if (!data || typeof data.type !== 'string') return;
+
+        if (data.type === 'cb:ai:capabilities') {
+            aiEditsSections = data.editSection === true;
+            return;
+        }
 
         // Hot reload: swap a single block's markup in place.
         if (data.type === 'cb:block:replace'

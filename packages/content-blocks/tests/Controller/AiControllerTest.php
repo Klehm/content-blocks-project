@@ -277,6 +277,97 @@ final class AiControllerTest extends ControllerTestCase
         $this->assertSame(8, $request->maxSections);
     }
 
+    public function testASectionIsRevisedInItsPlace(): void
+    {
+        $first = $this->makeSection($this->area, 10, 0);
+        $this->makeColumn($first, 20);
+        $target = $this->makeSection($this->area, 11, 1);
+        $this->makeBlock($this->makeColumn($target, 21), 31, type: 'ai_fixture')
+            ->setDraftData(['headline' => 'Old']);
+        $last = $this->makeSection($this->area, 12, 2);
+        $this->makeColumn($last, 22);
+        $this->provider->document = ['sections' => [self::section('New'), self::section('Extra')]];
+
+        $response = $this->controller([$first, $target, $last])->content(1, $this->post([
+            'action' => 'edit_section',
+            'prompt' => 'Make it punchier',
+            'targetSectionId' => 11,
+        ]));
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $sections = DraftOrder::sections($this->area);
+        $this->assertCount(3, $sections, 'one section in, one out');
+        $this->assertSame([$first, $last], [$sections[0], $sections[2]]);
+        $this->assertTrue($target->isDeleted());
+
+        $request = $this->provider->requests[0];
+        $this->assertInstanceOf(ContentRequest::class, $request);
+        $this->assertSame('edit_section', $request->action);
+        $this->assertSame(1, $request->maxSections);
+        $this->assertCount(1, $request->current, 'the section to revise');
+        $this->assertSame('Old', $request->current[0]['columns'][0]['blocks'][0]['data']['headline']);
+        $this->assertCount(3, $request->existing, 'and the page around it');
+    }
+
+    public function testTheSelectedBlockNamesItsSection(): void
+    {
+        $target = $this->makeSection($this->area, 11);
+        $block = $this->makeBlock($this->makeColumn($target, 21), 31, type: 'ai_fixture');
+        $this->provider->document = ['sections' => [self::section('New')]];
+
+        $response = $this->controller([$target, $block])->content(1, $this->post([
+            'action' => 'edit_section',
+            'prompt' => 'x',
+            'targetBlockId' => 31,
+        ]));
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertTrue($target->isDeleted());
+    }
+
+    public function testRevisingASectionNeedsOne(): void
+    {
+        $other = $this->makeArea(2);
+        $foreign = $this->makeSection($other, 50);
+
+        $response = $this->controller([$foreign])->content(1, $this->post([
+            'action' => 'edit_section',
+            'prompt' => 'x',
+            'targetSectionId' => 50,
+        ]));
+
+        $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
+        $this->assertSame(['error' => 'invalid', 'field' => 'targetSectionId'], self::json($response));
+        $this->assertSame([], $this->provider->requests, 'a section of another area is no target');
+    }
+
+    public function testThePageIsRevisedFromWhatIsThere(): void
+    {
+        $old = $this->makeSection($this->area, 10);
+        $this->makeBlock($this->makeColumn($old, 20), 30, type: 'ai_fixture')->setDraftData(['headline' => 'Old']);
+        $this->provider->document = ['sections' => [self::section('Revised')]];
+
+        $response = $this->controller([$old])->content(1, $this->post(['action' => 'edit_page', 'prompt' => 'x']));
+
+        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
+        $this->assertTrue($old->isDeleted());
+        $this->assertCount(1, DraftOrder::sections($this->area));
+        $request = $this->provider->requests[0];
+        $this->assertInstanceOf(ContentRequest::class, $request);
+        $this->assertSame($request->existing, $request->current, 'the whole page is the thing revised');
+    }
+
+    public function testEachEditIsSwitchedOffOnItsOwn(): void
+    {
+        $target = $this->makeSection($this->area, 11);
+        $controller = $this->controller([$target], actions: [AiAction::EDIT_SECTION => false]);
+
+        $response = $controller->content(1, $this->post(['action' => 'edit_section', 'prompt' => 'x', 'targetSectionId' => 11]));
+
+        $this->assertSame(Response::HTTP_NOT_FOUND, $response->getStatusCode());
+        $this->assertFalse($target->isDeleted());
+    }
+
     public function testFixedSectionsAnswer409(): void
     {
         $this->provider->document = ['sections' => [self::section('One')]];

@@ -69,6 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   *Replace*; generated sections go through the paste replay into the draft,
   as one undo step. Without a provider nothing is drawn and the endpoints
   (`content_blocks_ai_text`, `_alt_text`, `_content`) answer 404.
+  Two more actions revise what is there instead of adding to it:
+  `edit_section` (also from a ✦ on the section's toolbar in the preview) puts
+  the new version of a section in its place, `edit_page` rewrites the page;
+  the provider gets the sections to revise in `ContentRequest::$current`.
   `content_blocks.ai.actions.<action>: false` switches one off, `ai: false`
   all of them; `ai.tones` and `ai.max_sections` tune the rest.
   `AiBriefProviderInterface` hands every request what the host knows about the

@@ -139,6 +139,37 @@ final class GeneratedContentWriterTest extends TestCase
         );
     }
 
+    public function testARevisionTakesThePlaceOfItsSection(): void
+    {
+        $area = new ContentArea();
+        $first = $this->existingSection($area);
+        $target = $this->existingSection($area);
+        $last = $this->existingSection($area);
+
+        $result = $this->writer()->write($area, ['sections' => [
+            self::section([['type' => 'gen', 'data' => ['title' => 'Revised']]]),
+        ]], replacing: $target);
+
+        $this->assertTrue($target->isDeleted(), 'a draft delete: Ctrl-Z or Discard brings it back');
+        $this->assertSame([$first, $result->sections[0], $last], DraftOrder::sections($area));
+    }
+
+    public function testARefusedRevisionLeavesItsSectionStanding(): void
+    {
+        $area = new ContentArea();
+        $target = $this->existingSection($area);
+
+        try {
+            $this->writer()->write($area, ['sections' => [
+                self::section([['type' => 'carousel', 'data' => []]]),
+            ]], replacing: $target);
+            $this->fail('nothing survived, so the write is refused');
+        } catch (GenerationRefusedException) {
+        }
+
+        $this->assertFalse($target->isDeleted());
+    }
+
     public function testTheSectionCountIsCapped(): void
     {
         $result = $this->writer()->write(new ContentArea(), ['sections' => array_fill(

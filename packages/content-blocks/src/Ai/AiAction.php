@@ -24,6 +24,10 @@ final class AiAction
     public const SECTION = 'section';
     /** Several sections from a prompt: a page. */
     public const PAGE = 'page';
+    /** One section rewritten from a prompt, in its place. */
+    public const EDIT_SECTION = 'edit_section';
+    /** The whole page rewritten from a prompt, in place of the draft. */
+    public const EDIT_PAGE = 'edit_page';
     /** Write a generated document to a draft (`content-blocks:ai:apply`). */
     public const APPLY = 'apply';
 
@@ -35,6 +39,8 @@ final class AiAction
         self::ALT_TEXT,
         self::SECTION,
         self::PAGE,
+        self::EDIT_SECTION,
+        self::EDIT_PAGE,
     ];
 
     public const ALL = [...self::PROVIDED, self::APPLY];
@@ -43,7 +49,10 @@ final class AiAction
     public const TEXT = [self::REWRITE, self::SHORTEN, self::TONE];
 
     /** The actions that write sections into the draft. */
-    public const CONTENT = [self::SECTION, self::PAGE];
+    public const CONTENT = [self::SECTION, self::PAGE, self::EDIT_SECTION, self::EDIT_PAGE];
+
+    /** The content actions that rewrite what is there, handed in `current`. */
+    public const EDITS = [self::EDIT_SECTION, self::EDIT_PAGE];
 
     private function __construct()
     {

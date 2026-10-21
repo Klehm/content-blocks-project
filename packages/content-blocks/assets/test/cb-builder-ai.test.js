@@ -18,9 +18,11 @@ const STRINGS = {
     done: 'Generated as a draft',
     error_sections_locked: 'Sections cannot be added',
     error_provider_failed: 'The AI service did not answer',
+    needs_section: 'Select the section to change first',
+    edit_hint: 'The section is replaced by its new version',
 };
 
-function setup({ actions = 'rewrite shorten tone alt_text section page' } = {}) {
+function setup({ actions = 'rewrite shorten tone alt_text section page edit_section edit_page' } = {}) {
     document.body.innerHTML = `
         <div data-controller="cb-builder" data-cb-csrf-token="tok" data-cb-api-base="/api">
             <div class="cb-ai"
@@ -33,6 +35,8 @@ function setup({ actions = 'rewrite shorten tone alt_text section page' } = {}) 
                         <textarea name="prompt"></textarea>
                         <input type="radio" name="scope" value="section" checked>
                         <input type="radio" name="scope" value="page">
+                        <input type="radio" name="scope" value="edit_section">
+                        <input type="radio" name="scope" value="edit_page">
                         <label class="replace" hidden><input type="checkbox" name="replace"></label>
                         <p class="status"></p>
                         <button type="submit" class="submit">Generate</button>
@@ -75,6 +79,7 @@ function setup({ actions = 'rewrite shorten tone alt_text section page' } = {}) 
     controller._afterStructuralOp = vi.fn();
     controller._scrollPreviewTo = vi.fn();
     controller._notify = vi.fn();
+    controller._postToPreview = vi.fn();
 
     return { controller, element, ...targets };
 }
@@ -270,5 +275,103 @@ describe('cb-builder AI: generation dialog', () => {
         await ctx.controller.submitAiDialog({ preventDefault() {} });
 
         expect(ctx.controller._jsonRequest).not.toHaveBeenCalled();
+    });
+});
+
+describe('cb-builder AI: revising what is there', () => {
+    let ctx;
+    beforeEach(() => { ctx = setup(); });
+
+    const ok = { sectionIds: [21], droppedFields: [], skippedBlockTypes: [] };
+
+    it('opens on the section the preview toolbar named, and sends it', async () => {
+        ctx.controller._jsonRequest = vi.fn().mockResolvedValue(ok);
+
+        ctx.controller.openAiSectionEdit(9);
+
+        expect(ctx.aiDialog.open).toBe(true);
+        expect(ctx.aiDialog.querySelector('input[value="edit_section"]').checked).toBe(true);
+        expect(ctx.aiStatus.textContent).toBe('The section is replaced by its new version');
+
+        ctx.aiPrompt.value = 'Shorter, punchier';
+        await ctx.controller.submitAiDialog({ preventDefault() {} });
+
+        expect(ctx.controller._jsonRequest.mock.calls[0][2]).toEqual({
+            action: 'edit_section',
+            prompt: 'Shorter, punchier',
+            targetSectionId: 9,
+        });
+    });
+
+    it('falls back on the selection, a block naming its section server-side', async () => {
+        ctx.sidebar.removeAttribute('data-cb-sidebar-section-id');
+        ctx.controller._jsonRequest = vi.fn().mockResolvedValue(ok);
+        ctx.controller.openAiDialog();
+        ctx.aiDialog.querySelector('input[value="edit_section"]').checked = true;
+        ctx.aiPrompt.value = 'x';
+
+        await ctx.controller.submitAiDialog({ preventDefault() {} });
+
+        expect(ctx.controller._jsonRequest.mock.calls[0][2]).toEqual({ action: 'edit_section', prompt: 'x', targetBlockId: 7 });
+    });
+
+    it('asks for a section rather than guessing one', async () => {
+        ctx.sidebar.removeAttribute('data-cb-sidebar-section-id');
+        ctx.sidebar.removeAttribute('data-cb-sidebar-block-id');
+        ctx.controller._jsonRequest = vi.fn();
+        ctx.controller.openAiDialog();
+        ctx.aiDialog.querySelector('input[value="edit_section"]').checked = true;
+        ctx.controller.onAiScopeChange();
+        ctx.aiPrompt.value = 'x';
+
+        await ctx.controller.submitAiDialog({ preventDefault() {} });
+
+        expect(ctx.controller._jsonRequest).not.toHaveBeenCalled();
+        expect(ctx.aiStatus.textContent).toBe('Select the section to change first');
+    });
+
+    it('revises the page with no target and no replace flag', async () => {
+        ctx.controller._jsonRequest = vi.fn().mockResolvedValue(ok);
+        ctx.controller.openAiDialog();
+        ctx.aiDialog.querySelector('input[value="edit_page"]').checked = true;
+        ctx.controller.onAiScopeChange();
+        expect(ctx.aiReplace.hidden).toBe(true);
+        ctx.aiPrompt.value = 'x';
+
+        await ctx.controller.submitAiDialog({ preventDefault() {} });
+
+        expect(ctx.controller._jsonRequest.mock.calls[0][2]).toEqual({ action: 'edit_page', prompt: 'x' });
+    });
+
+    it('a toolbar target does not outlive its dialog', async () => {
+        ctx.controller._jsonRequest = vi.fn().mockResolvedValue(ok);
+        ctx.controller.openAiSectionEdit(9);
+        ctx.controller.closeAiDialog();
+        ctx.controller.openAiDialog();
+        ctx.aiDialog.querySelector('input[value="edit_section"]').checked = true;
+        ctx.aiPrompt.value = 'x';
+
+        await ctx.controller.submitAiDialog({ preventDefault() {} });
+
+        expect(ctx.controller._jsonRequest.mock.calls[0][2].targetSectionId).toBe(3);
+    });
+
+    it('tells the preview it may offer the toolbar button, only then', () => {
+        ctx.controller._announceAiToPreview();
+        expect(ctx.controller._postToPreview).toHaveBeenCalledWith({ type: 'cb:ai:capabilities', editSection: true });
+
+        const off = setup({ actions: 'section page' });
+        off.controller._announceAiToPreview();
+        expect(off.controller._postToPreview).not.toHaveBeenCalled();
+    });
+
+    it('opens from the preview message', () => {
+        ctx.controller._onMessage({
+            origin: window.location.origin,
+            data: { type: 'cb:ai:section-requested', sectionId: 5 },
+        });
+
+        expect(ctx.aiDialog.open).toBe(true);
+        expect(ctx.controller._aiTargetSectionId).toBe(5);
     });
 });

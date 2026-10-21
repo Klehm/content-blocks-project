@@ -46,6 +46,8 @@ final class GeneratedContentWriter
      *                                  appends
      * @param bool         $replace     whether the area's sections go first
      *                                  (a draft delete, undone by Discard)
+     * @param Section|null $replacing   a section the document is a revision
+     *                                  of: it goes, the answer takes its place
      *
      * @throws GenerationRefusedException
      */
@@ -55,6 +57,7 @@ final class GeneratedContentWriter
         ?Section $after = null,
         int $maxSections = RestoredStructure::MAX_SECTIONS,
         bool $replace = false,
+        ?Section $replacing = null,
     ): GenerationResult {
         $raw = $document['sections'] ?? null;
         if (!\is_array($raw) || !array_is_list($raw)) {
@@ -74,12 +77,21 @@ final class GeneratedContentWriter
             throw new GenerationRefusedException(GenerationRefusedException::SECTIONS_LOCKED);
         }
 
-        $result = $structure->showsSections()
-            ? $this->writeSections($area, $sections, $replace ? null : $after, $replace)
-            : $this->writeBlocks($area, $sections, $structure, $replace);
+        if (!$structure->showsSections()) {
+            // One implicit section: revising it is revising the page.
+            $result = $this->writeBlocks($area, $sections, $structure, $replace || $replacing !== null);
+        } elseif ($replacing !== null) {
+            $result = $this->writeSections($area, $sections, $replacing, false);
+        } else {
+            $result = $this->writeSections($area, $sections, $replace ? null : $after, $replace);
+        }
 
         if ($result->sections === [] && $result->blocks === []) {
             throw new GenerationRefusedException(GenerationRefusedException::EMPTY);
+        }
+        // Only once its revision is in: a refused answer leaves it standing.
+        if ($replacing !== null && $structure->showsSections()) {
+            $this->content->deleteSection($replacing);
         }
 
         return $result;

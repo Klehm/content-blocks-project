@@ -55,7 +55,7 @@ final class SchemaConfigTest extends TestCase
         $container = $this->build([]);
 
         $this->assertSame(
-            array_fill_keys(['rewrite', 'shorten', 'tone', 'alt_text', 'section', 'page', 'apply'], true),
+            array_fill_keys(['rewrite', 'shorten', 'tone', 'alt_text', 'section', 'page', 'edit_section', 'edit_page', 'apply'], true),
             $container->getParameter('content_blocks.ai.actions'),
         );
         $this->assertSame(\ContentBlocks\Ai\AiFeatures::DEFAULT_TONES, $container->getParameter('content_blocks.ai.tones'));

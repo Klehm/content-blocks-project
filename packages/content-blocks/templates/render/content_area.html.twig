@@ -98,6 +98,7 @@
         section_duplicate: 'cb.section.duplicate'|trans({}, 'content_blocks'),
         section_save_template: 'cb.builder.template.save'|trans({}, 'content_blocks'),
         section_delete: 'cb.section.remove'|trans({}, 'content_blocks'),
+        section_ai_edit: 'cb.ai.content.section_toolbar'|trans({}, 'content_blocks'),
     }|json_encode(cb_json)|raw }}</script>
     <script type="application/json" id="cb-overlay-structure">{{ structure|json_encode(cb_json)|raw }}</script>
     <script type="module" src="{{ cb_asset_path('preview_overlay') }}"></script>
