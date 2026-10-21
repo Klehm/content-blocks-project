@@ -690,7 +690,7 @@ jobs:
         env:
           E2E_SERVER: fpm
           E2E_CORE_DUMPS: '1'
-        run: npm run test:e2e
+        run: npm run pretest:e2e && npx playwright test ai-actions.spec.js --retries=0
 
       - name: Diagnose — backtraces of the crashed workers (temporary)
         if: always()
