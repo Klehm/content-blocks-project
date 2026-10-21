@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Twig;
 
+use ContentBlocks\Ai\AiFeatures;
 use ContentBlocks\Builder\BuilderShellFragment;
 use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Publishing\UnpublishedChanges;
 use ContentBlocks\Section\SectionLayoutRegistry;
+use ContentBlocks\Twig\AiExtension;
 use ContentBlocks\Twig\BuilderStructureExtension;
 use ContentBlocks\Twig\SectionLayoutExtension;
 use ContentBlocks\Twig\UnpublishedChangesExtension;
@@ -119,6 +121,7 @@ final class BuilderShellFragmentsTemplateTest extends TestCase
         $env->addExtension(new TranslationExtension($this->makeTranslator()));
         $env->addExtension(new SectionLayoutExtension(new SectionLayoutRegistry()));
         $env->addExtension(new BuilderStructureExtension(new ConfiguredBuilderStructureResolver()));
+        $env->addExtension(new AiExtension(new AiFeatures()));
         $env->addExtension(new UnpublishedChangesExtension(new UnpublishedChanges()));
         $env->addFunction(new TwigFunction('csrf_token', static fn (string $id): string => 'test-token'));
         $env->addFunction(new TwigFunction('cb_api_base', static fn (): string => '/_content-blocks'));

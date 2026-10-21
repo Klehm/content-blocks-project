@@ -21,6 +21,7 @@ import TemplatePoster from '../builder/template-poster.js';
 import Tree from '../builder/tree.js';
 import ImportExport from '../builder/import-export.js';
 import Strings from '../builder/strings.js';
+import Ai from '../builder/ai.js';
 
 /**
  * Bridges the parent admin window with the iframe preview and the sidebar, and
@@ -61,6 +62,12 @@ class BuilderController extends Controller {
         'viewportOrder',
         'viewportOrderLabel',
         'viewportOrderReset',
+        'ai',
+        'aiPopover',
+        'aiDialog',
+        'aiPrompt',
+        'aiStatus',
+        'aiSubmit',
     ];
 
     static values = {
@@ -190,6 +197,10 @@ class BuilderController extends Controller {
                     bubbles: true,
                     detail: { areaId: this.areaIdValue },
                 }));
+                this._announceAiToPreview();
+                break;
+            case 'cb:ai:section-requested':
+                this.openAiSectionEdit(data.sectionId);
                 break;
             case 'cb:block:edit':
                 this._selectBlock(data.blockId);
@@ -308,4 +319,5 @@ export default mix(
     Tree,
     ImportExport,
     Strings,
+    Ai,
 );

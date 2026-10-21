@@ -14,12 +14,15 @@ final class SectionStyle
 {
     /**
      * @param array<string, mixed> $settings
+     * @param string|null          $role     what the preset is for, read by
+     *                                       the content schema
      */
     public function __construct(
         public readonly string $name,
         public readonly string $label,
         public readonly string $cssClass = '',
         public readonly array $settings = [],
+        public readonly ?string $role = null,
     ) {
     }
 }

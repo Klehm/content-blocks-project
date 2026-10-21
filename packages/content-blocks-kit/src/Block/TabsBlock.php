@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Kit\Form\Type\TabEntryType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Translation\TranslatableMessage;
@@ -15,8 +16,13 @@ use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
 
 #[AsContentBlock(priority: 60, category: 'layout')]
-class TabsBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class TabsBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
+    public function getPurpose(): string
+    {
+        return 'Content split into labelled tabs inside one block: alternatives a reader picks one of, such as plans or use cases.';
+    }
+
     public function getType(): string
     {
         return 'tabs';

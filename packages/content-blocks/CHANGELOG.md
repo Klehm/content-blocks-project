@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A value of the wrong shape no longer fails a whole paste.** A list where a
+  string goes, a string where an object goes, or collection entries written
+  as strings (a forged clipboard entry, or a language model) used to end in a
+  500 from deep inside the form component. The replay now drops that one field
+  and reports it, like any refused value.
+
 ### Added
 
 - **Headless rendering.** `ContentAreaNormalizerInterface` renders an area as
@@ -31,6 +39,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   created. Every before event can be refused, as before: the builder says the
   reason in its snackbar (in the import dialog for an import) and writes
   nothing. A refused paste keeps the copy.
+- **A content schema for AI.** `content-blocks:schema` prints, and
+  `GET /area/{id}/schema` (route `content_blocks_area_schema`, `canEdit()`)
+  serves, one JSON document telling a language model what it may write into
+  an area: the block types with their purpose, the layouts, the structure
+  mode, the palette and section presets with their role, the latest saved
+  sections as examples, and the JSON Schema of the output, a list of
+  `content-blocks/section-v1` sections. Each block's schema is derived from
+  its own form (field types, choices, `Length` / `Count` / `Range`,
+  collections, labels and help), so it cannot drift from what validates the
+  data. No model ships. See
+  [Content schema for AI](../../docs/guide/content-schema.md).
+- **`BlockPurposeInterface`**, optional on a block type: `getPurpose()` says in
+  a sentence what the block is for. `content_blocks.schema.block_purposes`
+  overrides it per type, and `content_blocks.schema.examples` (default 3)
+  sets how many saved sections the schema carries.
+- **`role` on a palette entry and a section style** (`PaletteColor::$role`,
+  `SectionStyle::$role`, config key `role`): what the colour or the preset is
+  for, read by the content schema.
+- **`FieldSchemaContributorInterface`**, autoconfigured, for a form field type
+  whose stored value is not its children (the core's colour and upload fields
+  ship one each).
+- **AI actions, each switched on or off on its own.** With a provider
+  registered (`AiProviderInterface`, autoconfigured; none ships), the builder
+  offers a ✦ menu beside prose fields (rewrite, shorten, change the tone) and
+  beside an image's `alt` (describe the image), and a topbar **Generate**
+  dialog with three scopes: *add content* (one or more sections, after the
+  selected one), *change the selected section* (the new version takes its
+  place; also from a ✦ on the section's toolbar in the preview) and *change
+  the whole page*. For an edit the provider gets the sections to revise in
+  `ContentRequest::$current`. A field proposal is applied only on *Replace*;
+  generated sections go through the paste replay into the draft, as one undo
+  step. Without a provider nothing is drawn and the endpoints
+  (`content_blocks_ai_text`, `_alt_text`, `_content`) answer 404.
+  `content_blocks.ai.actions.<action>: false` switches one off, `ai: false`
+  all of them; `ai.tones` and `ai.max_sections` tune the rest.
+  `AiBriefProviderInterface` hands every request what the host knows about the
+  page. See [AI actions](../../docs/guide/ai.md).
+- **`content-blocks:ai:apply <area> [file]`** writes a `{"sections": [...]}`
+  document produced by your own pipeline or MCP server to an area's draft,
+  through the same replay (`--after`, `--replace`). `GeneratedContentWriter` is
+  the same from PHP.
+- **`cb_ai` form option** (`text`, `html`, `alt`, `false`) and the
+  `cb:field:set` event a rich-text editor cancels to take a value set from
+  outside.
 
 ## [1.5.0] - 2026-10-20
 

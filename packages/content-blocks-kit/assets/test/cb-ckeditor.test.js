@@ -22,6 +22,7 @@ function stubCkEditor({ createImpl } = {}) {
     const editor = {
         listeners: {},
         getData: vi.fn(() => '<p>edited</p>'),
+        setData: vi.fn(),
         destroy: vi.fn(async () => {}),
         plugins: { get: vi.fn(() => ({})) },
         model: { document: { on: (name, cb) => { editor.listeners[`model:${name}`] = cb; } } },
@@ -391,6 +392,26 @@ describe('cb-ckeditor connect', () => {
         expect(changes).toHaveBeenCalledOnce();
 
         vi.useRealTimers();
+    });
+
+    it('takes a value set from outside (an AI proposal) through the editor', async () => {
+        const { editor } = stubCkEditor();
+        const { controller, textarea } = mount();
+        await controller.connect();
+        const changed = vi.fn();
+        textarea.addEventListener('change', changed);
+
+        const event = new CustomEvent('cb:field:set', { detail: { value: '<p>New</p>' }, cancelable: true });
+        textarea.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(editor.setData).toHaveBeenCalledWith('<p>New</p>');
+        expect(changed).toHaveBeenCalledOnce();
+
+        await controller.disconnect();
+        const after = new CustomEvent('cb:field:set', { detail: { value: 'x' }, cancelable: true });
+        textarea.dispatchEvent(after);
+        expect(after.defaultPrevented).toBe(false);
     });
 
     it('leaves the plain textarea in place when the editor cannot load', async () => {

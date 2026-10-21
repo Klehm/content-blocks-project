@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Form\Type\PaletteColorType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -16,8 +17,13 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Contracts\Translation\TranslatableInterface;
 
 #[AsContentBlock(priority: 100, category: 'text')]
-class TitleBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class TitleBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
+    public function getPurpose(): string
+    {
+        return 'A heading that names a page or a section: one with tag h1 per page, then h2/h3 for its sections. `size` is only how it looks.';
+    }
+
     public function getType(): string
     {
         return 'title';

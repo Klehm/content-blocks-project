@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Kit\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Form\Type\PaletteColorType;
 use ContentBlocks\Kit\Icon\IconRegistry;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -18,7 +19,7 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * palette color and alignment. No external icon library needed.
  */
 #[AsContentBlock(priority: 45, category: 'media')]
-class IconBlock extends AbstractKitBlock
+class IconBlock extends AbstractKitBlock implements BlockPurposeInterface
 {
     /**
      * @param array<string, mixed>        $options
@@ -32,6 +33,11 @@ class IconBlock extends AbstractKitBlock
         private readonly IconRegistry $icons = new IconRegistry(),
     ) {
         parent::__construct($options, $choiceOverrides, $defaultOverrides);
+    }
+
+    public function getPurpose(): string
+    {
+        return 'A single pictogram, usually above a short title and text to illustrate a feature.';
     }
 
     public function getType(): string

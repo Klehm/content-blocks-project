@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Kit\Form\Type\ButtonGroupItemType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -21,11 +22,16 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * and wrap together. The `max_items` option caps how many (3 by default).
  */
 #[AsContentBlock(priority: 54, category: 'actions')]
-class ButtonGroupBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class ButtonGroupBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
     public static function defaultOptions(): array
     {
         return ['max_items' => 3];
+    }
+
+    public function getPurpose(): string
+    {
+        return 'Two or three calls to action in a row, such as a primary "Buy now" beside a secondary "Learn more".';
     }
 
     public function getType(): string

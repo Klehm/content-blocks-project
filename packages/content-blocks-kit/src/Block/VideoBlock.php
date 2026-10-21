@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Form\Type\ImageUploadType;
 use ContentBlocks\Form\Type\VideoUploadType;
 use ContentBlocks\Kit\Security\SafeLinkConstraint;
@@ -25,8 +26,13 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * @see docs/internals/kit.md#video-a-file-not-a-provider
  */
 #[AsContentBlock(priority: 32, category: 'media')]
-class VideoBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class VideoBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
+    public function getPurpose(): string
+    {
+        return 'A self-hosted video file played on the page: a product demo or a testimonial.';
+    }
+
     public function getType(): string
     {
         return 'video';

@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Kit\Security\SafeLinkConstraint;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -22,8 +23,13 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * choice, optional full-width and new-tab.
  */
 #[AsContentBlock(priority: 55, category: 'actions')]
-class ButtonBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class ButtonBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
+    public function getPurpose(): string
+    {
+        return 'A single call to action linking somewhere: buy, sign up, contact. Keep its label short and active.';
+    }
+
     public function getType(): string
     {
         return 'button';

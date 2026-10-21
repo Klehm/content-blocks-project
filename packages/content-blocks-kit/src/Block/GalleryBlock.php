@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Form\Type\Styling\BoxSpacingType;
 use ContentBlocks\Kit\Form\Type\GalleryItemType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -21,11 +22,16 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * caption and link. The `max_columns` option caps the columns offered.
  */
 #[AsContentBlock(priority: 60, category: 'media')]
-class GalleryBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class GalleryBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
     public static function defaultOptions(): array
     {
         return ['max_columns' => 6];
+    }
+
+    public function getPurpose(): string
+    {
+        return 'Several pictures as a grid or a carousel: a product from several angles, a portfolio.';
     }
 
     public function getType(): string

@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   through the `cb_kit_safe_url` check, the `src` of `image`, `gallery`, `card`
   and the video `poster` through `ImageUrlResolverInterface` with `srcset` /
   `sizes` beside them, and `embedUrl` on `embed`. `html_raw` is sent as stored.
+- **Every kit block says what it is for**, through the core's
+  `BlockPurposeInterface`, read by the content schema
+  (`content-blocks:schema`). A host rewords one for its own site with
+  `content_blocks.schema.block_purposes`. **Requires `klehm/content-blocks`
+  ^1.6**, where the interface is new.
+- **The rich-text field is announced as HTML** in the content schema, with the
+  elements it keeps.
+- **TinyMCE and CKEditor take an AI proposal through their own API**
+  (`cb:field:set`), so the next sync keeps it. The rich-text field declares
+  itself HTML to the core's AI actions; `html_raw` opts out of them.
 
 ## [1.5.0] - 2026-10-20
 

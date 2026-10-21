@@ -4,10 +4,19 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Rendering;
 
+use ContentBlocks\Ai\AiFeatures;
+use ContentBlocks\Ai\GeneratedContentWriter;
 use ContentBlocks\Block\BlockDataDefaults;
+use ContentBlocks\Block\BlockDataKeys;
 use ContentBlocks\Block\BlockDecoratorCollection;
+use ContentBlocks\Block\CollectionItemIds;
 use ContentBlocks\BlockType\AbstractBlockType;
 use ContentBlocks\BlockType\BlockTypeRegistry;
+use ContentBlocks\Builder\ConfiguredBuilderStructureResolver;
+use ContentBlocks\Clipboard\BlockDataReplayer;
+use ContentBlocks\Clipboard\ClipboardPaster;
+use ContentBlocks\Content\ContentManipulator;
+use ContentBlocks\Controller\AiController;
 use ContentBlocks\Controller\BlocksController;
 use ContentBlocks\Controller\ColumnsController;
 use ContentBlocks\Controller\HistoryController;
@@ -18,6 +27,10 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Form\Extension\BlockFormExtensionCollection;
+use ContentBlocks\Form\Type\BlockFormType;
+use ContentBlocks\Form\Type\PaletteColorType;
+use ContentBlocks\Form\Type\SectionSettingsType;
 use ContentBlocks\Headless\ContentAreaNormalizer;
 use ContentBlocks\History\ActionJournal;
 use ContentBlocks\History\BuilderSession;
@@ -30,13 +43,18 @@ use ContentBlocks\Rendering\CoreBlockDataResolver;
 use ContentBlocks\Rendering\RenderContext;
 use ContentBlocks\Rendering\RenderMode;
 use ContentBlocks\Replace\ContentAreaProviderInterface;
+use ContentBlocks\Schema\ContentSchemaBuilder;
+use ContentBlocks\Schema\FormSchemaMapper;
 use ContentBlocks\Section\BuiltInSectionDecorator;
 use ContentBlocks\Section\SectionCloner;
 use ContentBlocks\Section\SectionDecoratorCollection;
 use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Section\SectionSettingsDefaults;
 use ContentBlocks\Section\SectionStyleRegistry;
+use ContentBlocks\SectionTemplate\SectionTemplateInstantiator;
+use ContentBlocks\SectionTemplate\SectionTemplateSerializer;
 use ContentBlocks\Security\AllowAllAccessChecker;
+use ContentBlocks\Tests\Fixtures\RecordingAiProvider;
 use ContentBlocks\Tests\History\InMemoryActionLogStore;
 use ContentBlocks\Twig\SectionLayoutExtension;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -45,6 +63,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Twig\Extension\RoutingExtension;
 use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\Forms;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -323,6 +342,26 @@ final class PublishedRenderImmutabilityTest extends TestCase
 
         $this->replaceController()->replaceWith(1, $source->getId(), $this->jsonRequest());
 
+        $this->assertSame($before, $this->publicHtml($area));
+    }
+
+    public function testGeneratingSectionsDoesNotTouchThePublicRender(): void
+    {
+        $area = $this->publishedArea();
+        $before = $this->publicHtml($area);
+
+        $generated = ['sections' => [[
+            'layout' => 'full',
+            'columns' => [['preset' => 'col-12', 'blocks' => [['type' => 'text', 'data' => ['title' => 'Generated']]]]],
+        ]]];
+        $controller = $this->aiController($generated);
+        $add = $controller->content(1, $this->jsonRequest(['action' => 'add', 'prompt' => 'x', 'targetSectionId' => 10]));
+        $edit = $controller->content(1, $this->jsonRequest(['action' => 'edit_section', 'prompt' => 'x', 'targetSectionId' => 11]));
+        $page = $controller->content(1, $this->jsonRequest(['action' => 'edit_page', 'prompt' => 'x']));
+
+        $this->assertSame(200, $add->getStatusCode());
+        $this->assertSame(200, $edit->getStatusCode());
+        $this->assertSame(200, $page->getStatusCode(), 'rewriting deletes in the draft only');
         $this->assertSame($before, $this->publicHtml($area));
     }
 
@@ -847,6 +886,38 @@ final class PublishedRenderImmutabilityTest extends TestCase
             new SectionCloner(),
             $this->csrf(),
             $this->journal(),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $document what the provider answers
+     */
+    private function aiController(array $document): AiController
+    {
+        $registry = $this->registry();
+        $factory = Forms::createFormFactoryBuilder()
+            ->addType(new BlockFormType(new BlockFormExtensionCollection()))
+            ->addType(new SectionSettingsType(new SectionStyleRegistry()))
+            ->addType(new PaletteColorType())
+            ->getFormFactory();
+        $content = new ContentManipulator($this->em(), $registry);
+        $paster = new ClipboardPaster(
+            new SectionTemplateInstantiator($registry, new BlockDataKeys($registry, $factory)),
+            $registry,
+            new BlockDataReplayer($registry, $factory, new BlockDataDefaults(), new CollectionItemIds()),
+            $content,
+        );
+        $structure = new ConfiguredBuilderStructureResolver();
+
+        return new AiController(
+            $this->em(),
+            new AllowAllAccessChecker(),
+            $this->csrf(),
+            new AiFeatures([new RecordingAiProvider(document: $document)]),
+            new ContentSchemaBuilder($registry, $factory, new FormSchemaMapper()),
+            new GeneratedContentWriter($paster, $content, $structure, $factory),
+            $this->journal(),
+            new SectionTemplateSerializer(),
         );
     }
 

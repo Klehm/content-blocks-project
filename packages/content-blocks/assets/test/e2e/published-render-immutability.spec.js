@@ -155,6 +155,17 @@ test('no builder action changes the published page until Publish', async ({ page
     await page.waitForTimeout(800);
     expect(await publicMarkup()).toBe(published);
 
+    // Content added by the AI (the sandbox's demo provider), then the whole
+    // page rewritten from it: sections deleted and written, all in the draft.
+    for (const scope of ['add', 'edit_page']) {
+        await page.locator('.cb-shell__ai').click();
+        await page.locator('.cb-ai-dialog textarea').fill('A generated page');
+        await page.locator(`.cb-ai-dialog input[value="${scope}"]`).check();
+        await page.locator('.cb-ai-dialog__submit').click();
+        await expect(page.locator('.cb-ai-dialog')).toBeHidden();
+        expect(await publicMarkup()).toBe(published);
+    }
+
     // ---- …and now Publish ----
 
     await publish(page);

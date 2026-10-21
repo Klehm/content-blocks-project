@@ -109,6 +109,27 @@ final class BlockDataReplayerTest extends TestCase
         $this->assertSame(['one', 'two'], array_column($result->data['items'], 'label'));
     }
 
+    public function testCollectionEntriesOfTheWrongShapeAreDroppedNotFatal(): void
+    {
+        // What a language model writes for a list: strings, not objects.
+        $result = $this->replayer()->replay('fixture', [
+            'title' => 'Kept',
+            'items' => ['one', 'two'],
+        ]);
+
+        $this->assertSame('Kept', $result->data['title']);
+        $this->assertContains('items', $result->droppedFields);
+    }
+
+    public function testAListWhereOneValueGoesIsDroppedWithoutAWarning(): void
+    {
+        $result = $this->replayer()->replay('fixture', ['title' => ['a', 'b'], 'size' => ['lg']]);
+
+        $this->assertSame('', $result->data['title']);
+        $this->assertSame('sm', $result->data['size']);
+        $this->assertEqualsCanonicalizing(['title', 'size'], $result->droppedFields);
+    }
+
     public function testAnExpandedChoiceRoundTrips(): void
     {
         // Regression: an expanded choice is compound (one child per option) but

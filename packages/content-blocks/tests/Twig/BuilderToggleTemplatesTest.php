@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Tests\Twig;
 
+use ContentBlocks\Ai\AiFeatures;
 use ContentBlocks\Builder\BuilderStructure;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Publishing\UnpublishedChanges;
 use ContentBlocks\Section\SectionLayoutRegistry;
 use ContentBlocks\Tests\Fixtures\FixedBuilderStructureResolver;
+use ContentBlocks\Twig\AiExtension;
 use ContentBlocks\Twig\BuilderStructureExtension;
 use ContentBlocks\Twig\SectionLayoutExtension;
 use ContentBlocks\Twig\UnpublishedChangesExtension;
@@ -235,6 +237,7 @@ final class BuilderToggleTemplatesTest extends TestCase
         $env->addExtension(new BuilderStructureExtension(new FixedBuilderStructureResolver(
             $structure ?? new BuilderStructure(),
         )));
+        $env->addExtension(new AiExtension(new AiFeatures()));
         $env->addExtension(new UnpublishedChangesExtension(new UnpublishedChanges()));
         // The shell renders a CSRF token; the value is irrelevant here.
         $env->addFunction(new TwigFunction('csrf_token', static fn (string $id): string => 'test-token'));

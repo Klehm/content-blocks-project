@@ -1,0 +1,102 @@
+{# The AI actions, driven by assets/builder/ai.js. Included only when one is
+   on; each part is drawn only for the actions it serves. #}
+{# @var aiActions list<string> #}
+{% set t = 'content_blocks' %}
+{% set tones = [] %}
+{% for tone in cb_ai_tones() %}
+    {% set key = 'cb.ai.tone.' ~ tone %}
+    {% set label = key|trans({}, t) %}
+    {% set tones = tones|merge([{value: tone, label: label == key ? tone|capitalize : label}]) %}
+{% endfor %}
+{% set strings = {
+    rewrite: 'cb.ai.field.rewrite'|trans({}, t),
+    shorten: 'cb.ai.field.shorten'|trans({}, t),
+    tone: 'cb.ai.field.tone'|trans({}, t),
+    alt_text: 'cb.ai.field.alt_text'|trans({}, t),
+    working: 'cb.ai.field.working'|trans({}, t),
+    apply: 'cb.ai.field.apply'|trans({}, t),
+    cancel: 'cb.ai.field.cancel'|trans({}, t),
+    retry: 'cb.ai.field.retry'|trans({}, t),
+    empty_field: 'cb.ai.field.empty_field'|trans({}, t),
+    no_image: 'cb.ai.field.no_image'|trans({}, t),
+    generating: 'cb.ai.content.working'|trans({}, t),
+    done: 'cb.ai.content.done'|trans({}, t),
+    skipped_blocks: 'cb.ai.content.skipped_blocks'|trans({}, t),
+    dropped_fields: 'cb.ai.content.dropped_fields'|trans({}, t),
+    error_provider_failed: 'cb.ai.error.provider_failed'|trans({}, t),
+    error_empty: 'cb.ai.error.empty'|trans({}, t),
+    error_sections_locked: 'cb.ai.error.sections_locked'|trans({}, t),
+    error_no_target: 'cb.ai.error.no_target'|trans({}, t),
+    error_too_large: 'cb.ai.error.too_large'|trans({}, t),
+    error_disabled: 'cb.ai.error.disabled'|trans({}, t),
+    error_invalid: 'cb.ai.error.invalid'|trans({}, t),
+    error_unreadable: 'cb.ai.error.unreadable'|trans({}, t),
+    needs_section: 'cb.ai.content.needs_section'|trans({}, t),
+    edit_hint: 'cb.ai.content.edit_hint'|trans({}, t),
+    edit_page_hint: 'cb.ai.content.edit_page_hint'|trans({}, t),
+} %}
+<div class="cb-ai"
+     data-cb-builder-target="ai"
+     data-cb-ai-actions="{{ aiActions|join(' ') }}"
+     data-cb-ai-tones="{{ tones|json_encode }}"
+     data-cb-ai-strings="{{ strings|json_encode }}">
+
+    {# One popover for every field: it lives outside the sidebar's Live
+       Component, so a re-render of the form cannot remove it mid-request. #}
+    <div class="cb-ai-popover"
+         data-cb-builder-target="aiPopover"
+         data-action="keydown->cb-builder#onAiPopoverKeydown"
+         role="dialog"
+         aria-label="{{ 'cb.ai.field.trigger'|trans({}, t) }}"
+         hidden></div>
+
+    {% if aiActions|filter(a => a in ['add', 'edit_section', 'edit_page']) is not empty %}
+        <dialog class="cb-ai-dialog"
+                data-cb-builder-target="aiDialog"
+                aria-labelledby="cb-ai-dialog-title">
+            <form class="cb-ai-dialog__form" data-action="submit->cb-builder#submitAiDialog">
+                <header class="cb-ai-dialog__header">
+                    <h2 class="cb-ai-dialog__title" id="cb-ai-dialog-title">{{ 'cb.ai.content.title'|trans({}, t) }}</h2>
+                    <button type="button"
+                            class="cb-ai-dialog__close"
+                            data-action="cb-builder#closeAiDialog"
+                            aria-label="{{ 'cb.builder.close'|trans({}, t) }}">×</button>
+                </header>
+
+                <label class="cb-ai-dialog__label" for="cb-ai-prompt">{{ 'cb.ai.content.prompt'|trans({}, t) }}</label>
+                <textarea class="cb-ai-dialog__prompt"
+                          id="cb-ai-prompt"
+                          name="prompt"
+                          rows="5"
+                          maxlength="4000"
+                          required
+                          data-cb-builder-target="aiPrompt"
+                          placeholder="{{ 'cb.ai.content.placeholder'|trans({}, t) }}"></textarea>
+
+                {# New content first, then revisions of what is there. #}
+                {% set scopes = ['add', 'edit_section', 'edit_page']|filter(a => a in aiActions) %}
+                <fieldset class="cb-ai-dialog__scope"{% if scopes|length < 2 %} hidden{% endif %}>
+                    <legend class="cb-ai-dialog__label">{{ 'cb.ai.content.scope'|trans({}, t) }}</legend>
+                    {% for scope in scopes %}
+                        <label class="cb-ai-dialog__choice">
+                            <input type="radio" name="scope" value="{{ scope }}"{% if loop.first %} checked{% endif %}
+                                   data-action="cb-builder#onAiScopeChange">
+                            {{ ('cb.ai.content.scope_' ~ scope)|trans({}, t) }}
+                        </label>
+                    {% endfor %}
+                </fieldset>
+
+                <p class="cb-ai-dialog__status" data-cb-builder-target="aiStatus" role="status" aria-live="polite"></p>
+
+                <footer class="cb-ai-dialog__footer">
+                    <button type="button" class="cb-ai-dialog__cancel" data-action="cb-builder#closeAiDialog">
+                        {{- 'cb.ai.field.cancel'|trans({}, t) -}}
+                    </button>
+                    <button type="submit" class="cb-ai-dialog__submit" data-cb-builder-target="aiSubmit">
+                        {{- 'cb.ai.content.submit'|trans({}, t) -}}
+                    </button>
+                </footer>
+            </form>
+        </dialog>
+    {% endif %}
+</div>

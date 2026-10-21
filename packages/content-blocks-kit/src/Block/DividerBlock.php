@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Form\Type\PaletteColorType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -17,8 +18,13 @@ use Symfony\Contracts\Translation\TranslatableInterface;
  * A horizontal rule with a line style and an optional palette color.
  */
 #[AsContentBlock(priority: 25, category: 'layout')]
-class DividerBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class DividerBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
+    public function getPurpose(): string
+    {
+        return 'A horizontal rule separating two groups of content within a column.';
+    }
+
     public function getType(): string
     {
         return 'divider';

@@ -42,6 +42,17 @@ final class CollectionIdBackfillerTest extends TestCase
         $this->assertIsString($filled['rows'][0]['cells'][1]['_id']);
     }
 
+    /** A model writing rows as strings: no id to give them, and no crash. */
+    public function testEntriesOfTheWrongShapeAreLeftForTheReplayToJudge(): void
+    {
+        $data = ['rows' => ['first', ['cells' => [['content' => 'A']]]]];
+
+        $filled = $this->backfiller()->backfill('grid', $data);
+
+        $this->assertSame('first', $filled['rows'][0]);
+        $this->assertIsString($filled['rows'][1]['_id']);
+    }
+
     public function testAnUnknownTypeIsLeftAsIs(): void
     {
         $data = ['rows' => [['cells' => []]]];

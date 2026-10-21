@@ -7,6 +7,7 @@
 {# @var enablePublicLink bool #}
 {# @var topbarActions array #}
 {% set structure = cb_builder_structure(area) %}
+{% set aiActions = cb_ai_actions() %}
 <div class="cb-shell"
      data-controller="cb-builder"
      data-cb-builder-area-id-value="{{ area.id }}"
@@ -140,6 +141,17 @@
                         aria-label="{{ 'cb.builder.history.redo'|trans({}, 'content_blocks') }}"
                         {% if not history.canRedo %}disabled{% endif %}>↷</button>
             </div>
+
+            {# Drawn only when an AI provider generates sections. #}
+            {% if aiActions|filter(a => a in ['add', 'edit_section', 'edit_page']) is not empty %}
+                <button type="button"
+                        class="cb-shell__ai"
+                        data-action="cb-builder#openAiDialog"
+                        aria-haspopup="dialog">
+                    <span class="cb-shell__btn-icon" aria-hidden="true">✦</span>
+                    <span class="cb-shell__btn-label">{{ 'cb.ai.content.open'|trans({}, 'content_blocks') }}</span>
+                </button>
+            {% endif %}
 
             {# Empty on purpose: host additions. See docs/guide/host-services.md #}
             {% block cb_shell_topbar_left_end %}{% endblock %}
@@ -292,6 +304,10 @@
        nothing, as it always did. #}
     {% if cb_publish_scope_enabled() %}
         {{ include('@ContentBlocks/builder/publish_scope_dialog.html.twig') }}
+    {% endif %}
+
+    {% if aiActions is not empty %}
+        {{ include('@ContentBlocks/builder/ai.html.twig', {aiActions: aiActions}) }}
     {% endif %}
 
     {# A native <dialog>: focus, Escape and the backdrop come with it. #}

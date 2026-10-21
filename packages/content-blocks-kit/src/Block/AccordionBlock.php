@@ -7,6 +7,7 @@ namespace ContentBlocks\Kit\Block;
 use ContentBlocks\BlockType\AsContentBlock;
 use ContentBlocks\BlockType\BlockPreviewHint;
 use ContentBlocks\BlockType\BlockPreviewHintInterface;
+use ContentBlocks\BlockType\BlockPurposeInterface;
 use ContentBlocks\Kit\Form\Type\AccordionItemType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -20,8 +21,13 @@ use Symfony\UX\LiveComponent\Form\Type\LiveCollectionType;
  * native <details>/<summary>, so it needs zero JavaScript and stays accessible.
  */
 #[AsContentBlock(priority: 50, category: 'layout')]
-class AccordionBlock extends AbstractKitBlock implements BlockPreviewHintInterface
+class AccordionBlock extends AbstractKitBlock implements BlockPreviewHintInterface, BlockPurposeInterface
 {
+    public function getPurpose(): string
+    {
+        return 'Collapsible question-and-answer pairs: an FAQ, or details most readers skip.';
+    }
+
     public function getType(): string
     {
         return 'accordion';

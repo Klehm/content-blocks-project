@@ -17,7 +17,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 | Area | Interfaces |
 |---|---|
 | Access, preview, pickers | `AccessCheckerInterface`, `ContentAreaUrlResolverInterface`, `ContentAreaProviderInterface`, `SectionTemplateManagerInterface`, `AssetReportViewerInterface` |
-| Blocks | `BlockTypeInterface`, `BlockPreviewHintInterface`, `BlockAssetsInterface`, `BlockDataDefaultsProviderInterface`, `BlockDecoratorInterface`, `BlockFormExtensionInterface`, `TranslatableFieldsInterface` |
+| Blocks | `BlockTypeInterface`, `BlockPreviewHintInterface`, `BlockPurposeInterface`, `BlockAssetsInterface`, `BlockDataDefaultsProviderInterface`, `BlockDecoratorInterface`, `BlockFormExtensionInterface`, `TranslatableFieldsInterface` |
 | Sections and columns | `SectionDecoratorInterface`, `SectionSettingsDefaultsProviderInterface`, `SectionStyleProviderInterface`, `SectionClonerInterface`, `BlockCloneObserverInterface`, `ColumnCloneObserverInterface` |
 | Rendering | `BlockRendererInterface`, `BlockDataResolverInterface`, `EntrypointResolverInterface`, `ColumnSettingsResolverInterface`, `ImageUrlResolverInterface`, `ContentAreaNormalizerInterface`, `BlockJsonNormalizerInterface` |
 | Content and publishing | `ContentManipulatorInterface`, `ContentAreaPublisherInterface`, `UnpublishedChangesProviderInterface`, `LocaleDraftsProviderInterface` |
@@ -25,6 +25,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 | Storage and assets | `FileStorageInterface`, `AssetInventoryInterface`, `AssetResolverInterface`, `AssetReferenceProviderInterface` |
 | Clipboard, templates, transfer | `BlockSnapshotSerializerInterface`, `SectionTemplateSerializerInterface`, `SectionTemplateInstantiatorInterface`, `ContentAreaExporterInterface`, `ContentAreaImporterInterface`, `ContentAreaTransferExtensionInterface`, `SnapshotExtensionInterface` |
 | Versioning | `ContentVersionUpgraderInterface`, `EnvelopeUpgraderInterface` |
+| Content schema and AI | `FieldSchemaContributorInterface`, `AiProviderInterface`, `AiBriefProviderInterface` |
 
 **Kit**: `RichTextEditorInterface`, `IconProviderInterface`.
 
@@ -39,17 +40,19 @@ These are the extension surface: implement them, alias them, decorate them. Thei
   - `ContentAreaType` and its options (`enable_replace`, `enable_import_export`, `enable_import`, `enable_export`, `enable_public_link`, `topbar_actions`).
   - `PaletteColorType`, `ImageUploadType`, `VideoUploadType`, as fields for your own blocks.
   - `BlockFormType`, `SectionSettingsType` and `StylingType` as **targets of a form type extension**, with their `TAB_*` and `PANEL_*` constants. The fields they hold are not frozen: a field may move, but a key you add keeps working.
-- **The sidebar form options.** `cb_group`, `cb_panel`, `cb_help_tooltip` and `cb_panels_exclusive` on every form type; `cb_icons`, `cb_icon_layout`, `cb_icon_columns` and `cb_icon_labels` on `ChoiceType`; `cb_open_entries` on `LiveCollectionType`. Also the **names of the shipped UI icons** they refer to ([Laying out sidebar fields](./sidebar-fields.md)): a name may gain a better drawing, but it is not renamed or removed.
+- **The sidebar form options.** `cb_ai` (and the `data-cb-ai="off"` attribute) on every form type, `cb_group`, `cb_panel`, `cb_help_tooltip` and `cb_panels_exclusive` on every form type; `cb_icons`, `cb_icon_layout`, `cb_icon_columns` and `cb_icon_labels` on `ChoiceType`; `cb_open_entries` on `LiveCollectionType`. Also the **names of the shipped UI icons** they refer to ([Laying out sidebar fields](./sidebar-fields.md)): a name may gain a better drawing, but it is not renamed or removed.
 - **Value objects your implementation builds or reads.** Their public properties and named constructors are frozen:
   - rendering: `RenderContext` (with `isPreview()` / `isPublic()`), `RenderMode`, `BlockView`, `ResolvedImage`, `BlockPreviewHint`, `BlockAssets`, `BlockDecoration`, `SectionDecoration`
   - publishing: `PublishContext`, `LocaleDraft`
+  - AI: `TextRequest`, `AltTextRequest`, `ContentRequest`, `GenerationResult`, and the `AiAction` constants
   - builder UI and styling: `BuilderAction`, `BuilderShellFragment`, `BuilderStructure` (its `SECTIONS_*` constants and `can*()` / `showsSections()` reads), `PaletteColor`, `SectionStyle`
   - storage: `StoredAsset`
   - translation: the kit's `RichTextEditorView`; i18n's `TranslationRequest`, `TranslationOutcome`, `TranslationJob` and `FieldStatus`
 - **Values you read but do not build.** `ImportResult`, `InstantiationResult`, `SectionTemplateSnapshot`, and the transfer helpers `AssetTokenizer` and `AssetRewriter` handed to a `ContentAreaTransferExtensionInterface`. Their public reads are frozen; their constructors are `@internal`, so the package can add fields to them.
-- **Services you inject.** `BlockTypeRegistry` (`get()`, `has()`, `all()`, `getChoices()`), and the shipped implementations named as defaults in the guides: `LocalFileStorage`, `PassthroughImageUrlResolver`, `DenyOnMismatchUpgrader`, `ConfiguredBuilderStructureResolver`, `EncoreEntrypointResolver`, `AllowAllAccessChecker` and `DenyAllAccessChecker`. They are covered as services to alias or decorate; their constructors are not.
+- **Services you inject.** `BlockTypeRegistry` (`get()`, `has()`, `all()`, `getChoices()`), `GeneratedContentWriter::write()`, `AiFeatures::isEnabled()`, and the shipped implementations named as defaults in the guides: `LocalFileStorage`, `PassthroughImageUrlResolver`, `DenyOnMismatchUpgrader`, `ConfiguredBuilderStructureResolver`, `EncoreEntrypointResolver`, `AllowAllAccessChecker` and `DenyAllAccessChecker`. They are covered as services to alias or decorate; their constructors are not.
 - **Symfony events you listen to**, with their public properties and the moment each is dispatched ([Server-side events](./events.md)): `BeforeContentAreaPublishEvent`, `AfterContentAreaPublishEvent`, `BeforeContentAreaDiscardEvent`, `AfterContentAreaDiscardEvent`, `BeforeBlockSaveEvent`, `AfterBlockSaveEvent`, `BeforeBlockDeleteEvent`, `AfterBlockDeleteEvent`, `BeforeSectionSaveEvent`, `AfterSectionSaveEvent`, `BeforeSectionDeleteEvent`, `AfterSectionDeleteEvent`, `BeforeContentInsertEvent`, `AfterContentInsertEvent` and the `ContentInsertOrigin` constants; their base `RefusableEvent` (`refuse()`, `isRefused()`, `getReasons()`) and `ActionRefusedException`. A later version may add properties or events, but will not remove or rename one.
-- **Exceptions you throw or catch.** `ContentBlocksAccessDeniedException` (a 403), `IncompatibleContentVersionException`, `ImportRefusedException`, `UnsupportedTemplateFormatException`, `IncompatibleTemplateException`, `ContentManipulationException` and its `reason` codes.
+- **Exceptions you throw or catch.** `ContentBlocksAccessDeniedException` (a 403), `GenerationRefusedException` and its `reason` codes, `IncompatibleContentVersionException`, `ImportRefusedException`, `UnsupportedTemplateFormatException`, `IncompatibleTemplateException`, `ContentManipulationException` and its `reason` codes.
+- **`FormSchemaMapper::is()`**, which a `FieldSchemaContributorInterface` calls to recognise its field type.
 - **`ContentBlocks\Testing\CrossRequestStateScanner`**, for pointing the [worker-mode](./worker-mode.md) check at your own code.
 - **The entities** and their public accessors: `ContentArea`, `Section`, `Column`, `Block`, `SectionTemplate`, and i18n's `BlockTranslation` and `ColumnTranslation`. The exception is the setters of **published state**, which carry `@internal`. `publish()` is the only writer of a published field, so code building content writes the draft and calls `publish()`.
 
@@ -70,6 +73,8 @@ Every key of the three semantic config trees (`content_blocks`, `content_blocks_
   | `content_blocks_area_publish`, `content_blocks_area_discard` | `POST` with the CSRF header, and an optional JSON body `{"locales": [...]}` naming the locales whose translations the call covers (without it, every locale); a `400` with `error: "invalid_locales"` for a malformed list; a `409` with `error: "refused"`, `message` and `reasons` when a [listener refused](./events.md#refusing-an-action) |
   | `content_blocks_asset_layout`, `content_blocks_asset_styling`, `content_blocks_asset_slider`, `content_blocks_kit_asset_css` | `GET`, the stylesheet or script a public page links; `?v=` with the content's version is cached for a year |
   | `content_blocks_asset_report` | `GET`, the read-only asset report page |
+  | `content_blocks_ai_text`, `content_blocks_ai_alt_text`, `content_blocks_ai_content` | `POST` with the CSRF header; the content action's `action` (`add`, `edit_section`, `edit_page`), `prompt`, `targetSectionId` / `targetBlockId`; `404` with `error: "disabled"` while the action is off or unsupported, `502` with `error: "provider_failed"` when the provider throws; the text actions answer `{"text"}`, the content action `sectionIds`, `blockIds`, `skippedBlockTypes`, `droppedFields`, or a `409` / `422` with `error` |
+  | `content_blocks_area_schema` | `GET` on an area, answering the [content schema](./content-schema.md) (`format: content-blocks/schema-v1`); `?examples=`. Later versions may add keys to the document, never remove one |
   | `content_blocks_i18n_workbench` | `GET`, the translation workbench page |
   | `content_blocks_i18n_area_publish`, `content_blocks_i18n_area_discard` | `POST` with the CSRF header, one language of an area; a `409` with `error: "source_unpublished"` while the area has a draft of its own, or `"refused"` as above |
 
@@ -80,7 +85,7 @@ Every other route is how the builder talks to its own server. Its **name** is st
 
 ### Console
 
-The five commands, their names and their options: `content-blocks:assets:gc`, `content-blocks:backfill-collection-ids`, `content-blocks-kit:blocks`, `content-blocks:i18n:status`, `content-blocks:i18n:translate`.
+The seven commands, their names and their options: `content-blocks:assets:gc`, `content-blocks:backfill-collection-ids`, `content-blocks:schema`, `content-blocks:ai:apply`, `content-blocks-kit:blocks`, `content-blocks:i18n:status`, `content-blocks:i18n:translate`.
 
 For `content-blocks:assets:gc`, the *shape* of the safety design is part of the promise too: reporting is the default and `--force` is the opt-in. Inverting that would silently turn an existing habit into a deletion, so it will not be inverted.
 
@@ -106,6 +111,7 @@ For `content-blocks:assets:gc`, the *shape* of the safety design is part of the 
   Their targets, values and actions are not frozen, except `data-cb-condition` (see [Host services](./host-services.md)).
 - **Every documented `--cb-*` CSS custom property** (CI fails on an undocumented one): the chrome tokens and form alias layer in [Styling](./styling#theming-the-builder-chrome), the kit's seven content tokens in the [Block Kit](../kit/#the-kits-own-tokens), and the workbench's fifteen in [Translation](./translation#theming-the-workbench).
 - **Seven `cb:*` DOM events**, with the `detail` fields listed in [Builder events](./host-services.md#builder-events). All of them bubble.
+- **`cb:field:set`**, dispatched (cancelable, `detail.value`) on a field's input before the builder writes an AI proposal into it: a rich-text editor owning that input cancels it and sets its own content ([AI actions](./ai.md#which-fields-get-a-button)).
 
   | Event | Direction | Dispatched on | `detail` |
   |---|---|---|---|
@@ -134,6 +140,7 @@ The other `cb:*` events are internal choreography between the preview overlay, t
 
 Some defaults are load-bearing enough to be API:
 
+- **No AI without a provider.** With no `AiProviderInterface` registered, the builder draws no AI affordance and the AI endpoints answer `404`; no content leaves the server. A generated document reaches only the draft, through the same replay as a paste.
 - **Secure by default.** `AccessCheckerInterface` defaults to `DenyAllAccessChecker`, `ContentAreaUrlResolverInterface` to a resolver that throws, `SectionTemplateManagerInterface` to one that denies, and `AssetReportViewerInterface` to a viewer that denies (the report route 404s rather than 403s). They stay that way.
 - **No uploaded file is ever deleted as a side effect of a builder action**: not on block delete, not on publish, not on discard. Reclaiming storage is an explicit, separate act; see [Asset lifecycle](./asset-lifecycle.md).
 - **Nothing the builder does changes the published page** until Publish.

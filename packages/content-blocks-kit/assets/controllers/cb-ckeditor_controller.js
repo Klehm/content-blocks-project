@@ -230,6 +230,16 @@ export default class extends Controller {
             });
             this._flush = flush;
 
+            // A value set from outside (an AI proposal) goes through the
+            // editor, or its next sync would put the old text back.
+            this._onFieldSet = (event) => {
+                event.preventDefault();
+                editor.setData(String(event.detail?.value ?? ''));
+                flush.cancel();
+                sync('change');
+            };
+            textarea.addEventListener('cb:field:set', this._onFieldSet);
+
             this._detachedUi.sweep();
             this._editor = editor;
         } catch (e) {
@@ -244,6 +254,10 @@ export default class extends Controller {
         // A queued flush would fire against a torn-down editor.
         this._flush?.cancel();
         this._flush = null;
+        if (this._onFieldSet && this.hasTextareaTarget) {
+            this.textareaTarget.removeEventListener('cb:field:set', this._onFieldSet);
+        }
+        this._onFieldSet = null;
 
         if (this._editor) {
             const editor = this._editor;

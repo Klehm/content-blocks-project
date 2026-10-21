@@ -929,6 +929,9 @@ test.describe('builder shell — focus + permanent affordances', () => {
         await addFullSection(page, frame);
         await frame.locator('[data-cb-section-id]').first().click({ position: { x: 5, y: 5 } });
         await expect(frame.locator('.cb-overlay-toolbar.is-visible')).toBeVisible();
+        // The sandbox's demo AI provider revises sections: its ✦ is announced
+        // by the builder after the preview loads.
+        await expect(frame.locator('.cb-overlay-toolbar [data-cb-action="ai-edit"]')).toBeAttached();
 
         const observed = await page.locator('.cb-shell__iframe').evaluate((iframe) => {
             const doc = iframe.contentDocument;
@@ -948,6 +951,7 @@ test.describe('builder shell — focus + permanent affordances', () => {
             'move-down': observed.labels.section_move_down,
             duplicate: observed.labels.section_duplicate,
             'save-template': observed.labels.section_save_template,
+            'ai-edit': observed.labels.section_ai_edit,
             delete: observed.labels.section_delete,
         };
 

@@ -6,6 +6,7 @@ namespace ContentBlocks\Block;
 
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Form\Type\BlockFormType;
+use Symfony\Component\Form\Exception\ExceptionInterface as FormExceptionInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 
 /**
@@ -34,12 +35,22 @@ final class CollectionIdBackfiller
             return $data;
         }
 
-        // Only the form's shape is used (which children are collections).
-        $form = $this->formFactory->create(BlockFormType::class, $data, [
-            'block_type' => $this->registry->get($type),
-            'block_data' => $data,
-        ]);
+        $blockType = $this->registry->get($type);
+        // Only the form's shape is used (which children are collections). Data
+        // of the wrong shape cannot build it, so the type's defaults do.
+        foreach ([$data, $blockType->getDefaultData()] as $initial) {
+            try {
+                $form = $this->formFactory->create(BlockFormType::class, $initial, [
+                    'block_type' => $blockType,
+                    'block_data' => $initial,
+                ]);
 
-        return $this->collectionItemIds->backfill($form, $data);
+                return $this->collectionItemIds->backfill($form, $data);
+            } catch (FormExceptionInterface) {
+                continue;
+            }
+        }
+
+        return $data;
     }
 }

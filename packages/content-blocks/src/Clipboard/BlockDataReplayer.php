@@ -10,8 +10,10 @@ use ContentBlocks\Block\CollectionItemIds;
 use ContentBlocks\BlockType\BlockTypeInterface;
 use ContentBlocks\BlockType\BlockTypeRegistry;
 use ContentBlocks\Form\Type\BlockFormType;
-use Symfony\Component\Form\Exception\TransformationFailedException;
+use Symfony\Component\Form\Exception\ExceptionInterface as FormExceptionInterface;
+use Symfony\Component\Form\Extension\Core\DataMapper\DataMapper;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 
@@ -59,12 +61,15 @@ final class BlockDataReplayer
         $passthrough = array_diff(array_keys($blockType->getDefaultData()), $editable);
 
         $dropped = [];
-        $submitted = $this->toSubmittedShape(
-            $blockType,
-            $initial,
-            $this->keysIn($data, $editable),
-            $dropped,
-        );
+        $candidate = [];
+        foreach ($this->keysIn($data, $editable) as $key => $value) {
+            if ($this->fits($form->get($key), $value)) {
+                $candidate[$key] = $value;
+            } else {
+                $dropped[] = $key;
+            }
+        }
+        $submitted = $this->toSubmittedShape($blockType, $initial, $candidate, $dropped);
 
         for ($pass = 0; $pass < self::MAX_PASSES; ++$pass) {
             // A form cannot be submitted twice, so each pass gets a fresh one.
@@ -107,6 +112,86 @@ final class BlockDataReplayer
     }
 
     /**
+     * Whether a value has a shape the field can hold at all: a list where a
+     * string goes would reach Symfony as a warning, not as a refusal.
+     *
+     * @see docs/internals/clipboard.md#a-value-of-the-wrong-shape
+     */
+    private function fits(FormInterface $field, mixed $value): bool
+    {
+        if ($value === null) {
+            return true;
+        }
+        $config = $field->getConfig();
+        if ($this->isChoice($field)) {
+            return $config->getOption('multiple') ? \is_array($value) : !\is_array($value);
+        }
+        if ($this->isCollection($field)) {
+            if (!\is_array($value)) {
+                return false;
+            }
+            $entry = $this->entryForm($field);
+            foreach ($value as $item) {
+                if ($entry !== null && !$this->fits($entry, $item)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        if (!$config->getCompound()) {
+            return !\is_array($value);
+        }
+        // A type mapping its own data (a palette colour) stores a shape only
+        // it knows; the later passes judge it.
+        if (!$config->getDataMapper() instanceof DataMapper) {
+            return true;
+        }
+        if (!\is_array($value)) {
+            return false;
+        }
+        foreach ($field as $name => $child) {
+            if (\array_key_exists((string) $name, $value) && !$this->fits($child, $value[(string) $name])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function isCollection(FormInterface $form): bool
+    {
+        for ($type = $form->getConfig()->getType(); $type !== null; $type = $type->getParent()) {
+            if ($type->getInnerType() instanceof CollectionType) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** One entry of a collection, built alone: what each item must fit. */
+    private function entryForm(FormInterface $collection): ?FormInterface
+    {
+        $config = $collection->getConfig();
+        $entryType = $config->getOption('entry_type');
+        if (!\is_string($entryType)) {
+            return null;
+        }
+
+        try {
+            return $config->getFormFactory()->createNamed(
+                '__name__',
+                $entryType,
+                null,
+                (array) $config->getOption('entry_options'),
+            );
+        } catch (FormExceptionInterface) {
+            return null;
+        }
+    }
+
+    /**
      * Converts stored block data into the shape a *submit* expects — the model
      * shape and the posted shape are not the same.
      *
@@ -130,7 +215,7 @@ final class BlockDataReplayer
 
         try {
             return $this->postShapeOf($blockType, $initial, $candidate, array_keys($candidate));
-        } catch (TransformationFailedException) {
+        } catch (FormExceptionInterface) {
             // Fall through to the per-field pass.
         }
 
@@ -138,7 +223,7 @@ final class BlockDataReplayer
         foreach ($candidate as $key => $value) {
             try {
                 $posted += $this->postShapeOf($blockType, $initial, [$key => $value], [$key]);
-            } catch (TransformationFailedException) {
+            } catch (FormExceptionInterface) {
                 $dropped[] = (string) $key;
             }
         }
@@ -153,7 +238,8 @@ final class BlockDataReplayer
      *
      * @return array<string, mixed>
      *
-     * @throws TransformationFailedException when a value will not map in
+     * @throws FormExceptionInterface when a value will not map in, or is of
+     *                                a shape the field cannot even hold
      */
     private function postShapeOf(BlockTypeInterface $blockType, array $initial, array $values, array $keys): array
     {

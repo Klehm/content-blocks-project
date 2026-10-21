@@ -38,6 +38,7 @@ function stubTinyMce() {
         handlers: {},
         save: vi.fn(),
         remove: vi.fn(),
+        setContent: vi.fn(),
         on(events, handler) {
             events.split(' ').forEach((name) => { this.handlers[name] = handler; });
         },
@@ -179,6 +180,27 @@ describe('cb-tinymce connect', () => {
 
         expect(editor.save).toHaveBeenCalled();
         expect(bubbled).toHaveBeenCalled();
+    });
+
+    it('takes a value set from outside (an AI proposal) through the editor', async () => {
+        const { editor } = stubTinyMce();
+        const { controller, textarea } = mount();
+        await controller.connect();
+        const changed = vi.fn();
+        textarea.addEventListener('change', changed);
+
+        const event = new CustomEvent('cb:field:set', { detail: { value: '<p>New</p>' }, cancelable: true });
+        textarea.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(editor.setContent).toHaveBeenCalledWith('<p>New</p>');
+        expect(editor.save).toHaveBeenCalled();
+        expect(changed).toHaveBeenCalledOnce();
+
+        controller.disconnect();
+        const after = new CustomEvent('cb:field:set', { detail: { value: 'x' }, cancelable: true });
+        textarea.dispatchEvent(after);
+        expect(after.defaultPrevented).toBe(false);
     });
 
     it('offers the merged config to cb-rich-text:configure before init', async () => {
