@@ -54,8 +54,8 @@
             "bundle": "ContentBlocks\\Seo\\ContentBlocksSeoBundle"
         },
         "branch-alias": {
-            "dev-master": "1.5.x-dev",
-            "dev-main": "1.5.x-dev"
+            "dev-master": "1.6.x-dev",
+            "dev-main": "1.6.x-dev"
         }
     },
     "repositories": {
