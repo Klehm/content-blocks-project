@@ -136,6 +136,50 @@ describe('cb-builder: acting on tree signals', () => {
     });
 });
 
+describe('cb-builder: inbound cb:focus', () => {
+    let controller, element;
+
+    beforeEach(() => {
+        ({ controller, element } = setupController());
+        controller.connect();
+        controller.reload = vi.fn();
+        global.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({}),
+            text: () => Promise.resolve('<div>sidebar</div>'),
+        }));
+    });
+
+    afterEach(() => controller.disconnect());
+
+    it('selects a block the way a navigator row does', async () => {
+        const posted = [];
+        controller._postToPreview = (message) => posted.push(message);
+
+        emit(element.querySelector('aside'), 'cb:focus', { kind: 'block', id: 700 });
+        await vi.waitFor(() => expect(global.fetch).toHaveBeenCalled());
+
+        expect(global.fetch.mock.calls[0][0]).toBe('/_content-blocks/block/700/edit');
+        expect(posted).toContainEqual({ type: 'cb:block:scroll-into-view', blockId: 700 });
+    });
+
+    it('takes an id read off a data attribute, as a string', async () => {
+        emit(element, 'cb:focus', { kind: 'section', id: '7' });
+        await vi.waitFor(() => expect(global.fetch).toHaveBeenCalled());
+
+        expect(global.fetch.mock.calls[0][0]).toBe('/_content-blocks/section/7/settings');
+    });
+
+    it('ignores an unknown kind or an id that is not one', () => {
+        emit(element, 'cb:focus', { kind: 'column', id: 3 });
+        emit(element, 'cb:focus', { kind: 'block', id: 'abc' });
+        emit(element, 'cb:focus', { kind: 'block', id: 0 });
+        emit(element, 'cb:focus', {});
+
+        expect(global.fetch).not.toHaveBeenCalled();
+    });
+});
+
 describe('cb-builder: telling the tree what changed', () => {
     let controller, element;
 

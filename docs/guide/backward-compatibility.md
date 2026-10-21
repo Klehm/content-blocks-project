@@ -110,7 +110,7 @@ For `content-blocks:assets:gc`, the *shape* of the safety design is part of the 
 
   Their targets, values and actions are not frozen, except `data-cb-condition` (see [Host services](./host-services.md)).
 - **Every documented `--cb-*` CSS custom property** (CI fails on an undocumented one): the chrome tokens and form alias layer in [Styling](./styling#theming-the-builder-chrome), the kit's seven content tokens in the [Block Kit](../kit/#the-kits-own-tokens), and the workbench's fifteen in [Translation](./translation#theming-the-workbench).
-- **Seven `cb:*` DOM events**, with the `detail` fields listed in [Builder events](./host-services.md#builder-events). All of them bubble.
+- **Eight `cb:*` DOM events**, with the `detail` fields listed in [Builder events](./host-services.md#builder-events). All of them bubble.
 - **`cb:field:set`**, dispatched (cancelable, `detail.value`) on a field's input before the builder writes an AI proposal into it: a rich-text editor owning that input cancels it and sets its own content ([AI actions](./ai.md#which-fields-get-a-button)).
 
   | Event | Direction | Dispatched on | `detail` |
@@ -122,6 +122,7 @@ For `content-blocks:assets:gc`, the *shape* of the safety design is part of the 
   | `cb:block:rendered` | out | **inside the preview iframe**, on a block's fresh node after an in-place refresh | `blockId` |
   | `cb:area:changed` | in | dispatched by you at the builder after changing the area server-side | `hasUnpublishedChanges` (optional) |
   | `cb:notify` | in | dispatched by you at the builder, to speak in its snackbar | `message`, `link` (optional) |
+  | `cb:focus` | in | dispatched by you at the builder, to select a block or a section | `kind`, `id` |
 
   A later version may add fields to a `detail`, but will not remove or rename one.
 

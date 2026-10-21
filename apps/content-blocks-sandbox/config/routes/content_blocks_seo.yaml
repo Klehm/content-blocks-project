@@ -1,0 +1,4 @@
+# The SEO panel's assets, under `/admin` like the builder's own endpoints.
+content_blocks_seo:
+    resource: '@ContentBlocksSeoBundle/config/routes/bare.php'
+    prefix: /admin/seo

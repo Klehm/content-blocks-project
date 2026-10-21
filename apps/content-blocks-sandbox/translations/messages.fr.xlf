@@ -28,6 +28,10 @@
                 <source>app.builder.translate_title</source>
                 <target>Ouvrir l'atelier de traduction dans un nouvel onglet</target>
             </trans-unit>
+            <trans-unit id="builder.seo_audit">
+                <source>app.builder.seo_audit</source>
+                <target>Audit SEO</target>
+            </trans-unit>
             <trans-unit id="ornament.panel">
                 <source>app.ornament.panel</source>
                 <target>Ornements</target>

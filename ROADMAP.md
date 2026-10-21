@@ -42,18 +42,13 @@ Not ranked yet:
 
 ---
 
-## On-page SEO audit 💡
+## SEO audit: target keyword checks 💡
 
-**The problem.** The builder shows what a page looks like, not whether it reads well to a search engine. Editors pick a title size for its looks (`title` decouples visual size from tag on purpose) and end up with two `h1`s or an `h2` → `h4` jump without noticing.
+**Shipped first:** the deterministic linter, as `klehm/content-blocks-seo` (heading outline, `alt` text, link text, paragraph length, on the draft page with the host's template; see its `CHANGELOG.md`).
 
-**Two layers, and the first does not need the second.**
-
-1. **A deterministic linter**, run on the rendered draft HTML (`cb_chrome=0`), so it sees what a crawler sees, whatever the block types: heading hierarchy (single `h1`, no skipped level), images without `alt`, empty or generic link text ("click here"), very long paragraphs. Each finding points to the block that caused it and focuses it in the builder, the way the Navigator does.
-2. **Target keyword checks**: highlight occurrences in the preview, presence in the `h1`, first paragraph and headings, density. A `ContentArea` has no title, slug or meta description, and no keyword: the host's entity holds those. So the host supplies them through a provider interface, and without a provider this layer stays hidden.
+**What is left is the second layer**: highlight the target keyword's occurrences in the preview, check its presence in the `h1`, the first paragraph and the headings, and its density. A `ContentArea` has no title, slug, meta description or keyword: the host's entity holds those. So the host supplies them through a provider interface in the SEO package, and without a provider this layer stays hidden, as machine translation does without an engine.
 
 "Semantic verification and suggestions" belong to a third layer that needs a language model; see [AI content generation](#ai-content-generation--a-seam-no-engine-) below. Keep it out of the first two, so they stay offline and testable.
-
-**Direction**: a satellite package (`klehm/content-blocks-seo`) with a builder panel delivered as a shell fragment. Several checks overlap accessibility (headings, `alt`, link text); report them once, not in two tools.
 
 ---
 

@@ -90,6 +90,7 @@ class BuilderController extends Controller {
         this._onSaveError = this._onSaveError.bind(this);
         this._onAreaChanged = this._onAreaChanged.bind(this);
         this._onNotify = this._onNotify.bind(this);
+        this._onFocusRequest = this._onFocusRequest.bind(this);
         this._onDocumentPointerDown = this._onDocumentPointerDown.bind(this);
         this._onDocumentKeydown = this._onDocumentKeydown.bind(this);
         this._onTreeSelect = this._onTreeSelect.bind(this);
@@ -128,6 +129,7 @@ class BuilderController extends Controller {
         // its own endpoints and asks the builder to catch up.
         this.element.addEventListener('cb:area:changed', this._onAreaChanged);
         this.element.addEventListener('cb:notify', this._onNotify);
+        this.element.addEventListener('cb:focus', this._onFocusRequest);
         // The tree panel signals; this controller acts, so every mutation
         // still goes through one queue. See docs/internals/frontend.md
         this.element.addEventListener('cb:tree:select', this._onTreeSelect);
@@ -166,6 +168,7 @@ class BuilderController extends Controller {
         this.element.removeEventListener('cb:save:error', this._onSaveError);
         this.element.removeEventListener('cb:area:changed', this._onAreaChanged);
         this.element.removeEventListener('cb:notify', this._onNotify);
+        this.element.removeEventListener('cb:focus', this._onFocusRequest);
         this.element.removeEventListener('cb:tree:select', this._onTreeSelect);
         this.element.removeEventListener('cb:tree:duplicate', this._onTreeDuplicate);
         this.element.removeEventListener('cb:tree:delete', this._onTreeDelete);

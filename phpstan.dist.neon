@@ -8,6 +8,7 @@ parameters:
         - packages/content-blocks/src
         - packages/content-blocks-kit/src
         - packages/content-blocks-i18n/src
+        - packages/content-blocks-seo/src
 
     # Block data is free-form JSON of unknown age, read defensively on purpose.
     # A declared type is what the writer promised, not what the row holds, so a

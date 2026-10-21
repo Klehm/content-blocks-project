@@ -20,6 +20,10 @@
                 <source>app.builder.translate_title</source>
                 <target>Open the translation workbench in a new tab</target>
             </trans-unit>
+            <trans-unit id="builder.seo_audit">
+                <source>app.builder.seo_audit</source>
+                <target>SEO audit</target>
+            </trans-unit>
             <trans-unit id="ornament.panel">
                 <source>app.ornament.panel</source>
                 <target>Ornaments</target>

@@ -87,6 +87,7 @@ export default defineConfig({
             { text: 'Content versioning', link: '/guide/content-versioning' },
             { text: 'Content schema for AI', link: '/guide/content-schema' },
             { text: 'AI actions', link: '/guide/ai' },
+            { text: 'SEO audit', link: '/guide/seo' },
             { text: 'Asset lifecycle', link: '/guide/asset-lifecycle' },
             { text: 'Worker mode (FrankenPHP)', link: '/guide/worker-mode' },
           ],

@@ -53,6 +53,18 @@ export default class Tree {
         }
     }
 
+    /**
+     * Inbound `cb:focus`: a host or a shell fragment points at an element,
+     * and the builder selects it the way a navigator row does.
+     */
+    _onFocusRequest(event) {
+        const { kind } = event.detail ?? {};
+        const id = Number(event.detail?.id);
+        if (kind !== 'block' && kind !== 'section') return;
+        if (!Number.isInteger(id) || id <= 0) return;
+        this._onTreeSelect({ detail: { kind, id } });
+    }
+
     _onTreeDuplicate(event) {
         const { kind, id } = event.detail ?? {};
         if (!Number.isFinite(id)) return;

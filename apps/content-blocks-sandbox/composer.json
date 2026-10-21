@@ -8,6 +8,7 @@
         "klehm/content-blocks": "@dev",
         "klehm/content-blocks-kit": "@dev",
         "klehm/content-blocks-i18n": "@dev",
+        "klehm/content-blocks-seo": "@dev",
         "doctrine/doctrine-bundle": "^2.13 || ^3.0",
         "doctrine/doctrine-migrations-bundle": "^3.3 || ^4.0",
         "doctrine/orm": "^3.2",
@@ -43,6 +44,11 @@
         {
             "type": "path",
             "url": "../../packages/content-blocks-i18n",
+            "options": { "symlink": true }
+        },
+        {
+            "type": "path",
+            "url": "../../packages/content-blocks-seo",
             "options": { "symlink": true }
         }
     ],

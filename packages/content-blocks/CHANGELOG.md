@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`cb:focus`, a third inbound builder event.** Dispatched at the builder with
+  `{kind: 'block' | 'section', id}`, it selects that element the way a click
+  does: its sidebar opens and the preview scrolls to it. A host or a shell
+  fragment can now point the editor at a block; the SEO audit package uses it.
+
 - **Headless rendering.** `ContentAreaNormalizerInterface` renders an area as
   data instead of HTML: sections (layout, display per viewport, settings),
   columns (span, width, label) and blocks (type, data, order per viewport), in

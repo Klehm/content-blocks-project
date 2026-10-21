@@ -44,6 +44,9 @@
     "klehm/content-blocks-kit": {
         "version": "dev-main"
     },
+    "klehm/content-blocks-seo": {
+        "version": "dev-master"
+    },
     "liip/imagine-bundle": {
         "version": "2.17",
         "recipe": {

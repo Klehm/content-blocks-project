@@ -1,0 +1,65 @@
+{# @var area \ContentBlocks\Entity\ContentArea #}
+{# The SEO panel, hidden until the *SEO audit* action opens it. It audits the
+   draft page, so it reads the same URL as the preview. #}
+{% trans_default_domain 'content_blocks_seo' %}
+<link rel="stylesheet" href="{{ path('content_blocks_seo_asset', {type: 'css', v: assetVersions.css}) }}">
+<aside class="cb-seo" data-cb-seo hidden
+       aria-labelledby="cb-seo-title-{{ area.id }}"
+       data-area="{{ area.id }}"
+       data-preview-url="{{ cb_preview_url(area) }}"
+       data-audit-url="{{ path('content_blocks_seo_asset', {type: 'audit', v: assetVersions.audit}) }}"
+       data-locale="{{ app.request.locale|default('en') }}"
+       data-options="{{ auditOptions|json_encode }}"
+       data-i18n="{{ {
+           running: 'cb_seo.status.running'|trans,
+           failed: 'cb_seo.status.failed'|trans,
+           summary_none: 'cb_seo.status.none'|trans,
+           errors_one: 'cb_seo.status.errors_one'|trans,
+           errors_other: 'cb_seo.status.errors_other'|trans,
+           warnings_one: 'cb_seo.status.warnings_one'|trans,
+           warnings_other: 'cb_seo.status.warnings_other'|trans,
+           scope_page: 'cb_seo.scope.page'|trans,
+           scope_area: 'cb_seo.scope.area'|trans,
+           outline_untitled: 'cb_seo.outline.untitled'|trans,
+           check_heading_h1_missing: 'cb_seo.check.heading_h1_missing'|trans,
+           hint_heading_h1_missing: 'cb_seo.hint.heading_h1_missing'|trans,
+           check_heading_h1_multiple: 'cb_seo.check.heading_h1_multiple'|trans,
+           hint_heading_h1_multiple: 'cb_seo.hint.heading_h1_multiple'|trans,
+           check_heading_level_skipped: 'cb_seo.check.heading_level_skipped'|trans,
+           hint_heading_level_skipped: 'cb_seo.hint.heading_level_skipped'|trans,
+           check_heading_empty: 'cb_seo.check.heading_empty'|trans,
+           hint_heading_empty: 'cb_seo.hint.heading_empty'|trans,
+           check_image_alt_missing: 'cb_seo.check.image_alt_missing'|trans,
+           hint_image_alt_missing: 'cb_seo.hint.image_alt_missing'|trans,
+           check_image_alt_empty: 'cb_seo.check.image_alt_empty'|trans,
+           hint_image_alt_empty: 'cb_seo.hint.image_alt_empty'|trans,
+           check_link_text_empty: 'cb_seo.check.link_text_empty'|trans,
+           hint_link_text_empty: 'cb_seo.hint.link_text_empty'|trans,
+           check_link_text_generic: 'cb_seo.check.link_text_generic'|trans,
+           hint_link_text_generic: 'cb_seo.hint.link_text_generic'|trans,
+           check_paragraph_too_long: 'cb_seo.check.paragraph_too_long'|trans,
+           hint_paragraph_too_long: 'cb_seo.hint.paragraph_too_long'|trans,
+       }|json_encode }}">
+    <header class="cb-seo__header">
+        <h2 class="cb-seo__title" id="cb-seo-title-{{ area.id }}">{{ 'cb_seo.title'|trans }}</h2>
+        <button type="button" class="cb-seo__icon-btn" data-cb-seo-rerun
+                title="{{ 'cb_seo.rerun'|trans }}" aria-label="{{ 'cb_seo.rerun'|trans }}">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+        </button>
+        <button type="button" class="cb-seo__icon-btn" data-cb-seo-close
+                title="{{ 'cb_seo.close'|trans }}" aria-label="{{ 'cb_seo.close'|trans }}">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+    </header>
+    <p class="cb-seo__status" data-cb-seo-status role="status" aria-live="polite"></p>
+    <div class="cb-seo__body">
+        <ul class="cb-seo__findings" data-cb-seo-findings></ul>
+        <details class="cb-seo__section">
+            <summary>{{ 'cb_seo.outline.title'|trans }}</summary>
+            <ol class="cb-seo__outline" data-cb-seo-outline></ol>
+        </details>
+    </div>
+</aside>
+<script type="module" src="{{ path('content_blocks_seo_asset', {type: 'js', v: assetVersions.js}) }}"></script>

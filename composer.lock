@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "be0fdddcf2287092226c1859f451061a",
+    "content-hash": "97d463117c05581b9757d763a6a7ff55",
     "packages": [
         {
             "name": "doctrine/collections",
@@ -1179,6 +1179,79 @@
             "support": {
                 "issues": "https://github.com/klehm/content-blocks-project/issues",
                 "source": "https://github.com/klehm/content-blocks-kit"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "klehm/content-blocks-seo",
+            "version": "dev-master",
+            "dist": {
+                "type": "path",
+                "url": "packages/content-blocks-seo",
+                "reference": "c6427cb400d0556e6b302611344dbf580f5f8110"
+            },
+            "require": {
+                "klehm/content-blocks": "^1.5",
+                "php": ">=8.2",
+                "symfony/config": "^6.4 || ^7.0 || ^8.0",
+                "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
+                "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
+                "symfony/http-foundation": "^6.4 || ^7.0 || ^8.0",
+                "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0",
+                "symfony/routing": "^6.4 || ^7.0 || ^8.0",
+                "symfony/translation": "^6.4 || ^7.0 || ^8.0",
+                "twig/twig": "^3.27"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^11.5",
+                "symfony/yaml": "^6.4 || ^7.0 || ^8.0"
+            },
+            "type": "symfony-bundle",
+            "extra": {
+                "symfony": {
+                    "bundle": "ContentBlocks\\Seo\\ContentBlocksSeoBundle"
+                },
+                "branch-alias": {
+                    "dev-master": "1.5.x-dev",
+                    "dev-main": "1.5.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "ContentBlocks\\Seo\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "ContentBlocks\\Seo\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Clément Muller",
+                    "email": "klehm.muller@gmail.com"
+                }
+            ],
+            "description": "On-page SEO audit for ContentBlocks — heading outline, alt text, link text and paragraph length, checked on the draft page from the builder.",
+            "homepage": "https://github.com/klehm/content-blocks-project",
+            "keywords": [
+                "accessibility",
+                "audit",
+                "content-blocks",
+                "page-builder",
+                "seo",
+                "symfony",
+                "symfony-bundle"
+            ],
+            "support": {
+                "issues": "https://github.com/klehm/content-blocks-project/issues",
+                "source": "https://github.com/klehm/content-blocks-seo"
             },
             "transport-options": {
                 "symlink": true,
@@ -7886,7 +7959,8 @@
     "stability-flags": {
         "klehm/content-blocks": 20,
         "klehm/content-blocks-i18n": 20,
-        "klehm/content-blocks-kit": 20
+        "klehm/content-blocks-kit": 20,
+        "klehm/content-blocks-seo": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,

@@ -1,0 +1,39 @@
+cb_seo:
+    action: SEO audit
+    title: SEO audit
+    rerun: Check again
+    close: Close
+    status:
+        running: Checking the page…
+        failed: The page could not be read. Reload the builder and try again.
+        none: No issue found.
+        errors_one: '{count} error'
+        errors_other: '{count} errors'
+        warnings_one: '{count} warning'
+        warnings_other: '{count} warnings'
+    scope:
+        page: Page template
+        area: This content area
+    outline:
+        title: Heading outline
+        untitled: (empty heading)
+    check:
+        heading_h1_missing: The page has no h1 heading.
+        heading_h1_multiple: A second h1 heading.
+        heading_level_skipped: 'Heading level skipped: h{from} then h{to}.'
+        heading_empty: Empty heading.
+        image_alt_missing: Image with no alt attribute.
+        image_alt_empty: Image without alternative text.
+        link_text_empty: Link with no text.
+        link_text_generic: 'Vague link text: “{text}”.'
+        paragraph_too_long: 'Long paragraph: {words} words.'
+    hint:
+        heading_h1_missing: Give the page one main title as an h1, in a title block or in the page template.
+        heading_h1_multiple: Keep one h1 per page. Set this title's tag to h2; its visual size can stay.
+        heading_level_skipped: Use h{next} here, or change the heading above. The visual size is set apart from the tag.
+        heading_empty: Give it text, or remove it.
+        image_alt_missing: Describe the image in its alternative text.
+        image_alt_empty: Leave it empty only when the image is purely decorative.
+        link_text_empty: Search engines and screen readers cannot tell where it leads. Give it text.
+        link_text_generic: Say where the link leads, for instance “See our prices”.
+        paragraph_too_long: Split it under {max} words. Long blocks of text get skimmed, not read.
