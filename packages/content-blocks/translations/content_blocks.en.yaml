@@ -320,6 +320,16 @@ cb:
         failed: "Upload failed"
         network_error: "Network error"
         rejected: "Unsupported file type"
+        browse: "Browse library"
+        no_library: "No media library answered"
+        error:
+            csrf: "Your session has changed: reload the page, then try again."
+            area_not_found: "The page this file is for was not found."
+            no_file: "No file was received."
+            too_large: "“%name%” is larger than the %max% MB allowed."
+            too_large_unnamed: "The file is larger than the %max% MB allowed."
+            type_not_allowed: "“%name%” is not an accepted file type (%type%)."
+            failed: "“%name%” could not be uploaded."
     form:
         more_info: "More information"
     ai:

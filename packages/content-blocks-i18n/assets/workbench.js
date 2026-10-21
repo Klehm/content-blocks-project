@@ -50,6 +50,7 @@ class Workbench {
             else if (act === 'approve') this.approve(this._rowOf(button));
             else if (act === 'reset') this.reset(this._rowOf(button));
             else if (act === 'copySource') this.copySource(this._rowOf(button));
+            else if (act === 'browse') this.browseMedia(this._rowOf(button), button.dataset.kind);
             else if (act === 'publishLocale') this.publishLocale(button);
             else if (act === 'discardLocale') this.discardLocale(button);
         });
@@ -307,6 +308,36 @@ class Workbench {
         );
         if (!url) return;
 
+        await this._useMedia(row, url);
+    }
+
+    /**
+     * Asks a media library (a builder fragment that stands alone) for a file
+     * already uploaded. Its alt is not used: it is not in this language.
+     * @see docs/internals/i18n.md#localized-media
+     */
+    browseMedia(row, kind = 'image') {
+        if (!row) return;
+        const input = row.querySelector('[data-target="input"]');
+        const event = new CustomEvent('cb:media:browse', {
+            bubbles: true,
+            cancelable: true,
+            detail: {
+                kind,
+                accept: row.querySelector('[data-target="mediaFile"]')?.getAttribute('accept') ?? '',
+                value: input?.value ?? '',
+                pick: ({ path } = {}) => {
+                    if (typeof path === 'string' && path.trim() !== '') this._useMedia(row, path.trim());
+                },
+            },
+        });
+        row.dispatchEvent(event);
+
+        if (!event.defaultPrevented) this._toast(this._message('media_no_library'), true);
+    }
+
+    /** Saved at once: there is no typing to debounce. */
+    async _useMedia(row, url) {
         const input = row.querySelector('[data-target="input"]');
         if (input) input.value = url;
         this._paintMedia(row, url);

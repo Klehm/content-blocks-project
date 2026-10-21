@@ -73,7 +73,12 @@ one collaborator, so a test can register it standalone instead of standing up th
 renderer, the URL resolver and the palette.
 
 `cb_shell_fragments()` is additionally called by the shell template *itself*,
-rather than being threaded in as a variable the way `topbarActions` is. A fragment
-has to appear wherever the shell is rendered — through `ContentAreaType` or a
-host's direct include of the launcher — since the whole point is that the host
-wires nothing.
+rather than being threaded in as a variable. A fragment has to appear wherever
+the shell is rendered — through `ContentAreaType` or a host's direct include of
+the launcher — since the whole point is that the host wires nothing.
+
+`cb_builder_actions(area, topbarActions)` does the same for the Actions menu.
+Actions used to be gathered by `ContentAreaType` only, so a direct include
+showed none of a bundle's: the media library's entry was missing from the
+sandbox, which includes the launcher. `ContentAreaType` still merges them, and
+the collection's dedupe by key keeps the second merge from listing one twice.

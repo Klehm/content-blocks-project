@@ -736,6 +736,8 @@ Everything else a fragment needs is on the shell root, which it can reach with `
 <script type="module" src="{{ path('my_bundle_history_js') }}"></script>
 ```
 
+A fragment that reads **nothing** off the shell (its URLs, area id and token are its own attributes, its CSS falls back on every `--cb-*` token) can say so with `standalone: true`. The i18n workbench, which is not the shell, renders the standalone fragments too, so a dialog answering a builder event (the [media library](./media-library.md)'s picker, say) works on both pages. A fragment that reaches `.cb-shell` with `closest()` must stay out of it.
+
 ```js
 // Served by the bundle. Pair it with a BuilderActionProviderInterface
 // contributing the `history` key: the click arrives as cb:builder:action.
@@ -753,7 +755,7 @@ document.addEventListener('cb:builder:action', async (event) => {
 `cb:area:changed` is one of the two **inbound** public events: dispatched at the builder from the shell element or anything inside it, it makes the builder reload the preview and re-sync Publish / Discard — the same landing as an import or an "Insert content". `detail.hasUnpublishedChanges` is optional and defaults to `true`, which is what a draft write means.
 
 ::: tip Where fragments show up
-The shell asks for its fragments itself (the `cb_shell_fragments(area)` Twig function), so a fragment renders whether the builder came from `ContentAreaType` or from a direct `{% include '@ContentBlocks/builder/launcher.html.twig' %}`. That differs from `BuilderActionProviderInterface`, whose actions are gathered by `ContentAreaType` and, on a direct include, have to be passed as `topbarActions` by the host.
+The shell asks for its fragments itself (the `cb_shell_fragments(area)` Twig function), so a fragment renders whether the builder came from `ContentAreaType` or from a direct `{% include '@ContentBlocks/builder/launcher.html.twig' %}`. The Actions menu works the same way (`cb_builder_actions(area, topbarActions)`): a provider's actions show on a direct include too, beside the `topbarActions` the host passes, and an action whose key is listed twice shows once.
 :::
 
 
@@ -791,7 +793,7 @@ These are browser events. For what happens on the server (publish, discard, a
 block saved or deleted), listen to the [Symfony events](./events.md) instead.
 
 The builder speaks to the page it is mounted in through a handful of DOM
-events. These seven are covered by the
+events. These eight are covered by the
 [backward-compatibility promise](./backward-compatibility.md#front-end); every
 other `cb:*` event is the builder talking to itself.
 
@@ -808,6 +810,7 @@ from them.
 | `cb:block:rendered` | A block's preview was refreshed in place; dispatched **inside the preview iframe**, on the block's new node | `blockId` |
 | `cb:area:changed` | *Inbound*: dispatch it at the builder after changing the area server-side | `hasUnpublishedChanges` (optional, default `true`) |
 | `cb:notify` | *Inbound*: dispatch it at the builder to [say something in its snackbar](#saying-how-it-went) | `message`, `link` (optional `{ label, href }`) |
+| `cb:media:browse` | *Browse library* was clicked on an image or video field; claim it with `preventDefault()` and open your dialog. See [Media library](./media-library.md#the-browse-event) | `kind`, `accept`, `value`, `pick({ path, alt })` |
 
 ```js
 document.addEventListener('cb:block:saved', (event) => {

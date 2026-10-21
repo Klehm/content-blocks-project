@@ -15,6 +15,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   500 from deep inside the form component. The replay now drops that one field
   and reports it, like any refused value.
 
+### Changed
+
+- **The upload endpoint's errors are translated.** `error` is now a sentence
+  in the request's language naming the file and the limit, where it was an
+  English string, and PHP's own wording (`upload_max_filesize`) no longer
+  leaks out. A new `code` field (`csrf`, `area_not_found`, `no_file`,
+  `too_large`, `type_not_allowed`, `failed`) stays the same in every language.
+  A request over `post_max_size`, which PHP empties whole, is now a 413
+  `too_large`: it used to answer that the area was not found.
+- **A provider's actions show when the host includes the launcher directly.**
+  They were gathered by `ContentAreaType` only, so a direct include had to
+  pass them as `topbarActions`. The shell now calls
+  `cb_builder_actions(area, topbarActions)` itself; an action listed twice
+  shows once, so a host already passing them sees no duplicate.
+
 ### Added
 
 - **Headless rendering.** `ContentAreaNormalizerInterface` renders an area as
@@ -83,6 +98,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`cb_ai` form option** (`text`, `html`, `alt`, `false`) and the
   `cb:field:set` event a rich-text editor cancels to take a value set from
   outside.
+- **Browse library on the image and video fields.** When the host registers a
+  `ContentBlocks\Storage\MediaLibraryInterface` that supports the field's kind,
+  the upload widget shows *Browse library*. The button dispatches
+  `cb:media:browse`; the dialog that claims it hands back a path through
+  `pick({path, alt})`, written the way an upload is, so the stored value stays
+  a path. Without a library, nothing changes on screen.
+- **`cb_alt_field` on `ImageUploadType`** names a sibling field the library's
+  alt text fills when it is empty. The editor's own alt is never overwritten.
+- **`BuilderShellFragment::$standalone`**: a fragment that reads nothing off
+  `.cb-shell` says so with `standalone: true`, and the i18n workbench renders
+  it too. False by default: an existing fragment renders where it always did.
 
 ## [1.5.0] - 2026-10-20
 

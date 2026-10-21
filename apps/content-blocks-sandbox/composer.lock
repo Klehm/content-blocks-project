@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6b203da072af3c8f7baee500b058b136",
+    "content-hash": "7fe02fa248303dac22c05954acc7a4e8",
     "packages": [
         {
             "name": "composer/semver",
@@ -1507,6 +1507,79 @@
             "support": {
                 "issues": "https://github.com/klehm/content-blocks-project/issues",
                 "source": "https://github.com/klehm/content-blocks-kit"
+            },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "klehm/content-blocks-media",
+            "version": "dev-master",
+            "dist": {
+                "type": "path",
+                "url": "../../packages/content-blocks-media",
+                "reference": "cfea2993ca00ce0c84398cd24f740a9f727ca48c"
+            },
+            "require": {
+                "doctrine/dbal": "^3.6 || ^4.0",
+                "doctrine/doctrine-bundle": "^2.10 || ^3.0",
+                "doctrine/orm": "^2.15 || ^3.0",
+                "klehm/content-blocks": "^1.5",
+                "php": ">=8.2",
+                "psr/log": "^2.0 || ^3.0",
+                "symfony/config": "^6.4 || ^7.0 || ^8.0",
+                "symfony/console": "^6.4 || ^7.0 || ^8.0",
+                "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
+                "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
+                "symfony/http-foundation": "^6.4 || ^7.0 || ^8.0",
+                "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^11.5"
+            },
+            "type": "symfony-bundle",
+            "extra": {
+                "symfony": {
+                    "bundle": "ContentBlocks\\Media\\ContentBlocksMediaBundle"
+                },
+                "branch-alias": {
+                    "dev-master": "1.5.x-dev",
+                    "dev-main": "1.5.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "ContentBlocks\\Media\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "ContentBlocks\\Media\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Clément Muller",
+                    "email": "klehm.muller@gmail.com"
+                }
+            ],
+            "description": "Media library for ContentBlocks: pick a file already uploaded, with folders, alt text and the pages that use it.",
+            "homepage": "https://github.com/klehm/content-blocks-project",
+            "keywords": [
+                "content-blocks",
+                "media",
+                "media-library",
+                "page-builder",
+                "symfony",
+                "symfony-bundle"
+            ],
+            "support": {
+                "issues": "https://github.com/klehm/content-blocks-project/issues",
+                "source": "https://github.com/klehm/content-blocks-media"
             },
             "transport-options": {
                 "symlink": true,
@@ -7271,7 +7344,8 @@
     "stability-flags": {
         "klehm/content-blocks": 20,
         "klehm/content-blocks-i18n": 20,
-        "klehm/content-blocks-kit": 20
+        "klehm/content-blocks-kit": 20,
+        "klehm/content-blocks-media": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,

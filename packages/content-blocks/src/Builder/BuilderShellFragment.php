@@ -13,14 +13,17 @@ namespace ContentBlocks\Builder;
 final class BuilderShellFragment
 {
     /**
-     * @param string               $template Twig template name
-     * @param array<string, mixed> $context  `area` is reserved to the core
-     * @param int                  $priority higher renders first
+     * @param string               $template   Twig template name
+     * @param array<string, mixed> $context    `area` is reserved to the core
+     * @param int                  $priority   higher renders first
+     * @param bool                 $standalone reads nothing off `.cb-shell`,
+     *                                         so the i18n workbench renders it too
      */
     public function __construct(
         public readonly string $template,
         public readonly array $context = [],
         public readonly int $priority = 0,
+        public readonly bool $standalone = false,
     ) {
         if ($template === '') {
             throw new \InvalidArgumentException('A builder shell fragment needs a non-empty template name.');

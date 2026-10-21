@@ -44,6 +44,7 @@ function mediaRow({ block = '2', path = 'src', status = 'shared', value = '', ki
                     <input type="file" data-target="mediaFile"></label>
             </div>
             <input type="hidden" data-target="input" value="${value}">
+            <button type="button" data-act="browse" data-kind="${kind}"></button>
             <button type="button" data-act="reset"></button>
         </div>`;
 }
@@ -85,6 +86,7 @@ function mount({ rows = [row()], providers = true, publish = { source: '0', loca
              data-i18n-source-unpublished="Page modifiée"
              data-i18n-publish-failed="Échec publication"
              data-i18n-upload-failed="Envoi impossible"
+             data-i18n-media-no-library="Aucune bibliothèque"
              data-i18n-saved="Enregistré"
              data-i18n-save-failed="Échec"
              data-i18n-translating="Traduction…"
@@ -589,6 +591,58 @@ describe('localized media', () => {
     });
 
     // Back to the source's file: a blank preview, and out of the count.
+    function claimBrowse(item) {
+        const seen = [];
+        document.addEventListener('cb:media:browse', (event) => {
+            event.preventDefault();
+            seen.push(event.detail);
+            if (item) event.detail.pick(item);
+        }, { once: true });
+
+        return seen;
+    }
+
+    it('asks a media library for a file of the row\'s kind', () => {
+        const root = mount({ rows: [mediaRow({ kind: 'video', value: '/uploads/de.mp4' })] });
+        stubUpload();
+        new Workbench(root);
+        const seen = claimBrowse();
+
+        root.querySelector('[data-act="browse"]').click();
+
+        expect(seen).toHaveLength(1);
+        expect(seen[0]).toMatchObject({ kind: 'video', value: '/uploads/de.mp4' });
+    });
+
+    it('saves the picked path at once, uploads nothing, and ignores the alt', async () => {
+        const root = mount({ rows: [row({ path: 'alt' }), mediaRow()] });
+        const calls = stubUpload();
+        new Workbench(root);
+        claimBrowse({ path: '/uploads/de.jpg', alt: 'Notre logo' });
+
+        root.querySelector('[data-act="browse"]').click();
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(calls.some((call) => call.url.endsWith('/upload'))).toBe(false);
+        const save = calls.find((call) => call.url === `${MOUNT}/block/2/de`);
+        // The library's alt is in one language, not necessarily this one.
+        expect(JSON.parse(save.options.body)).toEqual({ values: { src: '/uploads/de.jpg' } });
+        expect(root.querySelector('[data-path="alt"] [data-target="input"]').value).toBe('');
+    });
+
+    it('says so when no library answers', () => {
+        const root = mount({ rows: [mediaRow()] });
+        const calls = stubUpload();
+        new Workbench(root);
+
+        root.querySelector('[data-act="browse"]').click();
+
+        expect(calls).toHaveLength(0);
+        const toast = root.querySelector('[data-target="toast"]');
+        expect(toast.textContent).toBe('Aucune bibliothèque');
+        expect(toast.classList.contains('cb-wb__toast--error')).toBe(true);
+    });
+
     it('reset makes the row shared again and leaves it out of progress', async () => {
         const root = mount({ rows: [row({ status: 'translated' }), mediaRow({ status: 'translated', value: '/uploads/de.jpg' })] });
         const calls = stubFetch({ block: { blockId: 2, fields: [{ path: 'src', status: 'missing', value: null }] } });

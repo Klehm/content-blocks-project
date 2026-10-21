@@ -1,0 +1,16 @@
+{
+    "name": "@klehm/content-blocks-media",
+    "description": "Development tooling for klehm/content-blocks-media: Vitest for the picker script.",
+    "license": "MIT",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test:unit": "vitest run",
+        "test:unit:watch": "vitest"
+    },
+    "devDependencies": {
+        "jsdom": "^26.1.0",
+        "vitest": "^3.2.1"
+    }
+}

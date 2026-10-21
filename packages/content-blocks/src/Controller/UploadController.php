@@ -9,11 +9,13 @@ use ContentBlocks\Security\AccessCheckerInterface;
 use ContentBlocks\Security\ContentBlocksAccessDeniedException;
 use ContentBlocks\Storage\FileStorageInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * AJAX upload endpoint behind `cb-file-upload`, for an editor of the `area`
@@ -42,6 +44,7 @@ final class UploadController
             'image/webp',
             'application/pdf',
         ],
+        private readonly ?TranslatorInterface $translator = null,
     ) {
     }
 
@@ -53,8 +56,17 @@ final class UploadController
     #[Route('/upload', name: 'content_blocks_upload', methods: ['POST'])]
     public function upload(Request $request): JsonResponse
     {
-        if ($error = $this->csrfFailureOrNull($request)) {
-            return $error;
+        if ($this->csrfFailureOrNull($request) !== null) {
+            return $this->error('csrf', Response::HTTP_FORBIDDEN);
+        }
+
+        // Larger than post_max_size: PHP dropped the whole body, the area and
+        // the file's name with it. Said as what it is, not as a missing area.
+        if ($request->files->count() === 0 && $request->request->count() === 0
+            && (int) $request->server->get('CONTENT_LENGTH') > 0) {
+            return $this->error('too_large', Response::HTTP_REQUEST_ENTITY_TOO_LARGE, [
+                '%max%' => self::megabytes($this->maxSize()),
+            ], 'too_large_unnamed');
         }
 
         $areaId = $request->request->get('area');
@@ -62,7 +74,7 @@ final class UploadController
             ? $this->em->find(ContentArea::class, (int) $areaId)
             : null;
         if ($area === null) {
-            return new JsonResponse(['error' => 'ContentArea not found'], Response::HTTP_NOT_FOUND);
+            return $this->error('area_not_found', Response::HTTP_NOT_FOUND);
         }
         if (!$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
@@ -70,32 +82,67 @@ final class UploadController
 
         $file = $request->files->get('file');
 
-        if (!$file) {
-            return new JsonResponse(['error' => 'No file uploaded'], Response::HTTP_BAD_REQUEST);
+        if (!$file instanceof UploadedFile) {
+            return $this->error('no_file');
         }
 
+        $name = $file->getClientOriginalName();
+
+        // PHP refused it before the package saw it: say why in our words.
         if (!$file->isValid()) {
-            return new JsonResponse(['error' => 'Upload failed: ' . $file->getErrorMessage()], Response::HTTP_BAD_REQUEST);
+            return \in_array($file->getError(), [\UPLOAD_ERR_INI_SIZE, \UPLOAD_ERR_FORM_SIZE], true)
+                ? $this->error('too_large', params: ['%name%' => $name, '%max%' => self::megabytes($this->maxSize())])
+                : $this->error('failed', params: ['%name%' => $name]);
         }
 
         if ($file->getSize() > $this->uploadMaxSize) {
-            return new JsonResponse(
-                ['error' => sprintf('File too large (max %d MB)', intdiv($this->uploadMaxSize, 1024 * 1024))],
-                Response::HTTP_BAD_REQUEST,
-            );
+            return $this->error('too_large', params: ['%name%' => $name, '%max%' => self::megabytes($this->maxSize())]);
         }
 
         $mimeType = $file->getMimeType();
         if (!\in_array($mimeType, $this->uploadAllowedMimeTypes, true)) {
-            return new JsonResponse(['error' => sprintf('File type "%s" is not allowed', $mimeType)], Response::HTTP_BAD_REQUEST);
+            return $this->error('type_not_allowed', params: ['%name%' => $name, '%type%' => (string) $mimeType]);
         }
 
         try {
             $url = $this->fileStorage->upload($file, 'blocks');
         } catch (\Throwable) {
-            return new JsonResponse(['error' => 'Upload failed'], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return $this->error('failed', Response::HTTP_INTERNAL_SERVER_ERROR, ['%name%' => $name]);
         }
 
         return new JsonResponse(['url' => $url]);
+    }
+
+    /** The lower of the package's limit and PHP's, which refuses first. */
+    private function maxSize(): int
+    {
+        $php = (int) UploadedFile::getMaxFilesize();
+
+        return $php > 0 ? min($this->uploadMaxSize, $php) : $this->uploadMaxSize;
+    }
+
+    private static function megabytes(int $bytes): string
+    {
+        $mb = $bytes / (1024 * 1024);
+
+        return $mb >= 1 ? (string) round($mb, $mb < 10 ? 1 : 0) : (string) round($mb, 2);
+    }
+
+    /**
+     * `error` is said to the editor as is; `code` stays the same in every
+     * language, for a script to act on.
+     *
+     * @param array<string, string> $params
+     */
+    private function error(
+        string $code,
+        int $status = Response::HTTP_BAD_REQUEST,
+        array $params = [],
+        ?string $message = null,
+    ): JsonResponse {
+        $key = 'cb.upload.error.' . ($message ?? $code);
+        $message = $this->translator?->trans($key, $params, 'content_blocks') ?? $key;
+
+        return new JsonResponse(['error' => $message, 'message' => $message, 'code' => $code], $status);
     }
 }

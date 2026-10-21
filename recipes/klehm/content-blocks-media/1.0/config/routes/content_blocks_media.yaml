@@ -1,0 +1,5 @@
+# Mounted under /_content-blocks/media. To mount it under your admin prefix
+# instead, import '@ContentBlocksMediaBundle/config/routes/bare.php' with a
+# `prefix:`; route names stay the same.
+content_blocks_media:
+    resource: '@ContentBlocksMediaBundle/config/routes.php'

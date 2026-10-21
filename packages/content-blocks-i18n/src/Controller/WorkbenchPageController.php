@@ -52,6 +52,8 @@ final class WorkbenchPageController
         private readonly bool $publicLinks = true,
         private readonly ?RequestStack $requestStack = null,
         private readonly ?TranslationDrafts $drafts = null,
+        // Core 1.6: a media library offers *Library* on media rows.
+        private readonly ?\ContentBlocks\Storage\MediaLibraryInterface $mediaLibrary = null,
     ) {
     }
 
@@ -108,6 +110,7 @@ final class WorkbenchPageController
             'publicLinks' => $this->publicLinks($area, $locale),
             'providers' => $this->providerChoices($locale),
             'csrfToken' => (string) $this->csrfTokenManager->getToken('content_blocks'),
+            'mediaKinds' => $this->mediaKinds(),
             // What the per-language Publish reads: its own draft, and the
             // page's, which would go live with it.
             'publishing' => [
@@ -119,6 +122,23 @@ final class WorkbenchPageController
             'X-Frame-Options' => 'SAMEORIGIN',
             'Cache-Control' => 'private, no-store',
         ]);
+    }
+
+    /**
+     * The media widgets a library offers files for.
+     *
+     * @return list<string>
+     */
+    private function mediaKinds(): array
+    {
+        if ($this->mediaLibrary === null) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            ['image', 'video'],
+            fn (string $kind): bool => $this->mediaLibrary->supports($kind),
+        ));
     }
 
     /**

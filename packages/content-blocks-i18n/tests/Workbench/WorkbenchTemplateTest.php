@@ -163,6 +163,39 @@ final class WorkbenchTemplateTest extends TestCase
         $this->assertSame(1, substr_count($html, 'data-act="copySource"'));
     }
 
+    public function testAMediaRowOffersTheLibraryForTheKindsItHolds(): void
+    {
+        $media = static fn (string $widget): array => [
+            'path' => $widget, 'pattern' => $widget, 'label' => 'File', 'labelDomain' => null,
+            'widget' => $widget, 'source' => '/uploads/fr.' . $widget, 'value' => null,
+            'status' => 'missing', 'entryIndex' => null, 'media' => true,
+        ];
+        $block = [
+            'blockId' => 2, 'blockType' => 'video', 'blockLabel' => 'Video', 'sectionId' => 10,
+            'sectionNumber' => 1, 'blockNumber' => 2, 'fields' => [$media('image'), $media('video')],
+            'progress' => ['locale' => 'de', 'total' => 0, 'translated' => 0, 'outdated' => 0, 'missing' => 0, 'percent' => 100, 'complete' => true],
+        ];
+
+        $none = $this->render(providers: [], extraBlocks: [$block]);
+        $images = $this->render(providers: [], extraBlocks: [$block], mediaKinds: ['image']);
+
+        $this->assertStringNotContainsString('data-act="browse"', $none);
+        $this->assertSame(1, substr_count($images, 'data-act="browse"'));
+        $this->assertStringContainsString('data-act="browse" data-kind="image"', $images);
+    }
+
+    // Only a fragment that reads nothing off the builder shell renders here.
+    public function testOnlyStandaloneBuilderFragmentsRender(): void
+    {
+        $html = $this->render(providers: [], fragments: [
+            new \ContentBlocks\Builder\BuilderShellFragment('standalone.html.twig', ['label' => 'Picker'], standalone: true),
+            new \ContentBlocks\Builder\BuilderShellFragment('shell-only.html.twig'),
+        ]);
+
+        $this->assertStringContainsString('<div id="standalone-7">Picker</div>', $html);
+        $this->assertStringNotContainsString('shell-only', $html);
+    }
+
     // Nothing waiting, or the page's own draft in the way: no publish.
     public function testThePerLanguagePublishIsOnlyLiveWithWorkToDo(): void
     {
@@ -244,11 +277,11 @@ final class WorkbenchTemplateTest extends TestCase
      * @param list<array{name: string, label: string}> $providers
      * @param list<array<string, mixed>> $publicLinks
      */
-    private function render(array $providers, array $publicLinks = [], ?string $host = null, array $extraBlocks = [], ?array $publishing = null): string
+    private function render(array $providers, array $publicLinks = [], ?string $host = null, array $extraBlocks = [], ?array $publishing = null, array $mediaKinds = [], array $fragments = []): string
     {
         $template = '@ContentBlocksI18n/workbench/workbench.html.twig';
 
-        return $this->twig($host)->render($host === null ? $template : 'host.html.twig', [
+        return $this->twig($host, $fragments)->render($host === null ? $template : 'host.html.twig', [
             'area' => Entities::area(7),
             'locale' => 'de',
             'sourceLocale' => 'fr',
@@ -284,15 +317,21 @@ final class WorkbenchTemplateTest extends TestCase
             'publicLinks' => $publicLinks,
             'providers' => $providers,
             'csrfToken' => 'tok',
+            'mediaKinds' => $mediaKinds,
             ...($publishing === null ? [] : ['publishing' => $publishing]),
         ]);
     }
 
-    private function twig(?string $host = null): Environment
+    /** @param list<\ContentBlocks\Builder\BuilderShellFragment> $fragments */
+    private function twig(?string $host = null, array $fragments = []): Environment
     {
         $files = new FilesystemLoader();
         $files->addPath(__DIR__ . '/../../templates', 'ContentBlocksI18n');
-        $loader = new ChainLoader([new ArrayLoader(['host.html.twig' => $host ?? '']), $files]);
+        $loader = new ChainLoader([new ArrayLoader([
+            'host.html.twig' => $host ?? '',
+            'standalone.html.twig' => '<div id="standalone-{{ area.id }}">{{ label }}</div>',
+            'shell-only.html.twig' => '<div id="shell-only"></div>',
+        ]), $files]);
 
         // strict_variables: a template that reads a key the controller stopped
         // passing should fail here rather than render a silent blank.
@@ -310,6 +349,21 @@ final class WorkbenchTemplateTest extends TestCase
 
         $twig->addExtension(new \ContentBlocks\Twig\RoutingExtension($urls));
         $twig->addExtension(new TranslationExtension(new Translator('en')));
+        $twig->addExtension(new \ContentBlocks\Twig\ShellFragmentsExtension(
+            new \ContentBlocks\Builder\BuilderShellFragmentCollection([
+                new class ($fragments) implements \ContentBlocks\Builder\BuilderShellExtensionInterface {
+                    /** @param list<\ContentBlocks\Builder\BuilderShellFragment> $fragments */
+                    public function __construct(private readonly array $fragments)
+                    {
+                    }
+
+                    public function getFragments(\ContentBlocks\Entity\ContentArea $area): iterable
+                    {
+                        return $this->fragments;
+                    }
+                },
+            ]),
+        ));
 
         $stack = new RequestStack();
         $stack->push(new Request());

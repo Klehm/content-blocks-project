@@ -12,6 +12,13 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The headless render is translated** like the HTML page (core 1.6): the
   same locale, the same per-field fallback, and the area's translations loaded
   in one query per locale instead of one per block.
+- **Pick a localized image or video from the media library.** With a core
+  `MediaLibraryInterface` registered, a workbench media row offers *Pick from
+  the library* for the kinds it supports, and the workbench renders the
+  builder fragments that stand alone, such as the media picker. The picked
+  file is saved at once; the library's alt is not copied, since it is not in
+  the row's language. Needs `klehm/content-blocks` 1.6; with an older core the
+  workbench is unchanged.
 
 ## [1.5.0] - 2026-10-20
 

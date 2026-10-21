@@ -24,6 +24,7 @@ final class GalleryItemType extends AbstractType
         $builder
             ->add('src', ImageUploadType::class, [
                 'cb_translatable' => true,
+                'cb_alt_field' => 'alt',
                 'label' => 'cb_kit.block.image.field.file',
                 'translation_domain' => 'content_blocks_kit',
             ])
