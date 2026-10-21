@@ -37,4 +37,18 @@ final class MediaShellExtensionTest extends TestCase
     {
         $this->assertFileExists(\dirname(__DIR__, 2) . '/templates/picker.html.twig');
     }
+
+    // PHP refuses first when its limit is lower: the picker must know that one.
+    public function testTheUploadLimitIsTheLowerOfThePackagesAndPhps(): void
+    {
+        $php = (int) \Symfony\Component\HttpFoundation\File\UploadedFile::getMaxFilesize();
+
+        $huge = new MediaShellExtension(['image'], new DenyAllMediaManager(), \PHP_INT_MAX);
+        $tiny = new MediaShellExtension(['image'], new DenyAllMediaManager(), 1024);
+
+        $this->assertSame($php, $huge->maxUploadSize());
+        $this->assertSame(min(1024, $php), $tiny->maxUploadSize());
+        $fragments = iterator_to_array($tiny->getFragments(new ContentArea()), false);
+        $this->assertSame($tiny->maxUploadSize(), $fragments[0]->context['maxUploadSize']);
+    }
 }

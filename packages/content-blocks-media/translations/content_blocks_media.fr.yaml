@@ -14,6 +14,7 @@ cb_media:
         more: "Afficher plus"
         upload: "Envoyer un fichier"
         uploading: "Envoi en cours…"
+        too_large: "« %name% » dépasse les %max% Mo autorisés."
         kilobytes: "%size% Ko"
         upload_partial: "Envoi impossible pour %failed% fichier(s) sur %count% :"
         upload_failed: "L'envoi a échoué."

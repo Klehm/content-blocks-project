@@ -91,6 +91,29 @@ final class UploadControllerTest extends ControllerTestCase
         $this->assertStringContainsString('huge.png', $body['error']);
     }
 
+    // Over post_max_size PHP empties the whole body, the area included: that
+    // is a file too large, not a missing area.
+    public function testABodyPhpDroppedIsAFileTooLarge(): void
+    {
+        $request = Request::create('/_content-blocks/upload', 'POST', server: [
+            'HTTP_X-CSRF-Token' => 'token',
+            'CONTENT_LENGTH' => (string) (30 * 1024 * 1024),
+        ]);
+
+        $response = $this->makeUploadController()->upload($request);
+
+        $this->assertSame(413, $response->getStatusCode());
+        $this->assertSame('too_large', $this->body($response)['code']);
+        $this->assertStringStartsWith('cb.upload.error.too_large_unnamed', $this->body($response)['error']);
+    }
+
+    public function testAnEmptyPostIsStillAMissingArea(): void
+    {
+        $request = Request::create('/_content-blocks/upload', 'POST', server: ['HTTP_X-CSRF-Token' => 'token']);
+
+        $this->assertSame('area_not_found', $this->body($this->makeUploadController()->upload($request))['code']);
+    }
+
     public function testAnotherPhpUploadErrorIsAFailedUpload(): void
     {
         $tmp = (string) tempnam(sys_get_temp_dir(), 'cbpart');

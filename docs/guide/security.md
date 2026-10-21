@@ -193,7 +193,9 @@ editor, in the request's language, naming the file and the limit it broke;
 `code` stays the same in every language, for a script to act on: `csrf`,
 `area_not_found`, `no_file`, `too_large`, `type_not_allowed`, `failed`. A file
 PHP refused before the package saw it (`upload_max_filesize`) is reported as
-`too_large` too, with the lower of the two limits.
+`too_large` too, with the lower of the two limits; so is a request larger than
+`post_max_size`, which PHP empties entirely (the area and the file's name
+included), answered with a 413.
 
 ### Stored paths are confined
 

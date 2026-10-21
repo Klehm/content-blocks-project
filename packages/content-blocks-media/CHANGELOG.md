@@ -38,7 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as the fallback where `IntersectionObserver` is missing.
 - **Errors in the editor's language**: every error of the package's endpoints
   carries a translated `message` beside its `code` in `error`; the picker
-  shows the message, never the code.
+  shows the message, never the code. A file over the upload limit (the package's,
+  or PHP's when lower) is refused before it is sent.
 - **The picker in the i18n workbench**: it stands alone, so the workbench
   renders it and offers it on media rows (`klehm/content-blocks-i18n` with
   this release).

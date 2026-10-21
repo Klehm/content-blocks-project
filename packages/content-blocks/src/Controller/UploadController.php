@@ -60,6 +60,15 @@ final class UploadController
             return $this->error('csrf', Response::HTTP_FORBIDDEN);
         }
 
+        // Larger than post_max_size: PHP dropped the whole body, the area and
+        // the file's name with it. Said as what it is, not as a missing area.
+        if ($request->files->count() === 0 && $request->request->count() === 0
+            && (int) $request->server->get('CONTENT_LENGTH') > 0) {
+            return $this->error('too_large', Response::HTTP_REQUEST_ENTITY_TOO_LARGE, [
+                '%max%' => self::megabytes($this->maxSize()),
+            ], 'too_large_unnamed');
+        }
+
         $areaId = $request->request->get('area');
         $area = \is_string($areaId) && ctype_digit($areaId)
             ? $this->em->find(ContentArea::class, (int) $areaId)
@@ -125,9 +134,13 @@ final class UploadController
      *
      * @param array<string, string> $params
      */
-    private function error(string $code, int $status = Response::HTTP_BAD_REQUEST, array $params = []): JsonResponse
-    {
-        $key = 'cb.upload.error.' . $code;
+    private function error(
+        string $code,
+        int $status = Response::HTTP_BAD_REQUEST,
+        array $params = [],
+        ?string $message = null,
+    ): JsonResponse {
+        $key = 'cb.upload.error.' . ($message ?? $code);
         $message = $this->translator?->trans($key, $params, 'content_blocks') ?? $key;
 
         return new JsonResponse(['error' => $message, 'message' => $message, 'code' => $code], $status);

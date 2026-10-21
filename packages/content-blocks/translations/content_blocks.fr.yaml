@@ -327,6 +327,7 @@ cb:
             area_not_found: "La page à laquelle ce fichier est destiné est introuvable."
             no_file: "Aucun fichier n'a été reçu."
             too_large: "« %name% » dépasse les %max% Mo autorisés."
+            too_large_unnamed: "Le fichier dépasse les %max% Mo autorisés."
             type_not_allowed: "« %name% » n'est pas un type de fichier accepté (%type%)."
             failed: "« %name% » n'a pas pu être envoyé."
     form:

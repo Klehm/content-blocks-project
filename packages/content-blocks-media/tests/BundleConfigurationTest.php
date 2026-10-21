@@ -78,6 +78,8 @@ final class BundleConfigurationTest extends TestCase
         $container->setParameter('kernel.environment', 'test');
         $container->setParameter('kernel.debug', false);
         $container->setParameter('kernel.build_dir', sys_get_temp_dir());
+        // The core's, which the picker's size check reads.
+        $container->setParameter('content_blocks.upload.max_size', 10 * 1024 * 1024);
         $bundle = new ContentBlocksMediaBundle();
         $extension = $bundle->getContainerExtension();
         \assert($extension !== null);

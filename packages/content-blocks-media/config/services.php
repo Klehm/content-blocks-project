@@ -57,7 +57,8 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(MediaManagerInterface::class, DenyAllMediaManager::class);
 
     $services->set(MediaShellExtension::class)
-        ->arg('$kinds', param('content_blocks_media.kinds'));
+        ->arg('$kinds', param('content_blocks_media.kinds'))
+        ->arg('$uploadMaxSize', param('content_blocks.upload.max_size'));
 
     // Controllers are not autoconfigured, or `routing.controllers` mounts them
     // unprefixed. @see docs/internals/bundle-boot.md

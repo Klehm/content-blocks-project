@@ -138,6 +138,11 @@ scroll: written after a long folder, it was out of view. An error stays until
 closed or until the next clean upload; a drop where some files fail names how
 many, with the server's reasons, and selects the ones that made it.
 
+A file over the upload limit is refused before it is sent: the dialog carries
+the lower of `content_blocks.upload.max_size` and PHP's own limits. Over
+`post_max_size` PHP empties the request, area included, so without that check
+the server could only answer that the area was missing.
+
 ## Pages load as the grid scrolls
 
 A sentinel after the grid is watched by an `IntersectionObserver` rooted on the

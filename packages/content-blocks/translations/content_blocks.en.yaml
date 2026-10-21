@@ -327,6 +327,7 @@ cb:
             area_not_found: "The page this file is for was not found."
             no_file: "No file was received."
             too_large: "“%name%” is larger than the %max% MB allowed."
+            too_large_unnamed: "The file is larger than the %max% MB allowed."
             type_not_allowed: "“%name%” is not an accepted file type (%type%)."
             failed: "“%name%” could not be uploaded."
     form:

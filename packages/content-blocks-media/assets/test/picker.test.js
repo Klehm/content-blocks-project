@@ -12,13 +12,13 @@ const I18N = {
     rename_folder: 'Rename', delete_folder: 'Delete', delete_folder_confirm: 'Delete %name%?',
     remove_confirm: 'Remove %name%?', remove_confirm_used: 'Remove %name%, used on %count%?',
     remove_confirm_many: 'Remove %count% files?', upload_partial: '%failed% of %count% failed:', selected_many: '%count% selected', move_to: 'Move to',
-    unused: 'Unused', kilobytes: '%size% kB', draft: 'draft', others: 'and %count% more',
+    unused: 'Unused', kilobytes: '%size% kB', too_large: '%name% is over %max% MB', draft: 'draft', others: 'and %count% more',
 };
 
 // Mirrors templates/picker.html.twig: only the hooks the script reads.
 function mount({ kinds = ['image', 'video'], manage = true } = {}) {
     document.body.innerHTML = `
-        <dialog data-cb-media data-area="42" data-csrf-token="tok"
+        <dialog data-cb-media data-area="42" data-csrf-token="tok" data-max-size="1048576"
                 data-can-manage="${manage ? '1' : '0'}"
                 data-kinds='${JSON.stringify(kinds)}'
                 data-urls='${JSON.stringify(URLS)}'
@@ -247,6 +247,20 @@ describe('MediaPicker', () => {
         expect(dialog.querySelector('[data-cb-media-notice-text]').textContent)
             .toBe('1 of 3 failed: The file "b.png" is too large');
         expect(picker.selection).toEqual(new Set([11, 13]));
+    });
+
+    it('refuses a file over the limit before sending it, and sends the rest', async () => {
+        await picker.open(request());
+        fetch.mockImplementation((url) => (url === '/cb/upload' ? respond({ url: '/u/9.png' })
+            : url === '/m/place' ? respond(item(9)) : respond(page({ items: [item(9)] }))));
+        const big = new File(['x'], 'huge.png');
+        Object.defineProperty(big, 'size', { value: 30 * 1048576 });
+
+        await picker.uploadMany([big, new File(['a'], 'a.png')]);
+
+        expect(fetch.mock.calls.filter(([url]) => url === '/cb/upload')).toHaveLength(1);
+        expect(dialog.querySelector('[data-cb-media-notice-text]').textContent)
+            .toBe('1 of 2 failed: huge.png is over 1 MB');
     });
 
     it('a notice stays until closed, and a clean upload clears it', async () => {

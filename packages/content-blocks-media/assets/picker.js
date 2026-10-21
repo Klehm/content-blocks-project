@@ -23,6 +23,8 @@ export class MediaPicker {
         this.urls = JSON.parse(dialog.dataset.urls || '{}');
         this.messages = JSON.parse(dialog.dataset.i18n || '{}');
         this.canManage = dialog.dataset.canManage === '1';
+        // Refused before sending: 30 MB need not travel to be turned down.
+        this.maxSize = Number(dialog.dataset.maxSize || 0);
         this.request = null;
         this.state = { kind: 'image', folder: null, query: '', page: 1 };
         this.items = [];
@@ -263,6 +265,12 @@ export class MediaPicker {
             this._notice(list.length > 1
                 ? `${this._t('uploading')} ${index + 1} / ${list.length}`
                 : this._t('uploading'));
+            if (this.maxSize > 0 && file.size > this.maxSize) {
+                failures.push(this._t('too_large')
+                    .replace('%name%', file.name)
+                    .replace('%max%', String(Math.round((this.maxSize / 1048576) * 10) / 10)));
+                continue;
+            }
             try {
                 placed.push(await this._uploadOne(file));
             } catch (error) {

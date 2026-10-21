@@ -210,3 +210,54 @@ test('a refused upload is said in the editor\'s language, in view', async ({ pag
     await expect(notice).toContainText("« notes.txt » n'est pas un type de fichier accepté");
     await expect(notice).toHaveClass(/cb-media__notice--error/);
 });
+
+test('a file over the upload limit is refused before it is sent', async ({ page }) => {
+    await page.goto(await createFreshPage(page));
+    await launchBuilder(page);
+    await addBlock(page, /^Image$/);
+    const dialog = await openPicker(page);
+    const limit = Number(await dialog.getAttribute('data-max-size'));
+    expect(limit).toBeGreaterThan(0);
+
+    // The endpoint itself: thumbnails of other specs' files are /uploads/ too.
+    const endpoint = JSON.parse(await dialog.getAttribute('data-urls')).upload;
+    const uploads = [];
+    page.on('request', (r) => {
+        if (r.method() === 'POST' && new URL(r.url()).pathname === endpoint) uploads.push(r.url());
+    });
+    await dialog.locator('[data-cb-media-file]').setInputFiles({
+        name: 'huge.png',
+        mimeType: 'image/png',
+        buffer: Buffer.alloc(limit + 1024),
+    });
+
+    await expect(dialog.locator('[data-cb-media-notice]')).toContainText('« huge.png » dépasse les');
+    expect(uploads).toEqual([]);
+});
+
+// Over post_max_size PHP empties the body, the area with it: before, that
+// answered "page not found".
+test('a body PHP dropped as too large is said as too large', async ({ page }) => {
+    await page.goto(await createFreshPage(page));
+    await launchBuilder(page);
+    await addBlock(page, /^Image$/);
+    const dialog = await openPicker(page);
+
+    const answer = await dialog.evaluate(async (node) => {
+        const urls = JSON.parse(node.dataset.urls);
+        const body = new FormData();
+        body.append('area', node.dataset.area);
+        body.append('file', new File([new Uint8Array(20 * 1024 * 1024)], 'huge.png', { type: 'image/png' }));
+        const response = await fetch(urls.upload, {
+            method: 'POST',
+            headers: { 'X-CSRF-Token': node.dataset.csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+            body,
+        });
+
+        return { status: response.status, body: await response.json() };
+    });
+
+    expect(answer.status).toBe(413);
+    expect(answer.body.code).toBe('too_large');
+    expect(answer.body.error).toContain('Le fichier dépasse les');
+});

@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   English string, and PHP's own wording (`upload_max_filesize`) no longer
   leaks out. A new `code` field (`csrf`, `area_not_found`, `no_file`,
   `too_large`, `type_not_allowed`, `failed`) stays the same in every language.
+  A request over `post_max_size`, which PHP empties whole, is now a 413
+  `too_large`: it used to answer that the area was not found.
 
 ### Added
 
