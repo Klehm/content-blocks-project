@@ -20,10 +20,8 @@ final class AiAction
     public const TONE = 'tone';
     /** Describe an image for its `alt` text. */
     public const ALT_TEXT = 'alt_text';
-    /** One section from a prompt, placed after the selected one. */
-    public const SECTION = 'section';
-    /** Several sections from a prompt: a page. */
-    public const PAGE = 'page';
+    /** New content from a prompt: sections after the selected one. */
+    public const ADD = 'add';
     /** One section rewritten from a prompt, in its place. */
     public const EDIT_SECTION = 'edit_section';
     /** The whole page rewritten from a prompt, in place of the draft. */
@@ -37,8 +35,7 @@ final class AiAction
         self::SHORTEN,
         self::TONE,
         self::ALT_TEXT,
-        self::SECTION,
-        self::PAGE,
+        self::ADD,
         self::EDIT_SECTION,
         self::EDIT_PAGE,
     ];
@@ -49,7 +46,7 @@ final class AiAction
     public const TEXT = [self::REWRITE, self::SHORTEN, self::TONE];
 
     /** The actions that write sections into the draft. */
-    public const CONTENT = [self::SECTION, self::PAGE, self::EDIT_SECTION, self::EDIT_PAGE];
+    public const CONTENT = [self::ADD, self::EDIT_SECTION, self::EDIT_PAGE];
 
     /** The content actions that rewrite what is there, handed in `current`. */
     public const EDITS = [self::EDIT_SECTION, self::EDIT_PAGE];

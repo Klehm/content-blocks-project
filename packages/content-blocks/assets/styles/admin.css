@@ -3169,8 +3169,7 @@ body:has(.cb-builder-dialog[open]) {
   padding: 0;
   border: 0;
 }
-.cb-ai-dialog__scope[hidden],
-.cb-ai-dialog__replace[hidden] {
+.cb-ai-dialog__scope[hidden] {
   display: none;
 }
 .cb-ai-dialog__choice {

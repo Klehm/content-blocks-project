@@ -45,7 +45,7 @@ async function addBlock(page, frame, label) {
 }
 
 test.describe('AI actions', () => {
-    test('generates a page into the draft, as one undo step', async ({ page }) => {
+    test('adds a page of content into the draft, as one undo step', async ({ page }) => {
         const { url, publicUrl } = await createFreshPage(page);
         const frame = await openBuilder(page, url);
 
@@ -53,7 +53,7 @@ test.describe('AI actions', () => {
         const dialog = page.locator('.cb-ai-dialog');
         await expect(dialog).toBeVisible();
         await dialog.locator('textarea').fill('Our trail running shoe');
-        await dialog.locator('input[value="page"]').check();
+        await dialog.locator('input[value="add"]').check();
         await dialog.locator('.cb-ai-dialog__submit').click();
 
         await expect(dialog).toBeHidden();
@@ -76,7 +76,7 @@ test.describe('AI actions', () => {
 
         await page.locator('.cb-shell__ai').click();
         await page.locator('.cb-ai-dialog textarea').fill('Our trail running shoe');
-        await page.locator('.cb-ai-dialog input[value="page"]').check();
+        await page.locator('.cb-ai-dialog input[value="add"]').check();
         await page.locator('.cb-ai-dialog__submit').click();
         await expect.poll(() => liveSections(frame)).toBe(4);
         const headings = () => frame.locator('[data-cb-section-id]:not([data-cb-deleted]) h1, '
@@ -106,7 +106,7 @@ test.describe('AI actions', () => {
         const frame = await openBuilder(page, url);
         await page.locator('.cb-shell__ai').click();
         await page.locator('.cb-ai-dialog textarea').fill('Our trail running shoe');
-        await page.locator('.cb-ai-dialog input[value="page"]').check();
+        await page.locator('.cb-ai-dialog input[value="add"]').check();
         await page.locator('.cb-ai-dialog__submit').click();
         await expect.poll(() => liveSections(frame)).toBe(4);
 
@@ -159,7 +159,7 @@ test.describe('AI actions', () => {
     test('an action the provider does not support is not offered', async ({ page, context, baseURL }) => {
         await context.addCookies([{
             name: 'cb_e2e_ai_off',
-            value: 'section,page,edit_section,edit_page,rewrite,shorten,tone',
+            value: 'add,edit_section,edit_page,rewrite,shorten,tone',
             url: baseURL,
         }]);
         const { url } = await createFreshPage(page);
@@ -181,7 +181,7 @@ test.describe('AI actions', () => {
         const areaId = await page.locator('.cb-shell').getAttribute('data-cb-area-id');
         const response = await page.request.post(`${api}/area/${areaId}/ai/content`, {
             headers: { 'X-CSRF-Token': csrf },
-            data: { action: 'page', prompt: 'x' },
+            data: { action: 'add', prompt: 'x' },
         });
         expect(response.status()).toBe(404);
     });

@@ -82,9 +82,9 @@ What each request carries:
 |---|---|
 | `TextRequest` | `action`, `text`, `locale`, `html`, `tone`, plus the field's context when the builder knows it: `blockType`, `field` (its path in the block data, `items.0.title`), `label`, `maxLength`, and the host's `brief` |
 | `AltTextRequest` | `src` (as stored), `url` (absolute, for a remote model to fetch), `locale`, `blockType`, `context` (the caption or title beside the image), `brief` |
-| `ContentRequest` | `action` (`section`, `page`, `edit_section` or `edit_page`), `prompt`, `schema` (the area's [content schema](./content-schema.md)), `locale`, `existing` (the draft sections, in the output shape), `maxSections`, `brief`, and for an edit `current`: the sections to revise (one for `edit_section`, all of them for `edit_page`) |
+| `ContentRequest` | `action` (`add`, `edit_section` or `edit_page`), `prompt`, `schema` (the area's [content schema](./content-schema.md)), `locale`, `existing` (the draft sections, in the output shape), `maxSections`, `brief`, and for an edit `current`: the sections to revise (one for `edit_section`, all of them for `edit_page`) |
 
-`generateContent()` returns a `{"sections": [...]}` document in the shape of `$request->schema->schema`. The package keeps at most `maxSections` sections: one for a `section` or an `edit_section` request.
+`generateContent()` returns a `{"sections": [...]}` document in the shape of `$request->schema->schema`. The package keeps at most `maxSections` sections (`ai.max_sections`, 8 by default), and one for an `edit_section` request. For `add`, the model decides how many sections the request needs: one for "an FAQ", several for "a page about our product".
 
 For an edit, tell the model to change only what the editor asks and to answer with the revised sections, keeping everything else as it is (texts, image paths, colours, settings). The answer replaces `current`:
 - `edit_section`: the revised section goes in the old one's place. The old one is deleted only once something valid came back, so a refused answer leaves it standing.
@@ -104,8 +104,7 @@ Several providers can be registered; the first one answers. To choose among them
 | `shorten` | ✦ beside a text field | A shorter version |
 | `tone` | ✦ beside a text field | One entry per configured tone |
 | `alt_text` | ✦ beside an image's `alt` | Describes the image |
-| `section` | topbar **Generate** | One new section after the selected one (or at the end) |
-| `page` | topbar **Generate** | A new page: sections at the end, or in place of the draft |
+| `add` | topbar **Generate** | New content, one or more sections, after the selected section (or at the end of the page) |
 | `edit_section` | **Generate**, or ✦ on a section's toolbar in the preview | Rewrites that section as asked; the new version takes its place |
 | `edit_page` | topbar **Generate** | Rewrites the whole page from what is there |
 | `apply` | `content-blocks:ai:apply` | Writes a document you generated yourself, see [below](#from-your-own-pipeline) |
@@ -118,9 +117,9 @@ content_blocks:
     ai:
         actions:
             tone: false        # no tone menu
-            page: false        # sections one at a time only
+            edit_page: false   # no rewriting of the whole page
         tones: [professional, friendly, persuasive, playful]   # empty switches `tone` off
-        max_sections: 8        # the longest page a generation may write
+        max_sections: 8        # the most sections one generation may write
 ```
 
 `ai: false` switches every action off.

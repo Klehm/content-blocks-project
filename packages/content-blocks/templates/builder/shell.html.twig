@@ -143,7 +143,7 @@
             </div>
 
             {# Drawn only when an AI provider generates sections. #}
-            {% if aiActions|filter(a => a in ['section', 'page', 'edit_section', 'edit_page']) is not empty %}
+            {% if aiActions|filter(a => a in ['add', 'edit_section', 'edit_page']) is not empty %}
                 <button type="button"
                         class="cb-shell__ai"
                         data-action="cb-builder#openAiDialog"

@@ -190,12 +190,10 @@ final class AiController
             return self::invalid('targetSectionId');
         }
 
-        $whole = $action === AiAction::PAGE || $action === AiAction::EDIT_PAGE;
-        $maxSections = $whole ? $this->features->maxSections() : 1;
-        $after = $action === AiAction::SECTION ? $target : null;
+        $maxSections = $action === AiAction::EDIT_SECTION ? 1 : $this->features->maxSections();
+        $after = $action === AiAction::ADD ? $target : null;
         $replacing = $action === AiAction::EDIT_SECTION ? $target : null;
-        $replace = $action === AiAction::EDIT_PAGE
-            || ($action === AiAction::PAGE && ($body['replace'] ?? false) === true);
+        $replace = $action === AiAction::EDIT_PAGE;
         $existing = $this->existing($area);
         $current = match ($action) {
             AiAction::EDIT_PAGE => $existing,

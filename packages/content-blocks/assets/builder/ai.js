@@ -279,30 +279,19 @@ export default class Ai {
         this._aiTargetSectionId = null;
     }
 
-    /**
-     * Action: the scope radios. Replacing only makes sense for a new page;
-     * a revision says what it will replace.
-     */
+    /** Action: the scope radios. A revision says what it will replace. */
     onAiScopeChange() {
-        const scope = this._aiScope();
-        if (this.hasAiReplaceTarget) {
-            this.aiReplaceTarget.hidden = scope !== 'page';
-            if (scope !== 'page') {
-                const box = this.aiReplaceTarget.querySelector('input');
-                if (box) box.checked = false;
-            }
-        }
         const hint = {
             edit_section: this._aiTarget() ? this._aiString('edit_hint') : this._aiString('needs_section'),
             edit_page: this._aiString('edit_page_hint'),
-        }[scope];
+        }[this._aiScope()];
         this._setAiStatus(hint ?? '');
     }
 
     _aiScope() {
         const checked = this.aiDialogTarget?.querySelector('input[name="scope"]:checked');
 
-        return checked?.value ?? (this._aiActions.includes('section') ? 'section' : 'page');
+        return checked?.value ?? ['add', 'edit_section', 'edit_page'].find((a) => this._aiActions.includes(a));
     }
 
     /** The section a request is about: the toolbar one, else the selection. */
@@ -330,9 +319,7 @@ export default class Ai {
         }
 
         const action = this._aiScope();
-        const replace = action === 'page'
-            && Boolean(this.aiReplaceTarget?.querySelector('input')?.checked);
-        const target = action === 'section' || action === 'edit_section' ? this._aiTarget() : null;
+        const target = action === 'add' || action === 'edit_section' ? this._aiTarget() : null;
         if (action === 'edit_section' && !target) {
             this._setAiStatus(this._aiString('needs_section', 'Select the section to change first'));
             return;
@@ -346,7 +333,6 @@ export default class Ai {
             {
                 action,
                 prompt,
-                ...(replace ? { replace: true } : {}),
                 ...(target ?? {}),
             },
             { tolerate: [400, 404, 409, 422, 502] },

@@ -64,15 +64,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   registered (`AiProviderInterface`, autoconfigured; none ships), the builder
   offers a ✦ menu beside prose fields (rewrite, shorten, change the tone) and
   beside an image's `alt` (describe the image), and a topbar **Generate**
-  dialog that writes a section after the selected one or a whole page,
-  appended or in place of the draft. A field proposal is applied only on
-  *Replace*; generated sections go through the paste replay into the draft,
-  as one undo step. Without a provider nothing is drawn and the endpoints
+  dialog with three scopes: *add content* (one or more sections, after the
+  selected one), *change the selected section* (the new version takes its
+  place; also from a ✦ on the section's toolbar in the preview) and *change
+  the whole page*. For an edit the provider gets the sections to revise in
+  `ContentRequest::$current`. A field proposal is applied only on *Replace*;
+  generated sections go through the paste replay into the draft, as one undo
+  step. Without a provider nothing is drawn and the endpoints
   (`content_blocks_ai_text`, `_alt_text`, `_content`) answer 404.
-  Two more actions revise what is there instead of adding to it:
-  `edit_section` (also from a ✦ on the section's toolbar in the preview) puts
-  the new version of a section in its place, `edit_page` rewrites the page;
-  the provider gets the sections to revise in `ContentRequest::$current`.
   `content_blocks.ai.actions.<action>: false` switches one off, `ai: false`
   all of them; `ai.tones` and `ai.max_sections` tune the rest.
   `AiBriefProviderInterface` hands every request what the host knows about the

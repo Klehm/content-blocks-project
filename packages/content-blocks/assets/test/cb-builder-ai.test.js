@@ -22,7 +22,7 @@ const STRINGS = {
     edit_hint: 'The section is replaced by its new version',
 };
 
-function setup({ actions = 'rewrite shorten tone alt_text section page edit_section edit_page' } = {}) {
+function setup({ actions = 'rewrite shorten tone alt_text add edit_section edit_page' } = {}) {
     document.body.innerHTML = `
         <div data-controller="cb-builder" data-cb-csrf-token="tok" data-cb-api-base="/api">
             <div class="cb-ai"
@@ -33,11 +33,9 @@ function setup({ actions = 'rewrite shorten tone alt_text section page edit_sect
                 <dialog class="cb-ai-dialog">
                     <form>
                         <textarea name="prompt"></textarea>
-                        <input type="radio" name="scope" value="section" checked>
-                        <input type="radio" name="scope" value="page">
+                        <input type="radio" name="scope" value="add" checked>
                         <input type="radio" name="scope" value="edit_section">
                         <input type="radio" name="scope" value="edit_page">
-                        <label class="replace" hidden><input type="checkbox" name="replace"></label>
                         <p class="status"></p>
                         <button type="submit" class="submit">Generate</button>
                     </form>
@@ -65,7 +63,6 @@ function setup({ actions = 'rewrite shorten tone alt_text section page edit_sect
         aiPopover: element.querySelector('.cb-ai-popover'),
         aiDialog: dialog,
         aiPrompt: dialog.querySelector('textarea'),
-        aiReplace: dialog.querySelector('.replace'),
         aiStatus: dialog.querySelector('.status'),
         aiSubmit: dialog.querySelector('.submit'),
         sidebar: element.querySelector('aside'),
@@ -223,7 +220,7 @@ describe('cb-builder AI: generation dialog', () => {
     let ctx;
     beforeEach(() => { ctx = setup(); });
 
-    it('generates a section after the open one', async () => {
+    it('adds content after the open section', async () => {
         ctx.controller._jsonRequest = vi.fn().mockResolvedValue({ sectionIds: [12], droppedFields: [], skippedBlockTypes: [] });
         ctx.controller.openAiDialog();
         ctx.aiPrompt.value = 'A hero for our shoe';
@@ -231,7 +228,7 @@ describe('cb-builder AI: generation dialog', () => {
         await ctx.controller.submitAiDialog({ preventDefault() {} });
 
         expect(ctx.controller._jsonRequest).toHaveBeenCalledWith('POST', '/api/area/42/ai/content', {
-            action: 'section',
+            action: 'add',
             prompt: 'A hero for our shoe',
             targetSectionId: 3,
         }, expect.anything());
@@ -241,18 +238,16 @@ describe('cb-builder AI: generation dialog', () => {
         expect(ctx.controller._afterStructuralOp).toHaveBeenCalled();
     });
 
-    it('offers replacing for a page only, and sends it', async () => {
+    it('adds at the end when nothing is selected', async () => {
+        ctx.sidebar.removeAttribute('data-cb-sidebar-section-id');
+        ctx.sidebar.removeAttribute('data-cb-sidebar-block-id');
         ctx.controller._jsonRequest = vi.fn().mockResolvedValue({ sectionIds: [], droppedFields: [], skippedBlockTypes: [] });
         ctx.controller.openAiDialog();
-        ctx.aiDialog.querySelector('input[value="page"]').checked = true;
-        ctx.controller.onAiScopeChange();
-        expect(ctx.aiReplace.hidden).toBe(false);
-        ctx.aiReplace.querySelector('input').checked = true;
         ctx.aiPrompt.value = 'A page';
 
         await ctx.controller.submitAiDialog({ preventDefault() {} });
 
-        expect(ctx.controller._jsonRequest.mock.calls[0][2]).toEqual({ action: 'page', prompt: 'A page', replace: true });
+        expect(ctx.controller._jsonRequest.mock.calls[0][2]).toEqual({ action: 'add', prompt: 'A page' });
     });
 
     it('keeps the dialog open and says a refusal', async () => {
@@ -330,12 +325,11 @@ describe('cb-builder AI: revising what is there', () => {
         expect(ctx.aiStatus.textContent).toBe('Select the section to change first');
     });
 
-    it('revises the page with no target and no replace flag', async () => {
+    it('revises the page with no target', async () => {
         ctx.controller._jsonRequest = vi.fn().mockResolvedValue(ok);
         ctx.controller.openAiDialog();
         ctx.aiDialog.querySelector('input[value="edit_page"]').checked = true;
         ctx.controller.onAiScopeChange();
-        expect(ctx.aiReplace.hidden).toBe(true);
         ctx.aiPrompt.value = 'x';
 
         await ctx.controller.submitAiDialog({ preventDefault() {} });
@@ -360,7 +354,7 @@ describe('cb-builder AI: revising what is there', () => {
         ctx.controller._announceAiToPreview();
         expect(ctx.controller._postToPreview).toHaveBeenCalledWith({ type: 'cb:ai:capabilities', editSection: true });
 
-        const off = setup({ actions: 'section page' });
+        const off = setup({ actions: 'add edit_page' });
         off.controller._announceAiToPreview();
         expect(off.controller._postToPreview).not.toHaveBeenCalled();
     });

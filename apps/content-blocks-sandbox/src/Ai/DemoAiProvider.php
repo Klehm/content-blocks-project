@@ -93,12 +93,12 @@ final class DemoAiProvider implements AiProviderInterface
         $layouts = array_column($request->schema->layouts, 'columns', 'name');
         $subject = mb_substr(trim(preg_replace('/\s+/', ' ', $request->prompt) ?? ''), 0, 80);
 
-        $sections = [$this->hero($subject, $types, $layouts)];
-        if ($request->action === AiAction::PAGE) {
-            $sections[] = $this->features($types, $layouts);
-            $sections[] = $this->faq($types);
-            $sections[] = $this->closing($subject, $types);
-        }
+        $sections = [
+            $this->hero($subject, $types, $layouts),
+            $this->features($types, $layouts),
+            $this->faq($types),
+            $this->closing($subject, $types),
+        ];
 
         return ['sections' => \array_slice(array_values(array_filter($sections)), 0, $request->maxSections)];
     }

@@ -66,7 +66,6 @@ class BuilderController extends Controller {
         'aiPopover',
         'aiDialog',
         'aiPrompt',
-        'aiReplace',
         'aiStatus',
         'aiSubmit',
     ];

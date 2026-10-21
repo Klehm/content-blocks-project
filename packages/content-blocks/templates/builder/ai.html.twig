@@ -50,7 +50,7 @@
          aria-label="{{ 'cb.ai.field.trigger'|trans({}, t) }}"
          hidden></div>
 
-    {% if aiActions|filter(a => a in ['section', 'page', 'edit_section', 'edit_page']) is not empty %}
+    {% if aiActions|filter(a => a in ['add', 'edit_section', 'edit_page']) is not empty %}
         <dialog class="cb-ai-dialog"
                 data-cb-builder-target="aiDialog"
                 aria-labelledby="cb-ai-dialog-title">
@@ -74,7 +74,7 @@
                           placeholder="{{ 'cb.ai.content.placeholder'|trans({}, t) }}"></textarea>
 
                 {# New content first, then revisions of what is there. #}
-                {% set scopes = ['section', 'page', 'edit_section', 'edit_page']|filter(a => a in aiActions) %}
+                {% set scopes = ['add', 'edit_section', 'edit_page']|filter(a => a in aiActions) %}
                 <fieldset class="cb-ai-dialog__scope"{% if scopes|length < 2 %} hidden{% endif %}>
                     <legend class="cb-ai-dialog__label">{{ 'cb.ai.content.scope'|trans({}, t) }}</legend>
                     {% for scope in scopes %}
@@ -85,15 +85,6 @@
                         </label>
                     {% endfor %}
                 </fieldset>
-
-                {% if 'page' in aiActions %}
-                    <label class="cb-ai-dialog__choice cb-ai-dialog__replace"
-                           data-cb-builder-target="aiReplace"
-                           {% if scopes|first != 'page' %}hidden{% endif %}>
-                        <input type="checkbox" name="replace" value="1">
-                        {{ 'cb.ai.content.replace'|trans({}, t) }}
-                    </label>
-                {% endif %}
 
                 <p class="cb-ai-dialog__status" data-cb-builder-target="aiStatus" role="status" aria-live="polite"></p>
 

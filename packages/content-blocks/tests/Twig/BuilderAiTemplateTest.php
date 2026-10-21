@@ -54,10 +54,10 @@ final class BuilderAiTemplateTest extends TestCase
         $this->assertStringContainsString('cb-shell__ai', $html);
         $this->assertStringContainsString('data-cb-builder-target="aiDialog"', $html);
         $this->assertStringContainsString(
-            'data-cb-ai-actions="rewrite shorten tone alt_text section page edit_section edit_page"',
+            'data-cb-ai-actions="rewrite shorten tone alt_text add edit_section edit_page"',
             $html,
         );
-        foreach (['section', 'page', 'edit_section', 'edit_page'] as $scope) {
+        foreach (['add', 'edit_section', 'edit_page'] as $scope) {
             $this->assertStringContainsString('value="' . $scope . '"', $html);
         }
     }
@@ -65,8 +65,7 @@ final class BuilderAiTemplateTest extends TestCase
     public function testFieldActionsAloneDrawThePopoverButNoDialog(): void
     {
         $off = [
-            AiAction::SECTION => false,
-            AiAction::PAGE => false,
+            AiAction::ADD => false,
             AiAction::EDIT_SECTION => false,
             AiAction::EDIT_PAGE => false,
         ];
@@ -79,23 +78,22 @@ final class BuilderAiTemplateTest extends TestCase
 
     public function testOnlyTheEnabledScopeIsOffered(): void
     {
-        $html = $this->shell(new AiFeatures([new RecordingAiProvider()], [AiAction::SECTION => false]));
+        $html = $this->shell(new AiFeatures([new RecordingAiProvider()], [AiAction::ADD => false]));
 
-        $this->assertStringNotContainsString('value="section"', $html);
-        $this->assertStringContainsString('value="page"', $html);
+        $this->assertStringNotContainsString('value="add"', $html);
+        $this->assertStringContainsString('value="edit_section"', $html);
+        $this->assertStringNotContainsString('name="replace"', $html, 'gone: rewriting the page is an edit');
     }
 
     public function testTheEditsAloneStillOpenTheDialog(): void
     {
         $html = $this->shell(new AiFeatures([new RecordingAiProvider()], [
-            AiAction::SECTION => false,
-            AiAction::PAGE => false,
+            AiAction::ADD => false,
             AiAction::EDIT_PAGE => false,
         ]));
 
         $this->assertStringContainsString('cb-shell__ai', $html);
         $this->assertStringContainsString('value="edit_section"', $html);
-        $this->assertStringNotContainsString('aiReplace', $html, 'no new page, nothing to replace');
     }
 
     public function testAProseFieldRowCarriesItsTrigger(): void

@@ -122,7 +122,7 @@ final class AiControllerTest extends ControllerTestCase
     public static function invalidTextBodies(): iterable
     {
         yield 'unknown action' => [['action' => 'translate', 'text' => 'x']];
-        yield 'a content action' => [['action' => 'page', 'text' => 'x']];
+        yield 'a content action' => [['action' => 'add', 'text' => 'x']];
         yield 'blank text' => [['action' => 'rewrite', 'text' => '   ']];
         yield 'text too long' => [['action' => 'rewrite', 'text' => str_repeat('a', 20001)]];
     }
@@ -229,7 +229,7 @@ final class AiControllerTest extends ControllerTestCase
 
     // ---------- content ----------
 
-    public function testASectionIsGeneratedAfterTheSelectedOne(): void
+    public function testContentIsAddedAfterTheSelectedSection(): void
     {
         $first = $this->makeSection($this->area, 10, 0);
         $this->makeColumn($first, 20);
@@ -238,43 +238,49 @@ final class AiControllerTest extends ControllerTestCase
         $this->provider->document = ['sections' => [self::section('Fresh'), self::section('Extra')]];
 
         $response = $this->controller([$first, $last])->content(1, $this->post([
-            'action' => 'section',
-            'prompt' => 'A hero for our shoe',
+            'action' => 'add',
+            'prompt' => 'Benefits, then an FAQ',
             'targetSectionId' => 10,
         ]));
 
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
         $sections = DraftOrder::sections($this->area);
-        $this->assertCount(3, $sections, 'a section action writes one section, whatever came back');
-        $this->assertSame([$first, $last], [$sections[0], $sections[2]]);
+        $this->assertCount(4, $sections, 'the model decides how many sections');
+        $this->assertSame([$first, $last], [$sections[0], $sections[3]]);
+        $this->assertFalse($first->isDeleted() || $last->isDeleted(), 'adding replaces nothing');
         $this->assertSame(1, $this->flushCount);
 
         $request = $this->provider->requests[0];
         $this->assertInstanceOf(ContentRequest::class, $request);
-        $this->assertSame(1, $request->maxSections);
-        $this->assertSame('A hero for our shoe', $request->prompt);
+        $this->assertSame(8, $request->maxSections);
+        $this->assertSame('Benefits, then an FAQ', $request->prompt);
         $this->assertCount(2, $request->existing, 'the page so far, for the model to fit in');
+        $this->assertSame([], $request->current, 'nothing to revise');
         $this->assertArrayHasKey('block.ai_fixture', $request->schema->schema['$defs']);
     }
 
-    public function testAPageCanReplaceTheDraft(): void
+    public function testWithNothingSelectedContentGoesAtTheEnd(): void
+    {
+        $first = $this->makeSection($this->area, 10, 0);
+        $this->makeColumn($first, 20);
+        $this->provider->document = ['sections' => [self::section('Fresh')]];
+
+        $this->controller([$first])->content(1, $this->post(['action' => 'add', 'prompt' => 'x']));
+
+        $sections = DraftOrder::sections($this->area);
+        $this->assertSame($first, $sections[0]);
+        $this->assertCount(2, $sections);
+    }
+
+    public function testThereIsNoReplaceFlagAnyMore(): void
     {
         $old = $this->makeSection($this->area, 10);
         $this->makeColumn($old, 20);
-        $this->provider->document = ['sections' => [self::section('One'), self::section('Two')]];
+        $this->provider->document = ['sections' => [self::section('One')]];
 
-        $response = $this->controller([$old])->content(1, $this->post([
-            'action' => 'page',
-            'prompt' => 'A page',
-            'replace' => true,
-        ]));
+        $this->controller([$old])->content(1, $this->post(['action' => 'add', 'prompt' => 'x', 'replace' => true]));
 
-        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertTrue($old->isDeleted());
-        $this->assertCount(2, DraftOrder::sections($this->area));
-        $request = $this->provider->requests[0];
-        $this->assertInstanceOf(ContentRequest::class, $request);
-        $this->assertSame(8, $request->maxSections);
+        $this->assertFalse($old->isDeleted(), 'rewriting the page is edit_page');
     }
 
     public function testASectionIsRevisedInItsPlace(): void
@@ -373,7 +379,7 @@ final class AiControllerTest extends ControllerTestCase
         $this->provider->document = ['sections' => [self::section('One')]];
 
         $response = $this->controller(structure: new BuilderStructure(BuilderStructure::SECTIONS_FIXED))
-            ->content(1, $this->post(['action' => 'page', 'prompt' => 'A page']));
+            ->content(1, $this->post(['action' => 'add', 'prompt' => 'A page']));
 
         $this->assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
         $this->assertSame(['error' => 'sections_locked'], self::json($response));
@@ -384,7 +390,7 @@ final class AiControllerTest extends ControllerTestCase
     {
         $this->provider->document = ['html' => '<h1>Not a document</h1>'];
 
-        $response = $this->controller()->content(1, $this->post(['action' => 'page', 'prompt' => 'A page']));
+        $response = $this->controller()->content(1, $this->post(['action' => 'add', 'prompt' => 'A page']));
 
         $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
         $this->assertSame(['error' => 'unreadable'], self::json($response));
@@ -394,7 +400,7 @@ final class AiControllerTest extends ControllerTestCase
     {
         $this->provider->failure = new \RuntimeException('timeout');
 
-        $response = $this->controller()->content(1, $this->post(['action' => 'section', 'prompt' => 'x']));
+        $response = $this->controller()->content(1, $this->post(['action' => 'add', 'prompt' => 'x']));
 
         $this->assertSame(Response::HTTP_BAD_GATEWAY, $response->getStatusCode());
         $this->assertSame(0, $this->flushCount);
@@ -402,19 +408,19 @@ final class AiControllerTest extends ControllerTestCase
 
     public function testEachContentActionIsSwitchedOffOnItsOwn(): void
     {
-        $controller = $this->controller(actions: [AiAction::PAGE => false]);
+        $controller = $this->controller(actions: [AiAction::ADD => false]);
 
-        $page = $controller->content(1, $this->post(['action' => 'page', 'prompt' => 'x']));
-        $this->assertSame(Response::HTTP_NOT_FOUND, $page->getStatusCode());
+        $add = $controller->content(1, $this->post(['action' => 'add', 'prompt' => 'x']));
+        $this->assertSame(Response::HTTP_NOT_FOUND, $add->getStatusCode());
 
         $this->provider->document = ['sections' => [self::section('One')]];
-        $section = $controller->content(1, $this->post(['action' => 'section', 'prompt' => 'x']));
-        $this->assertSame(Response::HTTP_OK, $section->getStatusCode());
+        $edit = $controller->content(1, $this->post(['action' => 'edit_page', 'prompt' => 'x']));
+        $this->assertSame(Response::HTTP_OK, $edit->getStatusCode());
     }
 
     public function testABlankPromptIsRefused(): void
     {
-        $response = $this->controller()->content(1, $this->post(['action' => 'page', 'prompt' => ' ']));
+        $response = $this->controller()->content(1, $this->post(['action' => 'add', 'prompt' => ' ']));
 
         $this->assertSame(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
     }

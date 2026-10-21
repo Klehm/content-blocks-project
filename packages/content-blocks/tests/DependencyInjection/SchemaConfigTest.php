@@ -55,7 +55,7 @@ final class SchemaConfigTest extends TestCase
         $container = $this->build([]);
 
         $this->assertSame(
-            array_fill_keys(['rewrite', 'shorten', 'tone', 'alt_text', 'section', 'page', 'edit_section', 'edit_page', 'apply'], true),
+            array_fill_keys(['rewrite', 'shorten', 'tone', 'alt_text', 'add', 'edit_section', 'edit_page', 'apply'], true),
             $container->getParameter('content_blocks.ai.actions'),
         );
         $this->assertSame(\ContentBlocks\Ai\AiFeatures::DEFAULT_TONES, $container->getParameter('content_blocks.ai.tones'));
@@ -64,13 +64,13 @@ final class SchemaConfigTest extends TestCase
 
     public function testEachAiActionIsSwitchedOffOnItsOwn(): void
     {
-        $actions = $this->build(['ai' => ['actions' => ['page' => false, 'alt_text' => false]]])
+        $actions = $this->build(['ai' => ['actions' => ['edit_page' => false, 'alt_text' => false]]])
             ->getParameter('content_blocks.ai.actions');
 
         $this->assertIsArray($actions);
-        $this->assertFalse($actions['page']);
+        $this->assertFalse($actions['edit_page']);
         $this->assertFalse($actions['alt_text']);
-        $this->assertTrue($actions['section']);
+        $this->assertTrue($actions['add']);
     }
 
     public function testAiFalseSwitchesEveryActionOff(): void

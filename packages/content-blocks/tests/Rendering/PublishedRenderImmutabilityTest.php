@@ -355,11 +355,13 @@ final class PublishedRenderImmutabilityTest extends TestCase
             'columns' => [['preset' => 'col-12', 'blocks' => [['type' => 'text', 'data' => ['title' => 'Generated']]]]],
         ]]];
         $controller = $this->aiController($generated);
-        $section = $controller->content(1, $this->jsonRequest(['action' => 'section', 'prompt' => 'x', 'targetSectionId' => 10]));
-        $page = $controller->content(1, $this->jsonRequest(['action' => 'page', 'prompt' => 'x', 'replace' => true]));
+        $add = $controller->content(1, $this->jsonRequest(['action' => 'add', 'prompt' => 'x', 'targetSectionId' => 10]));
+        $edit = $controller->content(1, $this->jsonRequest(['action' => 'edit_section', 'prompt' => 'x', 'targetSectionId' => 11]));
+        $page = $controller->content(1, $this->jsonRequest(['action' => 'edit_page', 'prompt' => 'x']));
 
-        $this->assertSame(200, $section->getStatusCode());
-        $this->assertSame(200, $page->getStatusCode(), 'replacing deletes in the draft only');
+        $this->assertSame(200, $add->getStatusCode());
+        $this->assertSame(200, $edit->getStatusCode());
+        $this->assertSame(200, $page->getStatusCode(), 'rewriting deletes in the draft only');
         $this->assertSame($before, $this->publicHtml($area));
     }
 
