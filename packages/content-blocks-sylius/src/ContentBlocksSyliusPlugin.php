@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Sylius;
 
+use ContentBlocks\Sylius\DependencyInjection\AdminLiveComponentRoutePass;
 use ContentBlocks\Sylius\Entity\ContentPage;
 use ContentBlocks\Sylius\Entity\ContentPageTranslation;
 use ContentBlocks\Sylius\Form\Type\ContentPageTranslationType;
 use ContentBlocks\Sylius\Form\Type\ContentPageType;
 use ContentBlocks\Sylius\Slot\SlotType;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
+use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
@@ -24,6 +26,12 @@ use Symfony\Component\Yaml\Yaml;
 final class ContentBlocksSyliusPlugin extends AbstractBundle
 {
     protected string $extensionAlias = 'content_blocks_sylius';
+
+    public function build(ContainerBuilder $container): void
+    {
+        // After attribute autoconfiguration, before the Twig component pass.
+        $container->addCompilerPass(new AdminLiveComponentRoutePass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 10);
+    }
 
     public function configure(DefinitionConfigurator $definition): void
     {

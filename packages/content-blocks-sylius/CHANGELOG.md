@@ -22,7 +22,9 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     shop's own Twig components.
   - Bootstrap 5 markup for twelve kit blocks (`kit_markup: bootstrap`, the
     default); a host's own kit template overrides still win.
+  - The builder's sidebar posts to Sylius's admin Live route, which every
+    Sylius app mounts (no `ux_live_component` route needed).
   - The host services the core needs: an access checker for shop
     administrators, preview URLs, the *Insert content* list, and with
-    `klehm/content-blocks-i18n` the translation targets, the page URLs and the
-    workbench's way back.
+    `klehm/content-blocks-i18n` the translation targets (the locales of every
+    enabled channel), the page URLs and the workbench's way back.

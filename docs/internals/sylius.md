@@ -22,6 +22,14 @@ the approach the first Sylius integration (bocklip) proved in production; the
 alternative, sharing one firewall context between admin and shop, changes the
 host's security model and was not the plugin's call.
 
+The builder's own Live component (`ContentBlocks:Block`, the block sidebar)
+posts to Sylius's admin Live route, `sylius_admin_live_component`, rewritten
+on its `twig.component` tag by `AdminLiveComponentRoutePass`. A Sylius-Standard
+app mounts no generic `ux_live_component` route at all (the sidebar answered
+500 there), and the admin route puts those requests behind the admin firewall.
+`sylius/test-application` does mount `ux_live_component`, which is why only the
+browser suite on a real Sylius-Standard caught it.
+
 ## Native pages
 
 A *slot* (`ContentSlot`, table `cb_sylius_slot`) attaches an area to a page
@@ -116,3 +124,12 @@ lets the shop and the admin render without a `yarn build`.
 
 The CI job installs each Sylius minor with the test application of the same
 line, because the test application's config follows its Sylius version.
+
+The test application is not Sylius-Standard, and the gap is where two bugs
+hid: Sylius-Standard has no `ux_live_component` route, and a slot's HTML,
+assigned to a Twig variable before printing, was escaped (a text assertion
+reads the same words either way: assert on markup). The Playwright suite
+(`packages/content-blocks/playwright.sylius.config.js`, port 8007) runs the
+builder in `apps/content-blocks-sylius-shop-sandbox`, a Sylius-Standard 2.3
+with the admin's own Encore build, on its `_e2e` database seeded with
+Sylius's `default` fixtures.

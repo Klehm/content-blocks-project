@@ -1,38 +1,41 @@
-<div class="page-header">
-    <div class="container-xl">
-        <div class="row mt-3"><div class="col">
-            <h2 class="page-title">{{ 'content_blocks_sylius.ui.homepage'|trans }}</h2>
-        </div></div>
+{# The page-wrapper Sylius's own content hookable draws. #}
+<div class="page-wrapper">
+    <div class="page-header">
+        <div class="container-xl">
+            <div class="row mt-3"><div class="col">
+                <h2 class="page-title">{{ 'content_blocks_sylius.ui.homepage'|trans }}</h2>
+            </div></div>
+        </div>
     </div>
-</div>
-<div class="page-body">
-    <div class="container-xl">
-        <div class="card">
-            <div class="table-responsive">
-                <table class="table table-vcenter card-table" data-test-content-blocks-homepages>
-                    <thead><tr>
-                        <th>{{ 'sylius.ui.channel'|trans }}</th>
-                        <th>{{ 'content_blocks_sylius.ui.status'|trans }}</th>
-                        <th class="w-1"></th>
-                    </tr></thead>
-                    <tbody>
-                    {% for row in hookable_metadata.context.rows %}
-                        <tr>
-                            <td>{{ row.channel.name }} <span class="text-secondary">{{ row.channel.code }}</span></td>
-                            <td>
-                                {% if row.slot is null %}
-                                    <span class="badge">{{ 'content_blocks_sylius.ui.status_native'|trans }}</span>
-                                {% elseif row.published %}
-                                    <span class="badge bg-green-lt">{{ 'content_blocks_sylius.ui.status_published'|trans }}</span>
-                                {% else %}
-                                    <span class="badge bg-yellow-lt">{{ 'content_blocks_sylius.ui.status_draft'|trans }}</span>
-                                {% endif %}
-                            </td>
-                            <td><a class="btn btn-sm btn-primary" href="{{ path('content_blocks_sylius_admin_slot', { type: 'homepage', subject: row.channel.code }) }}">{{ 'sylius.ui.edit'|trans }}</a></td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+    <div class="page-body">
+        <div class="container-xl">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table" data-test-content-blocks-homepages>
+                        <thead><tr>
+                            <th>{{ 'sylius.ui.channel'|trans }}</th>
+                            <th>{{ 'content_blocks_sylius.ui.status'|trans }}</th>
+                            <th class="w-1"></th>
+                        </tr></thead>
+                        <tbody>
+                        {% for row in hookable_metadata.context.rows %}
+                            <tr>
+                                <td>{{ row.channel.name }} <span class="text-secondary">{{ row.channel.code }}</span></td>
+                                <td>
+                                    {% if row.slot is null %}
+                                        <span class="badge">{{ 'content_blocks_sylius.ui.status_native'|trans }}</span>
+                                    {% elseif row.published %}
+                                        <span class="badge bg-green-lt">{{ 'content_blocks_sylius.ui.status_published'|trans }}</span>
+                                    {% else %}
+                                        <span class="badge bg-yellow-lt">{{ 'content_blocks_sylius.ui.status_draft'|trans }}</span>
+                                    {% endif %}
+                                </td>
+                                <td><a class="btn btn-sm btn-primary" href="{{ path('content_blocks_sylius_admin_slot', { type: 'homepage', subject: row.channel.code }) }}">{{ 'sylius.ui.edit'|trans }}</a></td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

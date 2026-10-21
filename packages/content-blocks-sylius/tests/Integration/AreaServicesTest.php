@@ -118,6 +118,27 @@ final class AreaServicesTest extends IntegrationTestCase
         self::assertSame(['fr_FR'], $provider->getTargetLocales());
     }
 
+    public function testTheTargetsAreTheLocalesOfEveryEnabledChannel(): void
+    {
+        $this->fixtures->channel();
+        $german = $this->fixtures->channel('DE', 'de.example.com');
+        $de = static::getContainer()->get('sylius.factory.locale')->createNew();
+        $de->setCode('de_DE');
+        $german->addLocale($de);
+        $this->em->persist($de);
+        $off = $this->fixtures->channel('OFF', 'off.example.com');
+        $it = static::getContainer()->get('sylius.factory.locale')->createNew();
+        $it->setCode('it_IT');
+        $off->addLocale($it);
+        $off->setEnabled(false);
+        $this->em->persist($it);
+        $this->em->flush();
+        $provider = static::getContainer()->get(TargetLocalesProviderInterface::class);
+        \assert($provider instanceof TargetLocalesProviderInterface);
+
+        self::assertSame(['fr_FR', 'de_DE'], $provider->getTargetLocales());
+    }
+
     private function area(?ContentArea $area): ContentArea
     {
         \assert($area !== null);

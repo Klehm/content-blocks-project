@@ -27,6 +27,7 @@ use ContentBlocks\Sylius\I18n\AdminBackUrlResolver;
 use ContentBlocks\Sylius\I18n\ShopLocalizedPageUrlResolver;
 use ContentBlocks\Sylius\I18n\ShopTargetLocalesProvider;
 use ContentBlocks\Sylius\Kit\BootstrapKitTemplateLoader;
+use ContentBlocks\Sylius\Locale\ShopLocales;
 use ContentBlocks\Sylius\Menu\AdminMenuListener;
 use ContentBlocks\Sylius\Owner\AreaOwnerLocator;
 use ContentBlocks\Sylius\Preview\ShopContentAreaUrlResolver;
@@ -42,7 +43,6 @@ use ContentBlocks\Sylius\Slot\SlotRenderer;
 use ContentBlocks\Sylius\Twig\AdminExtension;
 use ContentBlocks\Sylius\Twig\CatalogExtension;
 use ContentBlocks\Sylius\Twig\SlotExtension;
-use Sylius\Component\Locale\Provider\LocaleProviderInterface;
 use Sylius\Resource\Translation\Provider\TranslationLocaleProviderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
@@ -77,8 +77,9 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         ]);
     $services->set(AdminUrls::class);
 
-    $services->set(ShopContentAreaUrlResolver::class)
-        ->args(['$locales' => service(LocaleProviderInterface::class)]);
+    $services->set(ShopLocales::class)
+        ->args([service('sylius.repository.channel'), param('locale')]);
+    $services->set(ShopContentAreaUrlResolver::class);
     $services->alias(ContentAreaUrlResolverInterface::class, ShopContentAreaUrlResolver::class);
 
     $services->set(ShopContentAreaProvider::class);
@@ -141,13 +142,12 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         '$products' => service('sylius.repository.product'),
         '$taxons' => service('sylius.repository.taxon'),
         '$channels' => service('sylius.repository.channel'),
-        '$locales' => service(LocaleProviderInterface::class),
     ]);
 
     // klehm/content-blocks-i18n is optional.
     if (\in_array(ContentBlocksI18nBundle::class, $builder->getParameter('kernel.bundles'), true)) {
         $services->set(ShopTargetLocalesProvider::class)
-            ->args([service(LocaleProviderInterface::class), param('content_blocks_i18n.source_locale')]);
+            ->args(['$sourceLocale' => param('content_blocks_i18n.source_locale')]);
         $services->alias(TargetLocalesProviderInterface::class, ShopTargetLocalesProvider::class);
         $services->set(ShopLocalizedPageUrlResolver::class);
         $services->alias(LocalizedPageUrlResolverInterface::class, ShopLocalizedPageUrlResolver::class);

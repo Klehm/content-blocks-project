@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Sylius\Controller\Admin;
 
 use ContentBlocks\Sylius\Entity\ContentSlot;
+use ContentBlocks\Sylius\Locale\ShopLocales;
 use ContentBlocks\Sylius\Repository\ContentSlotRepository;
 use ContentBlocks\Sylius\Routing\AdminUrls;
 use ContentBlocks\Sylius\Routing\ShopUrls;
@@ -12,7 +13,6 @@ use ContentBlocks\Sylius\Slot\SlotRenderer;
 use ContentBlocks\Sylius\Slot\SlotType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ObjectRepository;
-use Sylius\Component\Locale\Provider\LocaleProviderInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -44,7 +44,7 @@ final class SlotController
         private readonly SlotRenderer $renderer,
         private readonly ShopUrls $shopUrls,
         private readonly AdminUrls $adminUrls,
-        private readonly LocaleProviderInterface $locales,
+        private readonly ShopLocales $locales,
         private readonly CsrfTokenManagerInterface $csrf,
         private readonly Environment $twig,
     ) {
@@ -54,7 +54,7 @@ final class SlotController
     {
         $label = $this->subjectLabel($type, $subject);
         $slot = $this->slots->findOneByTypeAndSubject($type, $subject);
-        $address = $this->shopUrls->slot($slot ?? new ContentSlot($type, $subject), $this->locales->getDefaultLocaleCode());
+        $address = $this->shopUrls->slot($slot ?? new ContentSlot($type, $subject), $this->locales->codes()[0]);
 
         return new Response($this->twig->render('@ContentBlocksSyliusPlugin/admin/page.html.twig', [
             'title' => 'content_blocks_sylius.ui.slot.' . $type,

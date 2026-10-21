@@ -72,7 +72,7 @@ final class NativePagesTest extends IntegrationTestCase
         $crawler = $this->client->request('GET', '/en_US/products/mug');
 
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('Made in Portugal', $crawler->filter('.cb-sylius-slot--product')->text());
+        self::assertStringContainsString('Made in Portugal', $crawler->filter('.cb-sylius-slot--product .cb-block--text')->text());
     }
 
     public function testAProductWithoutContentHasNoSlotMarkup(): void
@@ -99,6 +99,6 @@ final class NativePagesTest extends IntegrationTestCase
         $crawler = $this->client->request('GET', '/en_US/taxons/mugs');
 
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('dishwasher safe', $crawler->filter('.cb-sylius-slot--taxon')->text());
+        self::assertStringContainsString('dishwasher safe', $crawler->filter('.cb-sylius-slot--taxon .cb-block--text')->text());
     }
 }

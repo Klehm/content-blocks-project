@@ -195,6 +195,8 @@ final class AdminTest extends IntegrationTestCase
         $crawler = $this->client->request('GET', sprintf('/admin/content-blocks/editor/block/%d/edit', $block->getId()));
 
         self::assertResponseIsSuccessful();
+        $live = (string) $crawler->filter('[data-live-name-value="ContentBlocks:Block"]')->attr('data-live-url-value');
+        self::assertStringStartsWith('/admin/', $live, 'Sylius apps mount no ux_live_component route.');
         $option = $crawler->filter('select[name$="[product]"] option[selected]');
         self::assertSame('MUG', $option->attr('value'));
         self::assertStringContainsString('Blue mug', $option->text());

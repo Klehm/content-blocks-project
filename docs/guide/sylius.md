@@ -57,22 +57,24 @@ bin/console doctrine:migrations:migrate
 
 ### Admin assets
 
-The builder runs in the Sylius admin, built with Webpack Encore. Add the
-package's Stimulus controllers to the admin build: in `package.json`,
+The builder runs in the Sylius admin, built with Webpack Encore. With Flex,
+`composer require` already did the work: it added `@klehm/content-blocks` and
+`@klehm/content-blocks-kit` to `package.json` and their Stimulus controllers to
+`assets/controllers.json`, which Sylius-Standard's `webpack.config.mjs` merges
+into the admin build (the builder stylesheet comes with them). Install and
+build:
 
-```json
-"@klehm/content-blocks": "file:vendor/klehm/content-blocks/assets"
+```bash
+npm install
+npm run build
 ```
 
-then enable its controllers in `assets/admin/controllers.json` and import the
-builder stylesheet in the admin entry:
+Without Flex, add the two `file:` dependencies and the controllers by hand,
+see [Installation](installation.md#with-webpack-encore).
 
-```js
-import '@klehm/content-blocks/styles/admin.css';
-```
-
-See [Installation](installation.md#with-webpack-encore) for the full list of
-controllers.
+The builder's sidebar is a Live component: the plugin sends it through Sylius's
+admin Live route (`/admin/{_locale}/_components`), so it needs no route of its
+own and stays behind the admin firewall.
 
 ### Shop stylesheet
 

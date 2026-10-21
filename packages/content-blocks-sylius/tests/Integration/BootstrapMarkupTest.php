@@ -28,7 +28,7 @@ final class BootstrapMarkupTest extends IntegrationTestCase
     {
         $page = $this->render('title', ['text' => 'Hello', 'tag' => 'h2', 'size' => 'h1']);
 
-        self::assertSame('h1 mb-0', $page->filter('.cb-block--title h2')->attr('class'));
+        self::assertSame('h1', $page->filter('.cb-block--title h2')->attr('class'));
     }
 
     public function testABlockWithoutABootstrapVariantKeepsTheKitMarkup(): void

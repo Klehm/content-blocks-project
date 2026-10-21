@@ -7,9 +7,9 @@ namespace ContentBlocks\Sylius\Preview;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Sylius\Entity\ContentPage;
+use ContentBlocks\Sylius\Locale\ShopLocales;
 use ContentBlocks\Sylius\Owner\AreaOwnerLocator;
 use ContentBlocks\Sylius\Routing\ShopUrls;
-use Sylius\Component\Locale\Provider\LocaleProviderInterface;
 
 /**
  * The shop page showing an area, in the shop's default locale when it has an
@@ -20,7 +20,7 @@ final class ShopContentAreaUrlResolver implements ContentAreaUrlResolverInterfac
     public function __construct(
         private readonly AreaOwnerLocator $owners,
         private readonly ShopUrls $urls,
-        private readonly LocaleProviderInterface $locales,
+        private readonly ShopLocales $locales,
     ) {
     }
 
@@ -34,9 +34,7 @@ final class ShopContentAreaUrlResolver implements ContentAreaUrlResolverInterfac
             throw new \LogicException(sprintf($message, (string) $area->getId(), ContentAreaUrlResolverInterface::class));
         }
 
-        $default = $this->locales->getDefaultLocaleCode();
-        $candidates = array_unique([$default, ...$this->locales->getAvailableLocalesCodes()]);
-        foreach ($candidates as $locale) {
+        foreach ($this->locales->codes() as $locale) {
             $url = $owner instanceof ContentPage
                 ? $this->urls->page($owner, $locale)
                 : $this->urls->slot($owner, $locale);
