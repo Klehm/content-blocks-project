@@ -85,7 +85,6 @@ findings; the click does nothing.
 
 ## The Actions menu entry
 
-`SeoActionProvider` contributes the menu entry. Provider actions reach the
-shell only through `ContentAreaType`, so a host that includes
-`launcher.html.twig` directly lists the action in its own `topbarActions`, as
-the sandbox does. The panel itself is a shell fragment and renders either way.
+`SeoActionProvider` contributes the menu entry, collected by the shell itself
+(`cb_builder_actions`), so it shows on a direct `launcher.html.twig` include
+too. The panel is a shell fragment and renders either way.

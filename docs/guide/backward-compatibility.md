@@ -12,7 +12,7 @@ ContentBlocks follows [semantic versioning](https://semver.org/). From `1.0.0`, 
 
 These are the extension surface: implement them, alias them, decorate them. Their method signatures are frozen, and so is the meaning of what they return.
 
-**Core** (`klehm/content-blocks`), 47 interfaces:
+**Core** (`klehm/content-blocks`), 48 interfaces:
 
 | Area | Interfaces |
 |---|---|
@@ -22,7 +22,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 | Rendering | `BlockRendererInterface`, `BlockDataResolverInterface`, `EntrypointResolverInterface`, `ColumnSettingsResolverInterface`, `ImageUrlResolverInterface`, `ContentAreaNormalizerInterface`, `BlockJsonNormalizerInterface` |
 | Content and publishing | `ContentManipulatorInterface`, `ContentAreaPublisherInterface`, `UnpublishedChangesProviderInterface`, `LocaleDraftsProviderInterface` |
 | Builder UI | `BuilderActionProviderInterface`, `BuilderShellExtensionInterface`, `BuilderStructureResolverInterface`, `UiIconProviderInterface`, `ColorPaletteProviderInterface` |
-| Storage and assets | `FileStorageInterface`, `AssetInventoryInterface`, `AssetResolverInterface`, `AssetReferenceProviderInterface` |
+| Storage and assets | `FileStorageInterface`, `AssetInventoryInterface`, `AssetResolverInterface`, `AssetReferenceProviderInterface`, `MediaLibraryInterface` |
 | Clipboard, templates, transfer | `BlockSnapshotSerializerInterface`, `SectionTemplateSerializerInterface`, `SectionTemplateInstantiatorInterface`, `ContentAreaExporterInterface`, `ContentAreaImporterInterface`, `ContentAreaTransferExtensionInterface`, `SnapshotExtensionInterface` |
 | Versioning | `ContentVersionUpgraderInterface`, `EnvelopeUpgraderInterface` |
 | Content schema and AI | `FieldSchemaContributorInterface`, `AiProviderInterface`, `AiBriefProviderInterface` |
@@ -38,7 +38,7 @@ These are the extension surface: implement them, alias them, decorate them. Thei
 - **Attributes**: `#[AsContentBlock]`, `#[AsBlockFormExtension]`.
 - **Form types**:
   - `ContentAreaType` and its options (`enable_replace`, `enable_import_export`, `enable_import`, `enable_export`, `enable_public_link`, `topbar_actions`).
-  - `PaletteColorType`, `ImageUploadType`, `VideoUploadType`, as fields for your own blocks.
+  - `PaletteColorType`, `ImageUploadType`, `VideoUploadType`, as fields for your own blocks, with `ImageUploadType`'s `accept` and `cb_alt_field` options.
   - `BlockFormType`, `SectionSettingsType` and `StylingType` as **targets of a form type extension**, with their `TAB_*` and `PANEL_*` constants. The fields they hold are not frozen: a field may move, but a key you add keeps working.
 - **The sidebar form options.** `cb_ai` (and the `data-cb-ai="off"` attribute) on every form type, `cb_group`, `cb_panel`, `cb_help_tooltip` and `cb_panels_exclusive` on every form type; `cb_icons`, `cb_icon_layout`, `cb_icon_columns` and `cb_icon_labels` on `ChoiceType`; `cb_open_entries` on `LiveCollectionType`. Also the **names of the shipped UI icons** they refer to ([Laying out sidebar fields](./sidebar-fields.md)): a name may gain a better drawing, but it is not renamed or removed.
 - **Value objects your implementation builds or reads.** Their public properties and named constructors are frozen:
@@ -92,7 +92,7 @@ For `content-blocks:assets:gc`, the *shape* of the safety design is part of the 
 ### Twig
 
 - **Functions**:
-  - core: `cb_render_content_area`, `cb_preview_url`, `cb_public_url`, `cb_api_base`, `cb_color_palette`, `cb_color_tone`, `cb_color_is_dark`, `cb_css_color`, `cb_image`, `cb_ui_icon`, `cb_shell_fragments`, `cb_has_unpublished_changes`, `cb_content_area_data`, `cb_content_area_json`
+  - core: `cb_render_content_area`, `cb_preview_url`, `cb_public_url`, `cb_api_base`, `cb_color_palette`, `cb_color_tone`, `cb_color_is_dark`, `cb_css_color`, `cb_image`, `cb_ui_icon`, `cb_shell_fragments`, `cb_builder_actions`, `cb_has_unpublished_changes`, `cb_content_area_data`, `cb_content_area_json`
   - kit: `cb_embed_url`, `cb_kit_icon`, `cb_kit_token`, `cb_kit_stylesheet_url`
   - i18n: `cb_i18n_workbench_url`, `cb_i18n_locales`, `cb_i18n_progress`, `cb_i18n_hreflang`, `cb_i18n_alternates`
 - **Filters** (kit): `cb_kit_safe_url`, `cb_kit_rich_html`. A template override of a kit view keeps the same guards by using them.
@@ -110,7 +110,7 @@ For `content-blocks:assets:gc`, the *shape* of the safety design is part of the 
 
   Their targets, values and actions are not frozen, except `data-cb-condition` (see [Host services](./host-services.md)).
 - **Every documented `--cb-*` CSS custom property** (CI fails on an undocumented one): the chrome tokens and form alias layer in [Styling](./styling#theming-the-builder-chrome), the kit's seven content tokens in the [Block Kit](../kit/#the-kits-own-tokens), and the workbench's fifteen in [Translation](./translation#theming-the-workbench).
-- **Eight `cb:*` DOM events**, with the `detail` fields listed in [Builder events](./host-services.md#builder-events). All of them bubble.
+- **Nine `cb:*` DOM events**, with the `detail` fields listed in [Builder events](./host-services.md#builder-events). All of them bubble.
 - **`cb:field:set`**, dispatched (cancelable, `detail.value`) on a field's input before the builder writes an AI proposal into it: a rich-text editor owning that input cancels it and sets its own content ([AI actions](./ai.md#which-fields-get-a-button)).
 
   | Event | Direction | Dispatched on | `detail` |
@@ -122,6 +122,7 @@ For `content-blocks:assets:gc`, the *shape* of the safety design is part of the 
   | `cb:block:rendered` | out | **inside the preview iframe**, on a block's fresh node after an in-place refresh | `blockId` |
   | `cb:area:changed` | in | dispatched by you at the builder after changing the area server-side | `hasUnpublishedChanges` (optional) |
   | `cb:notify` | in | dispatched by you at the builder, to speak in its snackbar | `message`, `link` (optional) |
+  | `cb:media:browse` | out | the upload field, when *Browse library* is clicked; cancelable | `kind`, `accept`, `value`, `pick` |
   | `cb:focus` | in | dispatched by you at the builder, to select a block or a section | `kind`, `id` |
 
   A later version may add fields to a `detail`, but will not remove or rename one.

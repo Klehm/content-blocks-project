@@ -491,6 +491,9 @@ return static function (ContainerConfigurator $container): void {
     $services->set(ContentBlocks\Twig\ShellFragmentsExtension::class)
         ->tag('twig.extension');
 
+    $services->set(ContentBlocks\Twig\BuilderActionsExtension::class)
+        ->tag('twig.extension');
+
     $services->set(ContentBlocks\Twig\HistoryStateExtension::class)
         ->tag('twig.extension');
 

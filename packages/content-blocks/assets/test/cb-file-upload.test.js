@@ -7,10 +7,14 @@ import Controller from '../controllers/cb-file-upload_controller.js';
  * `element` and targets, like the other controller tests in this suite.
  */
 
-function setup({ accept = 'image/*', value = '' } = {}) {
+function setup({ accept = 'image/*', value = '', kind = 'image', altField = null, alt = '' } = {}) {
+    const altAttr = altField ? ` data-cb-alt-field="${altField}"` : '';
     document.body.innerHTML = `
-        <div data-cb-csrf-token="tok-123" data-cb-area-id="42">
-            <div id="root" class="cb-image-upload${value === '' ? ' cb-image-upload--empty' : ''}">
+        <form data-cb-csrf-token="tok-123" data-cb-area-id="42">
+            <input type="text" id="alt" name="block[alt]" value="${alt}">
+            <div id="root" class="cb-image-upload${value === '' ? ' cb-image-upload--empty' : ''}"
+                 data-cb-media-kind="${kind}"${altAttr}
+                 data-i18n-cb-upload-no-library="Aucune bibliothèque">
                 <div id="wrapper" class="cb-image-upload__preview">
                     <img id="preview"${value === '' ? ' hidden' : ` src="${value}"`}>
                     <p class="cb-image-upload__hint">Drop an image here</p>
@@ -22,7 +26,7 @@ function setup({ accept = 'image/*', value = '' } = {}) {
                 <span id="status" class="cb-upload-status"></span>
                 <input type="hidden" id="hidden" value="${value}">
             </div>
-        </div>`;
+        </form>`;
 
     const element = document.getElementById('root');
     const controller = new Controller();
@@ -333,5 +337,102 @@ describe('cb-file-upload', () => {
         expect(global.fetch).toHaveBeenCalledTimes(1);
         expect(document.getElementById('hidden').value).toBe('/uploads/photo.png');
         expect(target.value).toBe('');
+    });
+
+    describe('browse library', () => {
+        function claim(item) {
+            const seen = [];
+            document.addEventListener('cb:media:browse', (event) => {
+                event.preventDefault();
+                seen.push(event.detail);
+                if (item) event.detail.pick(item);
+            }, { once: true });
+
+            return seen;
+        }
+
+        it('asks the library with the kind, accept and current value', () => {
+            const { controller } = setup({ kind: 'video', accept: 'video/mp4', value: '/u/a.mp4' });
+            const seen = claim();
+
+            controller.browse();
+
+            expect(seen).toHaveLength(1);
+            expect(seen[0]).toMatchObject({ kind: 'video', accept: 'video/mp4', value: '/u/a.mp4' });
+            expect(typeof seen[0].pick).toBe('function');
+        });
+
+        it('says so when no library claims the event', () => {
+            const { controller } = setup();
+
+            controller.browse();
+
+            const status = document.getElementById('status');
+            expect(status.textContent).toBe('Aucune bibliothèque');
+            expect(status.className).toContain('cb-upload-status--error');
+        });
+
+        it('writes the picked path through the single writer', () => {
+            const { controller, element } = setup();
+            const changes = vi.fn();
+            document.getElementById('hidden').addEventListener('change', changes);
+            claim({ path: '/uploads/logo.png' });
+
+            controller.browse();
+
+            expect(document.getElementById('hidden').value).toBe('/uploads/logo.png');
+            expect(document.getElementById('preview').getAttribute('src')).toBe('/uploads/logo.png');
+            expect(element.classList.contains('cb-image-upload--empty')).toBe(false);
+            expect(changes).toHaveBeenCalledTimes(1);
+            expect(global.fetch).toBeUndefined();
+        });
+
+        it('stores a same-origin absolute URL as its path', () => {
+            const { controller } = setup();
+            claim({ path: `${window.location.origin}/uploads/logo.png` });
+
+            controller.browse();
+
+            expect(document.getElementById('hidden').value).toBe('/uploads/logo.png');
+        });
+
+        it('ignores a pick without a path', () => {
+            const { controller } = setup({ value: '/uploads/a.png' });
+
+            controller.pick({ path: '  ' });
+            controller.pick({});
+            controller.pick(null);
+
+            expect(document.getElementById('hidden').value).toBe('/uploads/a.png');
+        });
+
+        it('fills an empty alt field and notifies its listeners', () => {
+            const { controller } = setup({ altField: 'block[alt]' });
+            const alt = document.getElementById('alt');
+            const events = [];
+            alt.addEventListener('input', () => events.push('input'));
+            alt.addEventListener('change', () => events.push('change'));
+
+            controller.pick({ path: '/uploads/logo.png', alt: 'Our logo' });
+
+            expect(alt.value).toBe('Our logo');
+            expect(events).toEqual(['input', 'change']);
+        });
+
+        it('never overwrites an alt the editor wrote', () => {
+            const { controller } = setup({ altField: 'block[alt]', alt: 'Mine' });
+
+            controller.pick({ path: '/uploads/logo.png', alt: 'Our logo' });
+
+            expect(document.getElementById('alt').value).toBe('Mine');
+        });
+
+        it('leaves the alt alone on a field without cb_alt_field', () => {
+            const { controller } = setup();
+
+            controller.pick({ path: '/uploads/logo.png', alt: 'Our logo' });
+
+            expect(document.getElementById('alt').value).toBe('');
+        });
     });
 });

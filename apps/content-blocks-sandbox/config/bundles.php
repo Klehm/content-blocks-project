@@ -12,5 +12,6 @@ return [
     ContentBlocks\ContentBlocksBundle::class => ['all' => true],
     ContentBlocks\Kit\ContentBlocksKitBundle::class => ['all' => true],
     ContentBlocks\I18n\ContentBlocksI18nBundle::class => ['all' => true],
+    ContentBlocks\Media\ContentBlocksMediaBundle::class => ['all' => true],
     ContentBlocks\Seo\ContentBlocksSeoBundle::class => ['all' => true],
 ];

@@ -180,6 +180,11 @@ return static function (ContainerConfigurator $container): void {
         ->autoconfigure(false)
         ->arg('$publicLinks', param('content_blocks_i18n.workbench.public_links'))
         ->tag('controller.service_arguments');
+    // Core 1.6 seam, gated until the core floor moves to ^1.6.
+    if (interface_exists(ContentBlocks\Storage\MediaLibraryInterface::class)) {
+        $services->get(WorkbenchPageController::class)
+            ->arg('$mediaLibrary', service(ContentBlocks\Storage\MediaLibraryInterface::class)->nullOnInvalid());
+    }
 
     // ---------- Assets ----------
 

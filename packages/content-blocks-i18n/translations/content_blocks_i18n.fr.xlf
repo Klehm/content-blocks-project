@@ -150,6 +150,14 @@
                 <source>cb_i18n.workbench.media_choose</source>
                 <target>Remplacer pour cette langue</target>
             </trans-unit>
+            <trans-unit id="workbench.media_browse">
+                <source>cb_i18n.workbench.media_browse</source>
+                <target>Choisir dans la bibliothèque</target>
+            </trans-unit>
+            <trans-unit id="workbench.media_no_library">
+                <source>cb_i18n.workbench.media_no_library</source>
+                <target>Aucune bibliothèque de médias n'a répondu</target>
+            </trans-unit>
             <trans-unit id="workbench.media_drop">
                 <source>cb_i18n.workbench.media_drop</source>
                 <target>ou déposez un fichier ici</target>

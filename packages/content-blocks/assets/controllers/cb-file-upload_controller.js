@@ -86,6 +86,54 @@ export default class extends Controller {
         await this._upload(file);
     }
 
+    /**
+     * Asks whatever library listens to open its dialog. A listener claims the
+     * event with preventDefault(); unclaimed, the editor is told so.
+     * @see docs/guide/media-library.md#the-browse-event
+     */
+    browse() {
+        const event = new CustomEvent('cb:media:browse', {
+            bubbles: true,
+            cancelable: true,
+            detail: {
+                kind: this.element.dataset.cbMediaKind || 'image',
+                accept: (this.hasFileTarget ? this.fileTarget.getAttribute('accept') : '') || '',
+                value: this._value(),
+                pick: (item) => this.pick(item),
+            },
+        });
+        this.element.dispatchEvent(event);
+
+        if (!event.defaultPrevented) {
+            this._setStatus('error', this._t('cb.upload.no_library', 'No media library answered'));
+        }
+    }
+
+    /** What the library hands back: `{path, alt?}`. */
+    pick(item) {
+        const path = this._normalizePath(typeof item?.path === 'string' ? item.path : '');
+        if (path === '') return;
+
+        this._setValue(path);
+        this._setStatus('idle');
+        this._prefillAlt(item.alt);
+    }
+
+    /** Never over an alt the editor wrote: the library's is only a default. */
+    _prefillAlt(alt) {
+        const name = this.element.dataset.cbAltField;
+        if (!name || typeof alt !== 'string' || alt.trim() === '') return;
+
+        const field = this.element.closest('form')?.elements.namedItem(name)
+            ?? document.getElementsByName(name)[0];
+        if (!field || typeof field.value !== 'string' || field.value.trim() !== '') return;
+
+        field.value = alt;
+        // Live and autosave both listen; a programmatic `.value =` tells none.
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
     /** Clears the reference. The stored file is untouched. */
     remove() {
         this._setValue('');

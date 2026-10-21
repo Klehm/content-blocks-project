@@ -67,7 +67,9 @@
             {% set transferLabel = not hasImport ? 'cb.builder.transfer.tab_export'
                 : not hasExport ? 'cb.builder.transfer.tab_import'
                 : 'cb.builder.import_export.open' %}
-            {% set actions = topbarActions|default([]) %}
+            {# Merged here too, so providers show when a host includes the
+               launcher directly; ContentAreaType's are deduplicated by key. #}
+            {% set actions = cb_builder_actions(area, topbarActions|default([])) %}
             {% if hasReplace or hasImportExport or actions is not empty %}
                 <div class="cb-shell__actions" data-cb-builder-target="actionsMenu">
                     <button type="button"

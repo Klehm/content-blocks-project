@@ -588,7 +588,10 @@
          data-i18n-cb-upload-uploading="{{ 'cb.upload.uploading'|trans({}, 'content_blocks') }}"
          data-i18n-cb-upload-failed="{{ 'cb.upload.failed'|trans({}, 'content_blocks') }}"
          data-i18n-cb-upload-network-error="{{ 'cb.upload.network_error'|trans({}, 'content_blocks') }}"
-         data-i18n-cb-upload-rejected="{{ 'cb.upload.rejected'|trans({}, 'content_blocks') }}">
+         data-i18n-cb-upload-rejected="{{ 'cb.upload.rejected'|trans({}, 'content_blocks') }}"
+         data-i18n-cb-upload-no-library="{{ 'cb.upload.no_library'|trans({}, 'content_blocks') }}"
+         data-cb-media-kind="{{ preview_kind|default('image') }}"
+         {%- if alt_field|default(null) %} data-cb-alt-field="{{ alt_field }}"{% endif %}>
 
         {# The frame is the affordance once there is an image, so the hint
            only shows on an empty field or mid-drag. #}
@@ -621,6 +624,12 @@
                        data-cb-file-upload-target="file"
                        data-action="change->cb-file-upload#upload:stop">
             </label>
+            {# Only with a MediaLibraryInterface: docs/guide/media-library.md #}
+            {% if media_library|default(false) %}
+                <button type="button"
+                        class="cb-form-btn cb-form-btn--sm cb-image-upload__browse"
+                        data-action="cb-file-upload#browse">{{ 'cb.upload.browse'|trans({}, 'content_blocks') }}</button>
+            {% endif %}
             {# Server-side too: a Live morph would otherwise bring it back
                on an empty field. #}
             <button type="button"

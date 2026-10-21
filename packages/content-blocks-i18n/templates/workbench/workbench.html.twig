@@ -18,7 +18,7 @@
 {% endmacro %}
 {# An image or video row: thumbnails instead of text, an upload instead of a
    text box. See docs/internals/i18n.md#localized-media #}
-{% macro media_row(field) %}
+{% macro media_row(field, mediaKinds) %}
     {% trans_default_domain 'content_blocks_i18n' %}
     <div class="cb-wb__source">
         <span class="cb-wb__label">
@@ -38,6 +38,9 @@
                 <input type="file" class="cb-wb__sr" data-target="mediaFile"
                        accept="{{ field.widget == 'video' ? 'video/mp4,video/webm,video/ogg' : 'image/*' }}">
             </label>
+            {% if (field.widget == 'video' ? 'video' : 'image') in mediaKinds|default([]) %}
+                <button type="button" class="cb-wb__btn cb-wb__media-browse" data-act="browse" data-kind="{{ field.widget == 'video' ? 'video' : 'image' }}">{{ 'cb_i18n.workbench.media_browse'|trans }}</button>
+            {% endif %}
             <p class="cb-wb__media-hint">{{ 'cb_i18n.workbench.media_drop'|trans }}</p>
         </div>
         <input type="hidden" data-target="input" value="{{ field.value }}">
@@ -85,6 +88,7 @@
      data-i18n-source-unpublished="{{ 'cb_i18n.workbench.source_unpublished'|trans }}"
      data-i18n-publish-failed="{{ 'cb_i18n.workbench.publish_failed'|trans }}"
      data-i18n-upload-failed="{{ 'cb_i18n.workbench.upload_failed'|trans }}"
+     data-i18n-media-no-library="{{ 'cb_i18n.workbench.media_no_library'|trans }}"
      data-i18n-translate-all-confirm="{{ 'cb_i18n.workbench.translate_all_confirm'|trans }}">
 
     <header class="cb-wb__topbar">
@@ -241,7 +245,7 @@
                              data-path="{{ field.path }}"
                              {% if field.media ?? false %}data-media="{{ field.widget }}"{% endif %}>
                             {% if field.media ?? false %}
-                                {{ _self.media_row(field) }}
+                                {{ _self.media_row(field, mediaKinds|default([])) }}
                             {% else %}
 
                             <div class="cb-wb__source">
@@ -295,6 +299,14 @@
     </main>
 
     <div class="cb-wb__toast" data-target="toast" role="status" aria-live="polite" hidden></div>
+
+    {# Builder fragments that stand alone, such as the media picker: they read
+       nothing off the builder shell. See docs/internals/i18n.md#localized-media #}
+    {% for fragment in cb_shell_fragments(area) %}
+        {% if fragment.standalone ?? false %}
+            {{ include(fragment.template, fragment.context|merge({ area: area }), with_context = false) }}
+        {% endif %}
+    {% endfor %}
 
     {% block cb_wb_end %}{% endblock %}
 </div>

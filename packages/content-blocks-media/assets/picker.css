@@ -1,0 +1,509 @@
+/* The media picker. Reads the builder's tokens, with a fallback for each, so
+   it renders the same in a page that does not load the builder's CSS. */
+
+.cb-media {
+  width: min(960px, calc(100vw - 32px));
+  height: min(720px, calc(100vh - 32px));
+  padding: 0;
+  border: 0;
+  border-radius: var(--cb-radius, 8px);
+  background: var(--cb-panel, #fff);
+  color: var(--cb-text, #1b2531);
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.cb-media::backdrop {
+  background: rgb(15 23 32 / 45%);
+}
+
+.cb-media__frame {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin: 0;
+}
+
+.cb-media__header,
+.cb-media__footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.cb-media__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cb-media__search {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--cb-line-strong, #d8e1e9);
+  border-radius: var(--cb-radius-sm, 6px);
+  background: var(--cb-panel, #fff);
+  color: inherit;
+  font: inherit;
+}
+
+.cb-media__search:focus-visible,
+.cb-media__field input:focus-visible,
+.cb-media__field textarea:focus-visible,
+.cb-media__field select:focus-visible,
+.cb-media__link:focus-visible,
+.cb-media__item:focus-visible,
+.cb-media__folder:focus-visible,
+.cb-media__btn:focus-visible {
+  outline: 2px solid var(--cb-accent, #0e7490);
+  outline-offset: 1px;
+}
+
+.cb-media__close {
+  padding: 2px 8px;
+  border: 0;
+  background: none;
+  color: var(--cb-muted, #5d6a78);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cb-media__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 20px 8px;
+}
+
+.cb-media__trail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  color: var(--cb-muted, #5d6a78);
+  font-size: 13px;
+}
+
+.cb-media__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cb-accent, #0e7490);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.cb-media__link[hidden] {
+  display: none;
+}
+
+.cb-media__link--danger {
+  align-self: flex-start;
+  color: var(--cb-danger, #d83a3a);
+}
+
+.cb-media__crumb + .cb-media__crumb::before {
+  content: "/";
+  margin-right: 4px;
+  opacity: 0.6;
+}
+
+button.cb-media__crumb {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cb-accent, #0e7490);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cb-media__notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 20px 8px;
+  padding: 8px 8px 8px 12px;
+  border-radius: var(--cb-radius-sm, 6px);
+  background: var(--cb-accent-bg, #e6f2f6);
+  color: var(--cb-text, #1b2531);
+  font-size: 13px;
+}
+
+.cb-media__notice[hidden] {
+  display: none;
+}
+
+.cb-media__notice span {
+  flex: 1;
+}
+
+.cb-media__notice--error {
+  background: rgb(var(--cb-danger-rgb, 216, 58, 58) / 10%);
+  color: var(--cb-danger-strong, #b32f2f);
+}
+
+.cb-media__notice-close {
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cb-media__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  background: var(--cb-surface, #f6f8fa);
+}
+
+.cb-media__main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 4px 20px 16px;
+  outline: 2px dashed transparent;
+  outline-offset: -8px;
+}
+
+/* Files dragged in from the desktop. */
+.cb-media__main--drop {
+  outline-color: var(--cb-accent, #0e7490);
+  background: var(--cb-accent-bg, #e6f2f6);
+}
+
+/* While files are dragged: where they can go, and what is leaving. */
+.cb-media--dragging .cb-media__folder-row,
+.cb-media--dragging button.cb-media__crumb {
+  outline: 1px dashed var(--cb-accent, #0e7490);
+  outline-offset: 2px;
+}
+
+.cb-media__item--dragged {
+  opacity: 0.4;
+}
+
+/* The folder a drop would land in. */
+.cb-media__folder-row,
+button.cb-media__crumb {
+  transition: background-color 0.12s, transform 0.12s;
+}
+
+.cb-media__folder-row.cb-media__drop-target,
+button.cb-media__crumb.cb-media__drop-target {
+  outline: 2px solid var(--cb-accent, #0e7490);
+  background: var(--cb-accent, #0e7490);
+  color: var(--cb-on-solid, #fff);
+  transform: scale(1.04);
+}
+
+.cb-media__drop-target .cb-media__folder,
+.cb-media__drop-target .cb-media__folder::before,
+.cb-media__drop-target .cb-media__folder-act {
+  background: transparent;
+  color: inherit;
+  opacity: 1;
+}
+
+button.cb-media__crumb.cb-media__drop-target {
+  padding: 0 6px;
+  border-radius: var(--cb-radius-xs, 4px);
+}
+
+/* Off screen; the browser snapshots it as the drag image. */
+.cb-media__drag-ghost {
+  position: fixed;
+  top: -200px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 240px;
+  padding: 6px 10px 6px 6px;
+  border-radius: var(--cb-radius-sm, 6px);
+  background: var(--cb-accent, #0e7490);
+  color: var(--cb-on-solid, #fff);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.cb-media__drag-ghost img {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--cb-radius-xs, 4px);
+  object-fit: cover;
+}
+
+.cb-media__drag-ghost span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cb-media__detail--many .cb-media__field--single,
+.cb-media__detail--many .cb-media__usage,
+.cb-media__detail--many .cb-media__preview {
+  display: none;
+}
+
+.cb-media__detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 280px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+  background: var(--cb-panel, #fff);
+}
+
+.cb-media__detail[hidden] {
+  display: none;
+}
+
+.cb-media__preview img,
+.cb-media__preview video {
+  display: block;
+  max-width: 100%;
+  max-height: 180px;
+  margin: 0 auto;
+  border-radius: var(--cb-radius-xs, 4px);
+}
+
+.cb-media__facts {
+  margin: 0;
+  color: var(--cb-muted, #5d6a78);
+  font-size: 12px;
+}
+
+.cb-media__field,
+.cb-media__usage {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.cb-media__field > span,
+.cb-media__usage > span {
+  color: var(--cb-muted, #5d6a78);
+  font-size: 12px;
+}
+
+.cb-media__field input,
+.cb-media__field textarea,
+.cb-media__field select {
+  padding: 6px 8px;
+  border: 1px solid var(--cb-line-strong, #d8e1e9);
+  border-radius: var(--cb-radius-sm, 6px);
+  background: var(--cb-panel, #fff);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+
+.cb-media__field input[readonly],
+.cb-media__field textarea[readonly] {
+  border-color: transparent;
+  padding-left: 0;
+  resize: none;
+}
+
+.cb-media__usage ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cb-media__usage a {
+  color: var(--cb-accent, #0e7490);
+}
+
+.cb-media__muted {
+  color: var(--cb-muted, #5d6a78);
+}
+
+.cb-media__folders,
+.cb-media__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cb-media__folders[hidden] {
+  display: none;
+}
+
+.cb-media__folder-row {
+  display: flex;
+  align-items: center;
+  border-radius: var(--cb-radius-sm, 6px);
+  background: var(--cb-panel, #fff);
+}
+
+.cb-media__folder-act {
+  padding: 4px 8px;
+  border: 0;
+  background: none;
+  color: var(--cb-muted, #5d6a78);
+  font: inherit;
+  cursor: pointer;
+  opacity: 0.45;
+}
+
+.cb-media__folder-row:hover .cb-media__folder-act,
+.cb-media__folder-act:focus-visible {
+  opacity: 1;
+}
+
+.cb-media__folder {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--cb-radius-sm, 6px);
+  background: var(--cb-panel, #fff);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cb-media__folder::before {
+  content: "▸ ";
+  color: var(--cb-muted, #5d6a78);
+}
+
+.cb-media__item {
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 6px;
+  border: 0;
+  border-radius: var(--cb-radius-sm, 6px);
+  background: var(--cb-panel, #fff);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cb-media__item[aria-pressed="true"] {
+  outline: 2px solid var(--cb-accent, #0e7490);
+  outline-offset: 0;
+}
+
+.cb-media__thumb {
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: var(--cb-radius-xs, 4px);
+  background: var(--cb-surface, #f6f8fa);
+}
+
+.cb-media__thumb img,
+.cb-media__thumb video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.cb-media__name {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cb-media__status {
+  margin: 16px 0 0;
+  color: var(--cb-muted, #5d6a78);
+}
+
+.cb-media__status:empty {
+  display: none;
+}
+
+.cb-media__sentinel {
+  height: 1px;
+}
+
+.cb-media__more {
+  display: block;
+  margin: 16px auto 0;
+}
+
+.cb-media__selection {
+  flex: 1;
+  margin: 0;
+  overflow: hidden;
+  color: var(--cb-muted, #5d6a78);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cb-media__btn {
+  position: relative;
+  padding: 7px 14px;
+  border: 0;
+  border-radius: var(--cb-radius-sm, 6px);
+  background: var(--cb-surface, #f6f8fa);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.cb-media__btn--primary {
+  background: var(--cb-accent, #0e7490);
+  color: var(--cb-on-solid, #fff);
+}
+
+.cb-media__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.cb-media__btn[hidden] {
+  display: none;
+}
+
+/* Inside its label: the click, the focus and the name with no JS. */
+.cb-media__file {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+@media (max-width: 540px) {
+  .cb-media__header {
+    flex-wrap: wrap;
+  }
+
+  .cb-media__folders,
+  .cb-media__grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  }
+
+  .cb-media--detail .cb-media__body {
+    flex-direction: column;
+  }
+
+  .cb-media__detail {
+    width: auto;
+  }
+}

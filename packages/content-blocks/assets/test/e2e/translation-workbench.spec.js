@@ -403,3 +403,42 @@ test('an image is replaced for one language and served in its locale', async ({ 
     await expect(viewer.locator('.cb-kit-image__img')).toHaveAttribute('src', new RegExp(sourcePath.slice(1)));
     await viewer.close();
 });
+
+/** The media library's picker stands alone, so the workbench renders it too. */
+test('an image is picked from the media library for one language', async ({ page }) => {
+    await page.goto(await createFreshPage(page));
+    await launchBuilder(page);
+    const frame = page.frameLocator('.cb-shell__iframe');
+    await frame.locator('.cb-add-section-tray__btn[data-cb-add-section="full"]').click();
+    await expect.poll(() => frame.locator('[data-cb-section-id]').count()).toBe(1);
+    await page.waitForTimeout(300);
+    await frame.locator('.cb-add-block-inline').first().click();
+    await frame.locator('.cb-overlay-popover button', { hasText: /^Image$/ }).click();
+    await expect.poll(() => frame.locator('[data-cb-block-id]').count()).toBe(1);
+
+    const widget = page.locator('aside[data-cb-builder-target="sidebar"] .cb-image-upload').first();
+    await widget.locator('.cb-image-upload__file').setInputFiles(png('fr.png'));
+    await expect(widget.locator('input[type=hidden]')).toHaveValue(/^\/uploads\/.+\.png$/);
+    const sourcePath = await widget.locator('input[type=hidden]').inputValue();
+    await expect.poll(() => frame.locator('.cb-kit-image__img').count(), { timeout: 10000 }).toBe(1);
+
+    const workbench = await openWorkbench(page);
+    const row = workbench.locator('.cb-wb__row[data-media="image"]');
+    await row.locator('[data-act="browse"]').click();
+
+    const dialog = workbench.locator('dialog.cb-media');
+    await expect(dialog).toBeVisible();
+    const name = `en-library-${Date.now()}`;
+    await dialog.locator('[data-cb-media-file]').setInputFiles(png(`${name}.png`));
+    await expect(dialog.locator('.cb-media__item', { hasText: name })).toHaveAttribute('aria-pressed', 'true');
+
+    const saved = workbench.waitForResponse((r) => r.request().method() === 'POST' && /\/block\/\d+\/en$/.test(r.url()));
+    await dialog.locator('[data-cb-media-insert]').click();
+    await expect(dialog).toBeHidden();
+    expect((await saved).ok()).toBe(true);
+
+    await expect(row).toHaveAttribute('data-status', 'translated');
+    const localizedPath = await row.locator('[data-target="input"]').inputValue();
+    expect(localizedPath).toMatch(/^\/uploads\/.+\.png$/);
+    expect(localizedPath).not.toBe(sourcePath);
+});

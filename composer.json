@@ -27,6 +27,13 @@
         },
         {
             "type": "path",
+            "url": "packages/content-blocks-media",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
             "url": "packages/content-blocks-seo",
             "options": {
                 "symlink": true
@@ -38,6 +45,7 @@
         "klehm/content-blocks": "@dev",
         "klehm/content-blocks-kit": "@dev",
         "klehm/content-blocks-i18n": "@dev",
+        "klehm/content-blocks-media": "@dev",
         "klehm/content-blocks-seo": "@dev"
     },
     "minimum-stability": "dev",

@@ -320,6 +320,16 @@ cb:
         failed: "L'envoi a échoué"
         network_error: "Erreur réseau"
         rejected: "Type de fichier non pris en charge"
+        browse: "Parcourir la bibliothèque"
+        no_library: "Aucune bibliothèque de médias n'a répondu"
+        error:
+            csrf: "Votre session a changé : rechargez la page, puis réessayez."
+            area_not_found: "La page à laquelle ce fichier est destiné est introuvable."
+            no_file: "Aucun fichier n'a été reçu."
+            too_large: "« %name% » dépasse les %max% Mo autorisés."
+            too_large_unnamed: "Le fichier dépasse les %max% Mo autorisés."
+            type_not_allowed: "« %name% » n'est pas un type de fichier accepté (%type%)."
+            failed: "« %name% » n'a pas pu être envoyé."
     form:
         more_info: "En savoir plus"
     ai:

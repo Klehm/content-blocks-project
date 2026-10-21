@@ -64,7 +64,9 @@ up() {
     local router=()
     [ -f "$app/public/router.php" ] && router=("$app/public/router.php")
     mkdir -p "$app/var"
-    nohup php -S "127.0.0.1:$port" -t "$app/public" "${router[@]}" \
+    # PHP's 2M default would refuse uploads the package accepts (10M).
+    nohup php -d upload_max_filesize=12M -d post_max_size=16M \
+        -S "127.0.0.1:$port" -t "$app/public" "${router[@]}" \
         > "$logfile" 2>&1 &
     echo $! > "$pidfile"
     sleep 1

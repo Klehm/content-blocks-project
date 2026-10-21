@@ -44,22 +44,9 @@ heading of the page, indented by level.
 
 ## Opening the panel
 
-The package adds an **SEO audit** entry to the builder's Actions menu.
-
-If you mount the builder with `ContentAreaType`, there is nothing to do. If you
-include `@ContentBlocks/builder/launcher.html.twig` directly, bundle actions are
-not collected for you: add the entry to your own `topbarActions`, with the key
-the panel listens for.
-
-```twig
-{% include '@ContentBlocks/builder/launcher.html.twig' with {
-    area: page.contentArea,
-    iframeUrl: cb_preview_url(page.contentArea),
-    topbarActions: [
-        { key: 'content-blocks-seo.audit', label: 'app.builder.seo_audit' },
-    ],
-} only %}
-```
+The package adds an **SEO audit** entry to the builder's Actions menu. There is
+nothing to wire: the builder collects it whether you mount it with
+`ContentAreaType` or include `launcher.html.twig` directly.
 
 ## Routes
 

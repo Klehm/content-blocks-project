@@ -3,7 +3,5 @@
   <bg=blue;fg=white>                                     </>
 
   * The builder's Actions menu now has an <fg=blue>SEO audit</> entry.
-    Including launcher.html.twig directly? Add the entry to your topbarActions:
-    <comment>{ key: 'content-blocks-seo.audit', label: 'SEO audit' }</comment>
 
   * Full docs: <href=https://klehm.github.io/content-blocks-project/guide/seo>SEO audit guide</>
