@@ -69,6 +69,19 @@ final class GeneratedContentWriterTest extends TestCase
         $this->assertSame([['blockType' => 'gen', 'droppedFields' => ['size']]], $result->droppedFields);
     }
 
+    public function testAFieldOfTheWrongShapeCostsTheFieldNotThePage(): void
+    {
+        // Found with a real model: a list written as strings, not objects.
+        $result = $this->writer()->write(new ContentArea(), ['sections' => [
+            self::section([['type' => 'gen', 'data' => ['title' => 'Kept', 'size' => ['lg']]]]),
+        ]]);
+
+        $data = self::blocksOf($result->sections[0])[0]->getDraftData();
+        $this->assertSame('Kept', $data['title']);
+        $this->assertSame('sm', $data['size']);
+        $this->assertSame([['blockType' => 'gen', 'droppedFields' => ['size']]], $result->droppedFields);
+    }
+
     public function testAnUnknownBlockTypeIsSkippedAndReported(): void
     {
         $result = $this->writer()->write(new ContentArea(), ['sections' => [

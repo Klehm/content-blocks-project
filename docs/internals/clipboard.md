@@ -106,6 +106,18 @@ payload is tried first, and a per-field retry isolates the offender. The
 drop-and-resubmit loop is bounded only so a pathological type cannot spin; each
 pass removes at least one field.
 
+## A value of the wrong shape
+
+A forged clipboard entry or a language model can put a list where a string goes, a string where an object goes, or strings where a collection's entries are objects (found by the first test with a real model: a `list` block's `items` as plain strings). Symfony does not refuse these as validation errors. Building the form with such data throws `UnexpectedTypeException`, and a list in a single-value choice is an `Array to string conversion` warning, which the debug error handler turns into a 500.
+
+So, before anything reaches a form, `BlockDataReplayer::fits()` checks each top-level value against its field's shape:
+- a choice takes a list exactly when it is `multiple`;
+- a collection takes a list whose items fit its entry form, built alone;
+- a compound field takes an object whose known keys fit, unless it maps its own data (`PaletteColorType` stores one string from two children), in which case only it can judge;
+- a scalar field takes no array.
+
+A value that does not fit is dropped and reported, like any refused field. The per-field pass also catches every form exception, not only `TransformationFailedException`, for whatever shape `fits()` lets through. `CollectionIdBackfiller`, which builds the form only to find the collections, falls back to the type's defaults when the payload cannot build it.
+
 ## Which keys a block type can hold
 
 `BlockDataKeys` answers that for both restore paths, and the answer is the

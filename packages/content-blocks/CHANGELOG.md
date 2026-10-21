@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A value of the wrong shape no longer fails a whole paste.** A list where a
+  string goes, a string where an object goes, or collection entries written
+  as strings (a forged clipboard entry, or a language model) used to end in a
+  500 from deep inside the form component. The replay now drops that one field
+  and reports it, like any refused value.
+
 ### Added
 
 - **Headless rendering.** `ContentAreaNormalizerInterface` renders an area as
