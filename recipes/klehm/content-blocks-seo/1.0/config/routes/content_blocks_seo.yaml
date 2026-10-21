@@ -1,0 +1,5 @@
+# The SEO panel's stylesheet and scripts, under /_content-blocks/seo. To mount
+# them under your admin prefix instead, import
+# '@ContentBlocksSeoBundle/config/routes/bare.php' with a `prefix:`.
+content_blocks_seo:
+    resource: '@ContentBlocksSeoBundle/config/routes.php'

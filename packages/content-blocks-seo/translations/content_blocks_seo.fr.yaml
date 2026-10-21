@@ -1,0 +1,39 @@
+cb_seo:
+    action: Audit SEO
+    title: Audit SEO
+    rerun: Vérifier à nouveau
+    close: Fermer
+    status:
+        running: Vérification de la page…
+        failed: La page n'a pas pu être lue. Rechargez le builder et réessayez.
+        none: Aucun problème trouvé.
+        errors_one: '{count} erreur'
+        errors_other: '{count} erreurs'
+        warnings_one: '{count} avertissement'
+        warnings_other: '{count} avertissements'
+    scope:
+        page: Gabarit de la page
+        area: Cette zone de contenu
+    outline:
+        title: Plan des titres
+        untitled: (titre vide)
+    check:
+        heading_h1_missing: La page n'a pas de titre h1.
+        heading_h1_multiple: Un deuxième titre h1.
+        heading_level_skipped: 'Niveau de titre sauté : h{from} puis h{to}.'
+        heading_empty: Titre vide.
+        image_alt_missing: Image sans attribut alt.
+        image_alt_empty: Image sans texte alternatif.
+        link_text_empty: Lien sans texte.
+        link_text_generic: 'Texte de lien vague : « {text} ».'
+        paragraph_too_long: 'Paragraphe long : {words} mots.'
+    hint:
+        heading_h1_missing: Donnez à la page un titre principal en h1, dans un bloc titre ou dans le gabarit de la page.
+        heading_h1_multiple: Gardez un seul h1 par page. Passez la balise de ce titre en h2 ; sa taille visuelle peut rester.
+        heading_level_skipped: Utilisez h{next} ici, ou modifiez le titre au-dessus. La taille visuelle se règle à part de la balise.
+        heading_empty: Donnez-lui un texte, ou supprimez-le.
+        image_alt_missing: Décrivez l'image dans son texte alternatif.
+        image_alt_empty: Ne le laissez vide que pour une image purement décorative.
+        link_text_empty: Ni les moteurs de recherche ni les lecteurs d'écran ne savent où il mène. Donnez-lui un texte.
+        link_text_generic: Dites où mène le lien, par exemple « Voir nos tarifs ».
+        paragraph_too_long: Coupez-le sous les {max} mots. Un long bloc de texte se survole, il ne se lit pas.

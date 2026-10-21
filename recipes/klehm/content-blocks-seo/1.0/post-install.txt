@@ -1,0 +1,7 @@
+  <bg=blue;fg=white>                                     </>
+  <bg=blue;fg=white> ContentBlocks SEO audit is installed </>
+  <bg=blue;fg=white>                                     </>
+
+  * The builder's Actions menu now has an <fg=blue>SEO audit</> entry.
+
+  * Full docs: <href=https://klehm.github.io/content-blocks-project/guide/seo>SEO audit guide</>

@@ -19,6 +19,7 @@ ContentBlocks is the core package for the Symfony page builder: entities, admin 
 ```bash
 composer require klehm/content-blocks klehm/content-blocks-kit
 composer require klehm/content-blocks-i18n   # optional: translated content
+composer require klehm/content-blocks-seo    # optional: SEO audit in the builder
 ```
 
 ## With the Flex recipe (recommended)

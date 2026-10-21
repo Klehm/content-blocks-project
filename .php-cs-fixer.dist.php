@@ -16,6 +16,8 @@ $finder = PhpCsFixer\Finder::create()
         __DIR__.'/packages/content-blocks-i18n/tests',
         __DIR__.'/packages/content-blocks-media/src',
         __DIR__.'/packages/content-blocks-media/tests',
+        __DIR__.'/packages/content-blocks-seo/src',
+        __DIR__.'/packages/content-blocks-seo/tests',
     ]);
 
 return (new PhpCsFixer\Config())
