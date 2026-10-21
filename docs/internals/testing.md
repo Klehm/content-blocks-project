@@ -18,7 +18,64 @@ seeing it. That sandbox therefore puts `symfony/asset-mapper` in its Composer
 
 See [bundle-boot.md](bundle-boot.md#the-assetmapper-prepend) for the bug itself.
 
-## The fixture server needs two things PHP does not do by default
+## The fixture server
+
+Two servers, picked by `E2E_SERVER` in `playwright.server.js`, which both
+Playwright configs share:
+
+- **`php -S`**, the default, so a local run needs nothing installed.
+- **php-fpm behind Caddy** (`E2E_SERVER=fpm`, `scripts/e2e-server.sh`), which
+  is what CI runs.
+
+### Why CI does not run `php -S`
+
+`php -S` segfaulted now and then on CI (see the restart loop below): three
+Playwright jobs out of ninety-six over two days, on block creation, the page
+list and a Live Component alike, so not one route's bug. Each crash takes the
+requests in flight with it, and two crashes a minute apart failed four specs
+through both retries on the PostgreSQL leg of #92. It never reproduced locally.
+php-fpm is built for that load, and a worker that dies takes its own request
+with it, not the server.
+
+**The crash is not `php -S`'s, and fpm runs without the JIT.** The first CI run
+under fpm (#95) segfaulted 436 workers on the PostgreSQL leg, 414 of them on
+`POST /column/{id}/blocks`, the route most of the `php -S` crashes were on too;
+the MySQL legs had none. The next runs of the same commit were clean. What
+separated them was the runner image: every crash seen, under either server, ran
+on `ubuntu-24.04` image `20261012.601` (5 jobs of 61, 4 of them PostgreSQL),
+none on `20261015.610` (0 of 42). PHP (8.3.35) and libpq (18.6) were the same
+on both, and it never reproduced locally (PHP 8.3.33, libpq 16.9), JIT or not.
+The difference between the servers is the JIT: setup-php's `ini-file:
+production` turns it on (`opcache.jit=1235`) for fpm, while `php -S` is the CLI
+SAPI and runs with opcache off. Without the JIT that image crashed rarely; with
+it, block creation crashed almost every time once its code was compiled. So the
+script passes `-d opcache.jit=disable`: the conditions `php -S` ran under, with
+a server that survives a dead worker. No core dump could be captured; a crash
+under the newer image would reopen this.
+
+Not FrankenPHP: its binary embeds its own PHP (8.4 today), so a job testing
+PHP 8.3 would have served its pages from 8.4. The script starts the php-fpm of
+the CLI's own version, with the CLI's `php.ini` and `conf.d`, so the browser
+suite runs the exact PHP and extensions the job installed. Caddy is the
+`caddy` binary if there is one, else FrankenPHP's embedded Caddy, whose PHP is
+never used. Caddy's `php_fastcgi` sends a missing file to `index.php`, which
+does what the router script below does for `php -S`.
+
+Three traps the script handles, all met while writing it:
+
+- **php-fpm starts a session of its own** (`setsid`). Playwright stops the
+  server by killing its process group, which misses fpm. A watchdog, itself
+  started with `setsid`, polls the script and stops fpm once it is gone; the
+  `EXIT` trap covers only a clean exit.
+- **fpm must not inherit Playwright's pipe.** A surviving process holding it
+  open keeps Playwright waiting forever after the last test. fpm's stdio goes
+  to its log file.
+- **fpm cannot log to `/proc/self/fd/2`** when stderr is a pipe: it logs to a
+  file that `tail -F` relays. `clear_env = no` lets `SANDBOX_SUFFIX` (and a
+  CI `DATABASE_URL`) reach the application, which `php -S` does not: it reads
+  `DATABASE_URL` from `.env.local`, not from the environment.
+
+### What `php -S` needs that PHP does not do by default
 
 **`PHP_CLI_SERVER_WORKERS`.** PHP's built-in server is single-process, so under
 Playwright's parallel workers it serializes every request — and the preview
@@ -36,6 +93,8 @@ controller and no image variant is ever generated. nginx and Apache do not need
 it.
 
 ### Why the server runs under a restart loop
+
+The loop still wraps both servers; it is `php -S` that needed it.
 
 CI has caught a `Segmentation fault (core dumped)` from `php -S` mid-suite, after
 which every remaining spec failed with `ECONNREFUSED` — thirty-odd red tests from
