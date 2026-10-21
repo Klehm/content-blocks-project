@@ -1,0 +1,62 @@
+{
+    "manifests": {
+        "klehm/content-blocks-kit": {
+            "manifest": {
+                "bundles": {
+                    "ContentBlocks\\Kit\\ContentBlocksKitBundle": [
+                        "all"
+                    ]
+                },
+                "copy-from-recipe": {
+                    "config/": "%CONFIG_DIR%/"
+                },
+                "post-install-output": [
+                    "  <bg=blue;fg=white>                                           </>",
+                    "  <bg=blue;fg=white> ContentBlocks Kit: 19 blocks ready to use </>",
+                    "  <bg=blue;fg=white>                                           </>",
+                    "",
+                    "  * Title, text, rich text, image, gallery, buttons, cards, tabs, video and",
+                    "    more are registered. <fg=blue>html_raw</> stays off until you enable it.",
+                    "",
+                    "  * Images and videos are stored through <comment>content_blocks.upload</comment>",
+                    "    (see <comment>config/packages/content_blocks.yaml</comment>). Videos also need",
+                    "    <comment>video/mp4</comment> or <comment>video/webm</comment> in <comment>upload.allowed_mime_types</comment>.",
+                    "",
+                    "  * List the blocks and what each one accepts:",
+                    "    <comment>php bin/console content-blocks-kit:blocks</comment>"
+                ]
+            },
+            "files": {
+                "config/packages/content_blocks_kit.yaml": {
+                    "contents": [
+                        "# ContentBlocks Kit \u2014 https://klehm.github.io/content-blocks-project/kit/configuration",
+                        "#",
+                        "# Every block is on by default, except html_raw (unescaped HTML: opt in with",
+                        "# `enabled: true`). Per block: enabled, options, choices and defaults.",
+                        "# `php bin/console content-blocks-kit:blocks` lists what each one accepts.",
+                        "#",
+                        "# content_blocks_kit:",
+                        "#     blocks:",
+                        "#         button:",
+                        "#             choices: { variant: [primary, secondary] }",
+                        "#         gallery:",
+                        "#             options: { max_columns: 4 }",
+                        "#         html_raw:",
+                        "#             enabled: false",
+                        ""
+                    ],
+                    "executable": false
+                },
+                "config/routes/content_blocks_kit.yaml": {
+                    "contents": [
+                        "content_blocks_kit:",
+                        "    resource: '@ContentBlocksKitBundle/config/routes.php'",
+                        ""
+                    ],
+                    "executable": false
+                }
+            },
+            "ref": "328da987ea417af94b7cad142028eacd37d70bac"
+        }
+    }
+}

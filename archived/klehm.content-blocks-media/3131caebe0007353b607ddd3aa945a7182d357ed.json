@@ -1,0 +1,30 @@
+{
+    "manifests": {
+        "klehm/content-blocks-media": {
+            "manifest": {
+                "bundles": {
+                    "ContentBlocks\\Media\\ContentBlocksMediaBundle": [
+                        "all"
+                    ]
+                },
+                "copy-from-recipe": {
+                    "config/": "%CONFIG_DIR%/"
+                }
+            },
+            "files": {
+                "config/routes/content_blocks_media.yaml": {
+                    "contents": [
+                        "# Mounted under /_content-blocks/media. To mount it under your admin prefix",
+                        "# instead, import '@ContentBlocksMediaBundle/config/routes/bare.php' with a",
+                        "# `prefix:`; route names stay the same.",
+                        "content_blocks_media:",
+                        "    resource: '@ContentBlocksMediaBundle/config/routes.php'",
+                        ""
+                    ],
+                    "executable": false
+                }
+            },
+            "ref": "3131caebe0007353b607ddd3aa945a7182d357ed"
+        }
+    }
+}

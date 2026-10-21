@@ -1,0 +1,39 @@
+{
+    "manifests": {
+        "klehm/content-blocks-seo": {
+            "manifest": {
+                "bundles": {
+                    "ContentBlocks\\Seo\\ContentBlocksSeoBundle": [
+                        "all"
+                    ]
+                },
+                "copy-from-recipe": {
+                    "config/": "%CONFIG_DIR%/"
+                },
+                "post-install-output": [
+                    "  <bg=blue;fg=white>                                     </>",
+                    "  <bg=blue;fg=white> ContentBlocks SEO audit is installed </>",
+                    "  <bg=blue;fg=white>                                     </>",
+                    "",
+                    "  * The builder's Actions menu now has an <fg=blue>SEO audit</> entry.",
+                    "",
+                    "  * Full docs: <href=https://klehm.github.io/content-blocks-project/guide/seo>SEO audit guide</>"
+                ]
+            },
+            "files": {
+                "config/routes/content_blocks_seo.yaml": {
+                    "contents": [
+                        "# The SEO panel's stylesheet and scripts, under /_content-blocks/seo. To mount",
+                        "# them under your admin prefix instead, import",
+                        "# '@ContentBlocksSeoBundle/config/routes/bare.php' with a `prefix:`.",
+                        "content_blocks_seo:",
+                        "    resource: '@ContentBlocksSeoBundle/config/routes.php'",
+                        ""
+                    ],
+                    "executable": false
+                }
+            },
+            "ref": "4362821fb5cdd3ecfc74c3dbc4fb9ad429b28d20"
+        }
+    }
+}

@@ -1,0 +1,57 @@
+{
+    "manifests": {
+        "klehm/content-blocks-i18n": {
+            "manifest": {
+                "bundles": {
+                    "ContentBlocks\\I18n\\ContentBlocksI18nBundle": [
+                        "all"
+                    ]
+                },
+                "copy-from-recipe": {
+                    "config/": "%CONFIG_DIR%/"
+                },
+                "post-install-output": [
+                    "  <bg=blue;fg=white>                                   </>",
+                    "  <bg=blue;fg=white> ContentBlocks i18n is installed   </>",
+                    "  <bg=blue;fg=white>                                   </>",
+                    "",
+                    "  * <fg=blue>List your locales</> in <comment>config/packages/content_blocks_i18n.yaml</comment>.",
+                    "",
+                    "  * <fg=blue>Update your database schema</> (cb_block_translation, cb_column_translation):",
+                    "    <comment>php bin/console doctrine:migrations:diff</comment>",
+                    "",
+                    "  * Link the translation workbench from your admin:",
+                    "    <comment>{{ cb_i18n_workbench_url(page.contentArea, 'fr') }}</comment>",
+                    "",
+                    "  * Full docs: <href=https://klehm.github.io/content-blocks-project/guide/translation>Translation guide</>"
+                ]
+            },
+            "files": {
+                "config/packages/content_blocks_i18n.yaml": {
+                    "contents": [
+                        "# ContentBlocks i18n \u2014 https://klehm.github.io/content-blocks-project/guide/translation",
+                        "content_blocks_i18n:",
+                        "    # The locale block data is written in.",
+                        "    source_locale: '%kernel.default_locale%'",
+                        "    # The locales editors translate into.",
+                        "    locales: []",
+                        ""
+                    ],
+                    "executable": false
+                },
+                "config/routes/content_blocks_i18n.yaml": {
+                    "contents": [
+                        "# Mounted under /_content-blocks/i18n. To mount it under your admin prefix",
+                        "# instead, import '@ContentBlocksI18nBundle/config/routes/bare.php' with a",
+                        "# `prefix:`; route names stay the same.",
+                        "content_blocks_i18n:",
+                        "    resource: '@ContentBlocksI18nBundle/config/routes.php'",
+                        ""
+                    ],
+                    "executable": false
+                }
+            },
+            "ref": "63eb2c7dc497f6b44ce8318d217ff825fdd2e248"
+        }
+    }
+}
