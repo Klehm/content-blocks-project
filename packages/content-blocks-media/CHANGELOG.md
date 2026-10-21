@@ -36,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a click on the empty zone, on the selected file, or Escape.
 - **Pages load as the grid scrolls**, a page of 40 at a time, with *Show more*
   as the fallback where `IntersectionObserver` is missing.
+- **Errors in the editor's language**: every error of the package's endpoints
+  carries a translated `message` beside its `code` in `error`; the picker
+  shows the message, never the code.
 - **The picker in the i18n workbench**: it stands alone, so the workbench
   renders it and offers it on media rows (`klehm/content-blocks-i18n` with
   this release).

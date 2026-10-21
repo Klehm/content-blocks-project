@@ -12,7 +12,7 @@ const I18N = {
     rename_folder: 'Rename', delete_folder: 'Delete', delete_folder_confirm: 'Delete %name%?',
     remove_confirm: 'Remove %name%?', remove_confirm_used: 'Remove %name%, used on %count%?',
     remove_confirm_many: 'Remove %count% files?', upload_partial: '%failed% of %count% failed:', selected_many: '%count% selected', move_to: 'Move to',
-    unused: 'Unused', draft: 'draft', others: 'and %count% more',
+    unused: 'Unused', kilobytes: '%size% kB', draft: 'draft', others: 'and %count% more',
 };
 
 // Mirrors templates/picker.html.twig: only the hooks the script reads.
@@ -215,7 +215,7 @@ describe('MediaPicker', () => {
 
     it('says why an upload failed', async () => {
         await picker.open(request());
-        fetch.mockImplementationOnce(() => respond({ error: 'File type "x" is not allowed' }, { ok: false, status: 400 }));
+        fetch.mockImplementationOnce(() => respond({ error: 'File type "x" is not allowed', message: 'File type "x" is not allowed' }, { ok: false, status: 400 }));
 
         await picker.upload(new File(['x'], 'a.exe'));
 
@@ -234,7 +234,7 @@ describe('MediaPicker', () => {
             if (url === '/cb/upload') {
                 n += 1;
                 return n === 2
-                    ? respond({ error: 'The file "b.png" is too large' }, { ok: false, status: 400 })
+                    ? respond({ error: 'too_large', message: 'The file "b.png" is too large' }, { ok: false, status: 400 })
                     : respond({ url: `/u/${n}.png` });
             }
             if (url === '/m/place') return respond(item(10 + n));
@@ -435,14 +435,25 @@ describe('MediaPicker — managing the library', () => {
         await vi.waitFor(() => expect(picker.selected).toBeNull());
     });
 
-    it('says why a change was refused', async () => {
+    // A code is for scripts: never shown to the editor.
+    it('a refusal without a message says the generic failure', async () => {
         route({ '/m/file/update': () => respond({ error: 'invalid_title' }, { ok: false, status: 400 }) });
         await picker.open(request());
         picker.select(picker.items[0]);
 
         await picker.saveField('title', '');
 
-        expect(dialog.querySelector('[data-cb-media-notice-text]').textContent).toBe('invalid_title');
+        expect(dialog.querySelector('[data-cb-media-notice-text]').textContent).toBe('Save failed');
+    });
+
+    it('says why a change was refused', async () => {
+        route({ '/m/file/update': () => respond({ error: 'invalid_title', message: 'A title is needed' }, { ok: false, status: 400 }) });
+        await picker.open(request());
+        picker.select(picker.items[0]);
+
+        await picker.saveField('title', '');
+
+        expect(dialog.querySelector('[data-cb-media-notice-text]').textContent).toBe('A title is needed');
     });
 
     it('offers no management to an editor who may not manage', async () => {

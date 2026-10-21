@@ -188,6 +188,13 @@ An **import** writes files too, and goes through the same checks: each file's MI
 
 `image/svg+xml` is **not** in the default list. An SVG can carry script, which runs when the file is opened directly from your domain — stored XSS on your own origin. Add it to `allowed_mime_types` only if your editors are fully trusted, and then serve the upload directory with `Content-Security-Policy: sandbox` (or `script-src 'none'`).
 
+A refused upload answers with a JSON body whose `error` is a sentence for the
+editor, in the request's language, naming the file and the limit it broke;
+`code` stays the same in every language, for a script to act on: `csrf`,
+`area_not_found`, `no_file`, `too_large`, `type_not_allowed`, `failed`. A file
+PHP refused before the package saw it (`upload_max_filesize`) is reported as
+`too_large` too, with the lower of the two limits.
+
 ### Stored paths are confined
 
 A stored file path is editor input: the image widget accepts a pasted path, and

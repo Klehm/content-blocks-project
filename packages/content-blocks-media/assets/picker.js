@@ -420,7 +420,8 @@ export class MediaPicker {
         }
         const data = await response.json().catch(() => ({}));
         if (!response.ok || response.redirected) {
-            throw new Error(data.error && fallback !== 'failed' ? data.error : this._t(fallback));
+            // `message` is said in the editor's language; `error` is a code.
+            throw new Error(typeof data.message === 'string' && data.message !== '' ? data.message : this._t(fallback));
         }
 
         return data;
@@ -831,7 +832,7 @@ export class MediaPicker {
             this.el('preview').replaceChildren(this._visual(item, false));
             const facts = [
                 item.width && item.height ? `${item.width} × ${item.height}` : null,
-                item.size ? `${Math.max(1, Math.round(item.size / 1024))} KB` : null,
+                item.size ? this._t('kilobytes').replace('%size%', String(Math.max(1, Math.round(item.size / 1024)))) : null,
                 item.createdAt ? item.createdAt.slice(0, 10) : null,
             ].filter(Boolean);
             this.el('facts').textContent = facts.join(' · ');

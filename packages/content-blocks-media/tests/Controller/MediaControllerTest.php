@@ -67,7 +67,10 @@ final class MediaControllerTest extends TestCase
         $response = $this->controller()->list(new Request(['area' => '1', 'folder' => '8']));
 
         $this->assertSame(404, $response->getStatusCode());
-        $this->assertSame('{"error":"folder_not_found"}', $response->getContent());
+        $this->assertSame(
+            ['error' => 'folder_not_found', 'message' => 'cb_media.error.folder_not_found'],
+            json_decode((string) $response->getContent(), true),
+        );
     }
 
     public function testPlacingNeedsTheCsrfToken(): void
@@ -82,7 +85,7 @@ final class MediaControllerTest extends TestCase
         $response = $this->controller()->place($this->post(['area' => 1, 'path' => '/u/elsewhere.png']));
 
         $this->assertSame(404, $response->getStatusCode());
-        $this->assertSame('{"error":"not_in_library"}', $response->getContent());
+        $this->assertSame('not_in_library', json_decode((string) $response->getContent(), true)['error']);
     }
 
     public function testPlacingAlsoChecksTheArea(): void

@@ -21,6 +21,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The picker's API. Access is the edit right on the area the picker was
@@ -41,6 +42,7 @@ final class MediaController
         private readonly MediaBrowser $browser,
         private readonly ImageUrlResolverInterface $images,
         private readonly MediaManagerInterface $manager,
+        private readonly ?TranslatorInterface $translator = null,
     ) {
     }
 
@@ -54,7 +56,7 @@ final class MediaController
 
         $kind = (string) $request->query->get('kind', MediaKind::IMAGE);
         if (!\in_array($kind, [MediaKind::IMAGE, MediaKind::VIDEO], true)) {
-            return new JsonResponse(['error' => 'unknown_kind'], Response::HTTP_BAD_REQUEST);
+            return $this->error('unknown_kind', Response::HTTP_BAD_REQUEST);
         }
 
         $folder = $this->folder($request->query->get('folder'));
@@ -78,12 +80,12 @@ final class MediaController
     public function place(Request $request): JsonResponse
     {
         if (!$this->csrfTokenManager->isTokenValid(new CsrfToken(self::CSRF_TOKEN_ID, (string) $request->headers->get('X-CSRF-Token', '')))) {
-            return new JsonResponse(['error' => 'Invalid CSRF token'], Response::HTTP_FORBIDDEN);
+            return $this->error('csrf', Response::HTTP_FORBIDDEN);
         }
 
         $body = json_decode($request->getContent(), true);
         if (!\is_array($body)) {
-            return new JsonResponse(['error' => 'invalid_body'], Response::HTTP_BAD_REQUEST);
+            return $this->error('invalid_body', Response::HTTP_BAD_REQUEST);
         }
 
         $area = $this->area($body['area'] ?? null);
@@ -96,7 +98,7 @@ final class MediaController
             ? $this->em->getRepository(Media::class)->findOneBy(['path' => $path])
             : null;
         if ($media === null) {
-            return new JsonResponse(['error' => 'not_in_library'], Response::HTTP_NOT_FOUND);
+            return $this->error('not_in_library', Response::HTTP_NOT_FOUND);
         }
 
         $folder = $this->folder($body['folder'] ?? null);
@@ -126,7 +128,7 @@ final class MediaController
             ? $this->em->find(ContentArea::class, (int) $id)
             : null;
         if ($area === null) {
-            return new JsonResponse(['error' => 'area_not_found'], Response::HTTP_NOT_FOUND);
+            return $this->error('area_not_found', Response::HTTP_NOT_FOUND);
         }
         if (!$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
@@ -145,6 +147,11 @@ final class MediaController
             ? $this->em->find(MediaFolder::class, (int) $id)
             : null;
 
-        return $folder ?? new JsonResponse(['error' => 'folder_not_found'], Response::HTTP_NOT_FOUND);
+        return $folder ?? $this->error('folder_not_found', Response::HTTP_NOT_FOUND);
+    }
+
+    private function error(string $code, int $status): JsonResponse
+    {
+        return JsonError::response($this->translator, $code, $status);
     }
 }

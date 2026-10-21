@@ -192,3 +192,21 @@ test('a folder longer than a page loads the rest on scroll', async ({ page }) =>
     await expect(dialog.locator('.cb-media__item')).toHaveCount(45);
     expect(lists).toEqual(['1', '2']);
 });
+
+test('a refused upload is said in the editor\'s language, in view', async ({ page }) => {
+    await page.goto(await createFreshPage(page));
+    await launchBuilder(page);
+    await addBlock(page, /^Image$/);
+    const dialog = await openPicker(page);
+
+    await dialog.locator('[data-cb-media-file]').setInputFiles({
+        name: 'notes.txt',
+        mimeType: 'text/plain',
+        buffer: Buffer.from('not a picture'),
+    });
+
+    const notice = dialog.locator('[data-cb-media-notice]');
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText("« notes.txt » n'est pas un type de fichier accepté");
+    await expect(notice).toHaveClass(/cb-media__notice--error/);
+});

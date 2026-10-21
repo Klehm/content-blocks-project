@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   500 from deep inside the form component. The replay now drops that one field
   and reports it, like any refused value.
 
+### Changed
+
+- **The upload endpoint's errors are translated.** `error` is now a sentence
+  in the request's language naming the file and the limit, where it was an
+  English string, and PHP's own wording (`upload_max_filesize`) no longer
+  leaks out. A new `code` field (`csrf`, `area_not_found`, `no_file`,
+  `too_large`, `type_not_allowed`, `failed`) stays the same in every language.
+
 ### Added
 
 - **Headless rendering.** `ContentAreaNormalizerInterface` renders an area as

@@ -22,6 +22,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Managing the library: folders, metadata, moves, removal. Every write needs
@@ -45,6 +46,7 @@ final class ManageController
         private readonly MediaUsage $usage,
         private readonly ContentAreaProviderInterface $areaProvider,
         private readonly ContentAreaUrlResolverInterface $areaUrls,
+        private readonly ?TranslatorInterface $translator = null,
     ) {
     }
 
@@ -72,11 +74,11 @@ final class ManageController
         }
         $name = self::text($body['name'] ?? null, required: true);
         if ($name === null) {
-            return self::error('invalid_name');
+            return $this->error('invalid_name');
         }
         $parent = $this->find(MediaFolder::class, $body['parent'] ?? null);
         if ($parent === false) {
-            return self::error('folder_not_found', Response::HTTP_NOT_FOUND);
+            return $this->error('folder_not_found', Response::HTTP_NOT_FOUND);
         }
 
         $siblings = $this->em->getRepository(MediaFolder::class)->findBy(['parent' => $parent]);
@@ -98,11 +100,11 @@ final class ManageController
         }
         $folder = $this->find(MediaFolder::class, $body['id'] ?? null);
         if (!$folder instanceof MediaFolder) {
-            return self::error('folder_not_found', Response::HTTP_NOT_FOUND);
+            return $this->error('folder_not_found', Response::HTTP_NOT_FOUND);
         }
         $name = self::text($body['name'] ?? null, required: true);
         if ($name === null) {
-            return self::error('invalid_name');
+            return $this->error('invalid_name');
         }
 
         $folder->rename($name);
@@ -121,7 +123,7 @@ final class ManageController
         }
         $folder = $this->find(MediaFolder::class, $body['id'] ?? null);
         if (!$folder instanceof MediaFolder) {
-            return self::error('folder_not_found', Response::HTTP_NOT_FOUND);
+            return $this->error('folder_not_found', Response::HTTP_NOT_FOUND);
         }
 
         $this->em->remove($folder);
@@ -139,20 +141,20 @@ final class ManageController
         }
         $media = $this->find(Media::class, $body['id'] ?? null);
         if (!$media instanceof Media) {
-            return self::error('not_in_library', Response::HTTP_NOT_FOUND);
+            return $this->error('not_in_library', Response::HTTP_NOT_FOUND);
         }
 
         if (\array_key_exists('title', $body)) {
             $title = self::text($body['title'], required: true);
             if ($title === null) {
-                return self::error('invalid_title');
+                return $this->error('invalid_title');
             }
             $media->setTitle($title);
         }
         if (\array_key_exists('alt', $body)) {
             $alt = self::text($body['alt'], required: false);
             if ($alt === null) {
-                return self::error('invalid_alt');
+                return $this->error('invalid_alt');
             }
             $media->setAlt($alt);
         }
@@ -175,7 +177,7 @@ final class ManageController
         }
         $folder = $this->find(MediaFolder::class, $body['folder'] ?? null);
         if ($folder === false) {
-            return self::error('folder_not_found', Response::HTTP_NOT_FOUND);
+            return $this->error('folder_not_found', Response::HTTP_NOT_FOUND);
         }
 
         foreach ($files as $media) {
@@ -220,7 +222,7 @@ final class ManageController
         }
         $media = $this->find(Media::class, $request->query->get('id'));
         if (!$media instanceof Media) {
-            return self::error('not_in_library', Response::HTTP_NOT_FOUND);
+            return $this->error('not_in_library', Response::HTTP_NOT_FOUND);
         }
 
         $pages = [];
@@ -289,14 +291,14 @@ final class ManageController
     private function files(mixed $ids): array|JsonResponse
     {
         if (!\is_array($ids) || $ids === [] || \count($ids) > self::MAX_FILES) {
-            return self::error('invalid_ids');
+            return $this->error('invalid_ids');
         }
 
         $files = [];
         foreach (array_unique($ids, \SORT_REGULAR) as $id) {
             $media = $this->find(Media::class, $id);
             if (!$media instanceof Media) {
-                return self::error('not_in_library', Response::HTTP_NOT_FOUND);
+                return $this->error('not_in_library', Response::HTTP_NOT_FOUND);
             }
             $files[] = $media;
         }
@@ -308,14 +310,14 @@ final class ManageController
     private function managed(Request $request): array|JsonResponse
     {
         if (!$this->csrfTokenManager->isTokenValid(new CsrfToken(self::CSRF_TOKEN_ID, (string) $request->headers->get('X-CSRF-Token', '')))) {
-            return self::error('Invalid CSRF token', Response::HTTP_FORBIDDEN);
+            return $this->error('csrf', Response::HTTP_FORBIDDEN);
         }
         if (!$this->manager->canManage()) {
             throw new ContentBlocksAccessDeniedException();
         }
         $body = json_decode($request->getContent(), true);
 
-        return \is_array($body) ? $body : self::error('invalid_body');
+        return \is_array($body) ? $body : $this->error('invalid_body');
     }
 
     private function area(mixed $id): ContentArea|JsonResponse
@@ -324,7 +326,7 @@ final class ManageController
             ? $this->em->find(ContentArea::class, (int) $id)
             : null;
         if ($area === null) {
-            return self::error('area_not_found', Response::HTTP_NOT_FOUND);
+            return $this->error('area_not_found', Response::HTTP_NOT_FOUND);
         }
         if (!$this->accessChecker->canEdit($area)) {
             throw new ContentBlocksAccessDeniedException();
@@ -365,8 +367,8 @@ final class ManageController
         return $value;
     }
 
-    private static function error(string $error, int $status = Response::HTTP_BAD_REQUEST): JsonResponse
+    private function error(string $error, int $status = Response::HTTP_BAD_REQUEST): JsonResponse
     {
-        return new JsonResponse(['error' => $error], $status);
+        return JsonError::response($this->translator, $error, $status);
     }
 }
