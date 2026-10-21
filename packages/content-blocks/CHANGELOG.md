@@ -90,10 +90,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the whole page*. For an edit the provider gets the sections to revise in
   `ContentRequest::$current`. A field proposal is applied only on *Replace*;
   generated sections go through the paste replay into the draft, as one undo
-  step. Without a provider nothing is drawn and the endpoints
-  (`content_blocks_ai_text`, `_alt_text`, `_content`) answer 404.
-  `content_blocks.ai.actions.<action>: false` switches one off, `ai: false`
-  all of them; `ai.tones` and `ai.max_sections` tune the rest.
+  step. **Off by default**: AI needs `content_blocks.ai.enabled: true` (or
+  `ai: true`) as well as a provider, so a dependency implementing the
+  interface cannot start sending pages to a model on its own. Until then
+  nothing is drawn and the endpoints (`content_blocks_ai_text`, `_alt_text`,
+  `_content`) answer 404. Once enabled,
+  `content_blocks.ai.actions.<action>: false` switches one off; `ai.tones` and
+  `ai.max_sections` tune the rest.
   `AiBriefProviderInterface` hands every request what the host knows about the
   page. See [AI actions](../../docs/guide/ai.md).
 - **`content-blocks:ai:apply <area> [file]`** writes a `{"sections": [...]}`

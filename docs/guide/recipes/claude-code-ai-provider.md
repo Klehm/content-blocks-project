@@ -279,7 +279,17 @@ when@dev:
                 $model: '%env(default::CLAUDE_MODEL)%'   # empty: Claude Code's default model
 ```
 
-In `prod` the class is never loaded: the builder shows no AI and the endpoints answer `404`, unless you register a real provider there.
+Then switch AI on for `dev` only:
+
+```yaml
+# config/packages/content_blocks.yaml
+when@dev:
+    content_blocks:
+        ai:
+            enabled: true
+```
+
+In `prod` the class is never loaded and AI stays off: the builder shows no AI and the endpoints answer `404`, unless you register a real provider and enable AI there.
 
 If your application also has a real provider, the first registered one answers. Exclude the real one in `dev`, or give this one a higher tag priority.
 

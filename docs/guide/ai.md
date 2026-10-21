@@ -1,6 +1,6 @@
 # AI actions
 
-The builder can ask a language model to rewrite a text field, describe an image for its `alt`, or write a section or a whole page from a prompt. **No model ships with the package.** Where a page's text is sent is your decision, not a dependency of a page builder. You register a provider, and until you do, the builder shows no AI button at all.
+The builder can ask a language model to rewrite a text field, describe an image for its `alt`, or write a section or a whole page from a prompt. **No model ships with the package.** Where a page's text is sent is your decision, not a dependency of a page builder. AI is **off by default**: it takes a provider **and** `ai: { enabled: true }` in your config. Until both are there, the builder shows no AI button at all and the endpoints answer `404`.
 
 What every action has in common:
 
@@ -8,9 +8,22 @@ What every action has in common:
 - **Everything lands in the draft.** Nothing reaches the public page before Publish. A generation is one undo step (`Ctrl/Cmd-Z`), and *Revert to published* removes it.
 - **Each action can be switched off on its own.** See [The actions](#the-actions).
 
+## Switching it on
+
+```yaml
+# config/packages/content_blocks.yaml
+content_blocks:
+    ai:
+        enabled: true      # or the shorthand `ai: true`
+```
+
+Installing a provider is not enough on its own, on purpose: a bundle or a
+dependency that happens to implement the interface must not start sending your
+pages to a model. `enabled` is where you decide that.
+
 ## Writing a provider
 
-Implement `ContentBlocks\Ai\AiProviderInterface`. Autoconfiguration registers it; there is nothing else to wire.
+Implement `ContentBlocks\Ai\AiProviderInterface`. Autoconfiguration registers it.
 
 ```php
 use ContentBlocks\Ai\AiAction;
@@ -111,12 +124,13 @@ Several providers can be registered; the first one answers. To choose among them
 | `edit_page` | topbar **Generate** | Rewrites the whole page from what is there |
 | `apply` | `content-blocks:ai:apply` | Writes a document you generated yourself, see [below](#from-your-own-pipeline) |
 
-An action is offered when it is switched on **and** your provider's `supports()` accepts it. Its endpoint answers `404` otherwise, so a disabled action is not there at all. All of them are on by default:
+An action is offered when AI is enabled, the action is switched on **and** your provider's `supports()` accepts it. Its endpoint answers `404` otherwise, so a disabled action is not there at all. Once AI is enabled, every action is on unless you switch it off:
 
 ```yaml
 # config/packages/content_blocks.yaml
 content_blocks:
     ai:
+        enabled: true
         actions:
             tone: false        # no tone menu
             edit_page: false   # no rewriting of the whole page
@@ -124,7 +138,7 @@ content_blocks:
         max_sections: 8        # the most sections one generation may write
 ```
 
-`ai: false` switches every action off.
+Without `enabled: true`, or with `ai: false`, every action is off, `apply` included.
 
 ## Which fields get a button
 
@@ -168,7 +182,7 @@ final class ProductBriefProvider implements AiBriefProviderInterface
 
 ## From your own pipeline
 
-Generation also works without the builder: an MCP server, a batch job, a script calling a model with the [content schema](./content-schema.md). The way back in is the same replay:
+This needs `ai: { enabled: true }` too, but no provider. Generation also works without the builder: an MCP server, a batch job, a script calling a model with the [content schema](./content-schema.md). The way back in is the same replay:
 
 ```bash
 php bin/console content-blocks:schema --area=42 --only=schema > schema.json

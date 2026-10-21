@@ -50,21 +50,41 @@ final class SchemaConfigTest extends TestCase
         $this->processConfig(['schema' => ['examples' => -1]]);
     }
 
-    public function testEveryAiActionIsOnByDefault(): void
+    public function testAiIsOffUntilTheHostEnablesIt(): void
     {
         $container = $this->build([]);
 
         $this->assertSame(
-            array_fill_keys(['rewrite', 'shorten', 'tone', 'alt_text', 'add', 'edit_section', 'edit_page', 'apply'], true),
+            array_fill_keys(['rewrite', 'shorten', 'tone', 'alt_text', 'add', 'edit_section', 'edit_page', 'apply'], false),
             $container->getParameter('content_blocks.ai.actions'),
         );
         $this->assertSame(\ContentBlocks\Ai\AiFeatures::DEFAULT_TONES, $container->getParameter('content_blocks.ai.tones'));
         $this->assertSame(8, $container->getParameter('content_blocks.ai.max_sections'));
     }
 
+    public function testEnablingAiSwitchesEveryActionOn(): void
+    {
+        foreach ([['ai' => true], ['ai' => ['enabled' => true]]] as $config) {
+            $this->assertSame(
+                array_fill_keys(['rewrite', 'shorten', 'tone', 'alt_text', 'add', 'edit_section', 'edit_page', 'apply'], true),
+                $this->build($config)->getParameter('content_blocks.ai.actions'),
+            );
+        }
+    }
+
+    // A list of actions is not consent: `enabled` is.
+    public function testActionsAloneDoNotEnableAi(): void
+    {
+        $actions = $this->build(['ai' => ['actions' => ['rewrite' => true]]])
+            ->getParameter('content_blocks.ai.actions');
+
+        $this->assertIsArray($actions);
+        $this->assertSame([], array_filter($actions));
+    }
+
     public function testEachAiActionIsSwitchedOffOnItsOwn(): void
     {
-        $actions = $this->build(['ai' => ['actions' => ['edit_page' => false, 'alt_text' => false]]])
+        $actions = $this->build(['ai' => ['enabled' => true, 'actions' => ['edit_page' => false, 'alt_text' => false]]])
             ->getParameter('content_blocks.ai.actions');
 
         $this->assertIsArray($actions);
