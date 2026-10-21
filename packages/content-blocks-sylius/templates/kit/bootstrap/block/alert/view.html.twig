@@ -1,0 +1,10 @@
+{% set message = data.content|default('')|trim %}
+{% if message is not empty %}
+    {% set type = cb_kit_token(data.type|default('info'), 'info') %}
+    {% set type = { error: 'danger' }[type] ?? type %}
+    {% set title = data.title|default('')|trim %}
+    <div class="alert alert-{{ type }} mb-0" role="note">
+        {% if title is not empty %}<p class="alert-heading fw-semibold mb-1"{{ cb_lang(data, 'title') }}>{{ title }}</p>{% endif %}
+        <p class="mb-0"{{ cb_lang(data, 'content') }}>{{ message|nl2br }}</p>
+    </div>
+{% endif %}

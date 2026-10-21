@@ -1,0 +1,4 @@
+{% set product = hookable_metadata.context.resource %}
+<a class="btn" href="{{ path('content_blocks_sylius_admin_slot', { type: 'product', subject: product.code }) }}" data-test-content-blocks-product>
+    {{ 'content_blocks_sylius.ui.edit_content'|trans }}
+</a>

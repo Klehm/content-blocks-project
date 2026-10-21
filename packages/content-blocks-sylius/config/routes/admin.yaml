@@ -1,0 +1,36 @@
+content_blocks_sylius_admin_content_page:
+    resource: |
+        alias: content_blocks_sylius.content_page
+        section: admin
+        templates: "@SyliusAdmin\\shared\\crud"
+        except: ['show']
+        redirect: update
+        grid: content_blocks_sylius_admin_content_page
+        vars:
+            all:
+                subheader: content_blocks_sylius.ui.content_pages_subheader
+            index:
+                icon: 'tabler:file-text'
+    type: sylius.resource
+    prefix: /content-blocks
+
+content_blocks_sylius_admin_homepage:
+    path: /content-blocks/homepage
+    methods: [GET]
+    controller: ContentBlocks\Sylius\Controller\Admin\HomepageController
+
+content_blocks_sylius_admin_slot:
+    path: /content-blocks/slots/{type}/{subject}
+    methods: [GET]
+    controller: ContentBlocks\Sylius\Controller\Admin\SlotController::show
+    requirements:
+        type: homepage|product|taxon
+        subject: .+
+
+content_blocks_sylius_admin_slot_create:
+    path: /content-blocks/slots/{type}/{subject}
+    methods: [POST]
+    controller: ContentBlocks\Sylius\Controller\Admin\SlotController::create
+    requirements:
+        type: homepage|product|taxon
+        subject: .+

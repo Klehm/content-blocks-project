@@ -1,0 +1,6 @@
+content_blocks_sylius_shop_page_show:
+    path: /pages/{slug}
+    methods: [GET]
+    controller: ContentBlocks\Sylius\Controller\Shop\PageController
+    requirements:
+        slug: '[a-z0-9]+(?:[-/][a-z0-9]+)*'

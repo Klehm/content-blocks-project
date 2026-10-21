@@ -1,0 +1,15 @@
+# The plugin's host configuration in the test application: what an
+# integrator writes in config/packages/.
+webpack_encore:
+    # No `yarn build` for PHPUnit: a missing entrypoint renders nothing.
+    strict_mode: false
+
+framework:
+    test: true
+    session:
+        storage_factory_id: session.storage.factory.mock_file
+
+content_blocks:
+    upload:
+        directory: '%kernel.project_dir%/var/uploads'
+        public_prefix: /uploads/content-blocks

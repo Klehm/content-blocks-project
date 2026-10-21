@@ -1,0 +1,22 @@
+{% set taxons = cb_sylius_taxon_list(data) %}
+{% if taxons is not empty %}
+    <div class="cb-sylius-taxons row row-cols-2 row-cols-md-{{ data.columns|default(4) }} g-4">
+        {% for taxon in taxons %}
+            <div class="col">
+                {% set image = taxon.images.first ?: null %}
+                <a class="link-reset d-block" href="{{ path('sylius_shop_product_index', { slug: taxon.slug, _locale: context.locale ?? app.request.locale }) }}">
+                    {% if image %}
+                        <div class="bg-light rounded-3 overflow-hidden mb-3" style="aspect-ratio: 4/3;">
+                            <img class="w-100 h-100 object-fit-cover" src="{{ image.path|imagine_filter('sylius_shop_product_large_thumbnail') }}" alt="{{ taxon.name }}" loading="lazy">
+                        </div>
+                        <div class="h6 mb-0">{{ taxon.name }}</div>
+                    {% else %}
+                        <div class="bg-light rounded-3 p-4 h6 mb-0 text-center">{{ taxon.name }}</div>
+                    {% endif %}
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    {{ include('@ContentBlocksSyliusPlugin/block/_missing.html.twig', { context: context, message: 'content_blocks_sylius.block.taxon_list.empty' }, with_context = false) }}
+{% endif %}

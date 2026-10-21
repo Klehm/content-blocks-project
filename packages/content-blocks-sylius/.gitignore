@@ -1,0 +1,11 @@
+/vendor/
+/composer.lock
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+/.phpunit.result.cache
+###< phpunit/phpunit ###
+/tests/TestApplication/.env.*.local
+/tests/TestApplication/.env.local
+/var/

@@ -1,0 +1,14 @@
+{% set items = data.items|default([])|filter(i => i.label|default('')|trim is not empty) %}
+{% if items|length > 0 %}
+    <nav aria-label="{{ 'cb_kit.front.breadcrumb'|trans({}, 'content_blocks_kit') }}">
+        <ol class="breadcrumb mb-0">
+            {% for item in items %}
+                {% if item.url|default('')|trim|cb_kit_safe_url is not empty %}
+                    <li class="breadcrumb-item"><a href="{{ item.url|cb_kit_safe_url }}"{{ cb_lang(item, 'label') }}>{{ item.label }}</a></li>
+                {% else %}
+                    <li class="breadcrumb-item active" aria-current="page"{{ cb_lang(item, 'label') }}>{{ item.label }}</li>
+                {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+{% endif %}

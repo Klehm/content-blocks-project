@@ -1,0 +1,26 @@
+sylius_twig_hooks:
+    hooks:
+        # The kit's own CSS, for the blocks without a Bootstrap variant.
+        'sylius_shop.base#stylesheets':
+            content_blocks_kit:
+                template: '@ContentBlocksSyliusPlugin/shop/kit_stylesheet.html.twig'
+                priority: -100
+
+        'content_blocks_sylius.shop.page.show':
+            content:
+                template: '@ContentBlocksSyliusPlugin/shop/page/show/content.html.twig'
+                priority: 0
+
+        'sylius_shop.product.show.content':
+            content_blocks:
+                template: '@ContentBlocksSyliusPlugin/shop/slot.html.twig'
+                configuration:
+                    type: product
+                priority: 50
+
+        'sylius_shop.product.index.content.body.main':
+            content_blocks:
+                template: '@ContentBlocksSyliusPlugin/shop/slot.html.twig'
+                configuration:
+                    type: taxon
+                priority: 250

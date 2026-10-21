@@ -1,0 +1,5 @@
+# Only with klehm/content-blocks-i18n: the translation workbench and its API,
+# behind the admin firewall.
+content_blocks_i18n:
+    resource: '@ContentBlocksI18nBundle/config/routes/bare.php'
+    prefix: '/%sylius_admin.path_name%/content-blocks/i18n'

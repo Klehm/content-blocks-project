@@ -1,0 +1,4 @@
+{% set style = cb_kit_token(data.style|default('solid'), 'solid') %}
+{% set color = cb_css_color(data.color|default('')) %}
+<hr class="my-4 opacity-100" style="border-top-style: {{ style in ['solid', 'dashed', 'dotted'] ? style : 'solid' }};
+    {%- if color is not empty %} border-color: {{ color|e('html_attr') }};{% endif %}">

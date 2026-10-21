@@ -1,0 +1,25 @@
+{% set products = cb_sylius_product_list(data) %}
+{% if products is not empty %}
+    {% set columns = data.columns|default(4) %}
+    {% if data.layout|default('grid') == 'carousel' %}
+        {# Scroll-snap: no script, swipes on touch, arrow keys scroll it. #}
+        <div class="cb-sylius-products cb-sylius-products--carousel d-flex gap-4 overflow-x-auto pb-3"
+             style="scroll-snap-type: x mandatory;" tabindex="0">
+            {% for product in products %}
+                <div class="flex-shrink-0" style="scroll-snap-align: start; width: calc((100% - {{ columns - 1 }} * 1.5rem) / {{ columns }}); min-width: 12rem;">
+                    {{ component('sylius_shop:product:card', { product: product, template: '@SyliusShop/product/common/card.html.twig' }) }}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="cb-sylius-products row row-cols-2 row-cols-md-{{ columns }} g-4">
+            {% for product in products %}
+                <div class="col">
+                    {{ component('sylius_shop:product:card', { product: product, template: '@SyliusShop/product/common/card.html.twig' }) }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% else %}
+    {{ include('@ContentBlocksSyliusPlugin/block/_missing.html.twig', { context: context, message: 'content_blocks_sylius.block.product_list.empty' }, with_context = false) }}
+{% endif %}

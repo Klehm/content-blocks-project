@@ -1,0 +1,14 @@
+{# Bootstrap's look on native <details>, which needs no JS. `exclusive`
+   shares one `name`, unique per block, to open one panel at a time. #}
+{% set items = data.items|default([])|filter(i => i.title|default('')|trim is not empty) %}
+{% if items|length > 0 %}
+    {% set group = data.exclusive|default(false) ? ('cb-acc-' ~ (block_id ?? random())) : null %}
+    <div class="accordion">
+        {% for item in items %}
+            <details class="accordion-item"{% if group %} name="{{ group }}"{% endif %}>
+                <summary class="accordion-header px-3 py-3 fw-semibold"{{ cb_lang(item, 'title') }}>{{ item.title }}</summary>
+                <div class="accordion-body pt-0"{{ cb_lang(item, 'content') }}>{{ item.content|default('')|nl2br }}</div>
+            </details>
+        {% endfor %}
+    </div>
+{% endif %}

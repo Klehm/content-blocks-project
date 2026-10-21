@@ -1,0 +1,9 @@
+{% set product = cb_sylius_product(data.product|default(null)) %}
+{% set variant = product ? cb_sylius_variant(product) : null %}
+{% if variant %}
+    <div class="cb-sylius-price {{ data.size|default('lg') == 'lg' ? 'fs-3 fw-semibold' : 'fs-5' }}">
+        {{ component('sylius_shop:product:price', { variant: variant, template: '@SyliusShop/product/common/price.html.twig' }) }}
+    </div>
+{% else %}
+    {{ include('@ContentBlocksSyliusPlugin/block/_missing.html.twig', { context: context, message: 'content_blocks_sylius.block.product_price.empty' }, with_context = false) }}
+{% endif %}

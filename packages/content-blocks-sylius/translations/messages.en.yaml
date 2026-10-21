@@ -1,0 +1,73 @@
+content_blocks_sylius:
+    menu:
+        content: Content
+        pages: Pages
+        homepage: Homepage
+    ui:
+        content_page: Page
+        content_pages: Pages
+        content_pages_subheader: Shop pages built with the page builder
+        content: Content
+        meta_title: Meta title
+        slug_help: Left empty, it is made from the title.
+        homepage: Homepage
+        status: Status
+        status_native: Native homepage
+        status_published: Builder content published
+        status_draft: Builder content not published yet
+        view_in_shop: View in the shop
+        edit_content: Page builder
+        translate: 'Translate into %locale%'
+        area_label:
+            page: 'Page · %title% (%code%)'
+            homepage: 'Homepage · %subject%'
+            product: 'Product · %subject%'
+            taxon: 'Taxon · %subject%'
+        slot:
+            homepage: Homepage
+            product: Product content
+            taxon: Taxon content
+            create: Start editing with the builder
+            empty_homepage: This channel shows the native homepage. Builder content replaces it once something is published.
+            empty_product: No builder content yet. Once published, it shows below the product details.
+            empty_taxon: No builder content yet. Once published, it shows above the products of this taxon.
+    field:
+        product: Product
+        products: Products
+        taxon: Taxon
+        taxons: Taxons
+        parent_taxon: Parent taxon
+        add_to_cart: Show the add-to-cart form
+        source: Source
+        limit: Number of products
+        layout: Layout
+        columns: Columns
+        size: Size
+    source:
+        manual: Chosen products
+        taxon: Products of a taxon
+        latest: Latest products
+        children: Sub-taxons of a taxon
+        manual_taxons: Chosen taxons
+    layout:
+        grid: Grid
+        carousel: Carousel
+    size:
+        md: Normal
+        lg: Large
+    block:
+        product:
+            label: Product
+            empty: Choose a product enabled in this channel.
+        product_list:
+            label: Products
+            empty: No product to show for these settings in this channel.
+        product_price:
+            label: Price
+            empty: Choose a product enabled in this channel.
+        add_to_cart:
+            label: Add to cart
+            empty: Choose a product enabled in this channel.
+        taxon_list:
+            label: Categories
+            empty: No enabled taxon to show for these settings.

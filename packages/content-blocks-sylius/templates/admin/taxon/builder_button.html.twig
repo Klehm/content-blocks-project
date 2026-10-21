@@ -1,0 +1,6 @@
+{% set taxon = hookable_metadata.context.resource %}
+{% if taxon.code %}
+    <a class="btn" href="{{ path('content_blocks_sylius_admin_slot', { type: 'taxon', subject: taxon.code }) }}" data-test-content-blocks-taxon>
+        {{ 'content_blocks_sylius.ui.edit_content'|trans }}
+    </a>
+{% endif %}

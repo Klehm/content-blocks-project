@@ -2,7 +2,8 @@ name: CI
 
 # Tests gate the split: the read-only mirrors (klehm/content-blocks,
 # klehm/content-blocks-kit, klehm/content-blocks-i18n, klehm/content-blocks-media,
-# klehm/content-blocks-seo) and the tags Packagist consumes are only updated when every suite is green.
+# klehm/content-blocks-seo, klehm/content-blocks-sylius) and the tags Packagist
+# consumes are only updated when every suite is green.
 on:
   push:
     branches:
@@ -243,6 +244,64 @@ jobs:
 
       - name: Run PHPUnit
         working-directory: packages/content-blocks-seo
+        run: ./vendor/bin/phpunit
+
+  sylius-php-tests:
+    name: PHPUnit Sylius plugin (Sylius ${{ matrix.sylius }} · PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # Every supported Sylius minor, each on the test application of the
+      # same line. Sylius 2.3 needs PHP 8.3.
+      matrix:
+        include:
+          - { sylius: '2.0', php: '8.2' }
+          - { sylius: '2.1', php: '8.3' }
+          - { sylius: '2.2', php: '8.3' }
+          - { sylius: '2.3', php: '8.3' }
+          - { sylius: '2.3', php: '8.4' }
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -proot" --health-interval=5s
+          --health-timeout=5s --health-retries=20
+
+    steps:
+      # fetch-depth: 0, as for i18n: the path-repo'd core needs its tags.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_mysql, intl, mbstring, gd, exif
+          coverage: none
+
+      - name: Pin the Sylius line
+        working-directory: packages/content-blocks-sylius
+        run: |
+          composer require --no-update "sylius/sylius:~${{ matrix.sylius }}.0"
+          composer require --no-update --dev "sylius/test-application:${{ matrix.sylius }}.x-dev"
+
+      - name: Install dependencies
+        working-directory: packages/content-blocks-sylius
+        run: composer update --no-progress --no-interaction
+
+      # The bootstrap drops and recreates this database on every run.
+      - name: Point the test application at the service
+        working-directory: packages/content-blocks-sylius
+        run: |
+          echo 'DATABASE_URL=mysql://root:root@127.0.0.1:3306/content_blocks_sylius_test?serverVersion=8.0&charset=utf8mb4' \
+            > tests/TestApplication/.env.test.local
+
+      - name: Run PHPUnit
+        working-directory: packages/content-blocks-sylius
         run: ./vendor/bin/phpunit
 
   js-tests:
@@ -791,7 +850,7 @@ jobs:
   packages_split:
     name: Split ${{ matrix.package.split_repository }}
     runs-on: ubuntu-latest
-    needs: [php-tests, kit-php-tests, i18n-php-tests, media-php-tests, seo-php-tests, lowest-deps, bc-check, js-tests, kit-js-tests, i18n-js-tests, media-js-tests, seo-js-tests, static-analysis, docs-build, e2e-tests, postgres-e2e-tests, encore-e2e-tests]
+    needs: [php-tests, kit-php-tests, i18n-php-tests, media-php-tests, seo-php-tests, sylius-php-tests, lowest-deps, bc-check, js-tests, kit-js-tests, i18n-js-tests, media-js-tests, seo-js-tests, static-analysis, docs-build, e2e-tests, postgres-e2e-tests, encore-e2e-tests]
     # PRs never split; only pushes to master and v* tags do.
     if: github.event_name == 'push'
 
@@ -809,6 +868,8 @@ jobs:
             split_repository: content-blocks-media
           - local_path: content-blocks-seo
             split_repository: content-blocks-seo
+          - local_path: content-blocks-sylius
+            split_repository: content-blocks-sylius
 
     steps:
       - uses: actions/checkout@v6

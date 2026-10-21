@@ -1,0 +1,73 @@
+content_blocks_sylius:
+    menu:
+        content: Contenu
+        pages: Pages
+        homepage: Page d'accueil
+    ui:
+        content_page: Page
+        content_pages: Pages
+        content_pages_subheader: Pages de la boutique construites avec le page builder
+        content: Contenu
+        meta_title: Titre meta
+        slug_help: Laissé vide, il est tiré du titre.
+        homepage: Page d'accueil
+        status: Statut
+        status_native: Page d'accueil native
+        status_published: Contenu du builder publié
+        status_draft: Contenu du builder pas encore publié
+        view_in_shop: Voir dans la boutique
+        edit_content: Page builder
+        translate: 'Traduire en %locale%'
+        area_label:
+            page: 'Page · %title% (%code%)'
+            homepage: 'Accueil · %subject%'
+            product: 'Produit · %subject%'
+            taxon: 'Taxon · %subject%'
+        slot:
+            homepage: Page d'accueil
+            product: Contenu du produit
+            taxon: Contenu du taxon
+            create: Commencer l'édition avec le builder
+            empty_homepage: Ce canal affiche la page d'accueil native. Le contenu du builder la remplace dès que quelque chose est publié.
+            empty_product: Pas encore de contenu. Une fois publié, il s'affiche sous la fiche produit.
+            empty_taxon: Pas encore de contenu. Une fois publié, il s'affiche au-dessus des produits de ce taxon.
+    field:
+        product: Produit
+        products: Produits
+        taxon: Taxon
+        taxons: Taxons
+        parent_taxon: Taxon parent
+        add_to_cart: Afficher le formulaire d'ajout au panier
+        source: Source
+        limit: Nombre de produits
+        layout: Disposition
+        columns: Colonnes
+        size: Taille
+    source:
+        manual: Produits choisis
+        taxon: Produits d'un taxon
+        latest: Derniers produits
+        children: Sous-taxons d'un taxon
+        manual_taxons: Taxons choisis
+    layout:
+        grid: Grille
+        carousel: Carrousel
+    size:
+        md: Normale
+        lg: Grande
+    block:
+        product:
+            label: Produit
+            empty: Choisissez un produit actif sur ce canal.
+        product_list:
+            label: Produits
+            empty: Aucun produit à afficher avec ces réglages sur ce canal.
+        product_price:
+            label: Prix
+            empty: Choisissez un produit actif sur ce canal.
+        add_to_cart:
+            label: Ajout au panier
+            empty: Choisissez un produit actif sur ce canal.
+        taxon_list:
+            label: Catégories
+            empty: Aucun taxon actif à afficher avec ces réglages.

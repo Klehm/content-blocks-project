@@ -1,0 +1,11 @@
+{% set product = cb_sylius_product(data.product|default(null)) %}
+{% if product %}
+    <div class="cb-sylius-product">
+        {{ component('sylius_shop:product:card', { product: product, template: '@SyliusShop/product/common/card.html.twig' }) }}
+        {% if data.addToCart|default(false) %}
+            {{ include('@ContentBlocksSyliusPlugin/block/_add_to_cart.html.twig', { product: product }, with_context = false) }}
+        {% endif %}
+    </div>
+{% else %}
+    {{ include('@ContentBlocksSyliusPlugin/block/_missing.html.twig', { context: context, message: 'content_blocks_sylius.block.product.empty' }, with_context = false) }}
+{% endif %}
