@@ -48,6 +48,11 @@ clear_env = no
 catch_workers_output = yes
 decorate_workers_output = no
 CONF
+# Diagnosis only: lets a crashing worker leave a core for gdb.
+if [ -n "${E2E_CORE_DUMPS:-}" ]; then
+    ulimit -c unlimited
+    echo 'rlimit_core = unlimited' >> "$run/fpm.conf"
+fi
 
 cat > "$run/Caddyfile" <<CONF
 {

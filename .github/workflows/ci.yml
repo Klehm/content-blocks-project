@@ -678,11 +678,29 @@ jobs:
         working-directory: packages/content-blocks
         run: npx playwright install --with-deps chromium
 
+      - name: Diagnose — keep cores and say what libpq links (temporary)
+        run: |
+          sudo sysctl -w kernel.core_pattern=/tmp/core.%e.%p
+          sudo apt-get install -y -q gdb >/dev/null
+          php -i | grep -iE 'libpq|pgsql|opcache.enable|opcache.jit' || true
+          ldd "$(php -r 'echo ini_get("extension_dir");')/pdo_pgsql.so" || true
+
       - name: Run Playwright
         working-directory: packages/content-blocks
         env:
           E2E_SERVER: fpm
+          E2E_CORE_DUMPS: '1'
         run: npm run test:e2e
+
+      - name: Diagnose — backtraces of the crashed workers (temporary)
+        if: always()
+        run: |
+          ls -la /tmp/core.* 2>/dev/null | head -5 || true
+          v=$(php -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')
+          for c in $(ls /tmp/core.* 2>/dev/null | head -3); do
+            echo "=== $c"
+            gdb -batch -ex 'bt 40' "/usr/sbin/php-fpm$v" "$c" 2>&1 | grep -v '^\[New LWP' | tail -50
+          done
 
       - name: Upload Playwright report on failure
         if: failure()
