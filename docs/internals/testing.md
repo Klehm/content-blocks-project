@@ -34,7 +34,24 @@ Playwright jobs out of ninety-six over two days, on block creation, the page
 list and a Live Component alike, so not one route's bug. Each crash takes the
 requests in flight with it, and two crashes a minute apart failed four specs
 through both retries on the PostgreSQL leg of #92. It never reproduced locally.
-php-fpm is built for that load.
+php-fpm is built for that load, and a worker that dies takes its own request
+with it, not the server.
+
+**The crash is not `php -S`'s, and fpm runs without the JIT.** The first CI run
+under fpm (#95) segfaulted 436 workers on the PostgreSQL leg, 414 of them on
+`POST /column/{id}/blocks`, the route most of the `php -S` crashes were on too;
+the MySQL legs had none. The next runs of the same commit were clean. What
+separated them was the runner image: every crash seen, under either server, ran
+on `ubuntu-24.04` image `20261012.601` (5 jobs of 61, 4 of them PostgreSQL),
+none on `20261015.610` (0 of 42). PHP (8.3.35) and libpq (18.6) were the same
+on both, and it never reproduced locally (PHP 8.3.33, libpq 16.9), JIT or not.
+The difference between the servers is the JIT: setup-php's `ini-file:
+production` turns it on (`opcache.jit=1235`) for fpm, while `php -S` is the CLI
+SAPI and runs with opcache off. Without the JIT that image crashed rarely; with
+it, block creation crashed almost every time once its code was compiled. So the
+script passes `-d opcache.jit=disable`: the conditions `php -S` ran under, with
+a server that survives a dead worker. No core dump could be captured; a crash
+under the newer image would reopen this.
 
 Not FrankenPHP: its binary embeds its own PHP (8.4 today), so a job testing
 PHP 8.3 would have served its pages from 8.4. The script starts the php-fpm of

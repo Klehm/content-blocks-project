@@ -48,11 +48,6 @@ clear_env = no
 catch_workers_output = yes
 decorate_workers_output = no
 CONF
-# Diagnosis only: lets a crashing worker leave a core for gdb.
-if [ -n "${E2E_CORE_DUMPS:-}" ]; then
-    ulimit -c unlimited
-    echo 'rlimit_core = unlimited' >> "$run/fpm.conf"
-fi
 
 cat > "$run/Caddyfile" <<CONF
 {
@@ -71,11 +66,14 @@ CONF
 touch "$run/fpm.log"
 tail -n +1 -F "$run/fpm.log" >&2 &
 
+# No JIT: setup-php's production ini turns it on for fpm, and with it one
+# runner image segfaulted on nearly every block creation (testing.md).
 # Its stdio goes to the log, not to our caller: fpm starts a session of its
 # own, so a caller killing our process group misses it, and an inherited pipe
 # would then never close (Playwright waits for it forever).
 PHP_INI_SCAN_DIR="$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')" \
     "$fpm" --nodaemonize --fpm-config "$run/fpm.conf" -c "$(php -r 'echo php_ini_loaded_file();')" \
+    -d opcache.jit=disable \
     </dev/null >>"$run/fpm.log" 2>&1 &
 fpm_pid=$!
 
