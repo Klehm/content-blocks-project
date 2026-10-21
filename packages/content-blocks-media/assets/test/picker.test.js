@@ -563,6 +563,57 @@ describe('MediaPicker — a file browser', () => {
         await vi.waitFor(() => expect(posted('/m/file/move')).toEqual({ ids: [1, 2], folder: 7 }));
     });
 
+    it('a drag shows a compact ghost, dims what leaves, outlines where it can go', () => {
+        click(button(1));
+        click(button(2), { ctrlKey: true });
+        const ghosts = [];
+        const start = new Event('dragstart', { bubbles: true, cancelable: true });
+        Object.defineProperty(start, 'dataTransfer', {
+            value: { setData() {}, setDragImage: (node) => ghosts.push(node.textContent) },
+        });
+
+        button(2).dispatchEvent(start);
+
+        expect(ghosts).toEqual(['2 selected']);
+        expect(dialog.classList.contains('cb-media--dragging')).toBe(true);
+        expect(button(1).classList.contains('cb-media__item--dragged')).toBe(true);
+        expect(button(3).classList.contains('cb-media__item--dragged')).toBe(false);
+
+        button(2).dispatchEvent(new Event('dragend', { bubbles: true }));
+        expect(dialog.classList.contains('cb-media--dragging')).toBe(false);
+        expect(dialog.querySelector('.cb-media__item--dragged')).toBeNull();
+    });
+
+    it('the whole folder row lights up, its buttons included, until left', () => {
+        const row = dialog.querySelector('[data-folder="7"]').closest('.cb-media__folder-row');
+        const rename = row.querySelector('[data-folder-act="rename"]');
+
+        drag('dragover', rename, { types: [MediaPicker.DRAG_TYPE] });
+        expect(row.classList.contains('cb-media__drop-target')).toBe(true);
+
+        // Moving onto a child of the row is not leaving it.
+        const inside = new Event('dragleave', { bubbles: true });
+        Object.defineProperty(inside, 'relatedTarget', { value: row.querySelector('[data-folder]') });
+        Object.defineProperty(inside, 'dataTransfer', { value: { types: [MediaPicker.DRAG_TYPE] } });
+        rename.dispatchEvent(inside);
+        expect(row.classList.contains('cb-media__drop-target')).toBe(true);
+
+        const away = new Event('dragleave', { bubbles: true });
+        Object.defineProperty(away, 'relatedTarget', { value: dialog.querySelector('[data-cb-media-grid]') });
+        rename.dispatchEvent(away);
+        expect(row.classList.contains('cb-media__drop-target')).toBe(false);
+    });
+
+    it('a drop on a folder\'s rename button still moves into that folder', async () => {
+        route({ '/m/file/move': { moved: 1 } });
+        const rename = dialog.querySelector('[data-folder-act="rename"][data-folder-id="7"]');
+
+        drag('drop', rename, { types: [MediaPicker.DRAG_TYPE], data: { [MediaPicker.DRAG_TYPE]: '[3]' } });
+
+        await vi.waitFor(() => expect(posted('/m/file/move')).toEqual({ ids: [3], folder: 7 }));
+        expect(dialog.querySelector('.cb-media__drop-target')).toBeNull();
+    });
+
     it('dragging a file outside the selection drags it alone', () => {
         click(button(1));
 

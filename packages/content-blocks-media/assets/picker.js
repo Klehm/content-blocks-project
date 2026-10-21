@@ -605,29 +605,78 @@ export class MediaPicker {
             if (!this.selection.has(id)) this.select(this._item(button));
             event.dataTransfer.setData(MediaPicker.DRAG_TYPE, JSON.stringify([...this.selection]));
             event.dataTransfer.effectAllowed = 'move';
+            this._startDrag(event);
         });
+        this.el('grid').addEventListener('dragend', () => this._endDrag());
 
+        // A folder's whole row is the target, its rename and delete included.
+        const target = (event) => {
+            if (!isOurs(event)) return null;
+            const row = event.target.closest?.('.cb-media__folder-row, button.cb-media__crumb');
+            const folder = row?.matches('[data-folder]') ? row : row?.querySelector('[data-folder]');
+
+            return folder ? { row, folder } : null;
+        };
         for (const zone of [this.el('folders'), this.el('trail')]) {
-            const target = (event) => (isOurs(event) ? event.target.closest?.('[data-folder]') : null);
             zone.addEventListener('dragover', (event) => {
-                const folder = target(event);
-                if (!folder) return;
+                const hit = target(event);
+                if (!hit) return;
                 event.preventDefault();
                 event.dataTransfer.dropEffect = 'move';
-                folder.classList.add('cb-media__drop-target');
+                this._highlight(hit.row);
             });
             zone.addEventListener('dragleave', (event) => {
-                target(event)?.classList.remove('cb-media__drop-target');
+                // Crossing into a child of the row is not leaving it.
+                if (this.dropTarget && !this.dropTarget.contains(event.relatedTarget)) this._highlight(null);
             });
             zone.addEventListener('drop', (event) => {
-                const folder = target(event);
-                if (!folder) return;
+                const hit = target(event);
+                if (!hit) return;
                 event.preventDefault();
-                folder.classList.remove('cb-media__drop-target');
                 const ids = JSON.parse(event.dataTransfer.getData(MediaPicker.DRAG_TYPE) || '[]');
-                this.move(folder.dataset.folder === '' ? null : Number(folder.dataset.folder), ids);
+                this._endDrag();
+                this.move(hit.folder.dataset.folder === '' ? null : Number(hit.folder.dataset.folder), ids);
             });
         }
+    }
+
+    /** A compact ghost: the tile itself would hide the folders it aims at. */
+    _startDrag(event) {
+        const ids = [...this.selection];
+        this.dialog.classList.add('cb-media--dragging');
+        for (const id of ids) {
+            this.el('grid').querySelector(`[data-id="${id}"]`)?.classList.add('cb-media__item--dragged');
+        }
+
+        const first = this.items.find((item) => item.id === ids[0]);
+        const ghost = this._node('div', 'cb-media__drag-ghost');
+        if (first && first.kind !== 'video') {
+            const img = this._visual(first, true);
+            img.loading = 'eager';
+            ghost.append(img);
+        }
+        ghost.append(this._node('span', '', ids.length > 1
+            ? this._t('selected_many').replace('%count%', String(ids.length))
+            : (first?.title ?? '')));
+        // Inside the dialog: the top layer is where a modal's content paints.
+        this.dialog.append(ghost);
+        event.dataTransfer.setDragImage?.(ghost, 14, 14);
+        setTimeout(() => ghost.remove(), 0);
+    }
+
+    _endDrag() {
+        this._highlight(null);
+        this.dialog.classList.remove('cb-media--dragging');
+        for (const tile of this.el('grid').querySelectorAll('.cb-media__item--dragged')) {
+            tile.classList.remove('cb-media__item--dragged');
+        }
+    }
+
+    _highlight(row) {
+        if (this.dropTarget === row) return;
+        this.dropTarget?.classList.remove('cb-media__drop-target');
+        this.dropTarget = row;
+        row?.classList.add('cb-media__drop-target');
     }
 
     _openFolderFrom(event) {

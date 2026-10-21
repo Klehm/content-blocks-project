@@ -143,10 +143,71 @@ button.cb-media__crumb {
   background: var(--cb-accent-bg, #e6f2f6);
 }
 
-/* A folder a dragged file would land in. */
-.cb-media__drop-target {
+/* While files are dragged: where they can go, and what is leaving. */
+.cb-media--dragging .cb-media__folder-row,
+.cb-media--dragging button.cb-media__crumb {
+  outline: 1px dashed var(--cb-accent, #0e7490);
+  outline-offset: 2px;
+}
+
+.cb-media__item--dragged {
+  opacity: 0.4;
+}
+
+/* The folder a drop would land in. */
+.cb-media__folder-row,
+button.cb-media__crumb {
+  transition: background-color 0.12s, transform 0.12s;
+}
+
+.cb-media__folder-row.cb-media__drop-target,
+button.cb-media__crumb.cb-media__drop-target {
   outline: 2px solid var(--cb-accent, #0e7490);
-  background: var(--cb-accent-bg, #e6f2f6);
+  background: var(--cb-accent, #0e7490);
+  color: var(--cb-on-solid, #fff);
+  transform: scale(1.04);
+}
+
+.cb-media__drop-target .cb-media__folder,
+.cb-media__drop-target .cb-media__folder::before,
+.cb-media__drop-target .cb-media__folder-act {
+  background: transparent;
+  color: inherit;
+  opacity: 1;
+}
+
+button.cb-media__crumb.cb-media__drop-target {
+  padding: 0 6px;
+  border-radius: var(--cb-radius-xs, 4px);
+}
+
+/* Off screen; the browser snapshots it as the drag image. */
+.cb-media__drag-ghost {
+  position: fixed;
+  top: -200px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 240px;
+  padding: 6px 10px 6px 6px;
+  border-radius: var(--cb-radius-sm, 6px);
+  background: var(--cb-accent, #0e7490);
+  color: var(--cb-on-solid, #fff);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.cb-media__drag-ghost img {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--cb-radius-xs, 4px);
+  object-fit: cover;
+}
+
+.cb-media__drag-ghost span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cb-media__detail--many .cb-media__field--single,

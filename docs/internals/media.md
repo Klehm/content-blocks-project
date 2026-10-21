@@ -118,6 +118,13 @@ Two kinds of drag, told apart by the `dataTransfer` types:
   folder or a crumb of the trail move in one `POST file/move`. Dragging a file
   outside the selection drags it alone. Only a manager can start such a drag.
 
+While picker files are dragged, the drag image is a compact chip (thumbnail
+and title, or a count): the tile itself would cover the folders it aims at.
+The dragged tiles dim, every folder and trail crumb is outlined as a place to
+drop, and the row under the cursor fills with the accent colour. The whole row
+is the target, its rename and delete buttons included, and moving onto one of
+its children is not leaving it (`relatedTarget`), so the highlight holds.
+
 `file/move` and `file/remove` take a list of ids and refuse the whole request
 when one is unknown: a drag with a stale id moves nothing rather than half.
 *Insert* needs exactly one file, since a field holds one.
