@@ -690,7 +690,7 @@ jobs:
         env:
           E2E_SERVER: fpm
           E2E_CORE_DUMPS: '1'
-        run: npm run pretest:e2e && npx playwright test ai-actions.spec.js --retries=0
+        run: npm run pretest:e2e && npx playwright test --retries=0 --max-failures=3
 
       - name: Diagnose — backtraces of the crashed workers (temporary)
         if: always()
@@ -699,8 +699,9 @@ jobs:
           v=$(php -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')
           for c in $(ls /tmp/core.* 2>/dev/null | head -3); do
             echo "=== $c"
-            gdb -batch -ex 'bt 40' "/usr/sbin/php-fpm$v" "$c" 2>&1 | grep -v '^\[New LWP' | tail -50
+            gdb -batch -ex 'bt 40' -ex 'info sharedlibrary' "/usr/sbin/php-fpm$v" "$c" 2>&1 | grep -v '^\[New LWP' | tail -90
           done
+          ulimit -c; cat /proc/sys/kernel/core_pattern
 
       - name: Upload Playwright report on failure
         if: failure()
