@@ -9,6 +9,9 @@ imports:
 
 parameters:
     sylius_core.public_dir: '%kernel.project_dir%/public'
+    # The fixtures purge this directory: the Playwright instance (`_e2e`) gets
+    # its own, or loading it would delete the demo's product images.
+    sylius_core.images_dir: '%sylius_core.public_dir%/media/image%env(SANDBOX_SUFFIX)%'
 
 sylius_addressing:
     resources:

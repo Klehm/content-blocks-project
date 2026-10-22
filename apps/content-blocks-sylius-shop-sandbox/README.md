@@ -37,5 +37,6 @@ What differs from a fresh Sylius-Standard, and why:
   webpack newer than `@symfony/stimulus-bridge` supports), see the comments.
 - `assets/shop/styles/content-blocks.css`: the space between blocks, which the
   kit leaves to the host.
-- `SANDBOX_SUFFIX` (database and uploads): the Playwright instance runs on its
-  own `_e2e` copy.
+- `SANDBOX_SUFFIX` (database, uploads and Sylius's product images): the
+  Playwright instance runs on its own `_e2e` copy. The images matter most:
+  loading the fixtures purges their directory.

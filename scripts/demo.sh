@@ -15,7 +15,7 @@ demo="${2:-main}"
 # name → directory, port, entry path, build tool, seed command; the table
 # probed to tell an installed database; what seeds an `_e2e` instance.
 configure() {
-    probe=app_page e2e_seed=''
+    probe=app_page e2e_seed='' uploads=public/uploads/content-blocks
     case "$1" in
         main)   dir=content-blocks-sandbox        port=8000 entry=/       build=assetmap
                 seed='bin/reset.sh --seed' ;;
@@ -25,7 +25,7 @@ configure() {
                 seed='' ;;
         # Sylius-Standard: the shop needs Sylius's own fixtures, tests included.
         shop)   dir=content-blocks-sylius-shop-sandbox port=8006 entry=/en_US/ build=encore
-                probe=cb_sylius_page
+                probe=cb_sylius_page uploads=public/media/content-blocks
                 e2e_seed='php bin/console --no-interaction sylius:fixtures:load default -q'
                 seed="$e2e_seed && php bin/console --no-interaction app:demo:load -q" ;;
         *) echo "Unknown demo '$1' (main, sylius, encore, shop, all)." >&2; exit 1 ;;
@@ -48,7 +48,7 @@ reset() {
     console doctrine:database:drop --force --if-exists -q
     console doctrine:database:create -q
     console doctrine:schema:create -q
-    rm -rf "$app/public/uploads/content-blocks$suffix"
+    rm -rf "${app:?}/$uploads$suffix"
     if [ -n "$suffix" ]; then
         [ -z "$e2e_seed" ] || (cd "$app" && eval "$e2e_seed")
     else
