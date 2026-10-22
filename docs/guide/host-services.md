@@ -470,14 +470,39 @@ width, so it follows the same breakpoints. Restyle it through:
     --cb-slider-accent: #eb0540;             /* keyboard focus ring */
     --cb-slider-gap: 1.5rem;                 /* space above the controls */
 }
-.cb-slider__arrow { border-color: transparent; }
-.cb-slider__dot[aria-current="true"] { background: #eb0540; }
+.cb-slider__arrow { background: #fff; }
+.cb-slider__dot[aria-current="true"]::before { background: #eb0540; }
 ```
+
+The arrows are round buttons tinted from the text colour, and a dot is drawn by
+its `::before` (the button around it is the larger hit area): the current one
+stretches into a pill.
 
 A slide's width comes from two properties set on `.cb-row`: `--cb-slide-n`,
 the slides visible at the current width (resolved from `--cb-slides-d/t/m`),
 and `--cb-slide-gap`, which follows the section's column gap. Override the gap
 to space slides apart from the grid's gutter; set the count in the sidebar.
+
+#### A slider in your own block
+
+The same script gives its controls to any element carrying `data-cb-slider`
+with a direct child marked `data-cb-slider-track`: each child of the track is a
+slide. The track scrolls and snaps on its own (`layout.css`); size the slides
+yourself. The attribute takes the section's options as JSON, `labels` included
+(the `cb.slider.*` keys of the `content_blocks` domain):
+
+```twig
+<div data-cb-slider="{{ { controls: 'both', autoplay: 0, loop: false }|json_encode }}">
+    <div class="my-cards" data-cb-slider-track>
+        {% for card in cards %}<div style="flex: 0 0 18rem">…</div>{% endfor %}
+    </div>
+</div>
+```
+
+Link the script from the block's [assets](./custom-blocks.md#css-and-js-a-block-needs),
+as a module: `content_blocks_asset_slider`, the URL `cb_asset_path('slider')`
+returns. A page loads it once whatever links it. The Sylius plugin's *Products*
+carousel is built this way.
 
 ### Order per viewport
 

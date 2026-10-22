@@ -1,10 +1,10 @@
 /**
- * Arrows, dots and autoplay for sections shown as a slider. CSS decides where
- * a section is one; this reads it back, so breakpoints live in layout.css.
+ * Arrows, dots and autoplay for a `[data-cb-slider]`: a section, or any track
+ * marked `data-cb-slider-track`. CSS decides where it scrolls; this reads it.
  *
  * @see docs/internals/rendering.md#the-slider
  */
-const instances = new WeakMap();
+const instances = new Map();
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 function parseConfig(section) {
@@ -22,11 +22,22 @@ function label(config, key, fallback, n, count) {
     return raw.replace('%n%', String(n)).replace('%count%', String(count));
 }
 
-function makeButton(className, text, ariaLabel) {
+const CHEVRON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" '
+    + 'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+    + 'stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
+
+/** A section slides its columns; any other host, its track's children. */
+function trackOf(host) {
+    return host.classList.contains('cb-section')
+        ? host.querySelector(':scope > .cb-row')
+        : host.querySelector(':scope > [data-cb-slider-track]');
+}
+
+function makeButton(className, icon, ariaLabel) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = className;
-    if (text) button.textContent = text;
+    if (icon) button.innerHTML = icon;
     button.setAttribute('aria-label', ariaLabel);
     return button;
 }
@@ -36,7 +47,8 @@ class Slider {
         this.section = section;
         this.raw = section.getAttribute('data-cb-slider');
         this.config = parseConfig(section);
-        this.row = section.querySelector(':scope > .cb-row');
+        this.row = trackOf(section);
+        this.columns = section.classList.contains('cb-section');
         this.active = false;
         this.paused = false;
         this.timer = null;
@@ -51,12 +63,12 @@ class Slider {
         if (controls === 'both' || controls === 'arrows') {
             this.prev = makeButton(
                 'cb-slider__arrow cb-slider__arrow--prev',
-                '‹',
+                CHEVRON,
                 label(this.config, 'previous', 'Previous slide'),
             );
             this.next = makeButton(
                 'cb-slider__arrow cb-slider__arrow--next',
-                '›',
+                CHEVRON,
                 label(this.config, 'next', 'Next slide'),
             );
             this.prev.addEventListener('click', () => this.step(-1));
@@ -102,7 +114,7 @@ class Slider {
     /** Live columns in visual order; hidden ones (deletions) are skipped. */
     slides() {
         return Array.from(this.row.children)
-            .filter((node) => node.classList.contains('cb-col'))
+            .filter((node) => !this.columns || node.classList.contains('cb-col'))
             .filter((node) => node.getClientRects().length > 0)
             .sort((a, b) => a.offsetLeft - b.offsetLeft);
     }
@@ -120,9 +132,15 @@ class Slider {
             this.toggleRow(active);
         }
 
-        // One stop per slide the row can actually scroll to, the end included.
-        const max = this.row.scrollWidth - this.row.clientWidth;
+        // One stop per slide, up to the last slide's edge: a child's negative
+        // margin can widen scrollWidth, which made a stop of its own.
         const origin = slides.length > 0 ? slides[0].offsetLeft : 0;
+        const last = slides[slides.length - 1];
+        const end = last ? last.offsetLeft + last.offsetWidth - origin : 0;
+        const max = Math.max(0, Math.min(
+            this.row.scrollWidth - this.row.clientWidth,
+            end - this.row.clientWidth,
+        ));
         const stops = [];
         for (const slide of slides) {
             const left = Math.min(slide.offsetLeft - origin, max);
@@ -263,12 +281,14 @@ class Slider {
     }
 }
 
-/** Attaches, refreshes or detaches each section to match its attribute. */
+/** Attaches, refreshes or detaches each host to match its attribute. */
 function scan() {
-    document.querySelectorAll('.cb-section').forEach((section) => {
+    const hosts = new Set(document.querySelectorAll('[data-cb-slider]'));
+    instances.forEach((_, host) => hosts.add(host));
+    hosts.forEach((section) => {
         const instance = instances.get(section);
-        const raw = section.getAttribute('data-cb-slider');
-        const row = section.querySelector(':scope > .cb-row');
+        const raw = section.isConnected ? section.getAttribute('data-cb-slider') : null;
+        const row = trackOf(section);
         if (instance && instance.raw === raw && instance.row === row) {
             if (instance.signature !== instance.currentSignature()) {
                 instance.refresh();
