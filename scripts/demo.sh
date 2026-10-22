@@ -2,7 +2,7 @@
 #
 # Starts, stops and resets the local demos (the sandboxes under apps/).
 #
-#   scripts/demo.sh <up|down|restart|reset|status|logs> [main|sylius|encore|all]
+#   scripts/demo.sh <up|down|restart|reset|status|logs> [main|sylius|encore|shop|all]
 #
 # Driven by the root Makefile (`make up DEMO=sylius`). Each demo keeps its own
 # port, database and server pid/log under its var/.
@@ -12,8 +12,10 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 action="${1:-}"
 demo="${2:-main}"
 
-# name → directory, port, entry path, build tool, seed command
+# name → directory, port, entry path, build tool, seed command; the table
+# probed to tell an installed database; what seeds an `_e2e` instance.
 configure() {
+    probe=app_page e2e_seed='' uploads=public/uploads/content-blocks
     case "$1" in
         main)   dir=content-blocks-sandbox        port=8000 entry=/       build=assetmap
                 seed='bin/reset.sh --seed' ;;
@@ -21,7 +23,12 @@ configure() {
                 seed='php bin/console --no-interaction app:demo:load -q' ;;
         encore) dir=content-blocks-encore-sandbox port=8004 entry=/       build=encore
                 seed='' ;;
-        *) echo "Unknown demo '$1' (main, sylius, encore, all)." >&2; exit 1 ;;
+        # Sylius-Standard: the shop needs Sylius's own fixtures, tests included.
+        shop)   dir=content-blocks-sylius-shop-sandbox port=8006 entry=/en_US/ build=encore
+                probe=cb_sylius_page uploads=public/media/content-blocks
+                e2e_seed='php bin/console --no-interaction sylius:fixtures:load default -q'
+                seed="$e2e_seed && php bin/console --no-interaction app:demo:load -q" ;;
+        *) echo "Unknown demo '$1' (main, sylius, encore, shop, all)." >&2; exit 1 ;;
     esac
     port="${PORT:-$port}"
     app="$root/apps/$dir"
@@ -41,8 +48,12 @@ reset() {
     console doctrine:database:drop --force --if-exists -q
     console doctrine:database:create -q
     console doctrine:schema:create -q
-    rm -rf "$app/public/uploads/content-blocks$suffix"
-    [ -n "$suffix" ] || [ -z "$seed" ] || (cd "$app" && $seed)
+    rm -rf "${app:?}/$uploads$suffix"
+    if [ -n "$suffix" ]; then
+        [ -z "$e2e_seed" ] || (cd "$app" && eval "$e2e_seed")
+    else
+        [ -z "$seed" ] || (cd "$app" && eval "$seed")
+    fi
     echo "Demo '$1${suffix}' reset."
 }
 
@@ -50,7 +61,7 @@ up() {
     if running; then echo "$1: already running on $url$entry"; return; fi
     [ -d "$app/vendor" ] || composer install -d "$app"
     console doctrine:database:create --if-not-exists -q
-    if console dbal:run-sql -q 'SELECT 1 FROM app_page LIMIT 1' >/dev/null 2>&1
+    if console dbal:run-sql -q "SELECT 1 FROM $probe LIMIT 1" >/dev/null 2>&1
     then console doctrine:schema:update --force -q
     else reset "$1"; fi
 
@@ -92,11 +103,11 @@ case "$action" in
     up|down|reset|status) ;;
     restart) "$0" down "$demo"; exec "$0" up "$demo" ;;
     logs) [ "$demo" != all ] || { echo 'logs takes one demo.' >&2; exit 1; } ;;
-    *) echo "Usage: $0 <up|down|restart|reset|status|logs> [main|sylius|encore|all]" >&2
+    *) echo "Usage: $0 <up|down|restart|reset|status|logs> [main|sylius|encore|shop|all]" >&2
        exit 1 ;;
 esac
 
-[ "$demo" = all ] && demos=(main sylius encore) || demos=("$demo")
+[ "$demo" = all ] && demos=(main sylius encore shop) || demos=("$demo")
 [ "${#demos[@]}" -eq 1 ] || unset PORT
 for d in "${demos[@]}"; do
     configure "$d"

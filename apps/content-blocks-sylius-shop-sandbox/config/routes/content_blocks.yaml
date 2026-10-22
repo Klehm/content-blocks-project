@@ -1,0 +1,14 @@
+# The plugin mounts the builder and its own admin screens under the admin
+# prefix, the pages under /{_locale}/pages/.
+content_blocks_sylius:
+    resource: '@ContentBlocksSyliusPlugin/config/routes.yaml'
+
+content_blocks_sylius_i18n:
+    resource: '@ContentBlocksSyliusPlugin/config/routes/i18n.yaml'
+
+content_blocks_sylius_media:
+    resource: '@ContentBlocksSyliusPlugin/config/routes/media.yaml'
+
+content_blocks_seo:
+    resource: '@ContentBlocksSeoBundle/config/routes/bare.php'
+    prefix: '/%sylius_admin.path_name%/content-blocks/seo'

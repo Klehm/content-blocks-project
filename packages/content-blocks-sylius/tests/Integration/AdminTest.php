@@ -26,6 +26,21 @@ final class AdminTest extends IntegrationTestCase
         self::assertCount(1, $crawler->filter('a[href="/admin/content-blocks/homepage"]'));
     }
 
+    public function testTheContentGroupComesRightAfterMarketing(): void
+    {
+        $this->client->request('GET', '/admin/');
+        $html = (string) $this->client->getResponse()->getContent();
+
+        // The last Marketing entry, then the first Configuration one.
+        $marketing = strpos($html, 'href="/admin/product-reviews/"');
+        $content = strpos($html, 'href="/admin/content-blocks/content-pages/"');
+        $configuration = strpos($html, 'href="/admin/channels/"');
+        self::assertNotFalse($marketing);
+        self::assertNotFalse($configuration);
+        self::assertGreaterThan($marketing, $content);
+        self::assertLessThan($configuration, $content);
+    }
+
     public function testThePagesGridListsThePages(): void
     {
         $this->fixtures->page('about', ['en_US' => 'About us'], $this->channel());
@@ -200,6 +215,24 @@ final class AdminTest extends IntegrationTestCase
         $option = $crawler->filter('select[name$="[product]"] option[selected]');
         self::assertSame('MUG', $option->attr('value'));
         self::assertStringContainsString('Blue mug', $option->text());
+    }
+
+    public function testACatalogBlockIsSwappedInPlaceInTheBuilder(): void
+    {
+        $this->fixtures->product($this->channel(), 'MUG', 'Blue mug', 1999);
+        $page = $this->fixtures->page('about', ['en_US' => 'About us'], $this->channel());
+        $area = $page->getContentArea();
+        self::assertNotNull($area);
+        $block = $this->fixtures->block($area, 'product', ['product' => 'MUG', 'addToCart' => true]);
+        $this->clear();
+
+        $this->client->request('GET', sprintf('/admin/content-blocks/editor/block/%d/render', $block->getId()));
+
+        self::assertResponseIsSuccessful();
+        $body = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertIsArray($body);
+        self::assertTrue($body['hotReload']);
+        self::assertStringContainsString('Blue mug', $body['html']);
     }
 
     public function testAnonymousVisitorsAreSentToTheLogin(): void

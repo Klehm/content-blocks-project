@@ -8,6 +8,7 @@ use ContentBlocks\I18n\ContentBlocksI18nBundle;
 use ContentBlocks\I18n\Locale\LocalizedPageUrlResolverInterface;
 use ContentBlocks\I18n\Locale\TargetLocalesProviderInterface;
 use ContentBlocks\I18n\Workbench\WorkbenchBackUrlResolverInterface;
+use ContentBlocks\Media\ContentBlocksMediaBundle;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Replace\ContentAreaProviderInterface;
 use ContentBlocks\Security\AccessCheckerInterface;
@@ -19,6 +20,7 @@ use ContentBlocks\Sylius\Block\TaxonListBlock;
 use ContentBlocks\Sylius\Catalog\Catalog;
 use ContentBlocks\Sylius\Controller\Admin\HomepageController;
 use ContentBlocks\Sylius\Controller\Admin\SlotController;
+use ContentBlocks\Sylius\Controller\Shop\AssetController;
 use ContentBlocks\Sylius\Controller\Shop\PageController;
 use ContentBlocks\Sylius\Form\Type\CatalogCodeType;
 use ContentBlocks\Sylius\Form\Type\ContentPageTranslationType;
@@ -26,6 +28,8 @@ use ContentBlocks\Sylius\Form\Type\ContentPageType;
 use ContentBlocks\Sylius\I18n\AdminBackUrlResolver;
 use ContentBlocks\Sylius\I18n\ShopLocalizedPageUrlResolver;
 use ContentBlocks\Sylius\I18n\ShopTargetLocalesProvider;
+use ContentBlocks\Sylius\Image\LiipImageUrlResolver;
+use ContentBlocks\Sylius\Media\AdminMediaManager;
 use ContentBlocks\Sylius\Kit\BootstrapKitTemplateLoader;
 use ContentBlocks\Sylius\Locale\ShopLocales;
 use ContentBlocks\Sylius\Menu\AdminMenuListener;
@@ -43,6 +47,7 @@ use ContentBlocks\Sylius\Slot\SlotRenderer;
 use ContentBlocks\Sylius\Twig\AdminExtension;
 use ContentBlocks\Sylius\Twig\CatalogExtension;
 use ContentBlocks\Sylius\Twig\SlotExtension;
+use ContentBlocks\Sylius\Twig\StylesheetExtension;
 use Sylius\Resource\Translation\Provider\TranslationLocaleProviderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
@@ -109,6 +114,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         ]);
     $services->set(CatalogExtension::class);
     $services->set(AdminExtension::class);
+    $services->set(StylesheetExtension::class);
 
     $services->set(ProductBlock::class);
     $services->set(ProductListBlock::class);
@@ -128,7 +134,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         ->tag('kernel.event_listener', ['event' => 'sylius.menu.admin.main', 'method' => 'addContentMenu']);
 
     // Not autoconfigured, or `routing.controllers` would mount them unprefixed.
-    foreach ([PageController::class, SlotController::class, HomepageController::class] as $controller) {
+    foreach ([PageController::class, AssetController::class, SlotController::class, HomepageController::class] as $controller) {
         $services->set($controller)
             ->autoconfigure(false)
             ->tag('controller.service_arguments');
@@ -153,5 +159,16 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         $services->alias(LocalizedPageUrlResolverInterface::class, ShopLocalizedPageUrlResolver::class);
         $services->set(AdminBackUrlResolver::class);
         $services->alias(WorkbenchBackUrlResolverInterface::class, AdminBackUrlResolver::class);
+    }
+
+    // DefaultAliasPass points the core's image seam at it.
+    if ($builder->getParameter('content_blocks_sylius.images') === true) {
+        $services->set(LiipImageUrlResolver::class)
+            ->args(['$cache' => service('liip_imagine.cache.manager'), '$publicDir' => '%kernel.project_dir%/public']);
+    }
+
+    // klehm/content-blocks-media is optional; DefaultAliasPass wires it.
+    if (\in_array(ContentBlocksMediaBundle::class, $builder->getParameter('kernel.bundles'), true)) {
+        $services->set(AdminMediaManager::class);
     }
 };

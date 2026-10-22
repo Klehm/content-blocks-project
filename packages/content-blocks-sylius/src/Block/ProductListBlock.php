@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace ContentBlocks\Sylius\Block;
 
 use ContentBlocks\BlockType\AsContentBlock;
+use ContentBlocks\BlockType\BlockAssets;
+use ContentBlocks\BlockType\BlockAssetsInterface;
 use ContentBlocks\Sylius\Catalog\Catalog;
+use ContentBlocks\Twig\RoutingExtension;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -13,10 +16,14 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /** Several products as a grid or a carousel: chosen, a taxon's, the latest. */
 #[AsContentBlock(priority: 90, category: 'commerce')]
-class ProductListBlock extends AbstractCatalogBlock
+class ProductListBlock extends AbstractCatalogBlock implements BlockAssetsInterface
 {
     public const SOURCES = ['manual', 'taxon', 'latest'];
     public const LAYOUTS = ['grid', 'carousel'];
+
+    public function __construct(private readonly RoutingExtension $routing)
+    {
+    }
 
     public function getType(): string
     {
@@ -62,6 +69,14 @@ class ProductListBlock extends AbstractCatalogBlock
                 'choice_translation_domain' => false,
                 'constraints' => [new Assert\Range(min: 2, max: 6)],
             ]);
+    }
+
+    /** The carousel borrows the core's section slider for its controls. */
+    public function assets(array $data): BlockAssets
+    {
+        return ($data['layout'] ?? 'grid') === 'carousel'
+            ? new BlockAssets(modules: [$this->routing->assetPath('slider')])
+            : BlockAssets::none();
     }
 
     public function getDefaultData(): array

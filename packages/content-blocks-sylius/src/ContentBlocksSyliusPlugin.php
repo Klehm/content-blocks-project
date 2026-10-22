@@ -4,11 +4,18 @@ declare(strict_types=1);
 
 namespace ContentBlocks\Sylius;
 
+use ContentBlocks\Image\ImageUrlResolverInterface;
+use ContentBlocks\Image\PassthroughImageUrlResolver;
+use ContentBlocks\Media\Security\DenyAllMediaManager;
+use ContentBlocks\Media\Security\MediaManagerInterface;
 use ContentBlocks\Sylius\DependencyInjection\AdminLiveComponentRoutePass;
+use ContentBlocks\Sylius\DependencyInjection\DefaultAliasPass;
 use ContentBlocks\Sylius\Entity\ContentPage;
 use ContentBlocks\Sylius\Entity\ContentPageTranslation;
 use ContentBlocks\Sylius\Form\Type\ContentPageTranslationType;
 use ContentBlocks\Sylius\Form\Type\ContentPageType;
+use ContentBlocks\Sylius\Image\LiipImageUrlResolver;
+use ContentBlocks\Sylius\Media\AdminMediaManager;
 use ContentBlocks\Sylius\Slot\SlotType;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
@@ -31,6 +38,16 @@ final class ContentBlocksSyliusPlugin extends AbstractBundle
     {
         // After attribute autoconfiguration, before the Twig component pass.
         $container->addCompilerPass(new AdminLiveComponentRoutePass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 10);
+        $container->addCompilerPass(new DefaultAliasPass(
+            MediaManagerInterface::class,
+            DenyAllMediaManager::class,
+            AdminMediaManager::class,
+        ));
+        $container->addCompilerPass(new DefaultAliasPass(
+            ImageUrlResolverInterface::class,
+            PassthroughImageUrlResolver::class,
+            LiipImageUrlResolver::class,
+        ));
     }
 
     public function configure(DefinitionConfigurator $definition): void
@@ -41,6 +58,10 @@ final class ContentBlocksSyliusPlugin extends AbstractBundle
                     ->info('bootstrap: the kit blocks render Bootstrap 5 markup, like the Sylius shop. kit: their own cb-kit-* markup.')
                     ->values(['bootstrap', 'kit'])
                     ->defaultValue('bootstrap')
+                ->end()
+                ->booleanNode('images')
+                    ->info("Serve the builder's images through LiipImagine: WebP, sized, with a srcset.")
+                    ->defaultTrue()
                 ->end()
                 ->arrayNode('slots')
                     ->info('Native shop pages whose content can be edited with the builder.')
@@ -57,16 +78,18 @@ final class ContentBlocksSyliusPlugin extends AbstractBundle
     /**
      * @param array{
      *     kit_markup: 'bootstrap'|'kit',
+     *     images: bool,
      *     slots: array<string, bool>,
      * } $config
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        $container->import('../config/services.php');
-
         $container->parameters()
             ->set('content_blocks_sylius.kit_markup', $config['kit_markup'])
+            ->set('content_blocks_sylius.images', $config['images'])
             ->set('content_blocks_sylius.slots', array_keys(array_filter($config['slots'])));
+
+        $container->import('../config/services.php');
     }
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
@@ -117,6 +140,21 @@ final class ContentBlocksSyliusPlugin extends AbstractBundle
         if ($builder->hasExtension('content_blocks_i18n')) {
             $builder->prependExtensionConfig('content_blocks_i18n', ['source_locale' => '%locale%']);
         }
+
+        // Read from the public directory, where the uploads are served.
+        $filters = [];
+        foreach (LiipImageUrlResolver::FILTERS as $width => $name) {
+            $filters[$name] = [
+                'data_loader' => 'content_blocks_sylius',
+                'format' => 'webp',
+                'quality' => 75,
+                'filters' => ['thumbnail' => ['size' => [$width, $width * 10], 'mode' => 'inset', 'allow_upscale' => false]],
+            ];
+        }
+        $builder->prependExtensionConfig('liip_imagine', [
+            'loaders' => ['content_blocks_sylius' => ['filesystem' => ['data_root' => '%kernel.project_dir%/public']]],
+            'filter_sets' => $filters,
+        ]);
 
         $files = [
             ...glob($this->getPath() . '/config/app/sylius_grid/*.yaml') ?: [],
