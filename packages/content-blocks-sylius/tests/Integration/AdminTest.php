@@ -26,6 +26,21 @@ final class AdminTest extends IntegrationTestCase
         self::assertCount(1, $crawler->filter('a[href="/admin/content-blocks/homepage"]'));
     }
 
+    public function testTheContentGroupComesRightAfterMarketing(): void
+    {
+        $this->client->request('GET', '/admin/');
+        $html = (string) $this->client->getResponse()->getContent();
+
+        // The last Marketing entry, then the first Configuration one.
+        $marketing = strpos($html, 'href="/admin/product-reviews/"');
+        $content = strpos($html, 'href="/admin/content-blocks/content-pages/"');
+        $configuration = strpos($html, 'href="/admin/channels/"');
+        self::assertNotFalse($marketing);
+        self::assertNotFalse($configuration);
+        self::assertGreaterThan($marketing, $content);
+        self::assertLessThan($configuration, $content);
+    }
+
     public function testThePagesGridListsThePages(): void
     {
         $this->fixtures->page('about', ['en_US' => 'About us'], $this->channel());
