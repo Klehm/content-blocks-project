@@ -470,13 +470,9 @@ width, so it follows the same breakpoints. Restyle it through:
     --cb-slider-accent: #eb0540;             /* keyboard focus ring */
     --cb-slider-gap: 1.5rem;                 /* space above the controls */
 }
-.cb-slider__arrow { background: #fff; }
-.cb-slider__dot[aria-current="true"]::before { background: #eb0540; }
+.cb-slider__arrow { border-color: transparent; }
+.cb-slider__dot[aria-current="true"] { background: #eb0540; }
 ```
-
-The arrows are round buttons tinted from the text colour, and a dot is drawn by
-its `::before` (the button around it is the larger hit area): the current one
-stretches into a pill.
 
 A slide's width comes from two properties set on `.cb-row`: `--cb-slide-n`,
 the slides visible at the current width (resolved from `--cb-slides-d/t/m`),

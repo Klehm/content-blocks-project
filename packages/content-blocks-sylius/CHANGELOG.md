@@ -22,6 +22,11 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     shop's own Twig components, and are swapped in place in the builder's
     preview, without a reload. The carousel has the core slider's arrows and
     dots.
+  - A shop stylesheet of its own (hookable `content_blocks_sylius`): the
+    sliders' controls as round tinted arrows and dots that stretch into a
+    pill, for the carousel and for sections shown as a slider.
+  - The builder's images through the shop's LiipImagine: sized WebP with a
+    `srcset`, media library thumbnails included (`images: true`, the default).
   - Bootstrap 5 markup for twelve kit blocks (`kit_markup: bootstrap`, the
     default); a host's own kit template overrides still win.
   - The builder's sidebar posts to Sylius's admin Live route, which every

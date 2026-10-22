@@ -22,10 +22,6 @@ function label(config, key, fallback, n, count) {
     return raw.replace('%n%', String(n)).replace('%count%', String(count));
 }
 
-const CHEVRON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" '
-    + 'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
-    + 'stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
-
 /** A section slides its columns; any other host, its track's children. */
 function trackOf(host) {
     return host.classList.contains('cb-section')
@@ -33,11 +29,11 @@ function trackOf(host) {
         : host.querySelector(':scope > [data-cb-slider-track]');
 }
 
-function makeButton(className, icon, ariaLabel) {
+function makeButton(className, text, ariaLabel) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = className;
-    if (icon) button.innerHTML = icon;
+    if (text) button.textContent = text;
     button.setAttribute('aria-label', ariaLabel);
     return button;
 }
@@ -63,12 +59,12 @@ class Slider {
         if (controls === 'both' || controls === 'arrows') {
             this.prev = makeButton(
                 'cb-slider__arrow cb-slider__arrow--prev',
-                CHEVRON,
+                '‹',
                 label(this.config, 'previous', 'Previous slide'),
             );
             this.next = makeButton(
                 'cb-slider__arrow cb-slider__arrow--next',
-                CHEVRON,
+                '›',
                 label(this.config, 'next', 'Next slide'),
             );
             this.prev.addEventListener('click', () => this.step(-1));

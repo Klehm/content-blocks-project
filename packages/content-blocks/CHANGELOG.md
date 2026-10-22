@@ -20,11 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **The slider's controls look lighter.** The arrows are round buttons tinted
-  from the text colour, with a chevron icon, where they had a border and a
-  `‹ ›` glyph; the dots are drawn by `::before`, and the current one stretches
-  into a pill. A host that coloured `.cb-slider__dot` now colours
-  `.cb-slider__dot::before`.
 - **The upload endpoint's errors are translated.** `error` is now a sentence
   in the request's language naming the file and the limit, where it was an
   English string, and PHP's own wording (`upload_max_filesize`) no longer

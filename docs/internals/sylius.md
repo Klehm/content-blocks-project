@@ -105,6 +105,12 @@ finds through its `MutationObserver`. The carousel links that script through
 it. Reusing the core slider rather than shipping a carousel script keeps one
 look, one set of labels and one accessibility model across the page.
 
+The look of the controls is the plugin's, not the core's: `assets/styles/shop.css`,
+served by the plugin's public route and linked in the `<head>` by a hookable.
+The core's `layout.css` is linked later, in the body, so every selector there
+starts with `.cb-slider--enhanced > .cb-slider__controls` to outrank it, and the
+arrows' `‹ ›` glyphs are hidden (`font-size: 0`) behind a drawn chevron.
+
 ## The media library
 
 With `klehm/content-blocks-media`, the plugin mounts the library's routes under
@@ -114,9 +120,25 @@ firewall covers them, and lets shop administrators manage it
 
 The package aliases `MediaManagerInterface` to its deny-all default, and which
 of two extensions loads last depends on the bundle order, which Flex decides.
-`AdminMediaManagerPass` therefore swaps the alias at compile time, and only
-when it still points to `DenyAllMediaManager`: a host's own alias, written in
-its `services.yaml`, is left alone.
+`DefaultAliasPass` therefore swaps the alias at compile time, and only when it
+still points to `DenyAllMediaManager`: a host's own alias, written in its
+`services.yaml`, is left alone.
+
+## Images through LiipImagine
+
+Sylius ships LiipImagine, so the plugin answers the core's
+`ImageUrlResolverInterface` with `LiipImageUrlResolver`, the same shape as the
+main sandbox's recipe: four width filter sets, a `srcset` capped at twice the
+display width. The same `DefaultAliasPass` puts it in place of the core's
+`PassthroughImageUrlResolver` only.
+
+Sylius's own loader reads `public/media/image`, and the builder's uploads live
+elsewhere, so the plugin prepends a loader on `public/`. The resolver only
+takes a path naming a file there: a URL pasted from another site, a file served
+by a controller or a missing one is passed through, since the loader could not
+read it. SVG stays vector, and a GIF is left alone because WebP would freeze
+its animation. The URLs are absolute: `CacheManager::getBrowserPath()` writes
+them that way, as for Sylius's product images.
 
 ## Bootstrap markup for the kit
 

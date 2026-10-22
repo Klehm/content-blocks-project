@@ -78,18 +78,20 @@ The builder's sidebar is a Live component: the plugin sends it through Sylius's
 admin Live route (`/admin/{_locale}/_components`), so it needs no route of its
 own and stays behind the admin firewall.
 
-### Shop stylesheet
+### Shop stylesheets
 
-Nothing to do: the plugin links the kit stylesheet on every shop page through
-the `sylius_shop.base#stylesheets` hook, for the blocks the Bootstrap markup
-does not cover (tabs, gallery, video…). To link it yourself instead, disable the
-hookable:
+Nothing to do: the plugin links two stylesheets on every shop page through the
+`sylius_shop.base#stylesheets` hook. `content_blocks_kit` is the kit's own CSS,
+for the blocks the Bootstrap markup does not cover (tabs, gallery, video…).
+`content_blocks_sylius` is the plugin's: the sliders' controls, round arrows
+and dots that stretch into a pill. To link either yourself, or to keep the
+core's plainer controls, disable its hookable:
 
 ```yaml
 sylius_twig_hooks:
     hooks:
         'sylius_shop.base#stylesheets':
-            content_blocks_kit:
+            content_blocks_sylius:
                 enabled: false
 ```
 
@@ -126,9 +128,21 @@ theme overriding those templates restyles the blocks too. In the builder, an
 edit refreshes the block in place, without reloading the preview.
 
 The *Products* carousel scrolls and snaps on touch, and gets arrows and dots
-from the same script as a section shown as a slider: restyle both with the
-`--cb-slider-*` properties and the `.cb-slider__*` classes
+from the same script as a section shown as a slider
 ([Slider](host-services.md#slider)).
+
+## Images
+
+The images of the builder (kit image, gallery and card blocks, the media
+library's thumbnails) go through the shop's LiipImagine: a WebP sized for the
+box it lands in, with a `srcset` from 400 to 1600 pixels. Only files under
+`public/` are resized; a URL pasted from elsewhere, an SVG or a GIF is shown
+as it is. The plugin adds four filter sets, `content_blocks_sylius_w400` to
+`_w1600`, with a loader reading `public/`.
+
+To serve images your own way, alias
+`ContentBlocks\Image\ImageUrlResolverInterface` to your resolver, or turn
+this off with `images: false`.
 
 ## Configuration
 
@@ -136,6 +150,7 @@ from the same script as a section shown as a slider: restyle both with the
 # config/packages/content_blocks_sylius.yaml
 content_blocks_sylius:
     kit_markup: bootstrap   # or `kit` for the kit's own cb-kit-* markup
+    images: true            # false: the builder's images as uploaded
     slots:
         homepage: true
         product: true

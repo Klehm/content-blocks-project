@@ -14,6 +14,11 @@ content_blocks_editor:
     resource: '@ContentBlocksBundle/config/routes/editor.php'
     prefix: '/%sylius_admin.path_name%/content-blocks/editor'
 
+content_blocks_sylius_asset_css:
+    path: /_content-blocks-sylius/public/shop
+    methods: [GET]
+    controller: ContentBlocks\Sylius\Controller\Shop\AssetController
+
 content_blocks_public:
     resource: '@ContentBlocksBundle/config/routes/public.php'
     prefix: /_content-blocks/public

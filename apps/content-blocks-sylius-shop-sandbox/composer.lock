@@ -4389,11 +4389,12 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/content-blocks-sylius",
-                "reference": "17a6478b4afef6cb0e1653a87237dd79d4cf591a"
+                "reference": "6446ad2a4e5ee508ebb778c788d81b1f4fe2b3fa"
             },
             "require": {
                 "klehm/content-blocks": "^1.6",
                 "klehm/content-blocks-kit": "^1.6",
+                "liip/imagine-bundle": "^2.17",
                 "php": ">=8.2",
                 "sylius/sylius": "~2.0.0 || ~2.1.0 || ~2.2.0 || ~2.3.0"
             },

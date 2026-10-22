@@ -41,6 +41,9 @@ test.describe('Sylius: the media library in the builder', () => {
         const hidden = page.locator('.cb-image-upload').first().locator('input[type=hidden]');
         await expect(hidden).toHaveValue(/^\/media\/content-blocks_e2e\/.+\.png$/);
         const stored = await hidden.inputValue();
-        await expect(frame.locator('.cb-block--image img')).toHaveAttribute('src', stored);
+        // Rendered through the shop's LiipImagine, as a sized WebP.
+        const img = frame.locator('.cb-block--image img');
+        await expect(img).toHaveAttribute('src', new RegExp(`/media/cache/resolve/content_blocks_sylius_w\\d+${stored}$`));
+        await expect.poll(() => img.evaluate((node) => node.complete && node.naturalWidth)).toBe(120);
     });
 });
