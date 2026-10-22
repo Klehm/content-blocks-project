@@ -8,6 +8,7 @@ use ContentBlocks\I18n\ContentBlocksI18nBundle;
 use ContentBlocks\I18n\Locale\LocalizedPageUrlResolverInterface;
 use ContentBlocks\I18n\Locale\TargetLocalesProviderInterface;
 use ContentBlocks\I18n\Workbench\WorkbenchBackUrlResolverInterface;
+use ContentBlocks\Media\ContentBlocksMediaBundle;
 use ContentBlocks\Preview\ContentAreaUrlResolverInterface;
 use ContentBlocks\Replace\ContentAreaProviderInterface;
 use ContentBlocks\Security\AccessCheckerInterface;
@@ -26,6 +27,7 @@ use ContentBlocks\Sylius\Form\Type\ContentPageType;
 use ContentBlocks\Sylius\I18n\AdminBackUrlResolver;
 use ContentBlocks\Sylius\I18n\ShopLocalizedPageUrlResolver;
 use ContentBlocks\Sylius\I18n\ShopTargetLocalesProvider;
+use ContentBlocks\Sylius\Media\AdminMediaManager;
 use ContentBlocks\Sylius\Kit\BootstrapKitTemplateLoader;
 use ContentBlocks\Sylius\Locale\ShopLocales;
 use ContentBlocks\Sylius\Menu\AdminMenuListener;
@@ -153,5 +155,10 @@ return static function (ContainerConfigurator $container, ContainerBuilder $buil
         $services->alias(LocalizedPageUrlResolverInterface::class, ShopLocalizedPageUrlResolver::class);
         $services->set(AdminBackUrlResolver::class);
         $services->alias(WorkbenchBackUrlResolverInterface::class, AdminBackUrlResolver::class);
+    }
+
+    // klehm/content-blocks-media is optional; AdminMediaManagerPass wires it.
+    if (\in_array(ContentBlocksMediaBundle::class, $builder->getParameter('kernel.bundles'), true)) {
+        $services->set(AdminMediaManager::class);
     }
 };

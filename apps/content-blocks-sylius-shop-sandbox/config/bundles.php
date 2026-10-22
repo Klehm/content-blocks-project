@@ -70,6 +70,7 @@ return [
     Knp\Bundle\GaufretteBundle\KnpGaufretteBundle::class => ['all' => true],
     ContentBlocks\ContentBlocksBundle::class => ['all' => true],
     ContentBlocks\I18n\ContentBlocksI18nBundle::class => ['all' => true],
+    ContentBlocks\Media\ContentBlocksMediaBundle::class => ['all' => true],
     ContentBlocks\Seo\ContentBlocksSeoBundle::class => ['all' => true],
     ContentBlocks\Kit\ContentBlocksKitBundle::class => ['all' => true],
     ContentBlocks\Sylius\ContentBlocksSyliusPlugin::class => ['all' => true],

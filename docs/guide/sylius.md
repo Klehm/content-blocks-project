@@ -14,6 +14,8 @@ is a Sylius plugin bringing the builder to a Sylius 2 shop (2.0 to 2.3):
 - **Catalog blocks**, in a *Shop* group of the block picker: product card,
   products (grid or carousel), price, add to cart, categories.
 - **Bootstrap markup** for the kit blocks, like the Sylius shop theme.
+- **A media library** in the builder, with
+  [`klehm/content-blocks-media`](media-library.md).
 
 ## Installation
 
@@ -120,7 +122,13 @@ read when the page renders, for the visitor's channel and locale. A disabled
 product, or one not sold in the channel, is left out.
 
 They reuse the shop's own Twig components (`sylius_shop:product:card`…), so a
-theme overriding those templates restyles the blocks too.
+theme overriding those templates restyles the blocks too. In the builder, an
+edit refreshes the block in place, without reloading the preview.
+
+The *Products* carousel scrolls and snaps on touch, and gets arrows and dots
+from the same script as a section shown as a slider: restyle both with the
+`--cb-slider-*` properties and the `.cb-slider__*` classes
+([Slider](host-services.md#slider)).
 
 ## Configuration
 
@@ -147,6 +155,24 @@ slot. For finer rules, alias your own checker:
 ContentBlocks\Security\AccessCheckerInterface:
     class: App\ContentBlocks\MyAccessChecker
 ```
+
+## The media library
+
+With [`klehm/content-blocks-media`](media-library.md) installed, every image
+and video field of the builder gets *Browse library*: pick a file already
+uploaded, upload into folders, edit titles and alt texts. Import its routes,
+mounted under the admin prefix so the admin firewall covers them:
+
+```yaml
+content_blocks_sylius_media:
+    resource: '@ContentBlocksSyliusPlugin/config/routes/media.yaml'
+```
+
+Then create its two tables (`doctrine:migrations:diff`). Every shop
+administrator may manage the library. To narrow it, alias your own
+`ContentBlocks\Media\Security\MediaManagerInterface`
+([Who may manage the library](media-library.md#who-may-manage-the-library)):
+the plugin only replaces the package's deny-all default.
 
 ## Translating the content
 

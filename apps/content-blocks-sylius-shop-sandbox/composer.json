@@ -30,6 +30,7 @@
         "klehm/content-blocks": "@dev",
         "klehm/content-blocks-i18n": "@dev",
         "klehm/content-blocks-kit": "@dev",
+        "klehm/content-blocks-media": "@dev",
         "klehm/content-blocks-seo": "@dev",
         "klehm/content-blocks-sylius": "@dev",
         "sylius/adyen-plugin": "^2.1.0",
@@ -176,6 +177,13 @@
         {
             "type": "path",
             "url": "../../packages/content-blocks-i18n",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../../packages/content-blocks-media",
             "options": {
                 "symlink": true
             }

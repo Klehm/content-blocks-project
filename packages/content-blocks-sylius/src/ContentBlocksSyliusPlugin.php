@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentBlocks\Sylius;
 
 use ContentBlocks\Sylius\DependencyInjection\AdminLiveComponentRoutePass;
+use ContentBlocks\Sylius\DependencyInjection\AdminMediaManagerPass;
 use ContentBlocks\Sylius\Entity\ContentPage;
 use ContentBlocks\Sylius\Entity\ContentPageTranslation;
 use ContentBlocks\Sylius\Form\Type\ContentPageTranslationType;
@@ -31,6 +32,7 @@ final class ContentBlocksSyliusPlugin extends AbstractBundle
     {
         // After attribute autoconfiguration, before the Twig component pass.
         $container->addCompilerPass(new AdminLiveComponentRoutePass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 10);
+        $container->addCompilerPass(new AdminMediaManagerPass());
     }
 
     public function configure(DefinitionConfigurator $definition): void

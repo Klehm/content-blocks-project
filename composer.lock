@@ -3933,7 +3933,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/content-blocks-sylius",
-                "reference": "3baa3beea3be3dc3a061cd211c11160ccb9bdb9f"
+                "reference": "17a6478b4afef6cb0e1653a87237dd79d4cf591a"
             },
             "require": {
                 "klehm/content-blocks": "^1.6",
@@ -3943,6 +3943,7 @@
             },
             "require-dev": {
                 "klehm/content-blocks-i18n": "^1.6",
+                "klehm/content-blocks-media": "^1.6",
                 "phpunit/phpunit": "^11.5",
                 "sylius/test-application": "2.3.x-dev",
                 "symfony/browser-kit": "^6.4 || ^7.0 || ^8.0",
@@ -3953,7 +3954,8 @@
                 "symfony/web-profiler-bundle": "^6.4 || ^7.0 || ^8.0"
             },
             "suggest": {
-                "klehm/content-blocks-i18n": "Translates block content per Sylius locale, with target locales and page URLs taken from the shop"
+                "klehm/content-blocks-i18n": "Translates block content per Sylius locale, with target locales and page URLs taken from the shop",
+                "klehm/content-blocks-media": "A media library in the builder: pick a file already uploaded, managed by the shop administrators"
             },
             "type": "sylius-plugin",
             "extra": {

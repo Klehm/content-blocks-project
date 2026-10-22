@@ -6,6 +6,9 @@ content_blocks_sylius:
 content_blocks_sylius_i18n:
     resource: '@ContentBlocksSyliusPlugin/config/routes/i18n.yaml'
 
+content_blocks_sylius_media:
+    resource: '@ContentBlocksSyliusPlugin/config/routes/media.yaml'
+
 content_blocks_seo:
     resource: '@ContentBlocksSeoBundle/config/routes/bare.php'
     prefix: '/%sylius_admin.path_name%/content-blocks/seo'

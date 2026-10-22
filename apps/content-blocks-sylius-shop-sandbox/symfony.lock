@@ -83,6 +83,9 @@
     "klehm/content-blocks-kit": {
         "version": "dev-master"
     },
+    "klehm/content-blocks-media": {
+        "version": "dev-master"
+    },
     "klehm/content-blocks-seo": {
         "version": "dev-master"
     },

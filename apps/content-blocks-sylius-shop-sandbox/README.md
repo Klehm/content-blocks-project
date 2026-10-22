@@ -9,9 +9,10 @@ make up DEMO=shop      # from the monorepo root: install, seed, serve on :8006
 ```
 
 The first `up` loads Sylius's `default` fixtures, then `app:demo:load`: the
-Fashion homepage built with the builder, an *About us* page in English and
-French, a size guide on the *Bold Beach Cap*. Admin: `/admin`, `sylius` /
-`sylius`.
+Fashion homepage built with the builder (a product carousel, a section shown as
+a slider), an *About us* page in English and French, a size guide on the *Bold
+Beach Cap*, and a *Lookbook* folder in the media library (*Browse library* on
+any image field). Admin: `/admin`, `sylius` / `sylius`.
 
 By hand:
 
@@ -29,7 +30,8 @@ php -S 127.0.0.1:8006 -t public public/router.php
 What differs from a fresh Sylius-Standard, and why:
 
 - `config/routes/content_blocks.yaml`, `config/packages/content_blocks.yaml`
-  and the plugin in `config/bundles.php`: the install steps of the guide.
+  and the plugin in `config/bundles.php`: the install steps of the guide, with
+  the i18n, SEO and media packages.
 - `package.json` and `assets/controllers.json`: written by Flex from the
   packages' `assets/package.json`.
 - `webpack.config.mjs` adds this app's `node_modules` to `resolve.modules`, and

@@ -96,6 +96,28 @@ Sylius's existing endpoint (`sylius_admin_entity_autocomplete`) with
 `extra_options.choice_value: code` signed into the URL, which Sylius's
 `TranslatableAutocompleteType` honours.
 
+Catalog blocks opt into the preview's hot reload. Their views need no init
+pass of their own: the add-to-cart form is a Live component, which Stimulus
+connects when its markup enters the DOM, and the *Products* carousel is a core
+slider host (`data-cb-slider` + `data-cb-slider-track`), which `slider.js`
+finds through its `MutationObserver`. The carousel links that script through
+`BlockAssetsInterface`, so a public page without a slider section still loads
+it. Reusing the core slider rather than shipping a carousel script keeps one
+look, one set of labels and one accessibility model across the page.
+
+## The media library
+
+With `klehm/content-blocks-media`, the plugin mounts the library's routes under
+the admin prefix (`config/routes/media.yaml`), like the builder's, so the admin
+firewall covers them, and lets shop administrators manage it
+(`AdminMediaManager`, the same rule as `AdminAccessChecker`).
+
+The package aliases `MediaManagerInterface` to its deny-all default, and which
+of two extensions loads last depends on the bundle order, which Flex decides.
+`AdminMediaManagerPass` therefore swaps the alias at compile time, and only
+when it still points to `DenyAllMediaManager`: a host's own alias, written in
+its `services.yaml`, is left alone.
+
 ## Bootstrap markup for the kit
 
 The Sylius 2 shop is Bootstrap 5. `kit_markup: bootstrap` (the default) serves

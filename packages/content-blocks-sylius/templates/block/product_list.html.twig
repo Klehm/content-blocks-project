@@ -2,14 +2,26 @@
 {% if products is not empty %}
     {% set columns = data.columns|default(4) %}
     {% if data.layout|default('grid') == 'carousel' %}
-        {# Scroll-snap: no script, swipes on touch, arrow keys scroll it. #}
-        <div class="cb-sylius-products cb-sylius-products--carousel d-flex gap-4 overflow-x-auto pb-3"
-             style="scroll-snap-type: x mandatory;" tabindex="0">
-            {% for product in products %}
-                <div class="flex-shrink-0" style="scroll-snap-align: start; width: calc((100% - {{ columns - 1 }} * 1.5rem) / {{ columns }}); min-width: 12rem;">
-                    {{ component('sylius_shop:product:card', { product: product, template: '@SyliusShop/product/common/card.html.twig' }) }}
-                </div>
-            {% endfor %}
+        {# The core slider adds the arrows and dots; swiping needs no script. #}
+        <div class="cb-sylius-products cb-sylius-products--carousel" data-cb-slider="{{ {
+            controls: 'both',
+            autoplay: 0,
+            loop: false,
+            labels: {
+                carousel: 'cb.slider.carousel'|trans({}, 'content_blocks'),
+                slide: 'cb.slider.slide'|trans({}, 'content_blocks'),
+                previous: 'cb.slider.previous'|trans({}, 'content_blocks'),
+                next: 'cb.slider.next'|trans({}, 'content_blocks'),
+                goto: 'cb.slider.goto'|trans({}, 'content_blocks'),
+            },
+        }|json_encode }}">
+            <div class="d-flex gap-4" data-cb-slider-track>
+                {% for product in products %}
+                    <div class="flex-shrink-0" style="width: max(calc((100% - {{ columns - 1 }} * 1.5rem) / {{ columns }}), 15rem);">
+                        {{ component('sylius_shop:product:card', { product: product, template: '@SyliusShop/product/common/card.html.twig' }) }}
+                    </div>
+                {% endfor %}
+            </div>
         </div>
     {% else %}
         <div class="cb-sylius-products row row-cols-2 row-cols-md-{{ columns }} g-4">

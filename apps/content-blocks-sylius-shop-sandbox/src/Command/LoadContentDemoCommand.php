@@ -8,7 +8,10 @@ use ContentBlocks\Entity\Block;
 use ContentBlocks\Entity\Column;
 use ContentBlocks\Entity\ContentArea;
 use ContentBlocks\Entity\Section;
+use ContentBlocks\Media\Entity\Media;
+use ContentBlocks\Media\Entity\MediaFolder;
 use ContentBlocks\Publishing\ContentAreaPublisherInterface;
+use ContentBlocks\Storage\FileStorageInterface;
 use ContentBlocks\Sylius\Entity\ContentPage;
 use ContentBlocks\Sylius\Entity\ContentPageTranslation;
 use ContentBlocks\Sylius\Entity\ContentSlot;
@@ -21,11 +24,12 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Builder content on top of Sylius's `default` fixtures: the Fashion
- * homepage, an "About us" page in two languages, a product's own content.
- * Idempotent: what it seeded before is removed first.
+ * homepage, an "About us" page in two languages, a product's own content,
+ * and a Lookbook folder in the media library. Idempotent.
  */
 #[AsCommand(name: 'app:demo:load', description: 'Load the builder demo content of the Sylius shop')]
 final class LoadContentDemoCommand extends Command
@@ -33,10 +37,21 @@ final class LoadContentDemoCommand extends Command
     private const CHANNEL = 'FASHION_WEB';
     private const PRODUCT = 'Bold_Beach_Cap';
     private const TINT = '#f3f4f6';
+    private const LOOKBOOK = 'Lookbook';
+    private const PHOTOS = [
+        ['dresses/dress_06.webp', 'Beach days', 'Light dresses for long afternoons by the water.'],
+        ['t-shirts/woman/t-shirt_01_1.webp', 'Easy tees', 'Soft cotton, cut loose, in colours that fade well.'],
+        ['jeans/woman/jeans_01_1.webp', 'Denim, always', 'Five fits, one rule: it has to feel broken in.'],
+        ['caps/cap_01.webp', 'Made for the sun', 'Caps that keep their shape after a summer outside.'],
+        ['t-shirts/man/t-shirt_01_1.webp', 'Off duty', 'The shirt you reach for first, in organic cotton.'],
+    ];
 
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly ContentAreaPublisherInterface $publisher,
+        private readonly FileStorageInterface $storage,
+        #[Autowire('%kernel.project_dir%/vendor/sylius/sylius/src/Sylius/Bundle/CoreBundle/Resources/fixtures')]
+        private readonly string $photos,
     ) {
         parent::__construct();
     }
@@ -54,8 +69,9 @@ final class LoadContentDemoCommand extends Command
         $this->reset();
         $this->speakFrench($channel);
 
+        $lookbook = $this->lookbook();
         $areas = [
-            $this->homepage(),
+            $this->homepage($lookbook),
             $this->aboutPage($channel),
             $this->productContent(),
         ];
@@ -70,6 +86,7 @@ final class LoadContentDemoCommand extends Command
             'Homepage: /en_US/ (edit at /admin/content-blocks/homepage)',
             'About us: /en_US/pages/about-us, /fr_FR/pages/a-propos',
             'Product content: /en_US/products/bold-beach-cap',
+            'Media library: the Lookbook folder, from any image field of the builder',
         ]);
 
         return Command::SUCCESS;
@@ -86,7 +103,40 @@ final class LoadContentDemoCommand extends Command
                 $this->em->remove($slot);
             }
         }
+        foreach ($this->em->getRepository(MediaFolder::class)->findBy(['name' => self::LOOKBOOK, 'parent' => null]) as $folder) {
+            foreach ($this->em->getRepository(Media::class)->findBy(['folder' => $folder]) as $media) {
+                $this->storage->remove($media->getPath());
+                $this->em->remove($media);
+            }
+            $this->em->remove($folder);
+        }
         $this->em->flush();
+    }
+
+    /**
+     * Stored through the storage, as an upload is: the media package records
+     * each file. Then filed, titled and described.
+     *
+     * @return list<array{path: string, title: string, text: string}>
+     */
+    private function lookbook(): array
+    {
+        $folder = new MediaFolder(self::LOOKBOOK);
+        $this->em->persist($folder);
+        $photos = [];
+        foreach (self::PHOTOS as [$file, $title, $text]) {
+            $path = $this->storage->uploadFromString((string) file_get_contents($this->photos . '/' . $file), 'webp');
+            $media = $this->em->getRepository(Media::class)->findOneBy(['path' => $path]);
+            if ($media instanceof Media) {
+                $media->setTitle($title);
+                $media->setAlt($title);
+                $media->moveTo($folder);
+            }
+            $photos[] = ['path' => $path, 'title' => $title, 'text' => $text];
+        }
+        $this->em->flush();
+
+        return $photos;
     }
 
     /** The fixtures translate every product into French; the channel did not offer it. */
@@ -98,7 +148,8 @@ final class LoadContentDemoCommand extends Command
         }
     }
 
-    private function homepage(): ContentArea
+    /** @param list<array{path: string, title: string, text: string}> $lookbook */
+    private function homepage(array $lookbook): ContentArea
     {
         $slot = new ContentSlot(SlotType::HOMEPAGE, self::CHANNEL);
         $this->em->persist($slot);
@@ -132,7 +183,21 @@ final class LoadContentDemoCommand extends Command
         $this->block($col, 'title', ['text' => 'Shop by category', 'tag' => 'h2', 'size' => 'h2', 'color' => ''], 0);
         $this->block($col, 'taxon_list', ['source' => 'children', 'parent' => 'category', 'taxons' => [], 'columns' => 4], 1);
 
-        $jeans = $this->section($area, Section::LAYOUT_TWO_COLS, 3, $this->look(56, 72, self::TINT, '33,67'));
+        // A section shown as a slider: one column per slide.
+        $slider = $this->section($area, Section::LAYOUT_FULL, 3, $this->look(24, 56) + [
+            'display' => 'slider',
+            'sliderPerView' => ['desktop' => 3, 'tablet' => 2, 'mobile' => 1],
+            'sliderControls' => 'both',
+        ]);
+        foreach ($lookbook as $i => $photo) {
+            $col = $this->column($slider, 'col-4', $i);
+            $this->block($col, 'card', ['layout' => 'list', 'columns' => 3, 'items' => [[
+                'src' => $photo['path'], 'title' => $photo['title'], 'content' => $photo['text'],
+                'url' => '/en_US/taxons/category', 'buttonText' => 'Discover',
+            ]]], 0);
+        }
+
+        $jeans = $this->section($area, Section::LAYOUT_TWO_COLS, 4, $this->look(56, 72, self::TINT, '33,67'));
         $left = $this->column($jeans, 'col-4', 0);
         $this->block($left, 'title', ['text' => 'Denim for every day', 'tag' => 'h2', 'size' => 'h2', 'color' => ''], 0);
         $this->block($left, 'list', [

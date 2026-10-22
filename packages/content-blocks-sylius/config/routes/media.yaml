@@ -1,0 +1,5 @@
+# Only with klehm/content-blocks-media: the library's picker and its API,
+# behind the admin firewall.
+content_blocks_media:
+    resource: '@ContentBlocksMediaBundle/config/routes/bare.php'
+    prefix: '/%sylius_admin.path_name%/content-blocks/media'

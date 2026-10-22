@@ -217,6 +217,24 @@ final class AdminTest extends IntegrationTestCase
         self::assertStringContainsString('Blue mug', $option->text());
     }
 
+    public function testACatalogBlockIsSwappedInPlaceInTheBuilder(): void
+    {
+        $this->fixtures->product($this->channel(), 'MUG', 'Blue mug', 1999);
+        $page = $this->fixtures->page('about', ['en_US' => 'About us'], $this->channel());
+        $area = $page->getContentArea();
+        self::assertNotNull($area);
+        $block = $this->fixtures->block($area, 'product', ['product' => 'MUG', 'addToCart' => true]);
+        $this->clear();
+
+        $this->client->request('GET', sprintf('/admin/content-blocks/editor/block/%d/render', $block->getId()));
+
+        self::assertResponseIsSuccessful();
+        $body = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertIsArray($body);
+        self::assertTrue($body['hotReload']);
+        self::assertStringContainsString('Blue mug', $body['html']);
+    }
+
     public function testAnonymousVisitorsAreSentToTheLogin(): void
     {
         $this->client->getCookieJar()->clear();

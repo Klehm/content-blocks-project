@@ -33,6 +33,12 @@ abstract class AbstractCatalogBlock extends AbstractBlockType implements
         return '@ContentBlocksSyliusPlugin/block/' . $this->getType() . '.html.twig';
     }
 
+    /** Swapped markup works as is: Stimulus and the slider watch the DOM. */
+    public function supportsPreviewHotReload(): bool
+    {
+        return true;
+    }
+
     public function previewHint(array $data): ?BlockPreviewHint
     {
         return BlockPreviewHint::generic();
