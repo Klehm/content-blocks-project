@@ -106,6 +106,19 @@ final class CatalogBlocksTest extends IntegrationTestCase
         self::assertCount(1, $list);
         self::assertStringContainsString('In the taxon', $list->text());
         self::assertStringNotContainsString('Not in it', $list->text());
+        // The core slider gives it arrows and dots: its markup and its script.
+        self::assertCount(1, $list->filter('[data-cb-slider] > [data-cb-slider-track]'));
+        self::assertCount(1, $page->filter('script[type="module"][src*="/_content-blocks/public/slider"]'));
+    }
+
+    public function testAGridLoadsNoSliderScript(): void
+    {
+        $this->fixtures->product($this->channel, 'MUG', 'Blue mug', 1999);
+
+        $page = $this->render('product_list', ['source' => 'latest', 'limit' => 4, 'layout' => 'grid', 'columns' => 4]);
+
+        self::assertCount(0, $page->filter('[data-cb-slider]'));
+        self::assertCount(0, $page->filter('script[src*="/_content-blocks/public/slider"]'));
     }
 
     public function testTheLatestSourceHonoursTheLimit(): void

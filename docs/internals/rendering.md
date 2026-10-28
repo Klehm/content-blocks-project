@@ -458,6 +458,16 @@ when a section needs it — always in the builder, where a display can change
 under the editor. A module script runs once per URL, so two areas on a page
 still load it once.
 
+Any element with `data-cb-slider` and a `data-cb-slider-track` child is a host
+too, its track's children being the slides: a block gets the same controls
+without a second implementation (the Sylius product carousel). The scan looks
+at every `[data-cb-slider]`, plus the hosts already attached, so one that loses
+the attribute or leaves the DOM is torn down.
+
+Stops run to the last slide's edge rather than to `scrollWidth`: a slide's
+negative margin (a Bootstrap `.row` inside a card) overflows by a few pixels,
+and the slider showed a dot for that sliver.
+
 The script never decides whether a section is a slider: CSS does, and it reads
 the answer back (`scroll-snap-type` on the row). The breakpoints therefore live
 in one file. A `ResizeObserver` catches a range change; a `MutationObserver`

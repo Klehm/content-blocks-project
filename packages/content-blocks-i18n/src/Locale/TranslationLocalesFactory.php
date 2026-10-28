@@ -22,16 +22,17 @@ final class TranslationLocalesFactory
         array $labels = [],
         ?LocaleFallbacksProviderInterface $fallbacks = null,
     ): TranslationLocales {
-        $chains = [];
+        return TranslationLocales::deferred($sourceLocale, static function () use ($provider, $fallbacks): array {
+            $chains = [];
+            // A host provider may return one code where a list is expected.
+            foreach ($fallbacks?->getFallbacks() ?? [] as $locale => $chain) {
+                $chains[(string) $locale] = array_values(array_filter(
+                    (array) $chain,
+                    static fn ($code): bool => \is_string($code) && $code !== '',
+                ));
+            }
 
-        // A host provider may return one code where a list is expected.
-        foreach ($fallbacks?->getFallbacks() ?? [] as $locale => $chain) {
-            $chains[(string) $locale] = array_values(array_filter(
-                (array) $chain,
-                static fn ($code): bool => \is_string($code) && $code !== '',
-            ));
-        }
-
-        return new TranslationLocales($sourceLocale, $provider->getTargetLocales(), $labels, $chains);
+            return [$provider->getTargetLocales(), $chains];
+        }, $labels);
     }
 }

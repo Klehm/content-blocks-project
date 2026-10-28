@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A slider no longer shows a dot too many.** A slide's negative margin (a
+  Bootstrap `.row` in a card) widened the scrollable width by a few pixels,
+  which counted as one more stop. The last stop is now the last slide's edge.
 - **A value of the wrong shape no longer fails a whole paste.** A list where a
   string goes, a string where an object goes, or collection entries written
   as strings (a forged clipboard entry, or a language model) used to end in a
@@ -31,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shows once, so a host already passing them sees no duplicate.
 
 ### Added
+
+- **The slider works outside a section.** `slider.js` gives its arrows, dots
+  and ARIA roles to any element with `data-cb-slider` and a child marked
+  `data-cb-slider-track`, whose children are the slides. A block links the
+  script through its assets (`cb_asset_path('slider')`).
 
 - **`cb:focus`, a third inbound builder event.** Dispatched at the builder with
   `{kind: 'block' | 'section', id}`, it selects that element the way a click

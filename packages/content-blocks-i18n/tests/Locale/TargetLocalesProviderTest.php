@@ -45,7 +45,7 @@ final class TargetLocalesProviderTest extends TestCase
         $this->assertSame('English (source)', $locales->getLabel('en'));
     }
 
-    public function testTheProviderIsAskedOnce(): void
+    public function testTheProviderIsAskedOnceOnFirstUse(): void
     {
         $provider = new class () implements TargetLocalesProviderInterface {
             public int $calls = 0;
@@ -59,6 +59,12 @@ final class TargetLocalesProviderTest extends TestCase
         };
 
         $locales = TranslationLocalesFactory::create('en', $provider);
+        // Not while the container builds the service: a provider reading the
+        // database would break every console command run without one.
+        $this->assertSame(0, $provider->calls);
+        $this->assertSame('en', $locales->getSourceLocale());
+        $this->assertSame(0, $provider->calls);
+
         $locales->getTargetLocales();
         $locales->isTarget('fr');
         $locales->toArray();

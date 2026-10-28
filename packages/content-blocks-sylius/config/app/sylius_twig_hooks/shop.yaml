@@ -5,6 +5,10 @@ sylius_twig_hooks:
             content_blocks_kit:
                 template: '@ContentBlocksSyliusPlugin/shop/kit_stylesheet.html.twig'
                 priority: -100
+            # The plugin's own look for the slider controls.
+            content_blocks_sylius:
+                template: '@ContentBlocksSyliusPlugin/shop/stylesheet.html.twig'
+                priority: -110
 
         'content_blocks_sylius.shop.page.show':
             content:

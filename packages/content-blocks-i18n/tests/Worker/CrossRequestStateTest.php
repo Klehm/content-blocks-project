@@ -30,6 +30,9 @@ final class CrossRequestStateTest extends TestCase
     private const CONTAINER_LIFETIME = [
         \ContentBlocks\I18n\Machine\TranslationProviderRegistry::class =>
             'Indexes the tagged translation providers by name; holds services only.',
+        \ContentBlocks\I18n\Locale\TranslationLocales::class =>
+            'Reads the host provider once, on first use, then never changes: '
+            . 'one list per container, as documented for the provider.',
     ];
 
     public function testNoUndeclaredCrossRequestState(): void

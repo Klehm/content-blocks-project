@@ -455,12 +455,27 @@
     }
 }
 
+/* Any other host scrolls its track whenever it overflows. */
+[data-cb-slider-track] {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+}
+[data-cb-slider-track] > * {
+    scroll-snap-align: start;
+}
+[data-cb-slider-track] ~ .cb-slider__controls {
+    display: flex;
+}
+
 /* Controls are built by slider.js, which also hides the scrollbar once
    they exist: without them it is the only affordance left. */
-.cb-slider--enhanced > .cb-row {
+.cb-slider--enhanced > .cb-row,
+.cb-slider--enhanced > [data-cb-slider-track] {
     scrollbar-width: none;
 }
-.cb-slider--enhanced > .cb-row::-webkit-scrollbar {
+.cb-slider--enhanced > .cb-row::-webkit-scrollbar,
+.cb-slider--enhanced > [data-cb-slider-track]::-webkit-scrollbar {
     display: none;
 }
 .cb-slider__controls {

@@ -479,6 +479,27 @@ the slides visible at the current width (resolved from `--cb-slides-d/t/m`),
 and `--cb-slide-gap`, which follows the section's column gap. Override the gap
 to space slides apart from the grid's gutter; set the count in the sidebar.
 
+#### A slider in your own block
+
+The same script gives its controls to any element carrying `data-cb-slider`
+with a direct child marked `data-cb-slider-track`: each child of the track is a
+slide. The track scrolls and snaps on its own (`layout.css`); size the slides
+yourself. The attribute takes the section's options as JSON, `labels` included
+(the `cb.slider.*` keys of the `content_blocks` domain):
+
+```twig
+<div data-cb-slider="{{ { controls: 'both', autoplay: 0, loop: false }|json_encode }}">
+    <div class="my-cards" data-cb-slider-track>
+        {% for card in cards %}<div style="flex: 0 0 18rem">…</div>{% endfor %}
+    </div>
+</div>
+```
+
+Link the script from the block's [assets](./custom-blocks.md#css-and-js-a-block-needs),
+as a module: `content_blocks_asset_slider`, the URL `cb_asset_path('slider')`
+returns. A page loads it once whatever links it. The Sylius plugin's *Products*
+carousel is built this way.
+
 ### Order per viewport
 
 With the builder preview on tablet or mobile, dragging a section, or a block

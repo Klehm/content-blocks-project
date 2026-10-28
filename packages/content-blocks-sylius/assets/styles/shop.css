@@ -1,0 +1,82 @@
+/* The plugin's shop stylesheet, linked in the <head> by a twig hook. The
+   core's layout.css comes later in the page: selectors here outrank it. */
+
+/* Slider controls: round tinted arrows with a drawn chevron, dots that
+   stretch into a pill for the current slide. */
+.cb-slider--enhanced > .cb-slider__controls {
+    gap: 1rem;
+    margin-top: var(--cb-slider-gap, 1.5rem);
+}
+.cb-slider--enhanced > .cb-slider__controls .cb-slider__arrow {
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 0;
+    background: rgb(127 127 127 / 0.12);
+    background: color-mix(in srgb, currentColor 8%, transparent);
+    font-size: 0;
+    transition: background-color 0.2s, opacity 0.2s, transform 0.15s;
+}
+.cb-slider--enhanced > .cb-slider__controls .cb-slider__arrow::before {
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    border: solid currentColor;
+    border-width: 0 0 2px 2px;
+    transform: translateX(2px) rotate(45deg);
+}
+.cb-slider--enhanced > .cb-slider__controls .cb-slider__arrow--next::before {
+    transform: translateX(-2px) rotate(-135deg);
+}
+.cb-slider--enhanced > .cb-slider__controls .cb-slider__arrow:hover:not(:disabled) {
+    background: color-mix(in srgb, currentColor 16%, transparent);
+}
+.cb-slider--enhanced > .cb-slider__controls .cb-slider__arrow:active:not(:disabled) {
+    transform: scale(0.94);
+}
+.cb-slider--enhanced > .cb-slider__controls .cb-slider__arrow:disabled {
+    opacity: 0.3;
+}
+.cb-slider--enhanced > .cb-slider__controls .cb-slider__dots {
+    gap: 0;
+}
+/* The button is the hit area; the visible dot is its ::before. */
+.cb-slider--enhanced > .cb-slider__controls .cb-slider__dot {
+    position: relative;
+    width: 1.25rem;
+    height: 1.5rem;
+    border-radius: 0;
+    background: none;
+    color: inherit;
+    opacity: 1;
+    transition: width 0.3s;
+}
+.cb-slider--enhanced > .cb-slider__controls .cb-slider__dot::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.25;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, opacity 0.3s;
+}
+.cb-slider--enhanced > .cb-slider__controls .cb-slider__dot:hover::before {
+    opacity: 0.5;
+}
+.cb-slider--enhanced > .cb-slider__controls .cb-slider__dot[aria-current="true"] {
+    width: 2.25rem;
+}
+.cb-slider--enhanced > .cb-slider__controls .cb-slider__dot[aria-current="true"]::before {
+    width: 1.5rem;
+    opacity: 0.85;
+}
+@media (prefers-reduced-motion: reduce) {
+    .cb-slider--enhanced > .cb-slider__controls .cb-slider__arrow,
+    .cb-slider--enhanced > .cb-slider__controls .cb-slider__dot,
+    .cb-slider--enhanced > .cb-slider__controls .cb-slider__dot::before {
+        transition: none;
+    }
+}

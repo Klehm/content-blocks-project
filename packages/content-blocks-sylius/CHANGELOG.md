@@ -19,7 +19,14 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Catalog blocks in a *Shop* picker group: `product`, `product_list`
     (chosen, taxon or latest; grid or carousel), `product_price`,
     `add_to_cart` and `taxon_list`. They store codes and render through the
-    shop's own Twig components.
+    shop's own Twig components, and are swapped in place in the builder's
+    preview, without a reload. The carousel has the core slider's arrows and
+    dots.
+  - A shop stylesheet of its own (hookable `content_blocks_sylius`): the
+    sliders' controls as round tinted arrows and dots that stretch into a
+    pill, for the carousel and for sections shown as a slider.
+  - The builder's images through the shop's LiipImagine: sized WebP with a
+    `srcset`, media library thumbnails included (`images: true`, the default).
   - Bootstrap 5 markup for twelve kit blocks (`kit_markup: bootstrap`, the
     default); a host's own kit template overrides still win.
   - The builder's sidebar posts to Sylius's admin Live route, which every
@@ -28,3 +35,7 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     administrators, preview URLs, the *Insert content* list, and with
     `klehm/content-blocks-i18n` the translation targets (the locales of every
     enabled channel), the page URLs and the workbench's way back.
+  - With `klehm/content-blocks-media`, the media library in the builder: its
+    routes under the admin prefix (`config/routes/media.yaml`), and shop
+    administrators allowed to manage it unless the host names its own
+    manager.
