@@ -98,8 +98,9 @@ final class ChannelTargetLocales implements TargetLocalesProviderInterface
 - **The codes under `locales` are ignored once you alias the provider, but
   their labels still apply.** Keep `- { code: de, label: 'Deutsch' }` entries to
   name a language your provider returns. Without a label, `ext-intl` names it.
-- **It is called once per container.** Under PHP-FPM that means once per
-  request, so keep it to one cheap query. Under a [worker runtime](./worker-mode.md)
+- **It is called once per container, on first use.** Under PHP-FPM that
+  means at most once per request, so keep it to one cheap query. Booting the
+  app, a console command included, does not call it. Under a [worker runtime](./worker-mode.md)
   it is called once for the worker's whole lifetime: a locale you add appears
   after the workers restart.
 

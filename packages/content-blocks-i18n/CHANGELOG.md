@@ -7,6 +7,14 @@ this package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A target locales provider reading the database no longer breaks the
+  console.** The provider ran as soon as the container built the locales
+  service, which any command touching Twig does; without a database (a
+  `composer install` in a Docker build), `cache:clear` failed. It now runs on
+  first use.
+
 ### Added
 
 - **The headless render is translated** like the HTML page (core 1.6): the

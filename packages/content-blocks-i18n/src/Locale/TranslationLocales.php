@@ -9,11 +9,22 @@ namespace ContentBlocks\I18n\Locale;
  * in. **The source locale is not a target** — that asymmetry lives here only.
  *
  * @see docs/internals/i18n.md#config-and-mounting
+ *
+ * @phpstan-type Loaded array{
+ *     0: list<string>,
+ *     1: array<string, list<string>>,
+ * }
  */
 final class TranslationLocales
 {
-    /** @var list<string> */
-    private readonly array $targets;
+    /** @var list<string>|null null until {@see self::$load} has run */
+    private ?array $targets;
+
+    /** @var array<string, list<string>>|null */
+    private ?array $fallbacks;
+
+    /** @var (\Closure(): Loaded)|null */
+    private ?\Closure $load = null;
 
     /**
      * @param list<string>                $locales
@@ -24,14 +35,31 @@ final class TranslationLocales
         private readonly string $sourceLocale,
         array $locales,
         private readonly array $labels = [],
-        private readonly array $fallbacks = [],
+        array $fallbacks = [],
     ) {
-        // The source may or may not appear in the configured list; either
-        // spelling is natural, so accept both and normalize here.
-        $this->targets = array_values(array_unique(array_filter(
-            $locales,
-            fn (string $locale): bool => $locale !== $sourceLocale && $locale !== '',
-        )));
+        $this->targets = self::normalize($locales, $sourceLocale);
+        $this->fallbacks = $fallbacks;
+    }
+
+    /**
+     * The targets and chains read on first use: a provider querying the
+     * database must not run while the container merely builds a service.
+     *
+     * @internal built by {@see TranslationLocalesFactory}
+     *
+     * @param \Closure(): Loaded     $load   targets, then fallback chains
+     * @param array<string, string> $labels
+     *
+     * @see docs/internals/i18n.md#config-and-mounting
+     */
+    public static function deferred(string $sourceLocale, \Closure $load, array $labels = []): self
+    {
+        $locales = new self($sourceLocale, [], $labels);
+        $locales->targets = null;
+        $locales->fallbacks = null;
+        $locales->load = $load;
+
+        return $locales;
     }
 
     public function getSourceLocale(): string
@@ -42,7 +70,7 @@ final class TranslationLocales
     /** @return list<string> */
     public function getTargetLocales(): array
     {
-        return $this->targets;
+        return $this->targets();
     }
 
     /**
@@ -52,12 +80,12 @@ final class TranslationLocales
      */
     public function getAllLocales(): array
     {
-        return [$this->sourceLocale, ...$this->targets];
+        return [$this->sourceLocale, ...$this->targets()];
     }
 
     public function isTarget(string $locale): bool
     {
-        return \in_array($locale, $this->targets, true);
+        return \in_array($locale, $this->targets(), true);
     }
 
     public function isSource(string $locale): bool
@@ -82,7 +110,7 @@ final class TranslationLocales
     {
         // A provider can drop a locale the config still names: skip it.
         return array_values(array_unique(array_filter(
-            $this->fallbacks[$locale] ?? [],
+            $this->chains()[$locale] ?? [],
             fn (string $fallback): bool => $fallback !== $locale && $this->isTarget($fallback),
         )));
     }
@@ -123,5 +151,48 @@ final class TranslationLocales
             ],
             $this->getAllLocales(),
         );
+    }
+
+    /** @return list<string> */
+    private function targets(): array
+    {
+        $this->resolve();
+
+        return $this->targets ?? [];
+    }
+
+    /** @return array<string, list<string>> */
+    private function chains(): array
+    {
+        $this->resolve();
+
+        return $this->fallbacks ?? [];
+    }
+
+    private function resolve(): void
+    {
+        if ($this->load === null) {
+            return;
+        }
+        [$locales, $fallbacks] = ($this->load)();
+        $this->load = null;
+        $this->targets = self::normalize($locales, $this->sourceLocale);
+        $this->fallbacks = $fallbacks;
+    }
+
+    /**
+     * The source may or may not appear in the list; either spelling is
+     * natural, so accept both.
+     *
+     * @param list<string> $locales
+     *
+     * @return list<string>
+     */
+    private static function normalize(array $locales, string $sourceLocale): array
+    {
+        return array_values(array_unique(array_filter(
+            $locales,
+            static fn (string $locale): bool => $locale !== $sourceLocale && $locale !== '',
+        )));
     }
 }
